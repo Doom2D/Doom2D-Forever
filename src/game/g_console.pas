@@ -641,7 +641,7 @@ begin
         act := gInputBinds[i].commands[0];
         for j := 1 to High(gInputBinds[i].commands) do
           act := act + ' ;' + gInputBinds[i].commands[j];
-        g_Console_Add('"' + LowerCase(e_KeyNames[i]) + '" "' + act + '"')
+        g_Console_Add(e_KeyNames[i] + ' "' + act + '"')
       end
     end;
   'unbind':
@@ -658,10 +658,6 @@ begin
     for i := 0 to e_MaxInputKeys - 1 do
       if gInputBinds[i].commands <> nil then
         gInputBinds[i].commands := nil;
-  'bindkeys':
-    for i := 0 to e_MaxInputKeys - 1 do
-      if e_KeyNames[i] <> '' then
-        g_Console_Add(LowerCase(e_KeyNames[i]));
   end
 end;
 
@@ -1777,7 +1773,7 @@ begin
       act := gInputBinds[i].commands[0];
       for j := 1 to High(gInputBinds[i].commands) do
         act := act + '; ' + gInputBinds[i].commands[j];
-      WriteLn(f, 'bind "', LowerCase(e_KeyNames[i]), '" "', act, '"')
+      WriteLn(f, 'bind ', e_KeyNames[i], ' "', act, '"')
     end
   end;
   for i := 0 to High(commands) do

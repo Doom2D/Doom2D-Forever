@@ -46,6 +46,7 @@ const
   IK_RETURN  = SDL_SCANCODE_RETURN;
   IK_KPRETURN= SDL_SCANCODE_KP_ENTER;
   IK_ENTER   = SDL_SCANCODE_RETURN;
+  IK_KPINSERT = SDL_SCANCODE_KP_0;
   IK_UP      = SDL_SCANCODE_UP;
   IK_KPUP    = SDL_SCANCODE_KP_8;
   IK_DOWN    = SDL_SCANCODE_DOWN;
@@ -67,6 +68,33 @@ const
   IK_KPPAGEUP= SDL_SCANCODE_KP_9;
   IK_PAGEDN  = SDL_SCANCODE_PAGEDOWN;
   IK_KPPAGEDN= SDL_SCANCODE_KP_3;
+  IK_KP5     = SDL_SCANCODE_KP_5;
+  IK_NUMLOCK = SDL_SCANCODE_NUMLOCKCLEAR;
+  IK_KPDIVIDE= SDL_SCANCODE_KP_DIVIDE;
+  IK_KPMULTIPLE= SDL_SCANCODE_KP_MULTIPLY;
+  IK_KPMINUS = SDL_SCANCODE_KP_MINUS;
+  IK_KPPLUS  = SDL_SCANCODE_KP_PLUS;
+  IK_KPENTER = SDL_SCANCODE_KP_ENTER;
+  IK_KPDOT   = SDL_SCANCODE_KP_PERIOD;
+  IK_CAPSLOCK= SDL_SCANCODE_CAPSLOCK;
+  IK_RSHIFT  = SDL_SCANCODE_RSHIFT;
+  IK_CTRL    = SDL_SCANCODE_LCTRL;
+  IK_RCTRL   = SDL_SCANCODE_RCTRL;
+  IK_RALT    = SDL_SCANCODE_RALT;
+  IK_WIN     = SDL_SCANCODE_LGUI;
+  IK_RWIN    = SDL_SCANCODE_RGUI;
+  IK_MENU    = SDL_SCANCODE_MENU;
+  IK_PRINTSCR= SDL_SCANCODE_PRINTSCREEN;
+  IK_SCROLLLOCK= SDL_SCANCODE_SCROLLLOCK;
+  IK_LBRACKET= SDL_SCANCODE_LEFTBRACKET;
+  IK_RBRACKET= SDL_SCANCODE_RIGHTBRACKET;
+  IK_SEMICOLON= SDL_SCANCODE_SEMICOLON;
+  IK_QUOTE   = SDL_SCANCODE_APOSTROPHE;
+  IK_BACKSLASH= SDL_SCANCODE_BACKSLASH;
+  IK_SLASH   = SDL_SCANCODE_SLASH;
+  IK_COMMA   = SDL_SCANCODE_COMMA;
+  IK_DOT     = SDL_SCANCODE_PERIOD;
+  IK_EQUALS  = SDL_SCANCODE_EQUALS;
   IK_0      = SDL_SCANCODE_0;
   IK_1      = SDL_SCANCODE_1;
   IK_2      = SDL_SCANCODE_2;
@@ -106,6 +134,7 @@ const
   IK_H       = SDL_SCANCODE_H;
   IK_J       = SDL_SCANCODE_J;
   IK_T       = SDL_SCANCODE_T;
+  IK_Z       = SDL_SCANCODE_Z;
   IK_MINUS   = SDL_SCANCODE_MINUS;
   // TODO: think of something better than this shit
   IK_LASTKEY = SDL_NUM_SCANCODES-1;
@@ -326,8 +355,89 @@ var
   i, j, k: LongWord;
 begin
   // keyboard key names
-  for i := 0 to IK_LASTKEY do
-    e_KeyNames[i] := SDL_GetScancodeName(i);
+  e_KeyNames[IK_0] := '0';
+  e_KeyNames[IK_1] := '1';
+  e_KeyNames[IK_2] := '2';
+  e_KeyNames[IK_3] := '3';
+  e_KeyNames[IK_4] := '4';
+  e_KeyNames[IK_5] := '5';
+  e_KeyNames[IK_6] := '6';
+  e_KeyNames[IK_7] := '7';
+  e_KeyNames[IK_8] := '8';
+  e_KeyNames[IK_9] := '9';
+  for i := IK_A to IK_Z do
+    e_KeyNames[i] := '' + chr(ord('a') + (i - IK_a));
+  e_KeyNames[IK_ESCAPE] := 'ESCAPE';
+  e_KeyNames[IK_ENTER] := 'ENTER';
+  e_KeyNames[IK_TAB] := 'TAB';
+  e_KeyNames[IK_BACKSPACE] := 'BACKSPACE';
+  e_KeyNames[IK_SPACE] := 'SPACE';
+  e_KeyNames[IK_UP] := 'UP';
+  e_KeyNames[IK_LEFT] := 'LEFT';
+  e_KeyNames[IK_RIGHT] := 'RIGHT';
+  e_KeyNames[IK_DOWN] := 'DOWN';
+  e_KeyNames[IK_INSERT] := 'INSERT';
+  e_KeyNames[IK_DELETE] := 'DELETE';
+  e_KeyNames[IK_HOME] := 'HOME';
+  e_KeyNames[IK_END] := 'END';
+  e_KeyNames[IK_PAGEUP] := 'PGUP';
+  e_KeyNames[IK_PAGEDN] := 'PGDOWN';
+  e_KeyNames[IK_KPINSERT] := 'PAD0';
+  e_KeyNames[IK_KPEND] := 'PAD1';
+  e_KeyNames[IK_KPDOWN] := 'PAD2';
+  e_KeyNames[IK_KPPAGEDN] := 'PAD3';
+  e_KeyNames[IK_KPLEFT] := 'PAD4';
+  e_KeyNames[IK_KP5] := 'PAD5';
+  e_KeyNames[IK_KPRIGHT] := 'PAD6';
+  e_KeyNames[IK_KPHOME] := 'PAD7';
+  e_KeyNames[IK_KPUP] := 'PAD8';
+  e_KeyNames[IK_KPPAGEUP] := 'PAD9';
+  e_KeyNames[IK_NUMLOCK] := 'NUM';
+  e_KeyNames[IK_KPDIVIDE] := 'PAD/';
+  e_KeyNames[IK_KPMULTIPLE] := 'PAD*';
+  e_KeyNames[IK_KPMINUS] := 'PAD-';
+  e_KeyNames[IK_KPPLUS] := 'PAD+';
+  e_KeyNames[IK_KPENTER] := 'PADENTER';
+  e_KeyNames[IK_KPDOT] := 'PAD.';
+  e_KeyNames[IK_CAPSLOCK] := 'CAPS';
+  e_KeyNames[IK_BACKQUOTE] := 'BACKQUOTE';
+  e_KeyNames[IK_F1] := 'F1';
+  e_KeyNames[IK_F2] := 'F2';
+  e_KeyNames[IK_F3] := 'F3';
+  e_KeyNames[IK_F4] := 'F4';
+  e_KeyNames[IK_F5] := 'F5';
+  e_KeyNames[IK_F6] := 'F6';
+  e_KeyNames[IK_F7] := 'F7';
+  e_KeyNames[IK_F8] := 'F8';
+  e_KeyNames[IK_F9] := 'F9';
+  e_KeyNames[IK_F10] := 'F10';
+  e_KeyNames[IK_F11] := 'F11';
+  e_KeyNames[IK_F12] := 'F12';
+  e_KeyNames[IK_SHIFT] := 'LSHIFT';
+  e_KeyNames[IK_RSHIFT] := 'RSHIFT';
+  e_KeyNames[IK_CTRL] := 'LCTRL';
+  e_KeyNames[IK_RCTRL] := 'RCTRL';
+  e_KeyNames[IK_ALT] := 'LALT';
+  e_KeyNames[IK_RALT] := 'RALT';
+  e_KeyNames[IK_WIN] := 'LWIN';
+  e_KeyNames[IK_RWIN] := 'RWIN';
+  e_KeyNames[IK_MENU] := 'MENU';
+  e_KeyNames[IK_PRINTSCR] := 'PSCRN';
+  e_KeyNames[IK_SCROLLLOCK] := 'SCROLL';
+  e_KeyNames[IK_PAUSE] := 'PAUSE';
+  e_KeyNames[IK_LBRACKET] := '[';
+  e_KeyNames[IK_RBRACKET] := ']';
+  e_KeyNames[IK_SEMICOLON] := ';';
+  e_KeyNames[IK_QUOTE] := '''';
+  e_KeyNames[IK_BACKSLASH] := '\';
+  e_KeyNames[IK_SLASH] := '/';
+  e_KeyNames[IK_COMMA] := ',';
+  e_KeyNames[IK_DOT] := '.';
+  e_KeyNames[IK_MINUS] := '-';
+  e_KeyNames[IK_EQUALS] := '=';
+
+  //for i := 0 to IK_LASTKEY do
+  //  e_KeyNames[i] := SDL_GetScancodeName(i);
 
   // joysticks
   for j := 0 to e_MaxJoys-1 do
@@ -335,28 +445,28 @@ begin
     k := JOYK_BEG + j * e_MaxJoyBtns;
     // buttons
     for i := 0 to e_MaxJoyBtns-1 do
-      e_KeyNames[k + i] := Format('JOY%d B%d', [j, i]);
+      e_KeyNames[k + i] := Format('JOY%dB%d', [j, i]);
     k := JOYA_BEG + j * e_MaxJoyAxes * 2;
     // axes
     for i := 0 to e_MaxJoyAxes-1 do
     begin
-      e_KeyNames[k + i*2    ] := Format('JOY%d A%d+', [j, i]);
-      e_KeyNames[k + i*2 + 1] := Format('JOY%d A%d-', [j, i]);
+      e_KeyNames[k + i*2    ] := Format('JOY%dA%d+', [j, i]);
+      e_KeyNames[k + i*2 + 1] := Format('JOY%dA%d-', [j, i]);
     end;
     k := JOYH_BEG + j * e_MaxJoyHats * 4;
     // hats
     for i := 0 to e_MaxJoyHats-1 do
     begin
-      e_KeyNames[k + i*4    ] := Format('JOY%d D%dL', [j, i]);
-      e_KeyNames[k + i*4 + 1] := Format('JOY%d D%dU', [j, i]);
-      e_KeyNames[k + i*4 + 2] := Format('JOY%d D%dR', [j, i]);
-      e_KeyNames[k + i*4 + 3] := Format('JOY%d D%dD', [j, i]);
+      e_KeyNames[k + i*4    ] := Format('JOY%dD%dL', [j, i]);
+      e_KeyNames[k + i*4 + 1] := Format('JOY%dD%dU', [j, i]);
+      e_KeyNames[k + i*4 + 2] := Format('JOY%dD%dR', [j, i]);
+      e_KeyNames[k + i*4 + 3] := Format('JOY%dD%dD', [j, i]);
     end;
   end;
 
   // vitrual keys
   for i := 0 to e_MaxVirtKeys-1 do
-    e_KeyNames[VIRT_BEG + i] := 'VIRTUAL ' + IntToStr(i);
+    e_KeyNames[VIRT_BEG + i] := 'VIRTUAL' + IntToStr(i);
 end;
 
 function e_InitInput(): Boolean;
@@ -589,5 +699,6 @@ begin
   if id >= e_MaxJoys then Exit;
   Result := JOYH_BEG + id*e_MaxJoyHats*4 + hat*4 + dir;
 end;
+
 
 end.
