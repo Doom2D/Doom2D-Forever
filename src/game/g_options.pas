@@ -21,46 +21,6 @@ interface
 uses
   g_language, g_weapons;
 
-type
-  TPlayerControl = record
-    KeyRight:      Word;
-    KeyLeft:       Word;
-    KeyUp:         Word;
-    KeyDown:       Word;
-    KeyFire:       Word;
-    KeyJump:       Word;
-    KeyNextWeapon: Word;
-    KeyPrevWeapon: Word;
-    KeyOpen:       Word;
-    KeyStrafe:     Word;
-    KeyWeapon:     array [WP_FIRST..WP_LAST] of Word;
-
-    KeyRight2:      Word;
-    KeyLeft2:       Word;
-    KeyUp2:         Word;
-    KeyDown2:       Word;
-    KeyFire2:       Word;
-    KeyJump2:       Word;
-    KeyNextWeapon2: Word;
-    KeyPrevWeapon2: Word;
-    KeyOpen2:       Word;
-    KeyStrafe2:     Word;
-    KeyWeapon2:     array [WP_FIRST..WP_LAST] of Word;
-  end;
-
-  TGameControls = record
-    TakeScreenshot: Word;
-    Stat:           Word;
-    Chat:           Word;
-    TeamChat:       Word;
-  end;
-
-  TControls = record
-    GameControls: TGameControls;
-    P1Control:    TPlayerControl;
-    P2Control:    TPlayerControl;
-  end;
-
 function GenPlayerName (n: Integer): String;
 
 procedure g_Options_SetDefault();
@@ -76,7 +36,7 @@ procedure g_Options_Write_Net_Client(FileName: String);
 const DF_Default_Megawad_Start = 'megawads/DOOM2D.WAD:\MAP01';
 
 var
-  gGameControls: TControls;
+//  gGameControls: TControls;
   gScreenWidth: Word;
   gScreenHeight: Word;
   gWinRealPosX: Integer;
@@ -137,7 +97,7 @@ implementation
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
-  e_log, e_input, g_window, g_sound, g_gfx, g_player, Math,
+  e_log, e_input, g_console, g_window, g_sound, g_gfx, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_texture,
   g_items, wadreader, e_graphics, g_touch, SDL2, envvars;
 
@@ -204,6 +164,7 @@ begin
   gTextureFilter := True;
   glLegacyNPOT := False;
   e_LogWriteLn('g_Options_SetDefaultVideo: w = ' + IntToStr(gScreenWidth) + ' h = ' + IntToStr(gScreenHeight));
+  g_Console_ResetBinds
 end;
 
 procedure g_Options_SetDefault();
@@ -224,56 +185,6 @@ begin
 
   g_Sound_SetupAllVolumes(gSoundLevel, gMusicLevel);
 
-  (* section GameControls *)
-  with gGameControls.GameControls do
-  begin
-    TakeScreenshot := SDL_SCANCODE_F12;
-    Stat := SDL_SCANCODE_TAB;
-    Chat := SDL_SCANCODE_T;
-    TeamChat := SDL_SCANCODE_Y;
-  end;
-
-  (* section Player1 *)
-  with gGameControls.P1Control do
-  begin
-    KeyRight := SDL_SCANCODE_KP_6;
-    KeyLeft := SDL_SCANCODE_KP_4;
-    KeyUp := SDL_SCANCODE_KP_8;
-    KeyDown := SDL_SCANCODE_KP_5;
-    KeyFire := SDL_SCANCODE_SLASH;
-    KeyJump := SDL_SCANCODE_RCTRL;
-    KeyNextWeapon := SDL_SCANCODE_KP_9;
-    KeyPrevWeapon := SDL_SCANCODE_KP_7;
-    KeyOpen := SDL_SCANCODE_RSHIFT;
-    KeyStrafe := SDL_SCANCODE_PERIOD;
-
-    for i := 0 to 9 do
-    begin
-      KeyWeapon[i] := SDL_SCANCODE_1 + i (* 1, ..., 9, 0 *)
-    end;
-    KeyWeapon[10] := SDL_SCANCODE_MINUS;
-    for i := 11 to High(KeyWeapon) do
-    begin
-      KeyWeapon[i] := 0
-    end;
-
-    KeyRight2 := VK_RIGHT;
-    KeyLeft2 := VK_LEFT;
-    KeyUp2 := VK_UP;
-    KeyDown2 := VK_DOWN;
-    KeyFire2 := VK_FIRE;
-    KeyJump2 := VK_JUMP;
-    KeyNextWeapon2 := VK_NEXT;
-    KeyPrevWeapon2 := VK_PREV;
-    KeyOpen2 := VK_OPEN;
-    KeyStrafe2 := VK_STRAFE;
-
-    for i := 0 to High(KeyWeapon2) do
-    begin
-      KeyWeapon2[i] := VK_0 + i
-    end;
-  end;
-
   with gPlayer1Settings do
   begin
     Name := GenPlayerName(1);
@@ -282,41 +193,6 @@ begin
     Color.G := PLAYER1_DEF_COLOR.G;
     Color.B := PLAYER1_DEF_COLOR.B;
     Team := TEAM_RED;
-  end;
-
-  (* section Player2 *)
-  with gGameControls.P2Control do
-  begin
-    KeyRight := SDL_SCANCODE_D;
-    KeyLeft := SDL_SCANCODE_A;
-    KeyUp := SDL_SCANCODE_W;
-    KeyDown := SDL_SCANCODE_S;
-    KeyFire := SDL_SCANCODE_G;
-    KeyJump := SDL_SCANCODE_SPACE;
-    KeyNextWeapon := SDL_SCANCODE_E;
-    KeyPrevWeapon := SDL_SCANCODE_Q;
-    KeyOpen := SDL_SCANCODE_F;
-    KeyStrafe := SDL_SCANCODE_LSHIFT;
-    for i := 0 to High(KeyWeapon) do
-    begin
-      KeyWeapon[i] := 0
-    end;
-
-    KeyRight2 := 0;
-    KeyLeft2 := 0;
-    KeyUp2 := 0;
-    KeyDown2 := 0;
-    KeyFire2 := 0;
-    KeyJump2 := 0;
-    KeyNextWeapon2 := 0;
-    KeyPrevWeapon2 := 0;
-    KeyOpen2 := 0;
-    KeyStrafe2 := 0;
-
-    for i := 0 to High(KeyWeapon2) do
-    begin
-      KeyWeapon2[i] := 0;
-    end
   end;
 
   with gPlayer2Settings do
@@ -335,12 +211,6 @@ begin
     e_JoystickDeadzones[i] := 8192
   end;
 
-  (* section Touch *)
-  g_touch_size := 1.0;
-  g_touch_fire := True;
-  g_touch_offset := 50;
-  g_touch_alt := False;
-  
   (* section Game *)
   g_GFX_SetMax(2000);
   g_Shells_SetMax(300);
@@ -495,51 +365,6 @@ begin
   ReadInteger(gsSDLSampleRate, 'SDLSampleRate', 11025, 96000);
   ReadInteger(gsSDLBufferSize, 'SDLBufferSize', 64, 16384);
 
-  section := 'GameControls';
-  with gGameControls.GameControls do
-  begin
-    ReadInteger(TakeScreenshot, 'TakeScreenshot');
-    ReadInteger(Stat, 'Stat');
-    ReadInteger(Chat, 'Chat');
-    ReadInteger(TeamChat, 'TeamChat');
-  end;
-
-  section := 'Player1';
-  with gGameControls.P1Control do
-  begin
-    ReadInteger(KeyRight, 'KeyRight');
-    ReadInteger(KeyLeft, 'KeyLeft');
-    ReadInteger(KeyUp, 'KeyUp');
-    ReadInteger(KeyDown, 'KeyDown');
-    ReadInteger(KeyFire, 'KeyFire');
-    ReadInteger(KeyJump, 'KeyJump');
-    ReadInteger(KeyNextWeapon, 'KeyNextWeapon');
-    ReadInteger(KeyPrevWeapon, 'KeyPrevWeapon');
-    ReadInteger(KeyOpen, 'KeyOpen');
-    ReadInteger(KeyStrafe, 'KeyStrafe');
-
-    for i := 0 to High(KeyWeapon) do
-    begin
-      ReadInteger(KeyWeapon[i], 'KeyWeapon' + IntToStr(i))
-    end;
-
-    ReadInteger(KeyRight2, 'KeyRight2');
-    ReadInteger(KeyLeft2, 'KeyLeft2');
-    ReadInteger(KeyUp2, 'KeyUp2');
-    ReadInteger(KeyDown2, 'KeyDown2');
-    ReadInteger(KeyFire2, 'KeyFire2');
-    ReadInteger(KeyJump2, 'KeyJump2');
-    ReadInteger(KeyNextWeapon2, 'KeyNextWeapon2');
-    ReadInteger(KeyPrevWeapon2, 'KeyPrevWeapon2');
-    ReadInteger(KeyOpen2, 'KeyOpen2');
-    ReadInteger(KeyStrafe2, 'KeyStrafe2');
-
-    for i := 0 to High(KeyWeapon2) do
-    begin
-      ReadInteger(KeyWeapon2[i], 'KeyWeapon2' + IntToStr(i))
-    end;
-  end;
-
   section := 'Player1';
   with gPlayer1Settings do
   begin
@@ -551,42 +376,6 @@ begin
     ReadInteger(Team, 'team');
     if (Team < TEAM_RED) or (Team > TEAM_BLUE) then
       Team := TEAM_RED;
-  end;
-
-  section := 'Player2';
-  with gGameControls.P2Control do
-  begin
-    ReadInteger(KeyRight, 'KeyRight');
-    ReadInteger(KeyLeft, 'KeyLeft');
-    ReadInteger(KeyUp, 'KeyUp');
-    ReadInteger(KeyDown, 'KeyDown');
-    ReadInteger(KeyFire, 'KeyFire');
-    ReadInteger(KeyJump, 'KeyJump');
-    ReadInteger(KeyNextWeapon, 'KeyNextWeapon');
-    ReadInteger(KeyPrevWeapon, 'KeyPrevWeapon');
-    ReadInteger(KeyOpen, 'KeyOpen');
-    ReadInteger(KeyStrafe, 'KeyStrafe');
-
-    for i := 0 to High(KeyWeapon) do
-    begin
-      ReadInteger(KeyWeapon[i], 'KeyWeapon' + IntToStr(i))
-    end;
-
-    ReadInteger(KeyRight2, 'KeyRight2');
-    ReadInteger(KeyLeft2, 'KeyLeft2');
-    ReadInteger(KeyUp2, 'KeyUp2');
-    ReadInteger(KeyDown2, 'KeyDown2');
-    ReadInteger(KeyFire2, 'KeyFire2');
-    ReadInteger(KeyJump2, 'KeyJump2');
-    ReadInteger(KeyNextWeapon2, 'KeyNextWeapon2');
-    ReadInteger(KeyPrevWeapon2, 'KeyPrevWeapon2');
-    ReadInteger(KeyOpen2, 'KeyOpen2');
-    ReadInteger(KeyStrafe2, 'KeyStrafe2');
-
-    for i := 0 to High(KeyWeapon2) do
-    begin
-      ReadInteger(KeyWeapon2[i], 'KeyWeapon2' + IntToStr(i))
-    end;
   end;
 
   section := 'Player2';
@@ -607,12 +396,6 @@ begin
   begin
     ReadInteger(e_JoystickDeadzones[i], 'Deadzone' + IntToStr(i))
   end;
-
-  section := 'Touch';
-  i := Trunc(g_touch_size * 10); ReadInteger(i, 'Size', 0); g_touch_size := i / 10;
-  ReadBoolean(g_touch_fire, 'Fire');
-  i := Round(g_touch_offset); ReadInteger(i, 'Offset', 0, 100); g_touch_offset := i;
-  ReadBoolean(g_touch_alt, 'Alt');
 
   section := 'Game';
   ReadInteger(i, 'MaxParticles', 0, 50000); g_GFX_SetMax(i);
@@ -765,42 +548,8 @@ begin
   config.WriteInt('Sound', 'SDLSampleRate', gsSDLSampleRate);
   config.WriteInt('Sound', 'SDLBufferSize', gsSDLBufferSize);
 
-  with config, gGameControls.GameControls do
+  with config, gPlayer1Settings do
   begin
-    WriteInt('GameControls', 'TakeScreenshot', TakeScreenshot);
-    WriteInt('GameControls', 'Stat', Stat);
-    WriteInt('GameControls', 'Chat', Chat);
-    WriteInt('GameControls', 'TeamChat', TeamChat);
-  end;
-
-  with config, gGameControls.P1Control, gPlayer1Settings do
-  begin
-    WriteInt('Player1', 'KeyRight', KeyRight);
-    WriteInt('Player1', 'KeyLeft', KeyLeft);
-    WriteInt('Player1', 'KeyUp', KeyUp);
-    WriteInt('Player1', 'KeyDown', KeyDown);
-    WriteInt('Player1', 'KeyFire', KeyFire);
-    WriteInt('Player1', 'KeyJump', KeyJump);
-    WriteInt('Player1', 'KeyNextWeapon', KeyNextWeapon);
-    WriteInt('Player1', 'KeyPrevWeapon', KeyPrevWeapon);
-    WriteInt('Player1', 'KeyOpen', KeyOpen);
-    WriteInt('Player1', 'KeyStrafe', KeyStrafe);
-    for i := 0 to High(KeyWeapon) do
-      WriteInt('Player1', 'KeyWeapon' + IntToStr(i), KeyWeapon[i]);
-
-    WriteInt('Player1', 'KeyRight2', KeyRight2);
-    WriteInt('Player1', 'KeyLeft2', KeyLeft2);
-    WriteInt('Player1', 'KeyUp2', KeyUp2);
-    WriteInt('Player1', 'KeyDown2', KeyDown2);
-    WriteInt('Player1', 'KeyFire2', KeyFire2);
-    WriteInt('Player1', 'KeyJump2', KeyJump2);
-    WriteInt('Player1', 'KeyNextWeapon2', KeyNextWeapon2);
-    WriteInt('Player1', 'KeyPrevWeapon2', KeyPrevWeapon2);
-    WriteInt('Player1', 'KeyOpen2', KeyOpen2);
-    WriteInt('Player1', 'KeyStrafe2', KeyStrafe2);
-    for i := 0 to High(KeyWeapon2) do
-      WriteInt('Player1', 'KeyWeapon2' + IntToStr(i), KeyWeapon2[i]);
-
     WriteStr('Player1', 'Name', Name);
     WriteStr('Player1', 'model', Model);
     WriteInt('Player1', 'red', Color.R);
@@ -809,34 +558,8 @@ begin
     WriteInt('Player1', 'team', Team);
   end;
 
-  with config, gGameControls.P2Control, gPlayer2Settings do
+  with config, gPlayer2Settings do
   begin
-    WriteInt('Player2', 'KeyRight', KeyRight);
-    WriteInt('Player2', 'KeyLeft', KeyLeft);
-    WriteInt('Player2', 'KeyUp', KeyUp);
-    WriteInt('Player2', 'KeyDown', KeyDown);
-    WriteInt('Player2', 'KeyFire', KeyFire);
-    WriteInt('Player2', 'KeyJump', KeyJump);
-    WriteInt('Player2', 'KeyNextWeapon', KeyNextWeapon);
-    WriteInt('Player2', 'KeyPrevWeapon', KeyPrevWeapon);
-    WriteInt('Player2', 'KeyOpen', KeyOpen);
-    WriteInt('Player2', 'KeyStrafe', KeyStrafe);
-    for i := 0 to High(KeyWeapon) do
-      WriteInt('Player2', 'KeyWeapon' + IntToStr(i), KeyWeapon[i]);
-
-    WriteInt('Player2', 'KeyRight2', KeyRight2);
-    WriteInt('Player2', 'KeyLeft2', KeyLeft2);
-    WriteInt('Player2', 'KeyUp2', KeyUp2);
-    WriteInt('Player2', 'KeyDown2', KeyDown2);
-    WriteInt('Player2', 'KeyFire2', KeyFire2);
-    WriteInt('Player2', 'KeyJump2', KeyJump2);
-    WriteInt('Player2', 'KeyNextWeapon2', KeyNextWeapon2);
-    WriteInt('Player2', 'KeyPrevWeapon2', KeyPrevWeapon2);
-    WriteInt('Player2', 'KeyOpen2', KeyOpen2);
-    WriteInt('Player2', 'KeyStrafe2', KeyStrafe2);
-    for i := 0 to High(KeyWeapon2) do
-      WriteInt('Player2', 'KeyWeapon2' + IntToStr(i), KeyWeapon2[i]);
-
     WriteStr('Player2', 'Name', Name);
     WriteStr('Player2', 'model', Model);
     WriteInt('Player2', 'red', Color.R);
@@ -847,11 +570,6 @@ begin
 
   for i := 0 to e_MaxJoys-1 do
     config.WriteInt('Joysticks', 'Deadzone' + IntToStr(i), e_JoystickDeadzones[i]);
-
-  config.WriteInt('Touch', 'Size', Round(g_touch_size * 10));
-  config.WriteBool('Touch', 'Fire', g_touch_fire);
-  config.WriteInt('Touch', 'Offset', Round(g_touch_offset));
-  config.WriteBool('Touch', 'Alt', g_touch_alt);
 
   with config do
     case gGibsCount of

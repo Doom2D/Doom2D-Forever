@@ -325,6 +325,7 @@ var
   gDelayedEvents: Array of TDelayedEvent;
   gUseChatSounds: Boolean = True;
   gChatSounds: Array of TChatSound;
+  gSelectWeapon: Array [0..1] of Integer = (-1, -1); // [player]
 
   g_dbg_ignore_bounds: Boolean = false;
   r_smallmap_h: Integer = 0; // 0: left; 1: center; 2: right
@@ -381,7 +382,6 @@ uses
 
 var
   hasPBarGfx: Boolean = false;
-  nextQueueWeapon: Array [0..1] of Integer = (-1, -1); // [player]
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1561,10 +1561,10 @@ begin
   if gPlayerAction[p, ACTION_WEAPPREV] then plr.PressKey(KEY_PREVWEAPON);
   if gPlayerAction[p, ACTION_ACTIVATE] then plr.PressKey(KEY_OPEN);
 
-  if nextQueueWeapon[p] >= 0 then
+  if gSelectWeapon[p] >= 0 then
   begin
-    plr.QueueWeaponSwitch(nextQueueWeapon[p]);
-    nextQueueWeapon[p] := -1
+    plr.QueueWeaponSwitch(gSelectWeapon[p]);
+    gSelectWeapon[p] := -1
   end;
 
   // HACK: add dynlight here
@@ -5154,18 +5154,7 @@ var
 begin
   stat := nil;
   cmd := LowerCase(P[0]);
-  if cmd = 'r_showfps' then
-  begin
-    if (Length(P) > 1) and
-       ((P[1] = '1') or (P[1] = '0')) then
-      gShowFPS := (P[1][1] = '1');
-
-    if gShowFPS then
-      g_Console_Add(_lc[I_MSG_SHOW_FPS_ON])
-    else
-      g_Console_Add(_lc[I_MSG_SHOW_FPS_OFF]);
-  end
-  else if (cmd = 'g_friendlyfire') and not g_Game_IsClient then
+  if (cmd = 'g_friendlyfire') and not g_Game_IsClient then
   begin
     with gGameSettings do
     begin
@@ -6834,7 +6823,7 @@ begin
     begin
       a := WP_FIRST + StrToInt(p[1]) - 1;
       if (a >= WP_FIRST) and (a <= WP_LAST) then
-        nextQueueWeapon[0] := a
+        gSelectWeapon[0] := a
     end
   end
   else if (cmd = 'p1_weapon') or (cmd = 'p2_weapon') then
@@ -6844,7 +6833,7 @@ begin
       a := WP_FIRST + StrToInt(p[1]) - 1;
       b := ord(cmd[2]) - ord('1');
       if (a >= WP_FIRST) and (a <= WP_LAST) then
-        nextQueueWeapon[b] := a
+        gSelectWeapon[b] := a
     end
   end
 // Команды Своей игры:
@@ -7863,4 +7852,6 @@ begin
 
   conRegVar('r_smallmap_align_h', @r_smallmap_h, 'halign: 0: left; 1: center; 2: right', 'horizontal aligning of small maps');
   conRegVar('r_smallmap_align_v', @r_smallmap_v, 'valign: 0: top; 1: center; 2: bottom', 'vertial aligning of small maps');
+
+  conRegVar('r_showfps', @gShowFPS, 'draw fps counter', 'draw fps counter');
 end.

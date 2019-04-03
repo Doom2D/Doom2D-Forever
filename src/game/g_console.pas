@@ -48,12 +48,14 @@ procedure g_Console_Add (L: AnsiString; show: Boolean=false);
 procedure g_Console_Clear ();
 function  g_Console_CommandBlacklisted (C: AnsiString): Boolean;
 procedure g_Console_ReadConfig (filename: String);
+procedure g_Console_WriteConfig (filename: String);
 
 function  g_Console_Interactive: Boolean;
 function  g_Console_Action (action: Integer): Boolean;
 function  g_Console_FindBind (n: Integer; cmd: AnsiString): Integer;
 procedure g_Console_BindKey (key: Integer; cmd: AnsiString);
 procedure g_Console_ProcessBind (key: Integer; down: Boolean);
+procedure g_Console_ResetBinds;
 
 procedure conwriteln (const s: AnsiString; show: Boolean=false);
 procedure conwritefln (const s: AnsiString; args: array of const; show: Boolean=false);
@@ -513,12 +515,18 @@ begin
   begin
     // exec <filename>
     if Length(p) = 2 then
-    begin
-      s := GameDir + '/' + p[1];
-      g_Console_ReadConfig(s);
-    end
+      g_Console_ReadConfig(GameDir + '/' + p[1])
     else
       g_Console_Add('exec <script file>');
+  end;
+
+  if cmd = 'writeconfig' then
+  begin
+    // writeconfig <filename>
+    if Length(p) = 2 then
+      g_Console_WriteConfig(GameDir + '/' + p[1])
+    else
+      g_Console_Add('writeconfig <file>');
   end;
 
   if (cmd = 'ver') or (cmd = 'version') then
@@ -592,9 +600,6 @@ begin
     else
       g_Console_Add('call <alias name>');
   end;
-
-  if cmd = '//' then
-    Exit;
 end;
 
 procedure WhitelistCommand(cmd: AnsiString);
@@ -626,7 +631,7 @@ begin
       i := 0;
       while (i < e_MaxInputKeys) and (key <> LowerCase(e_KeyNames[i])) do inc(i);
       if i < e_MaxInputKeys then
-        gInputBinds[i].commands := ParseAlias(p[2])
+        g_Console_BindKey(i, p[2])
     end;
   'bindlist':
     for i := 0 to e_MaxInputKeys - 1 do
@@ -636,7 +641,7 @@ begin
         act := gInputBinds[i].commands[0];
         for j := 1 to High(gInputBinds[i].commands) do
           act := act + ' ;' + gInputBinds[i].commands[j];
-        g_Console_Add(LowerCase(e_KeyNames[i]) + ' "' + act + '"')
+        g_Console_Add('"' + LowerCase(e_KeyNames[i]) + '" "' + act + '"')
       end
     end;
   'unbind':
@@ -647,7 +652,7 @@ begin
       i := 0;
       while (i < e_MaxInputKeys) and (key <> LowerCase(e_KeyNames[i])) do inc(i);
       if i < e_MaxInputKeys then
-        gInputBinds[i].commands := nil
+        g_Console_BindKey(i, '')
     end;
   'unbindall':
     for i := 0 to e_MaxInputKeys - 1 do
@@ -706,7 +711,7 @@ procedure AddAction (cmd: AnsiString; action: Integer; help: AnsiString = ''; hi
   end;
 
 begin
-  ASSERT(action >= 0);
+  ASSERT(action >= FIRST_ACTION);
   ASSERT(action <= LAST_ACTION);
   for s in PrefixList do
   begin
@@ -742,18 +747,6 @@ begin
   AddCommand('unbindall', BindCommands);
   AddCommand('bindkeys', BindCommands);
 
-  AddAction('jump', ACTION_JUMP);
-  AddAction('moveleft', ACTION_MOVELEFT);
-  AddAction('moveright', ACTION_MOVERIGHT);
-  AddAction('lookup', ACTION_LOOKUP);
-  AddAction('lookdown', ACTION_LOOKDOWN);
-  AddAction('attack', ACTION_ATTACK);
-  AddAction('scores', ACTION_SCORES);
-  AddAction('activate', ACTION_ACTIVATE);
-  AddAction('strafe', ACTION_STRAFE);
-  AddAction('weapnext', ACTION_WEAPNEXT);
-  AddAction('weapprev', ACTION_WEAPPREV);
-
   AddCommand('clear', ConsoleCommands, 'clear console');
   AddCommand('clearhistory', ConsoleCommands);
   AddCommand('showhistory', ConsoleCommands);
@@ -763,6 +756,7 @@ begin
   AddCommand('echo', ConsoleCommands);
   AddCommand('dump', ConsoleCommands);
   AddCommand('exec', ConsoleCommands);
+  AddCommand('writeconfig', ConsoleCommands);
   AddCommand('alias', ConsoleCommands);
   AddCommand('call', ConsoleCommands);
   AddCommand('ver', ConsoleCommands);
@@ -784,7 +778,6 @@ begin
   AddCommand('p2_name', GameCVars);
   AddCommand('p1_color', GameCVars);
   AddCommand('p2_color', GameCVars);
-  AddCommand('r_showfps', GameCVars);
   AddCommand('r_showtime', GameCVars);
   AddCommand('r_showscore', GameCVars);
   AddCommand('r_showlives', GameCVars);
@@ -872,6 +865,18 @@ begin
   AddCommand('aimline', GameCheats);
   AddCommand('automap', GameCheats);
 
+  AddAction('jump', ACTION_JUMP);
+  AddAction('moveleft', ACTION_MOVELEFT);
+  AddAction('moveright', ACTION_MOVERIGHT);
+  AddAction('lookup', ACTION_LOOKUP);
+  AddAction('lookdown', ACTION_LOOKDOWN);
+  AddAction('attack', ACTION_ATTACK);
+  AddAction('scores', ACTION_SCORES);
+  AddAction('activate', ACTION_ACTIVATE);
+  AddAction('strafe', ACTION_STRAFE);
+  AddAction('weapnext', ACTION_WEAPNEXT);
+  AddAction('weapprev', ACTION_WEAPPREV);
+
   WhitelistCommand('say');
   WhitelistCommand('tell');
   WhitelistCommand('overtime');
@@ -897,6 +902,7 @@ begin
   WhitelistCommand('g_scorelimit');
   WhitelistCommand('g_timelimit');
 
+  g_Console_ResetBinds;
   g_Console_ReadConfig(GameDir + '/dfconfig.cfg');
   g_Console_ReadConfig(GameDir + '/autoexec.cfg');
 
@@ -1601,9 +1607,11 @@ end;
 
 procedure g_Console_BindKey (key: Integer; cmd: AnsiString);
 begin
+  //e_LogWritefln('bind "%s" "%s" <%s>', [LowerCase(e_KeyNames[key]), cmd, key]);
   ASSERT(key >= 0);
   ASSERT(key < e_MaxInputKeys);
-  gInputBinds[key].commands := ParseAlias(cmd)
+  if key > 0 then
+    gInputBinds[key].commands := ParseAlias(cmd)
 end;
 
 function g_Console_FindBind (n: Integer; cmd: AnsiString): Integer;
@@ -1651,6 +1659,84 @@ begin
   end
 end;
 
+procedure g_Console_ResetBinds;
+  var i: Integer;
+begin
+  for i := 0 to e_MaxInputKeys - 1 do
+    g_Console_BindKey(i, '');
+
+  g_Console_BindKey(IK_A, '+p1_moveleft');
+  g_Console_BindKey(IK_D, '+p1_moveright');
+  g_Console_BindKey(IK_W, '+p1_lookup');
+  g_Console_BindKey(IK_S, '+p1_lookdown');
+  g_Console_BindKey(IK_SPACE, '+p1_jump');
+  g_Console_BindKey(IK_H, '+p1_attack');
+  g_Console_BindKey(IK_J, '+p1_activate');
+  g_Console_BindKey(IK_E, '+p1_weapnext');
+  g_Console_BindKey(IK_Q, '+p1_weapprev');
+  g_Console_BindKey(IK_ALT, '+p1_strafe');
+  g_Console_BindKey(IK_1, 'p1_weapon 1');
+  g_Console_BindKey(IK_2, 'p1_weapon 2');
+  g_Console_BindKey(IK_3, 'p1_weapon 3');
+  g_Console_BindKey(IK_4, 'p1_weapon 4');
+  g_Console_BindKey(IK_5, 'p1_weapon 5');
+  g_Console_BindKey(IK_6, 'p1_weapon 6');
+  g_Console_BindKey(IK_7, 'p1_weapon 7');
+  g_Console_BindKey(IK_8, 'p1_weapon 8');
+  g_Console_BindKey(IK_9, 'p1_weapon 9');
+  g_Console_BindKey(IK_0, 'p1_weapon 10');
+  g_Console_BindKey(IK_MINUS, 'p1_weapon 11');
+  g_Console_BindKey(IK_T, 'togglechat');
+  g_Console_BindKey(IK_Y, 'toggleteamchat');
+  g_Console_BindKey(IK_F11, 'screenshot');
+  g_Console_BindKey(IK_TAB, '+p1_scores');
+  g_Console_BindKey(IK_PAUSE, 'pause');
+  g_Console_BindKey(IK_F1, 'vote');
+
+  (* for i := 0 to e_MaxJoys - 1 do *)
+  for i := 0 to 1 do
+  begin
+    g_Console_BindKey(e_JoyAxisToKey(i, 0, 0), '+p' + IntToStr(i mod 2 + 1) + '_moveleft');
+    g_Console_BindKey(e_JoyAxisToKey(i, 0, 1), '+p' + IntToStr(i mod 2 + 1) + '_moveright');
+    g_Console_BindKey(e_JoyAxisToKey(i, 1, 0), '+p' + IntToStr(i mod 2 + 1) + '_lookup');
+    g_Console_BindKey(e_JoyAxisToKey(i, 1, 1), '+p' + IntToStr(i mod 2 + 1) + '_lookdown');
+    g_Console_BindKey(e_JoyButtonToKey(i, 2), '+p' + IntToStr(i mod 2 + 1) + '_jump');
+    g_Console_BindKey(e_JoyButtonToKey(i, 0), '+p' + IntToStr(i mod 2 + 1) + '_attack');
+    g_Console_BindKey(e_JoyButtonToKey(i, 3), '+p' + IntToStr(i mod 2 + 1) + '_activate');
+    g_Console_BindKey(e_JoyButtonToKey(i, 1), '+p' + IntToStr(i mod 2 + 1) + '_weapnext');
+    g_Console_BindKey(e_JoyButtonToKey(i, 4), '+p' + IntToStr(i mod 2 + 1) + '_weapprev');
+    g_Console_BindKey(e_JoyButtonToKey(i, 7), '+p' + IntToStr(i mod 2 + 1) + '_strafe');
+  end;
+
+  g_Console_BindKey(VK_LEFT, '+moveleft');
+  g_Console_BindKey(VK_RIGHT, '+moveright');
+  g_Console_BindKey(VK_UP, '+lookup');
+  g_Console_BindKey(VK_DOWN, '+lookdown');
+  g_Console_BindKey(VK_JUMP, '+jump');
+  g_Console_BindKey(VK_FIRE, '+attack');
+  g_Console_BindKey(VK_OPEN, '+activate');
+  g_Console_BindKey(VK_NEXT, '+weapnext');
+  g_Console_BindKey(VK_PREV, '+weapprev');
+  g_Console_BindKey(VK_STRAFE, '+strafe');
+  g_Console_BindKey(VK_0, 'weapon 1');
+  g_Console_BindKey(VK_1, 'weapon 2');
+  g_Console_BindKey(VK_2, 'weapon 3');
+  g_Console_BindKey(VK_3, 'weapon 4');
+  g_Console_BindKey(VK_4, 'weapon 5');
+  g_Console_BindKey(VK_5, 'weapon 6');
+  g_Console_BindKey(VK_6, 'weapon 7');
+  g_Console_BindKey(VK_7, 'weapon 8');
+  g_Console_BindKey(VK_8, 'weapon 9');
+  g_Console_BindKey(VK_9, 'weapon 10');
+  g_Console_BindKey(VK_A, 'weapon 11');
+  g_Console_BindKey(VK_CHAT, 'togglechat');
+  g_Console_BindKey(VK_TEAM, 'toggleteamchat');
+  g_Console_BindKey(VK_PRINTSCR, 'screenshot');
+  g_Console_BindKey(VK_STATUS, '+scores');
+
+  // VK_CONSOLE
+  // VK_ESCAPE
+end;
 
 procedure g_Console_ReadConfig (filename: String);
   var f: TextFile; s: AnsiString; i, len: Integer;
@@ -1675,6 +1761,45 @@ begin
     end;
     CloseFile(f)
   end
+end;
+
+procedure g_Console_WriteConfig (filename: String);
+  var f: TextFile; i, j: Integer; act: AnsiString;
+begin
+  AssignFile(f, filename);
+  Rewrite(f);
+  WriteLn(f, '// generated by doom2d, do not modify');
+  WriteLn(f, 'unbindall');
+  for i := 0 to e_MaxInputKeys - 1 do
+  begin
+    if Length(gInputBinds[i].commands) > 0 then
+    begin
+      act := gInputBinds[i].commands[0];
+      for j := 1 to High(gInputBinds[i].commands) do
+        act := act + '; ' + gInputBinds[i].commands[j];
+      WriteLn(f, 'bind "', LowerCase(e_KeyNames[i]), '" "', act, '"')
+    end
+  end;
+  for i := 0 to High(commands) do
+  begin
+    if not commands[i].cheat then
+    begin
+      if @commands[i].procEx = @boolVarHandler then
+      begin
+        if PBoolean(commands[i].ptr)^ then j := 1 else j := 0;
+        WriteLn(f, commands[i].cmd, ' "', j, '"')
+      end
+      else if @commands[i].procEx = @intVarHandler then
+      begin
+        WriteLn(f, commands[i].cmd, ' "', PInteger(commands[i].ptr)^, '"')
+      end
+      else if @commands[i].procEx = @singleVarHandler then
+      begin
+        WriteLn(f, commands[i].cmd, ' "', PVarSingle(commands[i].ptr).val^:0:6, '"')
+      end
+    end
+  end;
+  CloseFile(f)
 end;
 
 

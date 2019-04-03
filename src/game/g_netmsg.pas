@@ -2781,20 +2781,12 @@ begin
   g_Net_Client_Send(True, NET_CHAN_CHAT);
 end;
 
-function isKeyPressed (key1: Word; key2: Word): Boolean;
-begin
-  if (key1 <> 0) and e_KeyPressed(key1) then begin result := true; exit; end;
-  if (key2 <> 0) and e_KeyPressed(key2) then begin result := true; exit; end;
-  result := false;
-end;
-
 procedure MC_SEND_PlayerPos();
 var
   kByte: Word;
   Predict: Boolean;
   strafeDir: Byte;
   WeaponSelect: Word = 0;
-  I: Integer;
 begin
   if not gGameOn then Exit;
   if gPlayers = nil then Exit;
@@ -2807,62 +2799,70 @@ begin
   begin
     strafeDir := P1MoveButton shr 4;
     P1MoveButton := P1MoveButton and $0F;
-    with gGameControls.P1Control do
+
+    if gPlayerAction[0, ACTION_MOVELEFT] and (not gPlayerAction[0, ACTION_MOVERIGHT]) then
+      P1MoveButton := 1
+    else if (not gPlayerAction[0, ACTION_MOVELEFT]) and gPlayerAction[0, ACTION_MOVERIGHT] then
+      P1MoveButton := 2
+    else if (not gPlayerAction[0, ACTION_MOVELEFT]) and (not gPlayerAction[0, ACTION_MOVERIGHT]) then
+      P1MoveButton := 0;
+
+    // strafing
+    if gPlayerAction[0, ACTION_STRAFE] then
     begin
-           if isKeyPressed(KeyLeft, KeyLeft2) and (not isKeyPressed(KeyRight, KeyRight2)) then P1MoveButton := 1
-      else if (not isKeyPressed(KeyLeft, KeyLeft2)) and isKeyPressed(KeyRight, KeyRight2) then P1MoveButton := 2
-      else if (not isKeyPressed(KeyLeft, KeyLeft2)) and (not isKeyPressed(KeyRight, KeyRight2)) then P1MoveButton := 0;
-
-      // strafing
-      if isKeyPressed(KeyStrafe, KeyStrafe2) then
-      begin
-        // new strafe mechanics
-        if (strafeDir = 0) then strafeDir := P1MoveButton; // start strafing
-        // now set direction according to strafe (reversed)
-             if (strafeDir = 2) then gPlayer1.SetDirection(TDirection.D_LEFT)
-        else if (strafeDir = 1) then gPlayer1.SetDirection(TDirection.D_RIGHT);
-      end
-      else
-      begin
-             if (P1MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then gPlayer1.SetDirection(TDirection.D_LEFT)
-        else if (P1MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then gPlayer1.SetDirection(TDirection.D_RIGHT)
-        else if P1MoveButton <> 0 then gPlayer1.SetDirection(TDirection(P1MoveButton-1));
-      end;
-
-      gPlayer1.ReleaseKeys;
-      if P1MoveButton = 1 then
-      begin
-        kByte := kByte or NET_KEY_LEFT;
-        if Predict then gPlayer1.PressKey(KEY_LEFT, 10000);
-      end;
-      if P1MoveButton = 2 then
-      begin
-        kByte := kByte or NET_KEY_RIGHT;
-        if Predict then gPlayer1.PressKey(KEY_RIGHT, 10000);
-      end;
-      if isKeyPressed(KeyUp, KeyUp2) then
-      begin
-        kByte := kByte or NET_KEY_UP;
-        gPlayer1.PressKey(KEY_UP, 10000);
-      end;
-      if isKeyPressed(KeyDown, KeyDown2) then
-      begin
-        kByte := kByte or NET_KEY_DOWN;
-        gPlayer1.PressKey(KEY_DOWN, 10000);
-      end;
-      if isKeyPressed(KeyJump, KeyJump2) then
-      begin
-        kByte := kByte or NET_KEY_JUMP;
-        // gPlayer1.PressKey(KEY_JUMP, 10000); // TODO: Make a prediction option
-      end;
-      if isKeyPressed(KeyFire, KeyFire2) then kByte := kByte or NET_KEY_FIRE;
-      if isKeyPressed(KeyOpen, KeyOpen2) then kByte := kByte or NET_KEY_OPEN;
-      if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) then kByte := kByte or NET_KEY_NW;
-      if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) then kByte := kByte or NET_KEY_PW;
-      for I := 0 to High(KeyWeapon) do
-        if isKeyPressed(KeyWeapon[I], KeyWeapon2[I]) then
-          WeaponSelect := WeaponSelect or Word(1 shl I);
+      // new strafe mechanics
+      if (strafeDir = 0) then strafeDir := P1MoveButton; // start strafing
+      // now set direction according to strafe (reversed)
+           if (strafeDir = 2) then gPlayer1.SetDirection(TDirection.D_LEFT)
+      else if (strafeDir = 1) then gPlayer1.SetDirection(TDirection.D_RIGHT);
+    end
+    else
+    begin
+      if (P1MoveButton = 2) and gPlayerAction[0, ACTION_MOVELEFT] then
+        gPlayer1.SetDirection(TDirection.D_LEFT)
+      else if (P1MoveButton = 1) and gPlayerAction[0, ACTION_MOVERIGHT] then
+        gPlayer1.SetDirection(TDirection.D_RIGHT)
+      else if P1MoveButton <> 0 then
+        gPlayer1.SetDirection(TDirection(P1MoveButton-1));
     end;
+
+    gPlayer1.ReleaseKeys;
+    if P1MoveButton = 1 then
+    begin
+      kByte := kByte or NET_KEY_LEFT;
+      if Predict then gPlayer1.PressKey(KEY_LEFT, 10000);
+    end;
+    if P1MoveButton = 2 then
+    begin
+      kByte := kByte or NET_KEY_RIGHT;
+      if Predict then gPlayer1.PressKey(KEY_RIGHT, 10000);
+    end;
+    if gPlayerAction[0, ACTION_LOOKUP] then
+    begin
+      kByte := kByte or NET_KEY_UP;
+      gPlayer1.PressKey(KEY_UP, 10000);
+    end;
+    if gPlayerAction[0, ACTION_LOOKDOWN] then
+    begin
+      kByte := kByte or NET_KEY_DOWN;
+      gPlayer1.PressKey(KEY_DOWN, 10000);
+    end;
+    if gPlayerAction[0, ACTION_JUMP] then
+    begin
+      kByte := kByte or NET_KEY_JUMP;
+      // gPlayer1.PressKey(KEY_JUMP, 10000); // TODO: Make a prediction option
+    end;
+    if gPlayerAction[0, ACTION_ATTACK] then kByte := kByte or NET_KEY_FIRE;
+    if gPlayerAction[0, ACTION_ACTIVATE] then kByte := kByte or NET_KEY_OPEN;
+    if gPlayerAction[0, ACTION_WEAPNEXT] then kByte := kByte or NET_KEY_NW;
+    if gPlayerAction[0, ACTION_WEAPPREV] then kByte := kByte or NET_KEY_PW;
+
+    if gSelectWeapon[0] >= 0 then
+    begin
+      WeaponSelect := gSelectWeapon[0];
+      //gSelectWeapon[0] := -1
+    end;
+
     // fix movebutton state
     P1MoveButton := P1MoveButton or (strafeDir shl 4);
   end

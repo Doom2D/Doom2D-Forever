@@ -168,11 +168,11 @@ begin
   with menu do
   begin
     g_Console_BindKey(g_Console_FindBind(1, 'screenshot'), '');
-    g_Console_BindKey(g_Console_FindBind(1, '+scores'), '');
+    g_Console_BindKey(g_Console_FindBind(1, '+p1_scores'), '');
     g_Console_BindKey(g_Console_FindBind(1, 'togglechat'), '');
     g_Console_BindKey(g_Console_FindBind(1, 'toggleteamchat'), '');
     g_Console_BindKey(TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_SCREENSHOT])).Key, 'screenshot');
-    g_Console_BindKey(TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STAT])).Key, '+scores');
+    g_Console_BindKey(TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STAT])).Key, '+p1_scores');
     g_Console_BindKey(TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_CHAT])).Key, 'togglechat');
     g_Console_BindKey(TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_TEAMCHAT])).Key, 'toggleteamchat');
   end;
@@ -180,47 +180,47 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1Menu').GetControl('mOptionsControlsP1Menu'));
   with menu do
   begin
-    g_Console_BindKey(g_Console_FindBind(1, '+moveright'), '');
-    g_Console_BindKey(g_Console_FindBind(1, '+moveleft'), '');
-    g_Console_BindKey(g_Console_FindBind(1, '+lookup'), '');
-    g_Console_BindKey(g_Console_FindBind(1, '+lookdown'), '');
-    g_Console_BindKey(g_Console_FindBind(1, '+attack'), '');
-    g_Console_BindKey(g_Console_FindBind(1, '+jump'), '');
-    g_Console_BindKey(g_Console_FindBind(1, '+weapnext'), '');
-    g_Console_BindKey(g_Console_FindBind(1, '+weapprev'), '');
-    g_Console_BindKey(g_Console_FindBind(1, '+activate'), '');
-    g_Console_BindKey(g_Console_FindBind(1, '+strafe'), '');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key0, '+moveright');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key0, '+moveleft');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_UP])).Key0, '+lookup');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key0, '+lookdown');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key0, '+attack');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key0, '+jump');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key0, '+weapnext');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key0, '+weapprev');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key0, '+activate');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key0, '+strafe');
+    g_Console_BindKey(g_Console_FindBind(1, '+p1_moveright'), '');
+    g_Console_BindKey(g_Console_FindBind(1, '+p1_moveleft'), '');
+    g_Console_BindKey(g_Console_FindBind(1, '+p1_lookup'), '');
+    g_Console_BindKey(g_Console_FindBind(1, '+p1_lookdown'), '');
+    g_Console_BindKey(g_Console_FindBind(1, '+p1_attack'), '');
+    g_Console_BindKey(g_Console_FindBind(1, '+p1_jump'), '');
+    g_Console_BindKey(g_Console_FindBind(1, '+p1_weapnext'), '');
+    g_Console_BindKey(g_Console_FindBind(1, '+p1_weapprev'), '');
+    g_Console_BindKey(g_Console_FindBind(1, '+p1_activate'), '');
+    g_Console_BindKey(g_Console_FindBind(1, '+p1_strafe'), '');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key0, '+p1_moveright');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key0, '+p1_moveleft');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_UP])).Key0, '+p1_lookup');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key0, '+p1_lookdown');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key0, '+p1_attack');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key0, '+p1_jump');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key0, '+p1_weapnext');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key0, '+p1_weapprev');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key0, '+p1_activate');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key0, '+p1_strafe');
     // second set
-    g_Console_BindKey(g_Console_FindBind(2, '+moveright'), '');
-    g_Console_BindKey(g_Console_FindBind(2, '+moveleft'), '');
-    g_Console_BindKey(g_Console_FindBind(2, '+lookup'), '');
-    g_Console_BindKey(g_Console_FindBind(2, '+lookdown'), '');
-    g_Console_BindKey(g_Console_FindBind(2, '+attack'), '');
-    g_Console_BindKey(g_Console_FindBind(2, '+jump'), '');
-    g_Console_BindKey(g_Console_FindBind(2, '+weapnext'), '');
-    g_Console_BindKey(g_Console_FindBind(2, '+weapprev'), '');
-    g_Console_BindKey(g_Console_FindBind(2, '+activate'), '');
-    g_Console_BindKey(g_Console_FindBind(2, '+strafe'), '');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key1, '+moveright');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key1, '+moveleft');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_UP])).Key1, '+lookup');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key1, '+lookdown');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key1, '+attack');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key1, '+jump');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key1, '+weapnext');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key1, '+weapprev');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key1, '+activate');
-    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key1, '+strafe');
+    g_Console_BindKey(g_Console_FindBind(2, '+p1_moveright'), '');
+    g_Console_BindKey(g_Console_FindBind(2, '+p1_moveleft'), '');
+    g_Console_BindKey(g_Console_FindBind(2, '+p1_lookup'), '');
+    g_Console_BindKey(g_Console_FindBind(2, '+p1_lookdown'), '');
+    g_Console_BindKey(g_Console_FindBind(2, '+p1_attack'), '');
+    g_Console_BindKey(g_Console_FindBind(2, '+p1_jump'), '');
+    g_Console_BindKey(g_Console_FindBind(2, '+p1_weapnext'), '');
+    g_Console_BindKey(g_Console_FindBind(2, '+p1_weapprev'), '');
+    g_Console_BindKey(g_Console_FindBind(2, '+p1_activate'), '');
+    g_Console_BindKey(g_Console_FindBind(2, '+p1_strafe'), '');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key1, '+p1_moveright');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key1, '+p1_moveleft');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_UP])).Key1, '+p1_lookup');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key1, '+p1_lookdown');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key1, '+p1_attack');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key1, '+p1_jump');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key1, '+p1_weapnext');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key1, '+p1_weapprev');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key1, '+p1_activate');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key1, '+p1_strafe');
   end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1MenuWeapons').GetControl('mOptionsControlsP1MenuWeapons'));
@@ -228,10 +228,10 @@ begin
   begin
     for i := WP_FIRST to WP_LAST do
     begin
-      g_Console_BindKey(g_Console_FindBind(1, 'weapon ' + IntToStr(i + 1)), '');
-      g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key0, 'weapon ' + IntToStr(i + 1));
-      g_Console_BindKey(g_Console_FindBind(2, 'weapon ' + IntToStr(i + 1)), '');
-      g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key1, 'weapon ' + IntToStr(i + 1));
+      g_Console_BindKey(g_Console_FindBind(1, 'p1_weapon ' + IntToStr(i + 1)), '');
+      g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key0, 'p1_weapon ' + IntToStr(i + 1));
+      g_Console_BindKey(g_Console_FindBind(2, 'p1_weapon ' + IntToStr(i + 1)), '');
+      g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key1, 'p1_weapon ' + IntToStr(i + 1));
     end;
   end;
 
@@ -368,6 +368,7 @@ begin
   if g_Game_IsClient then MC_SEND_PlayerSettings;
 
   g_Options_Write(GameDir+'/'+CONFIG_FILENAME);
+  g_Console_WriteConfig(GameDir + '/dfconfig.cfg');
 end;
 
 procedure ReadOptions();
@@ -421,27 +422,27 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1Menu').GetControl('mOptionsControlsP1Menu'));
   with menu do
   begin
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key0 := g_Console_FindBind(1, '+moveright');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key0 := g_Console_FindBind(1, '+moveleft');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_UP])).Key0 := g_Console_FindBind(1, '+lookup');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key0 := g_Console_FindBind(1, '+lookdown');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key0 := g_Console_FindBind(1, '+attack');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key0 := g_Console_FindBind(1, '+jump');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key0 := g_Console_FindBind(1, '+weapnext');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key0 := g_Console_FindBind(1, '+weapprev');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key0 := g_Console_FindBind(1, '+activate');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key0 := g_Console_FindBind(1, '+strafe');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key0 := g_Console_FindBind(1, '+p1_moveright');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key0 := g_Console_FindBind(1, '+p1_moveleft');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_UP])).Key0 := g_Console_FindBind(1, '+p1_lookup');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key0 := g_Console_FindBind(1, '+p1_lookdown');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key0 := g_Console_FindBind(1, '+p1_attack');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key0 := g_Console_FindBind(1, '+p1_jump');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key0 := g_Console_FindBind(1, '+p1_weapnext');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key0 := g_Console_FindBind(1, '+p1_weapprev');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key0 := g_Console_FindBind(1, '+p1_activate');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key0 := g_Console_FindBind(1, '+p1_strafe');
     // second set
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key1 := g_Console_FindBind(2, '+moveright');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key1 := g_Console_FindBind(2, '+moveleft');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_UP])).Key1 := g_Console_FindBind(2, '+lookup');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key1 := g_Console_FindBind(2, '+lookdown');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key1 := g_Console_FindBind(2, '+attack');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key1 := g_Console_FindBind(2, '+jump');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key1 := g_Console_FindBind(2,'+weapnext');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key1 := g_Console_FindBind(2, '+weapprev');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key1 := g_Console_FindBind(2, '+activate');
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key1 := g_Console_FindBind(2, '+strafe');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key1 := g_Console_FindBind(2, '+p1_moveright');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key1 := g_Console_FindBind(2, '+p1_moveleft');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_UP])).Key1 := g_Console_FindBind(2, '+p1_lookup');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key1 := g_Console_FindBind(2, '+p1_lookdown');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key1 := g_Console_FindBind(2, '+p1_attack');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key1 := g_Console_FindBind(2, '+p1_jump');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key1 := g_Console_FindBind(2,'+p1_weapnext');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key1 := g_Console_FindBind(2, '+p1_weapprev');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key1 := g_Console_FindBind(2, '+p1_activate');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key1 := g_Console_FindBind(2, '+p1_strafe');
   end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1MenuWeapons').GetControl('mOptionsControlsP1MenuWeapons'));
@@ -449,8 +450,8 @@ begin
   begin
     for i := WP_FIRST to WP_LAST do
     begin
-      TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key0 := g_Console_FindBind(1, 'weapon ' + IntToStr(i + 1));
-      TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key1 := g_Console_FindBind(2, 'weapon ' + IntToStr(i + 1));
+      TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key0 := g_Console_FindBind(1, 'p1_weapon ' + IntToStr(i + 1));
+      TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key1 := g_Console_FindBind(2, 'p1_weapon ' + IntToStr(i + 1));
     end;
   end;
 
@@ -515,7 +516,7 @@ begin
   with menu do
   begin
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_SCREENSHOT])).Key := g_Console_FindBind(1, 'screenshot');
-    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STAT])).Key := g_Console_FindBind(1, '+scores');
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STAT])).Key := g_Console_FindBind(1, '+p1_scores');
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_CHAT])).Key := g_Console_FindBind(1, 'togglechat');
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_TEAMCHAT])).Key := g_Console_FindBind(1, 'toggleteamchat');
   end;

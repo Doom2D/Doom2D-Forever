@@ -61,11 +61,23 @@ const
   IK_SPACE   = SDL_SCANCODE_SPACE;
   IK_CONTROL = SDL_SCANCODE_LCTRL;
   IK_SHIFT   = SDL_SCANCODE_LSHIFT;
+  IK_ALT     = SDL_SCANCODE_LALT;
   IK_TAB     = SDL_SCANCODE_TAB;
   IK_PAGEUP  = SDL_SCANCODE_PAGEUP;
   IK_KPPAGEUP= SDL_SCANCODE_KP_9;
   IK_PAGEDN  = SDL_SCANCODE_PAGEDOWN;
   IK_KPPAGEDN= SDL_SCANCODE_KP_3;
+  IK_0      = SDL_SCANCODE_0;
+  IK_1      = SDL_SCANCODE_1;
+  IK_2      = SDL_SCANCODE_2;
+  IK_3      = SDL_SCANCODE_3;
+  IK_4      = SDL_SCANCODE_4;
+  IK_5      = SDL_SCANCODE_5;
+  IK_6      = SDL_SCANCODE_6;
+  IK_7      = SDL_SCANCODE_7;
+  IK_8      = SDL_SCANCODE_8;
+  IK_9      = SDL_SCANCODE_9;
+  IK_F1      = SDL_SCANCODE_F1;
   IK_F2      = SDL_SCANCODE_F2;
   IK_F3      = SDL_SCANCODE_F3;
   IK_F4      = SDL_SCANCODE_F4;
@@ -75,6 +87,8 @@ const
   IK_F8      = SDL_SCANCODE_F8;
   IK_F9      = SDL_SCANCODE_F9;
   IK_F10     = SDL_SCANCODE_F10;
+  IK_F11     = SDL_SCANCODE_F11;
+  IK_F12     = SDL_SCANCODE_F12;
   IK_END     = SDL_SCANCODE_END;
   IK_KPEND   = SDL_SCANCODE_KP_1;
   IK_BACKSPACE = SDL_SCANCODE_BACKSPACE;
@@ -83,6 +97,16 @@ const
   IK_PAUSE   = SDL_SCANCODE_PAUSE;
   IK_Y       = SDL_SCANCODE_Y;
   IK_N       = SDL_SCANCODE_N;
+  IK_W       = SDL_SCANCODE_W;
+  IK_A       = SDL_SCANCODE_A;
+  IK_S       = SDL_SCANCODE_S;
+  IK_D       = SDL_SCANCODE_D;
+  IK_Q       = SDL_SCANCODE_Q;
+  IK_E       = SDL_SCANCODE_E;
+  IK_H       = SDL_SCANCODE_H;
+  IK_J       = SDL_SCANCODE_J;
+  IK_T       = SDL_SCANCODE_T;
+  IK_MINUS   = SDL_SCANCODE_MINUS;
   // TODO: think of something better than this shit
   IK_LASTKEY = SDL_NUM_SCANCODES-1;
 
@@ -548,21 +572,21 @@ end;
 function e_JoyButtonToKey(id: Word; btn: Byte): Word;
 begin
   Result := 0;
-  if id >= Length(Joysticks) then Exit;
+  if id >= e_MaxJoys then Exit;
   Result := JOYK_BEG + id*e_MaxJoyBtns + btn;
 end;
 
 function e_JoyAxisToKey(id: Word; ax: Byte; dir: Byte): Word;
 begin
   Result := 0;
-  if id >= Length(Joysticks) then Exit;
+  if id >= e_MaxJoys then Exit;
   Result := JOYA_BEG + id*e_MaxJoyAxes*2 + ax*2 + dir;
 end;
 
 function e_JoyHatToKey(id: Word; hat: Byte; dir: Byte): Word;
 begin
   Result := 0;
-  if id >= Length(Joysticks) then Exit;
+  if id >= e_MaxJoys then Exit;
   Result := JOYH_BEG + id*e_MaxJoyHats*4 + hat*4 + dir;
 end;
 
