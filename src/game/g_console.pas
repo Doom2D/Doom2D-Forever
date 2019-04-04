@@ -52,8 +52,8 @@ procedure g_Console_WriteConfig (filename: String);
 
 function  g_Console_Interactive: Boolean;
 function  g_Console_Action (action: Integer): Boolean;
-function  g_Console_FindBind (n: Integer; cmd: AnsiString): Integer;
-procedure g_Console_BindKey (key: Integer; cmd: AnsiString);
+function  g_Console_FindBind (n: Integer; down: AnsiString; up: AnsiString = ''): Integer;
+procedure g_Console_BindKey (key: Integer; down: AnsiString; up: AnsiString = '');
 procedure g_Console_ProcessBind (key: Integer; down: Boolean);
 procedure g_Console_ResetBinds;
 
@@ -79,7 +79,7 @@ var
   gChatTeam: Boolean = false;
   gAllowConsoleMessages: Boolean = true;
   gJustChatted: Boolean = false; // чтобы админ в интере чатясь не проматывал статистику
-  gPlayerAction, gDefaultAction: Array [0..1, 0..LAST_ACTION] of Boolean; // [player, action]
+  gPlayerAction: Array [0..1, 0..LAST_ACTION] of Boolean; // [player, action]
 
 implementation
 
@@ -142,9 +142,8 @@ var
                               Time: Word;
                             end;
 
-  bindDown, bindProcess: Boolean;
   gInputBinds: Array [0..e_MaxInputKeys - 1] of record
-    commands: SSArray;
+    down, up: SSArray;
   end;
 
 
@@ -624,24 +623,39 @@ begin
   cmd := LowerCase(p[0]);
   case cmd of
   'bind':
-    // bind <key> <action>
-    if Length(p) = 3 then
+    // bind <key> <down> [up]
+    if Length(p) >= 3 then
     begin
-      key := LowerCase(p[1]);
       i := 0;
+      key := LowerCase(p[1]);
+      if Length(p) = 4 then act := p[3] else act := '';
       while (i < e_MaxInputKeys) and (key <> LowerCase(e_KeyNames[i])) do inc(i);
       if i < e_MaxInputKeys then
-        g_Console_BindKey(i, p[2])
-    end;
+        g_Console_BindKey(i, p[2], act)
+    end
+    else
+      g_Console_Add('bind <key> <down action> [up action]');
   'bindlist':
     for i := 0 to e_MaxInputKeys - 1 do
     begin
-      if gInputBinds[i].commands <> nil then
+      if (gInputBinds[i].down <> nil) or (gInputBinds[i].up <> nil) then
       begin
-        act := gInputBinds[i].commands[0];
-        for j := 1 to High(gInputBinds[i].commands) do
-          act := act + ' ;' + gInputBinds[i].commands[j];
-        g_Console_Add(e_KeyNames[i] + ' "' + act + '"')
+        act := e_KeyNames[i] + ' "';
+        if (gInputBinds[i].down <> nil) then
+        begin
+          act := act + gInputBinds[i].down[0];
+          for j := 1 to High(gInputBinds[i].down) do
+            act := act + ' ;' + gInputBinds[i].down[j];
+        end;
+        act := act + '" "';
+        if (gInputBinds[i].up <> nil) then
+        begin
+          act := act + gInputBinds[i].up[0];
+          for j := 1 to High(gInputBinds[i].up) do
+            act := act + ' ;' + gInputBinds[i].up[j];
+        end;
+        act := act + '"';
+        g_Console_Add(act)
       end
     end;
   'unbind':
@@ -653,11 +667,12 @@ begin
       while (i < e_MaxInputKeys) and (key <> LowerCase(e_KeyNames[i])) do inc(i);
       if i < e_MaxInputKeys then
         g_Console_BindKey(i, '')
-    end;
+    end
+    else
+      g_Console_Add('unbind <key>');
   'unbindall':
     for i := 0 to e_MaxInputKeys - 1 do
-      if gInputBinds[i].commands <> nil then
-        gInputBinds[i].commands := nil;
+      g_Console_BindKey(i, '')
   end
 end;
 
@@ -741,7 +756,6 @@ begin
   AddCommand('bindlist', BindCommands);
   AddCommand('unbind', BindCommands);
   AddCommand('unbindall', BindCommands);
-  AddCommand('bindkeys', BindCommands);
 
   AddCommand('clear', ConsoleCommands, 'clear console');
   AddCommand('clearhistory', ConsoleCommands);
@@ -1559,26 +1573,9 @@ begin
     begin
       if commands[i].action >= 0 then
       begin
-        if bindProcess then
-        begin
-          if bindDown then
-            gPlayerAction[commands[i].player, commands[i].action] := commands[i].cmd[1] = '+'
-          else
-            gPlayerAction[commands[i].player, commands[i].action] := gDefaultAction[commands[i].player, commands[i].action]
-        end
-        else
-        begin
-          gPlayerAction[commands[i].player, commands[i].action] := commands[i].cmd[1] = '+';
-          gDefaultAction[commands[i].player, commands[i].action] := commands[i].cmd[1] = '+'
-        end;
-        exit
-      end
-      else if bindProcess and not bindDown then
-      begin
-        (* command is not action, so do not execute it again after button release *)
+        gPlayerAction[commands[i].player, commands[i].action] := commands[i].cmd[1] = '+';
         exit
       end;
-
       if assigned(commands[i].procEx) then
       begin
         commands[i].procEx(@commands[i], Arr);
@@ -1598,32 +1595,52 @@ end;
 
 function g_Console_Interactive: Boolean;
 begin
-  Result := not bindProcess
+  Result := gConsoleShow
 end;
 
-procedure g_Console_BindKey (key: Integer; cmd: AnsiString);
+procedure g_Console_BindKey (key: Integer; down: AnsiString; up: AnsiString = '');
 begin
   //e_LogWritefln('bind "%s" "%s" <%s>', [LowerCase(e_KeyNames[key]), cmd, key]);
   ASSERT(key >= 0);
   ASSERT(key < e_MaxInputKeys);
   if key > 0 then
-    gInputBinds[key].commands := ParseAlias(cmd)
+  begin
+    gInputBinds[key].down := ParseAlias(down);
+    gInputBinds[key].up := ParseAlias(up)
+  end
 end;
 
-function g_Console_FindBind (n: Integer; cmd: AnsiString): Integer;
+function g_Console_FindBind (n: Integer; down: AnsiString; up: AnsiString = ''): Integer;
   var i: Integer;
+
+  function EqualsCommandLists (a, b: SSArray): Boolean;
+    var i, len: Integer;
+  begin
+    result := False;
+    len := Length(a);
+    if len = Length(b) then
+    begin
+      i := 0;
+      while (i < len) and (a[i] = b[i]) do inc(i);
+      if i >= len then
+        result := True
+    end
+  end;
+
 begin
   ASSERT(n >= 1);
   result := 0;
   if commands = nil then Exit;
   i := 0;
-  cmd := LowerCase(cmd);
   while (n >= 1) and (i < e_MaxInputKeys) do
   begin
-    if (Length(gInputBinds[i].commands) = 1) and (gInputBinds[i].commands[0] = cmd) then
+    if EqualsCommandLists(ParseAlias(down), gInputBinds[i].down) then
     begin
-      result := i;
-      dec(n)
+      if EqualsCommandLists(ParseAlias(up), gInputBinds[i].up) then
+      begin
+        result := i;
+        dec(n)
+      end
     end;
     inc(i)
   end;
@@ -1645,13 +1662,14 @@ end;
 procedure g_Console_ProcessBind (key: Integer; down: Boolean);
   var i: Integer;
 begin
-  if (not gChatShow) and (not gConsoleShow) and (key >= 0) and (key < e_MaxInputKeys) and (gInputBinds[key].commands <> nil) then
+  if (not gChatShow) and (not gConsoleShow) and (key >= 0) and (key < e_MaxInputKeys) and ((gInputBinds[key].down <> nil) or (gInputBinds[key].up <> nil)) then
   begin
-    bindDown := down;
-    bindProcess := True;
-    for i := 0 to High(gInputBinds[key].commands) do
-      g_Console_Process(gInputBinds[key].commands[i], True);
-    bindProcess := False;
+    if down then
+      for i := 0 to High(gInputBinds[key].down) do
+        g_Console_Process(gInputBinds[key].down[i], True)
+    else
+      for i := 0 to High(gInputBinds[key].up) do
+        g_Console_Process(gInputBinds[key].up[i], True)
   end
 end;
 
@@ -1659,18 +1677,18 @@ procedure g_Console_ResetBinds;
   var i: Integer;
 begin
   for i := 0 to e_MaxInputKeys - 1 do
-    g_Console_BindKey(i, '');
+    g_Console_BindKey(i, '', '');
 
-  g_Console_BindKey(IK_A, '+p1_moveleft');
-  g_Console_BindKey(IK_D, '+p1_moveright');
-  g_Console_BindKey(IK_W, '+p1_lookup');
-  g_Console_BindKey(IK_S, '+p1_lookdown');
-  g_Console_BindKey(IK_SPACE, '+p1_jump');
-  g_Console_BindKey(IK_H, '+p1_attack');
-  g_Console_BindKey(IK_J, '+p1_activate');
-  g_Console_BindKey(IK_E, '+p1_weapnext');
-  g_Console_BindKey(IK_Q, '+p1_weapprev');
-  g_Console_BindKey(IK_ALT, '+p1_strafe');
+  g_Console_BindKey(IK_A, '+p1_moveleft', '-p1_moveleft');
+  g_Console_BindKey(IK_D, '+p1_moveright', '-p1_moveright');
+  g_Console_BindKey(IK_W, '+p1_lookup', '-p1_lookup');
+  g_Console_BindKey(IK_S, '+p1_lookdown', '-p1_lookdown');
+  g_Console_BindKey(IK_SPACE, '+p1_jump', '-p1_jump');
+  g_Console_BindKey(IK_H, '+p1_attack', '-p1_attack');
+  g_Console_BindKey(IK_J, '+p1_activate', '-p1_activate');
+  g_Console_BindKey(IK_E, '+p1_weapnext', '-p1_weapnext');
+  g_Console_BindKey(IK_Q, '+p1_weapprev', '-p1_weapprev');
+  g_Console_BindKey(IK_ALT, '+p1_strafe', '-p1_strafe');
   g_Console_BindKey(IK_1, 'p1_weapon 1');
   g_Console_BindKey(IK_2, 'p1_weapon 2');
   g_Console_BindKey(IK_3, 'p1_weapon 3');
@@ -1685,35 +1703,35 @@ begin
   g_Console_BindKey(IK_T, 'togglechat');
   g_Console_BindKey(IK_Y, 'toggleteamchat');
   g_Console_BindKey(IK_F11, 'screenshot');
-  g_Console_BindKey(IK_TAB, '+p1_scores');
+  g_Console_BindKey(IK_TAB, '+p1_scores', '-p1_scores');
   g_Console_BindKey(IK_PAUSE, 'pause');
   g_Console_BindKey(IK_F1, 'vote');
 
   (* for i := 0 to e_MaxJoys - 1 do *)
   for i := 0 to 1 do
   begin
-    g_Console_BindKey(e_JoyAxisToKey(i, 0, 0), '+p' + IntToStr(i mod 2 + 1) + '_moveleft');
-    g_Console_BindKey(e_JoyAxisToKey(i, 0, 1), '+p' + IntToStr(i mod 2 + 1) + '_moveright');
-    g_Console_BindKey(e_JoyAxisToKey(i, 1, 0), '+p' + IntToStr(i mod 2 + 1) + '_lookup');
-    g_Console_BindKey(e_JoyAxisToKey(i, 1, 1), '+p' + IntToStr(i mod 2 + 1) + '_lookdown');
-    g_Console_BindKey(e_JoyButtonToKey(i, 2), '+p' + IntToStr(i mod 2 + 1) + '_jump');
-    g_Console_BindKey(e_JoyButtonToKey(i, 0), '+p' + IntToStr(i mod 2 + 1) + '_attack');
-    g_Console_BindKey(e_JoyButtonToKey(i, 3), '+p' + IntToStr(i mod 2 + 1) + '_activate');
-    g_Console_BindKey(e_JoyButtonToKey(i, 1), '+p' + IntToStr(i mod 2 + 1) + '_weapnext');
-    g_Console_BindKey(e_JoyButtonToKey(i, 4), '+p' + IntToStr(i mod 2 + 1) + '_weapprev');
-    g_Console_BindKey(e_JoyButtonToKey(i, 7), '+p' + IntToStr(i mod 2 + 1) + '_strafe');
+    g_Console_BindKey(e_JoyAxisToKey(i, 0, 0), '+p' + IntToStr(i mod 2 + 1) + '_moveleft', '-p' + IntToStr(i mod 2 + 1) + '_moveleft');
+    g_Console_BindKey(e_JoyAxisToKey(i, 0, 1), '+p' + IntToStr(i mod 2 + 1) + '_moveright', '-p' + IntToStr(i mod 2 + 1) + '_moveright');
+    g_Console_BindKey(e_JoyAxisToKey(i, 1, 0), '+p' + IntToStr(i mod 2 + 1) + '_lookup', '-p' + IntToStr(i mod 2 + 1) + '_lookup');
+    g_Console_BindKey(e_JoyAxisToKey(i, 1, 1), '+p' + IntToStr(i mod 2 + 1) + '_lookdown', '-p' + IntToStr(i mod 2 + 1) + '_lookdown');
+    g_Console_BindKey(e_JoyButtonToKey(i, 2), '+p' + IntToStr(i mod 2 + 1) + '_jump', '-p' + IntToStr(i mod 2 + 1) + '_jump');
+    g_Console_BindKey(e_JoyButtonToKey(i, 0), '+p' + IntToStr(i mod 2 + 1) + '_attack', '-p' + IntToStr(i mod 2 + 1) + '_attack');
+    g_Console_BindKey(e_JoyButtonToKey(i, 3), '+p' + IntToStr(i mod 2 + 1) + '_activate', '-p' + IntToStr(i mod 2 + 1) + '_activate');
+    g_Console_BindKey(e_JoyButtonToKey(i, 1), '+p' + IntToStr(i mod 2 + 1) + '_weapnext', '-p' + IntToStr(i mod 2 + 1) + '_weapnext');
+    g_Console_BindKey(e_JoyButtonToKey(i, 4), '+p' + IntToStr(i mod 2 + 1) + '_weapprev', '-p' + IntToStr(i mod 2 + 1) + '_weapprev');
+    g_Console_BindKey(e_JoyButtonToKey(i, 7), '+p' + IntToStr(i mod 2 + 1) + '_strafe', '-p' + IntToStr(i mod 2 + 1) + '_strafe');
   end;
 
-  g_Console_BindKey(VK_LEFT, '+moveleft');
-  g_Console_BindKey(VK_RIGHT, '+moveright');
-  g_Console_BindKey(VK_UP, '+lookup');
-  g_Console_BindKey(VK_DOWN, '+lookdown');
-  g_Console_BindKey(VK_JUMP, '+jump');
-  g_Console_BindKey(VK_FIRE, '+attack');
-  g_Console_BindKey(VK_OPEN, '+activate');
-  g_Console_BindKey(VK_NEXT, '+weapnext');
-  g_Console_BindKey(VK_PREV, '+weapprev');
-  g_Console_BindKey(VK_STRAFE, '+strafe');
+  g_Console_BindKey(VK_LEFT, '+moveleft', '-moveleft');
+  g_Console_BindKey(VK_RIGHT, '+moveright', '-moveright');
+  g_Console_BindKey(VK_UP, '+lookup', '-lookup');
+  g_Console_BindKey(VK_DOWN, '+lookdown', '-lookdown');
+  g_Console_BindKey(VK_JUMP, '+jump', '-jump');
+  g_Console_BindKey(VK_FIRE, '+attack', '-attack');
+  g_Console_BindKey(VK_OPEN, '+activate', '-activate');
+  g_Console_BindKey(VK_NEXT, '+weapnext', '-weapnext');
+  g_Console_BindKey(VK_PREV, '+weapprev', '-weapprev');
+  g_Console_BindKey(VK_STRAFE, '+strafe', '-strafe');
   g_Console_BindKey(VK_0, 'weapon 1');
   g_Console_BindKey(VK_1, 'weapon 2');
   g_Console_BindKey(VK_2, 'weapon 3');
@@ -1728,7 +1746,7 @@ begin
   g_Console_BindKey(VK_CHAT, 'togglechat');
   g_Console_BindKey(VK_TEAM, 'toggleteamchat');
   g_Console_BindKey(VK_PRINTSCR, 'screenshot');
-  g_Console_BindKey(VK_STATUS, '+scores');
+  g_Console_BindKey(VK_STATUS, '+scores', '-scores');
 
   // VK_CONSOLE
   // VK_ESCAPE
@@ -1760,7 +1778,7 @@ begin
 end;
 
 procedure g_Console_WriteConfig (filename: String);
-  var f: TextFile; i, j: Integer; act: AnsiString;
+  var f: TextFile; i, j: Integer;
 begin
   AssignFile(f, filename);
   Rewrite(f);
@@ -1768,12 +1786,24 @@ begin
   WriteLn(f, 'unbindall');
   for i := 0 to e_MaxInputKeys - 1 do
   begin
-    if Length(gInputBinds[i].commands) > 0 then
+    if (Length(gInputBinds[i].down) > 0) or (Length(gInputBinds[i].up) > 0) then
     begin
-      act := gInputBinds[i].commands[0];
-      for j := 1 to High(gInputBinds[i].commands) do
-        act := act + '; ' + gInputBinds[i].commands[j];
-      WriteLn(f, 'bind ', e_KeyNames[i], ' "', act, '"')
+      Write(f, 'bind ', e_KeyNames[i], ' "');
+      if Length(gInputBinds[i].down) > 0 then
+      begin
+        Write(f, gInputBinds[i].down[0]);
+        for j := 1 to High(gInputBinds[i].down) do
+          Write(f, '; ', gInputBinds[i].down[j])
+      end;
+      Write(f, '"');
+      if Length(gInputBinds[i].up) > 0 then
+      begin
+        Write(f, ' "', gInputBinds[i].up[0]);
+        for j := 1 to High(gInputBinds[i].up) do
+          Write(f, '; ', gInputBinds[i].up[j]);
+        Write(f, '"')
+      end;
+      WriteLn(f)
     end
   end;
   for i := 0 to High(commands) do
