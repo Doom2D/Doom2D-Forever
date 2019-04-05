@@ -174,6 +174,8 @@ const
   VK_LSTRAFE  = VK_FIRSTKEY + 31;
   VK_RSTRAFE  = VK_FIRSTKEY + 32;
   VK_PRINTSCR = VK_FIRSTKEY + 33;
+  VK_SHOWKBD  = VK_FIRSTKEY + 34;
+  VK_HIDEKBD  = VK_FIRSTKEY + 35;
   VK_LASTKEY  = e_MaxKbdKeys + e_MaxJoys*e_MaxJoyKeys + e_MaxVirtKeys - 1;
 
   AX_MINUS  = 0;

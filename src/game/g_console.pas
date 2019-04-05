@@ -644,15 +644,15 @@ begin
         if (gInputBinds[i].down <> nil) then
         begin
           act := act + gInputBinds[i].down[0];
-          for j := 1 to High(gInputBinds[i].down) do
-            act := act + ' ;' + gInputBinds[i].down[j];
+          for j := 1 to High(gInputBinds[i].down) - 1 do
+            act := act + '; ' + gInputBinds[i].down[j];
         end;
         act := act + '" "';
         if (gInputBinds[i].up <> nil) then
         begin
           act := act + gInputBinds[i].up[0];
           for j := 1 to High(gInputBinds[i].up) do
-            act := act + ' ;' + gInputBinds[i].up[j];
+            act := act + '; ' + gInputBinds[i].up[j];
         end;
         act := act + '"';
         g_Console_Add(act)
@@ -672,7 +672,11 @@ begin
       g_Console_Add('unbind <key>');
   'unbindall':
     for i := 0 to e_MaxInputKeys - 1 do
-      g_Console_BindKey(i, '')
+      g_Console_BindKey(i, '');
+  'showkeyboard':
+     g_Touch_ShowKeyboard(True);
+  'hidekeyboard':
+     g_Touch_ShowKeyboard(False);
   end
 end;
 
@@ -756,6 +760,8 @@ begin
   AddCommand('bindlist', BindCommands);
   AddCommand('unbind', BindCommands);
   AddCommand('unbindall', BindCommands);
+  AddCommand('showkeyboard', BindCommands);
+  AddCommand('hidekeyboard', BindCommands);
 
   AddCommand('clear', ConsoleCommands, 'clear console');
   AddCommand('clearhistory', ConsoleCommands);
@@ -1722,6 +1728,8 @@ begin
     g_Console_BindKey(e_JoyButtonToKey(i, 7), '+p' + IntToStr(i mod 2 + 1) + '_strafe', '-p' + IntToStr(i mod 2 + 1) + '_strafe');
   end;
 
+  g_Console_BindKey(VK_LSTRAFE, '+moveleft; +strafe', '-moveleft; -strafe');
+  g_Console_BindKey(VK_RSTRAFE, '+moveright; +strafe', '-moveright; -strafe');
   g_Console_BindKey(VK_LEFT, '+moveleft', '-moveleft');
   g_Console_BindKey(VK_RIGHT, '+moveright', '-moveright');
   g_Console_BindKey(VK_UP, '+lookup', '-lookup');
@@ -1747,6 +1755,8 @@ begin
   g_Console_BindKey(VK_TEAM, 'toggleteamchat');
   g_Console_BindKey(VK_PRINTSCR, 'screenshot');
   g_Console_BindKey(VK_STATUS, '+scores', '-scores');
+  g_Console_BindKey(VK_SHOWKBD, 'showkeyboard');
+  g_Console_BindKey(VK_HIDEKBD, 'hidekeyboard');
 
   // VK_CONSOLE
   // VK_ESCAPE

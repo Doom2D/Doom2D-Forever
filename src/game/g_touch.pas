@@ -22,11 +22,11 @@ interface
     SDL2;
 
   var
-    g_touch_enabled: Boolean;
-    g_touch_size: Single;
-    g_touch_offset: Single;
-    g_touch_fire: Boolean;
-    g_touch_alt: Boolean;
+    g_touch_enabled: Boolean = False;
+    g_touch_size: Single = 1.0;
+    g_touch_offset: Single = 50.0;
+    g_touch_fire: Boolean = True;
+    g_touch_alt: Boolean = False;
 
   procedure g_Touch_Init;
   procedure g_Touch_ShowKeyboard(yes: Boolean);
@@ -38,10 +38,6 @@ implementation
   uses
     SysUtils,
     e_log, e_graphics, e_input, g_options, g_game, g_main, g_weapons, g_console;
-
-  const
-    VS_KEYBOARD     = 60000;
-    VS_HIDEKEYBOARD = 60001;
 
   var
     angleFire: Boolean;
@@ -72,14 +68,14 @@ implementation
 
     if SDL_IsTextInputActive() = SDL_True then
       case key of
-        VS_HIDEKEYBOARD: S(sw - (sz/2), 0, sz / 2, sz / 2);
+        VK_HIDEKBD: S(sw - (sz/2), 0, sz / 2, sz / 2);
       end
     else if g_touch_alt then
       case key of
         (* top ------- x ------------------------------- y  w ----- h -- *)
         VK_CONSOLE:  S(0,                                0, sz / 2, sz / 2);
         VK_ESCAPE:   S(sw - 1*(sz/2) - 1,                0, sz / 2, sz / 2);
-        VS_KEYBOARD: S(sw - 2*(sz/2) - 1,                0, sz / 2, sz / 2);
+        VK_SHOWKBD:  S(sw - 2*(sz/2) - 1,                0, sz / 2, sz / 2);
         VK_CHAT:     S(sw / 2 - (sz/2) / 2 - (sz/2) - 1, 0, sz / 2, sz / 2);
         VK_STATUS:   S(sw / 2 - (sz/2) / 2 - 1,          0, sz / 2, sz / 2);
         VK_TEAM:     S(sw / 2 - (sz/2) / 2 + (sz/2) - 1, 0, sz / 2, sz / 2);
@@ -116,7 +112,7 @@ implementation
         VK_CONSOLE:  S(sw/2 - sz/4 -  1*(sz/2) - 1, sh - 2*(sz/2) - 1, sz / 2, sz / 2);
         VK_STATUS:   S(sw/2 - sz/4 -  0*(sz/2) - 1, sh - 2*(sz/2) - 1, sz / 2, sz / 2);
         VK_TEAM:     S(sw/2 - sz/4 - -1*(sz/2) - 1, sh - 2*(sz/2) - 1, sz / 2, sz / 2);
-        VS_KEYBOARD: S(sw/2 - sz/4 - -2*(sz/2) - 1, sh - 2*(sz/2) - 1, sz / 2, sz / 2);
+        VK_SHOWKBD:  S(sw/2 - sz/4 - -2*(sz/2) - 1, sh - 2*(sz/2) - 1, sz / 2, sz / 2);
         VK_0:        S(sw/2 - sz/4 -  5*(sz/2) - 1, sh - 1*(sz/2) - 1, sz / 2, sz / 2);
         VK_1:        S(sw/2 - sz/4 -  4*(sz/2) - 1, sh - 1*(sz/2) - 1, sz / 2, sz / 2);
         VK_2:        S(sw/2 - sz/4 -  3*(sz/2) - 1, sh - 1*(sz/2) - 1, sz / 2, sz / 2);
@@ -134,8 +130,8 @@ implementation
   function GetKeyName(key: Integer): String;
   begin
     case key of
-      VS_KEYBOARD: result := 'KBD';
-      VS_HIDEKEYBOARD: result := 'KBD';
+      VK_SHOWKBD: result := 'KBD';
+      VK_HIDEKBD: result := 'KBD';
       VK_LEFT:    result := 'LEFT';
       VK_RIGHT:   result := 'RIGHT';
       VK_UP:      result := 'UP';
@@ -208,6 +204,62 @@ implementation
   procedure g_Touch_HandleEvent(const ev: TSDL_TouchFingerEvent);
     var
       x, y, i, finger: Integer;
+
+    procedure KeyUp (finger, i: Integer);
+    begin
+      keyFinger[i] := 0;
+      e_KeyUpDown(i, False);
+      g_Console_ProcessBind(i, False);
+
+      (* up/down + fire hack *)
+      if g_touch_fire and (gGameSettings.GameType <> GT_NONE) and angleFire then
+      begin
+        if (i = VK_UP) or (i = VK_DOWN) then
+        begin
+          angleFire := False;
+          keyFinger[VK_FIRE] := 0;
+          e_KeyUpDown(VK_FIRE, False);
+          g_Console_ProcessBind(VK_FIRE, False)
+        end
+      end
+    end;
+
+    procedure KeyDown (finger, i: Integer);
+    begin
+      KeyPress(i); // Menu events
+      keyFinger[i] := finger;
+      e_KeyUpDown(i, True);
+      g_Console_ProcessBind(i, True);
+
+      (* up/down + fire hack *)
+      if g_touch_fire and (gGameSettings.GameType <> GT_NONE) then
+      begin
+        if i = VK_UP then
+        begin
+          angleFire := True;
+          keyFinger[VK_FIRE] := -1;
+          e_KeyUpDown(VK_FIRE, True);
+          g_Console_ProcessBind(VK_FIRE, True)
+        end
+        else if i = VK_DOWN then
+        begin
+          angleFire := True;
+          keyFinger[VK_FIRE] := -1;
+          e_KeyUpDown(VK_FIRE, True);
+          g_Console_ProcessBind(VK_FIRE, True)
+        end
+      end
+    end;
+
+    procedure KeyMotion (finger, i: Integer);
+    begin
+      if keyFinger[i] <> finger then
+      begin
+        KeyUp(finger, i);
+        KeyDown(finger, i)
+      end
+    end;
+
   begin
     if not g_touch_enabled then
       Exit;
@@ -221,108 +273,38 @@ implementation
       if IntersectControl(i, x, y) then
       begin
         if ev.type_ = SDL_FINGERUP then
-          keyFinger[i] := 0
+          KeyUp(finger, i)
         else if ev.type_ = SDL_FINGERMOTION then
-          keyFinger[i] := finger
+          KeyMotion(finger, i)
         else if ev.type_ = SDL_FINGERDOWN then
-          begin
-            KeyPress(i); // Menu events
-            keyFinger[i] := finger;
-          end
+          keyDown(finger, i)
       end
       else if keyFinger[i] = finger then
       begin
         if ev.type_ = SDL_FINGERUP then
-          keyFinger[i] := 0
+          KeyUp(finger, i)
         else if ev.type_ = SDL_FINGERMOTION then
-          keyFinger[i] := 0
-      end;
-
-      e_KeyUpDown(i, keyFinger[i] <> 0);
-    end;
-
-    if IntersectControl(VS_KEYBOARD, x, y) then
-      g_Touch_ShowKeyboard(true);
-    if IntersectControl(VS_HIDEKEYBOARD, x, y) then
-      g_Touch_ShowKeyboard(false);
-	
-    (* emulate up+fire / donw+fire *)
-    if g_touch_fire and (gGameSettings.GameType <> GT_NONE) then
-    begin
-      if keyFinger[VK_UP] <> 0 then
-      begin
-        angleFire := true;
-        keyFinger[VK_FIRE] := keyFinger[VK_UP];
-        e_KeyUpDown(VK_FIRE, true);
+          KeyUp(finger, i)
       end
-      else if keyFinger[VK_DOWN] <> 0 then
-      begin
-        angleFire := true;
-        keyFinger[VK_FIRE] := keyFinger[VK_DOWN];
-        e_KeyUpDown(VK_FIRE, true);
-      end
-      else if angleFire then
-      begin
-        angleFire := false;
-        keyFinger[VK_FIRE] := 0;
-        e_KeyUpDown(VK_FIRE, false);
-      end
-    end;
-
-    (* left/right strafe *)
-    if gGameSettings.GameType <> GT_NONE then
-    begin
-      if keyFinger[VK_LSTRAFE] <> 0 then
-      begin
-        keyFinger[VK_LEFT] := finger;
-        keyFinger[VK_RIGHT] := 0;
-        keyFinger[VK_STRAFE] := finger;
-        e_KeyUpDown(VK_LEFT, true);
-        e_KeyUpDown(VK_RIGHT, false);
-        e_KeyUpDown(VK_STRAFE, true);
-      end
-      else if keyFinger[VK_RSTRAFE] <> 0 then
-      begin
-        keyFinger[VK_LEFT] := 0;
-        keyFinger[VK_RIGHT] := finger;
-        keyFinger[VK_STRAFE] := finger;
-        e_KeyUpDown(VK_LEFT, false);
-        e_KeyUpDown(VK_RIGHT, true);
-        e_KeyUpDown(VK_STRAFE, true);
-      end
-      else
-      begin
-        keyFinger[VK_STRAFE] := 0;
-        e_KeyUpDown(VK_STRAFE, false);
-      end
-
-    end;
+    end
   end;
 
   procedure g_Touch_Draw;
-    var i: Integer;
-
-    procedure Draw (i: Integer);
-      var x, y, w, h: Integer; founded: Boolean;
-    begin
-      GetKeyRect(i, x, y, w, h, founded);
-      if founded then
-      begin
-        e_DrawQuad(x, y, x + w, y + h, 0, 255, 0, 31);
-        e_TextureFontPrintEx(x, y, GetKeyName(i), gStdFont, 255, 255, 255, 1, True)
-      end;
-    end;
-
+    var i, x, y, w, h: Integer; founded: Boolean;
   begin
 {$IFNDEF HEADLESS}
     if not g_touch_enabled then
       Exit;
 
     for i := VK_FIRSTKEY to VK_LASTKEY do
-      Draw(i);
-
-    Draw(VS_KEYBOARD);
-    Draw(VS_HIDEKEYBOARD);
+    begin
+      GetKeyRect(i, x, y, w, h, founded);
+      if founded then
+      begin
+        e_DrawQuad(x, y, x + w, y + h, 0, 255, 0, 31);
+        e_TextureFontPrintEx(x, y, GetKeyName(i), gStdFont, 255, 255, 255, 1, True)
+      end
+    end
 {$ENDIF}
   end;
 
