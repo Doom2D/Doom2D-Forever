@@ -2261,7 +2261,7 @@ begin
   finally
     sfsGCEnable(); // enable releasing unused volumes
     //mapReader.Free();
-    e_ClearInputBuffer(); // why not?
+    e_UnpressAllKeys; // why not?
     if not mapOk then
     begin
       gCurrentMap.Free();

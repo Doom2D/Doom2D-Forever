@@ -18,10 +18,7 @@ unit e_input;
 
 interface
 
-uses
-  SysUtils,
-  e_log,
-  SDL2;
+uses SysUtils, SDL2;
 
 const
   e_MaxKbdKeys  = SDL_NUM_SCANCODES;
@@ -41,7 +38,7 @@ const
   // $$$..$$$ -   48 Virtual buttons/keys
 
   // these are apparently used in g_gui and g_game and elsewhere
-  IK_INVALID = 65535;
+  IK_INVALID = 0;
   IK_ESCAPE  = SDL_SCANCODE_ESCAPE;
   IK_RETURN  = SDL_SCANCODE_RETURN;
   IK_KPRETURN= SDL_SCANCODE_KP_ENTER;
@@ -185,48 +182,26 @@ const
   HAT_RIGHT = 2;
   HAT_DOWN  = 3;
 
-function  e_InitInput(): Boolean;
-procedure e_ReleaseInput();
-procedure e_ClearInputBuffer();
-//function  e_PollInput(): Boolean;
-procedure e_PollJoysticks(); // call this from message loop to update joysticks
-function  e_KeyPressed(Key: Word): Boolean;
-function  e_AnyKeyPressed(): Boolean;
-function  e_GetFirstKeyPressed(): Word;
-function  e_JoystickStateToString(mode: Integer): String;
-function  e_JoyByHandle(handle: Word): Integer;
-function  e_JoyButtonToKey(id: Word; btn: Byte): Word;
-function  e_JoyAxisToKey(id: Word; ax: Byte; dir: Byte): Word;
-function  e_JoyHatToKey(id: Word; hat: Byte; dir: Byte): Word;
-procedure e_SetKeyState(key: Word; state: Integer);
+function  e_InitInput: Boolean;
+procedure e_ReleaseInput;
+procedure e_UnpressAllKeys;
+procedure e_KeyUpDown (key: Integer; down: Boolean);
 
-procedure e_UnpressAllKeys ();
-procedure e_KeyUpDown (key: Word; down: Boolean);
+function  e_KeyPressed (key: Integer): Boolean;
+function  e_AnyKeyPressed: Boolean;
+function  e_GetFirstKeyPressed: Integer;
+function  e_HasJoysticks: Boolean;
 
-type
-  TJoystick = record
-    ID:      Byte;
-    Handle:  PSDL_Joystick;
-    Axes:    Byte;
-    Buttons: Byte;
-    Hats:    Byte;
-    ButtBuf: array [0..e_MaxJoyBtns] of Boolean;
-    AxisBuf: array [0..e_MaxJoyAxes] of Integer;
-    AxisZero: array [0..e_MaxJoyAxes] of Integer;
-    HatBuf:  array [0..e_MaxJoyHats] of array [HAT_LEFT..HAT_DOWN] of Boolean;
-  end;
+function  e_JoyButtonToKey (id, btn: Integer): Integer;
+function  e_JoyAxisToKey (id, ax, dir: Integer): Integer;
+function  e_JoyHatToKey (id, hat, dir: Integer): Integer;
 
 var
-  {e_MouseInfo:          TMouseInfo;}
-  e_EnableInput:        Boolean = False;
-  e_JoysticksAvailable: Byte    = 0;
-  e_JoystickDeadzones:  array [0..e_MaxJoys-1] of Integer = (8192, 8192, 8192, 8192);
-  e_KeyNames:           array [0..e_MaxInputKeys] of String;
-  Joysticks: array of TJoystick = nil;
+  e_JoystickAvailable: array [0..e_MaxJoys - 1] of Boolean;
+  e_JoystickDeadzones: array [0..e_MaxJoys - 1] of Integer = (8192, 8192, 8192, 8192);
+  e_KeyNames: array [0..e_MaxInputKeys] of String;
 
 implementation
-
-uses Math;
 
 const
   KBRD_END = e_MaxKbdKeys;
@@ -240,124 +215,25 @@ const
   VIRT_END = VIRT_BEG + e_MaxVirtKeys;
 
 var
-  KeyBuffer: array [0..e_MaxKbdKeys] of Boolean;
-  JoyBuffer: array [JOYK_BEG..JOYH_END] of Boolean;
-  VirtBuffer: array [0..e_MaxVirtKeys] of Boolean;
+  InputBuffer: array [0..e_MaxInputKeys - 1] of Boolean;
 
-function OpenJoysticks(): Byte;
-var
-  i, j, k, c: Integer;
-  joy: PSDL_Joystick;
+procedure e_UnpressAllKeys;
+  var i: Integer;
 begin
-  Result := 0;
-  k := Min(e_MaxJoys, SDL_NumJoysticks());
-  if k = 0 then Exit;
-  c := 0;
-  for i := 0 to k do
-  begin
-    joy := SDL_JoystickOpen(i);
-    if joy <> nil then
-    begin
-      Inc(c);
-      e_WriteLog('Input: Opened SDL joystick ' + IntToStr(i) + ' (' + SDL_JoystickName(joy) +
-                 ') as joystick ' + IntToStr(c) + ':', TMsgType.Notify);
-      SetLength(Joysticks, c);
-      with Joysticks[c-1] do
-      begin
-        ID := i;
-        Handle := joy;
-        Axes := Min(e_MaxJoyAxes, SDL_JoystickNumAxes(joy));
-        Buttons := Min(e_MaxJoyBtns, SDL_JoystickNumButtons(joy));
-        Hats := Min(e_MaxJoyHats, SDL_JoystickNumHats(joy));
-        // TODO: find proper solution for this xbox trigger shit
-        for j := 0 to Axes do AxisZero[j] := SDL_JoystickGetAxis(joy, j);
-        e_WriteLog('       ' + IntToStr(Axes) + ' axes, ' + IntToStr(Buttons) + ' buttons, ' +
-                   IntToStr(Hats) + ' hats.', TMsgType.Notify);
-      end;
-    end;
-  end;
-  Result := c;
+  for i := 0 to High(InputBuffer) do
+    InputBuffer[i] := False
 end;
 
-procedure ReleaseJoysticks();
-var
-  i: Integer;
+procedure e_KeyUpDown (key: Integer; down: Boolean);
 begin
-  if (Joysticks = nil) or (e_JoysticksAvailable = 0) then Exit;
-  for i := Low(Joysticks) to High(Joysticks) do
-    with Joysticks[i] do
-      SDL_JoystickClose(Handle);
-  SetLength(Joysticks, 0);
+  ASSERT(key >= 0);
+  ASSERT(key < e_MaxInputKeys);
+  if key > 0 then
+    InputBuffer[key] := down
 end;
 
-
-procedure e_UnpressAllKeys ();
-var
-  i: Integer;
-begin
-  for i := 0 to High(KeyBuffer) do KeyBuffer[i] := False;
-  for i := JOYK_BEG to JOYH_END do JoyBuffer[i] := False;
-  for i := 0 to High(VirtBuffer) do VirtBuffer[i] := False;
-end;
-
-
-procedure e_KeyUpDown (key: Word; down: Boolean);
-begin
-  if (key > 0) and (key < Length(KeyBuffer)) then KeyBuffer[key] := down
-  else if (key >= JOYK_BEG) and (key < JOYH_END) then JoyBuffer[key] := down
-  else if (key >= VIRT_BEG) and (key < VIRT_END) then VirtBuffer[key - VIRT_BEG] := down
-end;
-
-
-function PollKeyboard(): Boolean;
-{
-var
-  Keys: PByte;
-  NKeys: Integer;
-  i: NativeUInt;
-}
-begin
-  Result := False;
-  {
-  Keys := SDL_GetKeyboardState(@NKeys);
-  if (Keys = nil) or (NKeys < 1) then Exit;
-  for i := 0 to NKeys do
-  begin
-    if ((PByte(NativeUInt(Keys) + i)^) <> 0) then KeyBuffer[i] := false;
-  end;
-  for i := NKeys to High(KeyBuffer) do KeyBuffer[i] := False;
-  }
-end;
-
-procedure e_PollJoysticks();
-var
-  i, j: Word;
-  hat: Byte;
-begin
-  //Result := False;
-  if (Joysticks = nil) or (e_JoysticksAvailable = 0) then Exit;
-  SDL_JoystickUpdate();
-  for j := Low(Joysticks) to High(Joysticks) do
-  begin
-    with Joysticks[j] do
-    begin
-      for i := 0 to Buttons do ButtBuf[i] := SDL_JoystickGetButton(Handle, i) <> 0;
-      for i := 0 to Axes do AxisBuf[i] := SDL_JoystickGetAxis(Handle, i);
-      for i := 0 to Hats do
-      begin
-        hat := SDL_JoystickGetHat(Handle, i);
-        HatBuf[i, HAT_UP] := LongBool(hat and SDL_HAT_UP);
-        HatBuf[i, HAT_DOWN] := LongBool(hat and SDL_HAT_DOWN);
-        HatBuf[i, HAT_LEFT] := LongBool(hat and SDL_HAT_LEFT);
-        HatBuf[i, HAT_RIGHT] := LongBool(hat and SDL_HAT_RIGHT);
-      end;
-    end;
-  end;
-end;
-
-procedure GenerateKeyNames();
-var
-  i, j, k: LongWord;
+procedure GenerateKeyNames;
+  var i, j, k: Integer;
 begin
   // keyboard key names
   e_KeyNames[IK_0] := '0';
@@ -370,8 +246,10 @@ begin
   e_KeyNames[IK_7] := '7';
   e_KeyNames[IK_8] := '8';
   e_KeyNames[IK_9] := '9';
+
   for i := IK_A to IK_Z do
     e_KeyNames[i] := '' + chr(ord('a') + (i - IK_a));
+
   e_KeyNames[IK_ESCAPE] := 'ESCAPE';
   e_KeyNames[IK_ENTER] := 'ENTER';
   e_KeyNames[IK_TAB] := 'TAB';
@@ -441,9 +319,6 @@ begin
   e_KeyNames[IK_MINUS] := '-';
   e_KeyNames[IK_EQUALS] := '=';
 
-  //for i := 0 to IK_LASTKEY do
-  //  e_KeyNames[i] := SDL_GetScancodeName(i);
-
   // joysticks
   for j := 0 to e_MaxJoys-1 do
   begin
@@ -474,242 +349,80 @@ begin
     e_KeyNames[VIRT_BEG + i] := 'VIRTUAL' + IntToStr(i);
 end;
 
-function e_InitInput(): Boolean;
+function e_HasJoysticks: Boolean;
+  var i: Integer;
 begin
-  Result := False;
-
-  e_JoysticksAvailable := OpenJoysticks();
-  e_EnableInput := True;
-  GenerateKeyNames();
-
-  Result := True;
+  i := 0;
+  while (i < e_MaxJoys) and (e_JoystickAvailable[i] = False) do inc(i);
+  result := i < e_MaxJoys
 end;
 
-procedure e_ReleaseInput();
+function e_InitInput: Boolean;
+  var i: Integer;
 begin
-  ReleaseJoysticks();
-  e_JoysticksAvailable := 0;
+  for i := 0 to e_MaxJoys - 1 do
+    e_JoystickAvailable[i] := False;
+  GenerateKeyNames;
+  result := True
 end;
 
-procedure e_ClearInputBuffer();
-var
-  i, j, d: Integer;
+procedure e_ReleaseInput;
+  var i: Integer;
 begin
-  for i := Low(KeyBuffer) to High(KeyBuffer) do
-    KeyBuffer[i] := False;
-  for i := JOYK_BEG to JOYH_END do
-    JoyBuffer[i] := False;
-  for i := Low(VirtBuffer) to High(VirtBuffer) do
-    VirtBuffer[i] := False;
-(***
-  if (Joysticks = nil) or (e_JoysticksAvailable = 0) then
-  for i := Low(Joysticks) to High(Joysticks) do
-  begin
-    for j := Low(Joysticks[i].ButtBuf) to High(Joysticks[i].ButtBuf) do
-      Joysticks[i].ButtBuf[j] := False;
-    for j := Low(Joysticks[i].AxisBuf) to High(Joysticks[i].AxisBuf) do
-      Joysticks[i].AxisBuf[j] := 0;
-    for j := Low(Joysticks[i].HatBuf) to High(Joysticks[i].HatBuf) do
-      for d := Low(Joysticks[i].HatBuf[j]) to High(Joysticks[i].HatBuf[j]) do
-        Joysticks[i].HatBuf[j, d] := False;
-  end;
-***)
+  for i := 0 to e_MaxJoys - 1 do
+    e_JoystickAvailable[i] := False
 end;
 
-{
-function e_PollInput(): Boolean;
-var
-  kb, js: Boolean;
+function e_KeyPressed (key: Integer): Boolean;
 begin
-  kb := PollKeyboard();
-  js := e_PollJoysticks();
-
-  Result := kb or js;
-end;
-}
-
-function e_KeyPressed(Key: Word): Boolean;
-var
-  joyi, dir: Integer;
-begin
-  Result := False;
-  if (Key = IK_INVALID) or (Key = 0) then Exit;
-
-  if (Key < KBRD_END) then
-    Result := KeyBuffer[Key]
-  else if (Key >= JOYK_BEG) and (Key < JOYH_END) then
-    Result := JoyBuffer[Key]
-  else if (Key >= VIRT_BEG) and (Key < VIRT_END) then
-    Result := VirtBuffer[Key - VIRT_BEG]
-
-(***
-  else if (Key >= JOYK_BEG) and (Key < JOYK_END) then
-  begin // Joystick buttons
-    JoyI := (Key - JOYK_BEG) div e_MaxJoyBtns;
-    if JoyI >= e_JoysticksAvailable then
-      Result := False
-    else
-    begin
-      Key := (Key - JOYK_BEG) mod e_MaxJoyBtns;
-      Result := Joysticks[JoyI].ButtBuf[Key];
-    end;
-  end
-
-  else if (Key >= JOYA_BEG) and (Key < JOYA_END) then
-  begin // Joystick axes
-    JoyI := (Key - JOYA_BEG) div (e_MaxJoyAxes*2);
-    if JoyI >= e_JoysticksAvailable then
-      Result := False
-    else
-    begin
-      Key := (Key - JOYA_BEG) mod (e_MaxJoyAxes*2);
-      dir := Key mod 2;
-      if dir = AX_MINUS then
-        Result := Joysticks[JoyI].AxisBuf[Key div 2] <
-          Joysticks[JoyI].AxisZero[Key div 2] - e_JoystickDeadzones[JoyI]
-      else
-        Result := Joysticks[JoyI].AxisBuf[Key div 2] >
-          Joysticks[JoyI].AxisZero[Key div 2] + e_JoystickDeadzones[JoyI]
-    end;
-  end
-
-  else if (Key >= JOYH_BEG) and (Key < JOYH_END) then
-  begin // Joystick hats
-    JoyI := (Key - JOYH_BEG) div (e_MaxJoyHats*4);
-    if JoyI >= e_JoysticksAvailable then
-      Result := False
-    else
-    begin
-      Key := (Key - JOYH_BEG) mod (e_MaxJoyHats*4);
-      dir := Key mod 4;
-      Result := Joysticks[JoyI].HatBuf[Key div 4, dir];
-    end;
-  end
-***)
+  ASSERT(key >= 0);
+  ASSERT(key < e_MaxInputKeys);
+  result := InputBuffer[key]
 end;
 
-procedure e_SetKeyState(key: Word; state: Integer);
-var
-  JoyI, dir: Integer;
+function e_AnyKeyPressed: Boolean;
 begin
-  if (Key = IK_INVALID) or (Key = 0) then Exit;
-
-  if (Key < KBRD_END) then
-    keyBuffer[key] := (state <> 0)
-  else if (Key >= JOYK_BEG) and (Key <= JOYH_END) then
-    JoyBuffer[key] := (state <> 0)
-  else if (Key >= VIRT_BEG) and (Key <= VIRT_END) then
-    VirtBuffer[Key - VIRT_BEG] := (state <> 0)
-
-(***
-  else if (Key >= JOYK_BEG) and (Key < JOYK_END) then
-  begin // Joystick buttons
-    JoyI := (Key - JOYK_BEG) div e_MaxJoyBtns;
-    if JoyI >= e_JoysticksAvailable then
-      Exit
-    else
-    begin
-      Key := (Key - JOYK_BEG) mod e_MaxJoyBtns;
-      Joysticks[JoyI].ButtBuf[Key] := (state <> 0);
-    end;
-  end
-
-  else if (Key >= JOYA_BEG) and (Key < JOYA_END) then
-  begin // Joystick axes
-    JoyI := (Key - JOYA_BEG) div (e_MaxJoyAxes*2);
-    if JoyI >= e_JoysticksAvailable then
-      Exit
-    else
-    begin
-      Key := (Key - JOYA_BEG) mod (e_MaxJoyAxes*2);
-      Joysticks[JoyI].AxisBuf[Key div 2] := state;
-    end;
-  end
-
-  else if (Key >= JOYH_BEG) and (Key < JOYH_END) then
-  begin // Joystick hats
-    JoyI := (Key - JOYH_BEG) div (e_MaxJoyHats*4);
-    if JoyI >= e_JoysticksAvailable then
-      Exit
-    else
-    begin
-      Key := (Key - JOYH_BEG) mod (e_MaxJoyHats*4);
-      dir := Key mod 4;
-      Joysticks[JoyI].HatBuf[Key div 4, dir] := (state <> 0);
-    end;
-  end
-***)
+  result := e_GetFirstKeyPressed <> IK_INVALID;
 end;
 
-function e_AnyKeyPressed(): Boolean;
-var
-  k: Word;
+function e_GetFirstKeyPressed: Integer;
+  var i: Integer;
 begin
-  Result := False;
-
-  for k := 1 to e_MaxInputKeys do
-    if e_KeyPressed(k) then
-    begin
-      Result := True;
-      Break;
-    end;
+  i := 1;
+  while (i < e_MaxInputKeys) and (InputBuffer[i] = False) do inc(i);
+  if i < e_MaxInputKeys then
+    result := i
+  else
+    result := IK_INVALID
 end;
 
-function e_GetFirstKeyPressed(): Word;
-var
-  k: Word;
+function e_JoyButtonToKey (id, btn: Integer): Integer;
 begin
-  Result := IK_INVALID;
-
-  for k := 1 to e_MaxInputKeys do
-    if e_KeyPressed(k) then
-    begin
-      Result := k;
-      Break;
-    end;
+  ASSERT(id >= 0);
+  ASSERT(id < e_MaxJoys);
+  ASSERT(btn >= 0);
+  ASSERT(btn < e_MaxJoyBtns);
+  result := JOYK_BEG + id*e_MaxJoyBtns + btn
 end;
 
-////////////////////////////////////////////////////////////////////////////////
-
-function e_JoystickStateToString(mode: Integer): String;
+function e_JoyAxisToKey (id, ax, dir: Integer): Integer;
 begin
-  Result := '';
+  ASSERT(id >= 0);
+  ASSERT(id < e_MaxJoys);
+  ASSERT(ax >= 0);
+  ASSERT(ax < e_MaxJoyAxes);
+  ASSERT(dir in [AX_MINUS, AX_PLUS]);
+  result := JOYA_BEG + id*e_MaxJoyAxes*2 + ax*2 + dir
 end;
 
-function  e_JoyByHandle(handle: Word): Integer;
-var
-  i: Integer;
+function e_JoyHatToKey (id, hat, dir: Integer): Integer;
 begin
-  Result := -1;
-  if Joysticks = nil then Exit;
-  for i := Low(Joysticks) to High(Joysticks) do
-    if Joysticks[i].ID = handle then
-    begin
-      Result := i;
-      Exit;
-    end;
+  ASSERT(id >= 0);
+  ASSERT(id < e_MaxJoys);
+  ASSERT(hat >= 0);
+  ASSERT(hat < e_MaxJoyHats);
+  ASSERT(dir in [HAT_LEFT, HAT_UP, HAT_RIGHT, HAT_DOWN]);
+  result := JOYH_BEG + id*e_MaxJoyHats*4 + hat*4 + dir
 end;
-
-function e_JoyButtonToKey(id: Word; btn: Byte): Word;
-begin
-  Result := 0;
-  if id >= e_MaxJoys then Exit;
-  Result := JOYK_BEG + id*e_MaxJoyBtns + btn;
-end;
-
-function e_JoyAxisToKey(id: Word; ax: Byte; dir: Byte): Word;
-begin
-  Result := 0;
-  if id >= e_MaxJoys then Exit;
-  Result := JOYA_BEG + id*e_MaxJoyAxes*2 + ax*2 + dir;
-end;
-
-function e_JoyHatToKey(id: Word; hat: Byte; dir: Byte): Word;
-begin
-  Result := 0;
-  if id >= e_MaxJoys then Exit;
-  Result := JOYH_BEG + id*e_MaxJoyHats*4 + hat*4 + dir;
-end;
-
 
 end.

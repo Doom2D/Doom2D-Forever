@@ -202,10 +202,12 @@ begin
   e_InitInput();
   g_Touch_Init;
 
+(*
   if (e_JoysticksAvailable > 0) then
     e_WriteLog('Input: Joysticks available.', TMsgType.Notify)
   else
     e_WriteLog('Input: No Joysticks.', TMsgType.Notify);
+*)
 
   if (not gNoSound) then
   begin

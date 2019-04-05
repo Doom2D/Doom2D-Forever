@@ -5802,11 +5802,6 @@ begin
 
       g_Console_Add(Format(cmd + ' is %d', [Byte(g_Debug_Player)]));
     end
-    else if (cmd = 'd_joy') then
-    begin
-      for a := 1 to 8 do
-        g_Console_Add(e_JoystickStateToString(a));
-    end
     else if (cmd = 'd_mem') then
     begin
       PrintHeapStats();

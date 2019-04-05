@@ -55,7 +55,7 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes, sdlcarcass, fui_ctls,
 {$ENDIF}
-  SysUtils, Classes, MAPDEF,
+  SysUtils, Classes, MAPDEF, Math,
   SDL2, e_graphics, e_log, e_texture, g_main,
   g_console, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
@@ -84,7 +84,8 @@ var
   ticksOverflow: Int64 = -1;
   lastTicks: Uint32 = 0; // to detect overflow
 {$ENDIF}
-  JoystickHatState: array [0..e_MaxJoyHats, HAT_LEFT..HAT_DOWN] of Boolean;
+  JoystickHatState: array [0..e_MaxJoys, 0..e_MaxJoyHats, HAT_LEFT..HAT_DOWN] of Boolean;
+  JoystickZeroAxes: array [0..e_MaxJoys, 0..e_MaxJoyAxes] of Integer;
 
 procedure KillGLWindow (preserveGL: Boolean);
 begin
@@ -411,8 +412,7 @@ begin
     if gWinActive then
     begin
       e_WriteLog('deactivating window', TMsgType.Notify);
-      e_EnableInput := false;
-      e_ClearInputBuffer();
+      e_UnpressAllKeys;
 
       if gMuteWhenInactive then
       begin
@@ -438,7 +438,6 @@ begin
     if not gWinActive then
     begin
       //e_WriteLog('activating window', MSG_NOTIFY);
-      e_EnableInput := true;
 
       if gMuteWhenInactive then
       begin
@@ -469,6 +468,7 @@ var
   down: Boolean;
   i: Integer;
   hat: array [HAT_LEFT..HAT_DOWN] of Boolean;
+  joy: PSDL_Joystick;
 begin
   result := false;
 
@@ -531,7 +531,7 @@ begin
         key := e_JoyAxisToKey(ev.jaxis.which, ev.jaxis.axis, AX_PLUS);
         minuskey := e_JoyAxisToKey(ev.jaxis.which, ev.jaxis.axis, AX_MINUS);
 
-        if ev.jaxis.value < Joysticks[ev.jaxis.which].AxisZero[ev.jaxis.axis] - e_JoystickDeadzones[ev.jaxis.which] then
+        if ev.jaxis.value < JoystickZeroAxes[ev.jaxis.which, ev.jaxis.axis] - e_JoystickDeadzones[ev.jaxis.which] then
         begin
           if (e_KeyPressed(key)) then
           begin
@@ -542,7 +542,7 @@ begin
           g_Console_ProcessBind(minuskey, True);
           KeyPress(minuskey);
         end
-        else if ev.jaxis.value > Joysticks[ev.jaxis.which].AxisZero[ev.jaxis.axis] + e_JoystickDeadzones[ev.jaxis.which] then
+        else if ev.jaxis.value > JoystickZeroAxes[ev.jaxis.which, ev.jaxis.axis] + e_JoystickDeadzones[ev.jaxis.which] then
         begin
           if (e_KeyPressed(minuskey)) then
           begin
@@ -577,7 +577,7 @@ begin
         hat[HAT_RIGHT] := LongBool(ev.jhat.value and SDL_HAT_RIGHT);
         for i := HAT_LEFT to HAT_DOWN do
         begin
-          if JoystickHatState[ev.jhat.which, i] <> hat[i] then
+          if JoystickHatState[ev.jhat.which, ev.jhat.hat, i] <> hat[i] then
           begin
             down := hat[i];
             key := e_JoyHatToKey(ev.jhat.which, ev.jhat.hat, i);
@@ -586,15 +586,27 @@ begin
             if down then KeyPress(key)
           end
         end;
-        JoystickHatState[ev.jhat.which] := hat
+        JoystickHatState[ev.jhat.which, ev.jhat.hat] := hat
       end;
 
-(*
-    SDL_JOYDEVICEADDED, SDL_JOYDEVICEREMOVED:
+    SDL_JOYDEVICEADDED:
+      if (ev.jdevice.which < e_MaxJoys) then
       begin
-        // TODO update menu here
-      end
-*)
+        joy := SDL_JoystickOpen(ev.jdevice.which);
+        ASSERT(joy <> nil);
+        e_LogWritefln('Added Joystick %s', [ev.jdevice.which]);
+        e_JoystickAvailable[ev.jdevice.which] := True;
+        for i := 0 to Min(SDL_JoystickNumAxes(joy), e_MaxJoyAxes) do
+          JoystickZeroAxes[ev.jdevice.which, i] := SDL_JoystickGetAxis(joy, i);
+        SDL_JoystickClose(joy)
+      end;
+
+    SDL_JOYDEVICEREMOVED:
+      if (ev.jdevice.which < e_MaxJoys) then
+      begin
+        e_JoystickAvailable[ev.jdevice.which] := False;
+        e_LogWritefln('Removed Joystick %s', [ev.jdevice.which])
+      end;
 
     {$IF not DEFINED(HEADLESS) and DEFINED(ENABLE_HOLMES)}
     SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEWHEEL, SDL_MOUSEMOTION:
