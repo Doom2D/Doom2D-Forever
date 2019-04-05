@@ -1716,10 +1716,10 @@ begin
   (* for i := 0 to e_MaxJoys - 1 do *)
   for i := 0 to 1 do
   begin
-    g_Console_BindKey(e_JoyAxisToKey(i, 0, 0), '+p' + IntToStr(i mod 2 + 1) + '_moveleft', '-p' + IntToStr(i mod 2 + 1) + '_moveleft');
-    g_Console_BindKey(e_JoyAxisToKey(i, 0, 1), '+p' + IntToStr(i mod 2 + 1) + '_moveright', '-p' + IntToStr(i mod 2 + 1) + '_moveright');
-    g_Console_BindKey(e_JoyAxisToKey(i, 1, 0), '+p' + IntToStr(i mod 2 + 1) + '_lookup', '-p' + IntToStr(i mod 2 + 1) + '_lookup');
-    g_Console_BindKey(e_JoyAxisToKey(i, 1, 1), '+p' + IntToStr(i mod 2 + 1) + '_lookdown', '-p' + IntToStr(i mod 2 + 1) + '_lookdown');
+    g_Console_BindKey(e_JoyAxisToKey(i, 0, AX_MINUS), '+p' + IntToStr(i mod 2 + 1) + '_moveleft', '-p' + IntToStr(i mod 2 + 1) + '_moveleft');
+    g_Console_BindKey(e_JoyAxisToKey(i, 0, AX_PLUS), '+p' + IntToStr(i mod 2 + 1) + '_moveright', '-p' + IntToStr(i mod 2 + 1) + '_moveright');
+    g_Console_BindKey(e_JoyAxisToKey(i, 1, AX_MINUS), '+p' + IntToStr(i mod 2 + 1) + '_lookup', '-p' + IntToStr(i mod 2 + 1) + '_lookup');
+    g_Console_BindKey(e_JoyAxisToKey(i, 1, AX_PLUS), '+p' + IntToStr(i mod 2 + 1) + '_lookdown', '-p' + IntToStr(i mod 2 + 1) + '_lookdown');
     g_Console_BindKey(e_JoyButtonToKey(i, 2), '+p' + IntToStr(i mod 2 + 1) + '_jump', '-p' + IntToStr(i mod 2 + 1) + '_jump');
     g_Console_BindKey(e_JoyButtonToKey(i, 0), '+p' + IntToStr(i mod 2 + 1) + '_attack', '-p' + IntToStr(i mod 2 + 1) + '_attack');
     g_Console_BindKey(e_JoyButtonToKey(i, 3), '+p' + IntToStr(i mod 2 + 1) + '_activate', '-p' + IntToStr(i mod 2 + 1) + '_activate');

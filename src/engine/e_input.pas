@@ -203,12 +203,26 @@ procedure e_SetKeyState(key: Word; state: Integer);
 procedure e_UnpressAllKeys ();
 procedure e_KeyUpDown (key: Word; down: Boolean);
 
+type
+  TJoystick = record
+    ID:      Byte;
+    Handle:  PSDL_Joystick;
+    Axes:    Byte;
+    Buttons: Byte;
+    Hats:    Byte;
+    ButtBuf: array [0..e_MaxJoyBtns] of Boolean;
+    AxisBuf: array [0..e_MaxJoyAxes] of Integer;
+    AxisZero: array [0..e_MaxJoyAxes] of Integer;
+    HatBuf:  array [0..e_MaxJoyHats] of array [HAT_LEFT..HAT_DOWN] of Boolean;
+  end;
+
 var
   {e_MouseInfo:          TMouseInfo;}
   e_EnableInput:        Boolean = False;
   e_JoysticksAvailable: Byte    = 0;
   e_JoystickDeadzones:  array [0..e_MaxJoys-1] of Integer = (8192, 8192, 8192, 8192);
   e_KeyNames:           array [0..e_MaxInputKeys] of String;
+  Joysticks: array of TJoystick = nil;
 
 implementation
 
@@ -225,23 +239,10 @@ const
   VIRT_BEG = JOYH_END;
   VIRT_END = VIRT_BEG + e_MaxVirtKeys;
 
-type
-  TJoystick = record
-    ID:      Byte;
-    Handle:  PSDL_Joystick;
-    Axes:    Byte;
-    Buttons: Byte;
-    Hats:    Byte;
-    ButtBuf: array [0..e_MaxJoyBtns] of Boolean;
-    AxisBuf: array [0..e_MaxJoyAxes] of Integer;
-    AxisZero: array [0..e_MaxJoyAxes] of Integer;
-    HatBuf:  array [0..e_MaxJoyHats] of array [HAT_LEFT..HAT_DOWN] of Boolean;
-  end;
-
 var
   KeyBuffer: array [0..e_MaxKbdKeys] of Boolean;
+  JoyBuffer: array [JOYK_BEG..JOYH_END] of Boolean;
   VirtBuffer: array [0..e_MaxVirtKeys] of Boolean;
-  Joysticks: array of TJoystick = nil;
 
 function OpenJoysticks(): Byte;
 var
@@ -295,6 +296,7 @@ var
   i: Integer;
 begin
   for i := 0 to High(KeyBuffer) do KeyBuffer[i] := False;
+  for i := JOYK_BEG to JOYH_END do JoyBuffer[i] := False;
   for i := 0 to High(VirtBuffer) do VirtBuffer[i] := False;
 end;
 
@@ -302,6 +304,7 @@ end;
 procedure e_KeyUpDown (key: Word; down: Boolean);
 begin
   if (key > 0) and (key < Length(KeyBuffer)) then KeyBuffer[key] := down
+  else if (key >= JOYK_BEG) and (key < JOYH_END) then JoyBuffer[key] := down
   else if (key >= VIRT_BEG) and (key < VIRT_END) then VirtBuffer[key - VIRT_BEG] := down
 end;
 
@@ -494,6 +497,11 @@ var
 begin
   for i := Low(KeyBuffer) to High(KeyBuffer) do
     KeyBuffer[i] := False;
+  for i := JOYK_BEG to JOYH_END do
+    JoyBuffer[i] := False;
+  for i := Low(VirtBuffer) to High(VirtBuffer) do
+    VirtBuffer[i] := False;
+(***
   if (Joysticks = nil) or (e_JoysticksAvailable = 0) then
   for i := Low(Joysticks) to High(Joysticks) do
   begin
@@ -505,8 +513,7 @@ begin
       for d := Low(Joysticks[i].HatBuf[j]) to High(Joysticks[i].HatBuf[j]) do
         Joysticks[i].HatBuf[j, d] := False;
   end;
-  for i := Low(VirtBuffer) to High(VirtBuffer) do
-    VirtBuffer[i] := False;
+***)
 end;
 
 {
@@ -529,10 +536,13 @@ begin
   if (Key = IK_INVALID) or (Key = 0) then Exit;
 
   if (Key < KBRD_END) then
-  begin // Keyboard buttons/keys
-    Result := KeyBuffer[Key];
-  end
+    Result := KeyBuffer[Key]
+  else if (Key >= JOYK_BEG) and (Key < JOYH_END) then
+    Result := JoyBuffer[Key]
+  else if (Key >= VIRT_BEG) and (Key < VIRT_END) then
+    Result := VirtBuffer[Key - VIRT_BEG]
 
+(***
   else if (Key >= JOYK_BEG) and (Key < JOYK_END) then
   begin // Joystick buttons
     JoyI := (Key - JOYK_BEG) div e_MaxJoyBtns;
@@ -575,9 +585,7 @@ begin
       Result := Joysticks[JoyI].HatBuf[Key div 4, dir];
     end;
   end
-
-  else if (Key >= VIRT_BEG) and (Key < VIRT_END) then
-    Result := VirtBuffer[Key - VIRT_BEG]
+***)
 end;
 
 procedure e_SetKeyState(key: Word; state: Integer);
@@ -587,10 +595,13 @@ begin
   if (Key = IK_INVALID) or (Key = 0) then Exit;
 
   if (Key < KBRD_END) then
-  begin // Keyboard buttons/keys
-    keyBuffer[key] := (state <> 0);
-  end
+    keyBuffer[key] := (state <> 0)
+  else if (Key >= JOYK_BEG) and (Key <= JOYH_END) then
+    JoyBuffer[key] := (state <> 0)
+  else if (Key >= VIRT_BEG) and (Key <= VIRT_END) then
+    VirtBuffer[Key - VIRT_BEG] := (state <> 0)
 
+(***
   else if (Key >= JOYK_BEG) and (Key < JOYK_END) then
   begin // Joystick buttons
     JoyI := (Key - JOYK_BEG) div e_MaxJoyBtns;
@@ -627,9 +638,7 @@ begin
       Joysticks[JoyI].HatBuf[Key div 4, dir] := (state <> 0);
     end;
   end
-
-  else if (Key >= VIRT_BEG) and (Key < VIRT_END) then
-    VirtBuffer[Key - VIRT_BEG] := (state <> 0)
+***)
 end;
 
 function e_AnyKeyPressed(): Boolean;

@@ -84,7 +84,7 @@ var
   ticksOverflow: Int64 = -1;
   lastTicks: Uint32 = 0; // to detect overflow
 {$ENDIF}
-
+  JoystickHatState: array [0..e_MaxJoyHats, HAT_LEFT..HAT_DOWN] of Boolean;
 
 procedure KillGLWindow (preserveGL: Boolean);
 begin
@@ -467,6 +467,8 @@ var
   key, keychr: Word;
   uc: UnicodeChar;
   down: Boolean;
+  i: Integer;
+  hat: array [HAT_LEFT..HAT_DOWN] of Boolean;
 begin
   result := false;
 
@@ -512,6 +514,57 @@ begin
         end;
         if down then KeyPress(key);
       end;
+
+    SDL_JOYBUTTONDOWN, SDL_JOYBUTTONUP:
+      if (ev.jbutton.which < e_MaxJoys) and (ev.jbutton.button < e_MaxJoyBtns) then
+      begin
+        key := e_JoyButtonToKey(ev.jbutton.which, ev.jbutton.button);
+        down := ev.type_ = SDL_JOYBUTTONDOWN;
+        e_KeyUpDown(key, down);
+        g_Console_ProcessBind(key, down);
+        if down then KeyPress(key)
+      end;
+
+    SDL_JOYAXISMOTION:
+      if (ev.jaxis.which < e_MaxJoys) and (ev.jaxis.axis < e_MaxJoyAxes) then
+      begin
+        down := ev.jaxis.value <> Joysticks[ev.jaxis.which].AxisZero[ev.jaxis.axis];
+        if ev.jaxis.value < Joysticks[ev.jaxis.which].AxisZero[ev.jaxis.axis] - e_JoystickDeadzones[ev.jaxis.which] then
+          key := e_JoyAxisToKey(ev.jaxis.which, ev.jaxis.axis, AX_MINUS)
+        else
+          key := e_JoyAxisToKey(ev.jaxis.which, ev.jaxis.axis, AX_PLUS);
+        e_KeyUpDown(key, down);
+        g_Console_ProcessBind(key, down);
+        if down then KeyPress(key)
+      end;
+
+    SDL_JOYHATMOTION:
+      if (ev.jhat.which < e_MaxJoys) and (ev.jhat.hat < e_MaxJoyHats) then
+      begin
+        hat[HAT_UP] := LongBool(ev.jhat.value and SDL_HAT_UP);
+        hat[HAT_DOWN] := LongBool(ev.jhat.value and SDL_HAT_DOWN);
+        hat[HAT_LEFT] := LongBool(ev.jhat.value and SDL_HAT_LEFT);
+        hat[HAT_RIGHT] := LongBool(ev.jhat.value and SDL_HAT_RIGHT);
+        for i := HAT_LEFT to HAT_DOWN do
+        begin
+          if JoystickHatState[ev.jhat.which, i] <> hat[i] then
+          begin
+            down := hat[i];
+            key := e_JoyHatToKey(ev.jhat.which, ev.jhat.hat, i);
+            e_KeyUpDown(key, down);
+            g_Console_ProcessBind(key, down);
+            if down then KeyPress(key)
+          end
+        end;
+        JoystickHatState[ev.jhat.which] := hat
+      end;
+
+(*
+    SDL_JOYDEVICEADDED, SDL_JOYDEVICEREMOVED:
+      begin
+        // TODO update menu here
+      end
+*)
 
     {$IF not DEFINED(HEADLESS) and DEFINED(ENABLE_HOLMES)}
     SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEWHEEL, SDL_MOUSEMOTION:
@@ -663,7 +716,7 @@ begin
     EventHandler(ev);
     if (ev.type_ = SDL_QUITEV) then break;
   end;
-  e_PollJoysticks();
+  //e_PollJoysticks();
 
   if (ev.type_ = SDL_QUITEV) or (gExit = EXIT_QUIT) then
   begin
@@ -730,7 +783,7 @@ begin
     result := EventHandler(ev);
     if (ev.type_ = SDL_QUITEV) then exit;
   end;
-  e_PollJoysticks();
+  //e_PollJoysticks();
 end;
 
 
