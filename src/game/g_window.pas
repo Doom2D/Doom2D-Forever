@@ -464,7 +464,7 @@ end;
 
 function EventHandler (var ev: TSDL_Event): Boolean;
 var
-  key, keychr: Word;
+  key, keychr, minuskey: Word;
   uc: UnicodeChar;
   down: Boolean;
   i: Integer;
@@ -528,14 +528,44 @@ begin
     SDL_JOYAXISMOTION:
       if (ev.jaxis.which < e_MaxJoys) and (ev.jaxis.axis < e_MaxJoyAxes) then
       begin
-        down := ev.jaxis.value <> Joysticks[ev.jaxis.which].AxisZero[ev.jaxis.axis];
+        key := e_JoyAxisToKey(ev.jaxis.which, ev.jaxis.axis, AX_PLUS);
+        minuskey := e_JoyAxisToKey(ev.jaxis.which, ev.jaxis.axis, AX_MINUS);
+
         if ev.jaxis.value < Joysticks[ev.jaxis.which].AxisZero[ev.jaxis.axis] - e_JoystickDeadzones[ev.jaxis.which] then
-          key := e_JoyAxisToKey(ev.jaxis.which, ev.jaxis.axis, AX_MINUS)
+        begin
+          if (e_KeyPressed(key)) then
+          begin
+            e_KeyUpDown(key, False);
+            g_Console_ProcessBind(key, False);
+          end;
+          e_KeyUpDown(minuskey, True);
+          g_Console_ProcessBind(minuskey, True);
+          KeyPress(minuskey);
+        end
+        else if ev.jaxis.value > Joysticks[ev.jaxis.which].AxisZero[ev.jaxis.axis] + e_JoystickDeadzones[ev.jaxis.which] then
+        begin
+          if (e_KeyPressed(minuskey)) then
+          begin
+            e_KeyUpDown(minuskey, False);
+            g_Console_ProcessBind(minuskey, False);
+          end;
+          e_KeyUpDown(key, True);
+          g_Console_ProcessBind(key, True);
+          KeyPress(key);
+        end
         else
-          key := e_JoyAxisToKey(ev.jaxis.which, ev.jaxis.axis, AX_PLUS);
-        e_KeyUpDown(key, down);
-        g_Console_ProcessBind(key, down);
-        if down then KeyPress(key)
+        begin
+          if (e_KeyPressed(minuskey)) then
+          begin
+            e_KeyUpDown(minuskey, False);
+            g_Console_ProcessBind(minuskey, False);
+          end;
+          if (e_KeyPressed(key)) then
+          begin
+            e_KeyUpDown(key, False);
+            g_Console_ProcessBind(key, False);
+          end;
+        end;
       end;
 
     SDL_JOYHATMOTION:
