@@ -835,11 +835,15 @@ begin
   if @FOnKeyDownEx <> nil then FOnKeyDownEx(self, Msg.wParam);
 
   if Msg.Msg = WM_KEYDOWN then
-    if (Msg.wParam = IK_ESCAPE) or (Msg.wParam = VK_ESCAPE) then
-    begin
-      g_GUI_HideWindow;
-      Exit;
-    end;
+  begin
+    case Msg.wParam of
+      IK_ESCAPE, VK_ESCAPE, JOY0_JUMP, JOY1_JUMP, JOY2_JUMP, JOY3_JUMP:
+        begin
+          g_GUI_HideWindow;
+          Exit
+        end
+    end
+  end
 end;
 
 procedure TGUIWindow.SetActive(Control: TGUIControl);
@@ -966,7 +970,7 @@ begin
   case Msg.Msg of
     WM_KEYDOWN:
       case Msg.wParam of
-        IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN: Click();
+        IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK: Click();
       end;
   end;
 end;
@@ -1180,7 +1184,7 @@ begin
   case Msg.Msg of
     WM_KEYDOWN:
       case Msg.wParam of
-        IK_UP, IK_KPUP, VK_UP:
+        IK_UP, IK_KPUP, VK_UP, JOY0_UP, JOY1_UP, JOY2_UP, JOY3_UP:
         begin
           repeat
             Dec(FIndex);
@@ -1189,7 +1193,7 @@ begin
 
           g_Sound_PlayEx(MENU_CHANGESOUND);
         end;
-        IK_DOWN, IK_KPDOWN, VK_DOWN:
+        IK_DOWN, IK_KPDOWN, VK_DOWN, JOY0_DOWN, JOY1_DOWN, JOY2_DOWN, JOY3_DOWN:
         begin
           repeat
             Inc(FIndex);
@@ -1198,7 +1202,7 @@ begin
 
           g_Sound_PlayEx(MENU_CHANGESOUND);
         end;
-        IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN: if (FIndex <> -1) and FButtons[FIndex].FEnabled then FButtons[FIndex].Click;
+        IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK: if (FIndex <> -1) and FButtons[FIndex].FEnabled then FButtons[FIndex].Click;
       end;
   end;
 end;
@@ -1275,7 +1279,7 @@ begin
   case Msg.Msg of
     WM_KEYDOWN:
       case Msg.wParam of
-        IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN: if @FOnClickEvent <> nil then FOnClickEvent();
+        IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK: if @FOnClickEvent <> nil then FOnClickEvent();
       end;
   end;
 end;
@@ -1527,7 +1531,7 @@ begin
     WM_KEYDOWN:
     begin
       case Msg.wParam of
-        IK_UP, IK_KPUP, VK_UP:
+        IK_UP, IK_KPUP, VK_UP,JOY0_UP, JOY1_UP, JOY2_UP, JOY3_UP:
         begin
           c := 0;
           repeat
@@ -1548,7 +1552,7 @@ begin
           g_Sound_PlayEx(MENU_CHANGESOUND);
         end;
 
-        IK_DOWN, IK_KPDOWN, VK_DOWN:
+        IK_DOWN, IK_KPDOWN, VK_DOWN, JOY0_DOWN, JOY1_DOWN, JOY2_DOWN, JOY3_DOWN:
         begin
           c := 0;
           repeat
@@ -1569,13 +1573,15 @@ begin
           g_Sound_PlayEx(MENU_CHANGESOUND);
         end;
 
-        IK_LEFT, IK_RIGHT, IK_KPLEFT, IK_KPRIGHT, VK_LEFT, VK_RIGHT:
+        IK_LEFT, IK_RIGHT, IK_KPLEFT, IK_KPRIGHT, VK_LEFT, VK_RIGHT,
+        JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT,
+	JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
         begin
           if FIndex <> -1 then
             if FItems[FIndex].Control <> nil then
               FItems[FIndex].Control.OnMessage(Msg);
         end;
-        IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN:
+        IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
         begin
           if FIndex <> -1 then
           begin
@@ -2104,14 +2110,14 @@ begin
     WM_KEYDOWN:
     begin
       case Msg.wParam of
-        IK_LEFT, IK_KPLEFT, VK_LEFT:
+        IK_LEFT, IK_KPLEFT, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
           if FValue > 0 then
           begin
             Dec(FValue);
             g_Sound_PlayEx(SCROLL_SUBSOUND);
             if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
           end;
-        IK_RIGHT, IK_KPRIGHT, VK_RIGHT:
+        IK_RIGHT, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
           if FValue < FMax then
           begin
             Inc(FValue);
@@ -2188,7 +2194,9 @@ begin
   case Msg.Msg of
     WM_KEYDOWN:
       case Msg.wParam of
-        IK_RETURN, IK_RIGHT, IK_KPRETURN, IK_KPRIGHT, VK_FIRE, VK_OPEN, VK_RIGHT:
+        IK_RETURN, IK_RIGHT, IK_KPRETURN, IK_KPRIGHT, VK_FIRE, VK_OPEN, VK_RIGHT,
+        JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT,
+        JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
         begin
           if FIndex < High(FItems) then
             Inc(FIndex)
@@ -2199,7 +2207,8 @@ begin
             FOnChangeEvent(Self);
         end;
 
-    IK_LEFT, IK_KPLEFT, VK_LEFT:
+    IK_LEFT, IK_KPLEFT, VK_LEFT,
+    JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
       begin
         if FIndex > 0 then
           Dec(FIndex)
@@ -2306,9 +2315,9 @@ begin
           IK_DELETE: Delete(FText, FCaretPos + 1, 1);
           IK_END, IK_KPEND: FCaretPos := Length(FText);
           IK_HOME, IK_KPHOME: FCaretPos := 0;
-          IK_LEFT, IK_KPLEFT, VK_LEFT: if FCaretPos > 0 then Dec(FCaretPos);
-          IK_RIGHT, IK_KPRIGHT, VK_RIGHT: if FCaretPos < Length(FText) then Inc(FCaretPos);
-          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN:
+          IK_LEFT, IK_KPLEFT, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT: if FCaretPos > 0 then Dec(FCaretPos);
+          IK_RIGHT, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT: if FCaretPos < Length(FText) then Inc(FCaretPos);
+          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
             with FWindow do
             begin
               if FActiveControl <> Self then
@@ -2407,12 +2416,12 @@ begin
     case Msg of
       WM_KEYDOWN:
         case wParam of
-          IK_ESCAPE, VK_ESCAPE:
+          IK_ESCAPE, VK_ESCAPE, JOY0_JUMP, JOY1_JUMP, JOY2_JUMP, JOY3_JUMP:
             begin
               if FIsQuery then actDefCtl();
               FIsQuery := False;
             end;
-          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN:
+          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
             begin
               if not FIsQuery then
                 begin
@@ -2446,12 +2455,16 @@ begin
             FKey := 0;
             actDefCtl();
           end
-          else if FIsQuery and (wParam <> IK_ENTER) and (wParam <> IK_KPRETURN) and (wParam <> VK_FIRE) and (wParam <> VK_OPEN) then // Not <Enter
+          else if FIsQuery then
           begin
-            if e_KeyNames[wParam] <> '' then
-              FKey := wParam;
-            FIsQuery := False;
-            actDefCtl();
+            case wParam of
+              IK_ENTER, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK: // Not <Enter
+            else
+              if e_KeyNames[wParam] <> '' then
+                FKey := wParam;
+              FIsQuery := False;
+              actDefCtl();
+            end
           end;
         end;
     end;
@@ -2526,12 +2539,14 @@ end;
 
 function TGUIKeyRead2.WantActivationKey (key: LongInt): Boolean;
 begin
-  result :=
-    (key = IK_BACKSPACE) or
-    (key = IK_LEFT) or (key = IK_RIGHT) or
-    (key = IK_KPLEFT) or (key = IK_KPRIGHT) or
-    (key = VK_LEFT) or (key = VK_RIGHT) or
-    false; // oops
+  case key of
+    IK_BACKSPACE, IK_LEFT, IK_RIGHT, IK_KPLEFT, IK_KPRIGHT, VK_LEFT, VK_RIGHT,
+    JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT,
+    JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
+      result := True
+  else
+      result := False
+  end
 end;
 
 procedure TGUIKeyRead2.OnMessage(var Msg: TMessage);
@@ -2554,12 +2569,12 @@ begin
     case Msg of
       WM_KEYDOWN:
         case wParam of
-          IK_ESCAPE, VK_ESCAPE:
+          IK_ESCAPE, VK_ESCAPE, JOY0_JUMP, JOY1_JUMP, JOY2_JUMP, JOY3_JUMP:
             begin
               if FIsQuery then actDefCtl();
               FIsQuery := False;
             end;
-          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN:
+          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
             begin
               if not FIsQuery then
                 begin
@@ -2584,13 +2599,13 @@ begin
                 actDefCtl();
               end;
             end;
-          IK_LEFT, IK_KPLEFT, VK_LEFT:
+          IK_LEFT, IK_KPLEFT, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
             if not FIsQuery then
             begin
               FKeyIdx := 0;
               actDefCtl();
             end;
-          IK_RIGHT, IK_KPRIGHT, VK_RIGHT:
+          IK_RIGHT, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
             if not FIsQuery then
             begin
               FKeyIdx := 1;
@@ -2605,14 +2620,19 @@ begin
             if (FKeyIdx = 0) then FKey0 := 0 else FKey1 := 0;
             actDefCtl();
           end
-          else if FIsQuery and (wParam <> IK_ENTER) and (wParam <> IK_KPRETURN) and (wParam <> VK_FIRE) and (wParam <> VK_OPEN) then // Not <Enter
+          else if FIsQuery then
           begin
-            if e_KeyNames[wParam] <> '' then
-            begin
-              if (FKeyIdx = 0) then FKey0 := wParam else FKey1 := wParam;
-            end;
-            FIsQuery := False;
-            actDefCtl();
+            case wParam of
+              IK_ENTER, IK_KPRETURN, VK_FIRE, VK_OPEN,
+              JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK: // Not <Enter
+            else
+              if e_KeyNames[wParam] <> '' then
+              begin
+                if (FKeyIdx = 0) then FKey0 := wParam else FKey1 := wParam;
+              end;
+              FIsQuery := False;
+              actDefCtl()
+            end
           end;
         end;
     end;
@@ -3022,21 +3042,21 @@ begin
             FIndex := High(FItems);
             FStartLine := Max(High(FItems)-FHeight+1, 0);
           end;
-          IK_UP, IK_LEFT, IK_KPUP, IK_KPLEFT, VK_LEFT:
+          IK_UP, IK_LEFT, IK_KPUP, IK_KPLEFT, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
             if FIndex > 0 then
             begin
               Dec(FIndex);
               if FIndex < FStartLine then Dec(FStartLine);
               if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
             end;
-          IK_DOWN, IK_RIGHT, IK_KPDOWN, IK_KPRIGHT, VK_RIGHT:
+          IK_DOWN, IK_RIGHT, IK_KPDOWN, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
             if FIndex < High(FItems) then
             begin
               Inc(FIndex);
               if FIndex > FStartLine+FHeight-1 then Inc(FStartLine);
               if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
             end;
-          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN:
+          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
             with FWindow do
             begin
               if FActiveControl <> Self then SetActive(Self)
@@ -3178,7 +3198,7 @@ begin
                 FStartLine := High(FItems)-FHeight+1;
             end;
 
-          IK_UP, IK_LEFT, IK_KPUP, IK_KPLEFT, VK_UP, VK_LEFT:
+          IK_UP, IK_LEFT, IK_KPUP, IK_KPLEFT, VK_UP, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
             if FIndex > 0 then
             begin
               Dec(FIndex);
@@ -3188,7 +3208,7 @@ begin
                 FOnChangeEvent(Self);
             end;
 
-          IK_DOWN, IK_RIGHT, IK_KPDOWN, IK_KPRIGHT, VK_DOWN, VK_RIGHT:
+          IK_DOWN, IK_RIGHT, IK_KPDOWN, IK_KPRIGHT, VK_DOWN, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
             if FIndex < High(FItems) then
             begin
               Inc(FIndex);
@@ -3198,7 +3218,7 @@ begin
                 FOnChangeEvent(Self);
             end;
 
-          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN:
+          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
             with FWindow do
             begin
               if FActiveControl <> Self then
@@ -3379,13 +3399,13 @@ begin
     case Msg of
       WM_KEYDOWN:
         case wParam of
-          IK_UP, IK_LEFT, IK_KPUP, IK_KPLEFT, VK_UP, VK_LEFT:
+          IK_UP, IK_LEFT, IK_KPUP, IK_KPLEFT, VK_UP, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
             if FStartLine > 0 then
               Dec(FStartLine);
-          IK_DOWN, IK_RIGHT, IK_KPDOWN, IK_KPRIGHT, VK_DOWN, VK_RIGHT:
+          IK_DOWN, IK_RIGHT, IK_KPDOWN, IK_KPRIGHT, VK_DOWN, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
             if FStartLine < Length(FLines)-FHeight then
               Inc(FStartLine);
-          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN:
+          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
             with FWindow do
             begin
               if FActiveControl <> Self then

@@ -502,7 +502,7 @@ begin
           g_Console_Switch()
       end;
 
-    IK_ESCAPE, VK_ESCAPE: // <Esc>:
+    IK_ESCAPE, VK_ESCAPE, JOY0_JUMP, JOY1_JUMP, JOY2_JUMP, JOY3_JUMP: // <Esc>:
       begin
         if gChatShow then
         begin

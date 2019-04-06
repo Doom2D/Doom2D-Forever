@@ -1668,7 +1668,9 @@ begin
           (
             (
               e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(IK_SPACE) or
-              e_KeyPressed(VK_FIRE) or e_KeyPressed(VK_OPEN)
+              e_KeyPressed(VK_FIRE) or e_KeyPressed(VK_OPEN) or
+              e_KeyPressed(JOY0_ATTACK) or e_KeyPressed(JOY1_ATTACK) or
+              e_KeyPressed(JOY2_ATTACK) or e_KeyPressed(JOY3_ATTACK)
             )
             and (not gJustChatted) and (not gConsoleShow) and (not gChatShow)
             and (g_ActiveWindow = nil)
@@ -4640,7 +4642,8 @@ begin
 
     ProcessLoading(true);
 
-    if e_KeyPressed(IK_ESCAPE) or e_KeyPressed(IK_SPACE) or e_KeyPressed(VK_ESCAPE) then
+    if e_KeyPressed(IK_ESCAPE) or e_KeyPressed(IK_SPACE) or e_KeyPressed(VK_ESCAPE) or
+       e_KeyPressed(JOY0_JUMP) or e_KeyPressed(JOY1_JUMP) or e_KeyPressed(JOY2_JUMP) or e_KeyPressed(JOY3_JUMP) then
     begin
       State := 0;
       break;

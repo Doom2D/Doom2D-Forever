@@ -707,7 +707,8 @@ begin
 
   qm := g_ProcessMessages(); // this updates kbd
 
-  if qm or e_KeyPressed(IK_ESCAPE) or e_KeyPressed(VK_ESCAPE) then
+  if qm or e_KeyPressed(IK_ESCAPE) or e_KeyPressed(VK_ESCAPE) or
+     e_KeyPressed(JOY0_JUMP) or e_KeyPressed(JOY1_JUMP) or e_KeyPressed(JOY2_JUMP) or e_KeyPressed(JOY3_JUMP) then
   begin
     SL := nil;
     ST := nil;
@@ -719,7 +720,8 @@ begin
     Exit;
   end;
 
-  if e_KeyPressed(IK_SPACE) or e_KeyPressed(VK_JUMP) then
+  if e_KeyPressed(IK_SPACE) or e_KeyPressed(VK_JUMP) or
+     e_KeyPressed(JOY0_ACTIVATE) or e_KeyPressed(JOY1_ACTIVATE) or e_KeyPressed(JOY2_ACTIVATE) or e_KeyPressed(JOY3_ACTIVATE) then
   begin
     if not slFetched then
     begin
@@ -746,7 +748,8 @@ begin
 
   if SL = nil then Exit;
 
-  if e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(VK_FIRE) or e_KeyPressed(VK_OPEN) then
+  if e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(VK_FIRE) or e_KeyPressed(VK_OPEN) or
+     e_KeyPressed(JOY0_ATTACK) or e_KeyPressed(JOY1_ATTACK) or e_KeyPressed(JOY2_ATTACK) or e_KeyPressed(JOY3_ATTACK) then
   begin
     if not slReturnPressed then
     begin
@@ -773,7 +776,8 @@ begin
   else
     slReturnPressed := False;
 
-  if e_KeyPressed(IK_DOWN) or e_KeyPressed(IK_KPDOWN) or e_KeyPressed(VK_DOWN) then
+  if e_KeyPressed(IK_DOWN) or e_KeyPressed(IK_KPDOWN) or e_KeyPressed(VK_DOWN) or
+     e_KeyPressed(JOY0_DOWN) or e_KeyPressed(JOY1_DOWN) or e_KeyPressed(JOY2_DOWN) or e_KeyPressed(JOY3_DOWN) then
   begin
     if not slDirPressed then
     begin
@@ -783,7 +787,8 @@ begin
     end;
   end;
 
-  if e_KeyPressed(IK_UP) or e_KeyPressed(IK_KPUP) or e_KeyPressed(VK_UP) then
+  if e_KeyPressed(IK_UP) or e_KeyPressed(IK_KPUP) or e_KeyPressed(VK_UP) or
+     e_KeyPressed(JOY0_UP) or e_KeyPressed(JOY1_UP) or e_KeyPressed(JOY2_UP) or e_KeyPressed(JOY3_UP) then
   begin
     if not slDirPressed then
     begin
@@ -794,7 +799,8 @@ begin
     end;
   end;
 
-  if e_KeyPressed(IK_RIGHT) or e_KeyPressed(IK_KPRIGHT) or e_KeyPressed(VK_RIGHT) then
+  if e_KeyPressed(IK_RIGHT) or e_KeyPressed(IK_KPRIGHT) or e_KeyPressed(VK_RIGHT) or
+     e_KeyPressed(JOY0_RIGHT) or e_KeyPressed(JOY1_RIGHT) or e_KeyPressed(JOY2_RIGHT) or e_KeyPressed(JOY3_RIGHT) then
   begin
     if not slDirPressed then
     begin
@@ -804,7 +810,8 @@ begin
     end;
   end;
 
-  if e_KeyPressed(IK_LEFT) or e_KeyPressed(IK_KPLEFT) or e_KeyPressed(VK_LEFT) then
+  if e_KeyPressed(IK_LEFT) or e_KeyPressed(IK_KPLEFT) or e_KeyPressed(VK_LEFT) or
+     e_KeyPressed(JOY0_LEFT) or e_KeyPressed(JOY1_LEFT) or e_KeyPressed(JOY2_LEFT) or e_KeyPressed(JOY3_LEFT) then
   begin
     if not slDirPressed then
     begin
@@ -826,7 +833,12 @@ begin
      (not e_KeyPressed(VK_DOWN)) and
      (not e_KeyPressed(VK_UP)) and
      (not e_KeyPressed(VK_RIGHT)) and
-     (not e_KeyPressed(VK_LEFT)) then
+     (not e_KeyPressed(VK_LEFT)) and
+     (not e_KeyPressed(JOY0_UP)) and (not e_KeyPressed(JOY1_UP)) and (not e_KeyPressed(JOY2_UP)) and (not e_KeyPressed(JOY3_UP)) and
+     (not e_KeyPressed(JOY0_DOWN)) and (not e_KeyPressed(JOY1_DOWN)) and (not e_KeyPressed(JOY2_DOWN)) and (not e_KeyPressed(JOY3_DOWN)) and
+     (not e_KeyPressed(JOY0_LEFT)) and (not e_KeyPressed(JOY1_LEFT)) and (not e_KeyPressed(JOY2_LEFT)) and (not e_KeyPressed(JOY3_LEFT)) and
+     (not e_KeyPressed(JOY0_RIGHT)) and (not e_KeyPressed(JOY1_RIGHT)) and (not e_KeyPressed(JOY2_RIGHT)) and (not e_KeyPressed(JOY3_RIGHT))
+ then
     slDirPressed := False;
 end;
 

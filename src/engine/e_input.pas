@@ -37,6 +37,16 @@ const
   // $$$..$$$ -  4*4 Joystick hats (L U R D)
   // $$$..$$$ -   48 Virtual buttons/keys
 
+  KBRD_END = e_MaxKbdKeys;
+  JOYK_BEG = KBRD_END;
+  JOYK_END = JOYK_BEG + e_MaxJoyBtns*e_MaxJoys;
+  JOYA_BEG = JOYK_END;
+  JOYA_END = JOYA_BEG + e_MaxJoyAxes*2*e_MaxJoys;
+  JOYH_BEG = JOYA_END;
+  JOYH_END = JOYH_BEG + e_MaxJoyHats*4*e_MaxJoys;
+  VIRT_BEG = JOYH_END;
+  VIRT_END = VIRT_BEG + e_MaxVirtKeys;
+
   // these are apparently used in g_gui and g_game and elsewhere
   IK_INVALID = 0;
   IK_ESCAPE  = SDL_SCANCODE_ESCAPE;
@@ -182,6 +192,44 @@ const
   HAT_RIGHT = 2;
   HAT_DOWN  = 3;
 
+  JOY0_ATTACK = JOYK_BEG + 0*e_MaxJoyBtns + 0;
+  JOY1_ATTACK = JOYK_BEG + 1*e_MaxJoyBtns + 0;
+  JOY2_ATTACK = JOYK_BEG + 2*e_MaxJoyBtns + 0;
+  JOY3_ATTACK = JOYK_BEG + 3*e_MaxJoyBtns + 0;
+  JOY0_NEXT = JOYK_BEG + 0*e_MaxJoyBtns + 1;
+  JOY1_NEXT = JOYK_BEG + 1*e_MaxJoyBtns + 1;
+  JOY2_NEXT = JOYK_BEG + 2*e_MaxJoyBtns + 1;
+  JOY3_NEXT = JOYK_BEG + 3*e_MaxJoyBtns + 1;
+  JOY0_JUMP = JOYK_BEG + 0*e_MaxJoyBtns + 2;
+  JOY1_JUMP = JOYK_BEG + 1*e_MaxJoyBtns + 2;
+  JOY2_JUMP = JOYK_BEG + 2*e_MaxJoyBtns + 2;
+  JOY3_JUMP = JOYK_BEG + 3*e_MaxJoyBtns + 2;
+  JOY0_ACTIVATE = JOYK_BEG + 0*e_MaxJoyBtns + 3;
+  JOY1_ACTIVATE = JOYK_BEG + 1*e_MaxJoyBtns + 3;
+  JOY2_ACTIVATE = JOYK_BEG + 2*e_MaxJoyBtns + 3;
+  JOY3_ACTIVATE = JOYK_BEG + 3*e_MaxJoyBtns + 3;
+  JOY0_PREV = JOYK_BEG + 0*e_MaxJoyBtns + 4;
+  JOY1_PREV = JOYK_BEG + 1*e_MaxJoyBtns + 4;
+  JOY2_PREV = JOYK_BEG + 2*e_MaxJoyBtns + 4;
+  JOY3_PREV = JOYK_BEG + 3*e_MaxJoyBtns + 4;
+
+  JOY0_LEFT = JOYA_BEG + 0*e_MaxJoyAxes*2 + 0*2 + AX_MINUS;
+  JOY1_LEFT = JOYA_BEG + 1*e_MaxJoyAxes*2 + 0*2 + AX_MINUS;
+  JOY2_LEFT = JOYA_BEG + 2*e_MaxJoyAxes*2 + 0*2 + AX_MINUS;
+  JOY3_LEFT = JOYA_BEG + 3*e_MaxJoyAxes*2 + 0*2 + AX_MINUS;
+  JOY0_RIGHT = JOYA_BEG + 0*e_MaxJoyAxes*2 + 0*2 + AX_PLUS;
+  JOY1_RIGHT = JOYA_BEG + 1*e_MaxJoyAxes*2 + 0*2 + AX_PLUS;
+  JOY2_RIGHT = JOYA_BEG + 2*e_MaxJoyAxes*2 + 0*2 + AX_PLUS;
+  JOY3_RIGHT = JOYA_BEG + 3*e_MaxJoyAxes*2 + 0*2 + AX_PLUS;
+  JOY0_UP = JOYA_BEG + 0*e_MaxJoyAxes*2 + 1*2 + AX_MINUS;
+  JOY1_UP = JOYA_BEG + 1*e_MaxJoyAxes*2 + 1*2 + AX_MINUS;
+  JOY2_UP = JOYA_BEG + 2*e_MaxJoyAxes*2 + 1*2 + AX_MINUS;
+  JOY3_UP = JOYA_BEG + 3*e_MaxJoyAxes*2 + 1*2 + AX_MINUS;
+  JOY0_DOWN = JOYA_BEG + 0*e_MaxJoyAxes*2 + 1*2 + AX_PLUS;
+  JOY1_DOWN = JOYA_BEG + 1*e_MaxJoyAxes*2 + 1*2 + AX_PLUS;
+  JOY2_DOWN = JOYA_BEG + 2*e_MaxJoyAxes*2 + 1*2 + AX_PLUS;
+  JOY3_DOWN = JOYA_BEG + 3*e_MaxJoyAxes*2 + 1*2 + AX_PLUS;
+
 function  e_InitInput: Boolean;
 procedure e_ReleaseInput;
 procedure e_UnpressAllKeys;
@@ -202,17 +250,6 @@ var
   e_KeyNames: array [0..e_MaxInputKeys] of String;
 
 implementation
-
-const
-  KBRD_END = e_MaxKbdKeys;
-  JOYK_BEG = KBRD_END;
-  JOYK_END = JOYK_BEG + e_MaxJoyBtns*e_MaxJoys;
-  JOYA_BEG = JOYK_END;
-  JOYA_END = JOYA_BEG + e_MaxJoyAxes*2*e_MaxJoys;
-  JOYH_BEG = JOYA_END;
-  JOYH_END = JOYH_BEG + e_MaxJoyHats*4*e_MaxJoys;
-  VIRT_BEG = JOYH_END;
-  VIRT_END = VIRT_BEG + e_MaxVirtKeys;
 
 var
   InputBuffer: array [0..e_MaxInputKeys - 1] of Boolean;

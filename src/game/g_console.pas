@@ -1264,13 +1264,13 @@ begin
     IK_DELETE:
       if (Length(Line) > 0) and (CPos <= Length(Line)) then
         Delete(Line, CPos, 1);
-    IK_LEFT, IK_KPLEFT, VK_LEFT:
+    IK_LEFT, IK_KPLEFT, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
       if CPos > 1 then
         CPos := CPos - 1;
-    IK_RIGHT, IK_KPRIGHT, VK_RIGHT:
+    IK_RIGHT, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
       if CPos <= Length(Line) then
         CPos := CPos + 1;
-    IK_RETURN, IK_KPRETURN, VK_OPEN, VK_FIRE:
+    IK_RETURN, IK_KPRETURN, VK_OPEN, VK_FIRE, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
     begin
       if Cons_Shown then
         g_Console_Process(Line)
@@ -1307,7 +1307,7 @@ begin
     IK_TAB:
       if not gChatShow then
         Complete();
-    IK_DOWN, IK_KPDOWN, VK_DOWN:
+    IK_DOWN, IK_KPDOWN, VK_DOWN, JOY0_DOWN, JOY1_DOWN, JOY2_DOWN, JOY3_DOWN:
       if not gChatShow then
         if (CommandHistory <> nil) and
            (CmdIndex < Length(CommandHistory)) then
@@ -1317,7 +1317,7 @@ begin
           Line := CommandHistory[CmdIndex];
           CPos := Length(Line) + 1;
         end;
-    IK_UP, IK_KPUP, VK_UP:
+    IK_UP, IK_KPUP, VK_UP, JOY0_UP, JOY1_UP, JOY2_UP, JOY3_UP:
       if not gChatShow then
         if (CommandHistory <> nil) and
            (CmdIndex <= Length(CommandHistory)) then
@@ -1327,9 +1327,9 @@ begin
           Line := CommandHistory[CmdIndex];
           Cpos := Length(Line) + 1;
         end;
-    IK_PAGEUP, IK_KPPAGEUP, VK_PREV: // PgUp
+    IK_PAGEUP, IK_KPPAGEUP, VK_PREV, JOY0_PREV, JOY1_PREV, JOY2_PREV, JOY3_PREV: // PgUp
       if not gChatShow then Inc(conSkipLines);
-    IK_PAGEDN, IK_KPPAGEDN, VK_NEXT: // PgDown
+    IK_PAGEDN, IK_KPPAGEDN, VK_NEXT, JOY0_NEXT, JOY1_NEXT, JOY2_NEXT, JOY3_NEXT: // PgDown
       if not gChatShow and (conSkipLines > 0) then Dec(conSkipLines);
     IK_HOME, IK_KPHOME:
       CPos := 1;
