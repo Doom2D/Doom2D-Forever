@@ -45,6 +45,7 @@ var
   gwin_has_stencil: Boolean = false;
   gwin_k8_enable_light_experiments: Boolean = false;
   g_dbg_aimline_on: Boolean = false;
+  g_dbg_input: Boolean = False;
 
 
 implementation
@@ -509,6 +510,8 @@ begin
         {$ENDIF}
         if ev.key._repeat = 0 then
         begin
+          if g_dbg_input then
+            e_LogWritefln('Input Debug: keysym, press=%s, scancode=%s', [down, key]);
           e_KeyUpDown(key, down);
           g_Console_ProcessBind(key, down)
         end;
@@ -520,9 +523,19 @@ begin
       begin
         key := e_JoyButtonToKey(ev.jbutton.which, ev.jbutton.button);
         down := ev.type_ = SDL_JOYBUTTONDOWN;
+        if g_dbg_input then
+          e_LogWritefln('Input Debug: jbutton, joy=%s, button=%s, keycode=%s, press=%s', [ev.jbutton.which, ev.jbutton.button, key, down]);
         e_KeyUpDown(key, down);
         g_Console_ProcessBind(key, down);
         if down then KeyPress(key)
+      end
+      else
+      begin
+        if g_dbg_input then
+        begin
+          down := ev.type_ = SDL_JOYBUTTONDOWN;
+          e_LogWritefln('Input Debug: NOT IN RANGE! jbutton, joy=%s, button=%s, press=%s', [ev.jbutton.which, ev.jbutton.button, down])
+        end
       end;
 
     SDL_JOYAXISMOTION:
@@ -530,6 +543,9 @@ begin
       begin
         key := e_JoyAxisToKey(ev.jaxis.which, ev.jaxis.axis, AX_PLUS);
         minuskey := e_JoyAxisToKey(ev.jaxis.which, ev.jaxis.axis, AX_MINUS);
+
+        if g_dbg_input then
+          e_LogWritefln('Input Debug: jaxis, joy=%s, axis=%s, value=%s, zeroaxes=%s, deadzone=%s', [ev.jaxis.which, ev.jaxis.axis, ev.jaxis.value, JoystickZeroAxes[ev.jaxis.which, ev.jaxis.axis], e_JoystickDeadzones[ev.jaxis.which]]);
 
         if ev.jaxis.value < JoystickZeroAxes[ev.jaxis.which, ev.jaxis.axis] - e_JoystickDeadzones[ev.jaxis.which] then
         begin
@@ -566,11 +582,18 @@ begin
             g_Console_ProcessBind(key, False);
           end;
         end;
+      end
+      else
+      begin
+        if g_dbg_input then
+          e_LogWritefln('Input Debug: NOT IN RANGE! jaxis, joy=%s, axis=%s, value=%s, zeroaxes=%s, deadzone=%s', [ev.jaxis.which, ev.jaxis.axis, ev.jaxis.value, JoystickZeroAxes[ev.jaxis.which, ev.jaxis.axis], e_JoystickDeadzones[ev.jaxis.which]])
       end;
 
     SDL_JOYHATMOTION:
       if (ev.jhat.which < e_MaxJoys) and (ev.jhat.hat < e_MaxJoyHats) then
       begin
+        if g_dbg_input then
+          e_LogWritefln('Input Debug: jhat, joy=%s, hat=%s, value=%s', [ev.jhat.which, ev.jhat.hat, ev.jhat.value]);
         hat[HAT_UP] := LongBool(ev.jhat.value and SDL_HAT_UP);
         hat[HAT_DOWN] := LongBool(ev.jhat.value and SDL_HAT_DOWN);
         hat[HAT_LEFT] := LongBool(ev.jhat.value and SDL_HAT_LEFT);
@@ -587,6 +610,11 @@ begin
           end
         end;
         JoystickHatState[ev.jhat.which, ev.jhat.hat] := hat
+      end
+      else
+      begin
+        if g_dbg_input then
+          e_LogWritefln('Input Debug: NOT IN RANGE! jhat, joy=%s, hat=%s, value=%s', [ev.jhat.which, ev.jhat.hat, ev.jhat.value])
       end;
 
     SDL_JOYDEVICEADDED:
@@ -599,13 +627,17 @@ begin
         for i := 0 to Min(SDL_JoystickNumAxes(joy), e_MaxJoyAxes) do
           JoystickZeroAxes[ev.jdevice.which, i] := SDL_JoystickGetAxis(joy, i);
         SDL_JoystickClose(joy)
+      end
+      else
+      begin
+        e_LogWritefln('Warning! Added Joystick %s, but we support only <= %s', [ev.jdevice.which, e_MaxJoys])
       end;
 
     SDL_JOYDEVICEREMOVED:
-      if (ev.jdevice.which < e_MaxJoys) then
       begin
-        e_JoystickAvailable[ev.jdevice.which] := False;
-        e_LogWritefln('Removed Joystick %s', [ev.jdevice.which])
+        e_LogWritefln('Removed Joystick %s', [ev.jdevice.which]);
+        if (ev.jdevice.which < e_MaxJoys) then
+          e_JoystickAvailable[ev.jdevice.which] := False
       end;
 
     {$IF not DEFINED(HEADLESS) and DEFINED(ENABLE_HOLMES)}
@@ -615,6 +647,8 @@ begin
 
     SDL_TEXTINPUT:
       begin
+        if g_dbg_input then
+          e_LogWritefln('Input Debug: text, text=%s', [ev.text.text]);
         Utf8ToUnicode(@uc, PChar(ev.text.text), 1);
         keychr := Word(uc);
         if (keychr > 127) then keychr := Word(wchar2win(WideChar(keychr)));
@@ -1036,6 +1070,8 @@ begin
     if arg = '--no-particle-phys' then gpart_dbg_phys_enabled := false;
     if arg = '--no-particle-physics' then gpart_dbg_phys_enabled := false;
 
+    if arg = '--debug-input' then g_dbg_input := True;
+
     {.$IF DEFINED(D2F_DEBUG)}
     if arg = '--aimline' then g_dbg_aimline_on := true;
     {.$ENDIF}
@@ -1153,4 +1189,6 @@ begin
 end;
 
 
+initialization
+  conRegVar('d_input', @g_dbg_input, '', '')
 end.
