@@ -636,7 +636,7 @@ begin
   case cmd of
   'bind':
     // bind <key> [down [up]]
-    if Length(p) >= 2 then
+    if (Length(p) >= 2) and (Length(p) <= 4) then
     begin
       i := 0;
       key := LowerCase(p[1]);
@@ -645,14 +645,18 @@ begin
       begin
         if Length(p) = 2 then
           g_Console_Add('"' + e_KeyNames[i] + '" = "' + GetCommandString(gInputBinds[i].down) + '" "' + GetCommandString(gInputBinds[i].up) + '"')
-        else if Length(p) >= 4 then
-          g_Console_BindKey(i, p[2], p[3])
-        else
+        else if Length(p) = 3 then
           g_Console_BindKey(i, p[2], '')
+        else (* len = 4 *)
+          g_Console_BindKey(i, p[2], p[3])
       end
+      else
+        g_Console_Add('bind: "' + p[1] + '" is not a key')
     end
     else
-      g_Console_Add('bind <key> <down action> [up action]');
+    begin
+      g_Console_Add('bind <key> <down action> [up action]')
+    end;
   'bindlist':
     for i := 0 to e_MaxInputKeys - 1 do
       if (gInputBinds[i].down <> nil) or (gInputBinds[i].up <> nil) then
@@ -666,6 +670,8 @@ begin
       while (i < e_MaxInputKeys) and (key <> LowerCase(e_KeyNames[i])) do inc(i);
       if i < e_MaxInputKeys then
         g_Console_BindKey(i, '')
+      else
+        g_Console_Add('unbind: "' + p[1] + '" is not a key')
     end
     else
       g_Console_Add('unbind <key>');
