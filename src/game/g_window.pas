@@ -85,8 +85,9 @@ var
   ticksOverflow: Int64 = -1;
   lastTicks: Uint32 = 0; // to detect overflow
 {$ENDIF}
-  JoystickHatState: array [0..e_MaxJoys, 0..e_MaxJoyHats, HAT_LEFT..HAT_DOWN] of Boolean;
-  JoystickZeroAxes: array [0..e_MaxJoys, 0..e_MaxJoyAxes] of Integer;
+  JoystickHandle: array [0..e_MaxJoys - 1] of PSDL_Joystick;
+  JoystickHatState: array [0..e_MaxJoys - 1, 0..e_MaxJoyHats - 1, HAT_LEFT..HAT_DOWN] of Boolean;
+  JoystickZeroAxes: array [0..e_MaxJoys - 1, 0..e_MaxJoyAxes - 1] of Integer;
 
 procedure KillGLWindow (preserveGL: Boolean);
 begin
@@ -469,7 +470,6 @@ var
   down: Boolean;
   i: Integer;
   hat: array [HAT_LEFT..HAT_DOWN] of Boolean;
-  joy: PSDL_Joystick;
 begin
   result := false;
 
@@ -620,13 +620,16 @@ begin
     SDL_JOYDEVICEADDED:
       if (ev.jdevice.which < e_MaxJoys) then
       begin
-        joy := SDL_JoystickOpen(ev.jdevice.which);
-        ASSERT(joy <> nil);
-        e_LogWritefln('Added Joystick %s', [ev.jdevice.which]);
-        e_JoystickAvailable[ev.jdevice.which] := True;
-        for i := 0 to Min(SDL_JoystickNumAxes(joy), e_MaxJoyAxes) do
-          JoystickZeroAxes[ev.jdevice.which, i] := SDL_JoystickGetAxis(joy, i);
-        SDL_JoystickClose(joy)
+        JoystickHandle[ev.jdevice.which] := SDL_JoystickOpen(ev.jdevice.which);
+        if JoystickHandle[ev.jdevice.which] <> nil then
+        begin
+          e_LogWritefln('Added Joystick %s', [ev.jdevice.which]);
+          e_JoystickAvailable[ev.jdevice.which] := True;
+          for i := 0 to Min(SDL_JoystickNumAxes(JoystickHandle[ev.jdevice.which]), e_MaxJoyAxes) - 1 do
+            JoystickZeroAxes[ev.jdevice.which, i] := SDL_JoystickGetAxis(JoystickHandle[ev.jdevice.which], i)
+        end
+        else
+          e_LogWritefln('Warning! Failed to open Joystick %s', [ev.jdevice.which])
       end
       else
       begin
@@ -637,7 +640,12 @@ begin
       begin
         e_LogWritefln('Removed Joystick %s', [ev.jdevice.which]);
         if (ev.jdevice.which < e_MaxJoys) then
-          e_JoystickAvailable[ev.jdevice.which] := False
+        begin
+          e_JoystickAvailable[ev.jdevice.which] := False;
+          if JoystickHandle[ev.jdevice.which] <> nil then
+            SDL_JoystickClose(JoystickHandle[ev.jdevice.which]);
+          JoystickHandle[ev.jdevice.which] := nil
+        end
       end;
 
     {$IF not DEFINED(HEADLESS) and DEFINED(ENABLE_HOLMES)}
