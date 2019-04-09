@@ -515,7 +515,6 @@ begin
           e_KeyUpDown(key, down);
           g_Console_ProcessBind(key, down)
         end;
-        if down then KeyPress(key);
       end;
 
     SDL_JOYBUTTONDOWN, SDL_JOYBUTTONUP:
@@ -527,7 +526,6 @@ begin
           e_LogWritefln('Input Debug: jbutton, joy=%s, button=%s, keycode=%s, press=%s', [ev.jbutton.which, ev.jbutton.button, key, down]);
         e_KeyUpDown(key, down);
         g_Console_ProcessBind(key, down);
-        if down then KeyPress(key)
       end
       else
       begin
@@ -556,7 +554,6 @@ begin
           end;
           e_KeyUpDown(minuskey, True);
           g_Console_ProcessBind(minuskey, True);
-          KeyPress(minuskey);
         end
         else if ev.jaxis.value > JoystickZeroAxes[ev.jaxis.which, ev.jaxis.axis] + e_JoystickDeadzones[ev.jaxis.which] then
         begin
@@ -567,7 +564,6 @@ begin
           end;
           e_KeyUpDown(key, True);
           g_Console_ProcessBind(key, True);
-          KeyPress(key);
         end
         else
         begin
@@ -606,7 +602,6 @@ begin
             key := e_JoyHatToKey(ev.jhat.which, ev.jhat.hat, i);
             e_KeyUpDown(key, down);
             g_Console_ProcessBind(key, down);
-            if down then KeyPress(key)
           end
         end;
         JoystickHatState[ev.jhat.which, ev.jhat.hat] := hat

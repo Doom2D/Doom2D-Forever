@@ -145,6 +145,7 @@ var
   gInputBinds: Array [0..e_MaxInputKeys - 1] of record
     down, up: SSArray;
   end;
+  menu_toggled: BOOLEAN;
 
 
 // poor man's floating literal parser; i'm sorry, but `StrToFloat()` sux cocks
@@ -679,9 +680,15 @@ begin
     for i := 0 to e_MaxInputKeys - 1 do
       g_Console_BindKey(i, '');
   'showkeyboard':
-     g_Touch_ShowKeyboard(True);
+    g_Touch_ShowKeyboard(True);
   'hidekeyboard':
-     g_Touch_ShowKeyboard(False);
+    g_Touch_ShowKeyboard(False);
+  'togglemenu':
+    begin
+      // this is HACK
+      KeyPress(VK_ESCAPE);
+      menu_toggled := True
+    end;
   end
 end;
 
@@ -767,6 +774,7 @@ begin
   AddCommand('unbindall', BindCommands);
   AddCommand('showkeyboard', BindCommands);
   AddCommand('hidekeyboard', BindCommands);
+  AddCommand('togglemenu', BindCommands);
 
   AddCommand('clear', ConsoleCommands, 'clear console');
   AddCommand('clearhistory', ConsoleCommands);
@@ -1681,7 +1689,10 @@ begin
     else
       for i := 0 to High(gInputBinds[key].up) do
         g_Console_Process(gInputBinds[key].up[i], True)
-  end
+  end;
+  if down and not menu_toggled then
+    KeyPress(key);
+  menu_toggled := False
 end;
 
 procedure g_Console_ResetBinds;
@@ -1690,6 +1701,7 @@ begin
   for i := 0 to e_MaxInputKeys - 1 do
     g_Console_BindKey(i, '', '');
 
+  g_Console_BindKey(IK_ESCAPE, 'togglemenu');
   g_Console_BindKey(IK_A, '+p1_moveleft', '-p1_moveleft');
   g_Console_BindKey(IK_D, '+p1_moveright', '-p1_moveright');
   g_Console_BindKey(IK_W, '+p1_lookup', '-p1_lookup');
@@ -1721,18 +1733,21 @@ begin
   (* for i := 0 to e_MaxJoys - 1 do *)
   for i := 0 to 1 do
   begin
-    g_Console_BindKey(e_JoyAxisToKey(i, 0, AX_MINUS), '+p' + IntToStr(i mod 2 + 1) + '_moveleft', '-p' + IntToStr(i mod 2 + 1) + '_moveleft');
-    g_Console_BindKey(e_JoyAxisToKey(i, 0, AX_PLUS), '+p' + IntToStr(i mod 2 + 1) + '_moveright', '-p' + IntToStr(i mod 2 + 1) + '_moveright');
-    g_Console_BindKey(e_JoyAxisToKey(i, 1, AX_MINUS), '+p' + IntToStr(i mod 2 + 1) + '_lookup', '-p' + IntToStr(i mod 2 + 1) + '_lookup');
-    g_Console_BindKey(e_JoyAxisToKey(i, 1, AX_PLUS), '+p' + IntToStr(i mod 2 + 1) + '_lookdown', '-p' + IntToStr(i mod 2 + 1) + '_lookdown');
+    g_Console_BindKey(e_JoyHatToKey(i, 0, HAT_LEFT), '+p' + IntToStr(i mod 2 + 1) + '_moveleft', '-p' + IntToStr(i mod 2 + 1) + '_moveleft');
+    g_Console_BindKey(e_JoyHatToKey(i, 0, HAT_RIGHT), '+p' + IntToStr(i mod 2 + 1) + '_moveright', '-p' + IntToStr(i mod 2 + 1) + '_moveright');
+    g_Console_BindKey(e_JoyHatToKey(i, 0, HAT_UP), '+p' + IntToStr(i mod 2 + 1) + '_lookup', '-p' + IntToStr(i mod 2 + 1) + '_lookup');
+    g_Console_BindKey(e_JoyHatToKey(i, 0, HAT_DOWN), '+p' + IntToStr(i mod 2 + 1) + '_lookdown', '-p' + IntToStr(i mod 2 + 1) + '_lookdown');
     g_Console_BindKey(e_JoyButtonToKey(i, 2), '+p' + IntToStr(i mod 2 + 1) + '_jump', '-p' + IntToStr(i mod 2 + 1) + '_jump');
     g_Console_BindKey(e_JoyButtonToKey(i, 0), '+p' + IntToStr(i mod 2 + 1) + '_attack', '-p' + IntToStr(i mod 2 + 1) + '_attack');
     g_Console_BindKey(e_JoyButtonToKey(i, 3), '+p' + IntToStr(i mod 2 + 1) + '_activate', '-p' + IntToStr(i mod 2 + 1) + '_activate');
     g_Console_BindKey(e_JoyButtonToKey(i, 1), '+p' + IntToStr(i mod 2 + 1) + '_weapnext', '-p' + IntToStr(i mod 2 + 1) + '_weapnext');
     g_Console_BindKey(e_JoyButtonToKey(i, 4), '+p' + IntToStr(i mod 2 + 1) + '_weapprev', '-p' + IntToStr(i mod 2 + 1) + '_weapprev');
     g_Console_BindKey(e_JoyButtonToKey(i, 7), '+p' + IntToStr(i mod 2 + 1) + '_strafe', '-p' + IntToStr(i mod 2 + 1) + '_strafe');
+    g_Console_BindKey(e_JoyButtonToKey(i, 10), 'togglemenu');
   end;
 
+  // HACK: VK_ESCAPE always used as togglemenu, so don't touch it!
+  // VK_CONSOLE
   g_Console_BindKey(VK_LSTRAFE, '+moveleft; +strafe', '-moveleft; -strafe');
   g_Console_BindKey(VK_RSTRAFE, '+moveright; +strafe', '-moveright; -strafe');
   g_Console_BindKey(VK_LEFT, '+moveleft', '-moveleft');
@@ -1762,9 +1777,6 @@ begin
   g_Console_BindKey(VK_STATUS, '+scores', '-scores');
   g_Console_BindKey(VK_SHOWKBD, 'showkeyboard');
   g_Console_BindKey(VK_HIDEKBD, 'hidekeyboard');
-
-  // VK_CONSOLE
-  // VK_ESCAPE
 end;
 
 procedure g_Console_ReadConfig (filename: String);

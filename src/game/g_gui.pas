@@ -837,7 +837,7 @@ begin
   if Msg.Msg = WM_KEYDOWN then
   begin
     case Msg.wParam of
-      IK_ESCAPE, VK_ESCAPE, JOY0_JUMP, JOY1_JUMP, JOY2_JUMP, JOY3_JUMP:
+      VK_ESCAPE:
         begin
           g_GUI_HideWindow;
           Exit
@@ -2416,7 +2416,7 @@ begin
     case Msg of
       WM_KEYDOWN:
         case wParam of
-          IK_ESCAPE, VK_ESCAPE, JOY0_JUMP, JOY1_JUMP, JOY2_JUMP, JOY3_JUMP:
+          VK_ESCAPE:
             begin
               if FIsQuery then actDefCtl();
               FIsQuery := False;
@@ -2431,9 +2431,10 @@ begin
 
                   FIsQuery := True;
                 end
-              else
+              else if (wParam < VK_FIRSTKEY) and (wParam > VK_LASTKEY) then
                 begin
-                  FKey := IK_ENTER; // <Enter>
+                  // FKey := IK_ENTER; // <Enter>
+                  FKey := wParam;
                   FIsQuery := False;
                   actDefCtl();
                 end;
@@ -2458,7 +2459,7 @@ begin
           else if FIsQuery then
           begin
             case wParam of
-              IK_ENTER, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK: // Not <Enter
+              IK_ENTER, IK_KPRETURN, VK_FIRSTKEY..VK_LASTKEY, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK: // Not <Enter
             else
               if e_KeyNames[wParam] <> '' then
                 FKey := wParam;
@@ -2569,7 +2570,7 @@ begin
     case Msg of
       WM_KEYDOWN:
         case wParam of
-          IK_ESCAPE, VK_ESCAPE, JOY0_JUMP, JOY1_JUMP, JOY2_JUMP, JOY3_JUMP:
+          VK_ESCAPE:
             begin
               if FIsQuery then actDefCtl();
               FIsQuery := False;
@@ -2584,9 +2585,10 @@ begin
 
                   FIsQuery := True;
                 end
-              else
+              else if (wParam < VK_FIRSTKEY) and (wParam > VK_LASTKEY) then
                 begin
-                  if (FKeyIdx = 0) then FKey0 := IK_ENTER else FKey1 := IK_ENTER; // <Enter>
+                  // if (FKeyIdx = 0) then FKey0 := IK_ENTER else FKey1 := IK_ENTER; // <Enter>
+                  if (FKeyIdx = 0) then FKey0 := wParam else FKey1 := wParam;
                   FIsQuery := False;
                   actDefCtl();
                 end;
@@ -2623,8 +2625,7 @@ begin
           else if FIsQuery then
           begin
             case wParam of
-              IK_ENTER, IK_KPRETURN, VK_FIRE, VK_OPEN,
-              JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK: // Not <Enter
+              IK_ENTER, IK_KPRETURN, VK_FIRSTKEY..VK_LASTKEY, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK: // Not <Enter
             else
               if e_KeyNames[wParam] <> '' then
               begin

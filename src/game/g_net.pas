@@ -822,8 +822,7 @@ begin
 
     ProcessLoading(true);
 
-    if e_KeyPressed(IK_ESCAPE) or e_KeyPressed(IK_SPACE) or e_KeyPressed(VK_ESCAPE) or
-       e_KeyPressed(JOY0_JUMP) or e_KeyPressed(JOY1_JUMP) or e_KeyPressed(JOY2_JUMP) or e_KeyPressed(JOY3_JUMP) then
+    if e_KeyPressed(IK_SPACE) or e_KeyPressed(VK_ESCAPE) then
       OuterLoop := False;
   end;
 
@@ -986,8 +985,7 @@ begin
 
     ProcessLoading(true);
 
-    if e_KeyPressed(IK_ESCAPE) or e_KeyPressed(IK_SPACE) or e_KeyPressed(VK_ESCAPE) or
-       e_KeyPressed(JOY0_JUMP) or e_KeyPressed(JOY1_JUMP) or e_KeyPressed(JOY2_JUMP) or e_KeyPressed(JOY3_JUMP) then
+    if e_KeyPressed(IK_SPACE) or e_KeyPressed(VK_ESCAPE) then
       break;
   end;
   Result := msgStream;

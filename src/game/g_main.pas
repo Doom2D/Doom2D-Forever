@@ -502,7 +502,15 @@ begin
           g_Console_Switch()
       end;
 
-    IK_ESCAPE, VK_ESCAPE, JOY0_JUMP, JOY1_JUMP, JOY2_JUMP, JOY3_JUMP: // <Esc>:
+    IK_ESCAPE: // <Esc>:
+      begin
+        if gChatShow then
+          g_Console_Chat_Switch
+        else if gConsoleShow then
+          g_Console_Switch
+      end;
+
+    VK_ESCAPE: // <Esc>:
       begin
         if gChatShow then
         begin
@@ -517,7 +525,7 @@ begin
         else if (g_ActiveWindow <> nil) then
         begin
           Msg.Msg := WM_KEYDOWN;
-          Msg.WParam := IK_ESCAPE;
+          Msg.WParam := VK_ESCAPE;
           g_ActiveWindow.OnMessage(Msg);
           if (not g_Game_IsNet) and (g_ActiveWindow = nil) then g_Game_Pause(false); //Fn loves to do this
         end

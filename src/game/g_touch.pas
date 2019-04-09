@@ -37,7 +37,7 @@ implementation
 
   uses
     SysUtils,
-    e_log, e_graphics, e_input, g_options, g_game, g_main, g_weapons, g_console;
+    e_log, e_graphics, e_input, g_options, g_game, g_main, g_gui, g_weapons, g_console;
 
   var
     angleFire: Boolean;
@@ -212,7 +212,7 @@ implementation
       g_Console_ProcessBind(i, False);
 
       (* up/down + fire hack *)
-      if g_touch_fire and (gGameSettings.GameType <> GT_NONE) and angleFire then
+      if g_touch_fire and (gGameSettings.GameType <> GT_NONE) and (g_ActiveWindow = nil) and angleFire then
       begin
         if (i = VK_UP) or (i = VK_DOWN) then
         begin
@@ -226,13 +226,12 @@ implementation
 
     procedure KeyDown (finger, i: Integer);
     begin
-      KeyPress(i); // Menu events
       keyFinger[i] := finger;
       e_KeyUpDown(i, True);
       g_Console_ProcessBind(i, True);
 
       (* up/down + fire hack *)
-      if g_touch_fire and (gGameSettings.GameType <> GT_NONE) then
+      if g_touch_fire and (gGameSettings.GameType <> GT_NONE) and (g_ActiveWindow = nil) then
       begin
         if i = VK_UP then
         begin

@@ -213,22 +213,22 @@ const
   JOY2_PREV = JOYK_BEG + 2*e_MaxJoyBtns + 4;
   JOY3_PREV = JOYK_BEG + 3*e_MaxJoyBtns + 4;
 
-  JOY0_LEFT = JOYA_BEG + 0*e_MaxJoyAxes*2 + 0*2 + AX_MINUS;
-  JOY1_LEFT = JOYA_BEG + 1*e_MaxJoyAxes*2 + 0*2 + AX_MINUS;
-  JOY2_LEFT = JOYA_BEG + 2*e_MaxJoyAxes*2 + 0*2 + AX_MINUS;
-  JOY3_LEFT = JOYA_BEG + 3*e_MaxJoyAxes*2 + 0*2 + AX_MINUS;
-  JOY0_RIGHT = JOYA_BEG + 0*e_MaxJoyAxes*2 + 0*2 + AX_PLUS;
-  JOY1_RIGHT = JOYA_BEG + 1*e_MaxJoyAxes*2 + 0*2 + AX_PLUS;
-  JOY2_RIGHT = JOYA_BEG + 2*e_MaxJoyAxes*2 + 0*2 + AX_PLUS;
-  JOY3_RIGHT = JOYA_BEG + 3*e_MaxJoyAxes*2 + 0*2 + AX_PLUS;
-  JOY0_UP = JOYA_BEG + 0*e_MaxJoyAxes*2 + 1*2 + AX_MINUS;
-  JOY1_UP = JOYA_BEG + 1*e_MaxJoyAxes*2 + 1*2 + AX_MINUS;
-  JOY2_UP = JOYA_BEG + 2*e_MaxJoyAxes*2 + 1*2 + AX_MINUS;
-  JOY3_UP = JOYA_BEG + 3*e_MaxJoyAxes*2 + 1*2 + AX_MINUS;
-  JOY0_DOWN = JOYA_BEG + 0*e_MaxJoyAxes*2 + 1*2 + AX_PLUS;
-  JOY1_DOWN = JOYA_BEG + 1*e_MaxJoyAxes*2 + 1*2 + AX_PLUS;
-  JOY2_DOWN = JOYA_BEG + 2*e_MaxJoyAxes*2 + 1*2 + AX_PLUS;
-  JOY3_DOWN = JOYA_BEG + 3*e_MaxJoyAxes*2 + 1*2 + AX_PLUS;
+  JOY0_LEFT = JOYH_BEG + 0*e_MaxJoyHats*4 + 0*4 + HAT_LEFT;
+  JOY1_LEFT = JOYH_BEG + 1*e_MaxJoyHats*4 + 0*4 + HAT_LEFT;
+  JOY2_LEFT = JOYH_BEG + 2*e_MaxJoyHats*4 + 0*4 + HAT_LEFT;
+  JOY3_LEFT = JOYH_BEG + 3*e_MaxJoyHats*4 + 0*4 + HAT_LEFT;
+  JOY0_RIGHT = JOYH_BEG + 0*e_MaxJoyHats*4 + 0*4 + HAT_RIGHT;
+  JOY1_RIGHT = JOYH_BEG + 1*e_MaxJoyHats*4 + 0*4 + HAT_RIGHT;
+  JOY2_RIGHT = JOYH_BEG + 2*e_MaxJoyHats*4 + 0*4 + HAT_RIGHT;
+  JOY3_RIGHT = JOYH_BEG + 3*e_MaxJoyHats*4 + 0*4 + HAT_RIGHT;
+  JOY0_UP = JOYH_BEG + 0*e_MaxJoyHats*4 + 0*4 + HAT_UP;
+  JOY1_UP = JOYH_BEG + 1*e_MaxJoyHats*4 + 0*4 + HAT_UP;
+  JOY2_UP = JOYH_BEG + 2*e_MaxJoyHats*4 + 0*4 + HAT_UP;
+  JOY3_UP = JOYH_BEG + 3*e_MaxJoyHats*4 + 0*4 + HAT_UP;
+  JOY0_DOWN = JOYH_BEG + 0*e_MaxJoyHats*4 + 0*4 + HAT_DOWN;
+  JOY1_DOWN = JOYH_BEG + 1*e_MaxJoyHats*4 + 0*4 + HAT_DOWN;
+  JOY2_DOWN = JOYH_BEG + 2*e_MaxJoyHats*4 + 0*4 + HAT_DOWN;
+  JOY3_DOWN = JOYH_BEG + 3*e_MaxJoyHats*4 + 0*4 + HAT_DOWN;
 
 function  e_InitInput: Boolean;
 procedure e_ReleaseInput;
