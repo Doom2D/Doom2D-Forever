@@ -707,7 +707,9 @@ begin
 
   qm := g_ProcessMessages(); // this updates kbd
 
-  if qm or e_KeyPressed(VK_ESCAPE) then
+  if qm or e_KeyPressed(IK_ESCAPE) or e_KeyPressed(VK_ESCAPE) or
+     e_KeyPressed(JOY0_JUMP) or e_KeyPressed(JOY1_JUMP) or
+     e_KeyPressed(JOY2_JUMP) or e_KeyPressed(JOY3_JUMP) then
   begin
     SL := nil;
     ST := nil;
