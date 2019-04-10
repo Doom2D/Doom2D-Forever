@@ -2858,6 +2858,9 @@ begin
     if gPlayerAction[0, ACTION_WEAPNEXT] then kByte := kByte or NET_KEY_NW;
     if gPlayerAction[0, ACTION_WEAPPREV] then kByte := kByte or NET_KEY_PW;
 
+    gPlayerAction[0, ACTION_WEAPNEXT] := False; // HACK, remove after readyweaon&pendinweapon implementation
+    gPlayerAction[0, ACTION_WEAPPREV] := False; // HACK, remove after readyweaon&pendinweapon implementation
+
     for i := WP_FIRST to WP_LAST do
     begin
       if gSelectWeapon[0, i] then

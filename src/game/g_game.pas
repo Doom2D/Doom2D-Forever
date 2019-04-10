@@ -1562,6 +1562,9 @@ begin
   if gPlayerAction[p, ACTION_WEAPPREV] then plr.PressKey(KEY_PREVWEAPON);
   if gPlayerAction[p, ACTION_ACTIVATE] then plr.PressKey(KEY_OPEN);
 
+  gPlayerAction[p, ACTION_WEAPNEXT] := False; // HACK, remove after readyweaon&pendinweapon implementation
+  gPlayerAction[p, ACTION_WEAPPREV] := False; // HACK, remove after readyweaon&pendinweapon implementation
+
   for i := WP_FIRST to WP_LAST do
   begin
     if gSelectWeapon[p, i] then
