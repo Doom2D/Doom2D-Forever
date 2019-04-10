@@ -23,7 +23,7 @@ uses
   MAPDEF,
   g_basic, g_player, e_graphics, g_res_downloader,
   g_sound, g_gui, utils, md5, mempool, xprofiler,
-  g_touch;
+  g_touch, g_weapons;
 
 type
   TGameSettings = record
@@ -325,7 +325,7 @@ var
   gDelayedEvents: Array of TDelayedEvent;
   gUseChatSounds: Boolean = True;
   gChatSounds: Array of TChatSound;
-  gSelectWeapon: Array [0..1] of Integer = (-1, -1); // [player]
+  gSelectWeapon: Array [0..1, WP_FIRST..WP_LAST] of Boolean; // [player, weapon]
 
   g_dbg_ignore_bounds: Boolean = false;
   r_smallmap_h: Integer = 0; // 0: left; 1: center; 2: right
@@ -373,7 +373,7 @@ uses
 {$ENDIF}
   e_texture, g_textures, g_main, g_window, g_menu,
   e_input, e_log, g_console, g_items, g_map, g_panel,
-  g_playermodel, g_gfx, g_options, g_weapons, Math,
+  g_playermodel, g_gfx, g_options, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
   g_language, g_net,
   ENet, e_msg, g_netmsg, g_netmaster,
@@ -1504,6 +1504,7 @@ procedure ProcessPlayerControls (plr: TPlayer; p: Integer; var MoveButton: Byte)
   var
     time: Word;
     strafeDir: Byte;
+    i: Integer;
 begin
   if (plr = nil) then exit;
   if (p = 2) then time := 1000 else time := 1;
@@ -1561,10 +1562,13 @@ begin
   if gPlayerAction[p, ACTION_WEAPPREV] then plr.PressKey(KEY_PREVWEAPON);
   if gPlayerAction[p, ACTION_ACTIVATE] then plr.PressKey(KEY_OPEN);
 
-  if gSelectWeapon[p] >= 0 then
+  for i := WP_FIRST to WP_LAST do
   begin
-    plr.QueueWeaponSwitch(gSelectWeapon[p]);
-    gSelectWeapon[p] := -1
+    if gSelectWeapon[p, i] then
+    begin
+      plr.QueueWeaponSwitch(i); // all choices are passed there, and god will take the best
+      gSelectWeapon[p, i] := False
+    end
   end;
 
   // HACK: add dynlight here
@@ -6820,7 +6824,7 @@ begin
     begin
       a := WP_FIRST + StrToInt(p[1]) - 1;
       if (a >= WP_FIRST) and (a <= WP_LAST) then
-        gSelectWeapon[0] := a
+        gSelectWeapon[0, a] := True
     end
   end
   else if (cmd = 'p1_weapon') or (cmd = 'p2_weapon') then
@@ -6830,7 +6834,7 @@ begin
       a := WP_FIRST + StrToInt(p[1]) - 1;
       b := ord(cmd[2]) - ord('1');
       if (a >= WP_FIRST) and (a <= WP_LAST) then
-        gSelectWeapon[b] := a
+        gSelectWeapon[b, a] := True
     end
   end
 // Команды Своей игры:

@@ -2787,6 +2787,7 @@ var
   Predict: Boolean;
   strafeDir: Byte;
   WeaponSelect: Word = 0;
+  i: Integer;
 begin
   if not gGameOn then Exit;
   if gPlayers = nil then Exit;
@@ -2857,10 +2858,13 @@ begin
     if gPlayerAction[0, ACTION_WEAPNEXT] then kByte := kByte or NET_KEY_NW;
     if gPlayerAction[0, ACTION_WEAPPREV] then kByte := kByte or NET_KEY_PW;
 
-    if gSelectWeapon[0] >= 0 then
+    for i := WP_FIRST to WP_LAST do
     begin
-      WeaponSelect := gSelectWeapon[0];
-      //gSelectWeapon[0] := -1
+      if gSelectWeapon[0, i] then
+      begin
+        WeaponSelect := WeaponSelect or Word(1 shl i);
+        gSelectWeapon[0, i] := False
+      end
     end;
 
     // fix movebutton state
