@@ -61,7 +61,7 @@ uses
   g_console, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
   g_map, g_gfx, g_monsters, xprofiler,
-  g_touch;
+  g_touch, g_gui;
 
 
 const
@@ -513,7 +513,12 @@ begin
           if g_dbg_input then
             e_LogWritefln('Input Debug: keysym, press=%s, scancode=%s', [down, key]);
           e_KeyUpDown(key, down);
-          g_Console_ProcessBind(key, down)
+          g_Console_ProcessBind(key, down);
+        end
+        else if gConsoleShow or (g_ActiveWindow <> nil) then
+        begin
+          // key repeat in menus and shit
+          KeyPress(key);
         end;
       end;
 
