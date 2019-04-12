@@ -3145,7 +3145,7 @@ end;
 
 procedure TGUIFileListBox.OnMessage(var Msg: TMessage);
 var
-  a: Integer;
+  a, b: Integer;
 begin
   if not FEnabled then
     Exit;
@@ -3242,7 +3242,9 @@ begin
         end;
 
       WM_CHAR:
-        for a := 0 to High(FItems) do
+        for b := FIndex + 1 to High(FItems) + FIndex do
+        begin
+          a := b mod Length(FItems);
           if ( (Length(FItems[a]) > 0) and
                (LowerCase(FItems[a][1]) = LowerCase(Chr(wParam))) ) or
              ( (Length(FItems[a]) > 1) and
@@ -3255,6 +3257,7 @@ begin
               FOnChangeEvent(Self);
             Break;
           end;
+        end;
     end;
 end;
 
