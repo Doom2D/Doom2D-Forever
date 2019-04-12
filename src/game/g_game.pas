@@ -6580,12 +6580,13 @@ begin
           end else
           begin
             // Такой карты нет, ищем WAD файл
-            P[1] := addWadExtension(P[1]);
-            g_Console_Add(Format(_lc[I_MSG_NO_MAP_FALLBACK], [s, P[1]]));
-            if FileExists(MapsDir + P[1]) then
+            pw := findDiskWad(MapsDir + P[1]);
+            g_Console_Add(Format(_lc[I_MSG_NO_MAP_FALLBACK], [s, 'WAD ' + P[1]]));
+            if FileExists(pw) then
             begin
               // Параметра карты нет, поэтому ставим первую из файла
               SetLength(P, 3);
+              P[1] := ExtractRelativePath(MapsDir, pw);
               P[2] := g_Game_GetFirstMap(MapsDir + P[1]);
 
               s := P[1] + ':\' + P[2];

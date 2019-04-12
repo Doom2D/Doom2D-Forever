@@ -1129,7 +1129,7 @@ begin
 end;
 
 
-const fileExtensions: array [0..6] of AnsiString = ('.wad', '.dfzip', '.dfwad', '.pk3', '.pak', '.zip', '.dfz');
+const fileExtensions: array [0..6] of AnsiString = ('.dfz', '.wad', '.dfwad', '.pk3', '.pak', '.zip', '.dfzip');
 
 function findDiskWad (fname: AnsiString): AnsiString;
 var
