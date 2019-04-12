@@ -515,7 +515,7 @@ begin
           e_KeyUpDown(key, down);
           g_Console_ProcessBind(key, down);
         end
-        else if gConsoleShow or (g_ActiveWindow <> nil) then
+        else if gConsoleShow or gChatShow or (g_ActiveWindow <> nil) then
         begin
           // key repeat in menus and shit
           KeyPress(key);
