@@ -599,17 +599,12 @@ var
   Msg: g_gui.TMessage;
   a: Integer;
 begin
-  if gSkipFirstChar then
-  begin
-    gSkipFirstChar := False;
-    Exit
-  end;
-
-  if (not gChatShow) and ((C = '`') or (C = '~') or (C = '¸') or (C = '¨')) then Exit;
-
   if gConsoleShow or gChatShow then
   begin
-    g_Console_Char(C);
+    if gSkipFirstChar then
+      gSkipFirstChar := False
+    else
+      g_Console_Char(C)
   end
   else if (g_ActiveWindow <> nil) then
   begin
