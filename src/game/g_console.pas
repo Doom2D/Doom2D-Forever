@@ -37,21 +37,21 @@ uses
     FIRST_ACTION = ACTION_JUMP;
     LAST_ACTION = ACTION_WEAPPREV;
 
-procedure g_Console_Init ();
-procedure g_Console_Update ();
-procedure g_Console_Draw ();
-procedure g_Console_Switch ();
+procedure g_Console_Init;
+procedure g_Console_Update;
+procedure g_Console_Draw;
 procedure g_Console_Char (C: AnsiChar);
 procedure g_Console_Control (K: Word);
 procedure g_Console_Process (L: AnsiString; quiet: Boolean=false);
 procedure g_Console_Add (L: AnsiString; show: Boolean=false);
-procedure g_Console_Clear ();
+procedure g_Console_Clear;
 function  g_Console_CommandBlacklisted (C: AnsiString): Boolean;
 procedure g_Console_ReadConfig (filename: String);
 procedure g_Console_WriteConfig (filename: String);
 
 function  g_Console_Interactive: Boolean;
 function  g_Console_Action (action: Integer): Boolean;
+function  g_Console_MatchBind (key: Integer; down: AnsiString; up: AnsiString = ''): Boolean;
 function  g_Console_FindBind (n: Integer; down: AnsiString; up: AnsiString = ''): Integer;
 procedure g_Console_BindKey (key: Integer; down: AnsiString; up: AnsiString = '');
 procedure g_Console_ProcessBind (key: Integer; down: Boolean);
@@ -60,14 +60,12 @@ procedure g_Console_ResetBinds;
 procedure conwriteln (const s: AnsiString; show: Boolean=false);
 procedure conwritefln (const s: AnsiString; args: array of const; show: Boolean=false);
 
-// <0: no arg; 0/1: true/false
-function conGetBoolArg (p: SSArray; idx: Integer): Integer;
-
-procedure g_Console_Chat_Switch (team: Boolean=false);
-
 procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
 procedure conRegVar (const conname: AnsiString; pvar: PSingle; amin, amax: Single; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
 procedure conRegVar (const conname: AnsiString; pvar: PInteger; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
+
+// <0: no arg; 0/1: true/false
+function conGetBoolArg (p: SSArray; idx: Integer): Integer;
 
 // poor man's floating literal parser; i'm sorry, but `StrToFloat()` sux cocks
 function conParseFloat (var res: Single; const s: AnsiString): Boolean;
@@ -86,7 +84,7 @@ implementation
 uses
   g_textures, g_main, e_graphics, e_input, g_game,
   SysUtils, g_basic, g_options, Math, g_touch,
-  g_menu, g_language, g_net, g_netmsg, e_log, conbuf;
+  g_menu, g_gui, g_language, g_net, g_netmsg, e_log, conbuf;
 
 
 type
@@ -145,8 +143,28 @@ var
   gInputBinds: Array [0..e_MaxInputKeys - 1] of record
     down, up: SSArray;
   end;
-  menu_toggled: BOOLEAN;
+  menu_toggled: BOOLEAN; (* hack for menu controls *)
+  gSkipFirstChar: Boolean; (* hack for console/chat input *)
 
+
+procedure g_Console_Switch;
+begin
+  gChatShow := False;
+  gConsoleShow := not gConsoleShow;
+  Cons_Shown := True;
+  g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
+end;
+
+procedure g_Console_Chat_Switch (Team: Boolean = False);
+begin
+  if not g_Game_IsNet then Exit;
+  gConsoleShow := False;
+  gChatShow := not gChatShow;
+  gChatTeam := Team;
+  Line := '';
+  CPos := 1;
+  g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
+end;
 
 // poor man's floating literal parser; i'm sorry, but `StrToFloat()` sux cocks
 function conParseFloat (var res: Single; const s: AnsiString): Boolean;
@@ -689,6 +707,22 @@ begin
       KeyPress(VK_ESCAPE);
       menu_toggled := True
     end;
+  'toggleconsole':
+    begin
+      g_Console_Switch;
+      gSkipFirstChar := g_Console_Interactive();
+    end;
+  'togglechat':
+    begin
+      g_Console_Chat_Switch;
+      gSkipFirstChar := not g_Console_Interactive()
+    end;
+  'toggleteamchat':
+    if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
+    begin
+      g_Console_Chat_Switch(True);
+      gSkipFirstChar := not g_Console_Interactive()
+    end;
   end
 end;
 
@@ -775,6 +809,9 @@ begin
   AddCommand('showkeyboard', BindCommands);
   AddCommand('hidekeyboard', BindCommands);
   AddCommand('togglemenu', BindCommands);
+  AddCommand('toggleconsole', BindCommands);
+  AddCommand('togglechat', BindCommands);
+  AddCommand('toggleteamchat', BindCommands);
 
   AddCommand('clear', ConsoleCommands, 'clear console');
   AddCommand('clearhistory', ConsoleCommands);
@@ -876,8 +913,6 @@ begin
   AddCommand('clientlist', GameCommands);
   AddCommand('event', GameCommands);
   AddCommand('screenshot', GameCommands);
-  AddCommand('togglechat', GameCommands);
-  AddCommand('toggleteamchat', GameCommands);
   AddCommand('weapon', GameCommands);
   AddCommand('p1_weapon', GameCommands);
   AddCommand('p2_weapon', GameCommands);
@@ -1121,31 +1156,14 @@ begin
   e_TextureFontPrint((CPos+1)*CWidth, Cons_Y+(gScreenHeight div 2)-21, '_', gStdFont);
 end;
 
-procedure g_Console_Switch();
-begin
-  gChatShow := False;
-  gConsoleShow := not gConsoleShow;
-  Cons_Shown := True;
-  g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
-end;
-
-procedure g_Console_Chat_Switch(Team: Boolean = False);
-begin
-  if not g_Game_IsNet then Exit;
-  gConsoleShow := False;
-  gChatShow := not gChatShow;
-  gChatTeam := Team;
-  Line := '';
-  CPos := 1;
-  g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
-end;
-
 procedure g_Console_Char(C: AnsiChar);
 begin
-//  if gChatShow then
-//    Exit;
-  Insert(C, Line, CPos);
-  CPos := CPos + 1;
+  if not gSkipFirstChar then
+  begin
+    Insert(C, Line, CPos);
+    CPos := CPos + 1;
+  end;
+  gSkipFirstChar := False
 end;
 
 
@@ -1348,7 +1366,25 @@ begin
       CPos := 1;
     IK_END, IK_KPEND:
       CPos := Length(Line) + 1;
-  end;
+    IK_A..IK_Z, IK_SPACE, IK_SHIFT, IK_RSHIFT, IK_CAPSLOCK, IK_LBRACKET, IK_RBRACKET,
+    IK_SEMICOLON, IK_QUOTE, IK_BACKSLASH, IK_SLASH, IK_COMMA, IK_DOT, IK_EQUALS,
+    IK_0, IK_1, IK_2, IK_3, IK_4, IK_5, IK_6, IK_7, IK_8, IK_9, IK_MINUS, IK_EQUALS:
+      (* see TEXTINPUT event *)
+  else
+    if not gSkipFirstChar then
+    begin
+      if gConsoleShow and g_Console_MatchBind(K, 'toggleconsole') then
+        g_Console_Switch;
+
+      if g_Console_MatchBind(K, 'togglemenu') then
+      begin
+        if gChatShow then
+          g_Console_Chat_Switch
+        else if gConsoleShow then
+          g_Console_Switch
+      end
+    end
+  end
 end;
 
 function GetStr(var Str: AnsiString): AnsiString;
@@ -1629,8 +1665,7 @@ begin
   end
 end;
 
-function g_Console_FindBind (n: Integer; down: AnsiString; up: AnsiString = ''): Integer;
-  var i: Integer;
+function g_Console_MatchBind (key: Integer; down: AnsiString; up: AnsiString = ''): Boolean;
 
   function EqualsCommandLists (a, b: SSArray): Boolean;
     var i, len: Integer;
@@ -1647,19 +1682,24 @@ function g_Console_FindBind (n: Integer; down: AnsiString; up: AnsiString = ''):
   end;
 
 begin
+  ASSERT(key >= 0);
+  ASSERT(key < e_MaxInputKeys);
+  result := EqualsCommandLists(ParseAlias(down), gInputBinds[key].down) and EqualsCommandLists(ParseAlias(up), gInputBinds[key].up)
+end;
+
+function g_Console_FindBind (n: Integer; down: AnsiString; up: AnsiString = ''): Integer;
+  var i: Integer;
+begin
   ASSERT(n >= 1);
   result := 0;
   if commands = nil then Exit;
   i := 0;
   while (n >= 1) and (i < e_MaxInputKeys) do
   begin
-    if EqualsCommandLists(ParseAlias(down), gInputBinds[i].down) then
+    if g_Console_MatchBind(i, down, up) then
     begin
-      if EqualsCommandLists(ParseAlias(up), gInputBinds[i].up) then
-      begin
-        result := i;
-        dec(n)
-      end
+      result := i;
+      dec(n)
     end;
     inc(i)
   end;
@@ -1681,7 +1721,7 @@ end;
 procedure g_Console_ProcessBind (key: Integer; down: Boolean);
   var i: Integer;
 begin
-  if (not gChatShow) and (not gConsoleShow) and (key >= 0) and (key < e_MaxInputKeys) and ((gInputBinds[key].down <> nil) or (gInputBinds[key].up <> nil)) then
+  if (not g_GUIGrabInput) and (not gChatShow) and (not gConsoleShow) and (key >= 0) and (key < e_MaxInputKeys) and ((gInputBinds[key].down <> nil) or (gInputBinds[key].up <> nil)) then
   begin
     if down then
       for i := 0 to High(gInputBinds[key].down) do
@@ -1701,6 +1741,7 @@ begin
   for i := 0 to e_MaxInputKeys - 1 do
     g_Console_BindKey(i, '', '');
 
+  g_Console_BindKey(IK_GRAVE, 'toggleconsole');
   g_Console_BindKey(IK_ESCAPE, 'togglemenu');
   g_Console_BindKey(IK_A, '+p1_moveleft', '-p1_moveleft');
   g_Console_BindKey(IK_D, '+p1_moveright', '-p1_moveright');
@@ -1773,6 +1814,7 @@ begin
   g_Console_BindKey(VK_A, 'weapon 11');
   g_Console_BindKey(VK_CHAT, 'togglechat');
   g_Console_BindKey(VK_TEAM, 'toggleteamchat');
+  g_Console_BindKey(VK_CONSOLE, 'toggleconsole');
   g_Console_BindKey(VK_PRINTSCR, 'screenshot');
   g_Console_BindKey(VK_STATUS, '+scores', '-scores');
   g_Console_BindKey(VK_SHOWKBD, 'showkeyboard');

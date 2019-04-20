@@ -32,7 +32,6 @@ var
   MapsDir: string;
   ModelsDir: string;
   GameWAD: string;
-  gSkipFirstChar: Boolean; (* hack for console/chat input *)
 
 implementation
 
@@ -491,38 +490,9 @@ var
   Msg: g_gui.TMessage;
 begin
   case K of
-    IK_PAUSE: // <Pause/Break>:
-      begin
-        if (g_ActiveWindow = nil) then g_Game_Pause(not gPause);
-      end;
-
-    IK_BACKQUOTE, VK_CONSOLE: // <`/~/¨/¸>:
-      begin
-        if not gChatShow then
-          g_Console_Switch()
-      end;
-
-    IK_ESCAPE: // <Esc>:
-      begin
-        if gChatShow then
-          g_Console_Chat_Switch
-        else if gConsoleShow then
-          g_Console_Switch
-      end;
-
     VK_ESCAPE: // <Esc>:
       begin
-        if gChatShow then
-        begin
-          g_Console_Chat_Switch();
-          Exit;
-        end;
-
-        if gConsoleShow then
-        begin
-          g_Console_Switch();
-        end
-        else if (g_ActiveWindow <> nil) then
+        if (g_ActiveWindow <> nil) then
         begin
           Msg.Msg := WM_KEYDOWN;
           Msg.WParam := VK_ESCAPE;
@@ -601,10 +571,7 @@ var
 begin
   if gConsoleShow or gChatShow then
   begin
-    if gSkipFirstChar then
-      gSkipFirstChar := False
-    else
-      g_Console_Char(C)
+    g_Console_Char(C)
   end
   else if (g_ActiveWindow <> nil) then
   begin

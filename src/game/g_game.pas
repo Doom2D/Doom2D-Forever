@@ -6810,19 +6810,6 @@ begin
   begin
     g_TakeScreenShot()
   end
-  else if cmd = 'togglechat' then
-  begin
-    g_Console_Chat_Switch(False);
-    gSkipFirstChar := not g_Console_Interactive()
-  end
-  else if cmd = 'toggleteamchat' then
-  begin
-    if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
-    begin
-      g_Console_Chat_Switch(True);
-      gSkipFirstChar := not g_Console_Interactive()
-    end
-  end
   else if cmd = 'weapon' then
   begin
     if Length(p) = 2 then

@@ -535,6 +535,7 @@ type
 var
   g_GUIWindows: array of TGUIWindow;
   g_ActiveWindow: TGUIWindow = nil;
+  g_GUIGrabInput: Boolean = False;
 
 procedure g_GUI_Init();
 function  g_GUI_AddWindow(Window: TGUIWindow): TGUIWindow;
@@ -2335,7 +2336,8 @@ begin
         end;
     end;
 
-  g_Touch_ShowKeyboard(FWindow.FActiveControl = Self);
+  g_GUIGrabInput := FWindow.FActiveControl = Self;
+  g_Touch_ShowKeyboard(g_GUIGrabInput)
 end;
 
 procedure TGUIEdit.SetText(Text: string);
@@ -2469,6 +2471,8 @@ begin
           end;
         end;
     end;
+
+  g_GUIGrabInput := FIsQuery
 end;
 
 { TGUIKeyRead2 }
@@ -2637,6 +2641,8 @@ begin
           end;
         end;
     end;
+
+  g_GUIGrabInput := FIsQuery
 end;
 
 
