@@ -702,8 +702,13 @@ begin
   'hidekeyboard':
     g_Touch_ShowKeyboard(False);
   'togglemenu':
+    if gConsoleShow then
     begin
-      // this is HACK
+      g_Console_Switch;
+      menu_toggled := True
+    end
+    else
+    begin
       KeyPress(VK_ESCAPE);
       menu_toggled := True
     end;
@@ -1378,6 +1383,7 @@ begin
 
       if g_Console_MatchBind(K, 'togglemenu') then
       begin
+        menu_toggled := True;
         if gChatShow then
           g_Console_Chat_Switch
         else if gConsoleShow then
@@ -1721,7 +1727,7 @@ end;
 procedure g_Console_ProcessBind (key: Integer; down: Boolean);
   var i: Integer;
 begin
-  if (not g_GUIGrabInput) and (not gChatShow) and (not gConsoleShow) and (key >= 0) and (key < e_MaxInputKeys) and ((gInputBinds[key].down <> nil) or (gInputBinds[key].up <> nil)) then
+  if (not g_GUIGrabInput) and (key >= 0) and (key < e_MaxInputKeys) and ((gInputBinds[key].down <> nil) or (gInputBinds[key].up <> nil)) then
   begin
     if down then
       for i := 0 to High(gInputBinds[key].down) do
@@ -1787,8 +1793,7 @@ begin
     g_Console_BindKey(e_JoyButtonToKey(i, 10), 'togglemenu');
   end;
 
-  // HACK: VK_ESCAPE always used as togglemenu, so don't touch it!
-  // VK_CONSOLE
+  g_Console_BindKey(VK_ESCAPE, 'togglemenu');
   g_Console_BindKey(VK_LSTRAFE, '+moveleft; +strafe', '-moveleft; -strafe');
   g_Console_BindKey(VK_RSTRAFE, '+moveright; +strafe', '-moveright; -strafe');
   g_Console_BindKey(VK_LEFT, '+moveleft', '-moveleft');

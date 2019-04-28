@@ -37,7 +37,7 @@ implementation
 
   uses
     SysUtils,
-    e_log, e_graphics, e_input, g_options, g_game, g_main, g_gui, g_weapons, g_console;
+    e_log, e_graphics, e_input, g_options, g_game, g_main, g_gui, g_weapons, g_console, g_window;
 
   var
     angleFire: Boolean;
@@ -207,6 +207,9 @@ implementation
 
     procedure KeyUp (finger, i: Integer);
     begin
+      if g_dbg_input then
+        e_LogWritefln('Input Debug: g_touch.KeyUp, finger=%s, key=%s', [finger, i]);
+
       keyFinger[i] := 0;
       e_KeyUpDown(i, False);
       g_Console_ProcessBind(i, False);
@@ -226,6 +229,9 @@ implementation
 
     procedure KeyDown (finger, i: Integer);
     begin
+      if g_dbg_input then
+        e_LogWritefln('Input Debug: g_touch.KeyDown, finger=%s, key=%s', [finger, i]);
+
       keyFinger[i] := finger;
       e_KeyUpDown(i, True);
       g_Console_ProcessBind(i, True);
