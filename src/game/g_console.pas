@@ -1727,7 +1727,7 @@ end;
 procedure g_Console_ProcessBind (key: Integer; down: Boolean);
   var i: Integer;
 begin
-  if (not g_GUIGrabInput) and (key >= 0) and (key < e_MaxInputKeys) and ((gInputBinds[key].down <> nil) or (gInputBinds[key].up <> nil)) then
+  if (not g_GUIGrabInput) and (not gChatShow) and (key >= 0) and (key < e_MaxInputKeys) and ((gInputBinds[key].down <> nil) or (gInputBinds[key].up <> nil)) then
   begin
     if down then
       for i := 0 to High(gInputBinds[key].down) do
