@@ -719,13 +719,15 @@ begin
     end;
   'togglechat':
     begin
-      g_Console_Chat_Switch;
+      if not gConsoleShow and (g_ActiveWindow = nil) then
+        g_Console_Chat_Switch;
       gSkipFirstChar := not g_Console_Interactive()
     end;
   'toggleteamchat':
     if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
     begin
-      g_Console_Chat_Switch(True);
+      if not gConsoleShow and (g_ActiveWindow = nil) then
+        g_Console_Chat_Switch(True);
       gSkipFirstChar := not g_Console_Interactive()
     end;
   end
@@ -1727,14 +1729,11 @@ end;
 procedure g_Console_ProcessBind (key: Integer; down: Boolean);
   var i: Integer;
 begin
-  if (key >= 0) and (key < e_MaxInputKeys) and ((gInputBinds[key].down <> nil) or (gInputBinds[key].up <> nil)) then
+  if (not g_GUIGrabInput) and (key >= 0) and (key < e_MaxInputKeys) and ((gInputBinds[key].down <> nil) or (gInputBinds[key].up <> nil)) then
   begin
-    // down binds shouldn't be processed when there's no input focus
-    // however when the user releases a button the bind should still be processed
-    // to avoid "sticky" buttons
     if down then
     begin
-      if (not g_GUIGrabInput) and (not gChatShow) and (not gConsoleShow) then
+      if not gChatShow then
         for i := 0 to High(gInputBinds[key].down) do
           g_Console_Process(gInputBinds[key].down[i], True);
     end
