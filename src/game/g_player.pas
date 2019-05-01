@@ -102,6 +102,7 @@ const
 
 type
   TPlayerStat = record
+    Num: Integer;
     Ping: Word;
     Loss: Byte;
     Name: String;
@@ -262,6 +263,7 @@ type
     FClientID:  SmallInt;
     FPing:      Word;
     FLoss:      Byte;
+    FReady:     Boolean;
     FDummy:     Boolean;
     FFireTime:  Integer;
 
@@ -592,6 +594,7 @@ procedure g_Player_DrawShells();
 procedure g_Player_RemoveAllCorpses();
 procedure g_Player_Corpses_SaveState (st: TStream);
 procedure g_Player_Corpses_LoadState (st: TStream);
+procedure g_Player_ResetReady();
 procedure g_Bot_Add(Team, Difficult: Byte);
 procedure g_Bot_AddList(Team: Byte; lname: ShortString; num: Integer = -1);
 procedure g_Bot_MixNames();
@@ -1471,6 +1474,7 @@ begin
       SetLength(Result, Length(Result)+1);
       with Result[High(Result)] do
       begin
+        Num := a;
         Ping := gPlayers[a].FPing;
         Loss := gPlayers[a].FLoss;
         Name := gPlayers[a].FName;
@@ -1482,6 +1486,22 @@ begin
         Lives := gPlayers[a].FLives;
         Spectator := gPlayers[a].FSpectator;
       end;
+    end;
+end;
+
+procedure g_Player_ResetReady();
+var
+  a: Integer;
+begin
+  if not g_Game_IsServer then Exit;
+  if gPlayers = nil then Exit;
+
+  for a := 0 to High(gPlayers) do
+    if gPlayers[a] <> nil then
+    begin
+      gPlayers[a].FReady := False;
+      if g_Game_IsNet then
+        MH_SEND_GameEvent(NET_EV_INTER_READY, gPlayers[a].UID, 'N');
     end;
 end;
 
@@ -4266,6 +4286,7 @@ begin
   FMonsterKills := 0;
   FDeath := 0;
   FSecrets := 0;
+  FReady := False;
   if FNoRespawn then
   begin
     FSpectator := False;

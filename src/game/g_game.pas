@@ -326,6 +326,7 @@ var
   gUseChatSounds: Boolean = True;
   gChatSounds: Array of TChatSound;
   gSelectWeapon: Array [0..1, WP_FIRST..WP_LAST] of Boolean; // [player, weapon]
+  gInterReadyCount: Integer = 0;
 
   g_dbg_ignore_bounds: Boolean = false;
   r_smallmap_h: Integer = 0; // 0: left; 1: center; 2: right
@@ -578,6 +579,7 @@ var
   MessageLineLength: Integer = 80;
   MapList: SSArray = nil;
   MapIndex: Integer = -1;
+  InterReadyTime: Integer = -1;
   MegaWAD: record
     info: TMegaWADInfo;
     endpic: String;
@@ -978,6 +980,7 @@ begin
               SetLength(CustomStat.PlayerStat, Length(CustomStat.PlayerStat)+1);
               with CustomStat.PlayerStat[High(CustomStat.PlayerStat)] do
               begin
+                Num := a;
                 Name := gPlayers[a].Name;
                 Frags := gPlayers[a].Frags;
                 Deaths := gPlayers[a].Death;
@@ -992,6 +995,8 @@ begin
         end;
 
         g_Game_ExecuteEvent('onmapend');
+        if not g_Game_IsClient then g_Player_ResetReady;
+        gInterReadyCount := 0;
 
       // Затухающий экран:
         EndingGameCounter := 255;
@@ -1590,6 +1595,14 @@ begin
   if gwin_has_stencil and g_playerLight then g_AddDynLight(plr.GameX+32, plr.GameY+40, 128, 1, 1, 0, 0.6);
 end;
 
+// HACK: don't have a "key was pressed" function
+procedure InterReady();
+begin
+  if InterReadyTime > gTime then Exit;
+  InterReadyTime := gTime + 3000;
+  MC_SEND_CheatRequest(NET_CHEAT_READY);
+end;
+
 procedure g_Game_Update();
 var
   Msg: g_gui.TMessage;
@@ -1682,7 +1695,7 @@ begin
             and (not gJustChatted) and (not gConsoleShow) and (not gChatShow)
             and (g_ActiveWindow = nil)
           )
-          or (g_Game_IsNet and (gInterTime > gInterEndTime))
+          or (g_Game_IsNet and ((gInterTime > gInterEndTime) or (gInterReadyCount >= NetClientCount)))
         )
         then
         begin // Нажали <Enter>/<Пробел> или прошло достаточно времени:
@@ -1717,6 +1730,22 @@ begin
             end;
 
           Exit;
+        end
+        else if g_Game_IsClient and
+        (
+          (
+            e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(IK_SPACE) or
+            e_KeyPressed(VK_FIRE) or e_KeyPressed(VK_OPEN) or
+            e_KeyPressed(JOY0_ATTACK) or e_KeyPressed(JOY1_ATTACK) or
+            e_KeyPressed(JOY2_ATTACK) or e_KeyPressed(JOY3_ATTACK)
+          )
+          and (not gJustChatted) and (not gConsoleShow) and (not gChatShow)
+          and (g_ActiveWindow = nil)
+        )
+        then
+        begin
+          // ready / unready
+          InterReady();
         end;
 
         if gState = STATE_INTERTEXT then
@@ -1731,6 +1760,7 @@ begin
           // Закончился уровень в Своей игре:
             if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
               begin
+                InterReadyTime := -1;
                 if gLastMap and (gGameSettings.GameMode = GM_COOP) then
                 begin
                   g_Game_ExecuteEvent('onwadend');
@@ -2692,9 +2722,12 @@ begin
               gg := g;
               bb := b;
             end;
-            e_TextureFontPrintEx(x+8, _y, Name, gStdFont, rr, gg, bb, 1);
-            e_TextureFontPrintEx(x+w1+8, _y, IntToStr(Frags), gStdFont, rr, gg, bb, 1);
-            e_TextureFontPrintEx(x+w1+w2+8, _y, IntToStr(Deaths), gStdFont, rr, gg, bb, 1);
+            if (gPlayers[Num] <> nil) and (gPlayers[Num].FReady) then
+              e_TextureFontPrintEx(x+16, _y, Name + ' *', gStdFont, rr, gg, bb, 1)
+            else
+              e_TextureFontPrintEx(x+16, _y, Name, gStdFont, rr, gg, bb, 1);
+            e_TextureFontPrintEx(x+w1+16, _y, IntToStr(Frags), gStdFont, rr, gg, bb, 1);
+            e_TextureFontPrintEx(x+w1+w2+16, _y, IntToStr(Deaths), gStdFont, rr, gg, bb, 1);
             _y := _y+24;
           end;
 
@@ -2719,7 +2752,10 @@ begin
         else
           r := 255;
 
-        e_TextureFontPrintEx(x+8+16+8, _y+4, Name, gStdFont, r, r, r, 1, True);
+        if (gPlayers[Num] <> nil) and (gPlayers[Num].FReady) then
+          e_TextureFontPrintEx(x+8+16+8, _y+4, Name + ' *', gStdFont, r, r, r, 1, True)
+        else
+          e_TextureFontPrintEx(x+8+16+8, _y+4, Name, gStdFont, r, r, r, 1, True);
         e_TextureFontPrintEx(x+w1+8+16+8, _y+4, IntToStr(Frags), gStdFont, r, r, r, 1, True);
         e_TextureFontPrintEx(x+w1+w2+8+16+8, _y+4, IntToStr(Deaths), gStdFont, r, r, r, 1, True);
         _y := _y+24;

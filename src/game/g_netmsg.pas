@@ -110,6 +110,7 @@ const
   NET_EV_KILLCOMBO    = 17;
   NET_EV_PLAYER_TOUCH = 18;
   NET_EV_SECRET       = 19;
+  NET_EV_INTER_READY  = 20;
 
   NET_VE_STARTED      = 1;
   NET_VE_PASSED       = 2;
@@ -125,6 +126,7 @@ const
 
   NET_CHEAT_SUICIDE  = 1;
   NET_CHEAT_SPECTATE = 2;
+  NET_CHEAT_READY    = 3;
 
   NET_MAX_DIFFTIME = 5000 div 36;
 
@@ -510,6 +512,21 @@ begin
         Pl.Respawn(False)
       else
         Pl.Spectate;
+    end;
+    NET_CHEAT_READY:
+    begin
+      if gState <> STATE_INTERCUSTOM then Exit;
+      Pl.FReady := not Pl.FReady;
+      if Pl.FReady then
+      begin
+        MH_SEND_GameEvent(NET_EV_INTER_READY, Pl.UID, 'Y');
+        Inc(gInterReadyCount);
+      end
+      else
+      begin
+        MH_SEND_GameEvent(NET_EV_INTER_READY, Pl.UID, 'N');
+        Dec(gInterReadyCount);
+      end;
     end;
   end;
 end;
@@ -1842,6 +1859,11 @@ begin
       end;
     end;
 
+    NET_EV_INTER_READY:
+    begin
+      pl := g_Player_Get(EvNum);
+      if pl <> nil then pl.FReady := (EvStr = 'Y');
+    end;
   end;
 end;
 
@@ -2812,13 +2834,17 @@ begin
     if gPlayerAction[0, ACTION_STRAFE] then
     begin
       // new strafe mechanics
-      if (strafeDir = 0) then strafeDir := P1MoveButton; // start strafing
+      if (strafeDir = 0) then
+        strafeDir := P1MoveButton; // start strafing
       // now set direction according to strafe (reversed)
-           if (strafeDir = 2) then gPlayer1.SetDirection(TDirection.D_LEFT)
-      else if (strafeDir = 1) then gPlayer1.SetDirection(TDirection.D_RIGHT);
+      if (strafeDir = 2) then
+        gPlayer1.SetDirection(TDirection.D_LEFT)
+      else if (strafeDir = 1) then
+        gPlayer1.SetDirection(TDirection.D_RIGHT)
     end
     else
     begin
+      strafeDir := 0; // not strafing anymore
       if (P1MoveButton = 2) and gPlayerAction[0, ACTION_MOVELEFT] then
         gPlayer1.SetDirection(TDirection.D_LEFT)
       else if (P1MoveButton = 1) and gPlayerAction[0, ACTION_MOVERIGHT] then
