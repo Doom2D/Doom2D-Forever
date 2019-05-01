@@ -28,6 +28,7 @@ type
     Sound: PMix_Chunk;
     Music: PMix_Music;
     isMusic: Boolean;
+    Loops: Boolean;
     nRefs: Integer;
   end;
 
@@ -71,8 +72,8 @@ const
 
 function e_InitSoundSystem(NoOutput: Boolean = False): Boolean;
 
-function e_LoadSound(FileName: string; var ID: DWORD; isMusic: Boolean): Boolean;
-function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean): Boolean;
+function e_LoadSound(FileName: string; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
+function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
 
 // returns channel number or -1
 function e_PlaySound(ID: DWORD): Integer;
@@ -283,7 +284,7 @@ begin
   end;
 end;
 
-function e_LoadSound(FileName: String; var ID: DWORD; isMusic: Boolean): Boolean;
+function e_LoadSound(FileName: String; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
 var
   find_id: DWORD;
 begin
@@ -306,6 +307,7 @@ begin
 
   e_SoundsArray[find_id].Data := nil;
   e_SoundsArray[find_id].isMusic := isMusic;
+  e_SoundsArray[find_id].Loops := isMusic and not ForceNoLoop;
   e_SoundsArray[find_id].nRefs := 0;
 
   if isMusic then
@@ -331,7 +333,7 @@ begin
   Result := True;
 end;
 
-function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean): Boolean;
+function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
 var
   find_id: DWORD;
   rw: PSDL_RWops;
@@ -372,6 +374,7 @@ begin
   e_SoundsArray[find_id].Data := pData;
   if isid3 then e_SoundsArray[find_id].Data := nil;
   e_SoundsArray[find_id].isMusic := isMusic;
+  e_SoundsArray[find_id].Loops := isMusic and not ForceNoLoop;
   e_SoundsArray[find_id].nRefs := 0;
 
   if isMusic then
@@ -416,6 +419,7 @@ end;
 function e_PlaySound (ID: DWORD): Integer;
 var
   res: Integer = -1;
+  loops: Integer = 0;
 begin
   Result := -1;
   if not SoundInitialized then Exit;
@@ -424,7 +428,8 @@ begin
   begin
     if e_SoundsArray[ID].nRefs >= gMaxSimSounds then Exit;
     Inc(e_SoundsArray[ID].nRefs);
-    res := Mix_PlayChannel(-1, e_SoundsArray[ID].Sound, 0);
+    if e_SoundsArray[ID].Loops then loops := -1;
+    res := Mix_PlayChannel(-1, e_SoundsArray[ID].Sound, loops);
     if res >= 0 then
     begin
       ChanSIds[res].id := ID;
@@ -442,7 +447,8 @@ begin
   begin
     if not e_isMusic(ID) then Exit;
     Mix_HaltMusic();
-    res := Mix_PlayMusic(e_SoundsArray[ID].Music, -1);
+    if e_SoundsArray[ID].Loops then loops := -1;
+    res := Mix_PlayMusic(e_SoundsArray[ID].Music, loops);
     if res >= 0 then res := N_MUSCHAN;
     if SoundMuted then Mix_VolumeMusic(0) else Mix_VolumeMusic(MusVolume);
     Result := res;

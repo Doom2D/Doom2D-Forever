@@ -1324,7 +1324,7 @@ begin
     g_Game_SetLoadingText(_lc[I_LOAD_MUSIC], 0, False);
     g_Sound_CreateWADEx('MUSIC_INTERMUS', GameWAD+':MUSIC\INTERMUS', True);
     g_Sound_CreateWADEx('MUSIC_MENU', GameWAD+':MUSIC\MENU', True);
-    g_Sound_CreateWADEx('MUSIC_ROUNDMUS', GameWAD+':MUSIC\ROUNDMUS', True);
+    g_Sound_CreateWADEx('MUSIC_ROUNDMUS', GameWAD+':MUSIC\ROUNDMUS', True, True);
     g_Sound_CreateWADEx('MUSIC_STDENDMUS', GameWAD+':MUSIC\ENDMUS', True);
 
     g_Game_SetLoadingText(_lc[I_LOAD_MENUS], 0, False);

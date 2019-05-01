@@ -68,8 +68,8 @@ const
 
 function e_InitSoundSystem(NoOutput: Boolean = False): Boolean;
 
-function e_LoadSound(FileName: string; var ID: DWORD; bLoop: Boolean): Boolean;
-function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; bLoop: Boolean): Boolean;
+function e_LoadSound(FileName: string; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
+function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
 
 function e_PlaySound(ID: DWORD): Integer;
 function e_PlaySoundPan(ID: DWORD; Pan: Single): Integer;
@@ -286,7 +286,7 @@ begin
     end;
 end;
 
-function e_LoadSound(FileName: String; var ID: DWORD; bLoop: Boolean): Boolean;
+function e_LoadSound(FileName: String; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
 var
   find_id: DWORD;
   res: FMOD_RESULT;
@@ -300,12 +300,12 @@ begin
 
   find_id := FindESound();
 
-  if bLoop then
+  if isMusic and not ForceNoLoop then
     bt := FMOD_LOOP_NORMAL
   else
     bt := FMOD_LOOP_OFF;
 
-  if not bLoop then
+  if not isMusic then
     res := FMOD_System_CreateSound(F_System, PAnsiChar(FileName),
              bt + FMOD_2D + FMOD_HARDWARE,
              nil, e_SoundsArray[find_id].Sound)
@@ -329,7 +329,7 @@ begin
   end;
 
   e_SoundsArray[find_id].Data := nil;
-  e_SoundsArray[find_id].isMusic := bLoop;
+  e_SoundsArray[find_id].isMusic := isMusic;
   e_SoundsArray[find_id].nRefs := 0;
 
   ID := find_id;
@@ -337,7 +337,7 @@ begin
   Result := True;
 end;
 
-function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; bLoop: Boolean): Boolean;
+function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
 var
   find_id: DWORD;
   res: FMOD_RESULT;
@@ -356,12 +356,12 @@ begin
   soundExInfo.cbsize := sz;
   soundExInfo.length := Length;
 
-  if bLoop then
+  if isMusic and not ForceNoLoop then
     bt := FMOD_LOOP_NORMAL
   else
     bt := FMOD_LOOP_OFF;
 
-  if not bLoop then
+  if not isMusic then
     res := FMOD_System_CreateSound(F_System, pData,
              bt + FMOD_2D + FMOD_HARDWARE + FMOD_OPENMEMORY,
              @soundExInfo, e_SoundsArray[find_id].Sound)
@@ -385,7 +385,7 @@ begin
   end;
 
   e_SoundsArray[find_id].Data := pData;
-  e_SoundsArray[find_id].isMusic := bLoop;
+  e_SoundsArray[find_id].isMusic := isMusic;
   e_SoundsArray[find_id].nRefs := 0;
 
   ID := find_id;

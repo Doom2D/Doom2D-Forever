@@ -71,9 +71,9 @@ function g_Sound_PlayAt(ID: DWORD; X, Y: Integer): Boolean;
 function g_Sound_PlayExAt(SoundName: ShortString; X, Y: Integer): Boolean;
 
 function g_Sound_CreateWAD(var ID: DWORD; Resource: string; isMusic: Boolean = False): Boolean;
-function g_Sound_CreateWADEx(SoundName: ShortString; Resource: string; isMusic: Boolean = False): Boolean;
+function g_Sound_CreateWADEx(SoundName: ShortString; Resource: string; isMusic: Boolean = False; ForceNoLoop: Boolean = False): Boolean;
 function g_Sound_CreateFile(var ID: DWORD; FileName: string; isMusic: Boolean = False): Boolean;
-function g_Sound_CreateFileEx(SoundName: ShortString; FileName: string; isMusic: Boolean = False): Boolean;
+function g_Sound_CreateFileEx(SoundName: ShortString; FileName: string; isMusic: Boolean = False; ForceNoLoop: Boolean = False): Boolean;
 
 procedure g_Sound_Delete(SoundName: ShortString);
 function g_Sound_Exists(SoundName: string): Boolean;
@@ -276,7 +276,7 @@ begin
   Result := e_LoadSound(FileName, ID, isMusic);
 end;
 
-function g_Sound_CreateFileEx(SoundName: ShortString; FileName: string; isMusic: Boolean = False): Boolean;
+function g_Sound_CreateFileEx(SoundName: ShortString; FileName: string; isMusic: Boolean = False; ForceNoLoop: Boolean = False): Boolean;
 var
   find_id: DWORD;
 begin
@@ -284,7 +284,7 @@ begin
 
   find_id := FindSound();
 
-  if not e_LoadSound(FileName, SoundArray[find_id].ID, isMusic) then
+  if not e_LoadSound(FileName, SoundArray[find_id].ID, isMusic, ForceNoLoop) then
     Exit;
 
   SoundArray[find_id].Name := SoundName;
@@ -336,7 +336,7 @@ begin
   Result := True;
 end;
 
-function g_Sound_CreateWADEx(SoundName: ShortString; Resource: string; isMusic: Boolean = False): Boolean;
+function g_Sound_CreateWADEx(SoundName: ShortString; Resource: string; isMusic: Boolean = False; ForceNoLoop: Boolean = False): Boolean;
 var
   WAD: TWADFile;
   FileName: string;
@@ -358,7 +358,7 @@ begin
 
   if WAD.GetResource(g_ExtractFilePathName(Resource), SoundData, ResLength) then
     begin
-      if e_LoadSoundMem(SoundData, ResLength, SoundArray[find_id].ID, isMusic) then
+      if e_LoadSoundMem(SoundData, ResLength, SoundArray[find_id].ID, isMusic, ForceNoLoop) then
         begin
           SoundArray[find_id].Name := SoundName;
           SoundArray[find_id].IsMusic := isMusic;
