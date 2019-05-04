@@ -1359,7 +1359,7 @@ begin
             begin
               MH_SEND_GameStats();
               if p.FClientID >= 0 then
-                MH_SEND_GameEvent(NET_EV_SECRET, p.UID, '', p.FClientID);
+                MH_SEND_GameEvent(NET_EV_SECRET, p.UID, '');
             end;
           end;
         end;
@@ -1473,7 +1473,7 @@ begin
             for k := 1 to tgcMonsCount do
             begin
               if (actType = ACTIVATE_CUSTOM) and (tgcDelay > 0) then
-                SpawnCooldown := tgcDelay;
+                SpawnCooldown := -1; // Задержка выставится монстром при уничтожении
               if (tgcMax > 0) and (SpawnedCount >= tgcMax) then
                 Break;
 
@@ -1503,11 +1503,8 @@ begin
                 gMonstersSpawned[High(gMonstersSpawned)] := mon.UID;
               end;
 
-              if tgcMax > 0 then
-              begin
-                mon.SpawnTrigger := ID;
-                Inc(SpawnedCount);
-              end;
+              mon.SpawnTrigger := ID;
+              if tgcMax > 0 then Inc(SpawnedCount);
 
               case tgcEffect of
                 EFFECT_TELEPORT: begin
@@ -1588,7 +1585,7 @@ begin
               for k := 1 to tgcItemCount do
               begin
                 if (actType = ACTIVATE_CUSTOM) and (tgcDelay > 0) then
-                  SpawnCooldown := tgcDelay;
+                  SpawnCooldown := -1; // Задержка выставится итемом при уничтожении
                 if (tgcMax > 0) and (SpawnedCount >= tgcMax) then
                   Break;
 
@@ -1597,12 +1594,9 @@ begin
 
                 Result := True;
 
-                if tgcMax > 0 then
-                begin
-                  it := g_Items_ByIdx(iid);
-                  it.SpawnTrigger := ID;
-                  Inc(SpawnedCount);
-                end;
+                it := g_Items_ByIdx(iid);
+                it.SpawnTrigger := ID;
+                if tgcMax > 0 then Inc(SpawnedCount);
 
                 case tgcEffect of
                   EFFECT_TELEPORT: begin
@@ -3074,10 +3068,19 @@ end;
 procedure g_Triggers_DecreaseSpawner(ID: DWORD);
 begin
   if (gTriggers <> nil) then
-    if gTriggers[ID].SpawnedCount > 0 then
-      Dec(gTriggers[ID].SpawnedCount);
+  begin
+    if gTriggers[ID].tgcMax > 0 then
+    begin
+      if gTriggers[ID].SpawnedCount > 0 then
+        Dec(gTriggers[ID].SpawnedCount);
+    end;
+    if gTriggers[ID].tgcDelay > 0 then
+    begin
+      if gTriggers[ID].SpawnCooldown < 0 then
+        gTriggers[ID].SpawnCooldown := gTriggers[ID].tgcDelay;
+    end;
+  end;
 end;
-
 
 procedure g_Triggers_Free ();
 var
