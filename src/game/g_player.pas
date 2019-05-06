@@ -266,6 +266,7 @@ type
     FReady:     Boolean;
     FDummy:     Boolean;
     FFireTime:  Integer;
+    FHandicap:  Integer;
 
     // debug: viewport offset
     viewPortX, viewPortY, viewPortW, viewPortH: Integer;
@@ -595,8 +596,8 @@ procedure g_Player_RemoveAllCorpses();
 procedure g_Player_Corpses_SaveState (st: TStream);
 procedure g_Player_Corpses_LoadState (st: TStream);
 procedure g_Player_ResetReady();
-procedure g_Bot_Add(Team, Difficult: Byte);
-procedure g_Bot_AddList(Team: Byte; lname: ShortString; num: Integer = -1);
+procedure g_Bot_Add(Team, Difficult: Byte; Handicap: Integer = 100);
+procedure g_Bot_AddList(Team: Byte; lname: ShortString; num: Integer = -1; Handicap: Integer = 100);
 procedure g_Bot_MixNames();
 procedure g_Bot_RemoveAll();
 
@@ -885,6 +886,8 @@ begin
   if b = 1 then gPlayers[a].FDirection := TDirection.D_LEFT else gPlayers[a].FDirection := TDirection.D_RIGHT; // b = 2
   // Здоровье
   gPlayers[a].FHealth := utils.readLongInt(st);
+  // Фора
+  gPlayers[a].FHandicap := utils.readLongInt(st);
   // Жизни
   gPlayers[a].FLives := utils.readByte(st);
   // Броня
@@ -1006,7 +1009,7 @@ begin
       end;
 end;
 
-procedure g_Bot_Add(Team, Difficult: Byte);
+procedure g_Bot_Add(Team, Difficult: Byte; Handicap: Integer = 100);
 var
   m: SSArray;
   _name, _model: String;
@@ -1095,6 +1098,8 @@ begin
       //FDifficult.SafeWeaponPrior[a] := WEAPON_PRIOR3[a];
     end;
 
+    FHandicap := Handicap;
+
     g_Console_Add(Format(_lc[I_PLAYER_JOIN], [Name]), True);
 
     if g_Game_IsNet then MH_SEND_PlayerCreate(UID);
@@ -1103,7 +1108,7 @@ begin
   end;
 end;
 
-procedure g_Bot_AddList(Team: Byte; lName: ShortString; num: Integer = -1);
+procedure g_Bot_AddList(Team: Byte; lName: ShortString; num: Integer = -1; Handicap: Integer = 100);
 var
   m: SSArray;
   _name, _model: String;
@@ -1165,6 +1170,8 @@ begin
     FDifficult.FlyPrecision := BotList[num].fly_precision;
     FDifficult.Cover := BotList[num].cover;
     FDifficult.CloseJump := BotList[num].close_jump;
+
+    FHandicap := Handicap;
 
     for a := WP_FIRST to WP_LAST do
     begin
@@ -2152,6 +2159,7 @@ begin
   FFireTime := 0;
   FFirePainTime := 0;
   FFireAttacker := 0;
+  FHandicap := 100;
 
   FActualModelName := 'doomer';
 
@@ -4526,7 +4534,7 @@ begin
 // Воскрешение без оружия:
   if not FAlive then
   begin
-    FHealth := PLAYER_HP_SOFT;
+    FHealth := Round(PLAYER_HP_SOFT * (FHandicap / 100));
     FArmor := 0;
     FAlive := True;
     FAir := AIR_DEF;
@@ -5924,6 +5932,8 @@ begin
   utils.writeInt(st, Byte(b));
   // Здоровье
   utils.writeInt(st, LongInt(FHealth));
+  // Коэффициент инвалидности
+  utils.writeInt(st, LongInt(FHandicap));
   // Жизни
   utils.writeInt(st, Byte(FLives));
   // Броня
@@ -6026,6 +6036,8 @@ begin
   if b = 1 then FDirection := TDirection.D_LEFT else FDirection := TDirection.D_RIGHT; // b = 2
   // Здоровье
   FHealth := utils.readLongInt(st);
+  // Коэффициент инвалидности
+  FHandicap := utils.readLongInt(st);
   // Жизни
   FLives := utils.readByte(st);
   // Броня

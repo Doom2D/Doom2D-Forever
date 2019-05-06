@@ -6408,7 +6408,9 @@ begin
   else if (cmd = 'addbot') or
      (cmd = 'bot_add') then
   begin
-    if Length(P) > 1 then
+    if Length(P) > 2 then
+      g_Bot_Add(TEAM_NONE, StrToIntDef(P[1], 2), StrToIntDef(P[2], 100))
+    else if Length(P) > 1 then
       g_Bot_Add(TEAM_NONE, StrToIntDef(P[1], 2))
     else
       g_Bot_Add(TEAM_NONE, 2);
@@ -6416,10 +6418,14 @@ begin
   else if cmd = 'bot_addlist' then
   begin
     if Length(P) > 1 then
+    begin
       if Length(P) = 2 then
         g_Bot_AddList(TEAM_NONE, P[1], StrToIntDef(P[1], -1))
+      else if Length(P) = 3 then
+        g_Bot_AddList(TEAM_NONE, P[1], StrToIntDef(P[1], -1), StrToIntDef(P[2], 100))
       else
         g_Bot_AddList(IfThen(P[2] = 'red', TEAM_RED, TEAM_BLUE), P[1], StrToIntDef(P[1], -1));
+    end;
   end
   else if cmd = 'bot_removeall' then
     g_Bot_RemoveAll()
