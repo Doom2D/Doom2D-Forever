@@ -250,7 +250,7 @@ var
   gTotalMonsters: Integer = 0;
   gPauseMain: Boolean = false;
   gPauseHolmes: Boolean = false;
-  gShowTime: Boolean = True;
+  gShowTime: Boolean = False;
   gShowFPS: Boolean = False;
   gShowGoals: Boolean = True;
   gShowStat: Boolean = True;
@@ -4037,7 +4037,7 @@ begin
     e_TextureFontPrint(0, 16, Format('UPS: %d', [UPS]), gStdFont);
   end;
 
-  if gGameOn and gShowTime and (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT]) then
+  if gGameOn and gShowTime then
     drawTime(gScreenWidth-72, gScreenHeight-16);
 
   if gGameOn then drawProfilers();
@@ -5570,18 +5570,7 @@ begin
   end
   else if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
   begin
-    if cmd = 'r_showtime' then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        gShowTime := (P[1][1] = '1');
-
-      if gShowTime then
-        g_Console_Add(_lc[I_MSG_TIME_ON])
-      else
-        g_Console_Add(_lc[I_MSG_TIME_OFF]);
-    end
-    else if cmd = 'r_showscore' then
+    if cmd = 'r_showscore' then
     begin
       if (Length(P) > 1) and
          ((P[1] = '1') or (P[1] = '0')) then
@@ -7889,4 +7878,5 @@ begin
   conRegVar('r_smallmap_align_v', @r_smallmap_v, 'valign: 0: top; 1: center; 2: bottom', 'vertial aligning of small maps');
 
   conRegVar('r_showfps', @gShowFPS, 'draw fps counter', 'draw fps counter');
+  conRegVar('r_showtime', @gShowTime, 'show game time', 'show game time');
 end.

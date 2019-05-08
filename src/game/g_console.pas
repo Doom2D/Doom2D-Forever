@@ -851,7 +851,6 @@ begin
   AddCommand('p2_name', GameCVars);
   AddCommand('p1_color', GameCVars);
   AddCommand('p2_color', GameCVars);
-  AddCommand('r_showtime', GameCVars);
   AddCommand('r_showscore', GameCVars);
   AddCommand('r_showlives', GameCVars);
   AddCommand('r_showstat', GameCVars);
