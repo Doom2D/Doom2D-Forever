@@ -2336,7 +2336,7 @@ begin
         end;
     end;
 
-  g_GUIGrabInput := FWindow.FActiveControl = Self;
+  g_GUIGrabInput := (@FOnEnterEvent = nil) and (FWindow.FActiveControl = Self);
   g_Touch_ShowKeyboard(g_GUIGrabInput)
 end;
 
