@@ -12,7 +12,7 @@ object MapOptionsForm: TMapOptionsForm
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
-  OnActivate = FormActivate
+  OnCreate = FormCreate
   Position = poScreenCenter
   ShowHint = True
   LCLVersion = '1.6.4.0'
@@ -640,7 +640,6 @@ object MapOptionsForm: TMapOptionsForm
     Top = 147
     Width = 278
     Color = clBtnFace
-    OnChange = eMapDescriptionChange
     ReadOnly = True
     TabStop = False
     TabOrder = 4
@@ -651,7 +650,6 @@ object MapOptionsForm: TMapOptionsForm
     Top = 187
     Width = 278
     Color = clBtnFace
-    OnChange = eMapDescriptionChange
     ReadOnly = True
     TabStop = False
     TabOrder = 7

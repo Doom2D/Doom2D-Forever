@@ -61,7 +61,10 @@ begin
 
   InitImage(img);
   if not LoadImageFromMemory(TextureData, ImageSize, img) then
+  begin
+    FreeMem(TextureData);
     Exit;
+  end;
 
   Width  := img.width;
   Height := img.height;

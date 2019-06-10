@@ -77,7 +77,7 @@ type
     bOK: TButton;
     bCancel: TButton;
     
-    procedure FormActivate(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
     procedure bCancelClick(Sender: TObject);
     procedure bOKClick(Sender: TObject);
 
@@ -122,10 +122,8 @@ begin
   Result := True;
 end;
 
-// Form processing
-procedure TMapOptionsForm.FormActivate(Sender: TObject);
-var
-  a, b: Integer;
+procedure TMapOptionsForm.FormCreate(Sender: TObject);
+  var a, b: Integer;
 begin
   // General map options
   eMapName.Text := gMapInfo.Name;
@@ -174,7 +172,6 @@ begin
       if gTriggers[a].TriggerType <> 0 then
         b := b + 1;
   lTriggerCount.Caption := IntToStr(b);
-
 end;
 
 procedure TMapOptionsForm.bCancelClick(Sender: TObject);
