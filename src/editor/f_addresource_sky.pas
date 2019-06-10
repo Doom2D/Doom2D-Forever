@@ -39,15 +39,15 @@ function ShowTGATexture(ResourceStr: String): TBitMap;
 var
   img:        TImageData;
   clr:        TColor32Rec;
+  bgc:        TColor32Rec;
   ii:         PByte;
   Width,
   Height:     Integer;
-  ColorDepth: Integer;
-  ImageSize:  Integer;
   x, y:       Integer;
   BitMap:     TBitMap;
 
   TextureData:  Pointer;
+  ImageSize:    Integer;
   WADName:      String;
   SectionName:  String;
   ResourceName: String;
@@ -57,14 +57,14 @@ begin
   g_ProcessResourceStr(ResourceStr, WADName, SectionName, ResourceName);
   g_ReadResource(WADName, SectionName, ResourceName, TextureData, ImageSize);
 
+  (* !!! copypaste from f_addresource_texture.CreateBitMap *)
+
   InitImage(img);
   if not LoadImageFromMemory(TextureData, ImageSize, img) then
     Exit;
 
   Width  := img.width;
   Height := img.height;
-  ColorDepth := 24;
-  ImageSize  := Width*Height*(ColorDepth div 8);
 
   BitMap := TBitMap.Create();
   BitMap.PixelFormat := pf24bit;
@@ -79,14 +79,34 @@ begin
     for x := 0 to width-1 do
     begin
       clr := GetPixel32(img, x, y);
-      // assuming sky has no alpha
-      // TODO: check for ARGB/RGBA/BGRA/ABGR somehow?
+      // HACK: Lazarus's TBitMap doesn't seem to have a working 32 bit mode, so
+      //       mix color with checkered background. Also, can't really read
+      //       CHECKERS.tga from here. FUCK!
+      if UseCheckerboard then
+        begin
+          if (((x shr 3) and 1) = 0) xor (((y shr 3) and 1) = 0) then
+            bgc.Color := $FDFDFD
+          else
+            bgc.Color := $CBCBCB;
+        end
+      else
+        begin
+          bgc.r := GetRValue(PreviewColor);
+          bgc.g := GetGValue(PreviewColor);
+          bgc.b := GetBValue(PreviewColor);
+        end;
+      clr.r := ClampToByte((Byte(255 - clr.a) * bgc.r + clr.a * clr.r) div 255);
+      clr.g := ClampToByte((Byte(255 - clr.a) * bgc.g + clr.a * clr.g) div 255);
+      clr.b := ClampToByte((Byte(255 - clr.a) * bgc.b + clr.a * clr.b) div 255);
+      // TODO: check for RGB/BGR somehow?
       ii^ := clr.b; Inc(ii);
       ii^ := clr.g; Inc(ii);
       ii^ := clr.r; Inc(ii);
+
+      (* Why this works in linux? *)
+      {$IFNDEF WINDOWS}Inc(ii){$ENDIF}
     end;
   end;
-
   FreeMem(TextureData);
   FreeImage(img);
   Result := BitMap;
@@ -96,8 +116,7 @@ procedure TAddSkyForm.bOKClick(Sender: TObject);
 begin
   Inherited;
 
-  if not FResourceSelected then
-    Exit;
+  ModalResult := mrOk;
 end;
 
 procedure TAddSkyForm.lbResourcesListClick(Sender: TObject);
