@@ -1250,6 +1250,8 @@ var
   mx, my, mw, mh: Integer;
   //pan: TPanel;
   //ex, ey: Integer;
+  s: AnsiString;
+  dx, dy: Integer;
 begin
   if (gPlayer1 = nil) then exit;
 
@@ -1324,10 +1326,19 @@ begin
 
   if showMapCurPos then
   begin
+    s := Format('mappos:(%d,%d)', [pmsCurMapX, pmsCurMapY]);
     gxSetContext(hlmContext);
     hlmContext.font := 'win8';
+    hlmContext.color := TGxRGBA.Create(0, 0, 0);
+    for dy := -1 to 1 do
+    begin
+      for dx := -1 to 1 do
+      begin
+        if (dx <> 0) or (dy <> 0) then hlmContext.drawText(4+dx, gWinSizeY-10+dy, s);
+      end;
+    end;
     hlmContext.color := TGxRGBA.Create(255, 255, 0);
-    hlmContext.drawText(4, gWinSizeY-10, Format('mappos:(%d,%d)', [pmsCurMapX, pmsCurMapY]));
+    hlmContext.drawText(4, gWinSizeY-10, s);
     gxSetContext(nil);
   end;
 end;
