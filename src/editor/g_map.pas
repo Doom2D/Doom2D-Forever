@@ -2075,6 +2075,39 @@ begin
         end;
 end;
 
+procedure DrawContours (fPanelType: Word);
+  var i, xx, yy, ww, hh: Integer;
+begin
+  if gPanels <> nil then
+    for i := 0 to High(gPanels) do
+      if (gPanels[i].PanelType <> 0) and WordBool(gPanels[i].PanelType and fPanelType) then
+      begin
+        xx := gPanels[i].X + MapOffset.X;
+        yy := gPanels[i].Y + MapOffset.Y;
+        ww := gPanels[i].X + MapOffset.X + gPanels[i].Width - 1;
+        hh := gPanels[i].Y + MapOffset.Y + gPanels[i].Height - 1;        
+        case gPanels[i].PanelType of
+          PANEL_NONE: ;
+          PANEL_WALL:      e_DrawQuad(xx, yy, ww, hh, 208, 208, 208, 0);
+          PANEL_BACK:      e_DrawQuad(xx, yy, ww, hh,   64, 64,  64, 0);
+          PANEL_FORE:      e_DrawQuad(xx, yy, ww, hh, 128, 128, 128, 0);
+          PANEL_WATER:     e_DrawQuad(xx, yy, ww, hh,   0,   0, 192, 0);
+          PANEL_ACID1:     e_DrawQuad(xx, yy, ww, hh,   0, 176,   0, 0);
+          PANEL_ACID2:     e_DrawQuad(xx, yy, ww, hh, 176,   0,   0, 0);
+          PANEL_STEP:      e_DrawQuad(xx, yy, ww, hh, 128, 128, 128, 0);
+          PANEL_LIFTUP:    e_DrawQuad(xx, yy, ww, hh, 116,  72,  36, 0);
+          PANEL_LIFTDOWN:  e_DrawQuad(xx, yy, ww, hh, 116, 124,  96, 0);
+          PANEL_OPENDOOR:  e_DrawQuad(xx, yy, ww, hh, 100, 220,  92, 0);
+          PANEL_CLOSEDOOR: e_DrawQuad(xx, yy, ww, hh, 212, 184,  64, 0);
+          PANEL_BLOCKMON:  e_DrawQuad(xx, yy, ww, hh, 192,   0, 192, 0);
+          PANEL_LIFTLEFT:  e_DrawQuad(xx, yy, ww, hh, 200,  80,   4, 0);
+          PANEL_LIFTRIGHT: e_DrawQuad(xx, yy, ww, hh, 252, 140,  56, 0);
+        else
+          assert(false)
+        end;
+      end;
+end;
+
 procedure DrawMap();
 var
   a, w, h: Integer;
@@ -2083,7 +2116,7 @@ var
   ww, hh: Word;
   sel: Boolean;
   r: TRectWH;
-
+  mask: Word;
 begin
   ID := 0;
 // В режиме Превью рисуем небо:
@@ -2626,6 +2659,63 @@ begin
               end;
           end;
         end;
+
+// Draw panel contours
+  mask := 0;
+  if ContourEnabled[LAYER_BACK] then
+    mask := mask or PANEL_BACK;
+  if ContourEnabled[LAYER_WALLS] then
+    mask := mask or PANEL_WALL;
+  if ContourEnabled[LAYER_FOREGROUND] then
+    mask := mask or PANEL_FORE;
+  if ContourEnabled[LAYER_STEPS] then
+    mask := mask or PANEL_STEP;
+  if ContourEnabled[LAYER_WATER] then
+    mask := mask or PANEL_WATER or PANEL_ACID1 or PANEL_ACID2
+                 or PANEL_OPENDOOR or PANEL_CLOSEDOOR or PANEL_BLOCKMON
+                 or PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT;
+  if mask <> 0 then
+    DrawContours(mask);
+  if ContourEnabled[LAYER_ITEMS] and (gItems <> nil) then
+    for a := 0 to High(gItems) do
+      if gItems[a].ItemType <> ITEM_NONE then
+        e_DrawQuad(
+          MapOffset.X + gItems[a].X,
+          MapOffset.Y + gItems[a].Y,
+          MapOffset.X + gItems[a].X + ItemSize[gItems[a].ItemType, 0],
+          MapOffset.Y + gItems[a].Y + ItemSize[gItems[a].ItemType, 1],
+          0, 255, 255
+        );
+  if ContourEnabled[LAYER_MONSTERS] and (gMonsters <> nil) then
+    for a := 0 to High(gMonsters) do
+      if gMonsters[a].MonsterType <> MONSTER_NONE then
+        e_DrawQuad(
+          MapOffset.X + gMonsters[a].X,
+          MapOffset.Y + gMonsters[a].Y,
+          MapOffset.X + gMonsters[a].X + MonsterSize[gMonsters[a].MonsterType].Width - 1,
+          MapOffset.Y + gMonsters[a].Y + MonsterSize[gMonsters[a].MonsterType].Height - 1,
+          255, 0, 0
+        );
+  if ContourEnabled[LAYER_AREAS] and (gAreas <> nil) then
+    for a := 0 to High(gAreas) do
+      if gAreas[a].AreaType <> AREA_NONE then
+        e_DrawQuad(
+          MapOffset.X + gAreas[a].X + AreaSize[gAreas[a].AreaType].X,
+          MapOffset.Y + gAreas[a].Y + AreaSize[gAreas[a].AreaType].Y,
+          MapOffset.X + gAreas[a].X + AreaSize[gAreas[a].AreaType].Width,
+          MapOffset.Y + gAreas[a].Y + AreaSize[gAreas[a].AreaType].Height,
+          0, 255, 255
+        );
+  if ContourEnabled[LAYER_TRIGGERS] and (gTriggers <> nil) then
+    for a := 0 to High(gTriggers) do
+      if gTriggers[a].TriggerType <> TRIGGER_NONE then
+        e_DrawQuad(
+          MapOffset.X + gTriggers[a].X,
+          MapOffset.Y + gTriggers[a].Y,
+          MapOffset.X + gTriggers[a].X + gTriggers[a].Width,
+          MapOffset.Y + gTriggers[a].Y + gTriggers[a].Height,
+          255, 255, 0
+        );
 
 // Границы карты:
   if PreviewMode = 0 then

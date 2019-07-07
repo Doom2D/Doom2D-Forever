@@ -318,6 +318,8 @@ var
 
   LayerEnabled: Array [LAYER_BACK..LAYER_TRIGGERS] of Boolean =
     (True, True, True, True, True, True, True, True, True);
+  ContourEnabled: Array [LAYER_BACK..LAYER_TRIGGERS] of Boolean =
+    (False, False, False, False, False, False, False, False, False);
   PreviewMode: Byte = 0;
   gLanguage: String;
 
@@ -4292,34 +4294,52 @@ begin
   AboutForm.ShowModal();
 end;
 
-procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word;
-  Shift: TShiftState);
+procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 var
   dx, dy, i: Integer;
   FileName: String;
+  ok: Boolean;
 begin
   if (not EditingProperties) then
   begin
-    if Key = Ord('1') then
-      SwitchLayer(LAYER_BACK);
-    if Key = Ord('2') then
-      SwitchLayer(LAYER_WALLS);
-    if Key = Ord('3') then
-      SwitchLayer(LAYER_FOREGROUND);
-    if Key = Ord('4') then
-      SwitchLayer(LAYER_STEPS);
-    if Key = Ord('5') then
-      SwitchLayer(LAYER_WATER);
-    if Key = Ord('6') then
-      SwitchLayer(LAYER_ITEMS);
-    if Key = Ord('7') then
-      SwitchLayer(LAYER_MONSTERS);
-    if Key = Ord('8') then
-      SwitchLayer(LAYER_AREAS);
-    if Key = Ord('9') then
-      SwitchLayer(LAYER_TRIGGERS);
-    if Key = Ord('0') then
-      tbShowClick(tbShow);
+    if ssCtrl in Shift then
+    begin
+      case Chr(Key) of
+        '1': ContourEnabled[LAYER_BACK] := not ContourEnabled[LAYER_BACK];
+        '2': ContourEnabled[LAYER_WALLS] := not ContourEnabled[LAYER_WALLS];
+        '3': ContourEnabled[LAYER_FOREGROUND] := not ContourEnabled[LAYER_FOREGROUND];
+        '4': ContourEnabled[LAYER_STEPS] := not ContourEnabled[LAYER_STEPS];
+        '5': ContourEnabled[LAYER_WATER] := not ContourEnabled[LAYER_WATER];
+        '6': ContourEnabled[LAYER_ITEMS] := not ContourEnabled[LAYER_ITEMS];
+        '7': ContourEnabled[LAYER_MONSTERS] := not ContourEnabled[LAYER_MONSTERS];
+        '8': ContourEnabled[LAYER_AREAS] := not ContourEnabled[LAYER_AREAS];
+        '9': ContourEnabled[LAYER_TRIGGERS] := not ContourEnabled[LAYER_TRIGGERS];
+        '0':
+           begin
+             ok := False;
+             for i := Low(ContourEnabled) to High(ContourEnabled) do
+               if ContourEnabled[i] then
+                 ok := True;
+             for i := Low(ContourEnabled) to High(ContourEnabled) do
+               ContourEnabled[i] := not ok
+           end
+      end
+    end
+    else
+    begin
+      case Chr(key) of
+        '1': SwitchLayer(LAYER_BACK);
+        '2': SwitchLayer(LAYER_WALLS);
+        '3': SwitchLayer(LAYER_FOREGROUND);
+        '4': SwitchLayer(LAYER_STEPS);
+        '5': SwitchLayer(LAYER_WATER);
+        '6': SwitchLayer(LAYER_ITEMS);
+        '7': SwitchLayer(LAYER_MONSTERS);
+        '8': SwitchLayer(LAYER_AREAS);
+        '9': SwitchLayer(LAYER_TRIGGERS);
+        '0': tbShowClick(tbShow);
+      end
+    end;
 
     if Key = Ord('V') then
     begin // Поворот монстров и областей:
@@ -6765,8 +6785,7 @@ begin
   EditingProperties := False;
 end;
 
-procedure TMainForm.FormKeyUp(Sender: TObject; var Key: Word;
-  Shift: TShiftState);
+procedure TMainForm.FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
 // Объекты передвигались:
   if MainForm.ActiveControl = RenderPanel then
