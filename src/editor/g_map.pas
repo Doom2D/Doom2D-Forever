@@ -2682,8 +2682,8 @@ begin
         e_DrawQuad(
           MapOffset.X + gItems[a].X,
           MapOffset.Y + gItems[a].Y,
-          MapOffset.X + gItems[a].X + ItemSize[gItems[a].ItemType, 0],
-          MapOffset.Y + gItems[a].Y + ItemSize[gItems[a].ItemType, 1],
+          MapOffset.X + gItems[a].X + ItemSize[gItems[a].ItemType, 0] - 1,
+          MapOffset.Y + gItems[a].Y + ItemSize[gItems[a].ItemType, 1] - 1,
           0, 255, 255
         );
   if ContourEnabled[LAYER_MONSTERS] and (gMonsters <> nil) then
@@ -2694,16 +2694,16 @@ begin
           MapOffset.Y + gMonsters[a].Y,
           MapOffset.X + gMonsters[a].X + MonsterSize[gMonsters[a].MonsterType].Width - 1,
           MapOffset.Y + gMonsters[a].Y + MonsterSize[gMonsters[a].MonsterType].Height - 1,
-          255, 0, 0
+          200, 0, 0
         );
   if ContourEnabled[LAYER_AREAS] and (gAreas <> nil) then
     for a := 0 to High(gAreas) do
       if gAreas[a].AreaType <> AREA_NONE then
         e_DrawQuad(
-          MapOffset.X + gAreas[a].X + AreaSize[gAreas[a].AreaType].X,
-          MapOffset.Y + gAreas[a].Y + AreaSize[gAreas[a].AreaType].Y,
-          MapOffset.X + gAreas[a].X + AreaSize[gAreas[a].AreaType].Width,
-          MapOffset.Y + gAreas[a].Y + AreaSize[gAreas[a].AreaType].Height,
+          MapOffset.X + gAreas[a].X,
+          MapOffset.Y + gAreas[a].Y,
+          MapOffset.X + gAreas[a].X + AreaSize[gAreas[a].AreaType].Width - 1,
+          MapOffset.Y + gAreas[a].Y + AreaSize[gAreas[a].AreaType].Height - 1,
           0, 255, 255
         );
   if ContourEnabled[LAYER_TRIGGERS] and (gTriggers <> nil) then
@@ -2712,8 +2712,8 @@ begin
         e_DrawQuad(
           MapOffset.X + gTriggers[a].X,
           MapOffset.Y + gTriggers[a].Y,
-          MapOffset.X + gTriggers[a].X + gTriggers[a].Width,
-          MapOffset.Y + gTriggers[a].Y + gTriggers[a].Height,
+          MapOffset.X + gTriggers[a].X + gTriggers[a].Width - 1,
+          MapOffset.Y + gTriggers[a].Y + gTriggers[a].Height - 1,
           255, 255, 0
         );
 
