@@ -77,7 +77,7 @@ type
     bOK: TButton;
     bCancel: TButton;
     
-    procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure bCancelClick(Sender: TObject);
     procedure bOKClick(Sender: TObject);
 
@@ -122,7 +122,7 @@ begin
   Result := True;
 end;
 
-procedure TMapOptionsForm.FormCreate(Sender: TObject);
+procedure TMapOptionsForm.FormShow(Sender: TObject);
   var a, b: Integer;
 begin
   // General map options

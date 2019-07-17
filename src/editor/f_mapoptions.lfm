@@ -12,7 +12,7 @@ object MapOptionsForm: TMapOptionsForm
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
-  OnCreate = FormCreate
+  OnShow = FormShow
   Position = poScreenCenter
   ShowHint = True
   LCLVersion = '1.6.4.0'
