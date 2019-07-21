@@ -6628,7 +6628,7 @@ end;
 
 procedure TMainForm.miTestMapClick(Sender: TObject);
 var
-  cmd, mapWAD, mapToRun, tempWAD: String;
+  mapWAD, mapToRun, tempWAD: String;
   opt: LongWord;
   time: Integer;
   proc: TProcessUTF8;
@@ -6669,23 +6669,25 @@ begin
   if TestOptionsMonstersDM then
     opt := opt + 16;
 
-// Составляем командную строку:
-  cmd := '-map "' + mapToRun + '"';
-  cmd := cmd + ' -testmap "' + tempWAD + '"';
-  cmd := cmd + ' -gm ' + TestGameMode;
-  cmd := cmd + ' -limt ' + TestLimTime;
-  cmd := cmd + ' -lims ' + TestLimScore;
-  cmd := cmd + ' -opt ' + IntToStr(opt);
-
-  if TestMapOnce then
-    cmd := cmd + ' --close';
-
-  cmd := cmd + ' --debug';
-
 // Запускаем:
   proc := TProcessUTF8.Create(nil);
   proc.Executable := TestD2dExe;
-  proc.Parameters.Add(cmd);
+  proc.Parameters.Add('-map');
+  proc.Parameters.Add(mapToRun);
+  proc.Parameters.Add('-testmap');
+  proc.Parameters.Add(tempWAD);
+  proc.Parameters.Add('-gm');
+  proc.Parameters.Add(TestGameMode);
+  proc.Parameters.Add('-limt');
+  proc.Parameters.Add(TestLimTime);
+  proc.Parameters.Add('-lims');
+  proc.Parameters.Add(TestLimScore);
+  proc.Parameters.Add('-opt');
+  proc.Parameters.Add(IntToStr(opt));
+  proc.Parameters.Add('--debug');
+  if TestMapOnce then
+    proc.Parameters.Add('--close');
+
   res := True;
   try
     proc.Execute();
