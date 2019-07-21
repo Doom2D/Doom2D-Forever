@@ -8,7 +8,7 @@ uses
   LCLIntf, LCLType, SysUtils, Variants, Classes, Graphics,
   Controls, Forms, Dialogs, StdCtrls, Buttons,
   ComCtrls, ValEdit, Types, Menus, ExtCtrls,
-  CheckLst, Grids, OpenGLContext, utils, UTF8Process;
+  CheckLst, Grids, OpenGLContext, Utils, UTF8Process;
 
 type
 
@@ -313,7 +313,7 @@ var
   TestOptionsAllowExit: Boolean;
   TestOptionsWeaponStay: Boolean;
   TestOptionsMonstersDM: Boolean;
-  TestD2dExe: String;
+  TestD2dExe, TestD2DArgs: String;
   TestMapOnce: Boolean;
 
   LayerEnabled: Array [LAYER_BACK..LAYER_TRIGGERS] of Boolean =
@@ -6626,11 +6626,47 @@ begin
   MapTestForm.ShowModal();
 end;
 
+type SSArray = array of String;
+
+function ParseString (Str: AnsiString): SSArray;
+  function GetStr (var Str: AnsiString): AnsiString;
+    var a, b: Integer;
+  begin
+    Result := '';
+    if Str[1] = '"' then
+      for b := 1 to Length(Str) do
+        if (b = Length(Str)) or (Str[b + 1] = '"') then
+        begin
+          Result := Copy(Str, 2, b - 1);
+          Delete(Str, 1, b + 1);
+          Str := Trim(Str);
+          Exit;
+        end;
+    for a := 1 to Length(Str) do
+      if (a = Length(Str)) or (Str[a + 1] = ' ') then
+      begin
+        Result := Copy(Str, 1, a);
+        Delete(Str, 1, a + 1);
+        Str := Trim(Str);
+        Exit;
+      end;
+  end;
+begin
+  Result := nil;
+  Str := Trim(Str);
+  while Str <> '' do
+  begin
+    SetLength(Result, Length(Result)+1);
+    Result[High(Result)] := GetStr(Str);
+  end;
+end;
+
 procedure TMainForm.miTestMapClick(Sender: TObject);
 var
   mapWAD, mapToRun, tempWAD: String;
+  args: SSArray;
   opt: LongWord;
-  time: Integer;
+  time, i: Integer;
   proc: TProcessUTF8;
   res: Boolean;
 begin
@@ -6687,6 +6723,10 @@ begin
   proc.Parameters.Add('--debug');
   if TestMapOnce then
     proc.Parameters.Add('--close');
+
+  args := ParseString(TestD2DArgs);
+  for i := 0 to High(args) do
+    proc.Parameters.Add(args[i]);
 
   res := True;
   try

@@ -214,6 +214,14 @@ object MapTestForm: TMapTestForm
       ParentFont = False
       TabOrder = 15
     end
+    object edD2DArgs: TEdit
+      Left = 14
+      Height = 21
+      Top = 200
+      Width = 297
+      TabOrder = 16
+      Text = ''
+    end
     object cbMapOnce: TCheckBox
       Left = 14
       Height = 17
@@ -226,7 +234,7 @@ object MapTestForm: TMapTestForm
   object FindD2dDialog: TOpenDialog
     Title = 'Выберите файл игры Doom 2D: Forever'
     DefaultExt = '.exe'
-    Filter = 'Doom2DF.exe|Doom2DF.exe'
+    Filter = 'Doom2DF.exe|Doom2DF.exe;Doom2DF'
     Options = [ofHideReadOnly, ofNoChangeDir, ofEnableSizing]
     left = 320
     top = 144

@@ -38,6 +38,7 @@ type
   // Путь:
     LabelPath: TLabel;
     edD2dexe: TEdit;
+    edD2DArgs: TEdit;
     bChooseD2d: TButton;
     FindD2dDialog: TOpenDialog;
 
@@ -113,6 +114,8 @@ begin
   
   config.WriteStr('TestRun', 'Exe', edD2dExe.Text);
   TestD2dExe := edD2dExe.Text;
+  config.WriteStr('TestRun', 'Args', edD2DArgs.Text);
+  TestD2DArgs := edD2DArgs.Text;
 
   config.SaveFile(EditorDir+'Editor.cfg');
   config.Free();
@@ -146,6 +149,7 @@ begin
   cbMonstersDM.Checked := TestOptionsMonstersDM;
   cbMapOnce.Checked := TestMapOnce;
   edD2dExe.Text := TestD2dExe;
+  edD2DArgs.Text := TestD2DArgs;
 end;
 
 procedure TMapTestForm.FormCreate(Sender: TObject);
@@ -165,6 +169,7 @@ begin
   TestOptionsMonstersDM := config.ReadBool('TestRun', 'MonstersDM', False);
   TestMapOnce := config.ReadBool('TestRun', 'MapOnce', False);
   TestD2dExe := config.ReadStr('TestRun', 'Exe', EditorDir+'Doom2DF.exe');
+  TestD2DArgs := config.ReadStr('TestRun', 'Args', '');
 
   config.Free();
 
