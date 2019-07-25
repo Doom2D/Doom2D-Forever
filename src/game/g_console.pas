@@ -243,24 +243,6 @@ end;
 
 
 procedure intVarHandler (me: PCommand; p: SSArray);
-  procedure binaryFlag (var flag: Boolean; msg: AnsiString);
-  begin
-    if (Length(p) > 2) then
-    begin
-      conwritefln('too many arguments to ''%s''', [p[0]]);
-    end
-    else
-    begin
-      case conGetBoolArg(p, 1) of
-        -1: begin end;
-         0: if not me.cheat or conIsCheatsEnabled then flag := false else begin conwriteln('not available'); exit; end;
-         1: if not me.cheat or conIsCheatsEnabled then flag := true else begin conwriteln('not available'); exit; end;
-         666: if not me.cheat or conIsCheatsEnabled then flag := not flag else begin conwriteln('not available'); exit; end;
-      end;
-      if (Length(msg) = 0) then msg := p[0] else msg += ':';
-      if flag then conwritefln('%s tan', [msg]) else conwritefln('%s ona', [msg]);
-    end;
-  end;
 begin
   if (Length(p) <> 2) then
   begin
