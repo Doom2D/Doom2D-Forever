@@ -645,6 +645,14 @@ begin
   end
 end;
 
+function QuoteStr(str: String): String;
+begin
+  if Pos(' ', str) > 0 then
+    Result := '"' + str + '"'
+  else
+    Result := str;
+end;
+
 procedure BindCommands (p: SSArray);
   var cmd, key: AnsiString; i: Integer;
 begin
@@ -660,7 +668,7 @@ begin
       if i < e_MaxInputKeys then
       begin
         if Length(p) = 2 then
-          g_Console_Add('"' + e_KeyNames[i] + '" = "' + GetCommandString(gInputBinds[i].down) + '" "' + GetCommandString(gInputBinds[i].up) + '"')
+          g_Console_Add(QuoteStr(e_KeyNames[i]) + ' = ' + QuoteStr(GetCommandString(gInputBinds[i].down)) + ' ' + QuoteStr(GetCommandString(gInputBinds[i].up)))
         else if Length(p) = 3 then
           g_Console_BindKey(i, p[2], '')
         else (* len = 4 *)
@@ -676,7 +684,7 @@ begin
   'bindlist':
     for i := 0 to e_MaxInputKeys - 1 do
       if (gInputBinds[i].down <> nil) or (gInputBinds[i].up <> nil) then
-        g_Console_Add(e_KeyNames[i] + ' "' + GetCommandString(gInputBinds[i].down) + '" "' + GetCommandString(gInputBinds[i].up) + '"');
+        g_Console_Add(e_KeyNames[i] + ' ' + QuoteStr(GetCommandString(gInputBinds[i].down)) + ' ' + QuoteStr(GetCommandString(gInputBinds[i].up)));
   'unbind':
     // unbind <key>
     if Length(p) = 2 then
@@ -1864,7 +1872,12 @@ begin
   WriteLn(f, 'unbindall');
   for i := 0 to e_MaxInputKeys - 1 do
     if (Length(gInputBinds[i].down) > 0) or (Length(gInputBinds[i].up) > 0) then
-      WriteLn(f, 'bind ', e_KeyNames[i], ' "', GetCommandString(gInputBinds[i].down), '" "', GetCommandString(gInputBinds[i].up), '"');
+    begin
+      Write(f, 'bind ', e_KeyNames[i], ' ', QuoteStr(GetCommandString(gInputBinds[i].down)));
+      if Length(gInputBinds[i].up) > 0 then
+        Write(f, ' ', QuoteStr(GetCommandString(gInputBinds[i].up)));
+      WriteLn(f, '');
+    end;
   for i := 0 to High(commands) do
   begin
     if not commands[i].cheat then
@@ -1872,15 +1885,15 @@ begin
       if @commands[i].procEx = @boolVarHandler then
       begin
         if PBoolean(commands[i].ptr)^ then j := 1 else j := 0;
-        WriteLn(f, commands[i].cmd, ' "', j, '"')
+        WriteLn(f, commands[i].cmd, ' ', j)
       end
       else if @commands[i].procEx = @intVarHandler then
       begin
-        WriteLn(f, commands[i].cmd, ' "', PInteger(commands[i].ptr)^, '"')
+        WriteLn(f, commands[i].cmd, ' ', PInteger(commands[i].ptr)^)
       end
       else if @commands[i].procEx = @singleVarHandler then
       begin
-        WriteLn(f, commands[i].cmd, ' "', PVarSingle(commands[i].ptr).val^:0:6, '"')
+        WriteLn(f, commands[i].cmd, ' ', PVarSingle(commands[i].ptr).val^:0:6)
       end
     end
   end;
