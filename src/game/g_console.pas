@@ -48,6 +48,7 @@ procedure g_Console_Clear;
 function  g_Console_CommandBlacklisted (C: AnsiString): Boolean;
 procedure g_Console_ReadConfig (filename: String);
 procedure g_Console_WriteConfig (filename: String);
+procedure g_Console_WriteGameConfig;
 
 function  g_Console_Interactive: Boolean;
 function  g_Console_Action (action: Integer): Boolean;
@@ -77,6 +78,7 @@ var
   gChatTeam: Boolean = false;
   gAllowConsoleMessages: Boolean = true;
   gJustChatted: Boolean = false; // чтобы админ в интере чат€сь не проматывал статистику
+  gParsingBinds: Boolean = false; // не пересохран€ть конфиг во врем€ парсинга
   gPlayerAction: Array [0..1, 0..LAST_ACTION] of Boolean; // [player, action]
 
 implementation
@@ -954,9 +956,11 @@ begin
   WhitelistCommand('g_scorelimit');
   WhitelistCommand('g_timelimit');
 
+  gParsingBinds := True;
   g_Console_ResetBinds;
   g_Console_ReadConfig(GameDir + '/dfconfig.cfg');
   g_Console_ReadConfig(GameDir + '/autoexec.cfg');
+  gParsingBinds := False;
 
   g_Console_Add(Format(_lc[I_CONSOLE_WELCOME], [GAME_VERSION]));
   g_Console_Add('');
@@ -1650,8 +1654,9 @@ begin
   if key > 0 then
   begin
     gInputBinds[key].down := ParseAlias(down);
-    gInputBinds[key].up := ParseAlias(up)
-  end
+    gInputBinds[key].up := ParseAlias(up);
+  end;
+  g_Console_WriteGameConfig();
 end;
 
 function g_Console_MatchBind (key: Integer; down: AnsiString; up: AnsiString = ''): Boolean;
@@ -1830,10 +1835,10 @@ begin
         while (i <= len) and (s[i] <= ' ') do inc(i);
         (* skip comments *)
         if (i <= len) and ((s[i] <> '#') and ((i + 1 > len) or (s[i] <> '/') or (s[i + 1] <> '/'))) then
-          g_Console_Process(s, True)
+          g_Console_Process(s, True);
       end
     end;
-    CloseFile(f)
+    CloseFile(f);
   end
 end;
 
@@ -1869,5 +1874,11 @@ begin
   CloseFile(f)
 end;
 
+procedure g_Console_WriteGameConfig;
+begin
+  if gParsingBinds then
+    Exit;
+  g_Console_WriteConfig(GameDir + '/dfconfig.cfg');
+end;
 
 end.

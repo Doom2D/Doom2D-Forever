@@ -369,7 +369,7 @@ begin
   if g_Game_IsClient then MC_SEND_PlayerSettings;
 
   g_Options_Write(GameDir+'/'+CONFIG_FILENAME);
-  g_Console_WriteConfig(GameDir + '/dfconfig.cfg');
+  g_Console_WriteGameConfig();
 end;
 
 procedure ReadOptions();
