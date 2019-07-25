@@ -222,6 +222,8 @@ end;
 
 procedure boolVarHandler (me: PCommand; p: SSArray);
   procedure binaryFlag (var flag: Boolean; msg: AnsiString);
+  var
+    old: Boolean;
   begin
     if (Length(p) > 2) then
     begin
@@ -229,12 +231,15 @@ procedure boolVarHandler (me: PCommand; p: SSArray);
     end
     else
     begin
+      old := flag;
       case conGetBoolArg(p, 1) of
         -1: begin end;
          0: if not me.cheat or conIsCheatsEnabled then flag := false else begin conwriteln('not available'); exit; end;
          1: if not me.cheat or conIsCheatsEnabled then flag := true else begin conwriteln('not available'); exit; end;
          666: if not me.cheat or conIsCheatsEnabled then flag := not flag else begin conwriteln('not available'); exit; end;
       end;
+      if flag <> old then
+        g_Console_WriteGameConfig();
       if (Length(msg) = 0) then msg := p[0] else msg += ':';
       if flag then conwritefln('%s tan', [msg]) else conwritefln('%s ona', [msg]);
     end;
@@ -245,6 +250,8 @@ end;
 
 
 procedure intVarHandler (me: PCommand; p: SSArray);
+var
+  old: Integer;
 begin
   if (Length(p) <> 2) then
   begin
@@ -253,7 +260,10 @@ begin
   else
   begin
     try
+      old := PInteger(me.ptr)^;
       PInteger(me.ptr)^ := StrToInt(p[1]);
+      if PInteger(me.ptr)^ <> old then
+        g_Console_WriteGameConfig();
     except
       conwritefln('invalid integer value: "%s"', [p[1]]);
     end;
@@ -315,7 +325,7 @@ type
 procedure singleVarHandler (me: PCommand; p: SSArray);
 var
   pv: PVarSingle;
-  nv: Single;
+  nv, old: Single;
   msg: AnsiString;
 begin
   if (Length(p) > 2) then
@@ -324,6 +334,7 @@ begin
     exit;
   end;
   pv := PVarSingle(me.ptr);
+  old := pv.val^;
   if (Length(p) = 2) then
   begin
     if me.cheat and (not conIsCheatsEnabled) then begin conwriteln('not available'); exit; end;
@@ -345,6 +356,8 @@ begin
       pv.val^ := nv;
     end;
   end;
+  if pv.val^ <> old then
+    g_Console_WriteGameConfig();
   msg := me.msg;
   if (Length(msg) = 0) then msg := me.cmd else msg += ':';
   conwritefln('%s %s', [msg, pv.val^]);
