@@ -38,6 +38,7 @@ var
   gMenuSmallFont: DWORD;
   PromptIP: string;
   PromptPort: Word;
+  TempScale: Integer = -1;
 
 implementation
 
@@ -161,7 +162,11 @@ begin
   gRevertPlayers := TGUISwitch(menu.GetControl('swRevertPlayers')).ItemIndex = 0;
   gChatBubble := TGUISwitch(menu.GetControl('swChatBubble')).ItemIndex;
   gPlayerIndicator := TGUISwitch(menu.GetControl('swPlayerIndicator')).ItemIndex = 0;
-  g_dbg_scale := TGUIScroll(menu.GetControl('scScaleFactor')).Value + 1;
+  if TGUIScroll(menu.GetControl('scScaleFactor')).Value <> TempScale then
+  begin
+    TempScale := TGUIScroll(menu.GetControl('scScaleFactor')).Value;
+    g_dbg_scale := TempScale + 1;
+  end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsMenu').GetControl('mOptionsControlsMenu'));
 
@@ -567,7 +572,8 @@ begin
   with TGUISwitch(menu.GetControl('swPlayerIndicator')) do
     if gPlayerIndicator then ItemIndex := 0 else ItemIndex := 1;
 
-  TGUIScroll(menu.GetControl('scScaleFactor')).Value := Round(g_dbg_scale - 1);
+  TempScale := Round(g_dbg_scale - 1);
+  TGUIScroll(menu.GetControl('scScaleFactor')).Value := TempScale;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mOptionsPlayersP1Menu'));
 
@@ -1339,7 +1345,11 @@ var
   menu: TGUIMenu;
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
-  g_dbg_scale := TGUIScroll(menu.GetControl('scScaleFactor')).Value + 1;
+  if TGUIScroll(menu.GetControl('scScaleFactor')).Value <> TempScale then
+  begin
+    TempScale := TGUIScroll(menu.GetControl('scScaleFactor')).Value;
+    g_dbg_scale := TempScale + 1;
+  end;
 end;
 
 procedure ProcChangeTouchSettings(Sender: TGUIControl);
