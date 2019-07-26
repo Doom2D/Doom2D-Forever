@@ -1874,6 +1874,8 @@ begin
     if (Length(gInputBinds[i].down) > 0) or (Length(gInputBinds[i].up) > 0) then
     begin
       Write(f, 'bind ', e_KeyNames[i], ' ', QuoteStr(GetCommandString(gInputBinds[i].down)));
+      if Length(gInputBinds[i].down) = 0 then
+        Write(f, '""');
       if Length(gInputBinds[i].up) > 0 then
         Write(f, ' ', QuoteStr(GetCommandString(gInputBinds[i].up)));
       WriteLn(f, '');
