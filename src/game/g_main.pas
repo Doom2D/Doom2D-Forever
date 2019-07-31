@@ -116,12 +116,6 @@ begin
   e_WriteLog(gLanguage, TMsgType.Notify);
   g_Language_Set(gLanguage);
 
-{$IFNDEF HEADLESS}
-{$IFNDEF ANDROID}
-  SDL_StartTextInput();
-{$ENDIF}
-{$ENDIF}
-
 {$IF not DEFINED(HEADLESS) and DEFINED(ENABLE_HOLMES)}
   flexloaded := true;
   if not fuiAddWad('flexui.wad') then
@@ -172,10 +166,6 @@ begin
 {$WARNINGS OFF}
   SDLMain();
 {$WARNINGS ON}
-
-{$IFNDEF HEADLESS}
-  SDL_StopTextInput();
-{$ENDIF}
 
   e_WriteLog('Releasing SDL', TMsgType.Notify);
   SDL_Quit();

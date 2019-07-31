@@ -146,7 +146,6 @@ var
     down, up: SSArray;
   end;
   menu_toggled: BOOLEAN; (* hack for menu controls *)
-  gSkipFirstChar: Boolean; (* hack for console/chat input *)
 
 
 procedure g_Console_Switch;
@@ -718,23 +717,14 @@ begin
       menu_toggled := True
     end;
   'toggleconsole':
-    begin
-      g_Console_Switch;
-      gSkipFirstChar := g_Console_Interactive();
-    end;
+    g_Console_Switch;
   'togglechat':
-    begin
-      if not gConsoleShow and (g_ActiveWindow = nil) then
-        g_Console_Chat_Switch;
-      gSkipFirstChar := not g_Console_Interactive()
-    end;
+    if not gConsoleShow and (g_ActiveWindow = nil) then
+      g_Console_Chat_Switch;
   'toggleteamchat':
     if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
-    begin
       if not gConsoleShow and (g_ActiveWindow = nil) then
         g_Console_Chat_Switch(True);
-      gSkipFirstChar := not g_Console_Interactive()
-    end;
   end
 end;
 
@@ -1170,12 +1160,8 @@ end;
 
 procedure g_Console_Char(C: AnsiChar);
 begin
-  if not gSkipFirstChar then
-  begin
-    Insert(C, Line, CPos);
-    CPos := CPos + 1;
-  end;
-  gSkipFirstChar := False
+  Insert(C, Line, CPos);
+  CPos := CPos + 1;
 end;
 
 
@@ -1383,19 +1369,15 @@ begin
     IK_0, IK_1, IK_2, IK_3, IK_4, IK_5, IK_6, IK_7, IK_8, IK_9, IK_MINUS, IK_EQUALS:
       (* see TEXTINPUT event *)
   else
-    if not gSkipFirstChar then
+    if gConsoleShow and not Cons_Shown and g_Console_MatchBind(K, 'toggleconsole') then
+      g_Console_Switch;
+    if g_Console_MatchBind(K, 'togglemenu') then
     begin
-      if gConsoleShow and g_Console_MatchBind(K, 'toggleconsole') then
-        g_Console_Switch;
-
-      if g_Console_MatchBind(K, 'togglemenu') then
-      begin
-        menu_toggled := True;
-        if gChatShow then
-          g_Console_Chat_Switch
-        else if gConsoleShow then
-          g_Console_Switch
-      end
+      menu_toggled := True;
+      if gChatShow then
+        g_Console_Chat_Switch
+      else if gConsoleShow and not Cons_Shown then
+        g_Console_Switch
     end
   end
 end;

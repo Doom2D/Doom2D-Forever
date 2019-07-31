@@ -184,6 +184,7 @@ implementation
   procedure g_Touch_Init;
   begin
 {$IFNDEF HEADLESS}
+    g_Touch_ShowKeyboard(FALSE);
     g_touch_enabled := SDL_GetNumTouchDevices() > 0
 {$ENDIF}
   end;
@@ -191,9 +192,6 @@ implementation
   procedure g_Touch_ShowKeyboard(yes: Boolean);
   begin
 {$IFNDEF HEADLESS}
-    if not g_touch_enabled then
-      Exit;
-
     if yes then
       SDL_StartTextInput
     else
