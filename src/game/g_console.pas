@@ -78,7 +78,7 @@ var
   gChatTeam: Boolean = false;
   gAllowConsoleMessages: Boolean = true;
   gJustChatted: Boolean = false; // чтобы админ в интере чат€сь не проматывал статистику
-  gParsingBinds: Boolean = false; // не пересохран€ть конфиг во врем€ парсинга
+  gParsingBinds: Boolean = true; // не пересохран€ть конфиг во врем€ парсинга
   gPlayerAction: Array [0..1, 0..LAST_ACTION] of Boolean; // [player, action]
 
 implementation
@@ -977,7 +977,6 @@ begin
   WhitelistCommand('g_scorelimit');
   WhitelistCommand('g_timelimit');
 
-  gParsingBinds := True;
   g_Console_ResetBinds;
   g_Console_ReadConfig(GameDir + '/dfconfig.cfg');
   g_Console_ReadConfig(GameDir + '/autoexec.cfg');

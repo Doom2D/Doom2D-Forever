@@ -164,7 +164,7 @@ begin
   gTextureFilter := True;
   glLegacyNPOT := False;
   e_LogWriteLn('g_Options_SetDefaultVideo: w = ' + IntToStr(gScreenWidth) + ' h = ' + IntToStr(gScreenHeight));
-  g_Console_ResetBinds
+  g_Console_ResetBinds;
 end;
 
 procedure g_Options_SetDefault();
