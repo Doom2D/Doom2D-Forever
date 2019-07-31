@@ -127,6 +127,7 @@ var
   RecursionDepth: Word = 0;
   RecursionLimitHit: Boolean = False;
   Cons_Y: SmallInt;
+  ConsoleHeight: Single;
   Cons_Shown: Boolean; // Рисовать ли консоль?
   Line: AnsiString;
   CPos: Word;
@@ -789,7 +790,7 @@ procedure g_Console_Init();
     a: Integer;
 begin
   g_Texture_CreateWAD(ID, GameWAD+':TEXTURES\CONSOLE');
-  Cons_Y := -(gScreenHeight div 2);
+  Cons_Y := -Floor(gScreenHeight * ConsoleHeight);
   gConsoleShow := False;
   gChatShow := False;
   Cons_Shown := False;
@@ -989,8 +990,7 @@ begin
     end;
 
   // В процессе закрытия:
-    if (not gConsoleShow) and
-       (Cons_Y > -(gScreenHeight div 2)) then
+    if (not gConsoleShow) and (Cons_Y > -Floor(gScreenHeight * ConsoleHeight)) then
       Cons_Y := Cons_Y-Step;
 
   // Окончательно открылась:
@@ -998,9 +998,9 @@ begin
       Cons_Y := 0;
 
   // Окончательно закрылась:
-    if Cons_Y <= (-(gScreenHeight div 2)) then
+    if Cons_Y <= -Floor(gScreenHeight * ConsoleHeight) then
     begin
-      Cons_Y := -(gScreenHeight div 2);
+      Cons_Y := -Floor(gScreenHeight * ConsoleHeight);
       Cons_Shown := False;
     end;
   end;
@@ -1077,7 +1077,7 @@ var
 
 begin
   e_TextureFontGetSize(gStdFont, CWidth, CHeight);
-  ty := (gScreenHeight div 2)-4-2*CHeight-Abs(Cons_Y);
+  ty := Floor(gScreenHeight * ConsoleHeight) - 4 - 2 * CHeight - Abs(Cons_Y);
   skip := conSkipLines;
   cbufLastLine(sp, ep);
   repeat
@@ -1125,13 +1125,13 @@ begin
   begin
     e_CharFont_GetSize(gMenuFont, DEBUG_STRING, mfW, mfH);
     a := (gScreenWidth - 2*mfW) div 2;
-    b := Cons_Y + ((gScreenHeight div 2) - 2*mfH) div 2;
+    b := Cons_Y + (Floor(gScreenHeight * ConsoleHeight) - 2 * mfH) div 2;
     e_CharFont_PrintEx(gMenuFont, a div 2, b div 2, DEBUG_STRING,
                        _RGB(128, 0, 0), 2.0);
   end;
 
-  e_DrawSize(ID, 0, Cons_Y, Alpha, False, False, gScreenWidth, gScreenHeight div 2);
-  e_TextureFontPrint(0, Cons_Y+(gScreenHeight div 2)-CHeight-4, '> '+Line, gStdFont);
+  e_DrawSize(ID, 0, Cons_Y, Alpha, False, False, gScreenWidth, Floor(gScreenHeight * ConsoleHeight));
+  e_TextureFontPrint(0, Cons_Y + Floor(gScreenHeight * ConsoleHeight) - CHeight - 4, '> ' + Line, gStdFont);
 
   drawConsoleText();
   (*
@@ -1139,8 +1139,8 @@ begin
   begin
     b := 0;
     if CHeight > 0 then
-      if Length(ConsoleHistory) > ((gScreenHeight div 2) div CHeight)-1 then
-        b := Length(ConsoleHistory)-((gScreenHeight div 2) div CHeight)+1;
+      if Length(ConsoleHistory) > (Floor(gScreenHeight * ConsoleHeight) div CHeight) - 1 then
+        b := Length(ConsoleHistory) - (Floor(gScreenHeight * ConsoleHeight) div CHeight) + 1;
 
     b := Max(b-Offset, 0);
     d := Max(High(ConsoleHistory)-Offset, 0);
@@ -1148,14 +1148,13 @@ begin
     c := 2;
     for a := d downto b do
     begin
-      e_TextureFontPrintFmt(0, (gScreenHeight div 2)-4-c*CHeight-Abs(Cons_Y), ConsoleHistory[a],
-                           gStdFont, True);
+      e_TextureFontPrintFmt(0, Floor(gScreenHeight * ConsoleHeight) - 4 - c * CHeight - Abs(Cons_Y), ConsoleHistory[a], gStdFont, True);
       c := c + 1;
     end;
   end;
   *)
 
-  e_TextureFontPrint((CPos+1)*CWidth, Cons_Y+(gScreenHeight div 2)-21, '_', gStdFont);
+  e_TextureFontPrint((CPos + 1) * CWidth, Cons_Y + Floor(gScreenHeight * ConsoleHeight) - 21, '_', gStdFont);
 end;
 
 procedure g_Console_Char(C: AnsiChar);
@@ -1890,4 +1889,11 @@ begin
   g_Console_WriteConfig(GameDir + '/dfconfig.cfg');
 end;
 
+initialization
+  conRegVar('console_height', @ConsoleHeight, 0.0, 1.0, 'set console size', 'set console size');
+{$IFDEF ANDROID}
+  ConsoleHeight := 0.35
+{$ELSE}
+  ConsoleHeight := 0.5
+{$ENDIF}
 end.
