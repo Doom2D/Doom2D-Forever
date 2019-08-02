@@ -534,6 +534,7 @@ Type
     I_LAB_LAUNCH_SECS,
     I_LAB_LAUNCH_SCORE,
     I_LAB_LAUNCH_PATH,
+    I_LAB_LAUNCH_ARGS,
 
     I_LAB_ES_GRID,
     I_LAB_ES_GRID_COLOR,
@@ -1663,6 +1664,8 @@ Const
                                        'Лимит очков:'),
     ('LAB LAUNCH PATH',                'Path to Doom2DF.exe:',
                                        'Путь к Doom2DF.exe:'),
+    ('LAB LAUNCH ARGS',                'Launch Arguments:',
+                                       'Параметры запуска:'),
 
     ('LAB ES GRID',                    'Grid Step:',
                                        'Шаг сетки:'),
@@ -2323,6 +2326,8 @@ begin
   // Путь:
     LabelPath.Caption := _lc[I_LAB_LAUNCH_PATH];
     FindD2dDialog.Title := _lc[I_CTRL_LAUNCH_OPEN];
+
+    LabelArgs.Caption := _lc[I_LAB_LAUNCH_ARGS];
   end;
 
 // Форма "Настройки редактора":

@@ -10,10 +10,14 @@ uses
   ComCtrls;
 
 type
+
+  { TMapTestForm }
+
   TMapTestForm = class (TForm)
     bOK: TButton;
     bCancel: TButton;
     GroupBox1: TGroupBox;
+    LabelArgs: TLabel;
   // Режим игры:
     rbDM: TRadioButton;
     rbTDM: TRadioButton;
