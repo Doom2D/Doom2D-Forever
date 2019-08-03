@@ -826,15 +826,8 @@ begin
 
     if forceUpdate then
     begin
-      if g_Texture_Get('INTER', ID) then
-      begin
-        e_DrawSize(ID, 0, 0, 0, false, false, gScreenWidth, gScreenHeight);
-        e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
-      end
-      else
-      begin
-        e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
-      end;
+      DrawMenuBackground('INTER', ID);
+      e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
 
       DrawLoadingStat();
       SwapBuffers();
@@ -923,7 +916,7 @@ begin
     exit;
   end;
 
-  // Время предыдущего обновления
+  // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
   if flag then
   begin
     Time_Old := Time-(Time_Delta mod 28);
@@ -974,7 +967,7 @@ begin
   {$IFDEF USE_GLES1}
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);    
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
   {$ELSE}
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
@@ -1179,10 +1172,10 @@ begin
   Init();
   Time_Old := GetTimer();
 
-  // Командная строка
+  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
   if (ParamCount > 0) then g_Game_Process_Params();
 
-  // Запрос языка
+  // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
   if (not gGameOn) and gAskLanguage then g_Menu_AskLanguage();
 
   e_WriteLog('Entering the main loop', TMsgType.Notify);

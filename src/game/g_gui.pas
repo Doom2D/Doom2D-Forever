@@ -685,14 +685,14 @@ begin
   if len = 0 then
     Exit;
 
-// Окно с главным меню:
+// пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ:
   g_GUI_ShowWindow(Saved_Windows[len-1]);
 
-// Не переключилось (или некуда дальше):
+// пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ):
   if (len = 1) or (g_ActiveWindow = nil) then
     Exit;
 
-// Ищем кнопки в остальных окнах:
+// пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ:
   for k := len-1 downto 1 do
   begin
     ok := False;
@@ -726,7 +726,7 @@ begin
         Break;
     end;
 
-  // Не переключилось:
+  // пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ:
     if (not ok) or
        (g_ActiveWindow.Name = Saved_Windows[k]) then
       Break;
@@ -814,10 +814,19 @@ procedure TGUIWindow.Draw;
 var
   i: Integer;
   ID: DWORD;
+  tw, th: Word;
 begin
-  if FBackTexture <> '' then
+  if FBackTexture <> '' then  // Here goes code duplication from g_game.pas:DrawMenuBackground()
     if g_Texture_Get(FBackTexture, ID) then
-      e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
+    begin
+      e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+      e_GetTextureSize(ID, @tw, @th);
+      if tw = th then
+        tw := round(tw * 1.333 * (gScreenHeight / th))
+      else
+        tw := trunc(tw * (gScreenHeight / th));
+        e_DrawSize(ID, (gScreenWidth - tw) div 2, 0, 0, False, False, tw, gScreenHeight);
+    end
     else
       e_Clear(GL_COLOR_BUFFER_BIT, 0.5, 0.5, 0.5);
 
@@ -3232,7 +3241,7 @@ begin
                 SetActive(Self)
               else
                 begin
-                  if FItems[FIndex][1] = #29 then // Папка
+                  if FItems[FIndex][1] = #29 then // пїЅпїЅпїЅпїЅпїЅ
                   begin
                     OpenDir(FPath+Copy(FItems[FIndex], 2, 255));
                     FIndex := 0;
@@ -3254,7 +3263,7 @@ begin
           if ( (Length(FItems[a]) > 0) and
                (LowerCase(FItems[a][1]) = LowerCase(Chr(wParam))) ) or
              ( (Length(FItems[a]) > 1) and
-               (FItems[a][1] = #29) and // Папка
+               (FItems[a][1] = #29) and // пїЅпїЅпїЅпїЅпїЅ
                (LowerCase(FItems[a][2]) = LowerCase(Chr(wParam))) ) then
           begin
             FIndex := a;
@@ -3278,7 +3287,7 @@ begin
   path := IncludeTrailingPathDelimiter(path);
   path := ExpandFileName(path);
 
-  // Каталоги:
+  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ:
   if FDirs then
   begin
     if FindFirst(path+'*', faDirectory, SR) = 0 then
@@ -3295,7 +3304,7 @@ begin
     FindClose(SR);
   end;
 
-  // Файлы:
+  // пїЅпїЅпїЅпїЅпїЅ:
   sm := FFileMask;
   while sm <> '' do
   begin

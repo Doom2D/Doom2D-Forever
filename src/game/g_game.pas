@@ -142,6 +142,7 @@ procedure g_Game_StepLoading(Value: Integer = -1);
 procedure g_Game_ClearLoading();
 procedure g_Game_SetDebugMode();
 procedure DrawLoadingStat();
+procedure DrawMenuBackground(tex: AnsiString; ID: DWord);
 
 { procedure SetWinPause(Enable: Boolean); }
 
@@ -1276,10 +1277,12 @@ begin
   sfsGCDisable(); // temporary disable removing of temporary volumes
 
   try
+    TEXTUREFILTER := GL_LINEAR;
     g_Texture_CreateWADEx('MENU_BACKGROUND', GameWAD+':TEXTURES\TITLE');
     g_Texture_CreateWADEx('INTER', GameWAD+':TEXTURES\INTER');
     g_Texture_CreateWADEx('ENDGAME_EN', GameWAD+':TEXTURES\ENDGAME_EN');
     g_Texture_CreateWADEx('ENDGAME_RU', GameWAD+':TEXTURES\ENDGAME_RU');
+    TEXTUREFILTER := GL_NEAREST;
 
     LoadStdFont('STDTXT', 'STDFONT', gStdFont);
     LoadFont('MENUTXT', 'MENUFONT', gMenuFont);
@@ -3002,6 +3005,24 @@ begin
   end;
 end;
 
+procedure DrawMenuBackground(tex: AnsiString; ID: DWord);
+var
+  w, h: Word;
+
+begin
+  if g_Texture_Get(tex, ID) then
+  begin
+    e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+    e_GetTextureSize(ID, @w, @h);
+    if w = h then
+      w := round(w * 1.333 * (gScreenHeight / h))
+    else
+      w := trunc(w * (gScreenHeight / h));
+      e_DrawSize(ID, (gScreenWidth - w) div 2, 0, 0, False, False, w, gScreenHeight);
+    end
+  else e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+end;
+
 procedure DrawMinimap(p: TPlayer; RenderRect: e_graphics.TRect);
 var
   a, aX, aY, aX2, aY2, Scale, ScaleSz: Integer;
@@ -3904,11 +3925,7 @@ begin
   begin
     if (gState = STATE_MENU) then
     begin
-      if (g_ActiveWindow = nil) or (g_ActiveWindow.BackTexture = '') then
-      begin
-        if g_Texture_Get('MENU_BACKGROUND', ID) then e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
-        else e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
-      end;
+      if (g_ActiveWindow = nil) or (g_ActiveWindow.BackTexture = '') then DrawMenuBackground('MENU_BACKGROUND', ID);
       // F3 at menu will show game loading dialog
       if e_KeyPressed(IK_F3) then g_Menu_Show_LoadMenu(true);
       if (g_ActiveWindow <> nil) then
@@ -3943,10 +3960,7 @@ begin
       else
         back := 'INTER';
 
-      if g_Texture_Get(back, ID) then
-        e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
-      else
-        e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+      DrawMenuBackground(back, ID);
 
       DrawCustomStat();
 
@@ -3967,10 +3981,7 @@ begin
       begin
         back := 'INTER';
 
-        if g_Texture_Get(back, ID) then
-          e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
-        else
-          e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+        DrawMenuBackground(back, ID);
 
         DrawSingleStat();
 
@@ -4002,12 +4013,13 @@ begin
 
     if gState = STATE_SLIST then
     begin
-      if g_Texture_Get('MENU_BACKGROUND', ID) then
-      begin
-        e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight);
-        //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
-        e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
-      end;
+//      if g_Texture_Get('MENU_BACKGROUND', ID) then
+//      begin
+//        e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight);
+//        //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+//      end;
+      DrawMenuBackground('MENU_BACKGROUND', ID);
+      e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
       g_Serverlist_Draw(slCurrent, slTable);
     end;
   end;
