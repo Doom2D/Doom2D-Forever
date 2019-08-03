@@ -685,14 +685,14 @@ begin
   if len = 0 then
     Exit;
 
-// пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ:
+// Окно с главным меню:
   g_GUI_ShowWindow(Saved_Windows[len-1]);
 
-// пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ):
+// Не переключилось (или некуда дальше):
   if (len = 1) or (g_ActiveWindow = nil) then
     Exit;
 
-// пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ:
+// Ищем кнопки в остальных окнах:
   for k := len-1 downto 1 do
   begin
     ok := False;
@@ -726,7 +726,7 @@ begin
         Break;
     end;
 
-  // пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ:
+  // Не переключилось:
     if (not ok) or
        (g_ActiveWindow.Name = Saved_Windows[k]) then
       Break;
@@ -3241,7 +3241,7 @@ begin
                 SetActive(Self)
               else
                 begin
-                  if FItems[FIndex][1] = #29 then // пїЅпїЅпїЅпїЅпїЅ
+                  if FItems[FIndex][1] = #29 then // Папка
                   begin
                     OpenDir(FPath+Copy(FItems[FIndex], 2, 255));
                     FIndex := 0;
@@ -3263,7 +3263,7 @@ begin
           if ( (Length(FItems[a]) > 0) and
                (LowerCase(FItems[a][1]) = LowerCase(Chr(wParam))) ) or
              ( (Length(FItems[a]) > 1) and
-               (FItems[a][1] = #29) and // пїЅпїЅпїЅпїЅпїЅ
+               (FItems[a][1] = #29) and // Папка
                (LowerCase(FItems[a][2]) = LowerCase(Chr(wParam))) ) then
           begin
             FIndex := a;
@@ -3287,7 +3287,7 @@ begin
   path := IncludeTrailingPathDelimiter(path);
   path := ExpandFileName(path);
 
-  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ:
+  // Каталоги:
   if FDirs then
   begin
     if FindFirst(path+'*', faDirectory, SR) = 0 then
@@ -3304,7 +3304,7 @@ begin
     FindClose(SR);
   end;
 
-  // пїЅпїЅпїЅпїЅпїЅ:
+  // Файлы:
   sm := FFileMask;
   while sm <> '' do
   begin

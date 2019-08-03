@@ -916,7 +916,7 @@ begin
     exit;
   end;
 
-  // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+  // Время предыдущего обновления
   if flag then
   begin
     Time_Old := Time-(Time_Delta mod 28);
@@ -1172,10 +1172,10 @@ begin
   Init();
   Time_Old := GetTimer();
 
-  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+  // Командная строка
   if (ParamCount > 0) then g_Game_Process_Params();
 
-  // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
+  // Запрос языка
   if (not gGameOn) and gAskLanguage then g_Menu_AskLanguage();
 
   e_WriteLog('Entering the main loop', TMsgType.Notify);
