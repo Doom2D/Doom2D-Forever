@@ -825,7 +825,7 @@ begin
         tw := round(tw * 1.333 * (gScreenHeight / th))
       else
         tw := trunc(tw * (gScreenHeight / th));
-        e_DrawSize(ID, (gScreenWidth - tw) div 2, 0, 0, False, False, tw, gScreenHeight);
+      e_DrawSize(ID, (gScreenWidth - tw) div 2, 0, 0, False, False, tw, gScreenHeight);
     end
     else
       e_Clear(GL_COLOR_BUFFER_BIT, 0.5, 0.5, 0.5);

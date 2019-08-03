@@ -142,7 +142,7 @@ procedure g_Game_StepLoading(Value: Integer = -1);
 procedure g_Game_ClearLoading();
 procedure g_Game_SetDebugMode();
 procedure DrawLoadingStat();
-procedure DrawMenuBackground(tex: AnsiString; ID: DWord);
+procedure DrawMenuBackground(tex: AnsiString);
 
 { procedure SetWinPause(Enable: Boolean); }
 
@@ -3005,9 +3005,10 @@ begin
   end;
 end;
 
-procedure DrawMenuBackground(tex: AnsiString; ID: DWord);
+procedure DrawMenuBackground(tex: AnsiString);
 var
   w, h: Word;
+  ID: DWord;
 
 begin
   if g_Texture_Get(tex, ID) then
@@ -3018,8 +3019,8 @@ begin
       w := round(w * 1.333 * (gScreenHeight / h))
     else
       w := trunc(w * (gScreenHeight / h));
-      e_DrawSize(ID, (gScreenWidth - w) div 2, 0, 0, False, False, w, gScreenHeight);
-    end
+    e_DrawSize(ID, (gScreenWidth - w) div 2, 0, 0, False, False, w, gScreenHeight);
+  end
   else e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
 end;
 
@@ -3925,7 +3926,7 @@ begin
   begin
     if (gState = STATE_MENU) then
     begin
-      if (g_ActiveWindow = nil) or (g_ActiveWindow.BackTexture = '') then DrawMenuBackground('MENU_BACKGROUND', ID);
+      if (g_ActiveWindow = nil) or (g_ActiveWindow.BackTexture = '') then DrawMenuBackground('MENU_BACKGROUND');
       // F3 at menu will show game loading dialog
       if e_KeyPressed(IK_F3) then g_Menu_Show_LoadMenu(true);
       if (g_ActiveWindow <> nil) then
@@ -3960,7 +3961,7 @@ begin
       else
         back := 'INTER';
 
-      DrawMenuBackground(back, ID);
+      DrawMenuBackground(back);
 
       DrawCustomStat();
 
@@ -3981,7 +3982,7 @@ begin
       begin
         back := 'INTER';
 
-        DrawMenuBackground(back, ID);
+        DrawMenuBackground(back);
 
         DrawSingleStat();
 
@@ -4018,7 +4019,7 @@ begin
 //        e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight);
 //        //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
 //      end;
-      DrawMenuBackground('MENU_BACKGROUND', ID);
+      DrawMenuBackground('MENU_BACKGROUND');
       e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
       g_Serverlist_Draw(slCurrent, slTable);
     end;

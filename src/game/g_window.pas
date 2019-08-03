@@ -789,7 +789,6 @@ var
 procedure ProcessLoading (forceUpdate: Boolean=false);
 var
   ev: TSDL_Event;
-  ID: LongWord;
   stt: UInt64;
 begin
   FillChar(ev, sizeof(ev), 0);
@@ -826,7 +825,7 @@ begin
 
     if forceUpdate then
     begin
-      DrawMenuBackground('INTER', ID);
+      DrawMenuBackground('INTER');
       e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
 
       DrawLoadingStat();
