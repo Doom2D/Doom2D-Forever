@@ -147,6 +147,7 @@ var
     down, up: SSArray;
   end;
   menu_toggled: BOOLEAN; (* hack for menu controls *)
+  ChatTop: BOOLEAN;
 
 
 procedure g_Console_Switch;
@@ -1101,33 +1102,37 @@ procedure g_Console_Draw();
 var
   CWidth, CHeight: Byte;
   mfW, mfH: Word;
-  a, b: Integer;
+  a, b, offset_y: Integer;
 begin
   e_TextureFontGetSize(gStdFont, CWidth, CHeight);
 
+  if ChatTop and gChatShow then
+    offset_y := CHeight
+  else
+    offset_y := 0;
+
   for a := 0 to High(MsgArray) do
     if MsgArray[a].Time > 0 then
-      e_TextureFontPrintFmt(0, CHeight*a, MsgArray[a].Msg,
-        gStdFont, True);
+      e_TextureFontPrintFmt(0, offset_y + CHeight * a, MsgArray[a].Msg, gStdFont, True);
 
   if not Cons_Shown then
   begin
     if gChatShow then
     begin
+      if ChatTop then
+        offset_y := 0
+      else
+        offset_y := gScreenHeight - CHeight - 1;
       if gChatTeam then
       begin
-        e_TextureFontPrintEx(0, gScreenHeight - CHeight - 1, 'say team> ' + Line,
-          gStdFont, 255, 255, 255, 1, True);
-        e_TextureFontPrintEx((CPos + 9)*CWidth, gScreenHeight - CHeight - 1, '_',
-          gStdFont, 255, 255, 255, 1, True);
+        e_TextureFontPrintEx(0, offset_y, 'say team> ' + Line, gStdFont, 255, 255, 255, 1, True);
+        e_TextureFontPrintEx((CPos + 9) * CWidth, offset_y, '_', gStdFont, 255, 255, 255, 1, True);
       end
       else
       begin
-        e_TextureFontPrintEx(0, gScreenHeight - CHeight - 1, 'say> ' + Line,
-          gStdFont, 255, 255, 255, 1, True);
-        e_TextureFontPrintEx((CPos + 4)*CWidth, gScreenHeight - CHeight - 1, '_',
-          gStdFont, 255, 255, 255, 1, True);
-      end;
+        e_TextureFontPrintEx(0, offset_y, 'say> ' + Line, gStdFont, 255, 255, 255, 1, True);
+        e_TextureFontPrintEx((CPos + 4) * CWidth, offset_y, '_', gStdFont, 255, 255, 255, 1, True);
+      end
     end;
     Exit;
   end;
@@ -1905,10 +1910,13 @@ begin
 end;
 
 initialization
+  conRegVar('chat_at_top', @ChatTop, 'draw chat at top border', 'draw chat at top border');
   conRegVar('console_height', @ConsoleHeight, 0.0, 1.0, 'set console size', 'set console size');
 {$IFDEF ANDROID}
+  ChatTop := True;
   ConsoleHeight := 0.35
 {$ELSE}
+  ChatTop := False;
   ConsoleHeight := 0.5
 {$ENDIF}
 end.
