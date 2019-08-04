@@ -151,21 +151,24 @@ var
 
 procedure g_Console_Switch;
 begin
+  if gConsoleShow or Cons_Shown or gChatShow then
+    g_Touch_ShowKeyboard(False);
   gChatShow := False;
   gConsoleShow := not gConsoleShow;
   Cons_Shown := True;
-  g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
 end;
 
 procedure g_Console_Chat_Switch (Team: Boolean = False);
 begin
+  if gConsoleShow or Cons_Shown or gChatShow then
+    g_Touch_ShowKeyboard(False);
   if not g_Game_IsNet then Exit;
   gConsoleShow := False;
   gChatShow := not gChatShow;
   gChatTeam := Team;
+  Cons_Shown := True;
   Line := '';
   CPos := 1;
-  g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
 end;
 
 // poor man's floating literal parser; i'm sorry, but `StrToFloat()` sux cocks
@@ -707,14 +710,13 @@ begin
   'hidekeyboard':
     g_Touch_ShowKeyboard(False);
   'togglemenu':
-    if gConsoleShow then
     begin
-      g_Console_Switch;
-      menu_toggled := True
-    end
-    else
-    begin
-      KeyPress(VK_ESCAPE);
+      if gConsoleShow then
+        g_Console_Switch
+      else if gChatShow then
+        g_Console_Chat_Switch
+      else
+        KeyPress(VK_ESCAPE);
       menu_toggled := True
     end;
   'toggleconsole':
@@ -985,17 +987,26 @@ begin
   begin
   // В процессе открытия:
     if gConsoleShow and (Cons_Y < 0) then
-    begin
       Cons_Y := Cons_Y+Step;
-    end;
 
   // В процессе закрытия:
     if (not gConsoleShow) and (Cons_Y > -Floor(gScreenHeight * ConsoleHeight)) then
       Cons_Y := Cons_Y-Step;
 
+    // Open chat
+    if gChatShow then
+    begin
+      Cons_Y := -Floor(gScreenHeight * ConsoleHeight);
+      Cons_Shown := False;
+      g_Touch_ShowKeyboard(True);
+    end;
+
   // Окончательно открылась:
     if Cons_Y > 0 then
+    begin
       Cons_Y := 0;
+      g_Touch_ShowKeyboard(True);
+    end;
 
   // Окончательно закрылась:
     if Cons_Y <= -Floor(gScreenHeight * ConsoleHeight) then
@@ -1300,7 +1311,7 @@ begin
         CPos := CPos + 1;
     IK_RETURN, IK_KPRETURN, VK_OPEN, VK_FIRE, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
     begin
-      if Cons_Shown then
+      if gConsoleShow then
         g_Console_Process(Line)
       else
         if gChatShow then
@@ -1327,9 +1338,8 @@ begin
 
           Line := '';
           CPos := 1;
-          gChatShow := False;
           gJustChatted := True;
-          g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
+          g_Console_Chat_Switch
         end;
     end;
     IK_TAB:
@@ -1367,17 +1377,6 @@ begin
     IK_SEMICOLON, IK_QUOTE, IK_BACKSLASH, IK_SLASH, IK_COMMA, IK_DOT, IK_EQUALS,
     IK_0, IK_1, IK_2, IK_3, IK_4, IK_5, IK_6, IK_7, IK_8, IK_9, IK_MINUS, IK_EQUALS:
       (* see TEXTINPUT event *)
-  else
-    if gConsoleShow and not Cons_Shown and g_Console_MatchBind(K, 'toggleconsole') then
-      g_Console_Switch;
-    if g_Console_MatchBind(K, 'togglemenu') then
-    begin
-      menu_toggled := True;
-      if gChatShow then
-        g_Console_Chat_Switch
-      else if gConsoleShow and not Cons_Shown then
-        g_Console_Switch
-    end
   end
 end;
 
@@ -1713,17 +1712,33 @@ begin
   Result := i < len
 end;
 
+function BindsAllowed (key: Integer): Boolean;
+begin
+  Result := False;
+  if (not g_GUIGrabInput) and (key >= 0) and (key < e_MaxInputKeys) and ((gInputBinds[key].down <> nil) or (gInputBinds[key].up <> nil)) then
+  begin
+    if gChatShow then
+      Result := g_Console_MatchBind(key, 'togglemenu') or
+                g_Console_MatchBind(key, 'showkeyboard') or
+                g_Console_MatchBind(key, 'hidekeyboard')
+    else if (gGameSettings.GameType <> GT_NONE) and not gConsoleShow then
+      Result := True
+    else (* if CONSOLE or MENU then *)
+      Result := g_Console_MatchBind(key, 'togglemenu') or
+                g_Console_MatchBind(key, 'toggleconsole') or
+                g_Console_MatchBind(key, 'showkeyboard') or
+                g_Console_MatchBind(key, 'hidekeyboard')
+  end
+end;
+
 procedure g_Console_ProcessBind (key: Integer; down: Boolean);
   var i: Integer;
 begin
-  if (not g_GUIGrabInput) and (key >= 0) and (key < e_MaxInputKeys) and ((gInputBinds[key].down <> nil) or (gInputBinds[key].up <> nil)) then
+  if BindsAllowed(key) then
   begin
     if down then
-    begin
-      if not gChatShow then
-        for i := 0 to High(gInputBinds[key].down) do
-          g_Console_Process(gInputBinds[key].down[i], True);
-    end
+      for i := 0 to High(gInputBinds[key].down) do
+        g_Console_Process(gInputBinds[key].down[i], True)
     else
       for i := 0 to High(gInputBinds[key].up) do
         g_Console_Process(gInputBinds[key].up[i], True)
