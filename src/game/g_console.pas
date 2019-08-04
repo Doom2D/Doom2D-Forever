@@ -1721,13 +1721,13 @@ begin
       Result := g_Console_MatchBind(key, 'togglemenu') or
                 g_Console_MatchBind(key, 'showkeyboard') or
                 g_Console_MatchBind(key, 'hidekeyboard')
-    else if (gGameSettings.GameType <> GT_NONE) and not gConsoleShow then
-      Result := True
-    else (* if CONSOLE or MENU then *)
+    else if gConsoleShow or (g_ActiveWindow <> nil) or (gGameSettings.GameType = GT_NONE) then
       Result := g_Console_MatchBind(key, 'togglemenu') or
                 g_Console_MatchBind(key, 'toggleconsole') or
                 g_Console_MatchBind(key, 'showkeyboard') or
                 g_Console_MatchBind(key, 'hidekeyboard')
+    else (* in game *)
+      Result := True
   end
 end;
 
