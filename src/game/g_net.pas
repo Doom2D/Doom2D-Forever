@@ -209,7 +209,7 @@ uses
   g_main, g_game, g_language, g_weapons, utils, ctypes;
 
 var
-  g_Net_DownloadTimeoutMs: Single;
+  g_Net_DownloadTimeout: Single;
 
 
 { /// SERVICE FUNCTIONS /// }
@@ -962,7 +962,7 @@ begin
   FillChar(ev, SizeOf(ev), 0);
   stream := nil;
   repeat
-    status := enet_host_service(NetHost, @ev, Trunc(g_Net_DownloadTimeoutMs * 1000));
+    status := enet_host_service(NetHost, @ev, Trunc(g_Net_DownloadTimeout * 1000));
     if status > 0 then
     begin
       case ev.kind of
@@ -1271,8 +1271,8 @@ end;
 {$ENDIF}
 
 initialization
-  conRegVar('cl_downloadtimeout', @g_Net_DownloadTimeoutMs, 0.0, 1000000.0, '', 'timeout in seconds, 0 to disable it');
-  g_Net_DownloadTimeoutMs := 60;
+  conRegVar('cl_downloadtimeout', @g_Net_DownloadTimeout, 0.0, 1000000.0, '', 'timeout in seconds, 0 to disable it');
+  g_Net_DownloadTimeout := 60;
   NetIn.Alloc(NET_BUFSIZE);
   NetOut.Alloc(NET_BUFSIZE);
 finalization
