@@ -217,6 +217,12 @@ const
 
   STD_PLAYER_MODEL = 'Doomer';
 
+{$IFDEF HEADLESS}
+  DEFAULT_PLAYERS = 0;
+{$ELSE}
+  DEFAULT_PLAYERS = 1;
+{$ENDIF}
+
 var
   gStdFont: DWORD;
   gGameSettings: TGameSettings;
@@ -7806,9 +7812,9 @@ begin
   // Number of players:
     s := Find_Param_Value(pars, '-pl');
     if (s = '') then
-      n := 1
+      n := DEFAULT_PLAYERS
     else
-      n := StrToIntDef(s, 1);
+      n := StrToIntDef(s, DEFAULT_PLAYERS);
 
   // Start:
     s := Find_Param_Value(pars, '-port');
