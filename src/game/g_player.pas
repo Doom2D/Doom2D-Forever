@@ -3191,6 +3191,8 @@ end;
 
 procedure TPlayer.CatchFire(Attacker: Word);
 begin
+  if (FMegaRulez[MR_SUIT] > gTime) or (FMegaRulez[MR_INVUL] > gTime) then
+    exit; // Не загораемся когда есть защита
   if FFireTime <= 0 then
     g_Sound_PlayExAt('SOUND_IGNITE', FObj.X, FObj.Y);
   FFireTime := 100;
