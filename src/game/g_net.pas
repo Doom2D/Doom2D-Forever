@@ -206,7 +206,10 @@ implementation
 uses
   SysUtils,
   e_input, g_nethandler, g_netmsg, g_netmaster, g_player, g_window, g_console,
-  g_main, g_game, g_language, g_weapons, utils;
+  g_main, g_game, g_language, g_weapons, utils, ctypes;
+
+var
+  g_Net_DownloadTimeoutMs: Single;
 
 
 { /// SERVICE FUNCTIONS /// }
@@ -937,60 +940,71 @@ begin
   enet_host_flush(NetHost);
 end;
 
-function g_Net_Wait_Event(msgId: Word): TMemoryStream;
-var
-  downloadEvent: ENetEvent;
-  OuterLoop: Boolean;
-  MID: Byte;
-  Ptr: Pointer;
-  msgStream: TMemoryStream;
+function UserRequestExit: Boolean;
 begin
-  FillChar(downloadEvent, SizeOf(downloadEvent), 0);
-  msgStream := nil;
-  OuterLoop := True;
-  while OuterLoop do
-  begin
-    while (enet_host_service(NetHost, @downloadEvent, 0) > 0) do
+  Result := e_KeyPressed(IK_SPACE) or
+            e_KeyPressed(IK_ESCAPE) or
+            e_KeyPressed(VK_ESCAPE) or
+            e_KeyPressed(JOY0_JUMP) or
+            e_KeyPressed(JOY1_JUMP) or
+            e_KeyPressed(JOY2_JUMP) or
+            e_KeyPressed(JOY3_JUMP)
+end;
+
+function g_Net_Wait_Event(msgId: Word): TMemoryStream;
+  var
+    ev: ENetEvent;
+    rMsgId: Byte;
+    Ptr: Pointer;
+    stream: TMemoryStream;
+    status: cint;
+begin
+  FillChar(ev, SizeOf(ev), 0);
+  stream := nil;
+  repeat
+    status := enet_host_service(NetHost, @ev, Trunc(g_Net_DownloadTimeoutMs * 1000));
+    if status > 0 then
     begin
-      if (downloadEvent.kind = ENET_EVENT_TYPE_RECEIVE) then
-      begin
-        Ptr := downloadEvent.packet^.data;
-
-        MID := Byte(Ptr^);
-
-        if (MID = msgId) then
+      case ev.kind of
+        ENET_EVENT_TYPE_RECEIVE:
+          begin
+            Ptr := ev.packet^.data;
+            rMsgId := Byte(Ptr^);
+            if rMsgId = msgId then
+            begin
+              stream := TMemoryStream.Create;
+              stream.SetSize(ev.packet^.dataLength);
+              stream.WriteBuffer(Ptr^, ev.packet^.dataLength);
+              stream.Seek(0, soFromBeginning);
+              status := 1 (* received *)
+            end
+            else
+            begin
+              (* looks that game state always received, so ignore it *)
+              e_LogWritefln('g_Net_Wait_Event(%s): skip message %s', [msgId, rMsgId]);
+              status := 2 (* continue *)
+            end
+          end;
+      ENET_EVENT_TYPE_DISCONNECT:
         begin
-          msgStream := TMemoryStream.Create;
-          msgStream.SetSize(downloadEvent.packet^.dataLength);
-          msgStream.WriteBuffer(Ptr^, downloadEvent.packet^.dataLength);
-          msgStream.Seek(0, soFromBeginning);
-
-          OuterLoop := False;
-          enet_packet_destroy(downloadEvent.packet);
-          break;
-        end
-        else begin
-          enet_packet_destroy(downloadEvent.packet);
+          if (ev.data <= NET_DISC_MAX) then
+            g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' ' + _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + ev.data)], True);
+          status := -2 (* error: disconnected *)
         end;
-      end
       else
-        if (downloadEvent.kind = ENET_EVENT_TYPE_DISCONNECT) then
-        begin
-          if (downloadEvent.data <= NET_DISC_MAX) then
-            g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' ' +
-            _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + downloadEvent.data)], True);
-          OuterLoop := False;
-          Break;
-        end;
+        g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' unknown ENet event ' + IntToStr(Ord(ev.kind)), True);
+        status := -3 (* error: unknown event *)
+      end;
+      enet_packet_destroy(ev.packet)
+    end
+    else
+    begin
+      g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' timeout reached', True);
+      status := 0 (* error: timeout *)
     end;
-
     ProcessLoading(true);
-
-    if e_KeyPressed(IK_SPACE) or e_KeyPressed(IK_ESCAPE) or e_KeyPressed(VK_ESCAPE) or
-       e_KeyPressed(JOY0_JUMP) or e_KeyPressed(JOY1_JUMP) or e_KeyPressed(JOY2_JUMP) or e_KeyPressed(JOY3_JUMP) then
-      break;
-  end;
-  Result := msgStream;
+  until (status <> 2) or UserRequestExit();
+  Result := stream
 end;
 
 function g_Net_IsHostBanned(IP: LongWord; Perm: Boolean = False): Boolean;
@@ -1257,13 +1271,11 @@ end;
 {$ENDIF}
 
 initialization
-
+  conRegVar('cl_downloadtimeout', @g_Net_DownloadTimeoutMs, 0.0, 1000000.0, '', 'timeout in seconds, 0 to disable it');
+  g_Net_DownloadTimeoutMs := 60;
   NetIn.Alloc(NET_BUFSIZE);
   NetOut.Alloc(NET_BUFSIZE);
-
 finalization
-
   NetIn.Free();
   NetOut.Free();
-
 end.
