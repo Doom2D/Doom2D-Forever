@@ -1410,6 +1410,20 @@ begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
+                case Data.DamageKind of
+                  3: str := _lc[I_PROP_TR_DAMAGE_KIND_3];
+                  4: str := _lc[I_PROP_TR_DAMAGE_KIND_4];
+                  5: str := _lc[I_PROP_TR_DAMAGE_KIND_5];
+                  6: str := _lc[I_PROP_TR_DAMAGE_KIND_6];
+                  7: str := _lc[I_PROP_TR_DAMAGE_KIND_7];
+                  8: str := _lc[I_PROP_TR_DAMAGE_KIND_8];
+                  else str := _lc[I_PROP_TR_DAMAGE_KIND_0];
+                end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_DAMAGE_KIND], str, True)] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
               end;
 
             TRIGGER_HEALTH:
@@ -4765,6 +4779,16 @@ begin
         Values.Add(_lc[I_PROP_TR_SHOT_AIM_2]);
         Values.Add(_lc[I_PROP_TR_SHOT_AIM_3]);
       end
+    else if KeyName = _lc[I_PROP_TR_DAMAGE_KIND] then
+      begin
+        Values.Add(_lc[I_PROP_TR_DAMAGE_KIND_0]);
+        Values.Add(_lc[I_PROP_TR_DAMAGE_KIND_3]);
+        Values.Add(_lc[I_PROP_TR_DAMAGE_KIND_4]);
+        Values.Add(_lc[I_PROP_TR_DAMAGE_KIND_5]);
+        Values.Add(_lc[I_PROP_TR_DAMAGE_KIND_6]);
+        Values.Add(_lc[I_PROP_TR_DAMAGE_KIND_7]);
+        Values.Add(_lc[I_PROP_TR_DAMAGE_KIND_8]);
+      end
     else if (KeyName = _lc[I_PROP_PANEL_BLEND]) or
             (KeyName = _lc[I_PROP_DM_ONLY]) or
             (KeyName = _lc[I_PROP_ITEM_FALLS]) or
@@ -5168,6 +5192,21 @@ begin
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_DAMAGE_VALUE]], 0), 0), 65535);
                 Data.DamageInterval := Min(Max(
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_INTERVAL]], 0), 0), 65535);
+                s := vleObjectProperty.Values[_lc[I_PROP_TR_DAMAGE_KIND]];
+                if s = _lc[I_PROP_TR_DAMAGE_KIND_3] then
+                  Data.DamageKind := 3
+                else if s = _lc[I_PROP_TR_DAMAGE_KIND_4] then
+                  Data.DamageKind := 4
+                else if s = _lc[I_PROP_TR_DAMAGE_KIND_5] then
+                  Data.DamageKind := 5
+                else if s = _lc[I_PROP_TR_DAMAGE_KIND_6] then
+                  Data.DamageKind := 6
+                else if s = _lc[I_PROP_TR_DAMAGE_KIND_7] then
+                  Data.DamageKind := 7
+                else if s = _lc[I_PROP_TR_DAMAGE_KIND_8] then
+                  Data.DamageKind := 8
+                else
+                  Data.DamageKind := 0;
               end;
 
             TRIGGER_HEALTH:

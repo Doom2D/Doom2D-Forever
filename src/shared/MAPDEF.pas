@@ -293,7 +293,8 @@ Type
                              MessageText: Char100;
                              MessageTime: Word);
       TRIGGER_DAMAGE:       (DamageValue: Word;
-                             DamageInterval: Word);
+                             DamageInterval: Word;
+                             DamageKind: Byte);
       TRIGGER_HEALTH:       (HealValue: Word;
                              HealInterval: Word;
                              HealMax: Boolean;

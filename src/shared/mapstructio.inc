@@ -184,6 +184,7 @@ procedure mb_Read_TriggerData (var tr: TTriggerData; ttype: Integer; const buf; 
   begin
     getWordAt(tr.DamageValue, buf, 0);
     getWordAt(tr.DamageInterval, buf, 2);
+    getBytesAt(tr.DamageKind, buf, 4);
   end;
 
   procedure xreadHealth ();
@@ -495,6 +496,7 @@ procedure mb_Write_TriggerData (var buf; bufsize: Integer; ttype: Integer; var t
   begin
     putWordAt(buf, 0, tr.DamageValue);
     putWordAt(buf, 2, tr.DamageInterval);
+    putBytesAt(buf, 4, tr.DamageKind);
   end;
 
   procedure xwriteHealth ();
