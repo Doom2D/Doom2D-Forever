@@ -5276,7 +5276,7 @@ begin
         if FFirePainTime <= 0 then
         begin
           if g_Game_IsServer then
-            Damage(5, FFireAttacker, 0, 0, HIT_FLAME);
+            Damage(6, FFireAttacker, 0, 0, HIT_FLAME);
           FFirePainTime := 18;
         end;
         FFirePainTime := FFirePainTime - 1;
