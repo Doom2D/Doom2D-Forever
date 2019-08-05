@@ -501,6 +501,7 @@ TriggerData for TRIGGER_MESSAGE {
 TriggerData for TRIGGER_DAMAGE {
   "amount" type ushort offset 0 writedefault;
   "interval" type ushort offset 2 writedefault;
+  "kind" type ubyte offset 4 enum HitType default HIT_SOME writedefault;
 }
 
 TriggerData for TRIGGER_HEALTH {

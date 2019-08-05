@@ -115,6 +115,7 @@ begin
       begin
         tgt.tgcAmount := tdata.trigAmount;
         tgt.tgcInterval := tdata.trigInterval;
+        tgt.tgcKind := tdata.trigKind;
       end;
     TRIGGER_HEALTH:
       begin

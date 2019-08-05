@@ -2107,7 +2107,14 @@ begin
 
                     // Наносим урон игроку
                     if (TriggerType = TRIGGER_DAMAGE) and (tgcAmount > 0) then
-                      p.Damage(tgcAmount, 0, 0, 0, HIT_SOME);
+                    begin
+                      // Кислотный урон не наносится когда есть костюм
+                      // "Водяной" урон не наносится когда есть кислород
+                      if not (((tgcKind = HIT_ACID) and (p.FMegaRulez[MR_SUIT] > gTime)) or
+                              ((tgcKind = HIT_WATER) and (p.Air > 0))) then
+                        p.Damage(tgcAmount, 0, 0, 0, tgcKind);
+                      if (tgcKind = HIT_FLAME) then p.CatchFire(0);
+                    end;
 
                     // Лечим игрока
                     if (TriggerType = TRIGGER_HEALTH) and (tgcAmount > 0) then
@@ -2127,7 +2134,10 @@ begin
 
                     // Наносим урон монстру
                     if (TriggerType = TRIGGER_DAMAGE) and (tgcAmount > 0) then
-                      m.Damage(tgcAmount, 0, 0, 0, HIT_SOME);
+                    begin
+                      p.Damage(tgcAmount, 0, 0, 0, tgcKind);
+                      if (tgcKind = HIT_FLAME) then m.CatchFire(0);
+                    end;
 
                     // Лечим монстра
                     if (TriggerType = TRIGGER_HEALTH) and (tgcAmount > 0) then
