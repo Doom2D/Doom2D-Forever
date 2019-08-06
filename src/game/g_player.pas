@@ -3195,7 +3195,7 @@ begin
     exit; // Не загораемся когда есть защита
   if FFireTime <= 0 then
     g_Sound_PlayExAt('SOUND_IGNITE', FObj.X, FObj.Y);
-  FFireTime := 100;
+  FFireTime := 110;
   FFireAttacker := Attacker;
   if g_Game_IsNet and g_Game_IsServer then
     MH_SEND_PlayerStats(FUID);
@@ -4104,7 +4104,7 @@ begin
             (FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS]) or
             (FAmmo[A_ROCKETS] < FMaxAmmo[A_ROCKETS]) or
             (FAmmo[A_CELLS] < FMaxAmmo[A_CELLS]) or
-            (FMaxAmmo[A_FUEL] < AmmoLimits[1, A_FUEL]) then
+            (FAmmo[A_FUEL] < FMaxAmmo[A_FUEL]) then
       begin
         FMaxAmmo[A_BULLETS] := AmmoLimits[1, A_BULLETS];
         FMaxAmmo[A_SHELLS] := AmmoLimits[1, A_SHELLS];
@@ -5279,7 +5279,7 @@ begin
         begin
           if g_Game_IsServer then
             Damage(2, FFireAttacker, 0, 0, HIT_FLAME);
-          FFirePainTime := 3;
+          FFirePainTime := 12 - FFireTime div 12;
         end;
         FFirePainTime := FFirePainTime - 1;
         FFireTime := FFireTime - 1;
