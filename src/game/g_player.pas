@@ -5281,7 +5281,7 @@ begin
         end;
         FFirePainTime := FFirePainTime - 1;
         FFireTime := FFireTime - 1;
-        if ((FFireTime mod 36) = 0) and (FMegaRulez[MR_INVUL] < gTime) then
+        if ((FFireTime mod 33) = 0) and (FMegaRulez[MR_INVUL] < gTime) then
           FModel.PlaySound(MODELSOUND_PAIN, 1, FObj.X, FObj.Y);
         if (FFireTime = 0) and g_Game_IsNet and g_Game_IsServer then
           MH_SEND_PlayerStats(FUID);
@@ -5314,7 +5314,7 @@ begin
             else if FHealth > -50 then Kill(K_HARDKILL, FLastSpawnerUID, FLastHit)
               else Kill(K_EXTRAHARDKILL, FLastSpawnerUID, FLastHit);
 
-      if FAlive and (FFireTime <= 0) then
+      if FAlive and ((FLastHit <> HIT_FLAME) or (FFireTime <= 0)) then
       begin
         if FDamageBuffer <= 20 then FModel.PlaySound(MODELSOUND_PAIN, 1, FObj.X, FObj.Y)
           else if FDamageBuffer <= 55 then FModel.PlaySound(MODELSOUND_PAIN, 2, FObj.X, FObj.Y)
