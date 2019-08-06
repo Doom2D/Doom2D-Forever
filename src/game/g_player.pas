@@ -4120,6 +4120,8 @@ begin
           IncMax(FAmmo[A_ROCKETS], 1, FMaxAmmo[A_ROCKETS]);
         if FAmmo[A_CELLS] < FMaxAmmo[A_CELLS] then
           IncMax(FAmmo[A_CELLS], 40, FMaxAmmo[A_CELLS]);
+        if FAmmo[A_FUEL] < FMaxAmmo[A_FUEL] then
+          IncMax(FAmmo[A_FUEL], 50, FMaxAmmo[A_FUEL]);
 
         FRulez := FRulez + [R_ITEM_BACKPACK];
         Result := True;
@@ -5276,8 +5278,8 @@ begin
         if FFirePainTime <= 0 then
         begin
           if g_Game_IsServer then
-            Damage(6, FFireAttacker, 0, 0, HIT_FLAME);
-          FFirePainTime := 18;
+            Damage(2, FFireAttacker, 0, 0, HIT_FLAME);
+          FFirePainTime := 3;
         end;
         FFirePainTime := FFirePainTime - 1;
         FFireTime := FFireTime - 1;

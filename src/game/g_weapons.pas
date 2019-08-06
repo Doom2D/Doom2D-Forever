@@ -2346,7 +2346,7 @@ begin
                 Stopped := MOVE_HITCEIL;
             end;
 
-            a := IfThen(Stopped = 0, 6, 1);
+            a := IfThen(Stopped = 0, 10, 1);
           // Если в кого-то попали
             if g_Weapon_Hit(@Obj, a, SpawnerUID, HIT_FLAME, False) <> 0 then
             begin
