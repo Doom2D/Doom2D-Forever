@@ -3851,9 +3851,9 @@ begin
 
   case ItemType of
     ITEM_MEDKIT_SMALL:
-      if FHealth < PLAYER_HP_SOFT then
+      if (FHealth < PLAYER_HP_SOFT) or (FFireTime > 0) then
       begin
-        IncMax(FHealth, 10, PLAYER_HP_SOFT);
+        if FHealth < PLAYER_HP_SOFT then IncMax(FHealth, 10, PLAYER_HP_SOFT);
         Result := True;
         remove := True;
         FFireTime := 0;
@@ -3861,9 +3861,9 @@ begin
       end;
 
     ITEM_MEDKIT_LARGE:
-      if FHealth < PLAYER_HP_SOFT then
+      if (FHealth < PLAYER_HP_SOFT) or (FFireTime > 0) then
       begin
-        IncMax(FHealth, 25, PLAYER_HP_SOFT);
+        if FHealth < PLAYER_HP_SOFT then IncMax(FHealth, 25, PLAYER_HP_SOFT);
         Result := True;
         remove := True;
         FFireTime := 0;
@@ -3889,9 +3889,9 @@ begin
       end;
 
     ITEM_SPHERE_BLUE:
-      if FHealth < PLAYER_HP_LIMIT then
+      if (FHealth < PLAYER_HP_LIMIT) or (FFireTime > 0) then
       begin
-        IncMax(FHealth, 100, PLAYER_HP_LIMIT);
+        if FHealth < PLAYER_HP_LIMIT then IncMax(FHealth, 100, PLAYER_HP_LIMIT);
         Result := True;
         remove := True;
         FFireTime := 0;
@@ -3899,7 +3899,7 @@ begin
       end;
 
     ITEM_SPHERE_WHITE:
-      if (FHealth < PLAYER_HP_LIMIT) or (FArmor < PLAYER_AP_LIMIT) then
+      if (FHealth < PLAYER_HP_LIMIT) or (FArmor < PLAYER_AP_LIMIT) or (FFireTime > 0) then
       begin
         if FHealth < PLAYER_HP_LIMIT then
           FHealth := PLAYER_HP_LIMIT;
@@ -4199,9 +4199,9 @@ begin
           remove := True;
           FFireTime := 0;
         end;
-        if FHealth < PLAYER_HP_SOFT then
+        if (FHealth < PLAYER_HP_SOFT) or (FFireTime > 0) then
         begin
-          FHealth := PLAYER_HP_SOFT;
+          if FHealth < PLAYER_HP_SOFT then FHealth := PLAYER_HP_SOFT;
           FBerserk := gTime+30000;
           Result := True;
           remove := True;
@@ -4219,9 +4219,9 @@ begin
       end;
 
     ITEM_BOTTLE:
-      if FHealth < PLAYER_HP_LIMIT then
+      if (FHealth < PLAYER_HP_LIMIT) or (FFireTime > 0) then
       begin
-        IncMax(FHealth, 4, PLAYER_HP_LIMIT);
+        if FHealth < PLAYER_HP_LIMIT then IncMax(FHealth, 4, PLAYER_HP_LIMIT);
         Result := True;
         remove := True;
         FFireTime := 0;
