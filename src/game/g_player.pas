@@ -2328,12 +2328,12 @@ var
 begin
   if FAlive then
     begin
-      indX := FObj.X+FObj.Rect.X;
-      indY := FObj.Y;
       if g_Texture_Get('TEXTURE_PLAYER_INDICATOR', ID) then
         begin
           e_GetTextureSize(ID, @indW, @indH);
-          e_Draw(ID, indX + indW div 2, indY - indH, 0, True, False);
+          indX := FObj.X + FObj.Rect.X + (FObj.Rect.Width - indW) div 2;
+          indY := FObj.Y;
+          e_Draw(ID, indX, indY - indH, 0, True, False);
         end;
     end;
   //e_TextureFontPrint(indX, indY, FName, gStdFont); // Shows player name overhead
