@@ -501,14 +501,26 @@ begin
       st.Free();
     end;
   except
+    on e: EFileNotFoundException do
+      begin
+        g_Console_Add(_lc[I_GAME_ERROR_LOAD]);
+        g_Console_Add('LoadState Error: '+e.message);
+        e_WriteLog('LoadState Error: '+e.message, TMsgType.Warning);
+        gLoadGameMode := false;
+        result := false;
+      end;
     on e: Exception do
       begin
         g_Console_Add(_lc[I_GAME_ERROR_LOAD]);
+        g_Console_Add('LoadState Error: '+e.message);
         e_WriteLog('LoadState Error: '+e.message, TMsgType.Warning);
         {$IF DEFINED(D2F_DEBUG)}e_LogWritefln('stream error position: 0x%08x', [errpos], TMsgType.Warning);{$ENDIF}
         gLoadGameMode := false;
         result := false;
-        if not gameCleared then g_Game_Free();
+        if gState <> STATE_MENU then
+          g_FatalError(_lc[I_GAME_ERROR_LOAD])
+        else if not gameCleared then
+          g_Game_Free();
         {$IF DEFINED(D2F_DEBUG)}e_WriteStackTrace(e.message);{$ENDIF}
       end;
   end;

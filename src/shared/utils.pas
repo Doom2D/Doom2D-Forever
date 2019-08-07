@@ -1159,7 +1159,7 @@ end;
 
 function openDiskFileRO (pathname: AnsiString): TStream;
 begin
-  if not findFileCI(pathname) then raise Exception.Create('can''t open file "'+pathname+'"');
+  if not findFileCI(pathname) then raise EFileNotFoundException.Create('can''t open file "'+pathname+'"');
   result := TFileStream.Create(pathname, fmOpenRead or {fmShareDenyWrite}fmShareDenyNone);
 end;
 
