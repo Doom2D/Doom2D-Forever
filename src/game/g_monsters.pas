@@ -40,6 +40,8 @@ const
   MONSTATE_REVIVE = 10;
   MONSTATE_RUNOUT = 11;
 
+  MON_BURN_TIME   = 100;
+
 { in mapdef now
   BH_NORMAL   = 0;
   BH_KILLER   = 1;
@@ -145,7 +147,7 @@ type
     function  AnimIsReverse: Boolean;
     function  shoot(o: PObj; immediately: Boolean): Boolean;
     function  kick(o: PObj): Boolean;
-    procedure CatchFire(Attacker: Word);
+    procedure CatchFire(Attacker: Word; Timeout: Integer = MON_BURN_TIME);
     procedure OnFireFlame(Times: DWORD = 1);
 
     procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
@@ -2469,13 +2471,13 @@ begin
   st := g_Obj_Move(@FObj, fall, True, True);
   positionChanged(); // this updates spatial accelerators
 
-// Если горим - поджигаем других монстров:
+// Если горим - поджигаем других монстров, но не на 100 тиков каждый раз:
   if FFireTime > 0 then
     for a := 0 to High(gMonsters) do
       if (gMonsters[a] <> nil) and (gMonsters[a].alive) and
          (gMonsters[a].FUID <> FUID) and
          g_Obj_Collide(@FObj, @gMonsters[a].Obj) then
-        gMonsters[a].CatchFire(FFireAttacker);
+        gMonsters[a].CatchFire(FFireAttacker, FFireTime);
 
 // Вылетел за карту - удаляем и запускаем триггеры:
   if WordBool(st and MOVE_FALLOUT) or (FObj.X < -1000) or
@@ -4644,11 +4646,12 @@ begin
   SetLength(FDieTriggers, 0);
 end;
 
-procedure TMonster.CatchFire(Attacker: Word);
+procedure TMonster.CatchFire(Attacker: Word; Timeout: Integer = MON_BURN_TIME);
 begin
+  if Timeout <= 0 then exit;
   if FFireTime <= 0 then
     g_Sound_PlayExAt('SOUND_IGNITE', FObj.X, FObj.Y);
-  FFireTime := 100;
+  FFireTime := Timeout;
   FFireAttacker := Attacker;
   if g_Game_IsNet and g_Game_IsServer then MH_SEND_MonsterState(FUID);
 end;

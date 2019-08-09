@@ -97,6 +97,8 @@ const
   SUICIDE_DAMAGE  = 112;
   WEAPON_DELAY    = 5;
 
+  PLAYER_BURN_TIME = 110;
+
   PLAYER1_DEF_COLOR: TRGB = (R:64; G:175; B:48);
   PLAYER2_DEF_COLOR: TRGB = (R:96; G:96; B:96);
 
@@ -336,7 +338,7 @@ type
     procedure   FlamerOff;
     procedure   JetpackOn;
     procedure   JetpackOff;
-    procedure   CatchFire(Attacker: Word);
+    procedure   CatchFire(Attacker: Word; Timeout: Integer = PLAYER_BURN_TIME);
 
     //WARNING! this does nothing for now, but still call it!
     procedure positionChanged (); //WARNING! call this after entity position was changed, or coldet will not work right!
@@ -3189,13 +3191,15 @@ begin
   FJetSoundOff.PlayAt(FObj.X, FObj.Y);
 end;
 
-procedure TPlayer.CatchFire(Attacker: Word);
+procedure TPlayer.CatchFire(Attacker: Word; Timeout: Integer = PLAYER_BURN_TIME);
 begin
+  if Timeout <= 0 then
+    exit;
   if (FMegaRulez[MR_SUIT] > gTime) or (FMegaRulez[MR_INVUL] > gTime) then
     exit; // Не загораемся когда есть защита
   if FFireTime <= 0 then
     g_Sound_PlayExAt('SOUND_IGNITE', FObj.X, FObj.Y);
-  FFireTime := 110;
+  FFireTime := Timeout;
   FFireAttacker := Attacker;
   if g_Game_IsNet and g_Game_IsServer then
     MH_SEND_PlayerStats(FUID);
