@@ -2008,6 +2008,15 @@ begin
     Exit;
   end;
 
+// Арчи не горят, черепа уже горят
+  if (t = HIT_FLAME) and (FMonsterType in [MONSTER_VILE, MONSTER_SOUL]) then
+  begin
+  // Проснуться все-таки стоит
+    if FState = MONSTATE_SLEEP then
+      SetState(MONSTATE_GO);
+    Exit;
+  end;
+
 // Ловушка убивает сразу:
   if t = HIT_TRAP then
     FHealth := -100;
@@ -2435,6 +2444,8 @@ var
   o, co: TObj;
   fall: Boolean;
   mon: TMonster;
+  mit: PMonster;
+  it: TMonsterGrid.Iter;
 label
   _end;
 begin
@@ -2473,11 +2484,12 @@ begin
 
 // Если горим - поджигаем других монстров, но не на 100 тиков каждый раз:
   if FFireTime > 0 then
-    for a := 0 to High(gMonsters) do
-      if (gMonsters[a] <> nil) and (gMonsters[a].alive) and
-         (gMonsters[a].FUID <> FUID) and
-         g_Obj_Collide(@FObj, @gMonsters[a].Obj) then
-        gMonsters[a].CatchFire(FFireAttacker, FFireTime);
+  begin
+    it := monsGrid.forEachInAABB(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height);
+    for mit in it do
+      if mit.UID <> FUID then
+        mit.CatchFire(FFireAttacker, FFireTime);
+  end;
 
 // Вылетел за карту - удаляем и запускаем триггеры:
   if WordBool(st and MOVE_FALLOUT) or (FObj.X < -1000) or
@@ -4648,6 +4660,8 @@ end;
 
 procedure TMonster.CatchFire(Attacker: Word; Timeout: Integer = MON_BURN_TIME);
 begin
+  if FMonsterType in [MONSTER_SOUL, MONSTER_VILE] then
+    exit; // арчи не горят, черепа уже горят
   if Timeout <= 0 then exit;
   if FFireTime <= 0 then
     g_Sound_PlayExAt('SOUND_IGNITE', FObj.X, FObj.Y);
