@@ -115,7 +115,8 @@ procedure e_TextureFontKill(FontID: DWORD);
 procedure e_TextureFontPrint(X, Y: GLint; Text: string; FontID: DWORD);
 procedure e_TextureFontPrintEx(X, Y: GLint; Text: string; FontID: DWORD; Red, Green,
                                Blue: Byte; Scale: Single; Shadow: Boolean = False);
-procedure e_TextureFontPrintFmt(X, Y: GLint; Text: string; FontID: DWORD; Shadow: Boolean = False);
+procedure e_TextureFontPrintFmt(X, Y: GLint; Text: string; FontID: DWORD;
+                                Shadow: Boolean = False; Newlines: Boolean = False);
 procedure e_TextureFontGetSize(ID: DWORD; out CharWidth, CharHeight: Byte);
 procedure e_RemoveAllTextureFont();
 
@@ -1685,11 +1686,12 @@ begin
   result := e_TextureFonts[FontID].CharWidth;
 end;
 
-procedure e_TextureFontPrintFmt(X, Y: GLint; Text: string; FontID: DWORD; Shadow: Boolean = False);
+procedure e_TextureFontPrintFmt(X, Y: GLint; Text: string; FontID: DWORD;
+                                Shadow: Boolean = False; Newlines: Boolean = False);
 var
   a, TX, TY, len: Integer;
   tc, c: TRGB;
-  w: Word;
+  w, h: Word;
 begin
   if e_NoGraphics then Exit;
   if Text = '' then Exit;
@@ -1705,6 +1707,7 @@ begin
   len := Length(Text);
 
   w := e_TextureFonts[FontID].CharWidth;
+  h := e_TextureFonts[FontID].CharHeight;
 
   with e_TextureFonts[FontID] do
   begin
@@ -1721,12 +1724,15 @@ begin
     for a := 1 to len do
     begin
       case Text[a] of
-        {#10: // line feed
+        #10: // line feed
         begin
-          TX := X;
-          TY := TY + h;
-          continue;
-        end;}
+          if Newlines then
+          begin
+            TX := X;
+            TY := TY + h;
+            continue;
+          end;
+        end;
         #1: // black
         begin
           c.R := 0; c.G := 0; c.B := 0;

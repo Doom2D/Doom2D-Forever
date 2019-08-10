@@ -380,6 +380,8 @@ type
     I_NET_SLIST_WAIT,
     I_NET_SLIST_PING_MS,
     I_NET_SLIST_NO_ACCESS,
+    I_NET_SLIST_URGENT,
+    I_NET_SLIST_URGENT_CONT,
 
     I_NET_SLIST_FETCH,
     I_NET_SLIST_RETRIEVED,
@@ -1319,6 +1321,10 @@ const
                                        ' мс'),
     ('NET SLIST NO ACCESS',            'N/A',
                                        'Н/Д'),
+    ('NET SLIST URGENT',               'Message from master server',
+                                       'Сообщение с мастерсервера'),
+    ('NET SLIST URGENT CONT',          'Press [ENTER] to continue',
+                                       'Нажмите [ENTER] для продолжения'),
 
     ('NET SLIST FETCH',                'Fetching server list...',
                                        'Получаем список серверов...'),

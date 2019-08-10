@@ -27,7 +27,11 @@
 #define LC_MS_LIST "\nSent server list to %x:%u (ver. %s).\n"
 #define LC_MS_DIE  "\nD2DF master server shutting down...\n"
 #define LC_MS_CONN "\nIncoming connection from %x:%u...\n"
+#define LC_MS_MOTD "\nMOTD: %s\n"
+#define LC_MS_URGENT "\nURGENT: %s\n"
 
+#define MS_URGENT_FILE "urgent.txt"
+#define MS_MOTD_FILE "motd.txt"
 
 struct ms_server_s {
   enet_uint8 used;
@@ -46,6 +50,9 @@ struct ms_server_s {
 typedef struct ms_server_s ms_server;
 
 const char ms_game_ver[] = "0.63";
+char ms_motd[256] = "";
+char ms_urgent[256] = "";
+
 int ms_port = 25660;
 int ms_timeout = 100000;
 
@@ -132,7 +139,18 @@ void d_getargs (int argc, char *argv[]) {
 }
 
 
-enet_uint8  b_read_uint8 (enet_uint8 buf[], size_t *pos) {
+int d_readtextfile (const char *fname, char *buf, size_t max) {
+  FILE *f = fopen(fname, "r");
+  if (f) {
+    fgets(buf, max, f);
+    fclose(f);
+    return 0;
+  }
+  return 1;
+}
+
+
+enet_uint8 b_read_uint8 (enet_uint8 buf[], size_t *pos) {
   return buf[(*pos)++];
 }
 
@@ -204,6 +222,12 @@ int main (int argc, char *argv[]) {
   }
 
   printf(LC_MS_INIT, ms_port);
+
+  d_readtextfile(MS_MOTD_FILE, ms_motd, sizeof(ms_motd));
+  d_readtextfile(MS_URGENT_FILE, ms_urgent, sizeof(ms_urgent));
+
+  if (ms_motd[0]) printf(LC_MS_MOTD, ms_motd);
+  if (ms_urgent[0]) printf(LC_MS_URGENT, ms_urgent);
 
   for (int i = 0; i < NET_MAXCLIENTS; ++i) ms_peers[i] = NULL;
 
@@ -347,6 +371,9 @@ int main (int argc, char *argv[]) {
                 // TODO: check if this client is outdated (?) and send back new verstring
                 // for now just write the same shit back
                 b_write_dstring(b_send, &b_write, clientver);
+                // write the motd and urgent message
+                b_write_dstring(b_send, &b_write, ms_motd);
+                b_write_dstring(b_send, &b_write, ms_urgent);
               }
 
               ENetPacket *p = enet_packet_create(b_send, b_write, ENET_PACKET_FLAG_RELIABLE);

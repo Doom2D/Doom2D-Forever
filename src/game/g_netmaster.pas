@@ -63,6 +63,9 @@ var
   slWaitStr:       string = '';
   slReturnPressed: Boolean = True;
 
+  slMOTD:          string = '';
+  slUrgent:        string = '';
+
 procedure g_Net_Slist_Set(IP: string; Port: Word);
 function  g_Net_Slist_Fetch(var SL: TNetServerList): Boolean;
 procedure g_Net_Slist_Update();
@@ -88,6 +91,7 @@ var
   slSelection:    Byte = 0;
   slFetched:      Boolean = False;
   slDirPressed:   Boolean = False;
+  slReadUrgent:   Boolean = False;
 
 function GetTimerMS(): Int64;
 begin
@@ -136,7 +140,7 @@ var
   InMsg: TMsg;
   SvAddr: ENetAddress;
   FromSL: Boolean;
-  UpdVer, MyVer: string;
+  MyVer, Str: string;
 
   procedure ProcessLocal();
   begin
@@ -263,11 +267,20 @@ begin
       if InMsg.ReadCount < InMsg.CurSize then
       begin
         // new master, supports version reports
-        UpdVer := InMsg.ReadString();
-        if (UpdVer <> MyVer) then
+        Str := InMsg.ReadString();
+        if (Str <> MyVer) then
         begin
           { TODO }
-          g_Console_Add('!!! UpdVer = `' + UpdVer + '`');
+          g_Console_Add('!!! UpdVer = `' + Str + '`');
+        end;
+        // even newer master, supports extra info
+        if InMsg.ReadCount < InMsg.CurSize then
+        begin
+          slMOTD := b_Text_Format(InMsg.ReadString());
+          Str := b_Text_Format(InMsg.ReadString());
+          // check if the message has updated and the user has to read it again
+          if slUrgent <> Str then slReadUrgent := False;
+          slUrgent := Str;
         end;
       end;
 
@@ -535,15 +548,47 @@ begin
   ip := _lc[I_NET_SLIST_HELP];
   mw := (Length(ip) * cw) div 2;
 
-  e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-44, 64, 64, 64, 110);
-  e_DrawQuad(16, 64, gScreenWidth-16, gScreenHeight-44, 255, 127, 0);
+  e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-84, 64, 64, 64, 110);
+  e_DrawQuad(16, 64, gScreenWidth-16, gScreenHeight-84, 255, 127, 0);
 
   e_TextureFontPrintEx(gScreenWidth div 2 - mw, gScreenHeight-24, ip, gStdFont, 225, 225, 225, 1);
+
+  // MOTD
+  if slMOTD <> '' then
+  begin
+    e_DrawFillQuad(16, gScreenHeight-84, gScreenWidth-16, gScreenHeight-44, 64, 64, 64, 110);
+    e_DrawQuad(16, gScreenHeight-84, gScreenWidth-16, gScreenHeight-44, 255, 127, 0);
+    e_TextureFontPrintFmt(20, gScreenHeight-81, slMOTD, gStdFont, False, True);
+  end;
+
+  // Urgent message
+  if not slReadUrgent and (slUrgent <> '') then
+  begin
+    e_DrawFillQuad(17, 65, gScreenWidth-17, gScreenHeight-85, 64, 64, 64, 128);
+    e_DrawFillQuad(gScreenWidth div 2 - 256, gScreenHeight div 2 - 60,
+      gScreenWidth div 2 + 256, gScreenHeight div 2 + 60, 64, 64, 64, 128);
+    e_DrawQuad(gScreenWidth div 2 - 256, gScreenHeight div 2 - 60,
+      gScreenWidth div 2 + 256, gScreenHeight div 2 + 60, 255, 127, 0);
+    e_DrawLine(1, gScreenWidth div 2 - 256, gScreenHeight div 2 - 40,
+      gScreenWidth div 2 + 256, gScreenHeight div 2 - 40, 255, 127, 0);
+    l := Length(_lc[I_NET_SLIST_URGENT]) div 2;
+    e_TextureFontPrint(gScreenWidth div 2 - cw * l, gScreenHeight div 2 - 58,
+      _lc[I_NET_SLIST_URGENT], gStdFont);
+    l := Length(slUrgent) div 2;
+    e_TextureFontPrintFmt(gScreenWidth div 2 - 253, gScreenHeight div 2 - 38,
+      slUrgent, gStdFont, False, True);
+    l := Length(_lc[I_NET_SLIST_URGENT_CONT]) div 2;
+    e_TextureFontPrint(gScreenWidth div 2 - cw * l, gScreenHeight div 2 + 41,
+      _lc[I_NET_SLIST_URGENT_CONT], gStdFont);
+    e_DrawLine(1, gScreenWidth div 2 - 256, gScreenHeight div 2 + 40,
+      gScreenWidth div 2 + 256, gScreenHeight div 2 + 40, 255, 127, 0);
+    Exit;
+  end;
 
   if SL = nil then
   begin
     l := Length(slWaitStr) div 2;
-    e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-44, 64, 64, 64, 128);
+    e_DrawFillQuad(17, 65, gScreenWidth-17, gScreenHeight-85, 64, 64, 64, 128);
     e_DrawQuad(gScreenWidth div 2 - 192, gScreenHeight div 2 - 10,
       gScreenWidth div 2 + 192, gScreenHeight div 2 + 11, 255, 127, 0);
     e_TextureFontPrint(gScreenWidth div 2 - cw * l, gScreenHeight div 2 - ch div 2,
@@ -574,12 +619,12 @@ begin
   e_DrawLine(1, 16 + 1, sy + 41, gScreenWidth - 16 - 1, sy + 41, 255, 255, 255);
 
   e_DrawLine(1, 16, 85, gScreenWidth - 16, 85, 255, 127, 0);
-  e_DrawLine(1, 16, gScreenHeight-64, gScreenWidth-16, gScreenHeight-64, 255, 127, 0);
+  e_DrawLine(1, 16, gScreenHeight-104, gScreenWidth-16, gScreenHeight-104, 255, 127, 0);
 
-  e_DrawLine(1, mx - 70, 64, mx - 70, gScreenHeight-44, 255, 127, 0);
-  e_DrawLine(1, mx, 64, mx, gScreenHeight-64, 255, 127, 0);
-  e_DrawLine(1, mx + 52, 64, mx + 52, gScreenHeight-64, 255, 127, 0);
-  e_DrawLine(1, mx + 104, 64, mx + 104, gScreenHeight-64, 255, 127, 0);
+  e_DrawLine(1, mx - 70, 64, mx - 70, gScreenHeight-84, 255, 127, 0);
+  e_DrawLine(1, mx, 64, mx, gScreenHeight-104, 255, 127, 0);
+  e_DrawLine(1, mx + 52, 64, mx + 52, gScreenHeight-104, 255, 127, 0);
+  e_DrawLine(1, mx + 104, 64, mx + 104, gScreenHeight-104, 255, 127, 0);
 
   e_TextureFontPrintEx(18, 68, 'NAME/MAP', gStdFont, 255, 127, 0, 1);
   e_TextureFontPrintEx(mx - 68, 68, 'PING', gStdFont, 255, 127, 0, 1);
@@ -620,10 +665,10 @@ begin
     y := y + 42;
   end;
 
-  e_TextureFontPrintEx(20, gScreenHeight-61, ip, gStdFont, 205, 205, 205, 1);
+  e_TextureFontPrintEx(20, gScreenHeight-101, ip, gStdFont, 205, 205, 205, 1);
   ip := IntToStr(Length(ST)) + _lc[I_NET_SLIST_SERVERS];
   e_TextureFontPrintEx(gScreenWidth - 48 - (Length(ip) + 1)*cw,
-    gScreenHeight-61, ip, gStdFont, 205, 205, 205, 1);
+    gScreenHeight-101, ip, gStdFont, 205, 205, 205, 1);
 end;
 
 procedure g_Serverlist_GenerateTable(SL: TNetServerList; var ST: TNetServerTable);
@@ -735,6 +780,15 @@ begin
     g_GUI_ShowWindow('NetGameMenu');
     g_GUI_ShowWindow('NetClientMenu');
     g_Sound_PlayEx(WINDOW_CLOSESOUND);
+    Exit;
+  end;
+
+  // if there's a message on the screen, 
+  if not slReadUrgent and (slUrgent <> '') then
+  begin
+    if e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(VK_FIRE) or e_KeyPressed(VK_OPEN) or
+       e_KeyPressed(JOY0_ATTACK) or e_KeyPressed(JOY1_ATTACK) or e_KeyPressed(JOY2_ATTACK) or e_KeyPressed(JOY3_ATTACK) then
+      slReadUrgent := True;
     Exit;
   end;
 
