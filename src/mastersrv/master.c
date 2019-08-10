@@ -4,8 +4,8 @@
 #include <enet/enet.h>
 #include <enet/types.h>
 
-#define MS_VERSION "0.1"
-#define MS_MAXSRVS 32
+#define MS_VERSION "0.2"
+#define MS_MAXSRVS 128
 #define MS_TIMEOUT 100
 
 #define NET_CHANS 2
@@ -24,7 +24,7 @@
 #define LC_MS_UPD  "\nUpdated server #%d (%s:%d):\n%s\n%s (%d)\n%d/%d plrs\nproto: %d pw?: %d\n"
 #define LC_MS_RM   "\nRemoved server #%d (%s:%d) by request.\n"
 #define LC_MS_TIME "\nServer #%d (%s:%d) timed out.\n"
-#define LC_MS_LIST "\nSent server list to %x:%u.\n"
+#define LC_MS_LIST "\nSent server list to %x:%u (ver. %s).\n"
 #define LC_MS_DIE  "\nD2DF master server shutting down...\n"
 #define LC_MS_CONN "\nIncoming connection from %x:%u...\n"
 
@@ -59,6 +59,30 @@ ENetPeer  *ms_peers[NET_MAXCLIENTS];
 ms_server  ms_srv[MS_MAXSRVS];
 enet_uint8 ms_count = 0;
 
+// fake servers to show on old versions of the game
+static const ms_server ms_fake_srv[] = {
+  {
+    .used = 1,
+    .s_ip = "0.0.0.0",
+    .s_name = "! \xc2\xc0\xd8\xc0 \xca\xce\xcf\xc8\xdf \xc8\xc3\xd0\xdb "
+              "\xd3\xd1\xd2\xc0\xd0\xc5\xcb\xc0! "
+              "\xd1\xca\xc0\xd7\xc0\xc9\xd2\xc5 \xcd\xce\xc2\xd3\xde C "
+              "doom2d.org !",
+    .s_map = "! Your game is outdated. "
+             "Get latest version at doom2d.org !",
+    .s_protocol = 255,
+  },
+  {
+    .used = 1,
+    .s_ip = "0.0.0.0",
+    .s_name = "! \xcf\xd0\xce\xc1\xd0\xce\xd1\xdcTE \xcf\xce\xd0\xd2\xdb "
+              "25666 \xc8 57133 HA CEPBEPE \xcf\xc5\xd0\xc5\xc4 \xc8\xc3\xd0\xce\xc9 !",
+    .s_map = "! Forward ports 25666 and 57133 before hosting !",
+    .s_protocol = 255,
+  },
+};
+
+#define MS_FAKESRVS (sizeof(ms_fake_srv) / sizeof(ms_fake_srv[0]))
 
 void i_usage () {
   printf("Usage: d2df_master -p port_number [-t timeout_seconds]\n");
@@ -212,6 +236,7 @@ int main (int argc, char *argv[]) {
 
   char *name = NULL;
   char *map = NULL;
+  char *clientver = NULL;
   enet_uint8 gm = 0;
   enet_uint16 pl = 0;
   enet_uint16 mpl = 0;
@@ -249,8 +274,8 @@ int main (int argc, char *argv[]) {
               for (int i = 0; i < MS_MAXSRVS; ++i) {
                 if (ms_srv[i].used) {
                   if ((strncmp(ip, ms_srv[i].s_ip, 16) == 0) && (ms_srv[i].s_port == port)) {
-                    strncpy(ms_srv[i].s_map, map, 255);
-                    strncpy(ms_srv[i].s_name, name, 255);
+                    strncpy(ms_srv[i].s_map, map, sizeof(ms_srv[i].s_map));
+                    strncpy(ms_srv[i].s_name, name, sizeof(ms_srv[i].s_name));
                     ms_srv[i].s_plrs = pl;
                     ms_srv[i].s_maxplrs = mpl;
                     ms_srv[i].s_pw = pw;
@@ -262,9 +287,9 @@ int main (int argc, char *argv[]) {
                     break;
                   }
                 } else {
-                    strncpy(ms_srv[i].s_ip, ip, 16);
-                    strncpy(ms_srv[i].s_map, map, 255);
-                    strncpy(ms_srv[i].s_name, name, 255);
+                    strncpy(ms_srv[i].s_ip, ip, sizeof(ms_srv[i].s_ip));
+                    strncpy(ms_srv[i].s_map, map, sizeof(ms_srv[i].s_map));
+                    strncpy(ms_srv[i].s_name, name, sizeof(ms_srv[i].s_name));
                     ms_srv[i].s_port = port;
                     ms_srv[i].s_plrs = pl;
                     ms_srv[i].s_maxplrs = mpl;
@@ -299,18 +324,38 @@ int main (int argc, char *argv[]) {
               break;
             case NET_MSG_LIST:
               if (!event.peer) continue;
+
               b_write = 0;
               b_write_uint8(b_send, &b_write, NET_MSG_LIST);
-              b_write_uint8(b_send, &b_write, ms_count);
+
+              if (event.packet->dataLength > 2) {
+                // holy shit a fresh client
+                clientver = b_read_dstring(event.packet->data, &b_read);
+                b_write_uint8(b_send, &b_write, ms_count);
+              } else {
+                // old client, feed them bullshit first
+                b_write_uint8(b_send, &b_write, ms_count + 2);
+                for (int i = 0; i < MS_FAKESRVS; ++i)
+                  b_write_server(b_send, &b_write, ms_fake_srv[i]);
+              }
+
               for (int i = 0; i < MS_MAXSRVS; ++i) {
                 if (ms_srv[i].used) b_write_server(b_send, &b_write, ms_srv[i]);
+              }
+
+              if (clientver) {
+                // TODO: check if this client is outdated (?) and send back new verstring
+                // for now just write the same shit back
+                b_write_dstring(b_send, &b_write, clientver);
               }
 
               ENetPacket *p = enet_packet_create(b_send, b_write, ENET_PACKET_FLAG_RELIABLE);
               enet_peer_send(event.peer, NET_CH_MAIN, p);
               enet_host_flush(ms_host);
 
-              printf(LC_MS_LIST, event.peer->address.host, event.peer->address.port);
+              printf(LC_MS_LIST, event.peer->address.host, event.peer->address.port, clientver ? clientver : "<old>");
+              free(clientver);
+              clientver = NULL;
               break;
           }
 

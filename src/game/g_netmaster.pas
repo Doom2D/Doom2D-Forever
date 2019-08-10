@@ -80,7 +80,8 @@ implementation
 
 uses
   SysUtils, e_msg, e_input, e_graphics, e_log, g_window, g_net, g_console,
-  g_map, g_game, g_sound, g_gui, g_menu, g_options, g_language, wadreader;
+  g_map, g_game, g_sound, g_gui, g_menu, g_options, g_language, g_basic,
+  wadreader;
 
 var
   NetMEvent:      ENetEvent;
@@ -135,6 +136,7 @@ var
   InMsg: TMsg;
   SvAddr: ENetAddress;
   FromSL: Boolean;
+  UpdVer, MyVer: string;
 
   procedure ProcessLocal();
   begin
@@ -215,6 +217,10 @@ begin
   NetOut.Clear();
   NetOut.Write(Byte(NET_MMSG_GET));
 
+  // TODO: what should we identify the build with?
+  MyVer := GAME_VERSION;
+  NetOut.Write(MyVer);
+
   P := enet_packet_create(NetOut.Data, NetOut.CurSize, Cardinal(ENET_PACKET_FLAG_RELIABLE));
   enet_peer_send(NetMPeer, NET_MCHAN_MAIN, P);
   enet_host_flush(NetMHost);
@@ -251,6 +257,17 @@ begin
           enet_address_set_host(Addr(SL[I].PingAddr), PChar(Addr(SL[I].IP[1])));
           SL[I].Ping := -1;
           SL[I].PingAddr.port := NET_PING_PORT;
+        end;
+      end;
+
+      if InMsg.ReadCount < InMsg.CurSize then
+      begin
+        // new master, supports version reports
+        UpdVer := InMsg.ReadString();
+        if (UpdVer <> MyVer) then
+        begin
+          { TODO }
+          g_Console_Add('!!! UpdVer = `' + UpdVer + '`');
         end;
       end;
 
