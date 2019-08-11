@@ -90,6 +90,7 @@ procedure SortSArray(var S: SSArray);
 function b_Text_Format(S: string): string;
 function b_Text_Unformat(S: string): string;
 function b_Text_Wrap(S: string; LineLen: Integer): string;
+function b_Text_LineCount(S: string): Integer;
 
 var
   gmon_dbg_los_enabled: Boolean = true;
@@ -1178,6 +1179,16 @@ end;
 function b_Text_Wrap(S: string; LineLen: Integer): string;
 begin
   Result := WrapText(S, ''#10, [#10, ' ', '-'], LineLen);
+end;
+
+function b_Text_LineCount(S: string): Integer;
+var
+  I: Integer;
+begin
+  Result := IfThen(S = '', 0, 1);
+  for I := 1 to High(S) do
+    if S[I] = #10 then
+      Inc(Result);
 end;
 
 end.

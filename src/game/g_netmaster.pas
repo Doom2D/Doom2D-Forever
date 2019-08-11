@@ -530,7 +530,7 @@ end;
 procedure g_Serverlist_Draw(var SL: TNetServerList; var ST: TNetServerTable);
 var
   Srv: TNetServer;
-  sy, i, y, mw, mx, l: Integer;
+  sy, i, y, mw, mx, l, motdh: Integer;
   cw: Byte = 0;
   ch: Byte = 0;
   ww: Word = 0;
@@ -548,23 +548,25 @@ begin
   ip := _lc[I_NET_SLIST_HELP];
   mw := (Length(ip) * cw) div 2;
 
-  e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-84, 64, 64, 64, 110);
-  e_DrawQuad(16, 64, gScreenWidth-16, gScreenHeight-84, 255, 127, 0);
+  motdh := gScreenHeight - 49 - ch * b_Text_LineCount(slMOTD);
+
+  e_DrawFillQuad(16, 64, gScreenWidth-16, motdh, 64, 64, 64, 110);
+  e_DrawQuad(16, 64, gScreenWidth-16, motdh, 255, 127, 0);
 
   e_TextureFontPrintEx(gScreenWidth div 2 - mw, gScreenHeight-24, ip, gStdFont, 225, 225, 225, 1);
 
   // MOTD
   if slMOTD <> '' then
   begin
-    e_DrawFillQuad(16, gScreenHeight-84, gScreenWidth-16, gScreenHeight-44, 64, 64, 64, 110);
-    e_DrawQuad(16, gScreenHeight-84, gScreenWidth-16, gScreenHeight-44, 255, 127, 0);
-    e_TextureFontPrintFmt(20, gScreenHeight-81, slMOTD, gStdFont, False, True);
+    e_DrawFillQuad(16, motdh, gScreenWidth-16, gScreenHeight-44, 64, 64, 64, 110);
+    e_DrawQuad(16, motdh, gScreenWidth-16, gScreenHeight-44, 255, 127, 0);
+    e_TextureFontPrintFmt(20, motdh + 3, slMOTD, gStdFont, False, True);
   end;
 
   // Urgent message
   if not slReadUrgent and (slUrgent <> '') then
   begin
-    e_DrawFillQuad(17, 65, gScreenWidth-17, gScreenHeight-85, 64, 64, 64, 128);
+    e_DrawFillQuad(17, 65, gScreenWidth-17, motdh-1, 64, 64, 64, 128);
     e_DrawFillQuad(gScreenWidth div 2 - 256, gScreenHeight div 2 - 60,
       gScreenWidth div 2 + 256, gScreenHeight div 2 + 60, 64, 64, 64, 128);
     e_DrawQuad(gScreenWidth div 2 - 256, gScreenHeight div 2 - 60,
@@ -588,7 +590,7 @@ begin
   if SL = nil then
   begin
     l := Length(slWaitStr) div 2;
-    e_DrawFillQuad(17, 65, gScreenWidth-17, gScreenHeight-85, 64, 64, 64, 128);
+    e_DrawFillQuad(17, 65, gScreenWidth-17, motdh-1, 64, 64, 64, 128);
     e_DrawQuad(gScreenWidth div 2 - 192, gScreenHeight div 2 - 10,
       gScreenWidth div 2 + 192, gScreenHeight div 2 + 11, 255, 127, 0);
     e_TextureFontPrint(gScreenWidth div 2 - cw * l, gScreenHeight div 2 - ch div 2,
@@ -619,12 +621,12 @@ begin
   e_DrawLine(1, 16 + 1, sy + 41, gScreenWidth - 16 - 1, sy + 41, 255, 255, 255);
 
   e_DrawLine(1, 16, 85, gScreenWidth - 16, 85, 255, 127, 0);
-  e_DrawLine(1, 16, gScreenHeight-104, gScreenWidth-16, gScreenHeight-104, 255, 127, 0);
+  e_DrawLine(1, 16, motdh-20, gScreenWidth-16, motdh-20, 255, 127, 0);
 
-  e_DrawLine(1, mx - 70, 64, mx - 70, gScreenHeight-84, 255, 127, 0);
-  e_DrawLine(1, mx, 64, mx, gScreenHeight-104, 255, 127, 0);
-  e_DrawLine(1, mx + 52, 64, mx + 52, gScreenHeight-104, 255, 127, 0);
-  e_DrawLine(1, mx + 104, 64, mx + 104, gScreenHeight-104, 255, 127, 0);
+  e_DrawLine(1, mx - 70, 64, mx - 70, motdh, 255, 127, 0);
+  e_DrawLine(1, mx, 64, mx, motdh-20, 255, 127, 0);
+  e_DrawLine(1, mx + 52, 64, mx + 52, motdh-20, 255, 127, 0);
+  e_DrawLine(1, mx + 104, 64, mx + 104, motdh-20, 255, 127, 0);
 
   e_TextureFontPrintEx(18, 68, 'NAME/MAP', gStdFont, 255, 127, 0, 1);
   e_TextureFontPrintEx(mx - 68, 68, 'PING', gStdFont, 255, 127, 0, 1);
@@ -665,10 +667,10 @@ begin
     y := y + 42;
   end;
 
-  e_TextureFontPrintEx(20, gScreenHeight-101, ip, gStdFont, 205, 205, 205, 1);
+  e_TextureFontPrintEx(20, motdh-20+3, ip, gStdFont, 205, 205, 205, 1);
   ip := IntToStr(Length(ST)) + _lc[I_NET_SLIST_SERVERS];
   e_TextureFontPrintEx(gScreenWidth - 48 - (Length(ip) + 1)*cw,
-    gScreenHeight-101, ip, gStdFont, 205, 205, 205, 1);
+    motdh-20+3, ip, gStdFont, 205, 205, 205, 1);
 end;
 
 procedure g_Serverlist_GenerateTable(SL: TNetServerList; var ST: TNetServerTable);

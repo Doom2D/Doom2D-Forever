@@ -142,7 +142,9 @@ void d_getargs (int argc, char *argv[]) {
 int d_readtextfile (const char *fname, char *buf, size_t max) {
   FILE *f = fopen(fname, "r");
   if (f) {
-    fgets(buf, max, f);
+    char line[256] = { 0 };
+    while(fgets(buffer, sizeof(line), (FILE*) fp))
+      printf("%s\n", buffer);
     fclose(f);
     return 0;
   }
