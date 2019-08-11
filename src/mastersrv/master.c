@@ -278,7 +278,7 @@ int main (int argc, char *argv[]) {
   enet_uint8 proto = 0;
   enet_uint8 pw = 0;
   while (!shutdown) {
-    while (enet_host_service(ms_host, &event, 1) > 0) {
+    while (enet_host_service(ms_host, &event, 5000) > 0) {
       switch (event.type) {
         case ENET_EVENT_TYPE_CONNECT:
           printf(LC_MS_CONN, event.peer->address.host, event.peer->address.port);
