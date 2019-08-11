@@ -50,8 +50,8 @@ struct ms_server_s {
 typedef struct ms_server_s ms_server;
 
 const char ms_game_ver[] = "0.63";
-char ms_motd[256] = "";
-char ms_urgent[256] = "";
+char ms_motd[255] = "";
+char ms_urgent[255] = "";
 
 int ms_port = 25660;
 int ms_timeout = 100000;
@@ -141,10 +141,18 @@ void d_getargs (int argc, char *argv[]) {
 
 int d_readtextfile (const char *fname, char *buf, size_t max) {
   FILE *f = fopen(fname, "r");
+  char *const end = buf + max - 1;
+  char *p = buf;
   if (f) {
-    char line[256] = { 0 };
-    while(fgets(buffer, sizeof(line), (FILE*) fp))
-      printf("%s\n", buffer);
+    char ln[max];
+    char *const lend = ln + max - 1;
+    while(p < end && fgets(ln, sizeof(ln), f)) {
+      for (char *n = ln; n < lend && *n && *n != '\r' && *n != '\n'; ++n) {
+        *(p++) = *n;
+        if (p == end) break;
+      }
+    }
+    *p = '\0';
     fclose(f);
     return 0;
   }
