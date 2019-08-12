@@ -815,7 +815,9 @@ begin
   begin
     s := g_ExtractWadName(MegaWAD.endpic);
     if s = '' then s := MapsDir+WAD else s := GameDir+'/wads/';
+    TEXTUREFILTER := GL_LINEAR;
     g_Texture_CreateWADEx('TEXTURE_endpic', s+MegaWAD.endpic);
+    TEXTUREFILTER := GL_NEAREST;
   end;
   MegaWAD.endmus := cfg.ReadStr('megawad', 'endmus', 'Standart.wad:D2DMUS\йнмеж');
   if MegaWAD.endmus <> '' then
