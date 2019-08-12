@@ -4663,6 +4663,8 @@ begin
   if FMonsterType in [MONSTER_SOUL, MONSTER_VILE] then
     exit; // арчи не горят, черепа уже горят
   if Timeout <= 0 then exit;
+  if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_WATER or PANEL_ACID1 or PANEL_ACID2) then
+    exit; // не подгораем в воде на всякий случай
   if FFireTime <= 0 then
     g_Sound_PlayExAt('SOUND_IGNITE', FObj.X, FObj.Y);
   FFireTime := Timeout;

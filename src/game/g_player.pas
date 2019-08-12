@@ -3197,6 +3197,8 @@ begin
     exit;
   if (FMegaRulez[MR_SUIT] > gTime) or (FMegaRulez[MR_INVUL] > gTime) then
     exit; // Не загораемся когда есть защита
+  if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_WATER or PANEL_ACID1 or PANEL_ACID2) then
+    exit; // Не подгораем в воде на всякий случай
   if FFireTime <= 0 then
     g_Sound_PlayExAt('SOUND_IGNITE', FObj.X, FObj.Y);
   FFireTime := Timeout;
