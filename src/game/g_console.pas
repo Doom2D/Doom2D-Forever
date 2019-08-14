@@ -1000,17 +1000,16 @@ begin
     begin
       (* End open chat animation. Do not show console *)
       Cons_Y := -Floor(gScreenHeight * ConsoleHeight);
-      Cons_Shown := True;
+      Cons_Shown := False;
       InputReady := True;
-//      g_Touch_ShowKeyboard(True);
     end
     else
-    if Cons_Y > 0 then
+    if Cons_Y >= 0 then
     begin
       (* End open animation *)
       Cons_Y := 0;
+      Cons_Shown := True;
       InputReady := True;
-//      g_Touch_ShowKeyboard(True);
     end
     else
     if Cons_Y <= -Floor(gScreenHeight * ConsoleHeight) then
@@ -1019,7 +1018,6 @@ begin
       Cons_Y := -Floor(gScreenHeight * ConsoleHeight);
       Cons_Shown := False;
       InputReady := False;
-//      g_Touch_ShowKeyboard(False);
     end;
   end;
 
