@@ -194,7 +194,8 @@ implementation
 {$IFNDEF HEADLESS}
     if g_dbg_input then
       e_LogWritefln('g_Touch_ShowKeyboard(%s)', [yes]);
-    if yes then
+    (* on desktop we always receive text (needed for cheats) *)
+    if yes or (SDL_HasScreenKeyboardSupport() = SDL_FALSE) then
       SDL_StartTextInput
     else
       SDL_StopTextInput

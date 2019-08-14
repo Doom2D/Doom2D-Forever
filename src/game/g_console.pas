@@ -129,6 +129,7 @@ var
   Cons_Y: SmallInt;
   ConsoleHeight: Single;
   Cons_Shown: Boolean; // Рисовать ли консоль?
+  InputReady: Boolean;
   Line: AnsiString;
   CPos: Word;
   //ConsoleHistory: SSArray;
@@ -152,24 +153,24 @@ var
 
 procedure g_Console_Switch;
 begin
-  if gConsoleShow or Cons_Shown or gChatShow then
-    g_Touch_ShowKeyboard(False);
   gChatShow := False;
   gConsoleShow := not gConsoleShow;
   Cons_Shown := True;
+  InputReady := False;
+  g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
 end;
 
 procedure g_Console_Chat_Switch (Team: Boolean = False);
 begin
-  if gConsoleShow or Cons_Shown or gChatShow then
-    g_Touch_ShowKeyboard(False);
   if not g_Game_IsNet then Exit;
   gConsoleShow := False;
   gChatShow := not gChatShow;
   gChatTeam := Team;
   Cons_Shown := True;
+  InputReady := False;
   Line := '';
   CPos := 1;
+  g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
 end;
 
 // poor man's floating literal parser; i'm sorry, but `StrToFloat()` sux cocks
@@ -797,6 +798,7 @@ begin
   gConsoleShow := False;
   gChatShow := False;
   Cons_Shown := False;
+  InputReady := False;
   CPos := 1;
 
   for a := 0 to High(MsgArray) do
@@ -986,34 +988,38 @@ var
 begin
   if Cons_Shown then
   begin
-  // В процессе открытия:
+    (* Open animation *)
     if gConsoleShow and (Cons_Y < 0) then
       Cons_Y := Cons_Y+Step;
 
-  // В процессе закрытия:
+    (* Colse animation *)
     if (not gConsoleShow) and (Cons_Y > -Floor(gScreenHeight * ConsoleHeight)) then
       Cons_Y := Cons_Y-Step;
 
-    // Open chat
     if gChatShow then
     begin
+      (* End open chat animation. Do not show console *)
       Cons_Y := -Floor(gScreenHeight * ConsoleHeight);
-      Cons_Shown := False;
-      g_Touch_ShowKeyboard(True);
-    end;
-
-  // Окончательно открылась:
+      Cons_Shown := True;
+      InputReady := True;
+//      g_Touch_ShowKeyboard(True);
+    end
+    else
     if Cons_Y > 0 then
     begin
+      (* End open animation *)
       Cons_Y := 0;
-      g_Touch_ShowKeyboard(True);
-    end;
-
-  // Окончательно закрылась:
+      InputReady := True;
+//      g_Touch_ShowKeyboard(True);
+    end
+    else
     if Cons_Y <= -Floor(gScreenHeight * ConsoleHeight) then
     begin
+      (* End close animation *)
       Cons_Y := -Floor(gScreenHeight * ConsoleHeight);
       Cons_Shown := False;
+      InputReady := False;
+//      g_Touch_ShowKeyboard(False);
     end;
   end;
 
@@ -1115,27 +1121,26 @@ begin
     if MsgArray[a].Time > 0 then
       e_TextureFontPrintFmt(0, offset_y + CHeight * a, MsgArray[a].Msg, gStdFont, True);
 
-  if not Cons_Shown then
+  if gChatShow then
   begin
-    if gChatShow then
+    if ChatTop then
+      offset_y := 0
+    else
+      offset_y := gScreenHeight - CHeight - 1;
+    if gChatTeam then
     begin
-      if ChatTop then
-        offset_y := 0
-      else
-        offset_y := gScreenHeight - CHeight - 1;
-      if gChatTeam then
-      begin
-        e_TextureFontPrintEx(0, offset_y, 'say team> ' + Line, gStdFont, 255, 255, 255, 1, True);
-        e_TextureFontPrintEx((CPos + 9) * CWidth, offset_y, '_', gStdFont, 255, 255, 255, 1, True);
-      end
-      else
-      begin
-        e_TextureFontPrintEx(0, offset_y, 'say> ' + Line, gStdFont, 255, 255, 255, 1, True);
-        e_TextureFontPrintEx((CPos + 4) * CWidth, offset_y, '_', gStdFont, 255, 255, 255, 1, True);
-      end
-    end;
-    Exit;
+      e_TextureFontPrintEx(0, offset_y, 'say team> ' + Line, gStdFont, 255, 255, 255, 1, True);
+      e_TextureFontPrintEx((CPos + 9) * CWidth, offset_y, '_', gStdFont, 255, 255, 255, 1, True);
+    end
+    else
+    begin
+      e_TextureFontPrintEx(0, offset_y, 'say> ' + Line, gStdFont, 255, 255, 255, 1, True);
+      e_TextureFontPrintEx((CPos + 4) * CWidth, offset_y, '_', gStdFont, 255, 255, 255, 1, True);
+    end
   end;
+
+  if not Cons_Shown then
+    Exit;
 
   if gDebugMode then
   begin
@@ -1175,8 +1180,11 @@ end;
 
 procedure g_Console_Char(C: AnsiChar);
 begin
-  Insert(C, Line, CPos);
-  CPos := CPos + 1;
+  if InputReady and (gConsoleShow or gChatShow) then
+  begin
+    Insert(C, Line, CPos);
+    CPos := CPos + 1;
+  end
 end;
 
 
@@ -1344,7 +1352,8 @@ begin
           Line := '';
           CPos := 1;
           gJustChatted := True;
-          g_Console_Chat_Switch
+          g_Console_Chat_Switch;
+          InputReady := False;
         end;
     end;
     IK_TAB:
