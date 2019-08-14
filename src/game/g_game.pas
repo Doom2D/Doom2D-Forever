@@ -4005,13 +4005,8 @@ begin
     if gState = STATE_ENDPIC then
     begin
       ID := DWORD(-1);
-      if not g_Texture_Get('TEXTURE_endpic', ID) then
-        g_Texture_Get(_lc[I_TEXTURE_ENDPIC], ID);
-
-      if ID <> DWORD(-1) then
-        e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
-      else
-        e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+      if g_Texture_Get('TEXTURE_endpic', ID) then DrawMenuBackground('TEXTURE_endpic')
+      else DrawMenuBackground(_lc[I_TEXTURE_ENDPIC]);
 
       if g_ActiveWindow <> nil then
       begin
