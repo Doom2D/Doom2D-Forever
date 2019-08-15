@@ -7214,6 +7214,7 @@ begin
            (tgcLocal) and
            Sound.IsPlaying() then
         begin
+(*
           if ((gPlayer1 <> nil) and g_CollidePoint(gPlayer1.GameX, gPlayer1.GameY, X, Y, Width, Height)) or
              ((gPlayer2 <> nil) and g_CollidePoint(gPlayer2.GameX, gPlayer2.GameY, X, Y, Width, Height)) then
           begin
@@ -7221,6 +7222,7 @@ begin
             Sound.SetVolume(tgcVolume/255.0);
           end
           else
+*)
             Sound.SetCoords(X+(Width div 2), Y+(Height div 2), tgcVolume/255.0);
         end;
 end;
