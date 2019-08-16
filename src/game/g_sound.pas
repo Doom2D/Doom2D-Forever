@@ -37,8 +37,10 @@ type
     function PlayAt(X, Y: Integer): Boolean;
     function PlayPanVolume(Pan, Volume: Single; Force: Boolean = False): Boolean;
     function PlayVolumeAt(X, Y: Integer; Volume: Single): Boolean;
+    function PlayVolumeAtRect (X, Y, W, H: Integer; Volume: Single): Boolean;
     function SetByName(SN: String): Boolean;
     function SetCoords(X, Y: Integer; Volume: Single): Boolean;
+    function SetCoordsRect (X, Y, W, H: Integer; Volume: Single): Boolean;
 
     property Loop: Boolean read FMusic write FMusic;
     property Name: String read FName;
@@ -160,84 +162,64 @@ begin
   e_WriteLog(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]), TMsgType.Warning);
 end;
 
-function PlaySoundAt(X, Y: Integer; var Pan: Single; var Volume: Single; InVolume: Single = 1.0): Boolean;
-var
-  l1, l2, lx, rx: Integer;
-  d1, d2, sMaxDist: Single;
-  c: Boolean;
-begin
-  l1 := gMaxDist;
-  l2 := gMaxDist;
-  sMaxDist := SOUND_MAXDIST * InVolume;
+function PlaySoundAtRect (X, Y, W, H: Integer; out Pan, Volume: Single; InVolume: Single = 1.0): Boolean;
+  var
+    len1, len2: Integer;
+    pan1, pan2: Single;
+    sMaxDist: Single;
 
-  d1 := 0.0;
-
-  c := SOUND_MINDIST >= sMaxDist;
-
-  if X > gMapInfo.Width then
-    X := gMapInfo.Width
-  else
-    if X < 0 then
-      X := 0;
-
-  if Y > gMapInfo.Height then
-    Y := gMapInfo.Height
-  else
-    if Y < 0 then
-      Y := 0;
-
-  if gHearPoint1.Active then
+  procedure CalcDest (const p: THearPoint; out pan: Single; out len: Integer);
+    var XX, YY, lx, rx: Integer;
   begin
-    l1 := Round(Hypot(X - gHearPoint1.Coords.X, Y - gHearPoint1.Coords.Y));
-
-    lx := gHearPoint1.Coords.X - SOUND_MINDIST;
-    rx := gHearPoint1.Coords.X + SOUND_MINDIST;
-    if c then
-      d1 := 0.0
-    else if (X >= lx) and (X <= rx) then
-      d1 := 0.0
-    else if X < lx then
-      d1 := (X-lx)/sMaxDist
-    else
-      d1 := (X-rx)/sMaxDist;
-  end;
-
-  d2 := d1;
-
-  if gHearPoint2.Active then
-  begin
-    l2 := Round(Hypot(X - gHearPoint2.Coords.X, Y - gHearPoint2.Coords.Y));
-
-    lx := gHearPoint2.Coords.X - SOUND_MINDIST;
-    rx := gHearPoint2.Coords.X + SOUND_MINDIST;
-    if c then
-      d2 := 0.0
-    else if (X >= lx) and (X <= rx) then
-      d2 := 0.0
-    else if X < lx then
-      d2 := (X-lx)/sMaxDist
-    else
-      d2 := (X-rx)/sMaxDist;
-  end;
-
-  if l2 < l1 then
-  begin
-    l1 := l2;
-    d1 := d2;
-  end;
-
-  if l1 >= sMaxDist then
+    pan := 0.0; len := gMaxDist;
+    if p.Active then
     begin
-      Pan := 0.0;
-      Volume := 0.0;
-      Result := False;
+      XX := Max(X, Min(X + W, p.Coords.X));
+      YY := Max(Y, Min(Y + H, p.Coords.Y));
+      len := Round(Hypot(XX - p.Coords.X, YY - p.Coords.Y));
+      if sMaxDist < SOUND_MINDIST then
+      begin
+        lx := X - SOUND_MINDIST;
+        rx := X + W + SOUND_MINDIST;
+        if p.Coords.X < lx then
+          pan := (lx - p.Coords.X) / sMaxDist
+        else if p.Coords.X > rx then
+          pan := (rx - p.Coords.X) / sMaxDist
+      end
     end
+  end;
+
+begin
+  ASSERT((W >= 0) and (H >= 0));
+  ASSERT((InVolume >= 0.0) and (InVolume <= 1.0));
+  sMaxDist := SOUND_MAXDIST * InVolume;
+  X := Max(0, Min(X, gMapInfo.Width));
+  Y := Max(0, Min(Y, gMapInfo.Height));
+  CalcDest(gHearPoint1, pan1, len1);
+  CalcDest(gHearPoint2, pan2, len2);
+  if len2 < len1 then
+  begin
+    len1 := len2;
+    pan1 := pan2;
+  end;
+  if len1 >= sMaxDist then
+  begin
+    Pan := 0.0;
+    Volume := 0.0;
+    Result := False
+  end
   else
-    begin
-      Pan := d1;
-      Volume := 1.0 - l1/sMaxDist;
-      Result := True;
-    end;
+  begin
+    Pan := pan1;
+    Volume := 1.0 - len1 / sMaxDist;
+    Result := True
+  end;
+  e_LogWritefln('PlaySounAtRect: Pan = %s | Volume = %s | Result = %s', [Pan, Volume, Result]);
+end;
+
+function PlaySoundAt(X, Y: Integer; out Pan: Single; out Volume: Single; InVolume: Single = 1.0): Boolean;
+begin
+  Result := PlaySoundAtRect(X, Y, 0, 0, Pan, Volume, InVolume)
 end;
 
 function g_Sound_PlayAt(ID: DWORD; X, Y: Integer): Boolean;
@@ -523,35 +505,42 @@ begin
     Result := False;
 end;
 
-function TPlayableSound.PlayVolumeAt(X, Y: Integer; Volume: Single): Boolean;
-var
-  Pan, Vol: Single;
+function TPlayableSound.PlayVolumeAtRect (X, Y, W, H: Integer; Volume: Single): Boolean;
+  var Pan, Vol: Single;
 begin
-  if PlaySoundAt(X, Y, Pan, Vol, Volume) then
-    begin
-      Stop();
-      Result := RawPlay(Pan, Volume * Vol * (gSoundLevel/255.0), FPosition);
-    end
-  else
-    Result := False;
+  Result := False;
+  if PlaySoundAtRect(X, Y, W, H, Pan, Vol, Volume) then
+  begin
+    Stop;
+    Result := RawPlay(Pan, Volume * Vol * (gSoundLevel / 255.0), FPosition)
+  end
 end;
 
-function TPlayableSound.SetCoords(X, Y: Integer; Volume: Single): Boolean;
-var
-  Pan, Vol: Single;
+function TPlayableSound.PlayVolumeAt (X, Y: Integer; Volume: Single): Boolean;
 begin
-  if PlaySoundAt(X, Y, Pan, Vol, Volume) then
+  Result := Self.PlayVolumeAtRect(X, Y, 0, 0, Volume)
+end;
+
+function TPlayableSound.SetCoordsRect (X, Y, W, H: Integer; Volume: Single): Boolean;
+  var Pan, Vol: Single;
+begin
+  if PlaySoundAtRect(X, Y, W, H, Pan, Vol, Volume) then
   begin
-    SetVolume(Volume * Vol * (gSoundLevel/255.0));
+    SetVolume(Volume * Vol * (gSoundLevel / 255.0));
     SetPan(Pan);
-    Result := True;
+    Result := True
   end
   else
   begin
     SetVolume(0.0);
     SetPan(0.0);
-    Result := False;
+    Result := False
   end;
+end;
+
+function TPlayableSound.SetCoords(X, Y: Integer; Volume: Single): Boolean;
+begin
+  Result := Self.SetCoordsRect(X, Y, 0, 0, Volume)
 end;
 
 function TPlayableSound.SetByName(SN: String): Boolean;

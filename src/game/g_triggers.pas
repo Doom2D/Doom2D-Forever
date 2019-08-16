@@ -2708,17 +2708,14 @@ begin
         begin
           if (SoundPlayCount > 0) and (not Sound.IsPlaying()) then
           begin
-            if tgcPlayCount > 0 then SoundPlayCount -= 1; // Если 0 - играем звук бесконечно
+            if tgcPlayCount > 0 then Dec(SoundPlayCount); (* looped sound if zero *)
             if tgcLocal then
-            begin
-              Sound.PlayVolumeAt(X+(Width div 2), Y+(Height div 2), tgcVolume/255.0);
-            end
+              Sound.PlayVolumeAtRect(X, Y, Width, Height, tgcVolume / 255.0)
             else
-            begin
-              Sound.PlayPanVolume((tgcPan-127.0)/128.0, tgcVolume/255.0);
-            end;
-            if Sound.IsPlaying() and g_Game_IsNet and g_Game_IsServer then MH_SEND_TriggerSound(gTriggers[a]);
-          end;
+              Sound.PlayPanVolume((tgcPan - 127.0) / 128.0, tgcVolume / 255.0);
+            if Sound.IsPlaying() and g_Game_IsNet and g_Game_IsServer then
+              MH_SEND_TriggerSound(gTriggers[a])
+          end
         end;
 
         // Триггер "Ловушка" - пора открывать

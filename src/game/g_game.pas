@@ -3804,15 +3804,15 @@ begin
       if plView1 <> nil then
       begin
         gHearPoint1.Active := True;
-        gHearPoint1.Coords.X := plView1.GameX;
-        gHearPoint1.Coords.Y := plView1.GameY;
+        gHearPoint1.Coords.X := plView1.GameX + PLAYER_RECT.Width;
+        gHearPoint1.Coords.Y := plView1.GameY + PLAYER_RECT.Height DIV 2;
       end else
         gHearPoint1.Active := False;
       if plView2 <> nil then
       begin
         gHearPoint2.Active := True;
-        gHearPoint2.Coords.X := plView2.GameX;
-        gHearPoint2.Coords.Y := plView2.GameY;
+        gHearPoint2.Coords.X := plView2.GameX + PLAYER_RECT.Width;
+        gHearPoint2.Coords.Y := plView2.GameY + PLAYER_RECT.Height DIV 2;
       end else
         gHearPoint2.Active := False;
 
@@ -7202,29 +7202,14 @@ begin
     e_StopChannels();
 end;
 
-procedure g_Game_UpdateTriggerSounds();
-var
-  i: Integer;
+procedure g_Game_UpdateTriggerSounds;
+  var i: Integer;
 begin
   if gTriggers <> nil then
     for i := 0 to High(gTriggers) do
       with gTriggers[i] do
-        if (TriggerType = TRIGGER_SOUND) and
-           (Sound <> nil) and
-           (tgcLocal) and
-           Sound.IsPlaying() then
-        begin
-(*
-          if ((gPlayer1 <> nil) and g_CollidePoint(gPlayer1.GameX, gPlayer1.GameY, X, Y, Width, Height)) or
-             ((gPlayer2 <> nil) and g_CollidePoint(gPlayer2.GameX, gPlayer2.GameY, X, Y, Width, Height)) then
-          begin
-            Sound.SetPan(0.5 - tgcPan/255.0);
-            Sound.SetVolume(tgcVolume/255.0);
-          end
-          else
-*)
-            Sound.SetCoords(X+(Width div 2), Y+(Height div 2), tgcVolume/255.0);
-        end;
+        if (TriggerType = TRIGGER_SOUND) and (Sound <> nil) and tgcLocal and Sound.IsPlaying() then
+          Sound.SetCoordsRect(X, Y, Width, Height, tgcVolume / 255.0)
 end;
 
 function g_Game_IsWatchedPlayer(UID: Word): Boolean;
