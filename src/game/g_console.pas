@@ -115,8 +115,6 @@ type
 
 
 const
-  Step = 32;
-  Alpha = 25;
   MsgTime = 144;
   MaxScriptRecursion = 16;
 
@@ -128,8 +126,8 @@ var
   RecursionLimitHit: Boolean = False;
   Cons_Y: SmallInt;
   ConsoleHeight: Single;
-  Cons_Shown: Boolean; // Рисовать ли консоль?
-  InputReady: Boolean;
+  Cons_Shown: Boolean; // draw console
+  InputReady: Boolean; // allow text input in console/chat
   Line: AnsiString;
   CPos: Word;
   //ConsoleHistory: SSArray;
@@ -149,14 +147,15 @@ var
   end;
   menu_toggled: BOOLEAN; (* hack for menu controls *)
   ChatTop: BOOLEAN;
+  ConsoleStep: Single;
+  ConsoleTrans: Single;
 
 
 procedure g_Console_Switch;
 begin
-  if gConsoleShow then
-    Cons_Y := Max(Cons_Y, -Floor(gScreenHeight * ConsoleHeight))
-  else
-    Cons_Y := Min(Cons_Y, -Floor(gScreenHeight * ConsoleHeight));
+  Cons_Y := Min(0, Max(Cons_Y, -Floor(gScreenHeight * ConsoleHeight)));
+  if Cons_Shown = False then
+    Cons_Y := -Floor(gScreenHeight * ConsoleHeight);
   gChatShow := False;
   gConsoleShow := not gConsoleShow;
   Cons_Shown := True;
@@ -167,10 +166,9 @@ end;
 procedure g_Console_Chat_Switch (Team: Boolean = False);
 begin
   if not g_Game_IsNet then Exit;
-  if gConsoleShow then
-    Cons_Y := Max(Cons_Y, -Floor(gScreenHeight * ConsoleHeight))
-  else
-    Cons_Y := Min(Cons_Y, -Floor(gScreenHeight * ConsoleHeight));
+  Cons_Y := Min(0, Max(Cons_Y, -Floor(gScreenHeight * ConsoleHeight)));
+  if Cons_Shown = False then
+    Cons_Y := -Floor(gScreenHeight * ConsoleHeight);
   gConsoleShow := False;
   gChatShow := not gChatShow;
   gChatTeam := Team;
@@ -988,28 +986,25 @@ begin
   g_Console_Add('');
 end;
 
-procedure g_Console_Update();
+procedure g_Console_Update;
 var
-  a, b: Integer;
+  a, b, Step: Integer;
 begin
   if Cons_Shown then
   begin
+    Step := Max(1, Round(Floor(gScreenHeight * ConsoleHeight) * ConsoleStep));
     if gConsoleShow then
     begin
       (* Open animation *)
       Cons_Y := Min(Cons_Y + Step, 0);
-      if Cons_Y >= 0 then
-        InputReady := True
+      InputReady := True
     end
     else
     begin
       (* Close animation *)
       Cons_Y := Max(Cons_Y - Step, -Floor(gScreenHeight * ConsoleHeight));
-      if Cons_Y <= -Floor(gScreenHeight * ConsoleHeight) then
-      begin
-        Cons_Shown := False;
-        InputReady := False
-      end
+      Cons_Shown := Cons_Y > -Floor(gScreenHeight * ConsoleHeight);
+      InputReady := False
     end;
 
     if gChatShow then
@@ -1144,7 +1139,7 @@ begin
                        _RGB(128, 0, 0), 2.0);
   end;
 
-  e_DrawSize(ID, 0, Cons_Y, Alpha, False, False, gScreenWidth, Floor(gScreenHeight * ConsoleHeight));
+  e_DrawSize(ID, 0, Cons_Y, Round(ConsoleTrans * 255), False, False, gScreenWidth, Floor(gScreenHeight * ConsoleHeight));
   e_TextureFontPrint(0, Cons_Y + Floor(gScreenHeight * ConsoleHeight) - CHeight - 4, '> ' + Line, gStdFont);
 
   drawConsoleText();
@@ -1914,11 +1909,15 @@ end;
 initialization
   conRegVar('chat_at_top', @ChatTop, 'draw chat at top border', 'draw chat at top border');
   conRegVar('console_height', @ConsoleHeight, 0.0, 1.0, 'set console size', 'set console size');
+  conRegVar('console_trans', @ConsoleTrans, 0.0, 1.0, 'set console transparency', 'set console transparency');
+  conRegVar('console_step', @ConsoleStep, 0.0, 1.0, 'set console animation speed', 'set console animation speed');
 {$IFDEF ANDROID}
   ChatTop := True;
-  ConsoleHeight := 0.35
+  ConsoleHeight := 0.35;
 {$ELSE}
   ChatTop := False;
-  ConsoleHeight := 0.5
+  ConsoleHeight := 0.5;
 {$ENDIF}
+  ConsoleTrans := 0.1;
+  ConsoleStep := 0.07;
 end.
