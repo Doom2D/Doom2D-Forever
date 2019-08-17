@@ -153,6 +153,10 @@ var
 
 procedure g_Console_Switch;
 begin
+  if gConsoleShow then
+    Cons_Y := Max(Cons_Y, -Floor(gScreenHeight * ConsoleHeight))
+  else
+    Cons_Y := Min(Cons_Y, -Floor(gScreenHeight * ConsoleHeight));
   gChatShow := False;
   gConsoleShow := not gConsoleShow;
   Cons_Shown := True;
@@ -163,6 +167,10 @@ end;
 procedure g_Console_Chat_Switch (Team: Boolean = False);
 begin
   if not g_Game_IsNet then Exit;
+  if gConsoleShow then
+    Cons_Y := Max(Cons_Y, -Floor(gScreenHeight * ConsoleHeight))
+  else
+    Cons_Y := Min(Cons_Y, -Floor(gScreenHeight * ConsoleHeight));
   gConsoleShow := False;
   gChatShow := not gChatShow;
   gChatTeam := Team;
@@ -724,12 +732,10 @@ begin
   'toggleconsole':
     g_Console_Switch;
   'togglechat':
-    if not gConsoleShow and (g_ActiveWindow = nil) then
-      g_Console_Chat_Switch;
+    g_Console_Chat_Switch;
   'toggleteamchat':
     if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
-      if not gConsoleShow and (g_ActiveWindow = nil) then
-        g_Console_Chat_Switch(True);
+      g_Console_Chat_Switch(True);
   end
 end;
 
@@ -988,37 +994,26 @@ var
 begin
   if Cons_Shown then
   begin
-    (* Open animation *)
-    if gConsoleShow and (Cons_Y < 0) then
-      Cons_Y := Cons_Y+Step;
-
-    (* Colse animation *)
-    if (not gConsoleShow) and (Cons_Y > -Floor(gScreenHeight * ConsoleHeight)) then
-      Cons_Y := Cons_Y-Step;
+    if gConsoleShow then
+    begin
+      (* Open animation *)
+      Cons_Y := Min(Cons_Y + Step, 0);
+      if Cons_Y >= 0 then
+        InputReady := True
+    end
+    else
+    begin
+      (* Close animation *)
+      Cons_Y := Max(Cons_Y - Step, -Floor(gScreenHeight * ConsoleHeight));
+      if Cons_Y <= -Floor(gScreenHeight * ConsoleHeight) then
+      begin
+        Cons_Shown := False;
+        InputReady := False
+      end
+    end;
 
     if gChatShow then
-    begin
-      (* End open chat animation. Do not show console *)
-      Cons_Y := -Floor(gScreenHeight * ConsoleHeight);
-      Cons_Shown := False;
-      InputReady := True;
-    end
-    else
-    if Cons_Y >= 0 then
-    begin
-      (* End open animation *)
-      Cons_Y := 0;
-      Cons_Shown := True;
-      InputReady := True;
-    end
-    else
-    if Cons_Y <= -Floor(gScreenHeight * ConsoleHeight) then
-    begin
-      (* End close animation *)
-      Cons_Y := -Floor(gScreenHeight * ConsoleHeight);
-      Cons_Shown := False;
-      InputReady := False;
-    end;
+      InputReady := True
   end;
 
   a := 0;
