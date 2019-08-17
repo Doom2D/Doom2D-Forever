@@ -213,8 +213,7 @@ begin
     Pan := pan1;
     Volume := 1.0 - len1 / sMaxDist;
     Result := True
-  end;
-  e_LogWritefln('PlaySounAtRect: Pan = %s | Volume = %s | Result = %s', [Pan, Volume, Result]);
+  end
 end;
 
 function PlaySoundAt(X, Y: Integer; out Pan: Single; out Volume: Single; InVolume: Single = 1.0): Boolean;
