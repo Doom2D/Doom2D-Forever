@@ -2135,7 +2135,7 @@ begin
                     // Наносим урон монстру
                     if (TriggerType = TRIGGER_DAMAGE) and (tgcAmount > 0) then
                     begin
-                      p.Damage(tgcAmount, 0, 0, 0, tgcKind);
+                      m.Damage(tgcAmount, 0, 0, 0, tgcKind);
                       if (tgcKind = HIT_FLAME) then m.CatchFire(0);
                     end;
 
