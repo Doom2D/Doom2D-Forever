@@ -3,6 +3,7 @@
 #include <string.h>
 #include <enet/enet.h>
 #include <enet/types.h>
+#include <time.h>
 
 #define MS_VERSION "0.2"
 #define MS_MAXSRVS 128
@@ -44,7 +45,7 @@ struct ms_server_s {
   enet_uint8  s_mode;
   enet_uint8  s_protocol;
   enet_uint16 s_port;
-  enet_uint32 ttl;
+  time_t      deathtime;
 };
 
 typedef struct ms_server_s ms_server;
@@ -54,7 +55,7 @@ char ms_motd[255] = "";
 char ms_urgent[255] = "";
 
 int ms_port = 25660;
-int ms_timeout = 100000;
+int ms_timeout = 100;
 
 size_t b_read = 0;
 size_t b_write = 0;
@@ -133,7 +134,7 @@ void d_getargs (int argc, char *argv[]) {
         ms_port = atoi(argv[++i]);
       }
     } else if (!strcmp(argv[i], "-t") & (i + 1 < argc)) {
-        ms_timeout = atoi(argv[++i]) * 1000;
+        ms_timeout = atoi(argv[++i]);
     }
   }
 }
@@ -246,7 +247,7 @@ int main (int argc, char *argv[]) {
     ms_srv[i].s_ip[0] = '\0';
     ms_srv[i].s_name[0] = '\0';
     ms_srv[i].s_map[0] = '\0';
-    ms_srv[i].ttl = 0;
+    ms_srv[i].deathtime = 0;
   }
 
   ENetAddress addr;
@@ -315,7 +316,7 @@ int main (int argc, char *argv[]) {
                     ms_srv[i].s_pw = pw;
                     ms_srv[i].s_mode = gm;
 
-                    ms_srv[i].ttl = ms_timeout;
+                    ms_srv[i].deathtime = time(NULL) + ms_timeout;
 
                     printf(LC_MS_UPD, i, ip, port, name, map, gm, pl, mpl, proto, pw);
                     break;
@@ -330,7 +331,7 @@ int main (int argc, char *argv[]) {
                     ms_srv[i].s_pw = pw;
                     ms_srv[i].s_mode = gm;
                     ms_srv[i].s_protocol = proto;
-                    ms_srv[i].ttl = ms_timeout;
+                    ms_srv[i].deathtime = time(NULL) + ms_timeout;
 
                     ms_srv[i].used = 1;
 
@@ -404,9 +405,10 @@ int main (int argc, char *argv[]) {
       }
     }
 
+    time_t now = time(NULL);
     for (int i = 0; i < MS_MAXSRVS; ++i) {
       if (ms_srv[i].used) {
-        if (--(ms_srv[i].ttl) == 0) {
+        if (ms_srv[i].deathtime <= now) {
           ms_srv[i].used = 0;
           printf(LC_MS_TIME, i, ms_srv[i].s_ip, ms_srv[i].s_port);
           --ms_count;
