@@ -829,6 +829,7 @@ begin
       e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
 
       DrawLoadingStat();
+      g_Console_Draw(True);
       SwapBuffers();
     end;
   end;

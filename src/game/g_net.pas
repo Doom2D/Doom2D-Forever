@@ -63,6 +63,8 @@ const
   NET_STATE_AUTH = 1;
   NET_STATE_GAME = 2;
 
+  NET_CONNECT_TIMEOUT = 1000 * 10;
+
   BANLIST_FILENAME = 'banlist.txt';
   NETDUMP_FILENAME = 'netdump';
 
@@ -756,6 +758,7 @@ end;
 function g_Net_Connect(IP: string; Port: enet_uint16): Boolean;
 var
   OuterLoop: Boolean;
+  TimeoutTime, T: Int64;
 begin
   if NetMode <> NET_NONE then
   begin
@@ -804,6 +807,9 @@ begin
     Exit;
   end;
 
+  // предупредить что ждем слишком долго через N секунд
+  TimeoutTime := GetTimer() + NET_CONNECT_TIMEOUT;
+
   OuterLoop := True;
   while OuterLoop do
   begin
@@ -823,6 +829,14 @@ begin
       end;
     end;
 
+    T := GetTimer();
+    if T > TimeoutTime then
+    begin
+      TimeoutTime := T + NET_CONNECT_TIMEOUT * 100; // одного предупреждения хватит
+      g_Console_Add(_lc[I_NET_MSG_TIMEOUT_WARN], True);
+      g_Console_Add(Format(_lc[I_NET_MSG_PORTS], [Integer(Port), Integer(NET_PING_PORT)]), True);
+    end;
+
     ProcessLoading(true);
 
     if e_KeyPressed(IK_SPACE) or e_KeyPressed(IK_ESCAPE) or e_KeyPressed(VK_ESCAPE) or
@@ -831,6 +845,7 @@ begin
   end;
 
   g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_TIMEOUT], True);
+  g_Console_Add(Format(_lc[I_NET_MSG_PORTS], [Integer(Port), Integer(NET_PING_PORT)]), True);
   if NetPeer <> nil then enet_peer_reset(NetPeer);
   if NetHost <> nil then
   begin

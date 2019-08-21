@@ -39,7 +39,7 @@ uses
 
 procedure g_Console_Init;
 procedure g_Console_Update;
-procedure g_Console_Draw;
+procedure g_Console_Draw (MessagesOnly: Boolean = False);
 procedure g_Console_Char (C: AnsiChar);
 procedure g_Console_Control (K: Word);
 procedure g_Console_Process (L: AnsiString; quiet: Boolean=false);
@@ -1092,7 +1092,7 @@ begin
   until not cbufLineUp(sp, ep);
 end;
 
-procedure g_Console_Draw();
+procedure g_Console_Draw(MessagesOnly: Boolean = False);
 var
   CWidth, CHeight: Byte;
   mfW, mfH: Word;
@@ -1108,6 +1108,8 @@ begin
   for a := 0 to High(MsgArray) do
     if MsgArray[a].Time > 0 then
       e_TextureFontPrintFmt(0, offset_y + CHeight * a, MsgArray[a].Msg, gStdFont, True);
+
+  if MessagesOnly then Exit;
 
   if gChatShow then
   begin

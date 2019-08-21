@@ -350,6 +350,8 @@ type
     I_NET_MSG_CLIENT_DONE,
     I_NET_MSG_CLIENT_DISC,
     I_NET_MSG_KICK,
+    I_NET_MSG_PORTS,
+    I_NET_MSG_TIMEOUT_WARN,
 
     I_NET_MAP_DL,
     I_NET_WAD_DL,
@@ -1265,6 +1267,10 @@ const
                                        'Отключение выполнено.'),
     ('NET MSG KICK',                   'You were dropped from the game! Reason: ',
                                        'Вас выбросило с сервера! Причина: '),
+    ('NET MSG PORTS',                  'Make sure ports %d and %d are forwarded on the server.',
+                                       'Спросите админа, пробросил ли он порты %d и %d на роутере.'),
+    ('NET MSG TIMEOUT WARN',           'Connection is taking too long.',
+                                       'Сервер не отвечает уже довольно долго.'),
 
     ('NET MAP DL',                     'Map %s not found. Downloading from the server...',
                                        'Карта %s не найдена. Скачиваем с сервера...'),
