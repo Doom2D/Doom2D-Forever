@@ -2582,7 +2582,7 @@ begin
   begin
     gMusic.SetByName(MName);
     gMusic.Play(True);
-    gMusic.SetPosition(MPos);
+    // gMusic.SetPosition(MPos);
     gMusic.SpecPause := MPaused;
   end
   else
