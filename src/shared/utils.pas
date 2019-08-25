@@ -80,6 +80,9 @@ function isWadPath (const fn: AnsiString): Boolean;
 // adds ".wad" extension if filename doesn't have one of ".wad", ".pk3", ".zip"
 function addWadExtension (const fn: AnsiString): AnsiString;
 
+// check wad signature
+function isWadData (data: Pointer; len: LongWord): Boolean;
+
 // convert number to strig with nice commas
 function int64ToStrComma (i: Int64): AnsiString;
 
@@ -821,6 +824,21 @@ function addWadExtension (const fn: AnsiString): AnsiString;
 begin
   result := fn;
   if not hasWadExtension(result) then result := result+'.wad';
+end;
+
+function isWadData (data: Pointer; len: LongWord): Boolean;
+  var p: PChar;
+begin
+  p := PChar(data);
+  Result :=
+    (* ZIP *)
+    ((len > 3) and (p[0] = 'P') and (p[1] = 'K') and (p[2] = #03) and (p[3] = #04)) or
+    ((len > 3) and (p[0] = 'P') and (p[1] = 'K') and (p[2] = #05) and (p[3] = #06)) or
+    (* PACK *)
+    ((len > 3) and (p[0] = 'P') and (p[1] = 'A') and (p[2] = 'C') and (p[3] = 'K')) or
+    ((len > 3) and (p[0] = 'S') and (p[1] = 'P') and (p[2] = 'A') and (p[3] = 'K')) or
+    (* DFWAD *)
+    ((len > 5) and (p[0] = 'D') and (p[1] = 'F') and (p[2] = 'W') and (p[3] = 'A') and (p[4] = 'D') and (p[5] = #01))
 end;
 
 

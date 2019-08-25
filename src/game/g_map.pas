@@ -1084,8 +1084,7 @@ begin
     end;
 
     // это птица? это самолёт?
-    if (TextureWAD[0] = 'D') and (TextureWAD[1] = 'F') and
-       (TextureWAD[2] = 'W') and (TextureWAD[3] = 'A') and (TextureWAD[4] = 'D') then
+    if isWadData(TextureWAD, ResLength) then
     begin
       // нет, это супермен!
       if not WAD.ReadMemory(TextureWAD, ResLength) then
