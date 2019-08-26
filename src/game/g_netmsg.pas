@@ -729,6 +729,8 @@ begin
   begin
     MH_SEND_GameEvent(NET_EV_LMS_WARMUP, (gLMSRespawnTime - gTime) div 1000, 'N', ID);
   end;
+
+  g_Net_Flush();
 end;
 
 procedure MH_SEND_Info(ID: Byte);

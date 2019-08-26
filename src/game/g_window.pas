@@ -901,6 +901,8 @@ begin
     else if (NetMode = NET_CLIENT) then g_Net_Client_Update();
   end;
 
+  if NetMode = NET_SERVER then g_Net_Flush();
+
   g_Map_ProfilersEnd();
   g_Mons_ProfilersEnd();
 

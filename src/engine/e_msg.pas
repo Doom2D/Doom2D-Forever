@@ -39,6 +39,9 @@ type
     function AssignBuffer(P: Pointer; N: Integer; Full: Boolean = False): Boolean;
 
     procedure BeginReading();
+    procedure Seek(Pos: Integer);
+    procedure Skip(Size: Integer);
+    function BytesLeft(): Integer;
     function ReadData(V: Pointer; N: Integer): Integer;
     function ReadChar(): Char;
     function ReadByte(): Byte;
@@ -61,6 +64,7 @@ type
     procedure Write(V: Int64); overload;
     procedure Write(V: String); overload;
     procedure Write(V: TMD5Digest); overload;
+    procedure Write(V: TMsg);
   end;
 
 type
@@ -97,6 +101,7 @@ procedure TMsg.Free();
 begin
   if not OwnMemory then
     raise Exception.Create('TMsg.Free: called on borrowed memory');
+  Clear();
   OwnMemory := False;
   FreeMem(Data);
   Data := nil;
@@ -145,6 +150,18 @@ begin
   end;
   Move(V^, (Data + CurSize)^, N);
   CurSize := CurSize + N;
+end;
+
+procedure TMsg.Write(V: TMsg);
+begin
+  if CurSize + V.CurSize > MaxSize then
+  begin
+    Overflow := True;
+    raise Exception.Create('TMsg.WriteData: buffer overrun!');
+    Exit;
+  end;
+  Move(V.Data^, (Data + CurSize)^, V.CurSize);
+  CurSize := CurSize + V.CurSize;
 end;
 
 procedure TMsg.Write(V: Byte); overload;
@@ -204,6 +221,25 @@ procedure TMsg.BeginReading();
 begin
   ReadCount := 0;
   Bit := 0;
+end;
+
+procedure TMsg.Seek(Pos: Integer);
+begin
+  if Pos > CurSize then
+    raise Exception.Create('TMsg.Seek: buffer overrun!');
+  ReadCount := Pos;
+end;
+
+procedure TMsg.Skip(Size: Integer);
+begin
+  if ReadCount + Size > CurSize then
+    raise Exception.Create('TMsg.Skip: buffer overrun!');
+  ReadCount := ReadCount + Size;
+end;
+
+function TMsg.BytesLeft(): Integer;
+begin
+  Result := CurSize - ReadCount;
 end;
 
 function TMsg.ReadData(V: Pointer; N: Integer): Integer;

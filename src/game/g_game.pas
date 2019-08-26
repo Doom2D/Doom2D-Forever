@@ -4614,6 +4614,7 @@ begin
         if not InMsg.Init(Ptr, NetEvent.packet^.dataLength, True) then
           continue;
 
+        InMsg.ReadLongWord(); // skip size
         MID := InMsg.ReadByte();
 
         if (MID = NET_MSG_INFO) and (State = 0) then

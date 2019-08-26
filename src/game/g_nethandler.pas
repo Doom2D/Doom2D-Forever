@@ -18,24 +18,75 @@ unit g_nethandler;
 
 interface
 
-uses g_net, g_netmsg, ENet;
+uses e_msg, g_net, g_netmsg, ENet;
 
-procedure g_Net_ClientMsgHandler(P: pENetPacket);
-procedure g_Net_ClientLightMsgHandler(P: pENetPacket);
-procedure g_Net_HostMsgHandler(S: pTNetClient; P: pENetPacket);
+type
+  TNetClientMsgHandler = function (M: TMsg): Boolean;
+  TNetHostMsgHandler = function (S: pTNetClient; M: TMsg): Boolean;
+
+procedure g_Net_Client_HandlePacket(P: pENetPacket; Handler: TNetClientMsgHandler);
+procedure g_Net_Host_HandlePacket(S: pTNetClient; P: pENetPacket; Handler: TNetHostMsgHandler);
+
+function g_Net_ClientMsgHandler(NetMsg: TMsg): Boolean;
+function g_Net_ClientLightMsgHandler(NetMsg: TMsg): Boolean;
+function g_Net_HostMsgHandler(S: pTNetClient; NetMsg: TMsg): Boolean;
 
 implementation
 
-uses e_msg;
+uses sysutils, g_console;
 
-procedure g_Net_ClientMsgHandler(P: pENetPacket);
+procedure g_Net_Client_HandlePacket(P: pENetPacket; Handler: TNetClientMsgHandler);
 var
-  MID: Byte;
+  MNext: Integer;
+  MSize: LongWord;
+  MHandled: Boolean;
   NetMsg: TMsg;
 begin
   if not NetMsg.Init(P^.data, P^.dataLength, True) then
     Exit;
 
+  MNext := 0;
+
+  while NetMsg.BytesLeft() > 0 do
+  begin
+    MSize := NetMsg.ReadLongWord();
+    MNext := NetMsg.ReadCount + MSize;
+    MHandled := Handler(NetMsg); // TODO: maybe do something with this bool
+    NetMsg.Seek(MNext);
+  end;
+
+  enet_packet_destroy(P);
+end;
+
+procedure g_Net_Host_HandlePacket(S: pTNetClient; P: pENetPacket; Handler: TNetHostMsgHandler);
+var
+  MNext: Integer;
+  MSize: LongWord;
+  MHandled: Boolean;
+  NetMsg: TMsg;
+begin
+  if not NetMsg.Init(P^.data, P^.dataLength, True) then
+    Exit;
+
+  MNext := 0;
+
+  while NetMsg.BytesLeft() > 0 do
+  begin
+    MSize := NetMsg.ReadLongWord();
+    MNext := NetMsg.ReadCount + MSize;
+    MHandled := Handler(S, NetMsg); // TODO: maybe do something with this bool
+    NetMsg.Seek(MNext);
+  end;
+
+  enet_packet_destroy(P);
+end;
+
+
+function g_Net_ClientMsgHandler(NetMsg: TMsg): Boolean;
+var
+  MID: Byte;
+begin
+  Result := True;
   MID := NetMsg.ReadByte();
 
   case MID of
@@ -78,19 +129,20 @@ begin
 
     NET_MSG_TIME_SYNC:  MC_RECV_TimeSync(NetMsg);
     NET_MSG_VOTE_EVENT: MC_RECV_VoteEvent(NetMsg);
-  end;
 
-  enet_packet_destroy(P);
+    else
+    begin
+      Result := False;
+      g_Console_Add('unknown message ID: ' + IntToStr(MID));
+    end;
+  end;
 end;
 
-procedure g_Net_ClientLightMsgHandler(P: pENetPacket);
+function g_Net_ClientLightMsgHandler(NetMsg: TMsg): Boolean;
 var
   MID: Byte;
-  NetMsg: TMsg;
 begin
-  if not NetMsg.Init(P^.data, P^.dataLength, True) then
-    Exit;
-
+  Result := True;
   MID := NetMsg.ReadByte();
 
   case MID of
@@ -99,20 +151,18 @@ begin
 
     NET_MSG_PLR:    if NetState <> NET_STATE_AUTH then MC_RECV_PlayerCreate(NetMsg);
     NET_MSG_PLRDEL: if NetState <> NET_STATE_AUTH then MC_RECV_PlayerDelete(NetMsg);
-  end;
 
-  enet_packet_destroy(P);
+    else Result := False;
+  end;
 end;
 
-procedure g_Net_HostMsgHandler(S: pTNetClient; P: pENetPacket);
+function g_Net_HostMsgHandler(S: pTNetClient; NetMsg: TMsg): Boolean;
 var
   MID: Byte;
-  NetMsg: TMsg;
 begin
-  if not NetMsg.Init(P^.data, P^.dataLength, True) then
-    Exit;
-
+  Result := True;
   MID := NetMsg.ReadByte();
+  g_Console_Add('MID = ' + IntTOStr(MID));
 
   case MID of
     NET_MSG_INFO: MH_RECV_Info(S, NetMsg);
@@ -131,8 +181,6 @@ begin
 
     NET_MSG_VOTE_EVENT: MH_RECV_Vote(S, NetMsg);
   end;
-
-  enet_packet_destroy(P);
 end;
 
 end.
