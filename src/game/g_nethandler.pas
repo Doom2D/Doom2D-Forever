@@ -162,7 +162,6 @@ var
 begin
   Result := True;
   MID := NetMsg.ReadByte();
-  g_Console_Add('MID = ' + IntTOStr(MID));
 
   case MID of
     NET_MSG_INFO: MH_RECV_Info(S, NetMsg);
