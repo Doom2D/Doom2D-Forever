@@ -211,7 +211,6 @@ const
   ANNOUNCE_ALL    = 3;
 
   CONFIG_FILENAME = 'Doom2DF.cfg';
-  LOG_FILENAME = 'Doom2DF.log';
 
   TEST_MAP_NAME = '$$$_TEST_$$$';
 

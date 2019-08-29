@@ -172,12 +172,32 @@ begin
   SetEnvVar('TIMIDITY_CFG', 'timidity.cfg');
 {$ENDIF ANDROID}
 
-  for f := 1 to ParamCount do
+  f := 1;
+  while f <= ParamCount do
   begin
-         if ParamStr(f) = '--gdb' then noct := true
-    else if ParamStr(f) = '--log' then conbufDumpToStdOut := true
-    else if ParamStr(f) = '--safe-log' then e_SetSafeSlowLog(true);
+    case ParamStr(f) of
+    '--gdb': noct := true;
+    '--log': conbufDumpToStdOut := true;
+    '--safe-log': e_SetSafeSlowLog(true);
+    '--log-file':
+      if f + 1 <= ParamCount then
+      begin
+        Inc(f);
+        LogFileName := ParamStr(f)
+      end;
+    end;
+    Inc(f)
   end;
+
+  if LogFileName = '' then
+  begin
+{$IFDEF HEADLESS}
+    LogFileName := 'Doom2DF_H.log';
+{$ELSE}
+    LogFileName := 'Doom2DF.log';
+{$ENDIF}
+  end;
+
   if noct then
   begin
     Main()

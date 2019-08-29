@@ -32,6 +32,7 @@ var
   MapsDir: string;
   ModelsDir: string;
   GameWAD: string;
+  LogFileName: string;
 
 implementation
 
@@ -67,7 +68,7 @@ begin
   ModelsDir := DataDir + 'models/';
   GameWAD := DataDir + 'Game.wad';
 
-  e_InitLog(GameDir + '/' + LOG_FILENAME, TWriteMode.WM_NEWFILE);
+  e_InitLog(GameDir + '/' + LogFileName, TWriteMode.WM_NEWFILE);
 
   e_WriteLog(
     'Doom 2D: Forever version ' + GAME_VERSION +
