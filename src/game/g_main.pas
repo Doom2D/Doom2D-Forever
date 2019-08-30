@@ -477,9 +477,12 @@ end;
 
 
 procedure KeyPress (K: Word);
+{$IFNDEF HEADLESS}
 var
   Msg: g_gui.TMessage;
+{$ENDIF}
 begin
+{$IFNDEF HEADLESS}
   case K of
     VK_ESCAPE: // <Esc>:
       begin
@@ -552,6 +555,7 @@ begin
         end;
       end;
   end;
+{$ENDIF}
 end;
 
 

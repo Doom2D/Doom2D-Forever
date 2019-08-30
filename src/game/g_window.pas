@@ -823,6 +823,7 @@ begin
       end;
     end;
 
+{$IFNDEF HEADLESS}
     if forceUpdate then
     begin
       DrawMenuBackground('INTER');
@@ -832,6 +833,7 @@ begin
       g_Console_Draw(True);
       SwapBuffers();
     end;
+{$ENDIF}
   end;
 
   e_SoundUpdate();
@@ -1177,8 +1179,10 @@ begin
   // Командная строка
   if (ParamCount > 0) then g_Game_Process_Params();
 
+{$IFNDEF HEADLESS}
   // Запрос языка
   if (not gGameOn) and gAskLanguage then g_Menu_AskLanguage();
+{$ENDIF}
 
   e_WriteLog('Entering the main loop', TMsgType.Notify);
 

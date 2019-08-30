@@ -1342,8 +1342,10 @@ begin
     g_Sound_CreateWADEx('MUSIC_ROUNDMUS', GameWAD+':MUSIC\ROUNDMUS', True, True);
     g_Sound_CreateWADEx('MUSIC_STDENDMUS', GameWAD+':MUSIC\ENDMUS', True);
 
+{$IFNDEF HEADLESS}
     g_Game_SetLoadingText(_lc[I_LOAD_MENUS], 0, False);
     g_Menu_Init();
+{$ENDIF}
 
     gMusic := TMusic.Create();
     gMusic.SetByName('MUSIC_MENU');
@@ -2174,7 +2176,9 @@ begin
       //e_WriteLog('Read language file', MSG_NOTIFY);
       //g_Language_Load(DataDir + gLanguage + '.txt');
       g_Language_Set(gLanguage);
+{$IFNDEF HEADLESS}
       g_Menu_Reset();
+{$ENDIF}
       gLanguageChange := False;
     end;
   end;
@@ -4037,7 +4041,9 @@ begin
     g_ActiveWindow.Draw();
   end;
 
+{$IFNDEF HEADLESS}
   g_Console_Draw();
+{$ENDIF}
 
   if g_debug_Sounds and gGameOn then
   begin
@@ -4073,7 +4079,9 @@ begin
   g_PlayerModel_FreeData();
   g_Texture_DeleteAll();
   g_Frames_DeleteAll();
+{$IFNDEF HEADLESS}
   //g_Menu_Free(); //k8: this segfaults after resolution change; who cares?
+{$ENDIF}
 
   if NetInitDone then g_Net_Free;
 
