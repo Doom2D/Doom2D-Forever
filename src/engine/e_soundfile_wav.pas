@@ -22,20 +22,33 @@ uses e_soundfile;
 
 type
   // a WAV loader that just uses SDL_LoadWAV
+
   TWAVLoader = class (TSoundLoader)
   public
-    function CanLoad(Data: Pointer; Len: Integer): Boolean; override; overload;
-    function CanLoad(FName: string): Boolean; override; overload;
-    function Load(Data: Pointer; Len: Integer; var OutLen: Integer; var OutFmt: TSoundFormat): Pointer; override; overload;
-    function Load(FName: string; var OutLen: Integer; var OutFmt: TSoundFormat): Pointer; override; overload;
-    procedure Free(Data: Pointer); override;
+    function Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean; override; overload;
+    function Load(FName: string; SStreaming: Boolean): Boolean; override; overload;
+    function SetPosition(Pos: LongWord): Boolean; override;
+    function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
+    function GetAll(var OutPtr: Pointer): LongWord; override;
+    procedure Free(); override;
+  private
+    FData: Pointer;
+    FDataLen: LongWord;
+  end;
+
+  TWAVLoaderFactory = class (TSoundLoaderFactory)
+    function MatchHeader(Data: Pointer; Len: LongWord): Boolean; override;
+    function MatchExtension(FName: string): Boolean; override;
+    function GetLoader(): TSoundLoader; override;
   end;
 
 implementation
 
 uses sdl2, utils, e_log;
 
-function TWAVLoader.CanLoad(Data: Pointer; Len: Integer): Boolean;
+(* TWAVLoaderFactory *)
+
+function TWAVLoaderFactory.MatchHeader(Data: Pointer; Len: LongWord): Boolean;
 var
   P: PByte;
 begin
@@ -48,20 +61,27 @@ begin
   Result := ((P+0)^ = Ord('R')) and ((P+1)^ = Ord('I')) and ((P+2)^ = Ord('F')) and ((P+3)^ = Ord('F'));
 end;
 
-function TWAVLoader.CanLoad(FName: string): Boolean;
+function TWAVLoaderFactory.MatchExtension(FName: string): Boolean;
 begin
-  // TODO: actually check for RIFF header
+  // TODO: ehhh
   Result := GetFilenameExt(FName) = '.wav';
 end;
 
-function TWAVLoader.Load(Data: Pointer; Len: Integer; var OutLen: Integer; var OutFmt: TSoundFormat): Pointer;
+function TWAVLoaderFactory.GetLoader(): TSoundLoader;
+begin
+  Result := TWAVLoader.Create();
+end;
+
+(* TWAVLoader *)
+
+function TWAVLoader.Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean;
 var
   Spec: TSDL_AudioSpec;
   RW: PSDL_RWops;
   TmpLen: UInt32;
   TmpBuf: PUInt8;
 begin
-  Result := nil;
+  Result := False;
 
   RW := SDL_RWFromConstMem(Data, Len);
 
@@ -71,25 +91,26 @@ begin
   end
   else
   begin
-    OutFmt.Loader := self;
-    OutFmt.SampleRate := Spec.freq;
-    OutFmt.SampleBits := SDL_AUDIO_BITSIZE(Spec.format);
-    OutFmt.Channels := Spec.channels;
-    OutLen := TmpLen;
-    Result := TmpBuf;
+    FFormat.SampleRate := Spec.freq;
+    FFormat.SampleBits := SDL_AUDIO_BITSIZE(Spec.format);
+    FFormat.Channels := Spec.channels;
+    FStreaming := False; // never stream wavs
+    FDataLen := TmpLen;
+    FData := TmpBuf;
+    Result := True;
   end;
 
   SDL_RWclose(RW);
 end;
 
-function TWAVLoader.Load(FName: string; var OutLen: Integer; var OutFmt: TSoundFormat): Pointer;
+function TWAVLoader.Load(FName: string; SStreaming: Boolean): Boolean;
 var
   Spec: TSDL_AudioSpec;
   RW: PSDL_RWops;
   TmpLen: UInt32;
   TmpBuf: PUInt8;
 begin
-  Result := nil;
+  Result := False;
 
   RW := SDL_RWFromFile(PChar(FName), 'rb');
 
@@ -102,26 +123,51 @@ begin
   if SDL_LoadWAV_RW(RW, 0, @Spec, @TmpBuf, @TmpLen) = nil then
   begin
     e_LogWritefln('Could not load WAV file `%s`: %s', [FName, SDL_GetError()]);
-    Result := nil;
   end
   else
   begin
-    OutFmt.Loader := self;
-    OutFmt.SampleRate := Spec.freq;
-    OutFmt.SampleBits := SDL_AUDIO_BITSIZE(Spec.format);
-    OutFmt.Channels := Spec.channels;
-    OutLen := TmpLen;
-    Result := TmpBuf;
+    FFormat.SampleRate := Spec.freq;
+    FFormat.SampleBits := SDL_AUDIO_BITSIZE(Spec.format);
+    FFormat.Channels := Spec.channels;
+    FStreaming := False; // never stream wavs
+    FDataLen := TmpLen;
+    FData := TmpBuf;
+    Result := True;
   end;
 
   SDL_RWclose(RW);
 end;
 
-procedure TWAVLoader.Free(Data: Pointer);
+function TWAVLoader.SetPosition(Pos: LongWord): Boolean;
 begin
-  SDL_FreeWAV(Data); // SDL allocates inside the DLL, so we need this
+  Result := False; // makes no sense when not streaming
+end;
+
+function TWAVLoader.FillBuffer(Buf: Pointer; Len: LongWord): LongWord;
+begin
+  if FDataLen < Len then
+    Len := FDataLen;
+  if FData <> nil then
+  begin
+    Move(FData^, Buf^, Len);
+    Result := Len;
+  end
+  else
+    Result := 0;
+end;
+
+function TWAVLoader.GetAll(var OutPtr: Pointer): LongWord;
+begin
+  OutPtr := FData;
+  Result := FDataLen;
+end;
+
+procedure TWAVLoader.Free();
+begin
+  if FData <> nil then
+    SDL_FreeWAV(FData); // SDL allocates inside the DLL, so we need this
 end;
 
 initialization
-  e_AddSoundLoader(TWAVLoader.Create());
+  e_AddSoundLoader(TWAVLoaderFactory.Create());
 end.

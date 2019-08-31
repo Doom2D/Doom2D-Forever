@@ -24,9 +24,7 @@ uses
 
 type
   TSoundRec = record
-    Fmt: TSoundFormat;
-    Data: Pointer;
-    DataLen: Integer;
+    Loader: TSoundLoader;
     alBuffer: ALuint;
     isMusic: Boolean;
     Loops: Boolean;
@@ -91,6 +89,7 @@ procedure e_ReleaseSoundSystem();
 procedure e_SoundUpdate();
 
 var
+  e_SoundFormat: TSoundFormat; // desired sound format
   e_SoundsArray: array of TSoundRec = nil;
   e_ZeroPosition: array [0..2] of ALfloat;
   e_ALError: ALenum = 0;
@@ -101,17 +100,24 @@ uses
   g_window, g_options, utils;
 
 const
-  NUM_SOURCES = 250;
+  NUM_SOURCES = 255; // + 1 stereo
+  NUM_STREAM_BUFFERS = 8;
+  STREAM_BUFSIZE = 8192;
   MUSIC_SOURCE = 0;
 
 var
+  SoundMuted: Boolean = False;
+  CurStream: DWORD = NO_SOUND_ID;
   alDevice: PALCdevice = nil;
   alContext: PALCcontext = nil;
-  // sources for one-shot sounds
-  // TBasicSounds have a built in source that lives and dies with them
-  alSources: array of ALuint;
-  alOwners: array of TBasicSound;
-  SoundMuted: Boolean = False;
+  // sources for everything
+  alSources: array [0..NUM_SOURCES] of ALuint;
+  // last TBasicSound that has played on each source
+  alOwners: array [0..NUM_SOURCES] of TBasicSound;
+  // buffers for the music stream
+  alStreamBufs: array [0..NUM_STREAM_BUFFERS-1] of ALuint;
+  alStreamData: array [0..STREAM_BUFSIZE-1] of Byte;
+  alStreamAvail: Integer = NUM_STREAM_BUFFERS;
 
 function CheckALError(): Boolean;
 begin
@@ -136,8 +142,8 @@ end;
 function e_InitSoundSystem(NoOutput: Boolean = False): Boolean;
 var
   alExt, alRend, alVendor, alVer: string;
-  DevName: string = '';
-  alAttrs: array [0..4] of ALCint = (
+  WantDev: string = '';
+  WantAttrs: array [0..4] of ALCint = (
     ALC_STEREO_SOURCES, 1,
     ALC_MONO_SOURCES, NUM_SOURCES,
     0
@@ -145,21 +151,21 @@ var
 begin
   Result := False;
 
-  DevName := alcGetString(nil, ALC_DEVICE_SPECIFIER);
-  e_LogWritefln('AL: available devices: %s', [DevName]);
+  WantDev := alcGetString(nil, ALC_DEVICE_SPECIFIER);
+  e_LogWritefln('AL: available devices: %s', [WantDev]);
 
   // TODO: open a dummy device when NoOutput is true or something
-  DevName := alcGetString(nil, ALC_DEFAULT_DEVICE_SPECIFIER);
-  e_LogWritefln('AL: trying to open device %s', [DevName]);
+  WantDev := alcGetString(nil, ALC_DEFAULT_DEVICE_SPECIFIER);
+  e_LogWritefln('AL: trying to open device %s', [WantDev]);
 
-  alDevice := alcOpenDevice(PChar(DevName));
+  alDevice := alcOpenDevice(PChar(WantDev));
   if alDevice = nil then
   begin
-    e_LogWritefln('AL: ERROR: could not open device %s: %s', [DevName, GetALError()]);
+    e_LogWritefln('AL: ERROR: could not open device %s: %s', [WantDev, GetALError()]);
     exit;
   end;
 
-  alContext := alcCreateContext(alDevice, alAttrs);
+  alContext := alcCreateContext(alDevice, WantAttrs);
   if alContext = nil then
   begin
     e_LogWritefln('AL: ERROR: could not create context: %s', [GetALError()]);
@@ -170,28 +176,42 @@ begin
 
   alcMakeContextCurrent(alContext);
 
+  // TODO: actually parse these from alc attributes or something
+  e_SoundFormat.SampleRate := 48000;
+  e_SoundFormat.SampleBits := 16;
+  e_SoundFormat.Channels := 2;
+
   alVendor := alGetString(AL_VENDOR);
   alRend := alGetString(AL_RENDERER);
   alVer := alGetString(AL_VERSION);
   alExt := alGetString(AL_EXTENSIONS);
 
   e_LogWriteln('AL INFO:');
-  e_LogWriteln('  Version:  ' + alVer);
-  e_LogWriteln('  Vendor:   ' + alVendor);
-  e_LogWriteln('  Renderer: ' + alRend);
-  e_LogWriteln('  Device:   ' + DevName);
+  e_LogWriteln('  Version:  '    + alVer);
+  e_LogWriteln('  Vendor:   '    + alVendor);
+  e_LogWriteln('  Renderer: '    + alRend);
+  e_LogWriteln('  Device:   '    + WantDev);
+  e_LogWriteln('  Sample rate: ' + IntToStr(e_SoundFormat.SampleRate));
   e_LogWriteln('  Extensions:');
   e_LogWriteln('    ' + alExt);
 
-  SetLength(alSources, NUM_SOURCES + 1); // 0 is the music source
-  SetLength(alOwners, NUM_SOURCES + 1);  // to avoid destructive operations on sources
-  ZeroMemory(@alSources[0], sizeof(alSources[0]) * Length(alSources));
-  ZeroMemory(@alOwners[0], sizeof(alOwners[0]) * Length(alOwners));
+  ZeroMemory(@alSources[0], sizeof(alSources));
+  ZeroMemory(@alOwners[0], sizeof(alOwners));
+  ZeroMemory(@alStreamBufs[0], sizeof(alStreamBufs));
+  ZeroMemory(@alStreamData[0], sizeof(alStreamData));
+  CurStream := NO_SOUND_ID;
 
   alGetError(); // reset the goddamn error state
   alGenSources(1, @alSources[0]); // generate the music source
   if CheckALError() then
     e_LogWriteln('AL: ERROR: alGenSources() for music failed: ' + GetALError());
+
+  alStreamAvail := 0;
+  alGenBuffers(NUM_STREAM_BUFFERS, @alStreamBufs[0]); // generate buffers for the music stream
+  if CheckALError() then
+    e_LogWriteln('AL: ERROR: alGenSources() for music failed: ' + GetALError())
+  else
+    alStreamAvail := NUM_STREAM_BUFFERS;
 
   Result := True;
 end;
@@ -203,7 +223,7 @@ var
 begin
   if e_SoundsArray <> nil then
     for i := 0 to High(e_SoundsArray) do
-      if e_SoundsArray[i].alBuffer = 0 then
+      if (e_SoundsArray[i].alBuffer = 0) and (e_SoundsArray[i].Loader = nil) then
       begin
         Result := i;
         Exit;
@@ -248,14 +268,15 @@ function e_LoadSound(FileName: String; var ID: DWORD; isMusic: Boolean; ForceNoL
 var
   find_id: DWORD;
   Loader: TSoundLoader;
+  OutData: Pointer;
+  OutLen: LongWord;
 begin
   ID := NO_SOUND_ID;
   Result := False;
 
   find_id := FindESound();
 
-  e_SoundsArray[find_id].Data := nil;
-  e_SoundsArray[find_id].DataLen := 0;
+  e_SoundsArray[find_id].Loader := nil;
   e_SoundsArray[find_id].isMusic := isMusic;
   e_SoundsArray[find_id].Loops := isMusic and not ForceNoLoop;
   e_SoundsArray[find_id].nRefs := 0;
@@ -267,8 +288,7 @@ begin
     exit;
   end;
 
-  e_SoundsArray[find_id].Data := Loader.Load(FileName, e_SoundsArray[find_id].DataLen, e_SoundsArray[find_id].Fmt);
-  if e_SoundsArray[find_id].Data = nil then
+  if not Loader.Load(FileName, e_SoundsArray[find_id].isMusic) then
   begin
     e_LogWritefln('Could not load sound `%s`', [FileName]);
     exit;
@@ -276,32 +296,41 @@ begin
 
   alGetError(); // reset error state, god damn it
 
-  alGenBuffers(1, Addr(e_SoundsArray[find_id].alBuffer));
-  if CheckALError() then
+  if not Loader.Streaming then
   begin
-    e_LogWritefln('Could not create AL buffer for `%s`: %s', [FileName, GetALError()]);
-    Loader.Free(e_SoundsArray[find_id].Data);
-    exit;
-  end;
+    alGenBuffers(1, Addr(e_SoundsArray[find_id].alBuffer));
+    if CheckALError() then
+    begin
+      e_LogWritefln('Could not create AL buffer for `%s`: %s', [FileName, GetALError()]);
+      Loader.Free();
+      exit;
+    end;
 
-  alBufferData(
-    e_SoundsArray[find_id].alBuffer,
-    GetALSoundFormat(e_SoundsArray[find_id].Fmt),
-    e_SoundsArray[find_id].Data,
-    e_SoundsArray[find_id].DataLen,
-    e_SoundsArray[find_id].Fmt.SampleRate
-  );
+    OutLen := Loader.GetAll(OutData);
+    alBufferData(
+      e_SoundsArray[find_id].alBuffer,
+      GetALSoundFormat(Loader.Format),
+      OutData,
+      OutLen,
+      Loader.Format.SampleRate
+    );
 
-  // don't need this anymore
-  Loader.Free(e_SoundsArray[find_id].Data);
-  e_SoundsArray[find_id].Data := nil;
-  e_SoundsArray[find_id].DataLen := 0;
+    // don't need this anymore
+    Loader.Free();
+    Loader := nil;
 
-  if CheckALError() then
+    if CheckALError() then
+    begin
+      e_LogWriteln('AL: what the fuck: ' + GetALError());
+      alDeleteBuffers(1, Addr(e_SoundsArray[find_id].alBuffer));
+      e_SoundsArray[find_id].alBuffer := 0;
+      exit;
+    end;
+  end
+  else
   begin
-    e_LogWriteln('AL: what the fuck: ' + GetALError());
-    alDeleteBuffers(1, Addr(e_SoundsArray[find_id].alBuffer));
-    exit;
+    e_SoundsArray[find_id].alBuffer := 0;
+    e_SoundsArray[find_id].Loader := Loader;
   end;
 
   ID := find_id;
@@ -312,27 +341,27 @@ function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic:
 var
   find_id: DWORD;
   Loader: TSoundLoader;
+  OutData: Pointer;
+  OutLen: LongWord;
 begin
   ID := NO_SOUND_ID;
   Result := False;
 
   find_id := FindESound();
 
-  e_SoundsArray[find_id].Data := nil;
-  e_SoundsArray[find_id].DataLen := 0;
+  e_SoundsArray[find_id].Loader := nil;
   e_SoundsArray[find_id].isMusic := isMusic;
   e_SoundsArray[find_id].Loops := isMusic and not ForceNoLoop;
   e_SoundsArray[find_id].nRefs := 0;
 
-  Loader := e_GetSoundLoader(pData, Length);
+  Loader := e_GetSoundLoader(pData, LongWord(Length));
   if Loader = nil then
   begin
     e_LogWritefln('Could not find loader for sound `%p`', [pData]);
     exit;
   end;
 
-  e_SoundsArray[find_id].Data := Loader.Load(pData, Length, e_SoundsArray[find_id].DataLen, e_SoundsArray[find_id].Fmt);
-  if e_SoundsArray[find_id].Data = nil then
+  if not Loader.Load(pData, LongWord(Length), e_SoundsArray[find_id].isMusic) then
   begin
     e_LogWritefln('Could not load sound `%p`', [pData]);
     exit;
@@ -340,32 +369,41 @@ begin
 
   alGetError(); // reset error state, god damn it
 
-  alGenBuffers(1, Addr(e_SoundsArray[find_id].alBuffer));
-  if CheckALError() then
+  if not Loader.Streaming then
   begin
-    e_LogWritefln('Could not create AL buffer for `%p`: %s', [pData, GetALError()]);
-    Loader.Free(e_SoundsArray[find_id].Data);
-    exit;
-  end;
+    alGenBuffers(1, Addr(e_SoundsArray[find_id].alBuffer));
+    if CheckALError() then
+    begin
+      e_LogWritefln('Could not create AL buffer for `%p`: %s', [pData, GetALError()]);
+      Loader.Free();
+      exit;
+    end;
 
-  alBufferData(
-    e_SoundsArray[find_id].alBuffer,
-    GetALSoundFormat(e_SoundsArray[find_id].Fmt),
-    e_SoundsArray[find_id].Data,
-    e_SoundsArray[find_id].DataLen,
-    e_SoundsArray[find_id].Fmt.SampleRate
-  );
+    OutLen := Loader.GetAll(OutData);
+    alBufferData(
+      e_SoundsArray[find_id].alBuffer,
+      GetALSoundFormat(Loader.Format),
+      OutData,
+      OutLen,
+      Loader.Format.SampleRate
+    );
 
-  // don't need this anymore
-  Loader.Free(e_SoundsArray[find_id].Data);
-  e_SoundsArray[find_id].Data := nil;
-  e_SoundsArray[find_id].DataLen := 0;
+    // don't need this anymore
+    Loader.Free();
+    Loader := nil;
 
-  if CheckALError() then
+    if CheckALError() then
+    begin
+      e_LogWriteln('AL: what the fuck: ' + GetALError());
+      alDeleteBuffers(1, Addr(e_SoundsArray[find_id].alBuffer));
+      e_SoundsArray[find_id].alBuffer := 0;
+      exit;
+    end;
+  end
+  else
   begin
-    e_LogWriteln('AL: what the fuck: ' + GetALError());
-    alDeleteBuffers(1, Addr(e_SoundsArray[find_id].alBuffer));
-    exit;
+    e_SoundsArray[find_id].alBuffer := 0;
+    e_SoundsArray[find_id].Loader := Loader;
   end;
 
   ID := find_id;
@@ -380,9 +418,11 @@ begin
   if ID > High(e_SoundsArray) then
     exit;
 
-  if e_SoundsArray[ID].isMusic then
+  if e_SoundsArray[ID].Loader <> nil then
   begin
-    // last source is for music
+    // first source is for streaming sounds
+    // it always exists
+    alOwners[MUSIC_SOURCE] := nil;
     Result := MUSIC_SOURCE;
     exit;
   end;
@@ -409,12 +449,29 @@ end;
 procedure AssignSound(ID: DWORD; Src: ALuint); inline;
 begin
   alGetError(); // reset error state
-  alSourcei(Src, AL_BUFFER, e_SoundsArray[ID].alBuffer);
-  alSourcei(Src, AL_SOURCE_RELATIVE, AL_TRUE);
-  if (e_SoundsArray[ID].Loops) then
-    alSourcei(Src, AL_LOOPING, AL_TRUE)
+
+  if e_SoundsArray[ID].Loader <> nil then
+  begin
+    // this is a stream
+    // reset position
+    e_SoundsArray[ID].Loader.SetPosition(0);
+    if CurStream <> ID then // changing streams, stop the thing just in case
+      alSourceStop(Src);
+    // this shit is playing now
+    CurStream := ID;
+  end
   else
-    alSourcei(Src, AL_LOOPING, AL_FALSE);
+  begin
+    // this is a full chunk, assign local buffer
+    alSourcei(Src, AL_BUFFER, e_SoundsArray[ID].alBuffer);
+    // these can loop
+    if (e_SoundsArray[ID].Loops) then
+      alSourcei(Src, AL_LOOPING, AL_TRUE)
+    else
+      alSourcei(Src, AL_LOOPING, AL_FALSE);
+  end;
+
+  alSourcei(Src, AL_SOURCE_RELATIVE, AL_TRUE);
 end;
 
 function e_PlaySound(ID: DWORD): Integer;
@@ -480,11 +537,12 @@ begin
     alDeleteBuffers(1, Addr(e_SoundsArray[ID].alBuffer));
     e_SoundsArray[ID].alBuffer := 0;
   end;
-  if (e_SoundsArray[ID].Data <> nil) then
+  if (e_SoundsArray[ID].Loader <> nil) then
   begin
-    e_SoundsArray[ID].Fmt.Loader.Free(e_SoundsArray[ID].Data);
-    e_SoundsArray[ID].Data := nil;
-    e_SoundsArray[ID].DataLen := 0;
+    e_SoundsArray[ID].Loader.Free();
+    e_SoundsArray[ID].Loader := nil;
+    if ID = CurStream then
+      CurStream := NO_SOUND_ID;
   end;
 end;
 
@@ -543,6 +601,7 @@ begin
       e_DeleteSound(i);
   SetLength(e_SoundsArray, 0);
   e_SoundsArray := nil;
+  CurStream := NO_SOUND_ID;
 end;
 
 procedure e_ReleaseSoundSystem();
@@ -557,11 +616,56 @@ begin
   alContext := nil;
 end;
 
+procedure UpdateStreamSource(Src: Integer);
+var
+  OutLen: LongWord;
+  Buf: ALuint;
+  S: Integer;
+begin
+  if alSources[Src] = 0 then Exit;
+
+  alGetError(); // reset error state
+
+  alGetSourcei(alSources[Src], AL_BUFFERS_PROCESSED, S);
+  // unqueue processed buffers
+  if S > 0 then
+  begin
+    alSourceUnqueueBuffers(alSources[Src], S, @alStreamBufs[alStreamAvail]);
+    alStreamAvail := alStreamAvail + S;
+  end;
+
+  alGetError(); // reset error state
+
+  if (alStreamAvail > 0) and (CurStream <> NO_SOUND_ID) then
+  begin
+    // some buffers have freed up, advance stream playback
+    OutLen := e_SoundsArray[CurStream].Loader.FillBuffer(@alStreamData[0], STREAM_BUFSIZE);
+    if OutLen = 0 then Exit; // ran out of stream
+    Buf := alStreamBufs[alStreamAvail-1];
+    Dec(alStreamAvail);
+    // upload
+    alBufferData(
+      Buf,
+      GetALSoundFormat(e_SoundsArray[CurStream].Loader.Format),
+      @alStreamData[0],
+      OutLen,
+      e_SoundsArray[CurStream].Loader.Format.SampleRate
+    );
+    // attach
+    alSourceQueueBuffers(alSources[Src], 1, @Buf);
+    // restart if needed
+    S := GetALSourceState(alSources[Src]);
+    if (S = AL_STOPPED) or (S = AL_INITIAL) then
+      alSourcePlay(alSources[Src]);
+  end;
+end;
+
 procedure e_SoundUpdate();
 var
   S: Integer;
 begin
   alGetError(); // reset error state
+
   // clear out all stopped sources
   for S := 1 to High(alSources) do
     if (alSources[S] <> 0) and (GetALSourceState(alSources[S]) = AL_STOPPED) then
@@ -570,6 +674,9 @@ begin
       alSources[S] := 0;
       alOwners[S] := nil;
     end;
+
+  // update the stream sources
+  UpdateStreamSource(MUSIC_SOURCE);
 end;
 
 { TBasicSound: }
@@ -646,6 +753,8 @@ end;
 
 procedure TBasicSound.Stop();
 begin
+  if FID = CurStream then
+    CurStream := NO_SOUND_ID;
   if InvalidSource() then
     Exit;
   GetPosition();

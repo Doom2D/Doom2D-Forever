@@ -22,38 +22,49 @@ type
   TSoundLoader = class;
 
   TSoundFormat = record
-    Loader: TSoundLoader;
     SampleBits: Integer;
     SampleRate: Integer;
     Channels: Integer;
   end;
 
-  // each sound file format has its own loader 
-  // TODO: maybe make TBasicSound contain an instance of its loader
-  //       and add a FetchSamples method or something, for streaming shit
+  // each sound file format has its own loader factory and loader class,
+  // each sound has its own loader instance for streaming purposes
+
   TSoundLoader = class
+  protected
+    FFormat: TSoundFormat;
+    FStreaming: Boolean;
+
   public
-    // can this loader load the sound file in Data?
-    function CanLoad(Data: Pointer; Len: Integer): Boolean; virtual; abstract; overload;
-    // can this loader load the sound file at FName?
-    function CanLoad(FName: string): Boolean; virtual; abstract; overload;
-    // load from memory
-    function Load(Data: Pointer; Len: Integer; var OutLen: Integer; var OutFmt: TSoundFormat): Pointer; virtual; abstract; overload;
-    // load from file
-    function Load(FName: string; var OutLen: Integer; var OutFmt: TSoundFormat): Pointer; virtual; abstract; overload;
-    // needed in case memory is allocated in a lib or something
-    procedure Free(Data: Pointer); virtual; abstract;
+    function Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean; virtual; abstract; overload;
+    function Load(FName: string; SStreaming: Boolean): Boolean; virtual; abstract; overload;
+
+    function SetPosition(Pos: LongWord): Boolean; virtual; abstract;
+    function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; virtual; abstract;
+
+    function GetAll(var OutPtr: Pointer): LongWord; virtual; abstract;
+
+    procedure Free(); virtual; abstract;
+
+    property Format: TSoundFormat read FFormat;
+    property Streaming: Boolean read FStreaming;
   end;
 
-function e_GetSoundLoader(Data: Pointer; Len: Integer): TSoundLoader; overload;
+  TSoundLoaderFactory = class
+    function MatchHeader(Data: Pointer; Len: LongWord): Boolean; virtual; abstract;
+    function MatchExtension(FName: string): Boolean; virtual; abstract;
+    function GetLoader(): TSoundLoader; virtual; abstract;
+  end;
+
+function e_GetSoundLoader(Data: Pointer; Len: LongWord): TSoundLoader; overload;
 function e_GetSoundLoader(FName: string): TSoundLoader; overload;
 
-procedure e_AddSoundLoader(Loader: TSoundLoader);
+procedure e_AddSoundLoader(Loader: TSoundLoaderFactory);
 
 implementation
 
 var
-  e_SoundLoaders: array of TSoundLoader;
+  e_SoundLoaders: array of TSoundLoaderFactory;
 
 function e_GetSoundLoader(FName: string): TSoundLoader; overload;
 var
@@ -61,27 +72,27 @@ var
 begin
   Result := nil;
   for I := Low(e_SoundLoaders) to High(e_SoundLoaders) do
-    if e_SoundLoaders[I].CanLoad(FName) then
+    if e_SoundLoaders[I].MatchExtension(FName) then
     begin
-      Result := e_SoundLoaders[I];
+      Result := e_SoundLoaders[I].GetLoader();
       break;
     end;
 end;
 
-function e_GetSoundLoader(Data: Pointer; Len: Integer): TSoundLoader; overload;
+function e_GetSoundLoader(Data: Pointer; Len: LongWord): TSoundLoader; overload;
 var
   I: Integer;
 begin
   Result := nil;
   for I := Low(e_SoundLoaders) to High(e_SoundLoaders) do
-    if e_SoundLoaders[I].CanLoad(Data, Len) then
+    if e_SoundLoaders[I].MatchHeader(Data, Len) then
     begin
-      Result := e_SoundLoaders[I];
+      Result := e_SoundLoaders[I].GetLoader();
       break;
     end;
 end;
 
-procedure e_AddSoundLoader(Loader: TSoundLoader);
+procedure e_AddSoundLoader(Loader: TSoundLoaderFactory);
 begin
   SetLength(e_SoundLoaders, Length(e_SoundLoaders) + 1);
   e_SoundLoaders[High(e_SoundLoaders)] := Loader;
