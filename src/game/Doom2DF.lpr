@@ -52,6 +52,11 @@ uses
 {$IFDEF USE_SDLMIXER}
   SDL2_mixer in '../lib/sdl2/SDL2_mixer.pas',
 {$ENDIF}
+{$IFDEF USE_OPENAL}
+  AL in '../lib/openal/al.pas',
+  e_soundfile in '../engine/e_soundfile.pas',
+  e_soundfile_wav in '../engine/e_soundfile_wav.pas',
+{$ENDIF}
   ENet in '../lib/enet/enet.pp',
   e_graphics in '../engine/e_graphics.pas',
   e_input in '../engine/e_input.pas',
