@@ -22,13 +22,20 @@
 {$ENDIF}
 {$HINTS OFF}
 
-{$IFDEF USE_SDLMIXER}
- {$IFDEF USE_FMOD}
-  {$ERROR define only one of USE_SDLMIXER or USE_FMOD}
- {$ENDIF}
+{$IF DEFINED(USE_SDLMIXER)}
+  {$IF DEFINED(USE_FMOD) OR DEFINED(USE_OPENAL)}
+    {$ERROR Only one sound driver must be selected!}
+  {$ENDIF}
+{$ELSEIF DEFINED(USE_FMOD)}
+  {$IF DEFINED(USE_SDLMIXER) OR DEFINED(USE_OPENAL)}
+    {$ERROR Only one sound driver must be selected!}
+  {$ENDIF}
+{$ELSEIF DEFINED(USE_OPENAL)}
+  {$IF DEFINED(USE_SDLMIXER) OR DEFINED(USE_FMOD)}
+    {$ERROR Only one sound driver must be selected!}
+  {$ENDIF}
 {$ELSE}
- {$UNDEF USE_SDLMIXER}
- {$DEFINE USE_FMOD}
+  {$ERROR Sound driver not selected. Use -DUSE_SDLMIXER or -DUSE_FMOD or -DUSE_OPENAL}
 {$ENDIF}
 
 uses
