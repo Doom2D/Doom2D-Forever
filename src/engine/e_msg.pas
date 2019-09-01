@@ -28,6 +28,7 @@ type
     CurSize: Integer;
     ReadCount: Integer;
     Bit: Integer;
+    AllocStep: Integer;
     OwnMemory: Boolean;
 
     function Init(V: Pointer; N: Integer; Full: Boolean = False): Boolean;
@@ -94,6 +95,7 @@ begin
   if P = nil then
     raise Exception.Create('TMsg.Alloc: no mem');
   Init(P, N);
+  AllocStep := N;
   OwnMemory := True;
 end;
 
@@ -141,27 +143,32 @@ begin
 end;
 
 procedure TMsg.WriteData(V: Pointer; N: Integer);
+var
+  NewSize: Integer;
 begin
   if CurSize + N > MaxSize then
   begin
-    Overflow := True;
-    raise Exception.Create('TMsg.WriteData: buffer overrun!');
-    Exit;
+    if OwnMemory then
+    begin
+      NewSize := MaxSize + ((N + AllocStep) div AllocStep) * AllocStep; // round up
+      if ReAllocMem(Data, NewSize) = nil then
+        raise Exception.Create('TMsg.WriteData: out of memory on realloc');
+      MaxSize := NewSize;
+    end
+    else
+    begin
+      Overflow := True;
+      raise Exception.Create('TMsg.WriteData: buffer overrun on borrowed memory!');
+    end;
   end;
+
   Move(V^, (Data + CurSize)^, N);
   CurSize := CurSize + N;
 end;
 
 procedure TMsg.Write(V: TMsg);
 begin
-  if CurSize + V.CurSize > MaxSize then
-  begin
-    Overflow := True;
-    raise Exception.Create('TMsg.WriteData: buffer overrun!');
-    Exit;
-  end;
-  Move(V.Data^, (Data + CurSize)^, V.CurSize);
-  CurSize := CurSize + V.CurSize;
+  WriteData(V.Data, V.CurSize);
 end;
 
 procedure TMsg.Write(V: Byte); overload;
