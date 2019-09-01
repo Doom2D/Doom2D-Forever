@@ -17,7 +17,7 @@
 
 unit mpg123;
 
-{$mode objfpc}{$H+}
+{$MODE OBJFPC}{$H+}
 
 interface
 
@@ -26,7 +26,6 @@ uses
 
 {$IFDEF FPC}
 {$PACKRECORDS C}
-{$MODE OBJFPC}
 {$ENDIF}
 
 {$IFDEF WINDOWS}
@@ -64,7 +63,7 @@ const
  * This should be incremented at least each time a new symbol is added
  * to the header.
  *)
-  MPG123_LIB_VERSION = '1.25.8';
+  MPG123_LIB_VERSION = '1.25.11';
   MPG123_API_VERSION = 44;
   MPG123_LIB_PATCHLEVEL = 7;
 
