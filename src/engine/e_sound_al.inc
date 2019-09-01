@@ -329,6 +329,7 @@ begin
   end
   else
   begin
+    Loader.Looping := e_SoundsArray[find_id].Loops;
     e_SoundsArray[find_id].alBuffer := 0;
     e_SoundsArray[find_id].Loader := Loader;
   end;
@@ -402,6 +403,7 @@ begin
   end
   else
   begin
+    Loader.Looping := e_SoundsArray[find_id].Loops;
     e_SoundsArray[find_id].alBuffer := 0;
     e_SoundsArray[find_id].Loader := Loader;
   end;

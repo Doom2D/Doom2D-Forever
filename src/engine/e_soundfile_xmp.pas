@@ -100,10 +100,10 @@ begin
     if Err <> 0 then
       raise Exception.Create('xmp_load_module_from_memory failed');
 
-    if xmp_start_player(FXMP, e_SoundFormat.SampleRate, 0) <> 0 then
+    if xmp_start_player(FXMP, 48000, 0) <> 0 then
       raise Exception.Create('xmp_start_player failed');
 
-    FFormat.SampleRate := e_SoundFormat.SampleRate;
+    FFormat.SampleRate := 48000;
     FFormat.SampleBits := 16;
     FFormat.Channels := 2;
 
@@ -136,10 +136,10 @@ begin
     if Err <> 0 then
       raise Exception.Create('xmp_load_module failed');
 
-    if xmp_start_player(FXMP, e_SoundFormat.SampleRate, 0) <> 0 then
+    if xmp_start_player(FXMP, 48000, 0) <> 0 then
       raise Exception.Create('xmp_start_player failed');
 
-    FFormat.SampleRate := e_SoundFormat.SampleRate;
+    FFormat.SampleRate := 48000;
     FFormat.SampleBits := 16;
     FFormat.Channels := 2;
 
@@ -165,10 +165,16 @@ begin
 end;
 
 function TXMPLoader.FillBuffer(Buf: Pointer; Len: LongWord): LongWord;
+var
+  LoopN: LongInt;
 begin
   Result := 0;
   if FXMP = nil then Exit;
-  if xmp_play_buffer(FXMP, Buf, Len, 0) = 0 then
+  if FLooping then
+    LoopN := 0
+  else
+    LoopN := 1;
+  if xmp_play_buffer(FXMP, Buf, Len, LoopN) = 0 then
     Result := Len;
 end;
 

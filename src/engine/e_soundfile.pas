@@ -34,6 +34,7 @@ type
   protected
     FFormat: TSoundFormat;
     FStreaming: Boolean;
+    FLooping: Boolean;
 
   public
     function Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean; virtual; abstract; overload;
@@ -48,6 +49,7 @@ type
 
     property Format: TSoundFormat read FFormat;
     property Streaming: Boolean read FStreaming;
+    property Looping: Boolean read FLooping write FLooping;
   end;
 
   TSoundLoaderFactory = class
