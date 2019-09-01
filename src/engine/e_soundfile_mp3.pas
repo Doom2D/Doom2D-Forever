@@ -44,13 +44,9 @@ type
 
   TMP3LoaderFactory = class (TSoundLoaderFactory)
   public
-    constructor Create();
-    destructor Destroy(); override;
     function MatchHeader(Data: Pointer; Len: LongWord): Boolean; override;
     function MatchExtension(FName: string): Boolean; override;
     function GetLoader(): TSoundLoader; override;
-  private
-    FMPG: pmpg123_handle; // tester context
   end;
 
 implementation
@@ -89,49 +85,43 @@ end;
 
 (* TMP3LoaderFactory *)
 
-constructor TMP3LoaderFactory.Create();
-begin
-  FMPG := mpg123_new(nil, nil);
-  if FMPG <> nil then
-    mpg123_replace_reader_handle(FMPG, streamRead, streamLSeek, nil);
-end;
-
-destructor TMP3LoaderFactory.Destroy();
-begin
-  if FMPG <> nil then mpg123_delete(FMPG);
-end;
 
 function TMP3LoaderFactory.MatchHeader(Data: Pointer; Len: LongWord): Boolean;
 var
-  ID3: array [0..9] of Byte;
-  HeaderLen: LongInt;
-  S: TSFSMemoryStreamRO;
-  Info: mpg123_frameinfo;
+  P: PByte;
+  N: LongInt;
 begin
   Result := False;
-  if Len < 10 then Exit;
+  if Len < 10 then Exit; // way too short even without an ID3
 
-  // try and check for an ID3 header
-  Move(Data^, ID3, 10);
-  if (ID3[0] = Ord('I')) and (ID3[1] = Ord('D')) and (ID3[2] = Ord('3')) then
+  P := PByte(Data);
+
+  // try to check for an ID3v2 header
+  if ((P+0)^ = $49) and ((P+1)^ = $44) and ((P+2)^ = $33) then // 'ID3'
   begin
-    HeaderLen := ID3[9] + (ID3[8] shl 7) + (ID3[7] shl 14) + (ID3[6] shl 21);
-    Result := Len > (HeaderLen + 10);
+    N := (P+9)^ + ((P+8)^ shl 7) + ((P+7)^ shl 14) + ((P+6)^ shl 21);
+    Result := Len > (N + 10);
     if Result then Exit;
   end;
 
-  // if there isn't one, employ heavier shit
-  if FMPG = nil then Exit;
-
-  S := TSFSMemoryStreamRO.Create(Data, Len);
-
-  if mpg123_open_handle(FMPG, S) = MPG123_OK then
+  // try to read the frame sync word, bits 0-10 should be 1
+  if ((P+0)^ = $FF) and (((P+1)^ and $E0) = $E0) then
   begin
-    Result := mpg123_info(FMPG, @Info) = MPG123_OK;
-    mpg123_close(FMPG);
+    // bits 11-12: mpeg version, can't be 01
+    if (((P+1)^ and $10) = 0) and (((P+1)^ and $08) = $08) then
+      Exit;
+    // bits 13-14: layer: can't be 00
+    if ((P+1)^ and $06) = 0 then
+      Exit;
+    // bits 16-19: bitrate index: can't be 1111 or 0000
+    if (((P+2)^ and $F0) = 0) or (((P+2)^ and $F0) = $F0) then
+      Exit;
+    // bits 20-21: samplerate index: can't be 11
+    if ((P+2)^ and $0C) = $0C then
+      Exit;
+    // this is probably an MP3 then
+    Result := True;
   end;
-
-  S.Destroy();
 end;
 
 function TMP3LoaderFactory.MatchExtension(FName: string): Boolean;
@@ -232,7 +222,7 @@ begin
     Result := LoadStream(S, SStreaming);
   except
     on E: Exception do
-      e_LogWritefln('ModPlug: ERROR: could not read file `%s`: %s', [FName, E.Message]);
+      e_LogWritefln('MPG123: ERROR: could not read file `%s`: %s', [FName, E.Message]);
   end;
 
   if not Result and (S <> nil) then
@@ -255,9 +245,10 @@ begin
   Got := 0;
   if FMPG = nil then Exit;
   Ret := mpg123_read(FMPG, Buf, Len, @Got);
-  if FLooping and (Ret = MPG123_DONE) then
-    mpg123_seek(FMPG, 0, 0); // loop
-  Result := Got;
+  if FLooping and ((Ret = MPG123_DONE) or (Got = 0)) then
+    Ret := mpg123_seek(FMPG, 0, 0); // loop
+  if Ret = MPG123_OK then
+    Result := Got;
 end;
 
 function TMP3Loader.GetAll(var OutPtr: Pointer): LongWord;
