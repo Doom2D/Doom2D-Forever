@@ -151,7 +151,8 @@ end;
 
 function TMP3Loader.LoadStream(Stream: TStream; SStreaming: Boolean): Boolean;
 var
-  SRate, SEnc, SChans: LongInt;
+  SRate: clong;
+  SEnc, SChans: LongInt;
 begin
   FMPG := mpg123_new(nil, nil);
   if FMPG = nil then

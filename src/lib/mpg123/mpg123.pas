@@ -53,7 +53,8 @@ type
   ppclong = ^pclong;
   pcsize_t = ^csize_t;
   ppcint = ^pcint;
-  off_t = cint;
+(* off_t = cint; *)
+  off_t = coff_t;
   ppoff_t = ^poff_t;
   poff_t = ^coff_t;
   ppcuchar = ^pcuchar;
