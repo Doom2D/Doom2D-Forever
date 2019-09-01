@@ -37,6 +37,7 @@ type
   end;
 
   TXMPLoaderFactory = class (TSoundLoaderFactory)
+  public
     function MatchHeader(Data: Pointer; Len: LongWord): Boolean; override;
     function MatchExtension(FName: string): Boolean; override;
     function GetLoader(): TSoundLoader; override;

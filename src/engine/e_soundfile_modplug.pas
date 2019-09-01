@@ -21,7 +21,7 @@ interface
 uses e_soundfile, modplug;
 
 type
-  // a module loader that uses libxmp-lite
+  // a module loader that uses libmodplug
 
   TModPlugLoader = class (TSoundLoader)
   public
@@ -36,6 +36,7 @@ type
   end;
 
   TModPlugLoaderFactory = class (TSoundLoaderFactory)
+  public
     function MatchHeader(Data: Pointer; Len: LongWord): Boolean; override;
     function MatchExtension(FName: string): Boolean; override;
     function GetLoader(): TSoundLoader; override;

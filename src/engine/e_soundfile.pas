@@ -53,6 +53,7 @@ type
   end;
 
   TSoundLoaderFactory = class
+  public
     function MatchHeader(Data: Pointer; Len: LongWord): Boolean; virtual; abstract;
     function MatchExtension(FName: string): Boolean; virtual; abstract;
     function GetLoader(): TSoundLoader; virtual; abstract;
