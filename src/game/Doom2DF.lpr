@@ -61,17 +61,20 @@ uses
 {$ENDIF}
 {$IFDEF USE_OPENAL}
   AL in '../lib/openal/al.pas',
-  mpg123 in '../lib/mpg123/mpg123.pas',
   e_soundfile in '../engine/e_soundfile.pas',
   e_soundfile_wav in '../engine/e_soundfile_wav.pas',
-{$IFDEF USE_MODPLUG}
-  modplug in '../lib/modplug/modplug.pas',
-  e_soundfile_modplug in '../engine/e_soundfile_modplug.pas',
-{$ELSE}
-  xmp in '../lib/xmp/xmp.pas',
-  e_soundfile_xmp in '../engine/e_soundfile_xmp.pas',
-{$ENDIF}
-  e_soundfile_mp3 in '../engine/e_soundfile_mp3.pas',
+  {$IFDEF USE_MODPLUG}
+    modplug in '../lib/modplug/modplug.pas',
+    e_soundfile_modplug in '../engine/e_soundfile_modplug.pas',
+  {$ENDIF}
+  {$IFDEF USE_XMP}
+    xmp in '../lib/xmp/xmp.pas',
+    e_soundfile_xmp in '../engine/e_soundfile_xmp.pas',
+  {$ENDIF}
+  {$IFDEF USE_MPG123}
+    mpg123 in '../lib/mpg123/mpg123.pas',
+    e_soundfile_mp3 in '../engine/e_soundfile_mp3.pas',
+  {$ENDIF}
 {$ENDIF}
   ENet in '../lib/enet/enet.pp',
   e_graphics in '../engine/e_graphics.pas',
