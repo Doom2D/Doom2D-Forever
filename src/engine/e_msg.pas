@@ -150,7 +150,7 @@ begin
   begin
     if OwnMemory then
     begin
-      NewSize := MaxSize + ((N + AllocStep) div AllocStep) * AllocStep; // round up
+      NewSize := MaxSize + ((N + AllocStep - 1) div AllocStep) * AllocStep; // round up
       if ReAllocMem(Data, NewSize) = nil then
         raise Exception.Create('TMsg.WriteData: out of memory on realloc');
       MaxSize := NewSize;
