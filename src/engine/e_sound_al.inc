@@ -91,7 +91,7 @@ procedure e_SoundUpdate();
 var
   e_SoundFormat: TSoundFormat; // desired sound format
   e_SoundsArray: array of TSoundRec = nil;
-  e_ZeroPosition: array [0..2] of ALfloat;
+  e_ZeroPosition: array [0..2] of ALfloat = (0, 0, 0);
   e_ALError: ALenum = 0;
 
 implementation
@@ -496,6 +496,8 @@ begin
   if Result >= 0 then
   begin
     Pos[0] := Pan;
+    Pos[1] := 0;
+    Pos[2] := 0;
     AssignSound(ID, alSources[Result]);
     alSourcef(alSources[Result], AL_GAIN, 1);
     alSourcefv(alSources[Result], AL_POSITION, Pos);
@@ -523,6 +525,8 @@ begin
   if Result >= 0 then
   begin
     Pos[0] := Pan;
+    Pos[1] := 0;
+    Pos[2] := 0;
     AssignSound(ID, alSources[Result]);
     alSourcefv(alSources[Result], AL_POSITION, Pos);
     alSourcef(alSources[Result], AL_GAIN, Volume);
@@ -814,6 +818,8 @@ begin
   if InvalidSource() then
     Exit;
   Pos[0] := Pan;
+  Pos[1] := 0;
+  Pos[2] := 0;
   alSourcefv(alSources[FSource], AL_POSITION, Pos);
 end;
 
