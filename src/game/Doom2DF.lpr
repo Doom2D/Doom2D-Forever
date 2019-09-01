@@ -61,10 +61,15 @@ uses
 {$ENDIF}
 {$IFDEF USE_OPENAL}
   AL in '../lib/openal/al.pas',
-  XMP in '../lib/xmp/xmp.pas',
   e_soundfile in '../engine/e_soundfile.pas',
   e_soundfile_wav in '../engine/e_soundfile_wav.pas',
+{$IFDEF USE_MODPLUG}
+  modplug in '../lib/modplug/modplug.pas',
+  e_soundfile_modplug in '../engine/e_soundfile_modplug.pas',
+{$ELSE}
+  xmp in '../lib/xmp/xmp.pas',
   e_soundfile_xmp in '../engine/e_soundfile_xmp.pas',
+{$ENDIF}
 {$ENDIF}
   ENet in '../lib/enet/enet.pp',
   e_graphics in '../engine/e_graphics.pas',

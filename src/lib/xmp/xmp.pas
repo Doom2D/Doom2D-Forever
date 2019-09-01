@@ -16,22 +16,34 @@ interface
 {$IF DEFINED(XMP_DYNAMIC)}
 const
 {$IF DEFINED(WINDOWS)}
+  {$IF DEFINED(USE_XMP_FULL)}
+  xmplib = 'libxmp.dll';
+  {$ELSE}
   xmplib = 'libxmp-lite.dll';
+  {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
+  {$IF DEFINED(USE_XMP_FULL)}
+  xmplib = 'libxmp.so';
+  {$ELSE}
   xmplib = 'libxmp-lite.so';
+  {$ENDIF}
 {$ELSE}
   {$MESSAGE ERROR 'XMP_DYNAMIC not supported'}
 {$IFEND}
 {$ELSE}
+  {$IF DEFINED(USE_XMP_FULL)}
+  {$LINKLIB xmp}
+  {$ELSE}
   {$LINKLIB xmp-lite}
+  {$ENDIF}
 {$ENDIF}
 
 const
-  XMP_VER_STRING = '4.5.0'; 
-  XMP_VER_CODE = $040500; 
+  XMP_VER_STRING = '4.4.1'; 
+  XMP_VER_CODE = $040401; 
   XMP_VER_MAJOR = 4; 
-  XMP_VER_MINOR = 5; 
-  XMP_VER_RELEASE = 0; 
+  XMP_VER_MINOR = 4; 
+  XMP_VER_RELEASE = 1; 
 
 const
   XMP_NAME_SIZE = 64; (* Size of module name and type *)
