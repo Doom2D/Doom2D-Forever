@@ -28,7 +28,7 @@ uses
 {$IFDEF MP_DYNAMIC}
 const
 {$IF DEFINED(WINDOWS)}
-  modpluglib = 'libmodplug.dll';
+  modpluglib = 'libmodplug-1.dll';
 {$ELSEIF DEFINED(UNIX)}
   modpluglib = 'libmodplug.so';
 {$ELSE}
