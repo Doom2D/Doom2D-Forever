@@ -224,7 +224,11 @@ end;
 
 procedure TFluidLoader.Free();
 begin
-  if FPlayer <> nil then delete_fluid_player(FPlayer);
+  if FPlayer <> nil then 
+  begin
+    fluid_player_stop(FPlayer);
+    delete_fluid_player(FPlayer);
+  end;
   if FSynth <> nil then delete_fluid_synth(FSynth);
   FPlayer := nil;
   FSynth := nil;
