@@ -13,25 +13,18 @@ interface
 uses
   ctypes;
 
-{$IFDEF WINDOWS}
-  {$IFNDEF AL_WINDOZE_STATIC}
+{$IF DEFINED(WINDOWS)}
+  {$IFDEF OPENAL_WINDOZE_STATIC}
+    {$LINKLIB libopenal.a}
+  {$ELSE}
+    const openallib = 'openal32.dll';
     {$DEFINE AL_DYNAMIC}
   {$ENDIF}
-{$ENDIF}
-
-{$IF DEFINED(AL_DYNAMIC)}
-const
-{$IF DEFINED(WINDOWS)}
-  openallib = 'openal32.dll';
 {$ELSEIF DEFINED(UNIX)}
-  openallib = 'libopenal.so';
+  const openallib = 'libopenal.so';
+  {$DEFINE AL_DYNAMIC}
 {$ELSE}
-  {$MESSAGE ERROR 'AL_DYNAMIC not supported'}
-{$IFEND}
-{$ELSEIF DEFINED(Darwin)}
-{$LINKFRAMEWORK OpenAL}
-{$ELSE}
-  {$LINKLIB libopenal.a}
+  {$ERROR OpenAL not supported on this platform. Fix it!}
 {$ENDIF}
 
 {$include al.inc}

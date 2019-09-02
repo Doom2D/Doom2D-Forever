@@ -11,23 +11,18 @@ uses
 {$PACKRECORDS C}
 {$ENDIF}
 
-{$IF 0}
-  {$IFNDEF LIBFLUIDSYNTH_WINDOZE_STATIC}
-    {$DEFINE FS_DYNAMIC}
-  {$ENDIF}
-{$ENDIF}
-
-{$IF DEFINED(FS_DYNAMIC)}
-const
 {$IF DEFINED(WINDOWS)}
-  fluidlib = 'libfluidsynth.dll';
+  {$IFDEF FLUIDSYNTH_WINDOZE_STATIC}
+    {$LINKLIB libfluidsynth.a}
+  {$ELSE}
+    {$DEFINE FS_DYNAMIC}
+    const fluidlib = 'libfluidsynth.dll';
+  {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
-  fluidlib = 'libfluidsynth.so';
+  {$DEFINE FS_DYNAMIC}
+  const fluidlib = 'libfluidsynth.so';
 {$ELSE}
-  {$MESSAGE ERROR 'FLUIDSYNTH_DYNAMIC not supported'}
-{$IFEND}
-{$ELSE}
-  {$LINKLIB libfluidsynth.a}
+  {$ERROR fluidsynth not supported on this platform. Fix it!}
 {$ENDIF}
 
 const

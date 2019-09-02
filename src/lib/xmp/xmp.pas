@@ -7,35 +7,30 @@ interface
 {$MODE OBJFPC}
 {$ENDIF}
 
-{$IFDEF WINDOWS}
-  {$IFNDEF LIBXMP_WINDOZE_STATIC}
-    {$DEFINE XMP_DYNAMIC}
-  {$ENDIF}
-{$ENDIF}
-
-{$IF DEFINED(XMP_DYNAMIC)}
-const
 {$IF DEFINED(WINDOWS)}
-  {$IF DEFINED(USE_XMP_FULL)}
-  xmplib = 'libxmp.dll';
+  {$IFDEF LIBXMP_WINDOZE_STATIC}
+    {$IFDEF USE_XMP_LITE}
+      {$LINKLIB libxmp-lite.a}
+    {$ELSE}
+      {$LINKLIB libxmp.a}
+    {$ENDIF}
   {$ELSE}
-  xmplib = 'libxmp-lite.dll';
+    {$DEFINE XMP_DYNAMIC}
+    {$IFDEF USE_XMP_LITE}
+      const xmplib = 'libxmp-lite.dll';
+    {$ELSE}
+      const xmplib = 'libxmp.dll';
+    {$ENDIF}
   {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
-  {$IF DEFINED(USE_XMP_FULL)}
-  xmplib = 'libxmp.so';
+  {$DEFINE XMP_DYNAMIC}
+  {$IFDEF USE_XMP_LITE}
+    const xmplib = 'libxmp-lite.so';
   {$ELSE}
-  xmplib = 'libxmp-lite.so';
+    const xmplib = 'libxmp.so';
   {$ENDIF}
 {$ELSE}
-  {$MESSAGE ERROR 'XMP_DYNAMIC not supported'}
-{$IFEND}
-{$ELSE}
-  {$IF DEFINED(USE_XMP_FULL)}
-  {$LINKLIB libxmp.a}
-  {$ELSE}
-  {$LINKLIB libxmp-lite.a}
-  {$ENDIF}
+  {$ERROR libxmp not supported on this platform. Fix it!}
 {$ENDIF}
 
 const

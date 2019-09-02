@@ -28,23 +28,18 @@ uses
 {$PACKRECORDS C}
 {$ENDIF}
 
-{$IFDEF WINDOWS}
-  {$IFNDEF LIBMPG123_WINDOZE_STATIC}
-    {$DEFINE MPG123_DYNAMIC}
-  {$ENDIF}
-{$ENDIF}
-
-{$IF DEFINED(MPG123_DYNAMIC)}
-const
 {$IF DEFINED(WINDOWS)}
-  LIB_MPG123 = 'libmpg123-0.dll';
+  {$IFDEF MPG123_WINDOZE_STATIC}
+    {$LINKLIB libmpg123.a}
+  {$ELSE}
+    {$DEFINE MPG123_DYNAMIC}
+    const LIB_MPG123 = 'libmpg123-0.dll';
+  {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
-  LIB_MPG123 = 'libmpg123.so';
+  {$DEFINE MPG123_DYNAMIC}
+  const LIB_MPG123 = 'libmpg123.so';
 {$ELSE}
-  {$MESSAGE ERROR 'MPG123_DYNAMIC not supported'}
-{$IFEND}
-{$ELSE}
-  {$LINKLIB libmpg123.a}
+  {$ERROR libmpg123 not supported on this platform. Fix it!}
 {$ENDIF}
 
 type

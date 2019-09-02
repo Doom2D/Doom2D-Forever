@@ -19,26 +19,20 @@ interface
 uses
   ctypes;
 
-{$IFDEF WINDOWS}
-  {$IFNDEF LIBMODPLUG_WINDOZE_STATIC}
-    {$DEFINE MP_DYNAMIC}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF MP_DYNAMIC}
-const
 {$IF DEFINED(WINDOWS)}
-  modpluglib = 'libmodplug-1.dll';
+  {$IFDEF MODPLUG_WINDOZE_STATIC}
+    {$LINKLIB libstdc++.a} // is this necessary?
+    {$LINKLIB libmodplug.a}
+  {$ELSE}
+    {$DEFINE MP_DYNAMIC}
+    const modpluglib = 'libmodplug-1.dll';
+  {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
-  modpluglib = 'libmodplug.so';
+  {$DEFINE MP_DYNAMIC}
+  const modpluglib = 'libmodplug.so';
 {$ELSE}
-  {$MESSAGE ERROR 'MP_DYNAMIC not supported'}
-{$IFEND}
-{$ELSE}
-  {$LINKLIB libstdc++.a} // is this necessary?
-  {$LINKLIB libmodplug.a}
+  {$ERROR libmpg123 not supported on this platform. Fix it!}
 {$ENDIF}
-
 
 type
   PModPlugFile = Pointer;
