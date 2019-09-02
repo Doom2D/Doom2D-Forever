@@ -47,9 +47,6 @@ type
 const
   DEFAULT_SOUNDFONT = 'data/soundfont.sf2';
 
-var
-  e_Soundfont: string = '';
-
 implementation
 
 uses sysutils, utils, e_sound, e_log, ctypes{$IFDEF WINDOWS}, windirs{$ENDIF};
@@ -112,7 +109,7 @@ end;
 
 function TFluidLoaderFactory.GetLoader(): TSoundLoader;
 begin
-  if e_Soundfont = '' then e_Soundfont := FindDefaultSoundfont();
+  if e_SoundFont = '' then e_SoundFont := FindDefaultSoundfont();
   Result := TFluidLoader.Create();
 end;
 
@@ -128,7 +125,7 @@ begin
     FSynth := new_fluid_synth(FluidSettings);
     if FSynth = nil then
       raise Exception.Create('new_fluid_synth failed');
-    Ret := fluid_synth_sfload(FSynth, PChar(e_Soundfont), 1);
+    Ret := fluid_synth_sfload(FSynth, PChar(e_SoundFont), 1);
     if Ret = FLUID_FAILED then
       raise Exception.Create('fluid_synth_sfload failed');
     FPlayer := new_fluid_player(FSynth);
@@ -170,7 +167,7 @@ begin
     FSynth := new_fluid_synth(FluidSettings);
     if FSynth = nil then
       raise Exception.Create('new_fluid_synth failed');
-    Ret := fluid_synth_sfload(FSynth, PChar(e_Soundfont), 1);
+    Ret := fluid_synth_sfload(FSynth, PChar(e_SoundFont), 1);
     if Ret = FLUID_FAILED then
       raise Exception.Create('fluid_synth_sfload failed');
     FPlayer := new_fluid_player(FSynth);
@@ -239,9 +236,11 @@ initialization
   if FluidSettings <> nil then
   begin
     fluid_settings_setint(FluidSettings, PChar('synth.midi-channels'), 16);
-    fluid_settings_setint(FluidSettings, PChar('synth.cpu-cores'), 0);
+    fluid_settings_setint(FluidSettings, PChar('synth.cpu-cores'), 1);
     fluid_settings_setnum(FluidSettings, PChar('synth.sample-rate'), 44100);
     fluid_settings_setnum(FluidSettings, PChar('synth.gain'), 1);
+    fluid_settings_setint(FluidSettings, PChar('synth.reverb.active'), 0);
+    fluid_settings_setint(FluidSettings, PChar('synth.chorus.active'), 0);
     fluid_settings_setstr(FluidSettings, PChar('player.timing-source'), PChar('sample'));
     e_AddSoundLoader(TFluidLoaderFactory.Create());
   end;

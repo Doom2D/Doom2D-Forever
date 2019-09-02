@@ -93,6 +93,8 @@ var
   e_SoundsArray: array of TSoundRec = nil;
   e_ZeroPosition: array [0..2] of ALfloat = (0, 0, 0);
   e_ALError: ALenum = 0;
+  e_SoundFont: string = '';
+  e_MusicLerp: Boolean = True;
 
 implementation
 
@@ -815,7 +817,7 @@ end;
 
 function TBasicSound.GetPan(): Single;
 var
-  Pos: array [0..2] of ALfloat;
+  Pos: array [0..2] of ALfloat = (0, 0, 0);
 begin
   Result := 0.0;
   if InvalidSource() then
