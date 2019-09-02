@@ -35,8 +35,8 @@ const
   {$MESSAGE ERROR 'MP_DYNAMIC not supported'}
 {$IFEND}
 {$ELSE}
-  {$LINKLIB stdc++} // is this necessary?
-  {$LINKLIB modplug}
+  {$LINKLIB libstdc++.a} // is this necessary?
+  {$LINKLIB libmodplug.a}
 {$ENDIF}
 
 

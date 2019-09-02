@@ -31,7 +31,7 @@ const
 {$ELSEIF DEFINED(Darwin)}
 {$LINKFRAMEWORK OpenAL}
 {$ELSE}
-  {$LINKLIB openal}
+  {$LINKLIB libopenal.a}
 {$ENDIF}
 
 {$include al.inc}

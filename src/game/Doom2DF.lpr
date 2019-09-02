@@ -63,6 +63,10 @@ uses
   AL in '../lib/openal/al.pas',
   e_soundfile in '../engine/e_soundfile.pas',
   e_soundfile_wav in '../engine/e_soundfile_wav.pas',
+  {$IFDEF USE_FLUIDSYNTH}
+    fluidsynth in '../lib/fluidsynth/fluidsynth.pas',
+    e_soundfile_fluid in '../engine/e_soundfile_fluid.pas',
+  {$ENDIF}
   {$IFDEF USE_MODPLUG}
     modplug in '../lib/modplug/modplug.pas',
     e_soundfile_modplug in '../engine/e_soundfile_modplug.pas',

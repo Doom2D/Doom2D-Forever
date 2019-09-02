@@ -288,6 +288,8 @@ begin
     exit;
   end;
 
+  Loader.Looping := e_SoundsArray[find_id].Loops;
+
   if not Loader.Load(FileName, e_SoundsArray[find_id].isMusic) then
   begin
     e_LogWritefln('Could not load sound `%s`', [FileName]);
@@ -329,7 +331,6 @@ begin
   end
   else
   begin
-    Loader.Looping := e_SoundsArray[find_id].Loops;
     e_SoundsArray[find_id].alBuffer := 0;
     e_SoundsArray[find_id].Loader := Loader;
   end;
@@ -361,6 +362,8 @@ begin
     e_LogWritefln('Could not find loader for sound `%p`', [pData]);
     exit;
   end;
+
+  Loader.Looping := e_SoundsArray[find_id].Loops;
 
   if not Loader.Load(pData, LongWord(Length), e_SoundsArray[find_id].isMusic) then
   begin
@@ -403,7 +406,6 @@ begin
   end
   else
   begin
-    Loader.Looping := e_SoundsArray[find_id].Loops;
     e_SoundsArray[find_id].alBuffer := 0;
     e_SoundsArray[find_id].Loader := Loader;
   end;

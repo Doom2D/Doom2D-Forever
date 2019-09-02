@@ -32,9 +32,9 @@ const
 {$IFEND}
 {$ELSE}
   {$IF DEFINED(USE_XMP_FULL)}
-  {$LINKLIB xmp}
+  {$LINKLIB libxmp.a}
   {$ELSE}
-  {$LINKLIB xmp-lite}
+  {$LINKLIB libxmp-lite.a}
   {$ENDIF}
 {$ENDIF}
 

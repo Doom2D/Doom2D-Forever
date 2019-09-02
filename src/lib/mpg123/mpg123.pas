@@ -44,7 +44,7 @@ const
   {$MESSAGE ERROR 'MPG123_DYNAMIC not supported'}
 {$IFEND}
 {$ELSE}
-  {$LINKLIB mpg123}
+  {$LINKLIB libmpg123.a}
 {$ENDIF}
 
 type
