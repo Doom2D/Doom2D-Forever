@@ -289,7 +289,7 @@ var
 begin
   if (Length(p) <> 2) then
   begin
-    conwritefln('%s %s', [me.cmd, PAnsiString(me.ptr)^]);
+    conwritefln('%s %s', [me.cmd, QuoteStr(PAnsiString(me.ptr)^)]);
   end
   else
   begin
@@ -1934,6 +1934,13 @@ begin
       else if @commands[i].procEx = @singleVarHandler then
       begin
         WriteLn(f, commands[i].cmd, ' ', PVarSingle(commands[i].ptr).val^:0:6)
+      end
+      else if @commands[i].procEx = @strVarHandler then
+      begin
+        if Length(PAnsiString(commands[i].ptr)^) = 0 then
+          WriteLn(f, commands[i].cmd, ' ""')
+        else
+          WriteLn(f, commands[i].cmd, ' ', QuoteStr(PAnsiString(commands[i].ptr)^))
       end
     end
   end;
