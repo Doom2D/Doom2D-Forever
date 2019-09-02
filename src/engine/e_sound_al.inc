@@ -451,6 +451,8 @@ begin
 end;
 
 procedure AssignSound(ID: DWORD; Src: ALuint); inline;
+var
+  S: ALint;
 begin
   alGetError(); // reset error state
 
@@ -459,8 +461,17 @@ begin
     // this is a stream
     // reset position
     e_SoundsArray[ID].Loader.SetPosition(0);
-    if CurStream <> ID then // changing streams, stop the thing just in case
-      alSourceStop(Src);
+    if CurStream <> ID then // changing streams
+    begin
+      alSourceStop(Src); // this should mark all buffers as processed
+      alGetSourcei(Src, AL_BUFFERS_PROCESSED, S);
+      // unqueue all buffers
+      if S > 0 then
+      begin
+        alSourceUnqueueBuffers(Src, S, @alStreamBufs[alStreamAvail]);
+        alStreamAvail := NUM_STREAM_BUFFERS;
+      end;
+    end;
     // this shit is playing now
     CurStream := ID;
   end
