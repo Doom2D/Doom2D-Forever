@@ -634,4 +634,11 @@ begin
   Pause(Enable);
 end;
 
+{$IFDEF USE_OPENAL}
+initialization
+  {$IF DEFINED(USE_FLUIDSYNTH)}
+  conRegVar('s_midi_soundfont', @e_SoundFont, 'soundfont to use for midi playback', 'midi soundfont');
+  {$ENDIF}
+{$ENDIF}
+
 end.
