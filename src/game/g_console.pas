@@ -64,6 +64,7 @@ procedure conwritefln (const s: AnsiString; args: array of const; show: Boolean=
 procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
 procedure conRegVar (const conname: AnsiString; pvar: PSingle; amin, amax: Single; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
 procedure conRegVar (const conname: AnsiString; pvar: PInteger; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
+procedure conRegVar (const conname: AnsiString; pvar: PAnsiString; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
 
 // <0: no arg; 0/1: true/false
 function conGetBoolArg (p: SSArray; idx: Integer): Integer;
@@ -282,6 +283,24 @@ begin
 end;
 
 
+procedure strVarHandler (me: PCommand; p: SSArray);
+var
+  old: AnsiString;
+begin
+  if (Length(p) <> 2) then
+  begin
+    conwritefln('%s %s', [me.cmd, PAnsiString(me.ptr)^]);
+  end
+  else
+  begin
+    old := PAnsiString(me.ptr)^;
+    PAnsiString(me.ptr)^ := p[1];
+    if PAnsiString(me.ptr)^ <> old then
+      g_Console_WriteGameConfig();
+  end;
+end;
+
+
 procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
 var
   f: Integer;
@@ -323,6 +342,26 @@ begin
   cp.player := -1;
 end;
 
+
+procedure conRegVar (const conname: AnsiString; pvar: PAnsiString; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
+var
+  f: Integer;
+  cp: PCommand;
+begin
+  f := Length(commands);
+  SetLength(commands, f+1);
+  cp := @commands[f];
+  cp.cmd := LowerCase(conname);
+  cp.proc := nil;
+  cp.procEx := strVarHandler;
+  cp.help := ahelp;
+  cp.hidden := ahidden;
+  cp.ptr := pvar;
+  cp.msg := amsg;
+  cp.cheat := acheat;
+  cp.action := -1;
+  cp.player := -1;
+end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
