@@ -337,6 +337,8 @@ begin
     e_SoundsArray[find_id].Loader := Loader;
   end;
 
+  // the calling side won't free this, the loader will get a copy, so fuck it
+  FreeMem(pData);
   ID := find_id;
   Result := True;
 end;
@@ -412,6 +414,8 @@ begin
     e_SoundsArray[find_id].Loader := Loader;
   end;
 
+  // the calling side won't free this, the loader will get a copy, so fuck it
+  FreeMem(pData);
   ID := find_id;
   Result := True;
 end;
