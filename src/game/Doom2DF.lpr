@@ -65,8 +65,7 @@ uses
   e_soundfile_wav in '../engine/e_soundfile_wav.pas',
   {$IFDEF USE_VORBIS}
     vorbis in '../lib/vorbis/vorbis.pas',
-    ogg in '../lib/vorbis/ogg.pas',
-    e_soundfile_ogg in '../engine/e_soundfile_ogg.pas',
+    e_soundfile_vorbis in '../engine/e_soundfile_vorbis.pas',
   {$ENDIF}
   {$IFDEF USE_FLUIDSYNTH}
     fluidsynth in '../lib/fluidsynth/fluidsynth.pas',
@@ -83,6 +82,13 @@ uses
   {$IFDEF USE_MPG123}
     mpg123 in '../lib/mpg123/mpg123.pas',
     e_soundfile_mp3 in '../engine/e_soundfile_mp3.pas',
+  {$ENDIF}
+  {$IFDEF USE_OPUS}
+    opus in '../lib/opus/opus.pas',
+    e_soundfile_opus in '../engine/e_soundfile_opus.pas',
+  {$ENDIF}
+  {$IF DEFINED(USE_VORBIS) OR DEFINED(USE_OPUS)}
+    ogg in '../lib/vorbis/ogg.pas', // this has to come last because link order
   {$ENDIF}
 {$ENDIF}
   ENet in '../lib/enet/enet.pp',

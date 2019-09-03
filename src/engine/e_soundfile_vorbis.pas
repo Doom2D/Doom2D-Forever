@@ -14,16 +14,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
-unit e_soundfile_ogg;
+unit e_soundfile_vorbis;
 
 interface
 
 uses e_soundfile, vorbis, classes;
 
 type
-  // OGG Vorbis loader
+  // Ogg Vorbis loader
 
-  TOGGLoader = class (TSoundLoader)
+  TVorbisLoader = class (TSoundLoader)
   public
     function Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean; override; overload;
     function Load(FName: string; SStreaming: Boolean): Boolean; override; overload;
@@ -43,7 +43,7 @@ type
     function LoadEntireStream(): Pointer;
   end;
 
-  TOGGLoaderFactory = class (TSoundLoaderFactory)
+  TVorbisLoaderFactory = class (TSoundLoaderFactory)
   public
     function MatchHeader(Data: Pointer; Len: LongWord): Boolean; override;
     function MatchExtension(FName: string): Boolean; override;
@@ -107,33 +107,43 @@ var
     tell:        streamTell;
   );
 
-(* TOGGLoaderFactory *)
+(* TVorbisLoaderFactory *)
 
-function TOGGLoaderFactory.MatchHeader(Data: Pointer; Len: LongWord): Boolean;
+function TVorbisLoaderFactory.MatchHeader(Data: Pointer; Len: LongWord): Boolean;
 const
   OGG_HEADER = $5367674F; // 'OggS'
+var
+  S: TStream;
+  F: OggVorbis_File;
 begin
+  Result := False;
+
   if Len < 27 then // header is at least 27 bytes
-  begin
-    Result := False;
-    exit;
-  end;
-  Result := (PLongWord(Data)^ = OGG_HEADER);
+    Exit;
+  if PLongWord(Data)^ <> OGG_HEADER then
+    Exit;
+
+  // now we gotta check that this is indeed a vorbis file and not an opus file
+
+  S := TSFSMemoryStreamRO.Create(Data, Len);
+  Result := ov_test_callbacks(S, F, nil, 0, oggIO) = 0;
+  if Result then ov_clear(F);
+  S.Free();
 end;
 
-function TOGGLoaderFactory.MatchExtension(FName: string): Boolean;
+function TVorbisLoaderFactory.MatchExtension(FName: string): Boolean;
 begin
   Result := GetFilenameExt(FName) = '.ogg';
 end;
 
-function TOGGLoaderFactory.GetLoader(): TSoundLoader;
+function TVorbisLoaderFactory.GetLoader(): TSoundLoader;
 begin
-  Result := TOGGLoader.Create();
+  Result := TVorbisLoader.Create();
 end;
 
-(* TOGGLoader *)
+(* TVorbisLoader *)
 
-function TOGGLoader.LoadEntireStream(): Pointer;
+function TVorbisLoader.LoadEntireStream(): Pointer;
 var
   Samples: ogg_int64_t;
   Ret: clong;
@@ -157,7 +167,7 @@ begin
     FTotal := Ret;
 end;
 
-function TOGGLoader.LoadStream(Stream: TStream; SStreaming: Boolean): Boolean;
+function TVorbisLoader.LoadStream(Stream: TStream; SStreaming: Boolean): Boolean;
 var
   Ret, Bit: clong;
   Info: pvorbis_info;
@@ -197,7 +207,7 @@ begin
     end;
 
     ov_clear(FOgg);
-    Stream.Destroy();
+    Stream.Free();
 
     FreeMem(FBuf);
     FBuf := FullBuf;
@@ -213,7 +223,7 @@ begin
   Result := True;
 end;
 
-function TOGGLoader.Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean;
+function TVorbisLoader.Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean;
 var
   S: TStream;
 begin
@@ -230,13 +240,13 @@ begin
 
   if not Result and (S <> nil) then
   begin
-    S.Destroy();
+    S.Free();
     FreeMem(FBuf);
     FBuf := nil;
   end;
 end;
 
-function TOGGLoader.Load(FName: string; SStreaming: Boolean): Boolean;
+function TVorbisLoader.Load(FName: string; SStreaming: Boolean): Boolean;
 var
   S: TStream = nil;
 begin
@@ -251,17 +261,17 @@ begin
   end;
 
   if not Result and (S <> nil) then
-    S.Destroy();
+    S.Free();
 end;
 
-function TOGGLoader.SetPosition(Pos: LongWord): Boolean;
+function TVorbisLoader.SetPosition(Pos: LongWord): Boolean;
 begin
   Result := False;
   if not FOpen or (ov_seekable(FOgg) = 0) then Exit;
   Result := ov_pcm_seek(FOgg, Pos) = 0;
 end;
 
-function TOGGLoader.FillBuffer(Buf: Pointer; Len: LongWord): LongWord;
+function TVorbisLoader.FillBuffer(Buf: Pointer; Len: LongWord): LongWord;
 var
   Ret: clong;
 begin
@@ -269,10 +279,12 @@ begin
   if not FOpen or not FStreaming then Exit;
   Ret := ov_read_ext(FOgg, Buf, Len, False, 2, True);
   if Ret < 0 then Exit;
+  if FLooping and (Ret = 0) then
+    ov_pcm_seek(FOgg, 0);
   Result := Ret; 
 end;
 
-function TOGGLoader.GetAll(var OutPtr: Pointer): LongWord;
+function TVorbisLoader.GetAll(var OutPtr: Pointer): LongWord;
 begin
   Result := 0;
   if FStreaming or (FTotal = 0) then Exit;
@@ -280,12 +292,12 @@ begin
   OutPtr := FBuf;
 end;
 
-procedure TOGGLoader.Free();
+procedure TVorbisLoader.Free();
 begin
   if FOpen then
     ov_clear(FOgg);
   if FData <> nil then
-    FData.Destroy();
+    FData.Free();
   if FBuf <> nil then
     FreeMem(FBuf);
   FData := nil;
@@ -296,5 +308,5 @@ begin
 end;
 
 initialization
-  e_AddSoundLoader(TOGGLoaderFactory.Create());
+  e_AddSoundLoader(TVorbisLoaderFactory.Create());
 end.
