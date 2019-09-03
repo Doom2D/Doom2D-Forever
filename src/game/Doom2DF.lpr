@@ -64,8 +64,8 @@ uses
   e_soundfile in '../engine/e_soundfile.pas',
   e_soundfile_wav in '../engine/e_soundfile_wav.pas',
   {$IFDEF USE_VORBIS}
-    ogg in '../lib/vorbis/ogg.pas',
     vorbis in '../lib/vorbis/vorbis.pas',
+    ogg in '../lib/vorbis/ogg.pas',
     e_soundfile_ogg in '../engine/e_soundfile_ogg.pas',
   {$ENDIF}
   {$IFDEF USE_FLUIDSYNTH}

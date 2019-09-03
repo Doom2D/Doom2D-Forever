@@ -28,8 +28,8 @@ uses
 
 {$IF DEFINED(WINDOWS)}
   {$IFDEF VORBIS_WINDOZE_STATIC}
-    {$LINKLIB libvorbis.a}
     {$LINKLIB libvorbisfile.a}
+    {$LINKLIB libvorbis.a}
   {$ELSE}
     {$DEFINE OGG_DYNAMIC}
     const vorbislib = 'libvorbis-0.dll';
