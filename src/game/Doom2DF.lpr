@@ -63,6 +63,11 @@ uses
   AL in '../lib/openal/al.pas',
   e_soundfile in '../engine/e_soundfile.pas',
   e_soundfile_wav in '../engine/e_soundfile_wav.pas',
+  {$IFDEF USE_VORBIS}
+    ogg in '../lib/vorbis/ogg.pas',
+    vorbis in '../lib/vorbis/vorbis.pas',
+    e_soundfile_ogg in '../engine/e_soundfile_ogg.pas',
+  {$ENDIF}
   {$IFDEF USE_FLUIDSYNTH}
     fluidsynth in '../lib/fluidsynth/fluidsynth.pas',
     e_soundfile_fluid in '../engine/e_soundfile_fluid.pas',
