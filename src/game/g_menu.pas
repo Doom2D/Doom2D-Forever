@@ -1074,6 +1074,7 @@ procedure MenuLoadData();
 begin
   e_WriteLog('Loading menu data...', TMsgType.Notify);
 
+  g_Texture_CreateWADEx('MAINMENU_LOGO', GameWAD+':TEXTURES\MAINLOGO');
   g_Texture_CreateWADEx('MAINMENU_MARKER1', GameWAD+':TEXTURES\MARKER1');
   g_Texture_CreateWADEx('MAINMENU_MARKER2', GameWAD+':TEXTURES\MARKER2');
   g_Texture_CreateWADEx('SCROLL_LEFT', GameWAD+':TEXTURES\SLEFT');
@@ -1113,6 +1114,7 @@ begin
   e_CharFont_Remove(gMenuFont);
   e_CharFont_Remove(gMenuSmallFont);
 
+  g_Texture_Delete('MAINMENU_LOGO');
   g_Texture_Delete('MAINMENU_MARKER1');
   g_Texture_Delete('MAINMENU_MARKER2');
   g_Texture_Delete('SCROLL_LEFT');
@@ -1910,7 +1912,7 @@ var
 begin
   Menu := TGUIWindow.Create('FirstLanguageMenu');
 
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, ' '))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', ' '))) do
   begin
     Name := 'mmFirstLanguageMenu';
     AddButton(@ProcSetFirstRussianLanguage, 'Русский', '');
@@ -2003,7 +2005,7 @@ var
   //list: SSArray;
 begin
   Menu := TGUIWindow.Create('MainMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, 'MAINMENU_LOGO', _lc[I_MENU_MAIN_MENU]))) do
   begin
     Name := 'mmMainMenu';
     AddButton(nil, _lc[I_MENU_NEW_GAME], 'NewGameMenu');
@@ -2024,7 +2026,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('NewGameMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_NEW_GAME]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_NEW_GAME]))) do
   begin
     Name := 'mmNewGameMenu';
     AddButton(@ProcSingle1Player, _lc[I_MENU_1_PLAYER]);
@@ -2036,7 +2038,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('NetGameMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MULTIPLAYER]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_MULTIPLAYER]))) do
   begin
     Name := 'mmNetGameMenu';
     AddButton(@ProcRecallAddress, _lc[I_MENU_START_CLIENT], 'NetClientMenu');
@@ -2543,7 +2545,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('OptionsMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_OPTIONS]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_OPTIONS]))) do
   begin
     Name := 'mmOptionsMenu';
     AddButton(nil, _lc[I_MENU_VIDEO_OPTIONS], 'OptionsVideoMenu');
@@ -3114,7 +3116,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('GameSingleMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_MAIN_MENU]))) do
   begin
     Name := 'mmGameSingleMenu';
     AddButton(nil, _lc[I_MENU_LOAD_GAME], 'LoadMenu');
@@ -3139,7 +3141,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('GameCustomMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_MAIN_MENU]))) do
   begin
     Name := 'mmGameCustomMenu';
     AddButton(nil, _lc[I_MENU_CHANGE_PLAYERS], 'TeamMenu');
@@ -3157,7 +3159,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('GameServerMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_MAIN_MENU]))) do
   begin
     Name := 'mmGameServerMenu';
     AddButton(nil, _lc[I_MENU_CHANGE_PLAYERS], 'TeamMenu');
@@ -3173,7 +3175,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('GameClientMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_MAIN_MENU]))) do
   begin
     Name := 'mmGameClientMenu';
     AddButton(nil, _lc[I_MENU_CHANGE_PLAYERS], 'TeamMenu');
@@ -3252,7 +3254,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('TeamMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_CHANGE_PLAYERS]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_CHANGE_PLAYERS]))) do
   begin
     Name := 'mmTeamMenu';
     AddButton(@ProcJoinRed, _lc[I_MENU_JOIN_RED], '').Name := 'tmJoinRed';

@@ -467,13 +467,14 @@ type
   private
     FButtons: array of TGUITextButton;
     FHeader: TGUILabel;
+    FLogo: DWord;
     FIndex: Integer;
     FFontID: DWORD;
     FCounter: Byte;
     FMarkerID1: DWORD;
     FMarkerID2: DWORD;
   public
-    constructor Create(FontID: DWORD; Header: string);
+    constructor Create(FontID: DWORD; Logo, Header: string);
     destructor Destroy; override;
     procedure OnMessage(var Msg: TMessage); override;
     function AddButton(fProc: Pointer; Caption: string; ShowWindow: string = ''): TGUITextButton;
@@ -1033,7 +1034,7 @@ end;
 function TGUIMainMenu.AddButton(fProc: Pointer; Caption: string; ShowWindow: string = ''): TGUITextButton;
 var
   a, _x: Integer;
-  h, hh: Word;
+  h, hh, lh: Word;
 begin
   FIndex := 0;
 
@@ -1053,18 +1054,21 @@ begin
     if FButtons[a] <> nil then
       _x := Min(_x, (gScreenWidth div 2)-(FButtons[a].GetWidth div 2));
 
-  hh := FHeader.GetHeight;
+  if FLogo <> 0 then e_GetTextureSize(FLogo, nil, @lh);
+  hh := FButtons[High(FButtons)].GetHeight;
 
-  h := hh*(2+Length(FButtons))+MAINMENU_SPACE*(Length(FButtons)-1);
-  h := (gScreenHeight div 2)-(h div 2);
+  if FLogo <> 0 then h := lh + hh * (1 + Length(FButtons)) + MAINMENU_SPACE * (Length(FButtons) - 1)
+  else h := hh * (2 + Length(FButtons)) + MAINMENU_SPACE * (Length(FButtons) - 1);
+  h := (gScreenHeight div 2) - (h div 2);
 
-  with FHeader do
+  if FHeader <> nil then with FHeader do
   begin
     FX := _x;
     FY := h;
   end;
 
-  Inc(h, hh*2);
+  if FLogo <> 0 then Inc(h, lh)
+  else Inc(h, hh*2);
 
   for a := 0 to High(FButtons) do
   begin
@@ -1087,7 +1091,7 @@ begin
   FButtons[High(FButtons)] := nil;
 end;
 
-constructor TGUIMainMenu.Create(FontID: DWORD; Header: string);
+constructor TGUIMainMenu.Create(FontID: DWORD; Logo, Header: string);
 begin
   inherited Create();
 
@@ -1098,12 +1102,15 @@ begin
   g_Texture_Get(MAINMENU_MARKER1, FMarkerID1);
   g_Texture_Get(MAINMENU_MARKER2, FMarkerID2);
 
-  FHeader := TGUILabel.Create(Header, FFontID);
-  with FHeader do
+  if not g_Texture_Get(Logo, FLogo) then
   begin
-    FColor := MAINMENU_HEADER_COLOR;
-    FX := (gScreenWidth div 2)-(GetWidth div 2);
-    FY := (gScreenHeight div 2)-(GetHeight div 2);
+    FHeader := TGUILabel.Create(Header, FFontID);
+    with FHeader do
+    begin
+      FColor := MAINMENU_HEADER_COLOR;
+      FX := (gScreenWidth div 2)-(GetWidth div 2);
+      FY := (gScreenHeight div 2)-(GetHeight div 2);
+    end;
   end;
 end;
 
@@ -1123,10 +1130,16 @@ end;
 procedure TGUIMainMenu.Draw;
 var
   a: Integer;
+  w, h: Word;
+
 begin
   inherited;
 
-  FHeader.Draw;
+  if FHeader <> nil then FHeader.Draw
+  else begin
+    e_GetTextureSize(FLogo, @w, @h);
+    e_Draw(FLogo, ((gScreenWidth div 2) - (w div 2)), FButtons[0].FY - FButtons[0].GetHeight - h, 0, True, False);
+  end;
 
   if FButtons <> nil then
   begin
