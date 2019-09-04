@@ -525,6 +525,34 @@ const
   AL_MAX_METERS_PER_UNIT = 1e10; // FIXME: was FLT_MAX
   AL_DEFAULT_METERS_PER_UNIT = 1.0;
 
+type
+  EFXEAXREVERBPROPERTIES = record
+    flDensity: ALfloat;
+    flDiffusion: ALfloat;
+    flGain: ALfloat;
+    flGainHF: ALfloat;
+    flGainLF: ALfloat;
+    flDecayTime: ALfloat;
+    flDecayHFRatio: ALfloat;
+    flDecayLFRatio: ALfloat;
+    flReflectionsGain: ALfloat;
+    flReflectionsDelay: ALfloat;
+    flReflectionsPan: array [0..2] of ALfloat;
+    flLateReverbGain: ALfloat;
+    flLateReverbDelay: ALfloat;
+    flLateReverbPan: array [0..2] of ALfloat;
+    flEchoTime: ALfloat;
+    flEchoDepth: ALfloat;
+    flModulationTime: ALfloat;
+    flModulationDepth: ALfloat;
+    flAirAbsorptionGainHF: ALfloat;
+    flHFReference: ALfloat;
+    flLFReference: ALfloat;
+    flRoomRolloffFactor: ALfloat;
+    iDecayHFLimit: ALint;
+  end;
+  LPEFXEAXREVERBPROPERTIES = ^EFXEAXREVERBPROPERTIES;
+
 procedure alGenEffects(n: ALsizei;  effects: pALuint); cdecl; external {$IFDEF AL_DYNAMIC}openallib{$ENDIF};
 
 procedure alDeleteEffects(n: ALsizei;  effects: pALuint); cdecl; external {$IFDEF AL_DYNAMIC}openallib{$ENDIF};
