@@ -90,7 +90,12 @@ end;
 
 function TModPlugLoaderFactory.GetLoader(): TSoundLoader;
 begin
-  ModPlug_SetSettings(@Settings); // update settings just in case
+  // update interpolation setting
+  if e_MusicLerp then
+    Settings.mResamplingMode := MODPLUG_RESAMPLE_LINEAR
+  else
+    Settings.mResamplingMode := MODPLUG_RESAMPLE_NEAREST;
+  ModPlug_SetSettings(@Settings);
   Result := TModPlugLoader.Create();
 end;
 

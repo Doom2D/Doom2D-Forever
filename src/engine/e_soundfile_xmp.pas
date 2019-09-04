@@ -89,6 +89,7 @@ end;
 function TXMPLoader.Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean;
 var
   Err: LongInt;
+  Interp: LongInt;
 begin
   Result := False;
 
@@ -103,6 +104,10 @@ begin
 
     if xmp_start_player(FXMP, 48000, 0) <> 0 then
       raise Exception.Create('xmp_start_player failed');
+
+    if e_MusicLerp then Interp := XMP_INTERP_LINEAR
+    else Interp := XMP_INTERP_NEAREST;
+    xmp_set_player(FXMP, XMP_PLAYER_INTERP, Interp);
 
     FFormat.SampleRate := 48000;
     FFormat.SampleBits := 16;
@@ -125,6 +130,7 @@ end;
 function TXMPLoader.Load(FName: string; SStreaming: Boolean): Boolean;
 var
   Err: LongInt;
+  Interp: LongInt;
 begin
   Result := False;
 
@@ -139,6 +145,10 @@ begin
 
     if xmp_start_player(FXMP, 48000, 0) <> 0 then
       raise Exception.Create('xmp_start_player failed');
+
+    if e_MusicLerp then Interp := XMP_INTERP_LINEAR
+    else Interp := XMP_INTERP_NEAREST;
+    xmp_set_player(FXMP, XMP_PLAYER_INTERP, Interp);
 
     FFormat.SampleRate := 48000;
     FFormat.SampleBits := 16;
