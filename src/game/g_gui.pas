@@ -2483,7 +2483,7 @@ begin
           else if FIsQuery then
           begin
             case wParam of
-              IK_ENTER, IK_KPRETURN, VK_FIRSTKEY..VK_LASTKEY, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK: // Not <Enter
+              IK_ENTER, IK_KPRETURN, VK_FIRSTKEY..VK_LASTKEY (*, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK*): // Not <Enter
             else
               if e_KeyNames[wParam] <> '' then
                 FKey := wParam;
@@ -2651,7 +2651,7 @@ begin
           else if FIsQuery then
           begin
             case wParam of
-              IK_ENTER, IK_KPRETURN, VK_FIRSTKEY..VK_LASTKEY, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK: // Not <Enter
+              IK_ENTER, IK_KPRETURN, VK_FIRSTKEY..VK_LASTKEY (*, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK*): // Not <Enter
             else
               if e_KeyNames[wParam] <> '' then
               begin
