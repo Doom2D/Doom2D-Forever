@@ -282,6 +282,7 @@ type
     procedure   ReleaseKeys();
     procedure   SetModel(ModelName: String);
     procedure   SetColor(Color: TRGB);
+    function    GetColor(): TRGB;
     procedure   SetWeapon(W: Byte);
     function    IsKeyPressed(K: Byte): Boolean;
     function    GetKeys(): Byte;
@@ -319,7 +320,7 @@ type
     procedure   DrawPickup();
     procedure   DrawRulez();
     procedure   DrawAim();
-    procedure   DrawIndicator();
+    procedure   DrawIndicator(Color: TRGB);
     procedure   DrawBubble();
     procedure   DrawGUI();
     procedure   Update(); virtual;
@@ -2034,6 +2035,11 @@ begin
     if FModel <> nil then FModel.Color := Color;
 end;
 
+function TPlayer.GetColor(): TRGB;
+begin
+  result := FModel.Color;
+end;
+
 procedure TPlayer.SwitchTeam;
 begin
   if g_Game_IsClient then
@@ -2321,22 +2327,27 @@ begin
   inherited;
 end;
 
-procedure TPlayer.DrawIndicator();
+procedure TPlayer.DrawIndicator(Color: TRGB);
 var
   indX, indY: Integer;
   indW, indH: Word;
   ID: DWORD;
+  c: TRGB;
 begin
   if FAlive then
+  begin
+    if g_Texture_Get('TEXTURE_PLAYER_INDICATOR', ID) then
     begin
-      if g_Texture_Get('TEXTURE_PLAYER_INDICATOR', ID) then
-        begin
-          e_GetTextureSize(ID, @indW, @indH);
-          indX := FObj.X + FObj.Rect.X + (FObj.Rect.Width - indW) div 2;
-          indY := FObj.Y;
-          e_Draw(ID, indX, indY - indH, 0, True, False);
-        end;
+      e_GetTextureSize(ID, @indW, @indH);
+      indX := FObj.X + FObj.Rect.X + (FObj.Rect.Width - indW) div 2;
+      indY := FObj.Y;
+
+      c := e_Colors;
+      e_Colors := Color;
+      e_Draw(ID, indX, indY - indH, 0, True, False);
+      e_Colors := c;
     end;
+  end;
   //e_TextureFontPrint(indX, indY, FName, gStdFont); // Shows player name overhead
 end;
 

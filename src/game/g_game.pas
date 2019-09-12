@@ -3511,7 +3511,7 @@ end;
 
 procedure DrawPlayer(p: TPlayer);
 var
-  px, py, a, b, c, d: Integer;
+  px, py, a, b, c, d, i: Integer;
   //R: TRect;
 begin
   if (p = nil) or (p.FDummy) then
@@ -3667,7 +3667,13 @@ begin
   renderMapInternal(-c, -d, true);
 
   if (gGameSettings.GameMode <> GM_SINGLE) and gPlayerIndicator then
-    p.DrawIndicator();
+    if gPlayers[i] <> nil then
+      for i := 0 to High(gPlayers) do
+        if gPlayers[i] = p then gPlayers[i].DrawIndicator(_RGB(255, 255, 255))
+        else if (gPlayers[i].Team = p.Team) and (gPlayers[i].Team <> TEAM_NONE)
+        then
+          gPlayers[i].DrawIndicator(gPlayers[i].GetColor);
+
   if p.FSpectator then
     e_TextureFontPrintEx(p.GameX + PLAYER_RECT_CX - 4,
                          p.GameY + PLAYER_RECT_CY - 4,
