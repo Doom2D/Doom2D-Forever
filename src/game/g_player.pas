@@ -555,7 +555,8 @@ var
   gFly: Boolean = False;
   gAimLine: Boolean = False;
   gChatBubble: Byte = 0;
-  gPlayerIndicator: Byte = 1;
+  gPlayerIndicator: Integer = 1;
+  gPlayerIndicatorStyle: Integer = 0;
   gNumBots: Word = 0;
   gLMSPID1: Word = 0;
   gLMSPID2: Word = 0;
@@ -2331,24 +2332,35 @@ procedure TPlayer.DrawIndicator(Color: TRGB);
 var
   indX, indY: Integer;
   indW, indH: Word;
+  nW, nH: Byte;
   ID: DWORD;
   c: TRGB;
 begin
   if FAlive then
-  begin
-    if g_Texture_Get('TEXTURE_PLAYER_INDICATOR', ID) then
-    begin
-      e_GetTextureSize(ID, @indW, @indH);
-      indX := FObj.X + FObj.Rect.X + (FObj.Rect.Width - indW) div 2;
-      indY := FObj.Y;
+    case gPlayerIndicatorStyle of
+      0:
+        begin
+          if g_Texture_Get('TEXTURE_PLAYER_INDICATOR', ID) then
+          begin
+            e_GetTextureSize(ID, @indW, @indH);
+            indX := FObj.X + FObj.Rect.X + (FObj.Rect.Width - indW) div 2;
+            indY := FObj.Y - indH;
 
-      c := e_Colors;
-      e_Colors := Color;
-      e_Draw(ID, indX, indY - indH, 0, True, False);
-      e_Colors := c;
+            c := e_Colors;
+            e_Colors := Color;
+            e_Draw(ID, indX, indY, 0, True, False);
+            e_Colors := c;
+          end;
+        end;
+
+      1:
+        begin
+          e_TextureFontGetSize(gStdFont, nW, nH);
+          indX := FObj.X + FObj.Rect.X + (FObj.Rect.Width - Length(FName) * nW) div 2;
+          indY := FObj.Y - nH;
+          e_TextureFontPrintEx(indX, indY, FName, gStdFont, Color.R, Color.G, Color.B, 1.0, True);
+        end;
     end;
-  end;
-  //e_TextureFontPrintEx(indX, indY, FName, gStdFont, 0, 0, 255, 1.0, true); // Shows player name overhead
 end;
 
 procedure TPlayer.DrawBubble();
@@ -7898,4 +7910,6 @@ end;
 
 begin
   conRegVar('cheat_berserk_autoswitch', @gBerserkAutoswitch, 'autoswitch to fist when berserk pack taken', '',  true, true);
+  conRegVar('player_indicator', @gPlayerIndicator, 'Draw indicator only for current player, also for teammates, or not at all', 'Draw indicator only for current player, also for teammates, or not at all');
+  conRegVar('player_indicator_style', @gPlayerIndicatorStyle, 'Visual appearance of indicator', 'Visual appearance of indicator');
 end.

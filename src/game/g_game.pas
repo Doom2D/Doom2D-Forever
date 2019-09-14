@@ -3675,9 +3675,10 @@ begin
         for i := 0 to High(gPlayers) do
           if gPlayers[i] <> nil then
             if gPlayers[i] = p then p.DrawIndicator(_RGB(255, 255, 255))
-            else if (gPlayers[i].Team = p.Team) and (gPlayers[i].Team <> TEAM_NONE)
-            then
-              gPlayers[i].DrawIndicator(gPlayers[i].GetColor);
+            else if (gPlayers[i].Team = p.Team) and (gPlayers[i].Team <> TEAM_NONE) then
+              if gPlayerIndicatorStyle = 1 then
+                gPlayers[i].DrawIndicator(_RGB(192, 192, 192))
+              else gPlayers[i].DrawIndicator(gPlayers[i].GetColor);
     end;
 
   if p.FSpectator then
