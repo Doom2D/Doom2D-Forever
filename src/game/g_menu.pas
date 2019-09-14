@@ -160,7 +160,7 @@ begin
   gShowMessages := TGUISwitch(menu.GetControl('swMessages')).ItemIndex = 0;
   gRevertPlayers := TGUISwitch(menu.GetControl('swRevertPlayers')).ItemIndex = 0;
   gChatBubble := TGUISwitch(menu.GetControl('swChatBubble')).ItemIndex;
-  gPlayerIndicator := TGUISwitch(menu.GetControl('swPlayerIndicator')).ItemIndex = 0;
+  gPlayerIndicator := TGUISwitch(menu.GetControl('swPlayerIndicator')).ItemIndex;
   if TGUIScroll(menu.GetControl('scScaleFactor')).Value <> TempScale then
   begin
     TempScale := TGUIScroll(menu.GetControl('scScaleFactor')).Value;
@@ -569,7 +569,7 @@ begin
     ItemIndex := gChatBubble;
 
   with TGUISwitch(menu.GetControl('swPlayerIndicator')) do
-    if gPlayerIndicator then ItemIndex := 0 else ItemIndex := 1;
+    ItemIndex := gPlayerIndicator;
 
   TempScale := Round(g_dbg_scale - 1);
   TGUIScroll(menu.GetControl('scScaleFactor')).Value := TempScale;
@@ -2780,8 +2780,9 @@ begin
     with AddSwitch(_lc[I_MENU_GAME_PLAYER_INDICATOR]) do
     begin
       Name := 'swPlayerIndicator';
-      AddItem(_lc[I_MENU_YES]);
-      AddItem(_lc[I_MENU_NO]);
+      AddItem(_lc[I_MENU_GAME_INDICATOR_NONE]);
+      AddItem(_lc[I_MENU_GAME_INDICATOR_OWN]);
+      AddItem(_lc[I_MENU_GAME_INDICATOR_ALL]);
     end;
     with AddScroll(_lc[I_MENU_GAME_SCALE_FACTOR]) do
     begin

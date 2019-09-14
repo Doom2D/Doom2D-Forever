@@ -3666,13 +3666,19 @@ begin
 
   renderMapInternal(-c, -d, true);
 
-  if (gGameSettings.GameMode <> GM_SINGLE) and gPlayerIndicator then
-    if gPlayers[i] <> nil then
-      for i := 0 to High(gPlayers) do
-        if gPlayers[i] = p then gPlayers[i].DrawIndicator(_RGB(255, 255, 255))
-        else if (gPlayers[i].Team = p.Team) and (gPlayers[i].Team <> TEAM_NONE)
-        then
-          gPlayers[i].DrawIndicator(gPlayers[i].GetColor);
+  if (gGameSettings.GameMode <> GM_SINGLE) and (gPlayerIndicator > 0) then
+    case gPlayerIndicator of
+      1:
+        p.DrawIndicator(_RGB(255, 255, 255));
+
+      2:
+        for i := 0 to High(gPlayers) do
+          if gPlayers[i] <> nil then
+            if gPlayers[i] = p then p.DrawIndicator(_RGB(255, 255, 255))
+            else if (gPlayers[i].Team = p.Team) and (gPlayers[i].Team <> TEAM_NONE)
+            then
+              gPlayers[i].DrawIndicator(gPlayers[i].GetColor);
+    end;
 
   if p.FSpectator then
     e_TextureFontPrintEx(p.GameX + PLAYER_RECT_CX - 4,

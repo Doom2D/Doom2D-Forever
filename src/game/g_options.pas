@@ -226,7 +226,7 @@ begin
   gShowMessages := True;
   gRevertPlayers := False;
   gChatBubble := 4;
-  gPlayerIndicator := True;
+  gPlayerIndicator := 1;
   gSFSDebug := False;
   gSFSFastMode := False;
   e_FastScreenshots := True;
@@ -419,7 +419,7 @@ begin
   ReadBoolean(gShowMessages, 'Messages');
   ReadBoolean(gRevertPlayers, 'RevertPlayers');
   ReadInteger(gChatBubble, 'ChatBubble', 0, 4);
-  ReadBoolean(gPlayerIndicator, 'PlayerIndicator');
+  ReadInteger(gPlayerIndicator, 'PlayerIndicator', 0, 2);
   ReadBoolean(gSFSDebug, 'SFSDebug'); wadoptDebug := gSFSDebug;
   ReadBoolean(gSFSFastMode, 'SFSFastMode'); wadoptFast := gSFSFastMode;
   ReadBoolean(e_FastScreenshots, 'FastScreenshots');
@@ -593,7 +593,7 @@ begin
   config.WriteBool('Game', 'Messages', gShowMessages);
   config.WriteBool('Game', 'RevertPlayers', gRevertPlayers);
   config.WriteInt('Game', 'ChatBubble', gChatBubble);
-  config.WriteBool('Game', 'PlayerIndicator', gPlayerIndicator);
+  config.WriteInt('Game', 'PlayerIndicator', gPlayerIndicator);
   config.WriteBool('Game', 'SFSDebug', gSFSDebug);
   config.WriteBool('Game', 'SFSFastMode', gSFSFastMode);
   config.WriteBool('Game', 'FastScreenshots', e_FastScreenshots);

@@ -555,7 +555,7 @@ var
   gFly: Boolean = False;
   gAimLine: Boolean = False;
   gChatBubble: Byte = 0;
-  gPlayerIndicator: Boolean = True;
+  gPlayerIndicator: Byte = 1;
   gNumBots: Word = 0;
   gLMSPID1: Word = 0;
   gLMSPID2: Word = 0;
@@ -2348,7 +2348,7 @@ begin
       e_Colors := c;
     end;
   end;
-  //e_TextureFontPrint(indX, indY, FName, gStdFont); // Shows player name overhead
+  //e_TextureFontPrintEx(indX, indY, FName, gStdFont, 0, 0, 255, 1.0, true); // Shows player name overhead
 end;
 
 procedure TPlayer.DrawBubble();
