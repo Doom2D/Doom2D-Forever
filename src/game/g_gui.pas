@@ -1033,7 +1033,8 @@ end;
 function TGUIMainMenu.AddButton(fProc: Pointer; Caption: string; ShowWindow: string = ''): TGUITextButton;
 var
   a, _x: Integer;
-  h, hh, lh: Word;
+  h, hh: Word;
+  lh: Word = 0;
 begin
   FIndex := 0;
 

@@ -2578,6 +2578,7 @@ begin
   MPlaying := M.ReadByte() <> 0;
   MPos := M.ReadLongWord();
   MPaused := M.ReadByte() <> 0;
+  MPos := MPos+1; //k8: stfu, fpc!
 
   if MPlaying then
   begin

@@ -168,7 +168,7 @@ end;
 
 function TVorbisLoader.LoadStream(Stream: TStream; SStreaming: Boolean): Boolean;
 var
-  Ret, Bit: clong;
+  Ret: clong;
   Info: pvorbis_info;
   FullBuf: Pointer;
 begin

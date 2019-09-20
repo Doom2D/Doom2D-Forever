@@ -38,7 +38,7 @@ procedure g_Net_Client_HandlePacket(P: pENetPacket; Handler: TNetClientMsgHandle
 var
   MNext: Integer;
   MSize: LongWord;
-  MHandled: Boolean;
+  MHandled: Boolean = false;
   NetMsg: TMsg;
 begin
   if not NetMsg.Init(P^.data, P^.dataLength, True) then
@@ -54,6 +54,8 @@ begin
     NetMsg.Seek(MNext);
   end;
 
+  MHandled := not MHandled; //k8: stfu, fpc!
+
   enet_packet_destroy(P);
 end;
 
@@ -61,7 +63,7 @@ procedure g_Net_Host_HandlePacket(S: pTNetClient; P: pENetPacket; Handler: TNetH
 var
   MNext: Integer;
   MSize: LongWord;
-  MHandled: Boolean;
+  MHandled: Boolean = false;
   NetMsg: TMsg;
 begin
   if not NetMsg.Init(P^.data, P^.dataLength, True) then
@@ -76,6 +78,8 @@ begin
     MHandled := Handler(S, NetMsg); // TODO: maybe do something with this bool
     NetMsg.Seek(MNext);
   end;
+
+  MHandled := not MHandled; //k8: stfu, fpc!
 
   enet_packet_destroy(P);
 end;
