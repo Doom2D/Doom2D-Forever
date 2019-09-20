@@ -416,11 +416,20 @@ type
 
 implementation
 
+//k8: sighs. you HAVE to have a 16-byte aligned buffer, otherwise
+//    32-bit SSE2-enabled builds *WILL* fail.
+//    it means that you *CANNOT* simply use a passed pointer.
+//    therefore this fuckery with internal buffer (because
+//    i am not sure that FPC will align stack variables
+//    correctly).
 function ov_read_ext(var vf: OggVorbis_File; buffer: pointer; length: cint; bigendianp: cbool; word: cint; sgned: cbool): clong;
 var
   ofs: cint;
   Num: cint;
   Res: cint;
+  buf: array[0..3000] of Byte;
+  rd: cint;
+  bptr: ^Byte;
 begin
   // check blocksize here!
   {if length mod 4 <> 0 then
@@ -429,17 +438,27 @@ begin
   ofs := 0;
   num := length;
 
+  bptr := @buf;
+  while ((LongWord(bptr) and $0f) <> 0) do Inc(bptr);
+
   while num > 0 do
   begin
-    res := ov_read(vf, buffer + ofs, num, bigendianp, word, sgned, nil);
+    rd := num;
+    if (rd > 2048) then rd := 2048;
+    res := ov_read(vf, bptr, rd, bigendianp, word, sgned, nil);
+    //res := ov_read(vf, buffer + ofs, num, bigendianp, word, sgned, nil);
     if res < 0 then
       Exit(res);
 
     if res = 0 then
       Break;
 
-    ofs := ofs + res;
-    num := num - res;
+    //ofs := ofs + res;
+    //num := num - res;
+    Move(bptr^, buffer^, res);
+    buffer := buffer+res;
+    ofs := ofs+res;
+    num := num-res;
   end;
 
   Result := ofs;
