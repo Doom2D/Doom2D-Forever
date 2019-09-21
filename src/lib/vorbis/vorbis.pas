@@ -439,7 +439,7 @@ begin
   num := length;
 
   bptr := @buf;
-  while ((LongWord(bptr) and $0f) <> 0) do Inc(bptr);
+  while ((PtrUInt(bptr) and $0f) <> 0) do Inc(bptr);
 
   while num > 0 do
   begin
