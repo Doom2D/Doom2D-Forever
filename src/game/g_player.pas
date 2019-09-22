@@ -2332,6 +2332,8 @@ procedure TPlayer.DrawIndicator(Color: TRGB);
 var
   indX, indY: Integer;
   indW, indH: Word;
+  indA: Single;
+  a: TDFPoint;
   nW, nH: Byte;
   ID: DWORD;
   c: TRGB;
@@ -2343,12 +2345,43 @@ begin
           if g_Texture_Get('TEXTURE_PLAYER_INDICATOR', ID) then
           begin
             e_GetTextureSize(ID, @indW, @indH);
-            indX := FObj.X + FObj.Rect.X + (FObj.Rect.Width - indW) div 2;
-            indY := FObj.Y - indH;
+            a.X := indW div 2;
+            a.Y := indH div 2;
+
+            if (FObj.X + FObj.Rect.X) < 0 then
+            begin
+              indA := 90;
+              indX := FObj.X + FObj.Rect.X + FObj.Rect.Width;
+              indY := FObj.Y + FObj.Rect.Y + (FObj.Rect.Height - indW) div 2;
+            end
+
+            else if (FObj.X + FObj.Rect.X + FObj.Rect.Width) > Max(gMapInfo.Width, gPlayerScreenSize.X) then
+            begin
+              indA := 270;
+              indX := FObj.X + FObj.Rect.X - indH;
+              indY := FObj.Y + FObj.Rect.Y + (FObj.Rect.Height - indW) div 2;
+            end
+
+            else if (fObj.Y - indH) < 0 then
+            begin
+              indA := 180;
+              indX := FObj.X + FObj.Rect.X + (FObj.Rect.Width - indW) div 2;
+              indY := FObj.Y + FObj.Rect.Y + FObj.Rect.Height;
+            end
+
+            else
+            begin
+              indA := 0;
+              indX := FObj.X + FObj.Rect.X + (FObj.Rect.Width - indW) div 2;
+              indY := FObj.Y - indH;
+            end;
+
+            indX := EnsureRange(indX, 0, Max(gMapInfo.Width, gPlayerScreenSize.X) - indW);
+            indY := EnsureRange(indY, 0, Max(gMapInfo.Height, gPlayerScreenSize.Y) - indH);
 
             c := e_Colors;
             e_Colors := Color;
-            e_Draw(ID, indX, indY, 0, True, False);
+            e_DrawAdv(ID, indX, indY, 0, True, False, indA, @a);
             e_Colors := c;
           end;
         end;
