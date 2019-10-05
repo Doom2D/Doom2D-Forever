@@ -98,7 +98,7 @@ var
 implementation
 
 uses
-  g_window, g_options, utils;
+  g_options, utils;
 
 const
   NUM_SOURCES = 255; // + 1 stereo

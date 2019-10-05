@@ -96,9 +96,12 @@ implementation
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
+  {$IFDEF USE_SDL2}
+    SDL2,
+  {$ENDIF}
   e_log, e_input, g_console, g_window, g_sound, g_gfx, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_texture,
-  g_items, wadreader, e_graphics, g_touch, SDL2, envvars;
+  g_items, wadreader, e_graphics, g_touch, envvars;
 
   var
     machine: Integer;
@@ -115,6 +118,7 @@ uses
       Result := Copy(Result, 1, 10) + ' ' + IntToStr(n)
   end;
 
+{$IFDEF USE_SDL2}
 procedure g_Options_SetDefaultVideo;
 var
   target, closest, display: TSDL_DisplayMode;
@@ -165,6 +169,24 @@ begin
   e_LogWriteLn('g_Options_SetDefaultVideo: w = ' + IntToStr(gScreenWidth) + ' h = ' + IntToStr(gScreenHeight));
   g_Console_ResetBinds;
 end;
+{$ELSE}
+procedure g_Options_SetDefaultVideo;
+begin
+  {$WARNING stub}
+  gScreenWidth := 640;
+  gScreenHeight := 480;
+  gBPP := 32;
+  gFullScreen := False;
+  gWinRealPosX := 0;
+  gWinRealPosY := 0;
+  gWinMaximized := False;
+  gVSync := True;
+  gTextureFilter := True;
+  glLegacyNPOT := False;
+  e_LogWriteLn('g_Options_SetDefaultVideo: w = ' + IntToStr(gScreenWidth) + ' h = ' + IntToStr(gScreenHeight));
+  g_Console_ResetBinds;
+end;
+{$ENDIF}
 
 procedure g_Options_SetDefault();
 var

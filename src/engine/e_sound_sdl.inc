@@ -15,11 +15,9 @@
 interface
 
 uses
-  sdl2,
-  SDL2_mixer,
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-  e_log,
-  SysUtils;
+  SDL2, SDL2_mixer,
+  e_log, SysUtils;
 
 type
   TSoundRec = record

@@ -21,6 +21,22 @@
 {$ENDIF}
 {$HINTS OFF}
 
+{$IF DEFINED(USE_SYSSTUB)}
+  {$IF DEFINED(USE_SDL) OR DEFINED(USE_SDL2)}
+    {$ERROR Only one system driver must be selected!}
+  {$ENDIF}
+{$ELSEIF DEFINED(USE_SDL)}
+  {$IF DEFINED(USE_SYSSTUB) OR DEFINED(USE_SDL2)}
+    {$ERROR Only one system driver must be selected!}
+  {$ENDIF}
+{$ELSEIF DEFINED(USE_SDL2)}
+  {$IF DEFINED(USE_SYSSTUB) OR DEFINED(USE_SDL)}
+    {$ERROR Only one system driver must be selected!}
+  {$ENDIF}
+{$ELSE}
+  {$ERROR System driver not selected. Use -dUSE_SYSSTUB or -dUSE_SDL or -dUSE_SDL2}
+{$ENDIF}
+
 {$IF DEFINED(USE_SDLMIXER)}
   {$IF DEFINED(USE_FMOD) OR DEFINED(USE_OPENAL)}
     {$ERROR Only one sound driver must be selected!}
@@ -34,7 +50,7 @@
     {$ERROR Only one sound driver must be selected!}
   {$ENDIF}
 {$ELSE}
-  {$ERROR Sound driver not selected. Use -DUSE_SDLMIXER or -DUSE_FMOD or -DUSE_OPENAL}
+  {$ERROR Sound driver not selected. Use -dUSE_SDLMIXER or -dUSE_FMOD or -dUSE_OPENAL}
 {$ENDIF}
 
 uses
@@ -54,14 +70,23 @@ uses
 {$IFDEF USE_MINIUPNPC}
   miniupnpc in '../lib/miniupnpc/miniupnpc.pas',
 {$ENDIF}
-  SDL2 in '../lib/sdl2/sdl2.pas',
-{$IFDEF USE_SDLMIXER}
-  SDL2_mixer in '../lib/sdl2/SDL2_mixer.pas',
+
+{$IFDEF USE_SDL}
+  SDL,
 {$ENDIF}
+{$IFDEF USE_SDL2}
+  SDL2 in '../lib/sdl2/sdl2.pas',
+  {$IFDEF USE_SDLMIXER}
+    SDL2_mixer in '../lib/sdl2/SDL2_mixer.pas',
+  {$ENDIF}
+{$ENDIF}
+
 {$IFDEF USE_OPENAL}
   AL in '../lib/openal/al.pas',
   e_soundfile in '../engine/e_soundfile.pas',
-  e_soundfile_wav in '../engine/e_soundfile_wav.pas',
+  {$IF DEFINED(USE_SDL) OR DEFINED(USE_SDL2)}
+    e_soundfile_wav in '../engine/e_soundfile_wav.pas',
+  {$ENDIF}
   {$IFDEF USE_VORBIS}
     vorbis in '../lib/vorbis/vorbis.pas',
     e_soundfile_vorbis in '../engine/e_soundfile_vorbis.pas',
@@ -90,6 +115,7 @@ uses
     ogg in '../lib/vorbis/ogg.pas', // this has to come last because link order
   {$ENDIF}
 {$ENDIF}
+
   ENet in '../lib/enet/enet.pp',
   e_graphics in '../engine/e_graphics.pas',
   e_input in '../engine/e_input.pas',
@@ -131,6 +157,19 @@ uses
   g_triggers in 'g_triggers.pas',
   g_weapons in 'g_weapons.pas',
   g_window in 'g_window.pas',
+{$IFDEF USE_SYSSTUB}
+  g_system in 'stub/g_system.pas',
+  g_touch in 'stub/g_touch.pas',
+{$ENDIF}
+{$IFDEF USE_SDL}
+  g_system in 'sdl/g_system.pas',
+  g_touch in 'sdl/g_touch.pas',
+{$ENDIF}
+{$IFDEF USE_SDL2}
+  g_system in 'sdl2/g_system.pas',
+  g_touch in 'sdl2/g_touch.pas',
+{$ENDIF}
+
   SysUtils,
 {$IFDEF USE_FMOD}
   fmod in '../lib/FMOD/fmod.pas',

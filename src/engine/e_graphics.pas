@@ -19,7 +19,11 @@ interface
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
-  SysUtils, Classes, Math, e_log, e_texture, SDL2, MAPDEF, ImagingTypes, Imaging, ImagingUtility;
+  {$IFDEF USE_SDL2}
+    SDL2,
+  {$ENDIF}
+  SysUtils, Classes, Math, e_log, e_texture,
+  MAPDEF, ImagingTypes, Imaging, ImagingUtility;
 
 type
   TMirrorType=(None, Horizontal, Vertical);
@@ -128,8 +132,10 @@ procedure e_Clear(Mask: TGLbitfield; Red, Green, Blue: Single); overload;
 procedure e_Clear(); overload;
 procedure e_EndRender();
 
+{$IFDEF USE_SDL2}
 function e_GetGamma(win: PSDL_Window): Byte;
 procedure e_SetGamma(win: PSDL_Window;Gamma: Byte);
+{$ENDIF}
 
 procedure e_MakeScreenshot(st: TStream; Width, Height: Word);
 
@@ -1113,6 +1119,7 @@ begin
   glPopMatrix();
 end;
 
+{$IFDEF USE_SDL2}
 function e_GetGamma(win: PSDL_Window): Byte;
 var
   ramp: array [0..256*3-1] of Word;
@@ -1175,6 +1182,7 @@ begin
 
  SDL_SetWindowGammaRamp(win, @ramp[0], @ramp[256], @ramp[512]);
 end;
+{$ENDIF}
 
 function e_CharFont_Create(sp: ShortInt=0): DWORD;
 var

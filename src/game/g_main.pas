@@ -40,11 +40,14 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes, fui_wadread, fui_style, fui_gfx_gl,
 {$ENDIF}
-  SDL2, wadreader, e_log, g_window,
+{$IFDEF USE_SDL2}
+  SDL2,
+{$ENDIF}
+  wadreader, e_log, g_window,
   e_graphics, e_input, g_game, g_console, g_gui,
   e_sound, g_options, g_sound, g_player, g_basic,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map,
-  g_menu, g_language, g_net, g_touch, g_res_downloader,
+  g_menu, g_language, g_net, g_touch, g_system, g_res_downloader,
   utils, conbuf, envvars,
   xparser;
 
@@ -84,6 +87,7 @@ begin
 {$ENDIF}
   e_WriteToStdOut := False; //{$IFDEF HEADLESS}True;{$ELSE}False;{$ENDIF}
 
+{$IFDEF USE_SDL2}
 {$IFDEF HEADLESS}
  {$IFDEF USE_SDLMIXER}
   sdlflags := SDL_INIT_TIMER or SDL_INIT_AUDIO or $00004000;
@@ -105,6 +109,7 @@ begin
 
   if SDL_Init(sdlflags) < 0 then
     raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
+{$ENDIF}
 
   e_WriteLog('Read config file', TMsgType.Notify);
   g_Options_Read(GameDir + '/' + CONFIG_FILENAME);
@@ -115,6 +120,10 @@ begin
   //g_Language_Load(DataDir + gLanguage + '.txt');
   e_WriteLog(gLanguage, TMsgType.Notify);
   g_Language_Set(gLanguage);
+
+{$IFNDEF USE_SDL2}
+  sys_Init;
+{$ENDIF}
 
 {$IF not DEFINED(HEADLESS) and DEFINED(ENABLE_HOLMES)}
   flexloaded := true;
@@ -169,8 +178,12 @@ begin
   SDLMain();
 {$WARNINGS ON}
 
+{$IFDEF USE_SDL2}
   e_WriteLog('Releasing SDL', TMsgType.Notify);
   SDL_Quit();
+{$ELSE}
+  sys_Final;
+{$ENDIF}
 end;
 
 procedure Init();

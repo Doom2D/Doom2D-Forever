@@ -689,6 +689,7 @@ var
   b: array of string;
   str: string;
 begin
+{
   SetLength(Result, 0);
   SetLength(b, 0);
 
@@ -715,7 +716,7 @@ begin
 
     if TextLen(str) > MaxWidth then
     begin // “екуща€ строка слишком длинна€ => разбиваем
-      while str <> '' do
+      while (str[0] <> #0) and (str <> '') do
       begin
         SetLength(Result, Length(Result)+1);
 
@@ -741,6 +742,8 @@ begin
       Result[High(Result)] := str;
     end;
   end;
+}
+  Result := nil
 end;
 
 procedure Sort(var a: SSArray);

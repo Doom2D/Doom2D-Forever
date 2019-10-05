@@ -86,7 +86,7 @@ implementation
 uses
   SysUtils, e_msg, e_input, e_graphics, e_log, g_window, g_net, g_console,
   g_map, g_game, g_sound, g_gui, g_menu, g_options, g_language, g_basic,
-  wadreader;
+  wadreader, g_system;
 
 var
   NetMHost: pENetHost = nil;
@@ -105,7 +105,7 @@ var
 
 function GetTimerMS (): Int64;
 begin
-  Result := GetTimer() {div 1000};
+  Result := sys_GetTicks() {div 1000};
 end;
 
 
@@ -876,7 +876,7 @@ begin
   if gConsoleShow or gChatShow then
     Exit;
 
-  qm := g_ProcessMessages(); // this updates kbd
+  qm := sys_HandleInput(); // this updates kbd
 
   if qm or e_KeyPressed(IK_ESCAPE) or e_KeyPressed(VK_ESCAPE) or
      e_KeyPressed(JOY0_JUMP) or e_KeyPressed(JOY1_JUMP) or
@@ -909,7 +909,7 @@ begin
       slWaitStr := _lc[I_NET_SLIST_WAIT];
 
       g_Game_Draw;
-      g_window.ReDrawWindow;
+      sys_Repaint;
 
       if g_Net_Slist_Fetch(SL) then
       begin

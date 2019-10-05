@@ -383,7 +383,7 @@ uses
   g_triggers, g_monsters, e_sound, CONFIG,
   g_language, g_net,
   ENet, e_msg, g_netmsg, g_netmaster,
-  sfs, wadreader;
+  sfs, wadreader, g_system;
 
 
 var
@@ -894,7 +894,7 @@ begin
   gDelayedEvents[n].DENum := Num;
   gDelayedEvents[n].DEStr := Str;
   if DEType = DE_GLOBEVENT then
-    gDelayedEvents[n].Time := (GetTimer() {div 1000}) + Time
+    gDelayedEvents[n].Time := (sys_GetTicks() {div 1000}) + Time
   else
     gDelayedEvents[n].Time := gTime + Time;
   Result := n;
@@ -2187,7 +2187,7 @@ begin
     KeyPress(IK_F10);
   end;
 
-  Time := GetTimer() {div 1000};
+  Time := sys_GetTicks() {div 1000};
 
 // Обработка отложенных событий:
   if gDelayedEvents <> nil then
@@ -2543,7 +2543,7 @@ var
 begin
   e_TextureFontGetSize(gStdFont, ww2, hh2);
 
-  g_ProcessMessages();
+  sys_HandleInput;
 
   if g_Console_Action(ACTION_SCORES) then
   begin
@@ -3732,7 +3732,7 @@ var
 begin
   if gExit = EXIT_QUIT then Exit;
 
-  Time := GetTimer() {div 1000};
+  Time := sys_GetTicks() {div 1000};
   FPSCounter := FPSCounter+1;
   if Time - FPSTime >= 1000 then
   begin
@@ -4098,7 +4098,7 @@ begin
     g_Game_DeleteTestMap();
 
   gExit := EXIT_QUIT;
-  PushExitEvent();
+  sys_RequestQuit;
 end;
 
 procedure g_FatalError(Text: String);
@@ -4156,7 +4156,7 @@ end;
 
 procedure g_Game_ChangeResolution(newWidth, newHeight: Word; nowFull, nowMax: Boolean);
 begin
-  g_Window_SetSize(newWidth, newHeight, nowFull);
+  sys_SetDisplayMode(newWidth, newHeight, gBPP, nowFull);
 end;
 
 procedure g_Game_AddPlayer(Team: Byte = TEAM_NONE);

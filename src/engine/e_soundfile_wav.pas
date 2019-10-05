@@ -44,7 +44,13 @@ type
 
 implementation
 
-uses sdl2, utils, e_log;
+uses
+  {$IFDEF USE_SDL}
+    SDL,
+  {$ELSE}
+    SDL2,
+  {$ENDIF}
+  utils, e_log;
 
 (* TWAVLoaderFactory *)
 
@@ -73,7 +79,6 @@ begin
 end;
 
 (* TWAVLoader *)
-
 function TWAVLoader.Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean;
 var
   Spec: TSDL_AudioSpec;
@@ -85,14 +90,22 @@ begin
 
   RW := SDL_RWFromConstMem(Data, Len);
 
+{$IFDEF USE_SDL2}
   if SDL_LoadWAV_RW(RW, 0, @Spec, @TmpBuf, @TmpLen) = nil then
+{$ELSE}
+  if SDL_LoadWAV_RW(RW, 0, @Spec, PUInt8(@TmpBuf), @TmpLen) = nil then
+{$ENDIF}
   begin
     e_LogWriteln('Could not load WAV: ' + SDL_GetError());
   end
   else
   begin
     FFormat.SampleRate := Spec.freq;
-    FFormat.SampleBits := SDL_AUDIO_BITSIZE(Spec.format);
+    {$IFDEF USE_SDL2}
+      FFormat.SampleBits := SDL_AUDIO_BITSIZE(Spec.format);
+    {$ELSE}
+      FFormat.SampleBits := Spec.format and $FF;
+    {$ENDIF}
     FFormat.Channels := Spec.channels;
     FStreaming := False; // never stream wavs
     FDataLen := TmpLen;
@@ -120,14 +133,22 @@ begin
     exit;
   end;
 
+{$IFDEF USE_SDL2}
   if SDL_LoadWAV_RW(RW, 0, @Spec, @TmpBuf, @TmpLen) = nil then
+{$ELSE}
+  if SDL_LoadWAV_RW(RW, 0, @Spec, PUInt8(@TmpBuf), @TmpLen) = nil then
+{$ENDIF}
   begin
     e_LogWritefln('Could not load WAV file `%s`: %s', [FName, SDL_GetError()]);
   end
   else
   begin
     FFormat.SampleRate := Spec.freq;
-    FFormat.SampleBits := SDL_AUDIO_BITSIZE(Spec.format);
+    {$IFDEF USE_SDL2}
+      FFormat.SampleBits := SDL_AUDIO_BITSIZE(Spec.format);
+    {$ELSE}
+      FFormat.SampleBits := Spec.format and $FF;
+    {$ENDIF}
     FFormat.Channels := Spec.channels;
     FStreaming := False; // never stream wavs
     FDataLen := TmpLen;

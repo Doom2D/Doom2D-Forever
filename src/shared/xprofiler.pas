@@ -21,6 +21,12 @@ interface
 
 {$IFNDEF IN_TOOLS}
   uses
+  {$IFDEF USE_SDL}
+    SDL,
+  {$ENDIF}
+  {$IFDEF USE_SDL2}
+    SDL2,
+  {$ENDIF}
     SysUtils;
 
   {$DEFINE STOPWATCH_IS_HERE}
@@ -45,6 +51,11 @@ interface
   {$ENDIF}
   ;
 {$ENDIF} // IN_TOOLS
+
+{$IFDEF USE_SDL}
+  type
+    UInt64 = QWord; (* !!! *)
+{$ENDIF}
 
 {$IF DEFINED(STOPWATCH_IS_HERE)}
 type
@@ -160,9 +171,6 @@ function getTimeMilli (): UInt64; inline;
 implementation
 
 {$IFNDEF IN_TOOLS}
-uses
-  SDL2;
-
 type
   THPTimeType = Int64;
 {$ELSE}
@@ -205,7 +213,7 @@ begin
 end;
 
 
-{$IFDEF IN_TOOLS}
+{$IF DEFINED(IN_TOOLS)}
 function getTimeMicro (): UInt64; inline;
 var
   r: THPTimeType;
@@ -219,17 +227,30 @@ begin
   result := UInt64(r)*1000000 div mFrequency;
   {$ENDIF}
 end;
-{$ELSE}
+(* !!!
+{$ELSEIF DEFINED(USE_SDL)}
+function getTimeMicro: UInt64; inline;
+begin
+  {$WARNING use inaccurate profiling timer}
+  result := SDL_GetTicks() * 1000
+end;
+*)
+{$ELSEIF DEFINED(USE_SDL2)}
 function getTimeMicro (): UInt64; inline;
 begin
   Result := SDL_GetPerformanceCounter() * 1000000 div SDL_GetPerformanceFrequency()
+end;
+{$ELSE}
+function getTimeMicro: UInt64; inline;
+begin
+  {$WARNING use stub profiling timer}
 end;
 {$ENDIF}
 
 
 function getTimeMilli (): UInt64; inline;
 begin
-  result := getTimeMicro div 1000;
+  result := getTimeMicro() div 1000;
 end;
 
 

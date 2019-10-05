@@ -250,7 +250,7 @@ implementation
 uses
   SysUtils,
   e_input, g_nethandler, g_netmsg, g_netmaster, g_player, g_window, g_console,
-  g_main, g_game, g_language, g_weapons, utils, ctypes,
+  g_main, g_game, g_language, g_weapons, utils, ctypes, g_system,
   g_map;
 
 const
@@ -1899,7 +1899,7 @@ begin
   end;
 
   // предупредить что ждем слишком долго через N секунд
-  TimeoutTime := GetTimer() + NET_CONNECT_TIMEOUT;
+  TimeoutTime := sys_GetTicks() + NET_CONNECT_TIMEOUT;
 
   OuterLoop := True;
   while OuterLoop do
@@ -1920,7 +1920,7 @@ begin
       end;
     end;
 
-    T := GetTimer();
+    T := sys_GetTicks();
     if T > TimeoutTime then
     begin
       TimeoutTime := T + NET_CONNECT_TIMEOUT * 100; // одного предупреждения хватит

@@ -45,11 +45,11 @@ uses
   {$INCLUDE ../nogl/noGLuses.inc}
   g_gui, g_textures, e_graphics, g_main, g_window, g_game, g_map,
   g_basic, g_console, g_sound, g_gfx, g_player, g_options, g_weapons,
-  e_log, SysUtils, CONFIG, g_playermodel, DateUtils, sdl2,
+  e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
   MAPDEF, Math, g_saveload,
   e_texture, g_language,
   g_net, g_netmsg, g_netmaster, g_items, e_input, g_touch,
-  utils, wadreader;
+  utils, wadreader, g_system;
 
 
 type TYNCallback = procedure (yes:Boolean);
@@ -118,7 +118,8 @@ begin
 
   ovs := gVSync;
   gVSync := TGUISwitch(menu.GetControl('swVSync')).ItemIndex = 0;
-  if (ovs <> gVSync) then g_SetVSync(gVSync);
+  if (ovs <> gVSync) then
+    sys_EnableVSync(gVSync);
 
   gTextureFilter := TGUISwitch(menu.GetControl('swTextureFilter')).ItemIndex = 0;
   glLegacyNPOT := not (TGUISwitch(menu.GetControl('swLegacyNPOT')).ItemIndex = 0);
@@ -818,7 +819,7 @@ begin
   slWaitStr := _lc[I_NET_SLIST_WAIT];
 
   g_Game_Draw;
-  ReDrawWindow;
+  sys_Repaint;
 
   slReturnPressed := True;
   if g_Net_Slist_Fetch(slCurrent) then
@@ -1824,7 +1825,6 @@ procedure ProcVideoOptionsRes();
 var
   menu: TGUIMenu;
   list: SSArray;
-  SR: DWORD;
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoResMenu').GetControl('mOptionsVideoResMenu'));
 
@@ -1835,15 +1835,16 @@ begin
 
   with TGUIListBox(menu.GetControl('lsResolution')) do
   begin
-    list := GetDisplayModes(gBPP, SR);
-
+    list := sys_GetDispalyModes(gBPP);
     if list <> nil then
-      begin
-        Items := list;
-        ItemIndex := SR;
-      end
+    begin
+      Items := list;
+      ItemIndex := Length(list)
+    end
     else
-      Clear();
+    begin
+      Clear
+    end
   end;
 
   with TGUISwitch(menu.GetControl('swFullScreen')) do
