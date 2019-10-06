@@ -263,11 +263,8 @@ implementation
     begin
       KeyPress(key)
     end;
-    if down and (ev.keysym.unicode <= $44F) then
-    begin
-      if IsPrintable1251(ch) then
-        CharPress(ch)
-    end
+    if down and IsValid1251(ev.keysym.unicode) and IsPrintable1251(ch) then
+      CharPress(ch)
   end;
 
   function sys_HandleInput (): Boolean;

@@ -87,6 +87,7 @@ function int64ToStrComma (i: Int64): AnsiString;
 
 function upcase1251 (ch: AnsiChar): AnsiChar; inline;
 function locase1251 (ch: AnsiChar): AnsiChar; inline;
+function IsValid1251 (ch: Word): Boolean;
 function IsPrintable1251 (ch: AnsiChar): Boolean;
 
 function toLowerCase1251 (const s: AnsiString): AnsiString;
@@ -960,6 +961,11 @@ begin
     end;
   end;
   result := ch;
+end;
+
+function IsValid1251 (ch: Word): Boolean;
+begin
+  result := (ch = Ord('?')) or (wc2shitmap[ch] <> '?')
 end;
 
 function IsPrintable1251 (ch: AnsiChar): Boolean;
