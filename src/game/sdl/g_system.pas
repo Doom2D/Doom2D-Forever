@@ -18,9 +18,10 @@ unit g_system;
 interface
 
   (* To fix:
-   *   - Text input
    *   - Joystick support
    *   - Window resizing using SDL_VIDEORESIZE
+   *   -- Linux: GL drawing area have wrong size
+   *   -- OSX: GL context are recreated
    *)
 
   uses Utils;
@@ -48,7 +49,7 @@ implementation
   uses
     SysUtils, SDL, GL,
     e_log, e_graphics, e_input,
-    g_options, g_window, g_console, g_game, g_menu;
+    g_options, g_window, g_console, g_game, g_menu, g_gui, g_main;
 
   var
     screen: PSDL_Surface;
@@ -236,6 +237,8 @@ implementation
       SDLK_PAUSE: x := IK_PAUSE;
       SDLK_A..SDLK_Z: x := IK_A + (key - SDLK_A);
       SDLK_MINUS: x := IK_MINUS;
+      SDLK_RMETA: x := IK_RMETA;
+      SDLK_LMETA: x := IK_LMETA;
     else
       x := IK_INVALID
     end;
@@ -243,16 +246,28 @@ implementation
   end;
 
   procedure HandleKeyboard (var ev: TSDL_KeyboardEvent);
-    var down: Boolean; key, stb: Integer;
+    var down, repeated: Boolean; key: Integer; ch: Char;
   begin
+    key := Key2Stub(ev.keysym.sym);
     down := (ev.type_ = SDL_KEYDOWN);
-    key := ev.keysym.sym;
-    stb := Key2Stub(key);
+    repeated := down and e_KeyPressed(key);
+    ch := wchar2win(WideChar(ev.keysym.unicode));
     if g_dbg_input then
-      e_LogWritefln('Input Debug: keysym, press=%s, scancode=%s SDL.ev.key.state=%s', [down, key, ev.state]);
-    e_KeyUpDown(stb, down);
-    g_Console_ProcessBind(stb, down);
-    (* !!! need text input -- console, cheaats, fields *)
+      e_LogWritefln('Input Debug: keysym, down=%s, sym=%s, state=%s, unicode=%s, stubsym=%s, cp1251=%s', [down, ev.keysym.sym, ev.state, ev.keysym.unicode, key, Ord(ch)]);
+    if not repeated then
+    begin
+      e_KeyUpDown(key, down);
+      g_Console_ProcessBind(key, down);
+    end
+    else if gConsoleShow or gChatShow or (g_ActiveWindow <> nil) then
+    begin
+      KeyPress(key)
+    end;
+    if down and (ev.keysym.unicode <= $44F) then
+    begin
+      if IsPrintable1251(ch) then
+        CharPress(ch)
+    end
   end;
 
   function sys_HandleInput (): Boolean;
@@ -288,7 +303,9 @@ implementation
       raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
     ok := InitWindow(gScreenWidth, gScreenHeight, gBPP, gFullScreen);
     if not ok then
-      raise Exception.Create('SDL: failed to set videomode: ' + SDL_GetError)
+      raise Exception.Create('SDL: failed to set videomode: ' + SDL_GetError);
+    SDL_EnableUNICODE(1);
+    SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
   end;
 
   procedure sys_Final;

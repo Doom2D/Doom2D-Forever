@@ -138,6 +138,8 @@ interface
     IK_Y       = 106;
     IK_Z       = 107;
     IK_MINUS   = 108;
+    IK_RMETA   = 109;
+    IK_LMETA   = 110;
     // TODO: think of something better than this shit
     IK_LASTKEY = e_MaxKbdKeys-1;
 
@@ -350,6 +352,8 @@ begin
   e_KeyNames[IK_DOT] := '.';
   e_KeyNames[IK_MINUS] := '-';
   e_KeyNames[IK_EQUALS] := '=';
+  e_KeyNames[IK_RMETA] := 'RMETA';
+  e_KeyNames[IK_LMETA] := 'LMETA';
 
   // joysticks
   for j := 0 to e_MaxJoys-1 do

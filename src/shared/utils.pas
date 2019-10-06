@@ -87,6 +87,7 @@ function int64ToStrComma (i: Int64): AnsiString;
 
 function upcase1251 (ch: AnsiChar): AnsiChar; inline;
 function locase1251 (ch: AnsiChar): AnsiChar; inline;
+function IsPrintable1251 (ch: AnsiChar): Boolean;
 
 function toLowerCase1251 (const s: AnsiString): AnsiString;
 
@@ -959,6 +960,11 @@ begin
     end;
   end;
   result := ch;
+end;
+
+function IsPrintable1251 (ch: AnsiChar): Boolean;
+begin
+  result := (ch >= #32) and (ch <> #127)
 end;
 
 
