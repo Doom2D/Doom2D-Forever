@@ -84,13 +84,13 @@ implementation
   function e_LoadSound(FileName: String; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
   begin
     ID := NO_SOUND_ID;
-    result := false
+    result := true
   end;
 
   function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
   begin
     ID := NO_SOUND_ID;
-    result := false
+    result := true
   end;
 
   function e_PlaySound (ID: DWORD): Integer;
