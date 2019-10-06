@@ -15,12 +15,14 @@
 {$INCLUDE ../shared/a_modes.inc}
 unit e_sound;
 
-{$IFDEF USE_SDLMIXER}
+{$IF DEFINED(USE_SDLMIXER)}
   {$I e_sound_sdl.inc}
+{$ELSEIF DEFINED(USE_OPENAL)}
+  {$I e_sound_al.inc}
+{$ELSEIF DEFINED(USE_FMOD)}
+  {$I e_sound_fmod.inc}
+{$ELSEIF DEFINED(USE_SOUNDSTUB)}
+  {$I e_sound_stub.inc}
 {$ELSE}
-  {$IFDEF USE_OPENAL}
-    {$I e_sound_al.inc}
-  {$ELSE}
-    {$I e_sound_fmod.inc}
-  {$ENDIF}
+  {$ERROR e_sound driver not implemented?}
 {$ENDIF}
