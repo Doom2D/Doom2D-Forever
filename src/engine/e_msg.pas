@@ -177,31 +177,37 @@ end;
 
 procedure TMsg.Write(V: Word); overload;
 begin
+  V := NtoLE(V);
   WriteData(@V, 2);
 end;
 
 procedure TMsg.Write(V: LongWord); overload;
 begin
+  V := NtoLE(V);
   WriteData(@V, 4);
 end;
 
 procedure TMsg.Write(V: ShortInt); overload;
 begin
+  V := NtoLE(V);
   WriteData(@V, 1);
 end;
 
 procedure TMsg.Write(V: SmallInt); overload;
 begin
+  V := NtoLE(V);
   WriteData(@V, 2);
 end;
 
 procedure TMsg.Write(V: LongInt); overload;
 begin
+  V := NtoLE(V);
   WriteData(@V, 4);
 end;
 
 procedure TMsg.Write(V: Int64); overload;
 begin
+  V := NtoLE(V);
   WriteData(@V, 8);
 end;
 
@@ -279,36 +285,42 @@ function TMsg.ReadWord(): Word;
 begin
   Result := 0;
   ReadData(@Result, 2);
+  Result := LEtoN(Result);
 end;
 
 function TMsg.ReadLongWord(): LongWord;
 begin
   Result := 0;
   ReadData(@Result, 4);
+  Result := LEtoN(Result);
 end;
 
 function TMsg.ReadShortInt(): ShortInt;
 begin
   Result := 0;
   ReadData(@Result, 1);
+  Result := LEtoN(Result);
 end;
 
 function TMsg.ReadSmallInt(): SmallInt;
 begin
   Result := 0;
   ReadData(@Result, 2);
+  Result := LEtoN(Result);
 end;
 
 function TMsg.ReadLongInt(): LongInt;
 begin
   Result := 0;
   ReadData(@Result, 4);
+  Result := LEtoN(Result);
 end;
 
 function TMsg.ReadInt64(): Int64;
 begin
   Result := 0;
   ReadData(@Result, 8);
+  Result := LEtoN(Result);
 end;
 
 function TMsg.ReadString(): string;
