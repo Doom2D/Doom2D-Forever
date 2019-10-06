@@ -36,9 +36,16 @@
     // because just external is case insensitive, but fuck it
   {$ENDIF}
 {$ELSE}
-  {$DEFINE libraryLibENetDecl := cdecl}
-  {$DEFINE libraryLibENetImp := cdecl; external 'enet'}
-  {$DEFINE libraryLibENetVar := cvar; external 'enet'}
+  {$IFDEF DARWIN}
+    {$LINKLIB libenet.a}
+    {$DEFINE libraryLibENetDecl := cdecl}
+    {$DEFINE libraryLibENetImp := cdecl; external}
+    {$DEFINE libraryLibENetVar := cvar; external}
+  {$ELSE}
+    {$DEFINE libraryLibENetDecl := cdecl}
+    {$DEFINE libraryLibENetImp := cdecl; external 'enet'}
+    {$DEFINE libraryLibENetVar := cvar; external 'enet'}
+  {$ENDIF}
 {$ENDIF}
 
 

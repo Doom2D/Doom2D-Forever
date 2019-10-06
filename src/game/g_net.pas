@@ -72,7 +72,7 @@ const
   BANLIST_FILENAME = 'banlist.txt';
   NETDUMP_FILENAME = 'netdump';
 
-  {$IFDEF FREEBSD}
+  {$IF DEFINED(FREEBSD) OR DEFINED(DARWIN)}
     NilThreadId = nil;
   {$ELSE}
     NilThreadId = 0;
