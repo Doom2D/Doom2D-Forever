@@ -19,9 +19,6 @@ interface
 
   (* To fix:
    *   - Joystick support
-   *   - Window resizing using SDL_VIDEORESIZE
-   *   -- Linux: GL drawing area have wrong size
-   *   -- OSX: GL context are recreated
    *)
 
   uses Utils;
@@ -52,6 +49,8 @@ implementation
     g_options, g_window, g_console, g_game, g_menu, g_gui, g_main;
 
   var
+    userResize: Boolean;
+    modeResize: Integer;
     screen: PSDL_Surface;
 
   (* --------- Utils --------- *)
@@ -98,9 +97,9 @@ implementation
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8); // lights; it is enough to have 1-bit stencil buffer for lighting, but...
-    flags := SDL_OPENGL or SDL_VIDEORESIZE;
-    if fullScreen then
-      flags := flags or SDL_FULLSCREEN;
+    flags := SDL_OPENGL;
+    if fullScreen then flags := flags or SDL_FULLSCREEN;
+    if userResize then flags := flags or SDL_VIDEORESIZE;
     if (screen = nil) or (SDL_VideoModeOk(w, h, bpp, flags) <> 0) then
     begin
       SDL_FreeSurface(screen);
@@ -275,7 +274,15 @@ implementation
     begin
       case ev.type_ of
         SDL_QUITEV: result := true;
-        SDL_VIDEORESIZE: InitWindow(ev.resize.w, ev.resize.h, gBPP, gFullscreen);
+        SDL_VIDEORESIZE:
+          begin
+            if g_dbg_input then
+              e_LogWritefln('Input Debug: SDL_VIDEORESIZE %s %s', [ev.resize.w, ev.resize.h]);
+            if modeResize = 1 then
+              UpdateSize(ev.resize.w, ev.resize.h)
+            else if modeResize > 1 then
+              InitWindow(ev.resize.w, ev.resize.h, gBPP, gFullscreen)
+          end;
         SDL_KEYUP, SDL_KEYDOWN: HandleKeyboard(ev.key);
       end
     end
@@ -312,4 +319,10 @@ implementation
     SDL_Quit
   end;
 
+initialization
+  (* window resize are broken both on linux and osx, so disabled by default *)
+  conRegVar('sdl_allow_resize', @userResize, 'allow to resize window by user', 'allow to resize window by user');
+  conRegVar('sdl_resize_action', @modeResize, 'set window resize mode (0: ignore, 1: change, 2: reset)', '');
+  userResize := false;
+  modeResize := 0;
 end.
