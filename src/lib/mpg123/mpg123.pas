@@ -37,7 +37,8 @@ uses
   {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
   {$DEFINE MPG123_DYNAMIC}
-  const LIB_MPG123 = 'libmpg123.so';
+  {$LINKLIB libmpg123}
+  const LIB_MPG123 = 'libmpg123';
 {$ELSE}
   {$ERROR libmpg123 not supported on this platform. Fix it!}
 {$ENDIF}

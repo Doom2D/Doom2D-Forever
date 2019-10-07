@@ -25,7 +25,8 @@ interface
     {$DEFINE MINIUPNPC_IMPL := cdecl; external 'miniupnpc.dll'}
   {$ENDIF}
 {$ELSE}
-  {$DEFINE MINIUPNPC_IMPL := cdecl; external 'miniupnpc'}
+  {$LINKLIB libminiupnpc}
+  {$DEFINE MINIUPNPC_IMPL := cdecl; external 'libminiupnpc'}
 {$ENDIF}
 
 const MINIUPNPC_URL_MAXSIZE=128;

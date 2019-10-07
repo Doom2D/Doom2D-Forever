@@ -37,8 +37,10 @@ uses
   {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
   {$DEFINE OGG_DYNAMIC}
-  const vorbislib = 'libvorbis.so';
-  const vorbisfilelib = 'libvorbisfile.so';
+  {$LINKLIB libvorbis}
+  {$LINKLIB libvorbisfile}
+  const vorbislib = 'libvorbis';
+  const vorbisfilelib = 'libvorbisfile';
 {$ELSE}
   {$ERROR libvorbis not supported on this platform. Fix it!}
 {$ENDIF}

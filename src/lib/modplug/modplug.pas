@@ -29,9 +29,10 @@ uses
   {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
   {$DEFINE MP_DYNAMIC}
-  const modpluglib = 'libmodplug.so';
+  {$LINKLIB libmodplug}
+  const modpluglib = 'libmodplug';
 {$ELSE}
-  {$ERROR libmpg123 not supported on this platform. Fix it!}
+  {$ERROR libmodplug not supported on this platform. Fix it!}
 {$ENDIF}
 
 type

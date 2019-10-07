@@ -35,7 +35,8 @@ uses
   {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
   {$DEFINE OGG_DYNAMIC}
-  const ogglib = 'libogg.so';
+  {$LINKLIB libogg}
+  const ogglib = 'libogg';
 {$ELSE}
   {$ERROR libogg not supported on this platform. Fix it!}
 {$ENDIF}

@@ -20,6 +20,8 @@ uses
     const openallib = 'openal32.dll';
     {$DEFINE AL_DYNAMIC}
   {$ENDIF}
+{$ELSEIF DEFINED(DARWIN)}
+  {$LINKFRAMEWORK OpenAL}
 {$ELSEIF DEFINED(UNIX)}
   const openallib = 'libopenal.so';
   {$DEFINE AL_DYNAMIC}
