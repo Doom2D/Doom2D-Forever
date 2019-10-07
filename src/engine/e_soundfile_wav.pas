@@ -50,7 +50,7 @@ uses
   {$ELSE}
     SDL2,
   {$ENDIF}
-  utils, e_log;
+  utils, ctypes, e_log;
 
 (* TWAVLoaderFactory *)
 
@@ -79,83 +79,102 @@ begin
 end;
 
 (* TWAVLoader *)
-function TWAVLoader.Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean;
-var
-  Spec: TSDL_AudioSpec;
-  RW: PSDL_RWops;
-  TmpLen: UInt32;
-  TmpBuf: PUInt8;
+function FixSoundEndian (Buf: PUInt8; Len: UInt32; format: UInt16; rate: cint; chan: UInt8): Boolean;
+  const
+    {$IFDEF FPC_LITTLE_ENDIAN}
+      TARGET_AUDIO_S16 = AUDIO_S16LSB;
+      TARGET_AUDIO_U16 = AUDIO_U16LSB;
+    {$ELSE}
+      TARGET_AUDIO_S16 = AUDIO_S16MSB;
+      TARGET_AUDIO_U16 = AUDIO_U16MSB;
+    {$ENDIF}
+  var cvt: TSDL_AudioCVT; tformat: UInt16;
+begin
+  case format of
+    AUDIO_U16LSB, AUDIO_U16MSB: tformat := TARGET_AUDIO_U16;
+    AUDIO_S16LSB, AUDIO_S16MSB: tformat := TARGET_AUDIO_S16;
+  else tformat := format
+  end;
+  Result := True;
+  if format <> tformat then
+  begin
+    Result := False;
+    if SDL_BuildAudioCVT(@cvt, format, chan, rate, tformat, chan, rate) <> -1 then
+    begin
+      cvt.buf := Buf;
+      cvt.len := Len;
+      assert(cvt.len_mult = 1);
+      Result := SDL_ConvertAudio(@cvt) = 0;
+      assert(cvt.len_ratio = 1);
+      assert(cvt.len = Len)
+    end
+  end
+end;
+
+function LoadWavRW (Loader: TWAVLoader; RW: PSDL_RWops): Boolean;
+  var
+    Spec: TSDL_AudioSpec;
+    Len: UInt32;
+    Buf: PUInt8;
 begin
   Result := False;
-
-  RW := SDL_RWFromConstMem(Data, Len);
-
 {$IFDEF USE_SDL2}
-  if SDL_LoadWAV_RW(RW, 0, @Spec, @TmpBuf, @TmpLen) = nil then
+  if SDL_LoadWAV_RW(RW, 0, @Spec, @Buf, @Len) <> nil then
 {$ELSE}
-  if SDL_LoadWAV_RW(RW, 0, @Spec, PUInt8(@TmpBuf), @TmpLen) = nil then
+  if SDL_LoadWAV_RW(RW, 0, @Spec, PUInt8(@Buf), @Len) <> nil then
 {$ENDIF}
   begin
-    e_LogWriteln('Could not load WAV: ' + SDL_GetError());
+    Result := FixSoundEndian(Buf, Len, Spec.format, Spec.freq, Spec.channels);
+    if Result = True then
+    begin
+      with Loader do
+      begin
+        FFormat.SampleRate := Spec.freq;
+        {$IFDEF USE_SDL2}
+          FFormat.SampleBits := SDL_AUDIO_BITSIZE(Spec.format);
+        {$ELSE}
+          FFormat.SampleBits := Spec.format and $FF;
+        {$ENDIF}
+        FFormat.Channels := Spec.channels;
+        FStreaming := False; // never stream wavs
+        FDataLen := Len;
+        FData := Buf;
+      end
+    end
+    else
+    begin
+      SDL_FreeWav(Buf)
+    end
   end
-  else
-  begin
-    FFormat.SampleRate := Spec.freq;
-    {$IFDEF USE_SDL2}
-      FFormat.SampleBits := SDL_AUDIO_BITSIZE(Spec.format);
-    {$ELSE}
-      FFormat.SampleBits := Spec.format and $FF;
-    {$ENDIF}
-    FFormat.Channels := Spec.channels;
-    FStreaming := False; // never stream wavs
-    FDataLen := TmpLen;
-    FData := TmpBuf;
-    Result := True;
-  end;
+end;
 
+function TWAVLoader.Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean;
+  var
+    RW: PSDL_RWops;
+begin
+  RW := SDL_RWFromConstMem(Data, Len);
+  Result := LoadWavRW(Self, RW);
+  if Result = False then
+    e_LogWriteln('Could not load WAV: ' + SDL_GetError());
   SDL_RWclose(RW);
 end;
 
 function TWAVLoader.Load(FName: string; SStreaming: Boolean): Boolean;
-var
-  Spec: TSDL_AudioSpec;
-  RW: PSDL_RWops;
-  TmpLen: UInt32;
-  TmpBuf: PUInt8;
+  var
+    RW: PSDL_RWops;
 begin
-  Result := False;
-
   RW := SDL_RWFromFile(PChar(FName), 'rb');
-
-  if RW = nil then
+  if RW <> nil then
   begin
-    e_LogWritefln('Could not open WAV file `%s`: %s', [FName, SDL_GetError()]);
-    exit;
-  end;
-
-{$IFDEF USE_SDL2}
-  if SDL_LoadWAV_RW(RW, 0, @Spec, @TmpBuf, @TmpLen) = nil then
-{$ELSE}
-  if SDL_LoadWAV_RW(RW, 0, @Spec, PUInt8(@TmpBuf), @TmpLen) = nil then
-{$ENDIF}
-  begin
-    e_LogWritefln('Could not load WAV file `%s`: %s', [FName, SDL_GetError()]);
+    Result := LoadWavRW(Self, RW);
+    if Result = False then
+      e_LogWritefln('Could not load WAV file `%s`: %s', [FName, SDL_GetError()]);
   end
   else
   begin
-    FFormat.SampleRate := Spec.freq;
-    {$IFDEF USE_SDL2}
-      FFormat.SampleBits := SDL_AUDIO_BITSIZE(Spec.format);
-    {$ELSE}
-      FFormat.SampleBits := Spec.format and $FF;
-    {$ENDIF}
-    FFormat.Channels := Spec.channels;
-    FStreaming := False; // never stream wavs
-    FDataLen := TmpLen;
-    FData := TmpBuf;
-    Result := True;
+    e_LogWritefln('Could not open WAV file `%s`: %s', [FName, SDL_GetError()]);
+    Result := False
   end;
-
   SDL_RWclose(RW);
 end;
 
