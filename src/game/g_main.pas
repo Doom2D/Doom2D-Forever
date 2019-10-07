@@ -111,8 +111,12 @@ begin
     raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
 {$ENDIF}
 
+  e_WriteLog('Init Input', TMsgType.Notify);
+  e_InitInput;
+
   e_WriteLog('Read config file', TMsgType.Notify);
   g_Options_Read(GameDir + '/' + CONFIG_FILENAME);
+  g_Console_SysInit;
 
   //GetSystemDefaultLCID()
 
@@ -202,8 +206,6 @@ begin
   NoSound := False;
 {$ENDIF}
 
-  e_WriteLog('Init Input', TMsgType.Notify);
-  e_InitInput();
   g_Touch_Init;
 
 (*

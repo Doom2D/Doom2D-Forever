@@ -37,6 +37,7 @@ uses
     LAST_ACTION = ACTION_WEAPPREV;
 
 procedure g_Console_Init;
+procedure g_Console_SysInit;
 procedure g_Console_Update;
 procedure g_Console_Draw (MessagesOnly: Boolean = False);
 procedure g_Console_Char (C: AnsiChar);
@@ -831,11 +832,9 @@ begin
   end
 end;
 
-procedure g_Console_Init();
-  var
-    a: Integer;
+procedure g_Console_SysInit;
+  var a: Integer;
 begin
-  g_Texture_CreateWAD(ID, GameWAD+':TEXTURES\CONSOLE');
   Cons_Y := -Floor(gScreenHeight * ConsoleHeight);
   gConsoleShow := False;
   gChatShow := False;
@@ -1019,7 +1018,11 @@ begin
   g_Console_ReadConfig(GameDir + '/dfconfig.cfg');
   g_Console_ReadConfig(GameDir + '/autoexec.cfg');
   gParsingBinds := False;
+end;
 
+procedure g_Console_Init;
+begin
+  g_Texture_CreateWAD(ID, GameWAD+':TEXTURES\CONSOLE');
   g_Console_Add(Format(_lc[I_CONSOLE_WELCOME], [GAME_VERSION]));
   g_Console_Add('');
 end;
