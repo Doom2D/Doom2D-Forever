@@ -17,10 +17,6 @@ unit g_system;
 
 interface
 
-  (* To fix:
-   *   - Joystick support
-   *)
-
   uses Utils;
 
   (* --- Utils --- *)
@@ -44,7 +40,7 @@ interface
 implementation
 
   uses
-    SysUtils, SDL, GL,
+    SysUtils, SDL, GL, Math,
     e_log, e_graphics, e_input,
     g_options, g_window, g_console, g_game, g_menu, g_gui, g_main;
 
@@ -55,6 +51,9 @@ implementation
     userResize: Boolean;
     modeResize: Integer;
     screen: PSDL_Surface;
+    JoystickHandle: array [0..e_MaxJoys - 1] of PSDL_Joystick;
+    JoystickHatState: array [0..e_MaxJoys - 1, 0..e_MaxJoyHats - 1, HAT_LEFT..HAT_DOWN] of Boolean;
+    JoystickZeroAxes: array [0..e_MaxJoys - 1, 0..e_MaxJoyAxes - 1] of Integer;
 
   (* --------- Utils --------- *)
 
@@ -152,6 +151,143 @@ implementation
   function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen: Boolean): Boolean;
   begin
     result := InitWindow(w, h, bpp, fullscreen)
+  end;
+
+  (* --------- Joystick --------- *)
+
+  procedure HandleJoyButton (var ev: TSDL_JoyButtonEvent);
+    var down: Boolean; key: Integer;
+  begin
+    if (ev.which < e_MaxJoys) and (ev.button < e_MaxJoyBtns) then
+    begin
+      key := e_JoyButtonToKey(ev.which, ev.button);
+      down := ev.type_ = SDL_JOYBUTTONDOWN;
+      if g_dbg_input then
+        e_LogWritefln('Input Debug: jbutton, joy=%s, button=%s, keycode=%s, press=%s', [ev.which, ev.button, key, down]);
+      e_KeyUpDown(key, down);
+      g_Console_ProcessBind(key, down)
+    end
+    else
+    begin
+      if g_dbg_input then
+      begin
+        down := ev.type_ = SDL_JOYBUTTONDOWN;
+        e_LogWritefln('Input Debug: NOT IN RANGE! jbutton, joy=%s, button=%s, press=%s', [ev.which, ev.button, down])
+      end
+    end
+  end;
+
+  procedure HandleJoyAxis (var ev: TSDL_JoyAxisEvent);
+    var key, minuskey: Integer;
+  begin
+    if (ev.which < e_MaxJoys) and (ev.axis < e_MaxJoyAxes) then
+    begin
+      key := e_JoyAxisToKey(ev.which, ev.axis, AX_PLUS);
+      minuskey := e_JoyAxisToKey(ev.which, ev.axis, AX_MINUS);
+
+      if g_dbg_input then
+          e_LogWritefln('Input Debug: jaxis, joy=%s, axis=%s, value=%s, zeroaxes=%s, deadzone=%s', [ev.which, ev.axis, ev.value, JoystickZeroAxes[ev.which, ev.axis], e_JoystickDeadzones[ev.which]]);
+
+      if ev.value < JoystickZeroAxes[ev.which, ev.axis] - e_JoystickDeadzones[ev.which] then
+      begin
+        if (e_KeyPressed(key)) then
+        begin
+          e_KeyUpDown(key, False);
+          g_Console_ProcessBind(key, False)
+        end;
+        e_KeyUpDown(minuskey, True);
+        g_Console_ProcessBind(minuskey, True)
+      end
+      else if ev.value > JoystickZeroAxes[ev.which, ev.axis] + e_JoystickDeadzones[ev.which] then
+      begin
+        if (e_KeyPressed(minuskey)) then
+        begin
+          e_KeyUpDown(minuskey, False);
+          g_Console_ProcessBind(minuskey, False)
+        end;
+        e_KeyUpDown(key, True);
+        g_Console_ProcessBind(key, True)
+      end
+      else
+      begin
+        if (e_KeyPressed(minuskey)) then
+        begin
+          e_KeyUpDown(minuskey, False);
+          g_Console_ProcessBind(minuskey, False)
+        end;
+        if (e_KeyPressed(key)) then
+        begin
+          e_KeyUpDown(key, False);
+          g_Console_ProcessBind(key, False)
+        end
+      end
+    end
+    else
+    begin
+      if g_dbg_input then
+        e_LogWritefln('Input Debug: NOT IN RANGE! jaxis, joy=%s, axis=%s, value=%s, zeroaxes=%s, deadzone=%s', [ev.which, ev.axis, ev.value, JoystickZeroAxes[ev.which, ev.axis], e_JoystickDeadzones[ev.which]])
+    end
+  end;
+
+  procedure HandleJoyHat (var ev: TSDL_JoyHatEvent);
+    var
+      down: Boolean;
+      i, key: Integer;
+      hat: array [HAT_LEFT..HAT_DOWN] of Boolean;
+  begin
+    if (ev.which < e_MaxJoys) and (ev.hat < e_MaxJoyHats) then
+    begin
+      if g_dbg_input then
+        e_LogWritefln('Input Debug: jhat, joy=%s, hat=%s, value=%s', [ev.which, ev.hat, ev.value]);
+      hat[HAT_UP] := LongBool(ev.value and SDL_HAT_UP);
+      hat[HAT_DOWN] := LongBool(ev.value and SDL_HAT_DOWN);
+      hat[HAT_LEFT] := LongBool(ev.value and SDL_HAT_LEFT);
+      hat[HAT_RIGHT] := LongBool(ev.value and SDL_HAT_RIGHT);
+      for i := HAT_LEFT to HAT_DOWN do
+      begin
+        if JoystickHatState[ev.which, ev.hat, i] <> hat[i] then
+        begin
+          down := hat[i];
+          key := e_JoyHatToKey(ev.which, ev.hat, i);
+          e_KeyUpDown(key, down);
+          g_Console_ProcessBind(key, down)
+        end
+      end;
+      JoystickHatState[ev.which, ev.hat] := hat
+    end
+    else
+    begin
+      if g_dbg_input then
+        e_LogWritefln('Input Debug: NOT IN RANGE! jhat, joy=%s, hat=%s, value=%s', [ev.which, ev.hat, ev.value])
+    end
+  end;
+
+  procedure AddJoystick (which: Integer);
+    var i: Integer;
+  begin
+    assert(which < e_MaxJoys);
+    JoystickHandle[which] := SDL_JoystickOpen(which);
+    if JoystickHandle[which] <> nil then
+    begin
+      e_LogWritefln('Added Joystick %s', [which]);
+      e_JoystickAvailable[which] := True;
+      for i := 0 to Min(SDL_JoystickNumAxes(JoystickHandle[which]), e_MaxJoyAxes) - 1 do
+        JoystickZeroAxes[which, i] := SDL_JoystickGetAxis(JoystickHandle[which], i)
+    end
+    else
+    begin
+      e_LogWritefln('Failed to open Joystick %s', [which])
+    end
+  end;
+
+  procedure RemoveJoystick (which: Integer);
+  begin
+    assert(which < e_MaxJoys);
+    e_LogWritefln('Remove Joystick %s', [which]);
+    e_JoystickAvailable[which] := False;
+    if JoystickHandle[which] <> nil then
+      SDL_JoystickClose(JoystickHandle[which]);
+    JoystickHandle[which] := nil
   end;
 
   (* --------- Input --------- *)
@@ -269,6 +405,16 @@ implementation
       CharPress(ch)
   end;
 
+  procedure HandleResize (var ev: TSDL_ResizeEvent);
+  begin
+    if g_dbg_input then
+      e_LogWritefln('Input Debug: SDL_VIDEORESIZE %s %s', [ev.w, ev.h]);
+    if modeResize = 1 then
+      UpdateSize(ev.w, ev.h)
+    else if modeResize > 1 then
+      InitWindow(ev.w, ev.h, gBPP, gFullscreen)
+  end;
+
   function sys_HandleInput (): Boolean;
     var ev: TSDL_Event;
   begin
@@ -277,16 +423,11 @@ implementation
     begin
       case ev.type_ of
         SDL_QUITEV: result := true;
-        SDL_VIDEORESIZE:
-          begin
-            if g_dbg_input then
-              e_LogWritefln('Input Debug: SDL_VIDEORESIZE %s %s', [ev.resize.w, ev.resize.h]);
-            if modeResize = 1 then
-              UpdateSize(ev.resize.w, ev.resize.h)
-            else if modeResize > 1 then
-              InitWindow(ev.resize.w, ev.resize.h, gBPP, gFullscreen)
-          end;
+        SDL_VIDEORESIZE: HandleResize(ev.resize);
         SDL_KEYUP, SDL_KEYDOWN: HandleKeyboard(ev.key);
+        SDL_JOYBUTTONDOWN, SDL_JOYBUTTONUP: HandleJoyButton(ev.jbutton);
+        SDL_JOYAXISMOTION: HandleJoyAxis(ev.jaxis);
+        SDL_JOYHATMOTION: HandleJoyHat(ev.jhat);
         SDL_VIDEOEXPOSE: sys_Repaint;
       end
     end
@@ -302,7 +443,7 @@ implementation
   (* --------- Init --------- *)
 
   procedure sys_Init;
-    var flags: Uint32; ok: Boolean;
+    var flags: Uint32; ok: Boolean; i: Integer;
   begin
     e_WriteLog('Init SDL', TMsgType.Notify);
     flags := SDL_INIT_VIDEO or SDL_INIT_AUDIO or
@@ -315,11 +456,16 @@ implementation
       raise Exception.Create('SDL: Failed to set videomode: ' + SDL_GetError);
     SDL_EnableUNICODE(1);
     SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
+    for i := 0 to e_MaxJoys - 1 do
+      AddJoystick(i)
   end;
 
   procedure sys_Final;
+    var i: Integer;
   begin
     e_WriteLog('Releasing SDL', TMsgType.Notify);
+    for i := 0 to e_MaxJoys - 1 do
+      RemoveJoystick(i);
     SDL_FreeSurface(screen);
     SDL_Quit
   end;

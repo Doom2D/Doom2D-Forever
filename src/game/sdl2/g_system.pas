@@ -297,7 +297,7 @@ implementation
     begin
       if g_dbg_input then
         e_LogWritefln('Input Debug: NOT IN RANGE! jhat, joy=%s, hat=%s, value=%s', [ev.which, ev.hat, ev.value])
-    end;
+    end
   end;
 
   procedure HandleJoyAdd (var ev: TSDL_JoyDeviceEvent);
