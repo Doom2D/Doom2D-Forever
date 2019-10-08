@@ -178,6 +178,11 @@ begin
   Result := False;
   SoundInitialized := False;
 
+  {$IFDEF HEADLESS}
+    // HACK: shit this into env and hope for the best
+    SetEnvVar('SDL_AUDIODRIVER', 'dummy');
+  {$ELSEIF}
+
   if NoOutput then begin Result := true; Exit end;
 
   // wow, this is actually MIDI player!

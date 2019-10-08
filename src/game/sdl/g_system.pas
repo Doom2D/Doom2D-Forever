@@ -48,6 +48,9 @@ implementation
     e_log, e_graphics, e_input,
     g_options, g_window, g_console, g_game, g_menu, g_gui, g_main;
 
+  const
+    GameTitle = 'Doom 2D: Forever (SDL 1.2)';
+
   var
     userResize: Boolean;
     modeResize: Integer;
@@ -57,7 +60,7 @@ implementation
 
   function sys_GetTicks (): Int64;
   begin
-    Result := SDL_GetTicks()
+    result := SDL_GetTicks()
   end;
 
   procedure sys_Delay (ms: Integer);
@@ -89,8 +92,8 @@ implementation
   function InitWindow (w, h, bpp: Integer; fullScreen: Boolean): Boolean;
     var flags: Uint32;
   begin
-    e_LogWritefln('InitWindow %s %s %s %s', [w, h, bpp, fullscreen]);
-    Result := False;
+    e_LogWritefln('InitWindow %s %s %s %s', [w, h, bpp, fullScreen]);
+    result := False;
     SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
@@ -106,9 +109,9 @@ implementation
       screen := SDL_SetVideoMode(w, h, bpp, flags);
       if screen <> nil then
       begin
-        SDL_WM_SetCaption('Doom 2D: Forever (SDL 1.2)', nil);
+        SDL_WM_SetCaption(GameTitle, nil);
         UpdateSize(w, h);
-        Result := True
+        result := True
       end
     end
     else
@@ -260,7 +263,7 @@ implementation
     end
     else if gConsoleShow or gChatShow or (g_ActiveWindow <> nil) then
     begin
-      KeyPress(key)
+      KeyPress(key) // key repeat in menus and shit
     end;
     if down and IsValid1251(ev.keysym.unicode) and IsPrintable1251(ch) then
       CharPress(ch)
@@ -284,6 +287,7 @@ implementation
               InitWindow(ev.resize.w, ev.resize.h, gBPP, gFullscreen)
           end;
         SDL_KEYUP, SDL_KEYDOWN: HandleKeyboard(ev.key);
+        SDL_VIDEOEXPOSE: sys_Repaint;
       end
     end
   end;
@@ -300,14 +304,15 @@ implementation
   procedure sys_Init;
     var flags: Uint32; ok: Boolean;
   begin
+    e_WriteLog('Init SDL', TMsgType.Notify);
     flags := SDL_INIT_VIDEO or SDL_INIT_AUDIO or
              SDL_INIT_TIMER or SDL_INIT_JOYSTICK
              (*or SDL_INIT_NOPARACHUTE*);
     if SDL_Init(flags) <> 0 then
-      raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
+      raise Exception.Create('SDL: Init failed: ' + SDL_GetError);
     ok := InitWindow(gScreenWidth, gScreenHeight, gBPP, gFullScreen);
     if not ok then
-      raise Exception.Create('SDL: failed to set videomode: ' + SDL_GetError);
+      raise Exception.Create('SDL: Failed to set videomode: ' + SDL_GetError);
     SDL_EnableUNICODE(1);
     SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
   end;

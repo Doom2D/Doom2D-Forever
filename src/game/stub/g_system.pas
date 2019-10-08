@@ -62,12 +62,12 @@ implementation
 
   function sys_GetDispalyModes (bpp: Integer): SSArray;
   begin
-    SetLength(result, 0);
+    result := nil
   end;
 
   function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen: Boolean): Boolean;
   begin
-    result := True
+    result := true
   end;
 
   (* --------- Input --------- *)
