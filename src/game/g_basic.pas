@@ -628,122 +628,39 @@ begin
     end;
 end;
 
-{function GetLines(Text: string; MaxChars: Word): SSArray;
-var
-  a: Integer;
-  b: array of string;
-  str: string;
+function GetLines (Text: string; FontID: DWORD; MaxWidth: Word): SSArray;
+  var i, j, len, lines: Integer; w, cw, ch: Word; skip: Boolean;
 begin
- Text := Trim(Text);
-
- while Pos('  ', Text) <> 0 do Text := AnsiReplaceStr(Text, '  ', ' ');
-
- while Text <> '' do
- begin
-  SetLength(b, Length(b)+1);
-  b[High(b)] := GetStr(Text);
- end;
-
- a := 0;
- while True do
- begin
-  if a > High(b) then Break;
-
-  str := b[a];
-  a := a+1;
-
-  if Length(str) >= MaxChars then
+  result := nil; lines := 0; w := 0;
+  j := 1; i := 1; len := Length(Text);
+  while i <= len do
   begin
-   while str <> '' do
-   begin
-    SetLength(Result, Length(Result)+1);
-    Result[High(Result)] := Copy(str, 1, MaxChars);
-    Delete(str, 1, MaxChars);
-   end;
-
-   Continue;
-  end;
-
-  while (a <= High(b)) and (Length(str+' '+b[a]) <= MaxChars) do
-  begin
-   str := str+' '+b[a];
-   a := a+1;
-  end;
-
-  SetLength(Result, Length(Result)+1);
-  Result[High(Result)] := str;
- end;
-end;}
-
-function GetLines(Text: string; FontID: DWORD; MaxWidth: Word): SSArray;
-
-function TextLen(Text: string): Word;
-var
-  h: Word;
-begin
-  e_CharFont_GetSize(FontID, Text, Result, h);
-end;
-
-var
-  a, c: Integer;
-  b: array of string;
-  str: string;
-begin
-{
-  SetLength(Result, 0);
-  SetLength(b, 0);
-
-  Text := Trim(Text);
-
-// ”дал€ем множественные пробелы:
-  while Pos('  ', Text) <> 0 do
-    Text := AnsiReplaceStr(Text, '  ', ' ');
-
-  while Text <> '' do
-  begin
-    SetLength(b, Length(b)+1);
-    b[High(b)] := GetStr(Text);
-  end;
-
-  a := 0;
-  while True do
-  begin
-    if a > High(b) then
-      Break;
-
-    str := b[a];
-    a := a+1;
-
-    if TextLen(str) > MaxWidth then
-    begin // “екуща€ строка слишком длинна€ => разбиваем
-      while (str[0] <> #0) and (str <> '') do
-      begin
-        SetLength(Result, Length(Result)+1);
-
-        c := 0;
-        while (c < Length(str)) and
-              (TextLen(Copy(str, 1, c+1)) < MaxWidth) do
-          c := c+1;
-
-        Result[High(Result)] := Copy(str, 1, c);
-        Delete(str, 1, c);
-      end;
-    end
-    else // —трока нормальной длины => соедин€ем со следующими
+    e_CharFont_GetSize(FontID, '' + Text[i], cw, ch);
+    if (i >= len) or (w + cw >= MaxWidth) then
     begin
-      while (a <= High(b)) and
-            (TextLen(str+' '+b[a]) < MaxWidth) do
+      skip := (i < len) and (Text[i] <> ' ');
+      if skip then
       begin
-        str := str+' '+b[a];
-        a := a + 1;
+        // alt: while (i >= j) and (Text[i] <> ' ') do Dec(i);
+        while (i <= len) and (Text[i] <> ' ') do Inc(i);
       end;
-
-      SetLength(Result, Length(Result)+1);
-      Result[High(Result)] := str;
+      while (i >= j) and (Text[i] = ' ') do Dec(i);
+      (* --- *)
+      SetLength(result, lines + 1);
+      result[lines] := Copy(Text, j, i - j + 1);
+      Inc(lines);
+      (* --- *)
+      if skip then
+      begin
+        while (i <= len) and (Text[i] = ' ') do Inc(i);
+        Inc(i);
+      end;
+      j := i + 1;
+      w := 0
     end;
+    Inc(w, cw);
+    Inc(i)
   end;
-}
-  Result := nil
 end;
 
 procedure Sort(var a: SSArray);
