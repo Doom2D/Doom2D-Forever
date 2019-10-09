@@ -40,10 +40,12 @@ interface
 implementation
 
   uses
-    SysUtils, SDL2, GL, Math,
-    e_log, e_graphics, e_input,
-    g_touch,
-    g_options, g_window, g_console, g_game, g_menu, g_gui, g_main;
+    SysUtils, SDL2, Math,
+    e_log, e_graphics, e_input, e_sound,
+    {$IFDEF ENABLE_HOLMES}
+      g_holmes, sdlcarcass, fui_ctls,
+    {$ENDIF}
+    g_touch, g_options, g_window, g_console, g_game, g_menu, g_gui, g_main;
 
   const
     GameTitle = 'Doom 2D: Forever (SDL 2)';
@@ -87,11 +89,15 @@ implementation
     g_Game_SetupScreenSize;
     g_Menu_Reset;
     g_Game_ClearLoading;
+    {$IFDEF ENABLE_HOLMES}
+      if assigned(oglInitCB) then oglInitCB;
+    {$ENDIF}
   end;
 
   function InitWindow (w, h, bpp: Integer; fullScreen: Boolean): Boolean;
     var flags: UInt32;
   begin
+    // note: on window close make: if assigned(oglDeinitCB) then oglDeinitCB;
     e_LogWritefln('InitWindow %s %s %s %s', [w, h, bpp, fullScreen]);
     result := false;
     if window = nil then
@@ -345,6 +351,22 @@ implementation
       SDL_WINDOWEVENT_RESIZED: UpdateSize(ev.data1, ev.data2);
       SDL_WINDOWEVENT_EXPOSED: sys_Repaint;
       SDL_WINDOWEVENT_CLOSE: result := true;
+      SDL_WINDOWEVENT_FOCUS_LOST, SDL_WINDOWEVENT_MINIMIZED:
+        begin
+          e_UnpressAllKeys;
+          if gMuteWhenInactive then
+            e_MuteChannels(true);
+          {$IFDEF ENABLE_HOLMES}
+            if assigned(winBlurCB) then winBlurCB;
+          {$ENDIF}
+        end;
+      SDL_WINDOWEVENT_FOCUS_GAINED, SDL_WINDOWEVENT_MAXIMIZED, SDL_WINDOWEVENT_RESTORED:
+        begin
+          e_MuteChannels(false);
+          {$IFDEF ENABLE_HOLMES}
+            if assigned(winFocusCB) then winFocusCB;
+          {$ENDIF}
+        end;
     end
   end;
 
@@ -355,6 +377,14 @@ implementation
     down := (ev.type_ = SDL_KEYDOWN);
     if key = SDL_SCANCODE_AC_BACK then
       key := SDL_SCANCODE_ESCAPE;
+    {$IFDEF ENABLE_HOLMES}
+      if fuiOnSDLEvent(PSDL_Event(@ev)^) then
+      begin
+        // event eaten, but...
+        if not down then e_KeyUpDown(key, false);
+        exit;
+      end;
+    {$ENDIF}
     if ev._repeat = 0 then
     begin
       if g_dbg_input then
@@ -398,6 +428,9 @@ implementation
         SDL_JOYDEVICEREMOVED: HandleJoyRemove(ev.jdevice);
         SDL_TEXTINPUT: HandleTextInput(ev.text);
         SDL_FINGERMOTION, SDL_FINGERDOWN, SDL_FINGERUP: g_Touch_HandleEvent(ev.tfinger);
+        {$IFDEF ENABLE_HOLMES}
+          SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEWHEEL, SDL_MOUSEMOTION: fuiOnSDLEvent(ev);
+        {$ENDIF}
       end
     end
   end;
@@ -430,6 +463,7 @@ implementation
     ok := InitWindow(gScreenWidth, gScreenHeight, gBPP, gFullscreen);
     if not ok then
       raise Exception.Create('SDL: Failed to set videomode: ' + SDL_GetError);
+    SDL_ShowCursor(SDL_DISABLE);
   end;
 
   procedure sys_Final;

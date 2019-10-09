@@ -57,6 +57,18 @@
   {$ERROR Sound driver not selected. Use -dUSE_SOUNDSTUB or -dUSE_SDLMIXER or -dUSE_FMOD or -dUSE_OPENAL}
 {$ENDIF}
 
+{$IFDEF ENABLE_HOLMES}
+  {$IFDEF HEADLESS}
+    {$ERROR Holmes in HEADLESS mode has no sense}
+  {$ENDIF}
+  {$IFNDEF USE_SDL2}
+    {$ERROR Holmes supported only with SDL2}
+  {$ENDIF}
+  {$IFDEF USE_GLES1}
+    {$ERROR Holmes not supported with GLES}
+  {$ENDIF}
+{$ENDIF}
+
 uses
 {$IFDEF ANDROID}
   ctypes,

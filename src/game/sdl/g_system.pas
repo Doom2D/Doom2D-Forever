@@ -40,8 +40,8 @@ interface
 implementation
 
   uses
-    SysUtils, SDL, GL, Math,
-    e_log, e_graphics, e_input,
+    SysUtils, SDL, Math,
+    e_log, e_graphics, e_input, e_sound,
     g_options, g_window, g_console, g_game, g_menu, g_gui, g_main;
 
   const
@@ -429,6 +429,7 @@ implementation
         SDL_JOYAXISMOTION: HandleJoyAxis(ev.jaxis);
         SDL_JOYHATMOTION: HandleJoyHat(ev.jhat);
         SDL_VIDEOEXPOSE: sys_Repaint;
+        SDL_ACTIVEEVENT: e_MuteChannels((ev.active.gain = 0) and gMuteWhenInactive);
       end
     end
   end;

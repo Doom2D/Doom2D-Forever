@@ -38,7 +38,7 @@ implementation
 uses
 {$INCLUDE ../nogl/noGLuses.inc}
 {$IFDEF ENABLE_HOLMES}
-  g_holmes, fui_wadread, fui_style, fui_gfx_gl,
+  g_holmes, sdlcarcass, fui_ctls, fui_wadread, fui_style, fui_gfx_gl,
 {$ENDIF}
   wadreader, e_log, g_window,
   e_graphics, e_input, g_game, g_console, g_gui,
@@ -143,15 +143,27 @@ begin
     end;
   end;
   g_holmes_imfunctional := not flexloaded;
+
+  if (not g_holmes_imfunctional) then
+  begin
+    uiInitialize();
+    uiContext.font := 'win14';
+  end;
+
+  if assigned(oglInitCB) then oglInitCB;
 {$ENDIF}
 
   //g_Res_CreateDatabases(); // it will be done before connecting to the server for the first time
 
   e_WriteLog('Entering SDLMain', TMsgType.Notify);
 
-{$WARNINGS OFF}
-  SDLMain();
-{$WARNINGS ON}
+  {$WARNINGS OFF}
+    SDLMain();
+  {$WARNINGS ON}
+
+  {$IFDEF ENABLE_HOLMES}
+    if assigned(oglDeinitCB) then oglDeinitCB;
+  {$ENDIF}
 
   sys_Final;
 end;

@@ -258,14 +258,6 @@ var
 begin
 {$IFDEF HEADLESS}
   e_NoGraphics := true;
-{$ELSE}
-  {$IFDEF ENABLE_HOLMES}
-    if (not g_holmes_imfunctional) then
-    begin
-      uiInitialize();
-      uiContext.font := 'win14';
-    end;
-  {$ENDIF}
 {$ENDIF}
 
   idx := 1;
