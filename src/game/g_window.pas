@@ -38,6 +38,7 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes, sdlcarcass, fui_ctls,
 {$ENDIF}
+{$INCLUDE ../nogl/noGLuses.inc}
   SysUtils, Classes, MAPDEF, Math,
   e_graphics, e_log, e_texture, g_main,
   g_console, e_input, g_options, g_game,
@@ -200,6 +201,48 @@ begin
   e_SoundUpdate();
 end;
 
+function GLExtensionList (): SSArray;
+  var s: PChar; i, j, num: GLint;
+begin
+  result := nil;
+  s := glGetString(GL_EXTENSIONS);
+  if s <> nil then
+  begin
+    num := 0; i := 0; j := 0;
+    while s[i] <> #0 do
+    begin
+      while (s[i] <> #0) and (s[i] <> ' ') do Inc(i);
+      SetLength(result, num + 1);
+      result[num] := Copy(s, j, i - j);
+      while (s[i] <> #0) and (s[i] = ' ') do Inc(i);
+      j := i;
+      Inc(num)
+    end
+  end
+end;
+
+function GLExtensionSupported (ext: AnsiString): Boolean;
+  var i, len: GLint; exts: SSArray;
+begin
+  result := false;
+  exts := GLExtensionList();
+  if exts <> nil then
+  begin
+    i := 0; len := Length(exts);
+    while (i < len) and (exts[i] <> ext) do Inc(i);
+    result := i < len
+  end
+end;
+
+procedure PrintGLSupportedExtensions;
+begin
+  e_LogWritefln('GL Vendor: %s', [glGetString(GL_VENDOR)]);
+  e_LogWritefln('GL Renderer: %s', [glGetString(GL_RENDERER)]);
+  e_LogWritefln('GL Version: %s', [glGetString(GL_VERSION)]);
+  e_LogWritefln('GL Shaders: %s', [glGetString(GL_SHADING_LANGUAGE_VERSION)]);
+  e_LogWritefln('GL Extensions: %s', [glGetString(GL_EXTENSIONS)]);
+end;
+
 function SDLMain (): Integer;
 var
   idx: Integer;
@@ -307,6 +350,11 @@ begin
       Halt(0);
     end;
   end;
+
+  PrintGLSupportedExtensions;
+  glLegacyNPOT := GLExtensionSupported('GL_ARB_texture_non_power_of_two') or GLExtensionSupported('GL_OES_texture_npot');
+  e_logWritefln('NPOT textures: %s', [glLegacyNPOT]);
+  gwin_dump_extensions := false;
 
   Init;
   Time_Old := sys_GetTicks();
