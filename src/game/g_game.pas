@@ -2130,7 +2130,7 @@ begin
         begin
           if (NetMHost = nil) or (NetMPeer = nil) then
           begin
-            if not g_Net_Slist_Connect then g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR]);
+            g_Net_Slist_Connect(false); // non-blocking connection to the master
           end;
 
           g_Net_Slist_Update;
@@ -4888,9 +4888,10 @@ begin
     if NetUseMaster then
     begin
       if (NetMHost = nil) or (NetMPeer = nil) then
-        if not g_Net_Slist_Connect then
-          g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR]);
-
+      begin
+        // let the connection be blocking here, why not?
+        g_Net_Slist_Connect();
+      end;
       g_Net_Slist_Update;
     end;
 
@@ -5501,9 +5502,7 @@ begin
       if g_Game_IsServer and g_Game_IsNet then
         if NetUseMaster then
         begin
-          if NetMPeer = nil then
-            if not g_Net_Slist_Connect() then
-              g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR]);
+          if NetMPeer = nil then g_Net_Slist_Connect();
           g_Net_Slist_Update();
         end
         else
