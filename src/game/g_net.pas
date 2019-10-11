@@ -181,6 +181,9 @@ var
 
   NetDumpFile: TStream;
 
+  g_Res_received_map_start: Boolean = false; // set if we received "map change" event
+
+
 function  g_Net_Init(): Boolean;
 procedure g_Net_Cleanup();
 procedure g_Net_Free();
@@ -1210,6 +1213,7 @@ begin
     case NetEvent.kind of
       ENET_EVENT_TYPE_RECEIVE:
       begin
+        if (NetEvent.channelID = NET_CHAN_DOWNLOAD_EX) then continue; // ignore all download packets, they're processed by separate code
         if NetDump then g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
         g_Net_Client_HandlePacket(NetEvent.packet, g_Net_ClientMsgHandler);
       end;
@@ -1232,6 +1236,7 @@ begin
     case NetEvent.kind of
       ENET_EVENT_TYPE_RECEIVE:
       begin
+        if (NetEvent.channelID = NET_CHAN_DOWNLOAD_EX) then continue; // ignore all download packets, they're processed by separate code
         if NetDump then g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
         g_Net_Client_HandlePacket(NetEvent.packet, g_Net_ClientLightMsgHandler);
       end;
@@ -1611,6 +1616,9 @@ begin
               if (ev.channelID <> NET_CHAN_DOWNLOAD_EX) then
               begin
                 //e_LogWritefln('g_Net_Wait_MapInfo: skip message from non-transfer channel', []);
+                freePacket := false;
+                g_Net_Client_HandlePacket(ev.packet, g_Net_ClientLightMsgHandler);
+                if (g_Res_received_map_start) then begin result := -666; exit; end;
               end
               else
               begin
@@ -1789,6 +1797,9 @@ begin
               if (ev.channelID <> NET_CHAN_DOWNLOAD_EX) then
               begin
                 //e_LogWriteln('g_Net_Wait_Event: skip message from non-transfer channel');
+                freePacket := false;
+                g_Net_Client_HandlePacket(ev.packet, g_Net_ClientLightMsgHandler);
+                if (g_Res_received_map_start) then begin result := -666; exit; end;
               end
               else
               begin
@@ -1967,6 +1978,9 @@ begin
               if (ev.channelID <> NET_CHAN_DOWNLOAD_EX) then
               begin
                 //e_LogWritefln('g_Net_Wait_Event: skip message from non-transfer channel', []);
+                freePacket := false;
+                g_Net_Client_HandlePacket(ev.packet, g_Net_ClientLightMsgHandler);
+                if (g_Res_received_map_start) then begin result := -666; exit; end;
               end
               else
               begin

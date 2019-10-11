@@ -286,6 +286,7 @@ begin
   //result := g_Res_SearchResWad(true{asMap}, mapHash);
   result := '';
   g_Res_ClearReplacementWads();
+  g_Res_received_map_start := false;
 
   try
     CreateDir(GameDir+'/maps/downloads');

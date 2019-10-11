@@ -1709,6 +1709,7 @@ begin
   case EvType of
     NET_EV_MAPSTART:
     begin
+      g_Res_received_map_start := true;
       gGameOn := False;
       g_Game_ClearLoading();
       g_Game_StopAllSounds(True);
@@ -1731,6 +1732,7 @@ begin
 
     NET_EV_MAPEND:
     begin
+      g_Res_received_map_start := true;
       gMissionFailed := EvNum <> 0;
       gExit := EXIT_ENDLEVELCUSTOM;
     end;
