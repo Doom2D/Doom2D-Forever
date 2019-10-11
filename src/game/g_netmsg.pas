@@ -71,6 +71,30 @@ const
   NET_MSG_RES_REQUEST = 203;
   NET_MSG_RES_RESPONSE = 204;
 
+  // chunked file transfers
+  // it goes this way:
+  //   client requests file (FILE_REQUEST)
+  //   server sends file header info (FILE_HEADER)
+  //   client acks chunk -1 (CHUNK_ACK) to initiate transfer, or cancels (FILE_CANCEL)
+  //   server start sending data chunks (one at a time, waiting for an ACK for each one)
+  //   when client acks the last chunk, transfer is complete
+  // this scheme sux, of course; we can do better by spamming with unreliable unsequenced packets,
+  // and use client acks to drive server sends, but meh... let's do it this way first, and
+  // we can improve it later.
+
+  // client: request a file
+  NET_MSG_FILE_REQUEST = 210;
+  // server: file info response
+  NET_MSG_FILE_HEADER = 211;
+  // client: request transfer cancellation
+  // server: something went wrong, transfer cancelled, bomb out
+  NET_MSG_FILE_CANCEL = 212;
+  // server: file chunk data
+  NET_MSG_FILE_CHUNK_DATA = 213;
+  // client: file chunk ack
+  NET_MSG_FILE_CHUNK_ACK = 214;
+
+
   NET_CHAT_SYSTEM = 0;
   NET_CHAT_PLAYER = 1;
   NET_CHAT_TEAM   = 2;
@@ -244,6 +268,7 @@ procedure MC_SEND_Vote(Start: Boolean = False; Command: string = 'a');
 procedure MC_SEND_MapRequest();
 procedure MC_SEND_ResRequest(const resName: AnsiString);
 
+
 type
   TExternalResourceInfo = record
     Name: string[255];
@@ -265,6 +290,9 @@ type
 
 function MapDataFromMsgStream(msgStream: TMemoryStream):TMapDataMsg;
 function ResDataFromMsgStream(msgStream: TMemoryStream):TResDataMsg;
+
+function IsValidFileName(const S: String): Boolean;
+function IsValidFilePath(const S: String): Boolean;
 
 implementation
 
@@ -3115,13 +3143,48 @@ end;
 
 procedure MH_RECV_MapRequest(C: pTNetClient; var M: TMsg);
 var
-  payload: AByte;
   peer: pENetPeer;
+  payload: AByte;
   mapDataMsg: TMapDataMsg;
 begin
   e_WriteLog('NET: Received map request from ' +
              DecodeIPV4(C^.Peer.address.host), TMsgType.Notify);
 
+  (*
+  omsg.Alloc(NET_BUFSIZE);
+  try
+    omsg.Clear();
+    dfn := findDiskWad(MapsDir+gGameSettings.WAD);
+    if (dfn = '') then dfn := '!wad_not_found!.wad'; //FIXME
+    md5 := MD5File(dfn);
+    st := openDiskFileRO(dfn);
+    if not assigned(st) then exit; //wtf?!
+    size := st.size;
+    st.Free;
+    // packet type
+    omsg.Write(Byte({NTF_SERVER_MAP_INFO}NET_MSG_MAP_RESPONSE));
+    // map wad name
+    omsg.Write(gGameSettings.WAD);
+    // map wad md5
+    omsg.Write(md5);
+    // map wad size
+    omsg.Write(size);
+    // number of external resources for map
+    omsg.Write(LongInt(gExternalResources.Count));
+    // external resource names
+    for f := 0 to gExternalResources.Count-1 do
+    begin
+      omsg.Write(ExtractFileName(gExternalResources[f])); // GameDir+'/wads/'+ResList.Strings[i]
+    end;
+    // send packet
+    pkt := enet_packet_create(omsg.Data, omsg.CurSize, ENET_PACKET_FLAG_RELIABLE);
+    if not Assigned(pkt) then exit;
+    peer := NetClients[C^.ID].Peer;
+    if (enet_peer_send(Peer, NET_CHAN_DOWNLOAD_EX, pkt) <> 0) then exit;
+  finally
+    omsg.Free();
+  end;
+  *)
   mapDataMsg := CreateMapDataMsg(MapsDir + gGameSettings.WAD, gExternalResources);
   peer := NetClients[C^.ID].Peer;
 
@@ -3162,5 +3225,6 @@ begin
     g_Net_SendData(payload, peer, True, NET_CHAN_DOWNLOAD);
   end;
 end;
+
 
 end.

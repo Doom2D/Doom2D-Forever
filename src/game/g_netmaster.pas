@@ -78,6 +78,9 @@ procedure g_Serverlist_GenerateTable(SL: TNetServerList; var ST: TNetServerTable
 procedure g_Serverlist_Draw(var SL: TNetServerList; var ST: TNetServerTable);
 procedure g_Serverlist_Control(var SL: TNetServerList; var ST: TNetServerTable);
 
+function GetTimerMS(): Int64;
+
+
 implementation
 
 uses

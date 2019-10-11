@@ -18,13 +18,13 @@ unit g_net;
 interface
 
 uses
-  e_log, e_msg, ENet, Classes, MAPDEF{$IFDEF USE_MINIUPNPC}, miniupnpc;{$ELSE};{$ENDIF}
+  e_log, e_msg, ENet, Classes, md5, MAPDEF{$IFDEF USE_MINIUPNPC}, miniupnpc;{$ELSE};{$ENDIF}
 
 const
   NET_PROTOCOL_VER = 181;
 
   NET_MAXCLIENTS = 24;
-  NET_CHANS = 11;
+  NET_CHANS = 12;
 
   NET_CHAN_SERVICE = 0;
   NET_CHAN_IMPORTANT = 1;
@@ -37,6 +37,7 @@ const
   NET_CHAN_CHAT = 8;
   NET_CHAN_DOWNLOAD = 9;
   NET_CHAN_SHOTS = 10;
+  NET_CHAN_DOWNLOAD_EX = 11;
 
   NET_NONE = 0;
   NET_SERVER = 1;
@@ -60,6 +61,7 @@ const
   NET_DISC_TEMPBAN: enet_uint32 = 7;
   NET_DISC_BAN: enet_uint32 = 8;
   NET_DISC_MAX: enet_uint32 = 8;
+  NET_DISC_FILE_TIMEOUT: enet_uint32 = 13;
 
   NET_STATE_NONE = 0;
   NET_STATE_AUTH = 1;
@@ -77,6 +79,19 @@ const
   {$ENDIF}
 
 type
+  TNetFileTransfer = record
+    diskName: string;
+    hash: TMD5Digest;
+    stream: TStream;
+    size: Integer; // file size in bytes
+    chunkSize: Integer;
+    lastSentChunk: Integer;
+    lastAckChunk: Integer;
+    lastAckTime: Int64; // msecs; if not "in progress", we're waiting for the first ack
+    inProgress: Boolean;
+    diskBuffer: PChar; // of `chunkSize` bytes
+  end;
+
   TNetClient = record
     ID:       Byte;
     Used:     Boolean;
@@ -86,6 +101,7 @@ type
     RequestedFullUpdate: Boolean;
     RCONAuth: Boolean;
     Voted:    Boolean;
+    Transfer: TNetFileTransfer; // only one transfer may be active
     NetOut:   array [0..1] of TMsg;
   end;
   TBanRecord = record
@@ -186,7 +202,8 @@ function  g_Net_Client_ByPlayer(PID: Word): pTNetClient;
 function  g_Net_ClientName_ByID(ID: Integer): string;
 
 procedure g_Net_SendData(Data: AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_DOWNLOAD);
-function  g_Net_Wait_Event(msgId: Word): TMemoryStream;
+//function  g_Net_Wait_Event(msgId: Word): TMemoryStream;
+//function g_Net_Wait_FileInfo (var tf: TNetFileTransfer; asMap: Boolean; out resList: TStringList): Integer;
 
 function  IpToStr(IP: LongWord): string;
 function  StrToIp(IPstr: string; var IP: LongWord): Boolean;
@@ -207,18 +224,53 @@ procedure g_Net_DumpEnd();
 function g_Net_ForwardPorts(ForwardPongPort: Boolean = True): Boolean;
 procedure g_Net_UnforwardPorts();
 
+function g_Net_UserRequestExit: Boolean;
+
+function g_Net_SendMapRequest (): Boolean;
+function g_Net_Wait_MapInfo (var tf: TNetFileTransfer; resList: TStringList): Integer;
+function g_Net_RequestResFileInfo (resIndex: LongInt; out tf: TNetFileTransfer): Integer;
+function g_Net_AbortResTransfer (var tf: TNetFileTransfer): Boolean;
+function g_Net_ReceiveResourceFile (resIndex: LongInt; var tf: TNetFileTransfer; strm: TStream): Integer;
+
+
 implementation
 
 uses
   SysUtils,
   e_input, g_nethandler, g_netmsg, g_netmaster, g_player, g_window, g_console,
-  g_main, g_game, g_language, g_weapons, utils, ctypes;
+  g_main, g_game, g_language, g_weapons, utils, ctypes,
+  g_map;
+
+const
+  FILE_CHUNK_SIZE = 8192;
 
 var
   g_Net_DownloadTimeout: Single;
 
 
 { /// SERVICE FUNCTIONS /// }
+procedure clearNetClientTransfers (var nc: TNetClient);
+begin
+  nc.Transfer.stream.Free;
+  nc.Transfer.diskName := ''; // just in case
+  if (nc.Transfer.diskBuffer <> nil) then FreeMem(nc.Transfer.diskBuffer);
+  nc.Transfer.stream := nil;
+  nc.Transfer.diskBuffer := nil;
+end;
+
+
+procedure clearNetClient (var nc: TNetClient);
+begin
+  clearNetClientTransfers(nc);
+end;
+
+procedure clearNetClients (clearArray: Boolean);
+var
+  f: Integer;
+begin
+  for f := Low(NetClients) to High(NetClients) do clearNetClient(NetClients[f]);
+  if (clearArray) then SetLength(NetClients, 0);
+end;
 
 
 function g_Net_FindSlot(): Integer;
@@ -266,6 +318,7 @@ begin
     NetClients[N].RCONAuth := False;
     NetClients[N].Voted := False;
     NetClients[N].Player := 0;
+    clearNetClientTransfers(NetClients[N]); // just in case
   end;
 
   Result := N;
@@ -281,7 +334,8 @@ begin
   NetOut.Clear();
   NetBuf[NET_UNRELIABLE].Clear();
   NetBuf[NET_RELIABLE].Clear();
-  SetLength(NetClients, 0);
+  //SetLength(NetClients, 0);
+  clearNetClients(true); // clear array
   NetPeer := nil;
   NetHost := nil;
   NetMyID := -1;
@@ -364,7 +418,8 @@ begin
   NetBuf[NET_UNRELIABLE].Clear();
   NetBuf[NET_RELIABLE].Clear();
 
-  SetLength(NetClients, 0);
+  //SetLength(NetClients, 0);
+  clearNetClients(true); // clear array
   NetClientCount := 0;
 
   NetPeer := nil;
@@ -501,6 +556,7 @@ begin
       NetClients[I].NetOut[NET_RELIABLE].Free();
     end;
 
+  clearNetClients(false); // don't clear array
   if (NetMPeer <> nil) and (NetMHost <> nil) then g_Net_Slist_Disconnect;
   if NetPongSock <> ENET_SOCKET_NULL then
     enet_socket_destroy(NetPongSock);
@@ -586,6 +642,368 @@ begin
   end;
 end;
 
+
+const
+  // server packet type
+  NTF_SERVER_DONE = 10; // done with this file
+  NTF_SERVER_FILE_INFO = 11; // sent after client request
+  NTF_SERVER_CHUNK = 12; // next chunk; chunk number follows
+  NTF_SERVER_ABORT = 13; // server abort
+  NTF_SERVER_MAP_INFO = 14;
+
+  // client packet type
+  NTF_CLIENT_MAP_REQUEST = 100; // map file request; also, returns list of additional wads to download
+  NTF_CLIENT_FILE_REQUEST = 101; // resource file request (by index)
+  NTF_CLIENT_ABORT = 102; // do not send requested file, or abort current transfer
+  NTF_CLIENT_START = 103; // start transfer; client may resume download by sending non-zero starting chunk
+  NTF_CLIENT_ACK = 104; // chunk ack; chunk number follows
+
+
+procedure KillClientByFT (var nc: TNetClient);
+begin
+  e_LogWritefln('disconnected client #%d due to file transfer error', [nc.ID], TMsgType.Warning);
+  enet_peer_disconnect(nc.Peer, NET_DISC_FILE_TIMEOUT);
+  clearNetClientTransfers(nc);
+end;
+
+
+procedure ProcessHostFileTransfers (var nc: TNetClient);
+var
+  tf: ^TNetFileTransfer;
+  ct: Int64;
+  chunks: Integer;
+  rd: Integer;
+  pkt: PENetPacket;
+  omsg: TMsg;
+begin
+  tf := @nc.Transfer;
+  if (tf.stream = nil) then exit;;
+  ct := GetTimerMS();
+  // arbitrary timeout number
+  if (ct-tf.lastAckTime >= 5000) then
+  begin
+    KillClientByFT(nc);
+    exit;
+  end;
+  // check if we need to send something
+  if (not tf.inProgress) then exit; // waiting for the initial ack
+  // ok, we're sending chunks
+  if (tf.lastAckChunk <> tf.lastSentChunk) then exit;
+  Inc(tf.lastSentChunk);
+  // do it one chunk at a time; client ack will advance our chunk counter
+  chunks := (tf.size+tf.chunkSize-1) div tf.chunkSize;
+
+  if (tf.lastSentChunk > chunks) then
+  begin
+    KillClientByFT(nc);
+    exit;
+  end;
+
+  omsg.Alloc(NET_BUFSIZE);
+  try
+    omsg.Clear();
+    if (tf.lastSentChunk = chunks) then
+    begin
+      // we're done with this file
+      e_LogWritefln('download: client #%d, DONE sending chunks #%d/#%d', [nc.ID, tf.lastSentChunk, chunks]);
+      omsg.Write(Byte(NTF_SERVER_DONE));
+      clearNetClientTransfers(nc);
+    end
+    else
+    begin
+      // packet type
+      omsg.Write(Byte(NTF_SERVER_CHUNK));
+      omsg.Write(LongInt(tf.lastSentChunk));
+      // read chunk
+      rd := tf.size-(tf.lastSentChunk*tf.chunkSize);
+      if (rd > tf.chunkSize) then rd := tf.chunkSize;
+      omsg.Write(LongInt(rd));
+      e_LogWritefln('download: client #%d, sending chunk #%d/#%d (%d bytes)', [nc.ID, tf.lastSentChunk, chunks, rd]);
+      //FIXME: check for errors here
+      try
+        tf.stream.Seek(tf.lastSentChunk*tf.chunkSize, soFromBeginning);
+        tf.stream.ReadBuffer(tf.diskBuffer^, rd);
+        omsg.WriteData(tf.diskBuffer, rd);
+      except // sorry
+        KillClientByFT(nc);
+        exit;
+      end;
+    end;
+    // send packet
+    pkt := enet_packet_create(omsg.Data, omsg.CurSize, ENET_PACKET_FLAG_RELIABLE);
+    if not Assigned(pkt) then
+    begin
+      KillClientByFT(nc);
+      exit;
+    end;
+    if (enet_peer_send(nc.Peer, NET_CHAN_DOWNLOAD_EX, pkt) <> 0) then
+    begin
+      KillClientByFT(nc);
+      exit;
+    end;
+  finally
+    omsg.Free();
+  end;
+end;
+
+
+// received packet is in `NetEvent`
+procedure ProcessDownloadExPacket ();
+var
+  f: Integer;
+  nc: ^TNetClient;
+  nid: Integer = -1;
+  msg: TMsg;
+  omsg: TMsg;
+  cmd: Byte;
+  tf: ^TNetFileTransfer;
+  fname: string;
+  pkt: PENetPacket;
+  chunk: Integer;
+  ridx: Integer;
+  dfn: AnsiString;
+  md5: TMD5Digest;
+  st: TStream;
+  size: LongInt;
+begin
+  // find client index by peer
+  for f := Low(NetClients) to High(NetClients) do
+  begin
+    if (not NetClients[f].Used) then continue;
+    //if (NetClients[f].Transfer.stream = nil) then continue;
+    if (NetClients[f].Peer = NetEvent.peer) then
+    begin
+      nid := f;
+      break;
+    end;
+  end;
+  e_LogWritefln('RECEIVE: dlpacket; client=%d (datalen=%u)', [nid, NetEvent.packet^.dataLength]);
+
+  if (nid < 0) then exit; // wtf?!
+  nc := @NetClients[nid];
+
+  if (NetEvent.packet^.dataLength = 0) then
+  begin
+    KillClientByFT(nc^);
+    exit;
+  end;
+
+  tf := @NetClients[nid].Transfer;
+  tf.lastAckTime := GetTimerMS();
+
+  cmd := Byte(NetEvent.packet^.data^);
+  e_LogWritefln('RECEIVE:   nid=%d; cmd=%u', [nid, cmd]);
+  case cmd of
+    NTF_CLIENT_FILE_REQUEST: // file request
+      begin
+        if (tf.stream <> nil) then
+        begin
+          KillClientByFT(nc^);
+          exit;
+        end;
+        if (NetEvent.packet^.dataLength < 2) then
+        begin
+          KillClientByFT(nc^);
+          exit;
+        end;
+        // new transfer request; build packet
+        if not msg.Init(NetEvent.packet^.data+1, NetEvent.packet^.dataLength-1, True) then
+        begin
+          KillClientByFT(nc^);
+          exit;
+        end;
+        // get resource index
+        ridx := msg.ReadLongInt();
+        if (ridx < -1) or (ridx >= gExternalResources.Count) then
+        begin
+          e_LogWritefln('Invalid resource index %d', [ridx], TMsgType.Warning);
+          KillClientByFT(nc^);
+          exit;
+        end;
+        if (ridx < 0) then fname := MapsDir+gGameSettings.WAD else fname := gExternalResources[ridx];
+        if (length(fname) = 0) then
+        begin
+          e_WriteLog('Invalid filename: '+fname, TMsgType.Warning);
+          KillClientByFT(nc^);
+          exit;
+        end;
+        tf.diskName := findDiskWad(fname);
+        if (length(tf.diskName) = 0) then tf.diskName := findDiskWad(GameDir+'/wads/'+fname);
+        if (length(tf.diskName) = 0) then
+        begin
+          e_LogWritefln('NETWORK: file "%s" not found!', [fname], TMsgType.Fatal);
+          KillClientByFT(nc^);
+          exit;
+        end;
+        // calculate hash
+        //TODO: cache hashes
+        tf.hash := MD5File(tf.diskName);
+        // create file stream
+        tf.diskName := findDiskWad(fname);
+        try
+          tf.stream := openDiskFileRO(tf.diskName);
+        except
+          tf.stream := nil;
+        end;
+        if (tf.stream = nil) then
+        begin
+          e_WriteLog(Format('NETWORK: file "%s" not found!', [fname]), TMsgType.Fatal);
+          KillClientByFT(nc^);
+          exit;
+        end;
+        e_LogWritefln('client #%d requested resource #%d (file is `%s` : `%s`)', [nc.ID, ridx, fname, tf.diskName]);
+        tf.size := tf.stream.size;
+        tf.chunkSize := FILE_CHUNK_SIZE; // arbitrary
+        tf.lastSentChunk := -1;
+        tf.lastAckChunk := -1;
+        tf.lastAckTime := GetTimerMS();
+        tf.inProgress := False; // waiting for the first ACK or for the cancel
+        GetMem(tf.diskBuffer, tf.chunkSize);
+        // sent file info message
+        omsg.Alloc(NET_BUFSIZE);
+        try
+          omsg.Clear();
+          omsg.Write(Byte(NTF_SERVER_FILE_INFO));
+          omsg.Write(tf.hash);
+          omsg.Write(tf.size);
+          omsg.Write(tf.chunkSize);
+          omsg.Write(ExtractFileName(fname));
+          pkt := enet_packet_create(omsg.Data, omsg.CurSize, ENET_PACKET_FLAG_RELIABLE);
+          if not Assigned(pkt) then
+          begin
+            KillClientByFT(nc^);
+            exit;
+          end;
+          if (enet_peer_send(nc.Peer, NET_CHAN_DOWNLOAD_EX, pkt) <> 0) then
+          begin
+            KillClientByFT(nc^);
+            exit;
+          end;
+        finally
+          omsg.Free();
+        end;
+      end;
+    NTF_CLIENT_ABORT: // do not send requested file, or abort current transfer
+      begin
+        e_LogWritefln('client #%d aborted file transfer', [nc.ID]);
+        clearNetClientTransfers(nc^);
+      end;
+    NTF_CLIENT_START: // start transfer; client may resume download by sending non-zero starting chunk
+      begin
+        if not Assigned(tf.stream) then
+        begin
+          KillClientByFT(nc^);
+          exit;
+        end;
+        if (tf.lastSentChunk <> -1) or (tf.lastAckChunk <> -1) or (tf.inProgress) then
+        begin
+          // double ack, get lost
+          KillClientByFT(nc^);
+          exit;
+        end;
+        if (NetEvent.packet^.dataLength < 2) then
+        begin
+          KillClientByFT(nc^);
+          exit;
+        end;
+        // build packet
+        if not msg.Init(NetEvent.packet^.data+1, NetEvent.packet^.dataLength-1, True) then
+        begin
+          KillClientByFT(nc^);
+          exit;
+        end;
+        chunk := msg.ReadLongInt();
+        if (chunk < 0) or (chunk > (tf.size+tf.chunkSize-1) div tf.chunkSize) then
+        begin
+          KillClientByFT(nc^);
+          exit;
+        end;
+        e_LogWritefln('client #%d started file transfer from chunk %d', [nc.ID, chunk]);
+        // start sending chunks
+        tf.inProgress := True;
+        tf.lastSentChunk := chunk-1;
+        tf.lastAckChunk := chunk-1;
+      end;
+    NTF_CLIENT_ACK: // chunk ack; chunk number follows
+      begin
+        if not Assigned(tf.stream) then
+        begin
+          KillClientByFT(nc^);
+          exit;
+        end;
+        if (tf.lastSentChunk < 0) or (not tf.inProgress) then
+        begin
+          // double ack, get lost
+          KillClientByFT(nc^);
+          exit;
+        end;
+        if (NetEvent.packet^.dataLength < 2) then
+        begin
+          KillClientByFT(nc^);
+          exit;
+        end;
+        // build packet
+        if not msg.Init(NetEvent.packet^.data+1, NetEvent.packet^.dataLength-1, True) then
+        begin
+          KillClientByFT(nc^);
+          exit;
+        end;
+        chunk := msg.ReadLongInt();
+        if (chunk < 0) or (chunk > (tf.size+tf.chunkSize-1) div tf.chunkSize) then
+        begin
+          KillClientByFT(nc^);
+          exit;
+        end;
+        // do it this way, so client may seek, or request retransfers for some reason
+        tf.lastAckChunk := chunk;
+        tf.lastSentChunk := chunk;
+        e_LogWritefln('client #%d acked file transfer chunk %d', [nc.ID, chunk]);
+      end;
+    NTF_CLIENT_MAP_REQUEST:
+      begin
+        e_LogWritefln('client #%d requested map info', [nc.ID]);
+        omsg.Alloc(NET_BUFSIZE);
+        try
+          omsg.Clear();
+          dfn := findDiskWad(MapsDir+gGameSettings.WAD);
+          if (dfn = '') then dfn := '!wad_not_found!.wad'; //FIXME
+          md5 := MD5File(dfn);
+          st := openDiskFileRO(dfn);
+          if not assigned(st) then exit; //wtf?!
+          size := st.size;
+          st.Free;
+          // packet type
+          omsg.Write(Byte(NTF_SERVER_MAP_INFO));
+          // map wad name
+          omsg.Write(gGameSettings.WAD);
+          // map wad md5
+          omsg.Write(md5);
+          // map wad size
+          omsg.Write(size);
+          // number of external resources for map
+          omsg.Write(LongInt(gExternalResources.Count));
+          // external resource names
+          for f := 0 to gExternalResources.Count-1 do
+          begin
+            omsg.Write(ExtractFileName(gExternalResources[f])); // GameDir+'/wads/'+ResList.Strings[i]
+          end;
+          // send packet
+          pkt := enet_packet_create(omsg.Data, omsg.CurSize, ENET_PACKET_FLAG_RELIABLE);
+          if not Assigned(pkt) then exit;
+          if (enet_peer_send(nc.Peer, NET_CHAN_DOWNLOAD_EX, pkt) <> 0) then exit;
+        finally
+          omsg.Free();
+        end;
+      end;
+    else
+      begin
+        KillClientByFT(NetClients[nid]);
+        exit;
+      end;
+  end;
+end;
+
+
 function g_Net_Host_Update(): enet_size_t;
 var
   IP: string;
@@ -593,13 +1011,21 @@ var
   ID: Integer;
   TC: pTNetClient;
   TP: TPlayer;
+  f: Integer;
 begin
   IP := '';
   Result := 0;
 
-  if NetUseMaster then
-    g_Net_Slist_Check;
+  if NetUseMaster then g_Net_Slist_Check;
   g_Net_Host_CheckPings;
+
+  // process file transfers
+  for f := Low(NetClients) to High(NetClients) do
+  begin
+    if (not NetClients[f].Used) then continue;
+    if (NetClients[f].Transfer.stream = nil) then continue;
+    ProcessHostFileTransfers(NetClients[f]);
+  end;
 
   while (enet_host_service(NetHost, @NetEvent, 0) > 0) do
   begin
@@ -642,6 +1068,7 @@ begin
         NetClients[ID].RCONAuth := False;
         NetClients[ID].NetOut[NET_UNRELIABLE].Alloc(NET_BUFSIZE*2);
         NetClients[ID].NetOut[NET_RELIABLE].Alloc(NET_BUFSIZE*2);
+        clearNetClientTransfers(NetClients[ID]); // just in case
 
         enet_peer_timeout(NetEvent.peer, ENET_PEER_TIMEOUT_LIMIT * 2, ENET_PEER_TIMEOUT_MINIMUM * 2, ENET_PEER_TIMEOUT_MAXIMUM * 2);
 
@@ -651,18 +1078,27 @@ begin
 
       ENET_EVENT_TYPE_RECEIVE:
       begin
-        ID := Byte(NetEvent.peer^.data^);
-        if ID > High(NetClients) then Exit;
-        TC := @NetClients[ID];
+        //e_LogWritefln('RECEIVE: chan=%u', [NetEvent.channelID]);
+        if (NetEvent.channelID = NET_CHAN_DOWNLOAD_EX) then
+        begin
+          ProcessDownloadExPacket();
+        end
+        else
+        begin
+          ID := Byte(NetEvent.peer^.data^);
+          if ID > High(NetClients) then Exit;
+          TC := @NetClients[ID];
 
-        if NetDump then g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
-        g_Net_Host_HandlePacket(TC, NetEvent.packet, g_Net_HostMsgHandler);
+          if NetDump then g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
+          g_Net_Host_HandlePacket(TC, NetEvent.packet, g_Net_HostMsgHandler);
+        end;
       end;
 
       ENET_EVENT_TYPE_DISCONNECT:
       begin
         ID := Byte(NetEvent.peer^.data^);
         if ID > High(NetClients) then Exit;
+        clearNetClient(NetClients[ID]);
         TC := @NetClients[ID];
         if TC = nil then Exit;
 
@@ -1011,7 +1447,7 @@ begin
   enet_host_flush(NetHost);
 end;
 
-function UserRequestExit: Boolean;
+function g_Net_UserRequestExit: Boolean;
 begin
   Result := e_KeyPressed(IK_SPACE) or
             e_KeyPressed(IK_ESCAPE) or
@@ -1022,6 +1458,7 @@ begin
             e_KeyPressed(JOY3_JUMP)
 end;
 
+{
 function g_Net_Wait_Event(msgId: Word): TMemoryStream;
   var
     ev: ENetEvent;
@@ -1074,9 +1511,558 @@ begin
       status := 0 (* error: timeout *)
     end;
     ProcessLoading(true);
-  until (status <> 2) or UserRequestExit();
+  until (status <> 2) or g_Net_UserRequestExit();
   Result := stream
 end;
+}
+
+
+function getNewTimeoutEnd (): Int64;
+begin
+  result := GetTimerMS();
+  if (g_Net_DownloadTimeout <= 0) then
+  begin
+    result := result+1000*60*3; // 3 minutes
+  end
+  else
+  begin
+    result := result+trunc(g_Net_DownloadTimeout*1000);
+  end;
+end;
+
+
+function g_Net_SendMapRequest (): Boolean;
+var
+  msg: TMsg;
+  pkt: PENetPacket;
+begin
+  result := false;
+  e_LogWritefln('sending map request...', []);
+  // send request
+  msg.Alloc(NET_BUFSIZE);
+  try
+    msg.Clear();
+    msg.Write(Byte(NTF_CLIENT_MAP_REQUEST));
+    e_LogWritefln('  request size is %d', [msg.CurSize]);
+    pkt := enet_packet_create(msg.Data, msg.CurSize, ENET_PACKET_FLAG_RELIABLE);
+    if not Assigned(pkt) then exit;
+    if (enet_peer_send(NetPeer, NET_CHAN_DOWNLOAD_EX, pkt) <> 0) then exit;
+    enet_host_flush(NetHost);
+  finally
+    msg.Free();
+  end;
+  result := true;
+end;
+
+
+// returns `false` on error or user abort
+// fills:
+//    hash
+//    size
+//    chunkSize
+// returns:
+//  <0 on error
+//   0 on success
+//   1 on user abort
+//   2 on server abort
+// for maps, first `tf.diskName` name will be map wad name, and `tf.hash`/`tf.size` will contain map info
+function g_Net_Wait_MapInfo (var tf: TNetFileTransfer; resList: TStringList): Integer;
+var
+  ev: ENetEvent;
+  rMsgId: Byte;
+  Ptr: Pointer;
+  msg: TMsg;
+  freePacket: Boolean = false;
+  ct, ett: Int64;
+  status: cint;
+  s: AnsiString;
+  rc, f: LongInt;
+begin
+  FillChar(ev, SizeOf(ev), 0);
+  Result := -1;
+  try
+    ett := getNewTimeoutEnd();
+    repeat
+      status := enet_host_service(NetHost, @ev, 300);
+      if (status < 0) then
+      begin
+        g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' network error', True);
+        Result := -1;
+        exit;
+      end;
+      if (status = 0) then
+      begin
+        // check for timeout
+        ct := GetTimerMS();
+        if (ct >= ett) then
+        begin
+          g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' timeout reached', True);
+          Result := -1;
+          exit;
+        end;
+      end
+      else
+      begin
+        // some event
+        case ev.kind of
+          ENET_EVENT_TYPE_RECEIVE:
+            begin
+              freePacket := true;
+              if (ev.channelID <> NET_CHAN_DOWNLOAD_EX) then
+              begin
+                //e_LogWritefln('g_Net_Wait_MapInfo: skip message from non-transfer channel', []);
+              end
+              else
+              begin
+                ett := getNewTimeoutEnd();
+                if (ev.packet.dataLength < 1) then
+                begin
+                  e_LogWritefln('g_Net_Wait_MapInfo: invalid server packet (no data)', []);
+                  Result := -1;
+                  exit;
+                end;
+                Ptr := ev.packet^.data;
+                rMsgId := Byte(Ptr^);
+                e_LogWritefln('g_Net_Wait_MapInfo: got message %u from server (dataLength=%u)', [rMsgId, ev.packet^.dataLength]);
+                if (rMsgId = NTF_SERVER_FILE_INFO) then
+                begin
+                  e_LogWritefln('g_Net_Wait_MapInfo: waiting for map info reply, but got file info reply', []);
+                  Result := -1;
+                  exit;
+                end
+                else if (rMsgId = NTF_SERVER_ABORT) then
+                begin
+                  e_LogWritefln('g_Net_Wait_MapInfo: server aborted transfer', []);
+                  Result := 2;
+                  exit;
+                end
+                else if (rMsgId = NTF_SERVER_MAP_INFO) then
+                begin
+                  e_LogWritefln('g_Net_Wait_MapInfo: creating map info packet...', []);
+                  if not msg.Init(ev.packet^.data+1, ev.packet^.dataLength-1, True) then exit;
+                  e_LogWritefln('g_Net_Wait_MapInfo: parsing map info packet (rd=%d; max=%d)...', [msg.ReadCount, msg.MaxSize]);
+                  resList.Clear();
+                  // map wad name
+                  tf.diskName := msg.ReadString();
+                  e_LogWritefln('g_Net_Wait_MapInfo: map wad is `%s`', [tf.diskName]);
+                  // map wad md5
+                  tf.hash := msg.ReadMD5();
+                  // map wad size
+                  tf.size := msg.ReadLongInt();
+                  e_LogWritefln('g_Net_Wait_MapInfo: map wad size is %d', [tf.size]);
+                  // number of external resources for map
+                  rc := msg.ReadLongInt();
+                  if (rc < 0) or (rc > 1024) then
+                  begin
+                    e_LogWritefln('g_Net_Wait_Event: invalid number of map external resources (%d)', [rc]);
+                    Result := -1;
+                    exit;
+                  end;
+                  e_LogWritefln('g_Net_Wait_MapInfo: map external resource count is %d', [rc]);
+                  // external resource names
+                  for f := 0 to rc-1 do
+                  begin
+                    s := ExtractFileName(msg.ReadString());
+                    if (length(s) = 0) then
+                    begin
+                      Result := -1;
+                      exit;
+                    end;
+                    resList.append(s);
+                  end;
+                  e_LogWritefln('g_Net_Wait_MapInfo: got map info', []);
+                  Result := 0; // success
+                  exit;
+                end
+                else
+                begin
+                  e_LogWritefln('g_Net_Wait_Event: invalid server packet type', []);
+                  Result := -1;
+                  exit;
+                end;
+              end;
+            end;
+          ENET_EVENT_TYPE_DISCONNECT:
+            begin
+              if (ev.data <= NET_DISC_MAX) then
+                g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' ' + _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + ev.data)], True);
+              Result := -1;
+              exit;
+            end;
+          else
+            begin
+              g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' unknown ENet event ' + IntToStr(Ord(ev.kind)), True);
+              result := -1;
+              exit;
+            end;
+        end;
+        if (freePacket) then begin freePacket := false; enet_packet_destroy(ev.packet); end;
+      end;
+      ProcessLoading(true);
+      if g_Net_UserRequestExit() then
+      begin
+        g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' user abort', True);
+        Result := 1;
+        exit;
+      end;
+    until false;
+  finally
+    if (freePacket) then enet_packet_destroy(ev.packet);
+  end;
+end;
+
+
+// returns `false` on error or user abort
+// fills:
+//    diskName (actually, base name)
+//    hash
+//    size
+//    chunkSize
+// returns:
+//  <0 on error
+//   0 on success
+//   1 on user abort
+//   2 on server abort
+// for maps, first `tf.diskName` name will be map wad name, and `tf.hash`/`tf.size` will contain map info
+function g_Net_RequestResFileInfo (resIndex: LongInt; out tf: TNetFileTransfer): Integer;
+var
+  ev: ENetEvent;
+  rMsgId: Byte;
+  Ptr: Pointer;
+  msg: TMsg;
+  freePacket: Boolean = false;
+  ct, ett: Int64;
+  status: cint;
+  pkt: PENetPacket;
+begin
+  // send request
+  msg.Alloc(NET_BUFSIZE);
+  try
+    msg.Clear();
+    msg.Write(Byte(NTF_CLIENT_FILE_REQUEST));
+    msg.Write(resIndex);
+    pkt := enet_packet_create(msg.Data, msg.CurSize, ENET_PACKET_FLAG_RELIABLE);
+    if not Assigned(pkt) then
+    begin
+      result := -1;
+      exit;
+    end;
+    if (enet_peer_send(NetPeer, NET_CHAN_DOWNLOAD_EX, pkt) <> 0) then
+    begin
+      result := -1;
+      exit;
+    end;
+  finally
+    msg.Free();
+  end;
+
+  FillChar(ev, SizeOf(ev), 0);
+  Result := -1;
+  try
+    ett := getNewTimeoutEnd();
+    repeat
+      status := enet_host_service(NetHost, @ev, 300);
+      if (status < 0) then
+      begin
+        g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' network error', True);
+        Result := -1;
+        exit;
+      end;
+      if (status = 0) then
+      begin
+        // check for timeout
+        ct := GetTimerMS();
+        if (ct >= ett) then
+        begin
+          g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' timeout reached', True);
+          Result := -1;
+          exit;
+        end;
+      end
+      else
+      begin
+        // some event
+        case ev.kind of
+          ENET_EVENT_TYPE_RECEIVE:
+            begin
+              freePacket := true;
+              if (ev.channelID <> NET_CHAN_DOWNLOAD_EX) then
+              begin
+                //e_LogWriteln('g_Net_Wait_Event: skip message from non-transfer channel');
+              end
+              else
+              begin
+                ett := getNewTimeoutEnd();
+                if (ev.packet.dataLength < 1) then
+                begin
+                  e_LogWriteln('g_Net_Wait_Event: invalid server packet (no data)');
+                  Result := -1;
+                  exit;
+                end;
+                Ptr := ev.packet^.data;
+                rMsgId := Byte(Ptr^);
+                e_LogWritefln('received transfer packet with id %d (%u bytes)', [rMsgId, ev.packet^.dataLength]);
+                if (rMsgId = NTF_SERVER_FILE_INFO) then
+                begin
+                  if not msg.Init(ev.packet^.data+1, ev.packet^.dataLength-1, True) then exit;
+                  tf.hash := msg.ReadMD5();
+                  tf.size := msg.ReadLongInt();
+                  tf.chunkSize := msg.ReadLongInt();
+                  tf.diskName := ExtractFileName(msg.readString());
+                  if (tf.size < 0) or (tf.chunkSize <> FILE_CHUNK_SIZE) or (length(tf.diskName) = 0) then
+                  begin
+                    e_LogWritefln('g_Net_RequestResFileInfo: invalid file info packet', []);
+                    Result := -1;
+                    exit;
+                  end;
+                  e_LogWritefln('got file info for resource #%d: size=%d; name=%s', [resIndex, tf.size, tf.diskName]);
+                  Result := 0; // success
+                  exit;
+                end
+                else if (rMsgId = NTF_SERVER_ABORT) then
+                begin
+                  e_LogWriteln('g_Net_RequestResFileInfo: server aborted transfer');
+                  Result := 2;
+                  exit;
+                end
+                else if (rMsgId = NTF_SERVER_MAP_INFO) then
+                begin
+                  e_LogWriteln('g_Net_RequestResFileInfo: waiting for map info reply, but got file info reply');
+                  Result := -1;
+                  exit;
+                end
+                else
+                begin
+                  e_LogWriteln('g_Net_RequestResFileInfo: invalid server packet type');
+                  Result := -1;
+                  exit;
+                end;
+              end;
+            end;
+          ENET_EVENT_TYPE_DISCONNECT:
+            begin
+              if (ev.data <= NET_DISC_MAX) then
+                g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' ' + _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + ev.data)], True);
+              Result := -1;
+              exit;
+            end;
+          else
+            begin
+              g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' unknown ENet event ' + IntToStr(Ord(ev.kind)), True);
+              result := -1;
+              exit;
+            end;
+        end;
+        if (freePacket) then begin freePacket := false; enet_packet_destroy(ev.packet); end;
+      end;
+      ProcessLoading(true);
+      if g_Net_UserRequestExit() then
+      begin
+        g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' user abort', True);
+        Result := 1;
+        exit;
+      end;
+    until false;
+  finally
+    if (freePacket) then enet_packet_destroy(ev.packet);
+  end;
+end;
+
+
+function g_Net_AbortResTransfer (var tf: TNetFileTransfer): Boolean;
+var
+  msg: TMsg;
+  pkt: PENetPacket;
+begin
+  result := false;
+  e_LogWritefln('aborting file transfer...', []);
+  // send request
+  msg.Alloc(NET_BUFSIZE);
+  try
+    msg.Clear();
+    msg.Write(Byte(NTF_CLIENT_ABORT));
+    pkt := enet_packet_create(msg.Data, msg.CurSize, ENET_PACKET_FLAG_RELIABLE);
+    if not Assigned(pkt) then exit;
+    if (enet_peer_send(NetPeer, NET_CHAN_DOWNLOAD_EX, pkt) <> 0) then exit;
+    enet_host_flush(NetHost);
+  finally
+    msg.Free();
+  end;
+  result := true;
+end;
+
+
+// returns `false` on error or user abort
+// fills:
+//    hash
+//    size
+//    chunkSize
+// returns:
+//  <0 on error
+//   0 on success
+//   1 on user abort
+//   2 on server abort
+// for maps, first `tf.diskName` name will be map wad name, and `tf.hash`/`tf.size` will contain map info
+function g_Net_ReceiveResourceFile (resIndex: LongInt; var tf: TNetFileTransfer; strm: TStream): Integer;
+var
+  ev: ENetEvent;
+  rMsgId: Byte;
+  Ptr: Pointer;
+  msg: TMsg;
+  omsg: TMsg;
+  freePacket: Boolean = false;
+  ct, ett: Int64;
+  status: cint;
+  nextChunk: Integer = 0;
+  chunk: Integer;
+  csize: Integer;
+  buf: PChar = nil;
+  pkt: PENetPacket;
+begin
+  // send request
+  msg.Alloc(NET_BUFSIZE);
+  try
+    msg.Clear();
+    msg.Write(Byte(NTF_CLIENT_START));
+    msg.Write(LongInt(0));
+    pkt := enet_packet_create(msg.Data, msg.CurSize, ENET_PACKET_FLAG_RELIABLE);
+    if not Assigned(pkt) then exit;
+    if (enet_peer_send(NetPeer, NET_CHAN_DOWNLOAD_EX, pkt) <> 0) then exit;
+  finally
+    msg.Free();
+  end;
+
+  // wait for reply data
+  FillChar(ev, SizeOf(ev), 0);
+  Result := -1;
+  GetMem(buf, tf.chunkSize);
+  try
+    ett := getNewTimeoutEnd();
+    repeat
+      status := enet_host_service(NetHost, @ev, 300);
+      if (status < 0) then
+      begin
+        g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' network error', True);
+        Result := -1;
+        exit;
+      end;
+      if (status = 0) then
+      begin
+        // check for timeout
+        ct := GetTimerMS();
+        if (ct >= ett) then
+        begin
+          g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' timeout reached', True);
+          Result := -1;
+          exit;
+        end;
+      end
+      else
+      begin
+        // some event
+        case ev.kind of
+          ENET_EVENT_TYPE_RECEIVE:
+            begin
+              freePacket := true;
+              if (ev.channelID <> NET_CHAN_DOWNLOAD_EX) then
+              begin
+                //e_LogWritefln('g_Net_Wait_Event: skip message from non-transfer channel', []);
+              end
+              else
+              begin
+                ett := getNewTimeoutEnd();
+                if (ev.packet.dataLength < 1) then
+                begin
+                  e_LogWritefln('g_Net_ReceiveResourceFile: invalid server packet (no data)', []);
+                  Result := -1;
+                  exit;
+                end;
+                Ptr := ev.packet^.data;
+                rMsgId := Byte(Ptr^);
+                if (rMsgId = NTF_SERVER_DONE) then
+                begin
+                  e_LogWritefln('file transfer complete.', []);
+                  result := 0;
+                  exit;
+                end
+                else if (rMsgId = NTF_SERVER_CHUNK) then
+                begin
+                  if not msg.Init(ev.packet^.data+1, ev.packet^.dataLength-1, True) then exit;
+                  chunk := msg.ReadLongInt();
+                  csize := msg.ReadLongInt();
+                  if (chunk <> nextChunk) then
+                  begin
+                    e_LogWritefln('received chunk %d, but expected chunk %d', [chunk, nextChunk]);
+                    Result := -1;
+                    exit;
+                  end;
+                  if (csize < 0) or (csize > tf.chunkSize) then
+                  begin
+                    e_LogWritefln('received chunk with size %d, but expected chunk size is %d', [csize, tf.chunkSize]);
+                    Result := -1;
+                    exit;
+                  end;
+                  e_LogWritefln('got chunk #%d of #%d (csize=%d)', [chunk, (tf.size+tf.chunkSize-1) div tf.chunkSize, csize]);
+                  msg.ReadData(buf, csize);
+                  strm.WriteBuffer(buf^, csize);
+                  nextChunk := chunk+1;
+                  // send ack
+                  omsg.Alloc(NET_BUFSIZE);
+                  try
+                    omsg.Clear();
+                    omsg.Write(Byte(NTF_CLIENT_ACK));
+                    omsg.Write(LongInt(chunk));
+                    pkt := enet_packet_create(omsg.Data, omsg.CurSize, ENET_PACKET_FLAG_RELIABLE);
+                    if not Assigned(pkt) then exit;
+                    if (enet_peer_send(NetPeer, NET_CHAN_DOWNLOAD_EX, pkt) <> 0) then exit;
+                  finally
+                    omsg.Free();
+                  end;
+                end
+                else if (rMsgId = NTF_SERVER_ABORT) then
+                begin
+                  e_LogWritefln('g_Net_ReceiveResourceFile: server aborted transfer', []);
+                  Result := 2;
+                  exit;
+                end
+                else
+                begin
+                  e_LogWritefln('g_Net_ReceiveResourceFile: invalid server packet type', []);
+                  Result := -1;
+                  exit;
+                end;
+              end;
+            end;
+          ENET_EVENT_TYPE_DISCONNECT:
+            begin
+              if (ev.data <= NET_DISC_MAX) then
+                g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' ' + _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + ev.data)], True);
+              Result := -1;
+              exit;
+            end;
+          else
+            begin
+              g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' unknown ENet event ' + IntToStr(Ord(ev.kind)), True);
+              result := -1;
+              exit;
+            end;
+        end;
+        if (freePacket) then begin freePacket := false; enet_packet_destroy(ev.packet); end;
+      end;
+      ProcessLoading(true);
+      if g_Net_UserRequestExit() then
+      begin
+        g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' user abort', True);
+        Result := 1;
+        exit;
+      end;
+    until false;
+  finally
+    FreeMem(buf);
+    if (freePacket) then enet_packet_destroy(ev.packet);
+  end;
+end;
+
 
 function g_Net_IsHostBanned(IP: LongWord; Perm: Boolean = False): Boolean;
 var
@@ -1343,6 +2329,7 @@ end;
 
 initialization
   conRegVar('cl_downloadtimeout', @g_Net_DownloadTimeout, 0.0, 1000000.0, '', 'timeout in seconds, 0 to disable it');
+  SetLength(NetClients, 0);
   g_Net_DownloadTimeout := 60;
   NetIn.Alloc(NET_BUFSIZE);
   NetOut.Alloc(NET_BUFSIZE);

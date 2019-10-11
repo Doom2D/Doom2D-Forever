@@ -101,7 +101,7 @@ procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
 procedure g_Game_Restart();
 procedure g_Game_RestartLevel();
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
-procedure g_Game_ClientWAD(NewWAD: String; WHash: TMD5Digest);
+procedure g_Game_ClientWAD(NewWAD: String; const WHash: TMD5Digest);
 procedure g_Game_SaveOptions();
 function  g_Game_StartMap(Map: String; Force: Boolean = False; const oldMapPath: AnsiString=''): Boolean;
 procedure g_Game_ChangeMap(const MapPath: String);
@@ -4625,7 +4625,7 @@ begin
   OuterLoop := True;
   while OuterLoop do
   begin
-    while (enet_host_service(NetHost, @NetEvent, 0) > 0) do
+    while (enet_host_service(NetHost, @NetEvent, 50) > 0) do
     begin
       if (NetEvent.kind = ENET_EVENT_TYPE_RECEIVE) then
       begin
@@ -4658,7 +4658,7 @@ begin
           if newResPath = '' then
           begin
             g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
-            newResPath := g_Res_DownloadWAD(WadName);
+            newResPath := g_Res_DownloadMapWAD(WadName, gWADHash);
             if newResPath = '' then
             begin
               g_FatalError(_lc[I_NET_ERR_HASH]);
@@ -4721,8 +4721,7 @@ begin
 
     ProcessLoading(true);
 
-    if e_KeyPressed(IK_SPACE) or e_KeyPressed(IK_ESCAPE) or e_KeyPressed(VK_ESCAPE) or
-       e_KeyPressed(JOY0_JUMP) or e_KeyPressed(JOY1_JUMP) or e_KeyPressed(JOY2_JUMP) or e_KeyPressed(JOY3_JUMP) then
+    if g_Net_UserRequestExit() then
     begin
       State := 0;
       break;
@@ -4785,6 +4784,7 @@ function g_Game_StartMap(Map: String; Force: Boolean = False; const oldMapPath: 
 var
   NewWAD, ResName: String;
   I: Integer;
+  nws: AnsiString;
 begin
   g_Map_Free((Map <> gCurrentMapFileName) and (oldMapPath <> gCurrentMapFileName));
   g_Player_RemoveAllCorpses();
@@ -4808,15 +4808,25 @@ begin
     ResName := g_ExtractFileName(Map);
     if g_Game_IsServer then
     begin
-      gWADHash := MD5File(MapsDir + NewWAD);
-      g_Game_LoadWAD(NewWAD);
+      nws := findDiskWad(MapsDir+NewWAD);
+      if (length(nws) = 0) then
+      begin
+        ResName := '';
+      end
+      else
+      begin
+        gWADHash := MD5File(nws);
+        //writeln('********: nws=', nws, ' : Map=', Map, ' : nw=', NewWAD, ' : resname=', ResName);
+        g_Game_LoadWAD(NewWAD);
+      end;
     end else
       // hash received in MC_RECV_GameEvent -> NET_EV_MAPSTART
       g_Game_ClientWAD(NewWAD, gWADHash);
   end else
     ResName := Map;
 
-  Result := g_Map_Load(MapsDir + gGameSettings.WAD + ':\' + ResName);
+  //writeln('********: gsw=', gGameSettings.WAD, '; rn=', ResName);
+  Result := (ResName <> '') and g_Map_Load(MapsDir + gGameSettings.WAD + ':\' + ResName);
   if Result then
     begin
       g_Player_ResetAll(Force or gLastMap, gGameSettings.GameType = GT_SINGLE);
@@ -4989,7 +4999,7 @@ begin
   gNextMap := Map;
 end;
 
-procedure g_Game_ClientWAD(NewWAD: String; WHash: TMD5Digest);
+procedure g_Game_ClientWAD(NewWAD: String; const WHash: TMD5Digest);
 var
   gWAD: String;
 begin
@@ -5001,7 +5011,7 @@ begin
   if gWAD = '' then
   begin
     g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
-    gWAD := g_Res_DownloadWAD(ExtractFileName(NewWAD));
+    gWAD := g_Res_DownloadMapWAD(ExtractFileName(NewWAD), WHash);
     if gWAD = '' then
     begin
       g_Game_Free();
