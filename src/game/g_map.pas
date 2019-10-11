@@ -1448,9 +1448,14 @@ end;
 
 procedure addResToExternalResList(res: string);
 begin
-  res := extractWadName(res);
-  if (res <> '') and (gExternalResources.IndexOf(res) = -1) then
+  //e_LogWritefln('DBG: ***trying external resource %s', [res]);
+  res := toLowerCase1251(extractWadName(res));
+  // ignore "standart.wad"
+  if (res <> '') and (res <> 'standart.wad') and (gExternalResources.IndexOf(res) = -1) then
+  begin
+    //e_LogWritefln('DBG: added external resource %s', [res]);
     gExternalResources.Add(res);
+  end;
 end;
 
 procedure generateExternalResourcesList({mapReader: TMapReader_1}map: TDynRecord);
@@ -1834,7 +1839,14 @@ begin
               ntn := CreateTexture(rec.Resource, FileName, True);
               if (ntn < 0) then g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_SIMPLE], [rec.Resource]));
             end;
-            if (ntn < 0) then ntn := CreateNullTexture(rec.Resource);
+            if (ntn < 0) then
+            begin
+              ntn := CreateNullTexture(rec.Resource);
+            end
+            else
+            begin
+              addResToExternalResList(rec.Resource);
+            end;
 
             rec.tagInt := ntn; // remember texture number
           end;
