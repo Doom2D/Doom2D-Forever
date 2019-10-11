@@ -721,7 +721,7 @@ begin
       rd := tf.size-(tf.lastSentChunk*tf.chunkSize);
       if (rd > tf.chunkSize) then rd := tf.chunkSize;
       omsg.Write(LongInt(rd));
-      e_LogWritefln('download: client #%d, sending chunk #%d/#%d (%d bytes)', [nc.ID, tf.lastSentChunk, chunks, rd]);
+      //e_LogWritefln('download: client #%d, sending chunk #%d/#%d (%d bytes)', [nc.ID, tf.lastSentChunk, chunks, rd]);
       //FIXME: check for errors here
       try
         tf.stream.Seek(tf.lastSentChunk*tf.chunkSize, soFromBeginning);
@@ -773,14 +773,13 @@ begin
   for f := Low(NetClients) to High(NetClients) do
   begin
     if (not NetClients[f].Used) then continue;
-    //if (NetClients[f].Transfer.stream = nil) then continue;
     if (NetClients[f].Peer = NetEvent.peer) then
     begin
       nid := f;
       break;
     end;
   end;
-  e_LogWritefln('RECEIVE: dlpacket; client=%d (datalen=%u)', [nid, NetEvent.packet^.dataLength]);
+  //e_LogWritefln('RECEIVE: dlpacket; client=%d (datalen=%u)', [nid, NetEvent.packet^.dataLength]);
 
   if (nid < 0) then exit; // wtf?!
   nc := @NetClients[nid];
@@ -795,7 +794,7 @@ begin
   tf.lastAckTime := GetTimerMS();
 
   cmd := Byte(NetEvent.packet^.data^);
-  e_LogWritefln('RECEIVE:   nid=%d; cmd=%u', [nid, cmd]);
+  //e_LogWritefln('RECEIVE:   nid=%d; cmd=%u', [nid, cmd]);
   case cmd of
     NTF_CLIENT_FILE_REQUEST: // file request
       begin
@@ -823,7 +822,7 @@ begin
           KillClientByFT(nc^);
           exit;
         end;
-        if (ridx < 0) then fname := MapsDir+gGameSettings.WAD else fname := gExternalResources[ridx];
+        if (ridx < 0) then fname := MapsDir+gGameSettings.WAD else fname := GameDir+'/wads/'+gExternalResources[ridx];
         if (length(fname) = 0) then
         begin
           e_WriteLog('Invalid filename: '+fname, TMsgType.Warning);
@@ -831,7 +830,7 @@ begin
           exit;
         end;
         tf.diskName := findDiskWad(fname);
-        if (length(tf.diskName) = 0) then tf.diskName := findDiskWad(GameDir+'/wads/'+fname);
+        //if (length(tf.diskName) = 0) then tf.diskName := findDiskWad(GameDir+'/wads/'+fname);
         if (length(tf.diskName) = 0) then
         begin
           e_LogWritefln('NETWORK: file "%s" not found!', [fname], TMsgType.Fatal);
@@ -960,7 +959,7 @@ begin
         // do it this way, so client may seek, or request retransfers for some reason
         tf.lastAckChunk := chunk;
         tf.lastSentChunk := chunk;
-        e_LogWritefln('client #%d acked file transfer chunk %d', [nc.ID, chunk]);
+        //e_LogWritefln('client #%d acked file transfer chunk %d', [nc.ID, chunk]);
       end;
     NTF_CLIENT_MAP_REQUEST:
       begin
@@ -1015,6 +1014,7 @@ var
   TC: pTNetClient;
   TP: TPlayer;
   f: Integer;
+  //ctt: Int64;
 begin
   IP := '';
   Result := 0;
@@ -1022,6 +1022,7 @@ begin
   if NetUseMaster then g_Net_Slist_Check;
   g_Net_Host_CheckPings;
 
+  //ctt := -GetTimerMS();
   // process file transfers
   for f := Low(NetClients) to High(NetClients) do
   begin
@@ -1029,6 +1030,10 @@ begin
     if (NetClients[f].Transfer.stream = nil) then continue;
     ProcessHostFileTransfers(NetClients[f]);
   end;
+  {
+  ctt := ctt+GetTimerMS();
+  if (ctt > 1) then e_LogWritefln('all transfers: [%d]', [Integer(ctt)]);
+  }
 
   while (enet_host_service(NetHost, @NetEvent, 0) > 0) do
   begin
@@ -1925,10 +1930,12 @@ var
   ct, ett: Int64;
   status: cint;
   nextChunk: Integer = 0;
+  chunkTotal: Integer;
   chunk: Integer;
   csize: Integer;
   buf: PChar = nil;
   pkt: PENetPacket;
+  //stx: Int64;
 begin
   // send request
   msg.Alloc(NET_BUFSIZE);
@@ -1943,6 +1950,10 @@ begin
     msg.Free();
   end;
 
+  chunkTotal := (tf.size+tf.chunkSize-1) div tf.chunkSize;
+  e_LogWritefln('receiving file `%s` (%d chunks)', [tf.diskName, chunkTotal], TMsgType.Notify);
+  g_Game_SetLoadingText('downloading "'+ExtractFileName(tf.diskName)+'"', chunkTotal, False);
+
   // wait for reply data
   FillChar(ev, SizeOf(ev), 0);
   Result := -1;
@@ -1950,6 +1961,7 @@ begin
   try
     ett := getNewTimeoutEnd();
     repeat
+      //stx := -GetTimerMS();
       status := enet_host_service(NetHost, @ev, 300);
       if (status < 0) then
       begin
@@ -1984,6 +1996,9 @@ begin
               end
               else
               begin
+                //stx := stx+GetTimerMS();
+                //e_LogWritefln('g_Net_ReceiveResourceFile: stx=%d', [Integer(stx)]);
+                //stx := -GetTimerMS();
                 ett := getNewTimeoutEnd();
                 if (ev.packet.dataLength < 1) then
                 begin
@@ -2016,10 +2031,11 @@ begin
                     Result := -1;
                     exit;
                   end;
-                  e_LogWritefln('got chunk #%d of #%d (csize=%d)', [chunk, (tf.size+tf.chunkSize-1) div tf.chunkSize, csize]);
+                  //e_LogWritefln('got chunk #%d of #%d (csize=%d)', [chunk, (tf.size+tf.chunkSize-1) div tf.chunkSize, csize]);
                   msg.ReadData(buf, csize);
                   strm.WriteBuffer(buf^, csize);
                   nextChunk := chunk+1;
+                  g_Game_StepLoading();
                   // send ack
                   omsg.Alloc(NET_BUFSIZE);
                   try
@@ -2045,6 +2061,8 @@ begin
                   Result := -1;
                   exit;
                 end;
+                //stx := stx+GetTimerMS();
+                //e_LogWritefln('g_Net_ReceiveResourceFile: process stx=%d', [Integer(stx)]);
               end;
             end;
           ENET_EVENT_TYPE_DISCONNECT:

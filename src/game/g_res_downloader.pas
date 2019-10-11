@@ -20,7 +20,6 @@ interface
 uses sysutils, Classes, md5, g_net, g_netmsg, g_console, g_main, e_log;
 
 function g_Res_SearchSameWAD(const path, filename: AnsiString; const resMd5: TMD5Digest): AnsiString;
-function g_Res_SearchResWad (asMap: Boolean; const resMd5: TMD5Digest): AnsiString;
 
 // download map wad from server (if necessary)
 // download all required map resource wads too
@@ -174,6 +173,7 @@ end;
 procedure g_Res_PutReplacementWad (oldname: AnsiString; newDiskName: AnsiString);
 begin
   e_LogWritefln('adding replacement wad: oldname=%s; newname=%s', [oldname, newDiskName]);
+  if not assigned(replacements) then replacements := THashStrStr.Create();
   replacements.put(toLowerCase1251(oldname), newDiskName);
 end;
 
@@ -237,7 +237,7 @@ begin
 end;
 
 
-function g_Res_SearchResWad (asMap: Boolean; const resMd5: TMD5Digest): AnsiString;
+function g_Res_SearchResWad (asMap: Boolean; fname: AnsiString; const resMd5: TMD5Digest): AnsiString;
 var
   f: Integer;
 begin
@@ -245,10 +245,20 @@ begin
   //if not assigned(scannedDirs) then scannedDirs := THashStrInt.Create();
   if (asMap) then
   begin
+    if CheckFileHash(GameDir+'/maps', fname, resMd5) then
+    begin
+      result := findDiskWad(GameDir+'/maps/'+fname);
+      if (length(result) <> 0) then exit;
+    end;
     scanDir(GameDir+'/maps/downloads', true);
   end
   else
   begin
+    if CheckFileHash(GameDir+'/wads', fname, resMd5) then
+    begin
+      result := findDiskWad(GameDir+'/wads/'+fname);
+      if (length(result) <> 0) then exit;
+    end;
     scanDir(GameDir+'/wads/downloads', true);
   end;
   for f := Low(knownFiles) to High(knownFiles) do
@@ -283,7 +293,6 @@ var
   wadname: AnsiString;
 begin
   //SetLength(mapData.ExternalResources, 0);
-  //result := g_Res_SearchResWad(true{asMap}, mapHash);
   result := '';
   g_Res_ClearReplacementWads();
   g_Res_received_map_start := false;
@@ -313,7 +322,7 @@ begin
     if (res <> 0) then exit;
 
     // find or download a map
-    result := g_Res_SearchResWad(true{asMap}, mapHash);
+    result := g_Res_SearchResWad(true{asMap}, tf.diskName, mapHash);
     if (length(result) = 0) then
     begin
       // download map
@@ -332,6 +341,7 @@ begin
         result := '';
         exit;
       end;
+      tf.diskName := fname;
       try
         res := g_Net_ReceiveResourceFile(-1{map}, tf, strm);
       except
@@ -371,7 +381,7 @@ begin
     begin
       res := g_Net_RequestResFileInfo(f, tf);
       if (res <> 0) then begin result := ''; exit; end;
-      wadname := g_Res_SearchResWad(false{asMap}, tf.hash);
+      wadname := g_Res_SearchResWad(false{asMap}, tf.diskName, tf.hash);
       if (length(wadname) <> 0) then
       begin
         // already here

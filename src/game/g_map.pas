@@ -259,7 +259,8 @@ uses
   Math, g_monsters, g_saveload, g_language, g_netmsg,
   sfs, xstreams, hashtable, wadreader,
   ImagingTypes, Imaging, ImagingUtility,
-  ImagingGif, ImagingNetworkGraphics;
+  ImagingGif, ImagingNetworkGraphics,
+  g_res_downloader;
 
 const
   FLAGRECT: TRectWH = (X:15; Y:12; Width:33; Height:52);
@@ -899,6 +900,26 @@ begin
 end;
 
 
+function GetReplacementWad (WadName: AnsiString): AnsiString;
+begin
+  if (length(WadName) = 0) then
+  begin
+    result := '';
+  end
+  else
+  begin
+    result := g_Res_FindReplacementWad(WadName);
+    if (result <> WadName) then
+    begin
+      //e_LogWritefln('GetReplacementWad: old=%s; new=%s', [WadName, result]);
+    end
+    else
+    begin
+      result := GameDir+'/wads/'+result;
+    end;
+  end;
+end;
+
 function CreateTexture(RecName: AnsiString; Map: string; log: Boolean): Integer;
 var
   WAD: TWADFile;
@@ -957,12 +978,10 @@ begin
   end;
 
   // «агружаем ресурс текстуры в пам€ть из WAD'а:
-  WADName := g_ExtractWadName(RecName);
+  WADName := GetReplacementWad(g_ExtractWadName(RecName));
+  if WADName = '' then WADName := Map; //WADName := GameDir+'/wads/'+WADName else
 
   WAD := TWADFile.Create();
-
-  if WADName <> '' then WADName := GameDir+'/wads/'+WADName else WADName := Map;
-
   WAD.ReadFile(WADName);
 
   //txname := RecName;
@@ -1045,11 +1064,12 @@ begin
   end;
 
   // „итаем WAD-ресурс аним.текстуры из WAD'а в пам€ть:
-  WADName := g_ExtractWadName(RecName);
+  WADName := GetReplacementWad(g_ExtractWadName(RecName));
+  if WADName = '' then WADName := Map; //WADName := GameDir+'/wads/'+WADName else
 
   WAD := TWADFile.Create();
   try
-    if WADName <> '' then WADName := GameDir+'/wads/'+WADName else WADName := Map;
+    //if WADName <> '' then WADName := GameDir+'/wads/'+WADName else WADName := Map;
 
     WAD.ReadFile(WADName);
 
@@ -1451,7 +1471,7 @@ begin
   //e_LogWritefln('DBG: ***trying external resource %s', [res]);
   res := toLowerCase1251(extractWadName(res));
   // ignore "standart.wad"
-  if (res <> '') and (res <> 'standart.wad') and (gExternalResources.IndexOf(res) = -1) then
+  if (res <> '') {and (res <> 'standart.wad')} and (gExternalResources.IndexOf(res) = -1) then
   begin
     //e_LogWritefln('DBG: added external resource %s', [res]);
     gExternalResources.Add(res);
