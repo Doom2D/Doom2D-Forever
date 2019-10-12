@@ -66,34 +66,12 @@ const
   NET_MSG_TIME_SYNC  = 194;
   NET_MSG_VOTE_EVENT = 195;
 
+  {
   NET_MSG_MAP_REQUEST = 201;
   NET_MSG_MAP_RESPONSE = 202;
   NET_MSG_RES_REQUEST = 203;
   NET_MSG_RES_RESPONSE = 204;
-
-  // chunked file transfers
-  // it goes this way:
-  //   client requests file (FILE_REQUEST)
-  //   server sends file header info (FILE_HEADER)
-  //   client acks chunk -1 (CHUNK_ACK) to initiate transfer, or cancels (FILE_CANCEL)
-  //   server start sending data chunks (one at a time, waiting for an ACK for each one)
-  //   when client acks the last chunk, transfer is complete
-  // this scheme sux, of course; we can do better by spamming with unreliable unsequenced packets,
-  // and use client acks to drive server sends, but meh... let's do it this way first, and
-  // we can improve it later.
-
-  // client: request a file
-  NET_MSG_FILE_REQUEST = 210;
-  // server: file info response
-  NET_MSG_FILE_HEADER = 211;
-  // client: request transfer cancellation
-  // server: something went wrong, transfer cancelled, bomb out
-  NET_MSG_FILE_CANCEL = 212;
-  // server: file chunk data
-  NET_MSG_FILE_CHUNK_DATA = 213;
-  // client: file chunk ack
-  NET_MSG_FILE_CHUNK_ACK = 214;
-
+  }
 
   NET_CHAT_SYSTEM = 0;
   NET_CHAT_PLAYER = 1;
@@ -287,9 +265,6 @@ type
     FileData: AByte;
     ExternalResources: array of TExternalResourceInfo;
   end;
-
-function MapDataFromMsgStream(msgStream: TMemoryStream):TMapDataMsg;
-function ResDataFromMsgStream(msgStream: TMemoryStream):TResDataMsg;
 
 function IsValidFileName(const S: String): Boolean;
 function IsValidFilePath(const S: String): Boolean;
@@ -3057,6 +3032,7 @@ begin
   end;
 end;
 
+{
 function CreateMapDataMsg(const FileName: TFileName; ResList: TStringList): TMapDataMsg;
 var
   i: Integer;
@@ -3136,6 +3112,7 @@ begin
 
   msgStream.ReadBuffer(Result.ExternalResources[0], resCount * SizeOf(TExternalResourceInfo)); //res data
 end;
+}
 
 function IsValidFileName(const S: String): Boolean;
 const
