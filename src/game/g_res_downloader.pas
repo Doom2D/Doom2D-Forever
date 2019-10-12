@@ -368,6 +368,34 @@ end;
 
 //==========================================================================
 //
+//  generateFileName
+//
+//  generate new file name based on the given one and the hash
+//  you can pass files with pathes here too
+//
+//==========================================================================
+function generateFileName (fname: AnsiString; const hash: TMD5Digest): AnsiString;
+var
+  mds: AnsiString;
+  path: AnsiString;
+  base: AnsiString;
+  ext: AnsiString;
+begin
+  mds := MD5Print(hash);
+  if (length(mds) > 16) then mds := Copy(mds, 1, 16);
+  mds := '_'+mds;
+  if (length(fname) = 0) then begin result := mds; exit; end;
+  path := ExtractFilePath(fname);
+  base := ExtractFileName(fname);
+  ext := getFilenameExt(base);
+  base := forceFilenameExt(base, '');
+  if (length(path) > 0) then result := IncludeTrailingPathDelimiter(path) else result := '';
+  result := result+base+mds+ext;
+end;
+
+
+//==========================================================================
+//
 //  g_Res_DownloadMapWAD
 //
 //  download map wad from server (if necessary)
@@ -422,7 +450,8 @@ begin
         CreateDir(GameDir+'/maps/downloads');
       except
       end;
-      fname := GameDir+'/maps/downloads/'+FileName;
+      fname := GameDir+'/maps/downloads/'+generateFileName(FileName, mapHash);
+      tf.diskName := fname;
       try
         strm := openDiskFileRW(fname);
       except
@@ -430,7 +459,6 @@ begin
         result := '';
         exit;
       end;
-      tf.diskName := fname;
       try
         res := g_Net_ReceiveResourceFile(-1{map}, tf, strm);
       except
@@ -508,7 +536,7 @@ begin
           CreateDir(GameDir+'/wads/downloads');
         except
         end;
-        fname := GameDir+'/wads/downloads/'+tf.diskName;
+        fname := GameDir+'/wads/downloads/'+generateFileName(tf.diskName, tf.hash);
         e_LogWritefln('downloading resource `%s` to `%s`...', [tf.diskName, fname]);
         try
           strm := openDiskFileRW(fname);
