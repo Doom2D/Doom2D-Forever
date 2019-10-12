@@ -427,10 +427,11 @@ begin
     g_Console_Add(Format(_lc[I_NET_MAP_DL], [FileName]));
     e_WriteLog('Downloading map `' + FileName + '` from server', TMsgType.Notify);
     g_Game_SetLoadingText(FileName + '...', 0, False);
-    if (not g_Net_SendMapRequest()) then exit;
 
     FileName := ExtractFileName(FileName);
     if (length(FileName) = 0) then FileName := 'fucked_map_wad.wad';
+
+    // this also sends map request
     res := g_Net_Wait_MapInfo(tf, resList);
     if (res <> 0) then exit;
 
