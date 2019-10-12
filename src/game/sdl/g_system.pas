@@ -41,6 +41,7 @@ implementation
 
   uses
     SysUtils, SDL, Math,
+    {$INCLUDE ../nogl/noGLuses.inc}
     e_log, e_graphics, e_input, e_sound,
     g_options, g_window, g_console, g_game, g_menu, g_gui, g_main;
 
@@ -108,6 +109,9 @@ implementation
       screen := SDL_SetVideoMode(w, h, bpp, flags);
       if screen <> nil then
       begin
+        {$IFDEF USE_NOGL}
+          nogl_Init;
+        {$ENDIF}
         SDL_WM_SetCaption(GameTitle, nil);
         UpdateSize(w, h);
         result := True
@@ -444,7 +448,7 @@ implementation
   (* --------- Init --------- *)
 
   procedure sys_Init;
-    var flags: Uint32; ok: Boolean; i: Integer;
+    var flags: Uint32; i: Integer;
   begin
     e_WriteLog('Init SDL', TMsgType.Notify);
     flags := SDL_INIT_VIDEO or SDL_INIT_AUDIO or
@@ -452,9 +456,6 @@ implementation
              (*or SDL_INIT_NOPARACHUTE*);
     if SDL_Init(flags) <> 0 then
       raise Exception.Create('SDL: Init failed: ' + SDL_GetError);
-    ok := InitWindow(gScreenWidth, gScreenHeight, gBPP, gFullScreen);
-    if not ok then
-      raise Exception.Create('SDL: Failed to set videomode: ' + SDL_GetError);
     SDL_EnableUNICODE(1);
     SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
     for i := 0 to e_MaxJoys - 1 do
@@ -467,7 +468,13 @@ implementation
     e_WriteLog('Releasing SDL', TMsgType.Notify);
     for i := 0 to e_MaxJoys - 1 do
       RemoveJoystick(i);
-    SDL_FreeSurface(screen);
+    if screen <> nil then
+    begin
+      {$IFDEF USE_NOGL}
+        nogl_Quit;
+      {$ENDIF}
+      SDL_FreeSurface(screen)
+    end;
     SDL_Quit
   end;
 

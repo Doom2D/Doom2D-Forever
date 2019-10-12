@@ -2899,12 +2899,11 @@ begin
   begin
     Name := 'mOptionsControlsJoystickMenu';
     for i := 0 to e_MaxJoys - 1 do
-      if e_JoystickAvailable[i] then
-        with AddScroll(Format(_lc[I_MENU_CONTROL_DEADZONE], [i + 1])) do
-        begin
-          Name := 'scDeadzone' + IntToStr(i);
-          Max := 20
-        end
+      with AddScroll(Format(_lc[I_MENU_CONTROL_DEADZONE], [i + 1])) do
+      begin
+        Name := 'scDeadzone' + IntToStr(i);
+        Max := 20
+      end
   end;
   Menu.DefControl := 'mOptionsControlsJoystickMenu';
   g_GUI_AddWindow(Menu);

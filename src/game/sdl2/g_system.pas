@@ -42,6 +42,7 @@ implementation
   uses
     SysUtils, SDL2, Math,
     e_log, e_graphics, e_input, e_sound,
+    {$INCLUDE ../nogl/noGLuses.inc}
     {$IFDEF ENABLE_HOLMES}
       g_holmes, sdlcarcass, fui_ctls,
     {$ENDIF}
@@ -87,7 +88,10 @@ implementation
     e_ResizeWindow(w, h);
     e_InitGL;
     g_Game_SetupScreenSize;
-    g_Menu_Reset;
+    {$IFNDEF ANDOIRD}
+      (* This will fix menu reset on keyboard showing *)
+      g_Menu_Reset;
+    {$ENDIF}
     g_Game_ClearLoading;
     {$IFDEF ENABLE_HOLMES}
       if assigned(oglInitCB) then oglInitCB;
@@ -124,6 +128,9 @@ implementation
         context := SDL_GL_CreateContext(window);
         if context <> nil then
         begin
+          {$IFDEF USE_NOGL}
+            nogl_Init;
+          {$ENDIF}
           UpdateSize(w, h);
           result := true
         end
@@ -445,7 +452,7 @@ implementation
   (* --------- Init --------- *)
 
   procedure sys_Init;
-    var flags: UInt32; ok: Boolean;
+    var flags: UInt32;
   begin
     e_WriteLog('Init SDL2', TMsgType.Notify);
     {$IFDEF HEADLESS}
@@ -460,9 +467,6 @@ implementation
     SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, '0');
     if SDL_Init(flags) <> 0 then
       raise Exception.Create('SDL: Init failed: ' + SDL_GetError);
-    ok := InitWindow(gScreenWidth, gScreenHeight, gBPP, gFullscreen);
-    if not ok then
-      raise Exception.Create('SDL: Failed to set videomode: ' + SDL_GetError);
     SDL_ShowCursor(SDL_DISABLE);
   end;
 
@@ -470,11 +474,18 @@ implementation
   begin
     e_WriteLog('Releasing SDL2', TMsgType.Notify);
     if context <> nil then
+    begin
+      {$IFDEF USE_NOGL}
+        nogl_Quit;
+      {$ENDIF}
       SDL_GL_DeleteContext(context);
+      context := nil;
+    end;
     if window <> nil then
+    begin
       SDL_DestroyWindow(window);
-    window := nil;
-    context := nil;
+      window := nil;
+    end;
     SDL_Quit
   end;
 

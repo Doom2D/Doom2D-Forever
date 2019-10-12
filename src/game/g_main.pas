@@ -84,21 +84,16 @@ begin
 {$ENDIF}
   e_WriteToStdOut := False; //{$IFDEF HEADLESS}True;{$ELSE}False;{$ENDIF}
 
-  e_WriteLog('Init Input', TMsgType.Notify);
   e_InitInput;
 
-  e_WriteLog('Read config file', TMsgType.Notify);
+  sys_Init;
   g_Options_Read(GameDir + '/' + CONFIG_FILENAME);
+  if sys_SetDisplayMode(gScreenWidth, gScreenHeight, gBPP, gFullScreen) = False then
+    raise Exception.Create('Failed to set videomode on startup.');
+
   g_Console_SysInit;
-
-  //GetSystemDefaultLCID()
-
-  //e_WriteLog('Read language file', MSG_NOTIFY);
-  //g_Language_Load(DataDir + gLanguage + '.txt');
   e_WriteLog(gLanguage, TMsgType.Notify);
   g_Language_Set(gLanguage);
-
-  sys_Init;
 
 {$IF not DEFINED(HEADLESS) and DEFINED(ENABLE_HOLMES)}
   flexloaded := true;

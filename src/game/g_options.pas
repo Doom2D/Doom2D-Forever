@@ -125,13 +125,20 @@ var
   percentage: Integer;
 begin
   (* Display 0 = Primary display *)
-  SDL_GetDesktopDisplayMode(0, @display);
-  {$IF DEFINED(ANDROID)}
+  gScreenWidth := 640;
+  gScreenHeight := 480;
+  //gBPP := SDL_BITSPERPIXEL(dispaly.format);
+  gBPP := 32;
+  {$IFDEF ANDROID}
+    gFullScreen := True; (* rotation not allowed? *)
+  {$ELSE}
+    gFullScreen := False;
+  {$ENDIF}
+  if SDL_GetDesktopDisplayMode(0, @display) = 0 then
+  begin
+  {$IFDEF ANDROID}
     gScreenWidth := display.w;
     gScreenHeight := display.h;
-    //gBPP := SDL_BITSPERPIXEL(dispaly.format);
-    gBPP := 32;
-    gFullScreen := True; (* rotation not allowed? *)
   {$ELSE}
     (* Window must be smaller than display *)
     closest.w := display.w;
@@ -156,9 +163,12 @@ begin
     gScreenWidth := closest.w;
     gScreenHeight := closest.h;
     //gBPP := SDL_BITSPERPIXEL(closest.format); (* Resolution list didn't work for some reason *)
-    gBPP := 32;
-    gFullScreen := False;
   {$ENDIF}
+  end
+  else
+  begin
+    e_LogWritefln('SDL: Failed to get desktop display mode: %s', [SDL_GetError])
+  end;
   (* Must be positioned on primary display *)
   gWinRealPosX := SDL_WINDOWPOS_CENTERED;
   gWinRealPosY := SDL_WINDOWPOS_CENTERED;

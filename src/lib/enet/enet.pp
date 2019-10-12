@@ -37,7 +37,7 @@
   {$ENDIF}
 {$ELSE}
   {$IFDEF DARWIN}
-    {$LINKLIB libenet.a}
+    {$LINKLIB libenet}
     {$DEFINE libraryLibENetDecl := cdecl}
     {$DEFINE libraryLibENetImp := cdecl; external}
     {$DEFINE libraryLibENetVar := cvar; external}
