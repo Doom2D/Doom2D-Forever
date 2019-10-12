@@ -4675,6 +4675,7 @@ begin
               NetState := NET_STATE_NONE;
               Exit;
             end;
+            e_LogWritefln('using downloaded map wad [%s] for [%s]`', [newResPath, WadName], TMsgType.Notify);
           end;
           newResPath := ExtractRelativePath(MapsDir, newResPath);
 
@@ -5010,7 +5011,7 @@ end;
 
 procedure g_Game_ClientWAD(NewWAD: String; const WHash: TMD5Digest);
 var
-  gWAD: String;
+  gWAD, xwad: String;
 begin
   if not g_Game_IsClient then Exit;
   //e_LogWritefln('*** g_Game_ClientWAD: `%s`', [NewWAD]);
@@ -5023,7 +5024,9 @@ begin
     Exit;
   end;
 
-  NewWAD := ExtractRelativePath(MapsDir, gWAD);
+  xwad := ExtractRelativePath(MapsDir, gWAD);
+  e_LogWritefln('using downloaded client map wad [%s] for [%s]`', [xwad, NewWAD], TMsgType.Notify);
+  NewWAD := xwad;
   g_Game_LoadWAD(NewWAD);
 
   {
