@@ -82,3 +82,63 @@
     {$DEFINE WINDOWS}
   {$ENDIF WINDOWS}
 {$ENDIF}
+
+(* --------- Build options check --------- *)
+
+{$IFDEF HEADLESS}
+  {$DEFINE USE_SYSSTUB}
+  {$IF DEFINED(USE_SDL) OR DEFINED(USE_SDL2)}
+    {$WARNING System drivers not supported in headless mode. Force stub driver...}
+    {$UNDEF USE_SDL}
+    {$UNDEF USE_SDL2}
+  {$ENDIF}
+{$ENDIF}
+
+{$IF DEFINED(USE_SYSSTUB)}
+  {$IF DEFINED(USE_SDL) OR DEFINED(USE_SDL2)}
+    {$ERROR Only one system driver must be selected!}
+  {$ENDIF}
+{$ELSEIF DEFINED(USE_SDL)}
+  {$IF DEFINED(USE_SYSSTUB) OR DEFINED(USE_SDL2)}
+    {$ERROR Only one system driver must be selected!}
+  {$ENDIF}
+{$ELSEIF DEFINED(USE_SDL2)}
+  {$IF DEFINED(USE_SYSSTUB) OR DEFINED(USE_SDL)}
+    {$ERROR Only one system driver must be selected!}
+  {$ENDIF}
+{$ELSE}
+  {$DEFINE USE_SDL2}
+  {.$ERROR System driver not selected. Use -dUSE_SYSSTUB or -dUSE_SDL or -dUSE_SDL2}
+{$ENDIF}
+
+{$IF DEFINED(USE_SOUNDSTUB)}
+  {$IF DEFINED(USE_SDLMIXER) OR DEFINED(USE_FMOD) OR DEFINED(USE_OPENAL)}
+    {$ERROR Only one sound driver must be selected!}
+  {$ENDIF}
+{$ELSEIF DEFINED(USE_SDLMIXER)}
+  {$IF DEFINED(USE_SOUNDSTUB) OR DEFINED(USE_FMOD) OR DEFINED(USE_OPENAL)}
+    {$ERROR Only one sound driver must be selected!}
+  {$ENDIF}
+{$ELSEIF DEFINED(USE_FMOD)}
+  {$IF DEFINED(USE_SOUNDSTUB) OR DEFINED(USE_SDLMIXER) OR DEFINED(USE_OPENAL)}
+    {$ERROR Only one sound driver must be selected!}
+  {$ENDIF}
+{$ELSEIF DEFINED(USE_OPENAL)}
+  {$IF DEFINED(USE_SOUNDSTUB) OR DEFINED(USE_SDLMIXER) OR DEFINED(USE_FMOD)}
+    {$ERROR Only one sound driver must be selected!}
+  {$ENDIF}
+{$ELSE}
+  {$ERROR Sound driver not selected. Use -dUSE_SOUNDSTUB or -dUSE_SDLMIXER or -dUSE_FMOD or -dUSE_OPENAL}
+{$ENDIF}
+
+{$IFDEF ENABLE_HOLMES}
+  {$IFDEF HEADLESS}
+    {$ERROR Holmes in HEADLESS mode has no sense}
+  {$ENDIF}
+  {$IFNDEF USE_SDL2}
+    {$ERROR Holmes supported only with SDL2}
+  {$ENDIF}
+  {$IFDEF USE_GLES1}
+    {$ERROR Holmes not supported with GLES}
+  {$ENDIF}
+{$ENDIF}

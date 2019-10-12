@@ -14,66 +14,13 @@
  *)
 {$INCLUDE ../shared/a_modes.inc}
 {$IFDEF ANDROID}library{$ELSE}program{$ENDIF} Doom2DF;
+
 {$IFNDEF HEADLESS}
   {$IFDEF WINDOWS}
     {$APPTYPE GUI}
   {$ENDIF}
 {$ENDIF}
 {$HINTS OFF}
-
-{$IF DEFINED(USE_SYSSTUB)}
-  {$IF DEFINED(USE_SDL) OR DEFINED(USE_SDL2)}
-    {$ERROR Only one system driver must be selected!}
-  {$ENDIF}
-{$ELSEIF DEFINED(USE_SDL)}
-  {$IF DEFINED(USE_SYSSTUB) OR DEFINED(USE_SDL2)}
-    {$ERROR Only one system driver must be selected!}
-  {$ENDIF}
-{$ELSEIF DEFINED(USE_SDL2)}
-  {$IF DEFINED(USE_SYSSTUB) OR DEFINED(USE_SDL)}
-    {$ERROR Only one system driver must be selected!}
-  {$ENDIF}
-{$ELSE}
-  {$ERROR System driver not selected. Use -dUSE_SYSSTUB or -dUSE_SDL or -dUSE_SDL2}
-{$ENDIF}
-
-{$IF DEFINED(USE_SOUNDSTUB)}
-  {$IF DEFINED(USE_SDLMIXER) OR DEFINED(USE_FMOD) OR DEFINED(USE_OPENAL)}
-    {$ERROR Only one sound driver must be selected!}
-  {$ENDIF}
-{$ELSEIF DEFINED(USE_SDLMIXER)}
-  {$IF DEFINED(USE_SOUNDSTUB) OR DEFINED(USE_FMOD) OR DEFINED(USE_OPENAL)}
-    {$ERROR Only one sound driver must be selected!}
-  {$ENDIF}
-{$ELSEIF DEFINED(USE_FMOD)}
-  {$IF DEFINED(USE_SOUNDSTUB) OR DEFINED(USE_SDLMIXER) OR DEFINED(USE_OPENAL)}
-    {$ERROR Only one sound driver must be selected!}
-  {$ENDIF}
-{$ELSEIF DEFINED(USE_OPENAL)}
-  {$IF DEFINED(USE_SOUNDSTUB) OR DEFINED(USE_SDLMIXER) OR DEFINED(USE_FMOD)}
-    {$ERROR Only one sound driver must be selected!}
-  {$ENDIF}
-{$ELSE}
-  {$ERROR Sound driver not selected. Use -dUSE_SOUNDSTUB or -dUSE_SDLMIXER or -dUSE_FMOD or -dUSE_OPENAL}
-{$ENDIF}
-
-{$IFDEF HEADLESS}
-  {$IFNDEF USE_SYSSTUB}
-    {$ERROR Using system driver has no sense for headless build. Use -dUSE_SYSSTUB instead}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF ENABLE_HOLMES}
-  {$IFDEF HEADLESS}
-    {$ERROR Holmes in HEADLESS mode has no sense}
-  {$ENDIF}
-  {$IFNDEF USE_SDL2}
-    {$ERROR Holmes supported only with SDL2}
-  {$ENDIF}
-  {$IFDEF USE_GLES1}
-    {$ERROR Holmes not supported with GLES}
-  {$ENDIF}
-{$ENDIF}
 
 uses
 {$IFDEF ANDROID}
