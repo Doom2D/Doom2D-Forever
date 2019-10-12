@@ -29,17 +29,109 @@ function g_Res_DownloadMapWAD (FileName: AnsiString; const mapHash: TMD5Digest):
 // returns original name, or replacement name
 function g_Res_FindReplacementWad (oldname: AnsiString): AnsiString;
 
+// call this somewhere in startup sequence
+procedure g_Res_CreateDatabases ();
+
 
 implementation
 
-uses g_language, sfs, utils, wadreader, g_game, hashtable;
+uses g_language, sfs, utils, wadreader, g_game, hashtable, fhashdb;
 
 var
   // cvars
   g_res_ignore_names: AnsiString = 'standart;shrshade';
   g_res_ignore_enabled: Boolean = true;
+  g_res_save_databases: Boolean = true;
   // other vars
   replacements: THashStrStr = nil;
+  knownMaps: TFileHashDB = nil;
+  knownRes: TFileHashDB = nil;
+  saveDBsToDiskEnabled: Boolean = false; // this will be set to `true` if initial database saving succeed
+
+
+//==========================================================================
+//
+//  saveDatabases
+//
+//==========================================================================
+procedure saveDatabases (saveMap, saveRes: Boolean);
+var
+  err: Boolean;
+  st: TStream;
+begin
+  if (not saveDBsToDiskEnabled) or (not g_res_save_databases) then exit;
+  // rescan dirs
+  // save map database
+  if (saveMap) then
+  begin
+    err := true;
+    st := nil;
+    try
+      st := createDiskFile(GameDir+'/data/maphash.db');
+      knownMaps.saveTo(st);
+      err := false;
+    except
+    end;
+    st.Free;
+    if (err) then begin saveDBsToDiskEnabled := false; e_LogWriteln('cannot write map database, disk refresh disabled'); exit; end;
+  end;
+  // save resource database
+  if (saveRes) then
+  begin
+    err := true;
+    st := nil;
+    try
+      st := createDiskFile(GameDir+'/data/reshash.db');
+      knownRes.saveTo(st);
+      err := false;
+    except
+    end;
+    st.Free;
+    if (err) then begin saveDBsToDiskEnabled := false; e_LogWriteln('cannot write resource database, disk refresh disabled'); exit; end;
+  end;
+end;
+
+
+//==========================================================================
+//
+//  g_Res_CreateDatabases
+//
+//==========================================================================
+procedure g_Res_CreateDatabases ();
+var
+  st: TStream;
+begin
+  // create and load a know map database, if necessary
+  knownMaps.Free;
+  knownMaps := TFileHashDB.Create(GameDir+'/maps/');
+  knownRes := TFileHashDB.Create(GameDir+'/wads/');
+  saveDBsToDiskEnabled := true;
+  // load map database
+  st := nil;
+  try
+    st := openDiskFileRO(GameDir+'/data/maphash.db');
+    knownMaps.loadFrom(st);
+    e_LogWriteln('loaded map database');
+  except
+  end;
+  st.Free;
+  // load resource database
+  st := nil;
+  try
+    st := openDiskFileRO(GameDir+'/data/reshash.db');
+    knownRes.loadFrom(st);
+    e_LogWriteln('loaded resource database');
+  except
+  end;
+  st.Free;
+  // rescan dirs
+  e_LogWriteln('refreshing map database');
+  knownMaps.scanFiles();
+  e_LogWriteln('refreshing resource database');
+  knownRes.scanFiles();
+  // save databases
+  saveDatabases(true, true);
+end;
 
 
 //==========================================================================
@@ -160,6 +252,7 @@ end;
 //  returns found wad disk name, or empty string
 //
 //==========================================================================
+(*
 function scanDir (dirName: AnsiString; baseName: AnsiString; const resMd5: TMD5Digest): AnsiString;
 var
   searchResult: TSearchRec;
@@ -220,6 +313,7 @@ begin
   end;
   SetLength(dirs, 0);
 end;
+*)
 
 
 //==========================================================================
@@ -233,7 +327,17 @@ end;
 //==========================================================================
 function findExistingMapWadWithHash (fname: AnsiString; const resMd5: TMD5Digest): AnsiString;
 begin
-  result := scanDir(GameDir+'/maps', ExtractFileName(fname), resMd5);
+  //result := scanDir(GameDir+'/maps', ExtractFileName(fname), resMd5);
+  result := knownMaps.findByHash(resMd5);
+  if (length(result) > 0) then
+  begin
+    result := GameDir+'/maps/'+result;
+    if not FileExists(result) then
+    begin
+      if (knownMaps.scanFiles()) then saveDatabases(true, false);
+      result := '';
+    end;
+  end;
 end;
 
 
@@ -248,7 +352,17 @@ end;
 //==========================================================================
 function findExistingResWadWithHash (fname: AnsiString; const resMd5: TMD5Digest): AnsiString;
 begin
-  result := scanDir(GameDir+'/wads', ExtractFileName(fname), resMd5);
+  //result := scanDir(GameDir+'/wads', ExtractFileName(fname), resMd5);
+  result := knownRes.findByHash(resMd5);
+  if (length(result) > 0) then
+  begin
+    result := GameDir+'/wads/'+result;
+    if not FileExists(result) then
+    begin
+      if (knownRes.scanFiles()) then saveDatabases(false, true);
+      result := '';
+    end;
+  end;
 end;
 
 
@@ -272,6 +386,8 @@ var
   fname: AnsiString;
   wadname: AnsiString;
   md5: TMD5Digest;
+  mapdbUpdated: Boolean = false;
+  resdbUpdated: Boolean = false;
 begin
   result := '';
   clearReplacementWads();
@@ -363,6 +479,7 @@ begin
           end;
         end;
       end;
+      if (knownMaps.addWithHash(fname, mapHash)) then mapdbUpdated := true;
       result := fname;
     end;
 
@@ -449,16 +566,20 @@ begin
           end;
         end;
         addReplacementWad(tf.diskName, fname);
+        if (knownRes.addWithHash(fname, tf.hash)) then resdbUpdated := true;
       end;
     end;
   finally
     resList.Free;
     g_Res_received_map_start := 0;
   end;
+
+  if saveDBsToDiskEnabled and (mapdbUpdated or resdbUpdated) then saveDatabases(mapdbUpdated, resdbUpdated);
 end;
 
 
 initialization
   conRegVar('rdl_ignore_names', @g_res_ignore_names, 'list of resource wad names (without extensions) to ignore in dl hash checks', 'dl ignore wads');
   conRegVar('rdl_ignore_enabled', @g_res_ignore_enabled, 'enable dl hash check ignore list', 'dl hash check ignore list active');
+  conRegVar('rdl_hashdb_save_enabled', @g_res_save_databases, 'enable saving map/resource hash databases to disk', 'controls storing hash databases to disk');
 end.

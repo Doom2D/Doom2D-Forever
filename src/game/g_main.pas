@@ -44,7 +44,7 @@ uses
   e_graphics, e_input, g_game, g_console, g_gui,
   e_sound, g_options, g_sound, g_player, g_basic,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map,
-  g_menu, g_language, g_net, g_touch,
+  g_menu, g_language, g_net, g_touch, g_res_downloader,
   utils, conbuf, envvars,
   xparser;
 
@@ -160,6 +160,8 @@ begin
   end;
   g_holmes_imfunctional := not flexloaded;
 {$ENDIF}
+
+  g_Res_CreateDatabases();
 
   e_WriteLog('Entering SDLMain', TMsgType.Notify);
 
