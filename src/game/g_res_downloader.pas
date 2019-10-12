@@ -36,10 +36,67 @@ uses g_language, sfs, utils, wadreader, g_game, hashtable;
 
 var
   // cvars
-  g_res_ignore_names: AnsiString = 'standard;shrshade';
+  g_res_ignore_names: AnsiString = 'standart;shrshade';
   g_res_ignore_enabled: Boolean = true;
   // other vars
   replacements: THashStrStr = nil;
+
+
+//==========================================================================
+//
+//  getWord
+//
+//  get next word from a string
+//  words are delimited with ';'
+//  ignores leading and trailing spaces
+//  returns empty string if there are no more words
+//
+//==========================================================================
+function getWord (var list: AnsiString): AnsiString;
+var
+  pos: Integer;
+begin
+  result := '';
+  while (length(list) > 0) do
+  begin
+    if (ord(list[1]) <= 32) or (list[1] = ';') or (list[1] = ':') then begin Delete(list, 1, 1); continue; end;
+    pos := 1;
+    while (pos <= length(list)) and (list[pos] <> ';') and (list[pos] <> ':') do Inc(pos);
+    result := Copy(list, 1, pos-1);
+    Delete(list, 1, pos);
+    while (length(result) > 0) and (ord(result[length(result)]) <= 32) do Delete(result, length(result), 1);
+    if (length(result) > 0) then exit;
+  end;
+end;
+
+
+//==========================================================================
+//
+//  isIgnoredResWad
+//
+//  checks if the given resource wad can be ignored
+//
+//  FIXME: preparse name list?
+//
+//==========================================================================
+function isIgnoredResWad (fname: AnsiString): Boolean;
+var
+  list: AnsiString;
+  name: AnsiString;
+begin
+  result := false;
+  if (not g_res_ignore_enabled) then exit;
+  fname := forceFilenameExt(ExtractFileName(fname), '');
+  list := g_res_ignore_names;
+  name := getWord(list);
+  while (length(name) > 0) do
+  begin
+    name := forceFilenameExt(name, '');
+    //writeln('*** name=[', name, ']; fname=[', fname, ']');
+    if (StrEquCI1251(name, fname)) then begin result := true; exit; end;
+    name := getWord(list);
+  end;
+end;
 
 
 //==========================================================================
@@ -82,9 +139,14 @@ function g_Res_FindReplacementWad (oldname: AnsiString): AnsiString;
 var
   fn: AnsiString;
 begin
+  //e_LogWritefln('LOOKING for replacement wad for [%s]...', [oldname], TMsgType.Notify);
   result := oldname;
   if not assigned(replacements) then exit;
-  if (replacements.get(toLowerCase1251(ExtractFileName(oldname)), fn)) then result := fn;
+  if (replacements.get(toLowerCase1251(ExtractFileName(oldname)), fn)) then
+  begin
+    //e_LogWritefln('found replacement wad for [%s] -> [%s]', [oldname, fn], TMsgType.Notify);
+    result := fn;
+  end;
 end;
 
 
@@ -309,6 +371,13 @@ begin
     begin
       res := g_Net_RequestResFileInfo(f, tf);
       if (res <> 0) then begin result := ''; exit; end;
+      if (isIgnoredResWad(tf.diskName)) then
+      begin
+        // ignored file, abort download
+        g_Net_AbortResTransfer(tf);
+        e_LogWritefln('ignoring wad resource `%s` by user request', [tf.diskName]);
+        continue;
+      end;
       wadname := findExistingResWadWithHash(tf.diskName, tf.hash);
       if (length(wadname) <> 0) then
       begin
