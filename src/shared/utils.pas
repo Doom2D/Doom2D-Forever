@@ -282,6 +282,16 @@ implementation
 uses
   xstreams;
 
+const wadExtensions: array [0..6] of AnsiString = (
+  '.dfz',
+  '.wad',
+  '.dfwad',
+  '.pk3',
+  '.pak',
+  '.zip',
+  '.dfzip'
+);
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure CopyMemory (Dest: Pointer; Src: Pointer; Len: LongWord); inline;
@@ -816,10 +826,13 @@ end;
 
 function hasWadExtension (const fn: AnsiString): Boolean;
 var
-  ext: AnsiString;
+  ext, newExt: AnsiString;
 begin
   ext := getFilenameExt(fn);
-  result := StrEquCI1251(ext, '.wad') or StrEquCI1251(ext, '.pk3') or StrEquCI1251(ext, '.zip') or StrEquCI1251(ext, '.dfz');
+  result := true;
+  for newExt in wadExtensions do if (StrEquCI1251(ext, newExt)) then exit;
+  result := false;
+  //result := StrEquCI1251(ext, '.wad') or StrEquCI1251(ext, '.pk3') or StrEquCI1251(ext, '.zip') or StrEquCI1251(ext, '.dfz');
 end;
 
 
@@ -828,6 +841,7 @@ begin
   result := fn;
   if not hasWadExtension(result) then result := result+'.wad';
 end;
+
 
 function isWadData (data: Pointer; len: LongWord): Boolean;
   var p: PChar;
@@ -1150,8 +1164,6 @@ begin
 end;
 
 
-const fileExtensions: array [0..6] of AnsiString = ('.dfz', '.wad', '.dfwad', '.pk3', '.pak', '.zip', '.dfzip');
-
 function isWadNamesEqu (wna, wnb: AnsiString): Boolean;
 var
   ext, newExt: AnsiString;
@@ -1162,12 +1174,12 @@ begin
   // check first ext
   ext := getFilenameExt(wna);
   found := false;
-  for newExt in fileExtensions do if (StrEquCI1251(ext, newExt)) then begin found := true; break; end;
+  for newExt in wadExtensions do if (StrEquCI1251(ext, newExt)) then begin found := true; break; end;
   if not found then exit;
   // check second ext
   ext := getFilenameExt(wnb);
   found := false;
-  for newExt in fileExtensions do if (StrEquCI1251(ext, newExt)) then begin found := true; break; end;
+  for newExt in wadExtensions do if (StrEquCI1251(ext, newExt)) then begin found := true; break; end;
   if not found then exit;
   wna := forceFilenameExt(wna, '');
   wnb := forceFilenameExt(wnb, '');
@@ -1185,7 +1197,7 @@ begin
   origExt := getFilenameExt(fname);
   fname := forceFilenameExt(fname, '');
   //writeln(' findDiskWad01: fname=<', fname, '>; origExt=<', origExt, '>');
-  for newExt in fileExtensions do
+  for newExt in wadExtensions do
   begin
     //writeln(' findDiskWad02: fname=<', fname, '>; origExt=<', origExt, '>; newExt=<', newExt, '>');
     if (StrEquCI1251(newExt, origExt)) then
