@@ -167,16 +167,6 @@ begin
   g_Res_ClearReplacementWads();
   g_Res_received_map_start := false;
 
-  try
-    CreateDir(GameDir+'/maps/downloads');
-  except
-  end;
-
-  try
-    CreateDir(GameDir+'/wads/downloads');
-  except
-  end;
-
   resList := TStringList.Create();
 
   try
@@ -202,6 +192,10 @@ begin
         e_LogWriteln('error requesting map wad');
         result := '';
         exit;
+      end;
+      try
+        CreateDir(GameDir+'/maps/downloads');
+      except
       end;
       fname := GameDir+'/maps/downloads/'+FileName;
       try
@@ -244,6 +238,10 @@ begin
       end
       else
       begin
+        try
+          CreateDir(GameDir+'/wads/downloads');
+        except
+        end;
         fname := GameDir+'/wads/downloads/'+tf.diskName;
         e_LogWritefln('downloading resource `%s` to `%s`...', [tf.diskName, fname]);
         try
