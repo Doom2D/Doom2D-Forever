@@ -790,7 +790,9 @@ var
 procedure ProcessLoading (forceUpdate: Boolean=false);
 var
   ev: TSDL_Event;
+{$IFNDEF HEADLESS}
   stt: UInt64;
+{$ENDIF}
 begin
   FillChar(ev, sizeof(ev), 0);
   wLoadingProgress := true;

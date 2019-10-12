@@ -295,7 +295,9 @@ implementation
   end;
 
   procedure g_Touch_Draw;
+{$IFNDEF HEADLESS}
     var i, x, y, w, h: Integer; founded: Boolean;
+{$ENDIF}
   begin
 {$IFNDEF HEADLESS}
     if not g_touch_enabled then
