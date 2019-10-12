@@ -64,7 +64,7 @@ uses
 
 
 const
-  ProgressUpdateMSecs = 1;//100;
+  ProgressUpdateMSecs = 35; //1;//100;
 
 var
   h_Wnd: PSDL_Window = nil;
@@ -782,8 +782,10 @@ begin
 end;
 
 
+{$IFNDEF HEADLESS}
 var
   prevLoadingUpdateTime: UInt64 = 0;
+{$ENDIF}
 
 procedure ProcessLoading (forceUpdate: Boolean=false);
 var
@@ -806,23 +808,15 @@ begin
     exit;
   end;
 
+{$IFNDEF HEADLESS}
   if not wMinimized then
   begin
-    if forceUpdate then
-    begin
-      prevLoadingUpdateTime := getTimeMilli();
-    end
-    else
+    if not forceUpdate then
     begin
       stt := getTimeMilli();
-      if (stt < prevLoadingUpdateTime) or (stt-prevLoadingUpdateTime >= ProgressUpdateMSecs) then
-      begin
-        prevLoadingUpdateTime := stt;
-        forceUpdate := true;
-      end;
+      forceUpdate := (stt < prevLoadingUpdateTime) or (stt-prevLoadingUpdateTime >= ProgressUpdateMSecs);
     end;
 
-{$IFNDEF HEADLESS}
     if forceUpdate then
     begin
       DrawMenuBackground('INTER');
@@ -831,9 +825,10 @@ begin
       DrawLoadingStat();
       g_Console_Draw(True);
       SwapBuffers();
+      prevLoadingUpdateTime := getTimeMilli();
     end;
-{$ENDIF}
   end;
+{$ENDIF}
 
   e_SoundUpdate();
 
