@@ -57,6 +57,12 @@
   {$ERROR Sound driver not selected. Use -dUSE_SOUNDSTUB or -dUSE_SDLMIXER or -dUSE_FMOD or -dUSE_OPENAL}
 {$ENDIF}
 
+{$IFDEF HEADLESS}
+  {$IFNDEF USE_SYSSTUB}
+    {$ERROR Using system driver has no sense for headless build. Use -dUSE_SYSSTUB instead}
+  {$ENDIF}
+{$ENDIF}
+
 {$IFDEF ENABLE_HOLMES}
   {$IFDEF HEADLESS}
     {$ERROR Holmes in HEADLESS mode has no sense}
