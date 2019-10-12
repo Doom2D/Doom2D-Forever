@@ -178,8 +178,8 @@ begin
     NET_MSG_RCON_AUTH: MH_RECV_RCONPassword(S, NetMsg);
     NET_MSG_RCON_CMD:  MH_RECV_RCONCommand(S, NetMsg);
 
-    NET_MSG_MAP_REQUEST: MH_RECV_MapRequest(S, NetMsg);
-    NET_MSG_RES_REQUEST: MH_RECV_ResRequest(S, NetMsg);
+    //NET_MSG_MAP_REQUEST: MH_RECV_MapRequest(S, NetMsg);
+    //NET_MSG_RES_REQUEST: MH_RECV_ResRequest(S, NetMsg);
 
     NET_MSG_VOTE_EVENT: MH_RECV_Vote(S, NetMsg);
   end;

@@ -163,8 +163,8 @@ procedure MH_RECV_PlayerSettings(C: pTNetClient; var M: TMsg);
 procedure MH_RECV_CheatRequest(C: pTNetClient; var M: TMsg);
 procedure MH_RECV_RCONPassword(C: pTNetClient; var M: TMsg);
 procedure MH_RECV_RCONCommand(C: pTNetClient; var M: TMsg);
-procedure MH_RECV_MapRequest(C: pTNetClient; var M: TMsg);
-procedure MH_RECV_ResRequest(C: pTNetClient; var M: TMsg);
+//procedure MH_RECV_MapRequest(C: pTNetClient; var M: TMsg);
+//procedure MH_RECV_ResRequest(C: pTNetClient; var M: TMsg);
 procedure MH_RECV_Vote(C: pTNetClient; var M: TMsg);
 
 // GAME
@@ -265,8 +265,8 @@ procedure MC_SEND_RCONPassword(Password: string);
 procedure MC_SEND_RCONCommand(Cmd: string);
 procedure MC_SEND_Vote(Start: Boolean = False; Command: string = 'a');
 // DOWNLOAD
-procedure MC_SEND_MapRequest();
-procedure MC_SEND_ResRequest(const resName: AnsiString);
+//procedure MC_SEND_MapRequest();
+//procedure MC_SEND_ResRequest(const resName: AnsiString);
 
 
 type
@@ -3130,6 +3130,7 @@ begin
   Result := True;
 end;
 
+{
 procedure MC_SEND_MapRequest();
 begin
   NetOut.Write(Byte(NET_MSG_MAP_REQUEST));
@@ -3152,41 +3153,6 @@ begin
   e_WriteLog('NET: Received map request from ' +
              DecodeIPV4(C^.Peer.address.host), TMsgType.Notify);
 
-  (*
-  omsg.Alloc(NET_BUFSIZE);
-  try
-    omsg.Clear();
-    dfn := findDiskWad(MapsDir+gGameSettings.WAD);
-    if (dfn = '') then dfn := '!wad_not_found!.wad'; //FIXME
-    md5 := MD5File(dfn);
-    st := openDiskFileRO(dfn);
-    if not assigned(st) then exit; //wtf?!
-    size := st.size;
-    st.Free;
-    // packet type
-    omsg.Write(Byte({NTF_SERVER_MAP_INFO}NET_MSG_MAP_RESPONSE));
-    // map wad name
-    omsg.Write(gGameSettings.WAD);
-    // map wad md5
-    omsg.Write(md5);
-    // map wad size
-    omsg.Write(size);
-    // number of external resources for map
-    omsg.Write(LongInt(gExternalResources.Count));
-    // external resource names
-    for f := 0 to gExternalResources.Count-1 do
-    begin
-      omsg.Write(ExtractFileName(gExternalResources[f])); // GameDir+'/wads/'+ResList.Strings[i]
-    end;
-    // send packet
-    pkt := enet_packet_create(omsg.Data, omsg.CurSize, ENET_PACKET_FLAG_RELIABLE);
-    if not Assigned(pkt) then exit;
-    peer := NetClients[C^.ID].Peer;
-    if (enet_peer_send(Peer, NET_CHAN_DOWNLOAD_EX, pkt) <> 0) then exit;
-  finally
-    omsg.Free();
-  end;
-  *)
   mapDataMsg := CreateMapDataMsg(MapsDir + gGameSettings.WAD, gExternalResources);
   peer := NetClients[C^.ID].Peer;
 
@@ -3227,6 +3193,7 @@ begin
     g_Net_SendData(payload, peer, True, NET_CHAN_DOWNLOAD);
   end;
 end;
+}
 
 
 end.
