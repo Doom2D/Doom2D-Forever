@@ -166,11 +166,11 @@ begin
   //SetLength(mapData.ExternalResources, 0);
   result := '';
   g_Res_ClearReplacementWads();
-  g_Res_received_map_start := false;
 
   resList := TStringList.Create();
 
   try
+    g_Res_received_map_start := 1;
     g_Console_Add(Format(_lc[I_NET_MAP_DL], [FileName]));
     e_WriteLog('Downloading map `' + FileName + '` from server', TMsgType.Notify);
     g_Game_SetLoadingText(FileName + '...', 0, False);
@@ -338,6 +338,7 @@ begin
     end;
   finally
     resList.Free;
+    g_Res_received_map_start := 0;
   end;
 end;
 

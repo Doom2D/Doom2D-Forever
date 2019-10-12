@@ -1691,6 +1691,7 @@ var
   i1, i2: TStrings_Locale;
   pln: String;
   cnt: Byte;
+  goodCmd: Boolean = true;
 begin
   FillChar(EvHash, Sizeof(EvHash), 0);
   EvType := M.ReadByte();
@@ -1706,35 +1707,60 @@ begin
 
   gTime := EvTime;
 
+  if (g_Res_received_map_start <> 0) then
+  begin
+    if (g_Res_received_map_start < 0) then exit;
+    goodCmd := false;
+    case EvType of
+      NET_EV_MAPSTART: goodCmd := true;
+      NET_EV_MAPEND: goodCmd := true;
+      NET_EV_PLAYER_KICK: goodCmd := true;
+      NET_EV_PLAYER_BAN: goodCmd := true;
+    end;
+    if not goodCmd then exit;
+  end;
+
   case EvType of
     NET_EV_MAPSTART:
     begin
-      g_Res_received_map_start := true;
-      gGameOn := False;
-      g_Game_ClearLoading();
-      g_Game_StopAllSounds(True);
-
-      gSwitchGameMode := Byte(EvNum);
-      gGameSettings.GameMode := gSwitchGameMode;
-
-      gWADHash := EvHash;
-      if not g_Game_StartMap(EvStr, True) then
+      if (g_Res_received_map_start <> 0) then
       begin
-        if not isWadPath(EvStr) then
-          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [gGameSettings.WAD + ':\' + EvStr]))
-        else
-          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [EvStr]));
-        Exit;
-      end;
+        g_Res_received_map_start := -1;
+      end
+      else
+      begin
+        gGameOn := False;
+        g_Game_ClearLoading();
+        g_Game_StopAllSounds(True);
 
-      MC_SEND_FullStateRequest;
+        gSwitchGameMode := Byte(EvNum);
+        gGameSettings.GameMode := gSwitchGameMode;
+
+        gWADHash := EvHash;
+        if not g_Game_StartMap(EvStr, True) then
+        begin
+          if not isWadPath(EvStr) then
+            g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [gGameSettings.WAD + ':\' + EvStr]))
+          else
+            g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [EvStr]));
+          Exit;
+        end;
+
+        MC_SEND_FullStateRequest;
+      end;
     end;
 
     NET_EV_MAPEND:
     begin
-      g_Res_received_map_start := true;
-      gMissionFailed := EvNum <> 0;
-      gExit := EXIT_ENDLEVELCUSTOM;
+      if (g_Res_received_map_start <> 0) then
+      begin
+        g_Res_received_map_start := -1;
+      end
+      else
+      begin
+        gMissionFailed := EvNum <> 0;
+        gExit := EXIT_ENDLEVELCUSTOM;
+      end;
     end;
 
     NET_EV_RCON:
@@ -1758,10 +1784,16 @@ begin
     end;
 
     NET_EV_PLAYER_KICK:
-      g_Console_Add(Format(_lc[I_PLAYER_KICK], [EvStr]), True);
+      begin
+        g_Console_Add(Format(_lc[I_PLAYER_KICK], [EvStr]), True);
+        if (g_Res_received_map_start <> 0) then g_Res_received_map_start := -1;
+      end;
 
     NET_EV_PLAYER_BAN:
-      g_Console_Add(Format(_lc[I_PLAYER_BAN], [EvStr]), True);
+      begin
+        g_Console_Add(Format(_lc[I_PLAYER_BAN], [EvStr]), True);
+        if (g_Res_received_map_start <> 0) then g_Res_received_map_start := -1;
+      end;
 
     NET_EV_LMS_WARMUP:
       g_Console_Add(Format(_lc[I_MSG_WARMUP_START], [EvNum]), True);

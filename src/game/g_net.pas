@@ -182,7 +182,7 @@ var
 
   NetDumpFile: TStream;
 
-  g_Res_received_map_start: Boolean = false; // set if we received "map change" event
+  g_Res_received_map_start: Integer = 0; // set if we received "map change" event
 
 
 function  g_Net_Init(): Boolean;
@@ -1603,7 +1603,7 @@ begin
                 //e_LogWritefln('g_Net_Wait_MapInfo: skip message from non-transfer channel', []);
                 freePacket := false;
                 g_Net_Client_HandlePacket(ev.packet, g_Net_ClientLightMsgHandler);
-                if (g_Res_received_map_start) then begin result := -666; exit; end;
+                if (g_Res_received_map_start < 0) then begin result := -666; exit; end;
               end
               else
               begin
@@ -1768,7 +1768,7 @@ begin
                 //e_LogWriteln('g_Net_Wait_Event: skip message from non-transfer channel');
                 freePacket := false;
                 g_Net_Client_HandlePacket(ev.packet, g_Net_ClientLightMsgHandler);
-                if (g_Res_received_map_start) then begin result := -666; exit; end;
+                if (g_Res_received_map_start < 0) then begin result := -666; exit; end;
               end
               else
               begin
@@ -1947,7 +1947,7 @@ begin
                 //e_LogWritefln('g_Net_Wait_Event: skip message from non-transfer channel', []);
                 freePacket := false;
                 g_Net_Client_HandlePacket(ev.packet, g_Net_ClientLightMsgHandler);
-                if (g_Res_received_map_start) then begin result := -666; exit; end;
+                if (g_Res_received_map_start < 0) then begin result := -666; exit; end;
               end
               else
               begin
