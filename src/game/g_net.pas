@@ -90,6 +90,7 @@ type
     lastAckTime: Int64; // msecs; if not "in progress", we're waiting for the first ack
     inProgress: Boolean;
     diskBuffer: PChar; // of `chunkSize` bytes
+    resumed: Boolean;
   end;
 
   TNetClient = record
@@ -1885,17 +1886,28 @@ var
   chunk: Integer;
   csize: Integer;
   buf: PChar = nil;
+  resumed: Boolean;
   //stx: Int64;
 begin
+  tf.resumed := false;
+  e_LogWritefln('file `%s`, size=%d (%d)', [tf.diskName, Integer(strm.size), tf.size], TMsgType.Notify);
+  // check if we should resume downloading
+  resumed := (strm.size > tf.chunkSize) and (strm.size < tf.size);
   // send request
   trans_omsg.Clear();
   trans_omsg.Write(Byte(NTF_CLIENT_START));
-  trans_omsg.Write(LongInt(0));
+  if resumed then chunk := strm.size div tf.chunkSize else chunk := 0;
+  trans_omsg.Write(LongInt(chunk));
   if not ftransSendClientMsg(trans_omsg) then begin result := -1; exit; end;
 
+  strm.Seek(chunk*tf.chunkSize, soFromBeginning);
   chunkTotal := (tf.size+tf.chunkSize-1) div tf.chunkSize;
   e_LogWritefln('receiving file `%s` (%d chunks)', [tf.diskName, chunkTotal], TMsgType.Notify);
   g_Game_SetLoadingText('downloading "'+ExtractFileName(tf.diskName)+'"', chunkTotal, False);
+  tf.resumed := resumed;
+
+  if (chunk > 0) then g_Game_StepLoading(chunk);
+  nextChunk := chunk;
 
   // wait for reply data
   FillChar(ev, SizeOf(ev), 0);

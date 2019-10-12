@@ -161,6 +161,7 @@ var
   strm: TStream;
   fname: AnsiString;
   wadname: AnsiString;
+  md5: TMD5Digest;
 begin
   //SetLength(mapData.ExternalResources, 0);
   result := '';
@@ -199,7 +200,7 @@ begin
       end;
       fname := GameDir+'/maps/downloads/'+FileName;
       try
-        strm := createDiskFile(fname);
+        strm := openDiskFileRW(fname);
       except
         e_WriteLog('cannot create map file `'+FileName+'`', TMsgType.Fatal);
         result := '';
@@ -220,6 +221,39 @@ begin
         e_WriteLog('error downloading map file `'+FileName+'`', TMsgType.Fatal);
         result := '';
         exit;
+      end;
+      // if it was resumed, check md5 and initiate full download if necessary
+      if tf.resumed then
+      begin
+        md5 := MD5File(fname);
+        // sorry for pasta, i am asshole
+        if not MD5Match(md5, tf.hash) then
+        begin
+          e_LogWritefln('resuming failed; downloading map `%s` from scratch...', [fname]);
+          try
+            DeleteFile(fname);
+            strm := createDiskFile(fname);
+          except
+            e_WriteLog('cannot create map file `'+fname+'`', TMsgType.Fatal);
+            result := '';
+            exit;
+          end;
+          try
+            res := g_Net_ReceiveResourceFile(-1{map}, tf, strm);
+          except
+            e_WriteLog('error downloading map file `'+FileName+'`', TMsgType.Fatal);
+            strm.Free;
+            result := '';
+            exit;
+          end;
+          strm.Free;
+          if (res <> 0) then
+          begin
+            e_WriteLog('error downloading map file `'+FileName+'`', TMsgType.Fatal);
+            result := '';
+            exit;
+          end;
+        end;
       end;
       result := fname;
     end;
@@ -245,7 +279,7 @@ begin
         fname := GameDir+'/wads/downloads/'+tf.diskName;
         e_LogWritefln('downloading resource `%s` to `%s`...', [tf.diskName, fname]);
         try
-          strm := createDiskFile(fname);
+          strm := openDiskFileRW(fname);
         except
           e_WriteLog('cannot create resource file `'+fname+'`', TMsgType.Fatal);
           result := '';
@@ -265,6 +299,39 @@ begin
           e_WriteLog('error downloading map file `'+FileName+'`', TMsgType.Fatal);
           result := '';
           exit;
+        end;
+        // if it was resumed, check md5 and initiate full download if necessary
+        if tf.resumed then
+        begin
+          md5 := MD5File(fname);
+          // sorry for pasta, i am asshole
+          if not MD5Match(md5, tf.hash) then
+          begin
+            e_LogWritefln('resuming failed; downloading resource `%s` to `%s` from scratch...', [tf.diskName, fname]);
+            try
+              DeleteFile(fname);
+              strm := createDiskFile(fname);
+            except
+              e_WriteLog('cannot create resource file `'+fname+'`', TMsgType.Fatal);
+              result := '';
+              exit;
+            end;
+            try
+              res := g_Net_ReceiveResourceFile(f, tf, strm);
+            except
+              e_WriteLog('error downloading map file `'+FileName+'`', TMsgType.Fatal);
+              strm.Free;
+              result := '';
+              exit;
+            end;
+            strm.Free;
+            if (res <> 0) then
+            begin
+              e_WriteLog('error downloading map file `'+FileName+'`', TMsgType.Fatal);
+              result := '';
+              exit;
+            end;
+          end;
         end;
         g_Res_PutReplacementWad(tf.diskName, fname);
       end;

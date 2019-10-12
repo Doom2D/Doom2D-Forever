@@ -110,6 +110,8 @@ function isWadNamesEqu (wna, wnb: AnsiString): Boolean;
 // they throws
 function openDiskFileRO (pathname: AnsiString): TStream;
 function createDiskFile (pathname: AnsiString): TStream;
+// creates file if necessary
+function openDiskFileRW (pathname: AnsiString): TStream;
 
 // little endian
 procedure writeSign (st: TStream; const sign: AnsiString);
@@ -1214,6 +1216,30 @@ begin
     if not findFileCI(path, true) then raise Exception.Create('can''t create file "'+pathname+'"');
   end;
   result := TFileStream.Create(path+ExtractFileName(pathname), fmCreate);
+end;
+
+
+function openDiskFileRW (pathname: AnsiString): TStream;
+var
+  path: AnsiString;
+  oldname: AnsiString;
+begin
+  //writeln('*** TRYING R/W FILE "', pathname, '"');
+  path := ExtractFilePath(pathname);
+  if length(path) > 0 then
+  begin
+    if not findFileCI(path, true) then raise Exception.Create('can''t create file "'+pathname+'"');
+  end;
+  oldname := pathname;
+  if findFileCI(oldname) then
+  begin
+    //writeln('*** found old file "', oldname, '"');
+    result := TFileStream.Create(oldname, fmOpenReadWrite or fmShareDenyWrite);
+  end
+  else
+  begin
+    result := TFileStream.Create(path+ExtractFileName(pathname), fmCreate);
+  end;
 end;
 
 
