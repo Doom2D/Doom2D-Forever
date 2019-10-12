@@ -39,15 +39,18 @@ interface
 
 implementation
 
+  uses SysUtils;
+
   (* --------- Utils --------- *)
 
   function sys_GetTicks (): Int64;
   begin
-    Result := 0
+    Result := Round(TimeStampToMSecs(DateTimeToTimeStamp(Now())))
   end;
 
   procedure sys_Delay (ms: Integer);
   begin
+    Sleep(ms)
   end;
 
   (* --------- Graphics --------- *)

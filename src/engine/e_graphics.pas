@@ -1504,8 +1504,10 @@ end;
 procedure e_TextureFontBuild(Tex: DWORD; var FontID: DWORD; XCount, YCount: Word;
                              Space: ShortInt=0);
 var
+{$IF not DEFINED(USE_NANOGL) and not DEFINED(USE_NOGL)}
   loop1 : GLuint;
   cx, cy : real;
+{$ENDIF}
   i, id: DWORD;
 begin
  if e_NoGraphics then Exit;

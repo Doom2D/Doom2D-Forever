@@ -55,8 +55,6 @@ var
   flag: Boolean;
   wNeedTimeReset: Boolean = false;
   wMinimized: Boolean = false;
-  wMaximized: Boolean = false;
-  wLoadingProgress: Boolean = false;
   wLoadingQuit: Boolean = false;
 
 procedure ResetTimer ();
@@ -70,27 +68,13 @@ var
 {$ENDIF}
 
 procedure ProcessLoading (forceUpdate: Boolean=false);
-var
 {$IFNDEF HEADLESS}
-//  ev: TSDL_Event;
+var
   stt: UInt64;
 {$ENDIF}
 begin
-//  FillChar(ev, sizeof(ev), 0);
-  wLoadingProgress := true;
-
-//  while (SDL_PollEvent(@ev) > 0) do
-//  begin
-//    EventHandler(ev);
-//    if (ev.type_ = SDL_QUITEV) then break;
-//  end;
-  //e_PollJoysticks();
-
-//  if (ev.type_ = SDL_QUITEV) or (gExit = EXIT_QUIT) then
-//  begin
-//    wLoadingProgress := false;
-//    exit;
-//  end;
+  if sys_HandleInput() = True then
+    Exit;
 
 {$IFNDEF HEADLESS}
   if not wMinimized then
@@ -124,8 +108,6 @@ begin
   begin
     if (NetMode = NET_CLIENT) and (NetState <> NET_STATE_AUTH) then g_Net_Client_UpdateWhileLoading();
   end;
-
-  wLoadingProgress := false;
 end;
 
 
@@ -246,9 +228,6 @@ end;
 function SDLMain (): Integer;
 var
   idx: Integer;
-  {$IF not DEFINED(HEADLESS)}
-  ltmp: Integer;
-  {$ENDIF}
   arg: AnsiString;
   mdfo: TStream;
   {$IFDEF ENABLE_HOLMES}
@@ -343,8 +322,12 @@ begin
     end;
   end;
 
+{$IFDEF USE_SYSSTUB}
   PrintGLSupportedExtensions;
   glLegacyNPOT := GLExtensionSupported('GL_ARB_texture_non_power_of_two') or GLExtensionSupported('GL_OES_texture_npot');
+{$ELSE}
+  glLegacyNPOT := False;
+{$ENDIF}
   e_logWritefln('NPOT textures: %s', [glLegacyNPOT]);
   gwin_dump_extensions := false;
 

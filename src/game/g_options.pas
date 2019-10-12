@@ -182,7 +182,6 @@ end;
 {$ELSE}
 procedure g_Options_SetDefaultVideo;
 begin
-  {$WARNING stub}
   gScreenWidth := 640;
   gScreenHeight := 480;
   gBPP := 32;

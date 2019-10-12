@@ -35,8 +35,8 @@ implementation
     es_glEnableClientState: procedure (arr: GLenum); cdecl;
     es_glDisableClientState: procedure (arr: GLenum); cdecl;
     es_glDrawArrays: procedure (mode: GLenum; first: GLint; count: GLsizei); cdecl;
-    es_glActiveTexture: procedure(texture: GLenum); cdecl;
-    es_glClientActiveTexture: procedure(texture: GLenum); cdecl;
+//    es_glActiveTexture: procedure(texture: GLenum); cdecl;
+//    es_glClientActiveTexture: procedure(texture: GLenum); cdecl;
     es_glColor4f: procedure(red, green, blue, alpha: GLfloat); cdecl;
 
     es_glEnable: procedure (cap: GLenum); cdecl;
@@ -160,7 +160,6 @@ implementation
   end;
 
   procedure glEnd;
-    var count: Integer;
   begin
     assert(cmds.mode <> GL_INVALID_ENUM);
     assert(Length(cmds.v) mod ValPerVertex = 0);
@@ -414,8 +413,8 @@ implementation
     es_glEnableClientState := SDL_GL_GetProcAddress('glEnableClientState');
     es_glDisableClientState := SDL_GL_GetProcAddress('glDisableClientState');
     es_glDrawArrays := SDL_GL_GetProcAddress('glDrawArrays');
-    es_glActiveTexture := SDL_GL_GetProcAddress('glActiveTexture');
-    es_glClientActiveTexture := SDL_GL_GetProcAddress('glClientActiveTexture');
+//    es_glActiveTexture := SDL_GL_GetProcAddress('glActiveTexture');
+//    es_glClientActiveTexture := SDL_GL_GetProcAddress('glClientActiveTexture');
     es_glColor4f := SDL_GL_GetProcAddress('glColor4f');
 
     es_glEnable := SDL_GL_GetProcAddress('glEnable');
@@ -470,8 +469,8 @@ implementation
     es_glEnableClientState := nil;
     es_glDisableClientState := nil;
     es_glDrawArrays := nil;
-    es_glActiveTexture := nil;
-    es_glClientActiveTexture := nil;
+//    es_glActiveTexture := nil;
+//    es_glClientActiveTexture := nil;
     es_glColor4f := nil;
 
     es_glEnable := nil;

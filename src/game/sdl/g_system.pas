@@ -142,7 +142,7 @@ implementation
     f.BitsPerPixel := bpp;
     f.BytesPerPixel := (bpp + 7) div 8;
     m := SDL_ListModes(@f, SDL_OPENGL or SDL_FULLSCREEN);
-    if (m <> NIL) and (IntPtr(m) <> -1) then
+    if (m <> NIL) and (UIntPtr(m) <> UIntPtr(-1)) then
     begin
       count := 0;
       while m[count] <> nil do inc(count);

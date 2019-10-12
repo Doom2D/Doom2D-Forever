@@ -53,10 +53,8 @@ var
   charbuff: packed array [0..15] of AnsiChar;
 
 procedure Main();
-var
-  sdlflags: LongWord;
-{$IF not DEFINED(HEADLESS) and DEFINED(ENABLE_HOLMES)}
-  flexloaded: Boolean;
+{$IFDEF ENABLE_HOLMES}
+  var flexloaded: Boolean;
 {$ENDIF}
 begin
   e_InitWritelnDriver();

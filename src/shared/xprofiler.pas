@@ -227,14 +227,6 @@ begin
   result := UInt64(r)*1000000 div mFrequency;
   {$ENDIF}
 end;
-(* !!!
-{$ELSEIF DEFINED(USE_SDL)}
-function getTimeMicro: UInt64; inline;
-begin
-  {$WARNING use inaccurate profiling timer}
-  result := SDL_GetTicks() * 1000
-end;
-*)
 {$ELSEIF DEFINED(USE_SDL2)}
 function getTimeMicro (): UInt64; inline;
 begin
@@ -243,7 +235,7 @@ end;
 {$ELSE}
 function getTimeMicro: UInt64; inline;
 begin
-  {$WARNING use stub profiling timer}
+  result := Round(TimeStampToMSecs(DateTimeToTimeStamp(Now())) * 1000);
 end;
 {$ENDIF}
 
