@@ -19,39 +19,65 @@ interface
 
 uses sysutils, Classes, md5, g_net, g_netmsg, g_console, g_main, e_log;
 
-function g_Res_SearchSameWAD(const path, filename: AnsiString; const resMd5: TMD5Digest): AnsiString;
 
 // download map wad from server (if necessary)
 // download all required map resource wads too
+// registers all required replacement wads
 // returns name of the map wad (relative to mapdir), or empty string on error
 function g_Res_DownloadMapWAD (FileName: AnsiString; const mapHash: TMD5Digest): AnsiString;
 
-// call this before downloading a new map from a server
-procedure g_Res_ClearReplacementWads ();
 // returns original name, or replacement name
 function g_Res_FindReplacementWad (oldname: AnsiString): AnsiString;
-procedure g_Res_PutReplacementWad (oldname: AnsiString; newDiskName: AnsiString);
 
 
 implementation
 
 uses g_language, sfs, utils, wadreader, g_game, hashtable;
 
-//const DOWNLOAD_DIR = 'downloads';
-
 var
+  // cvars
+  g_res_ignore_names: AnsiString = 'standard;shrshade';
+  g_res_ignore_enabled: Boolean = true;
+  // other vars
   replacements: THashStrStr = nil;
 
 
-// call this before downloading a new map from a server
-procedure g_Res_ClearReplacementWads ();
+//==========================================================================
+//
+//  clearReplacementWads
+//
+//  call this before downloading a new map from a server
+//
+//==========================================================================
+procedure clearReplacementWads ();
 begin
   if assigned(replacements) then replacements.clear();
   e_LogWriteln('cleared replacement wads');
 end;
 
 
-// returns original name, or replacement name
+//==========================================================================
+//
+//  addReplacementWad
+//
+//  register new replacement wad
+//
+//==========================================================================
+procedure addReplacementWad (oldname: AnsiString; newDiskName: AnsiString);
+begin
+  e_LogWritefln('adding replacement wad: oldname=%s; newname=%s', [oldname, newDiskName]);
+  if not assigned(replacements) then replacements := THashStrStr.Create();
+  replacements.put(toLowerCase1251(oldname), newDiskName);
+end;
+
+
+//==========================================================================
+//
+//  g_Res_FindReplacementWad
+//
+//  returns original name, or replacement name
+//
+//==========================================================================
 function g_Res_FindReplacementWad (oldname: AnsiString): AnsiString;
 var
   fn: AnsiString;
@@ -62,14 +88,16 @@ begin
 end;
 
 
-procedure g_Res_PutReplacementWad (oldname: AnsiString; newDiskName: AnsiString);
-begin
-  e_LogWritefln('adding replacement wad: oldname=%s; newname=%s', [oldname, newDiskName]);
-  if not assigned(replacements) then replacements := THashStrStr.Create();
-  replacements.put(toLowerCase1251(oldname), newDiskName);
-end;
-
-
+//==========================================================================
+//
+//  scanDir
+//
+//  look for a wad to match the hash
+//  scans subdirs, ignores known wad extensions
+//
+//  returns found wad disk name, or empty string
+//
+//==========================================================================
 function scanDir (dirName: AnsiString; baseName: AnsiString; const resMd5: TMD5Digest): AnsiString;
 var
   searchResult: TSearchRec;
@@ -132,27 +160,47 @@ begin
 end;
 
 
-function g_Res_SearchResWad (asMap: Boolean; fname: AnsiString; const resMd5: TMD5Digest): AnsiString;
+//==========================================================================
+//
+//  findExistingMapWadWithHash
+//
+//  find map or resource wad using its base name and hash
+//
+//  returns found wad disk name, or empty string
+//
+//==========================================================================
+function findExistingMapWadWithHash (fname: AnsiString; const resMd5: TMD5Digest): AnsiString;
 begin
-  result := '';
-  //if not assigned(scannedDirs) then scannedDirs := THashStrInt.Create();
-  if (asMap) then
-  begin
-    result := scanDir(GameDir+'/maps', ExtractFileName(fname), resMd5);
-  end
-  else
-  begin
-    result := scanDir(GameDir+'/wads', ExtractFileName(fname), resMd5);
-  end;
+  result := scanDir(GameDir+'/maps', ExtractFileName(fname), resMd5);
 end;
 
 
-function g_Res_SearchSameWAD (const path, filename: AnsiString; const resMd5: TMD5Digest): AnsiString;
+//==========================================================================
+//
+//  findExistingResWadWithHash
+//
+//  find map or resource wad using its base name and hash
+//
+//  returns found wad disk name, or empty string
+//
+//==========================================================================
+function findExistingResWadWithHash (fname: AnsiString; const resMd5: TMD5Digest): AnsiString;
 begin
-  result := scanDir(path, filename, resMd5);
+  result := scanDir(GameDir+'/wads', ExtractFileName(fname), resMd5);
 end;
 
 
+//==========================================================================
+//
+//  g_Res_DownloadMapWAD
+//
+//  download map wad from server (if necessary)
+//  download all required map resource wads too
+//  registers all required replacement wads
+//
+//  returns name of the map wad (relative to mapdir), or empty string on error
+//
+//==========================================================================
 function g_Res_DownloadMapWAD (FileName: AnsiString; const mapHash: TMD5Digest): AnsiString;
 var
   tf: TNetFileTransfer;
@@ -163,9 +211,8 @@ var
   wadname: AnsiString;
   md5: TMD5Digest;
 begin
-  //SetLength(mapData.ExternalResources, 0);
   result := '';
-  g_Res_ClearReplacementWads();
+  clearReplacementWads();
 
   resList := TStringList.Create();
 
@@ -174,7 +221,6 @@ begin
     g_Console_Add(Format(_lc[I_NET_MAP_DL], [FileName]));
     e_WriteLog('Downloading map `' + FileName + '` from server', TMsgType.Notify);
     g_Game_SetLoadingText(FileName + '...', 0, False);
-    //MC_SEND_MapRequest();
     if (not g_Net_SendMapRequest()) then exit;
 
     FileName := ExtractFileName(FileName);
@@ -183,7 +229,7 @@ begin
     if (res <> 0) then exit;
 
     // find or download a map
-    result := g_Res_SearchResWad(true{asMap}, tf.diskName, mapHash);
+    result := findExistingMapWadWithHash(tf.diskName, mapHash);
     if (length(result) = 0) then
     begin
       // download map
@@ -263,12 +309,12 @@ begin
     begin
       res := g_Net_RequestResFileInfo(f, tf);
       if (res <> 0) then begin result := ''; exit; end;
-      wadname := g_Res_SearchResWad(false{asMap}, tf.diskName, tf.hash);
+      wadname := findExistingResWadWithHash(tf.diskName, tf.hash);
       if (length(wadname) <> 0) then
       begin
         // already here
         g_Net_AbortResTransfer(tf);
-        g_Res_PutReplacementWad(tf.diskName, wadname);
+        addReplacementWad(tf.diskName, wadname);
       end
       else
       begin
@@ -333,7 +379,7 @@ begin
             end;
           end;
         end;
-        g_Res_PutReplacementWad(tf.diskName, fname);
+        addReplacementWad(tf.diskName, fname);
       end;
     end;
   finally
@@ -343,4 +389,7 @@ begin
 end;
 
 
+initialization
+  conRegVar('rdl_ignore_names', @g_res_ignore_names, 'list of resource wad names (without extensions) to ignore in dl hash checks', 'dl ignore wads');
+  conRegVar('rdl_ignore_enabled', @g_res_ignore_enabled, 'enable dl hash check ignore list', 'dl hash check ignore list active');
 end.
