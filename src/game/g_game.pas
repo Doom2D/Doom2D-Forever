@@ -5013,6 +5013,7 @@ var
   gWAD: String;
 begin
   if not g_Game_IsClient then Exit;
+  //e_LogWritefln('*** g_Game_ClientWAD: `%s`', [NewWAD]);
 
   gWAD := g_Res_DownloadMapWAD(ExtractFileName(NewWAD), WHash);
   if gWAD = '' then
