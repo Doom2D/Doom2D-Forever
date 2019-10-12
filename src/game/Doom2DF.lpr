@@ -141,6 +141,7 @@ uses
   xprofiler in '../shared/xprofiler.pas',
   binheap in '../shared/binheap.pas',
   hashtable in '../shared/hashtable.pas',
+  fhashdb in '../shared/fhashdb.pas',
   idpool in '../shared/idpool.pas',
   xparser in '../shared/xparser.pas',
   xdynrec in '../shared/xdynrec.pas',
