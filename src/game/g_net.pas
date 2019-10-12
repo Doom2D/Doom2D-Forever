@@ -1459,64 +1459,6 @@ begin
             e_KeyPressed(JOY3_JUMP)
 end;
 
-{
-function g_Net_Wait_Event(msgId: Word): TMemoryStream;
-  var
-    ev: ENetEvent;
-    rMsgId: Byte;
-    Ptr: Pointer;
-    stream: TMemoryStream;
-    status: cint;
-begin
-  FillChar(ev, SizeOf(ev), 0);
-  stream := nil;
-  repeat
-    status := enet_host_service(NetHost, @ev, Trunc(g_Net_DownloadTimeout * 1000));
-    if status > 0 then
-    begin
-      case ev.kind of
-        ENET_EVENT_TYPE_RECEIVE:
-          begin
-            Ptr := ev.packet^.data;
-            rMsgId := Byte(Ptr^);
-            if rMsgId = msgId then
-            begin
-              stream := TMemoryStream.Create;
-              stream.SetSize(ev.packet^.dataLength);
-              stream.WriteBuffer(Ptr^, ev.packet^.dataLength);
-              stream.Seek(0, soFromBeginning);
-              status := 1 (* received *)
-            end
-            else
-            begin
-              (* looks that game state always received, so ignore it *)
-              e_LogWritefln('g_Net_Wait_Event(%s): skip message %s', [msgId, rMsgId]);
-              status := 2 (* continue *)
-            end
-          end;
-      ENET_EVENT_TYPE_DISCONNECT:
-        begin
-          if (ev.data <= NET_DISC_MAX) then
-            g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' ' + _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + ev.data)], True);
-          status := -2 (* error: disconnected *)
-        end;
-      else
-        g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' unknown ENet event ' + IntToStr(Ord(ev.kind)), True);
-        status := -3 (* error: unknown event *)
-      end;
-      enet_packet_destroy(ev.packet)
-    end
-    else
-    begin
-      g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' timeout reached', True);
-      status := 0 (* error: timeout *)
-    end;
-    ProcessLoading(true);
-  until (status <> 2) or g_Net_UserRequestExit();
-  Result := stream
-end;
-}
-
 
 function getNewTimeoutEnd (): Int64;
 begin

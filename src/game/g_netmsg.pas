@@ -269,6 +269,7 @@ type
 function IsValidFileName(const S: String): Boolean;
 function IsValidFilePath(const S: String): Boolean;
 
+
 implementation
 
 uses
@@ -294,6 +295,33 @@ const
   //kBytePrev: Word = 0;
   //kDirPrev: TDirection = D_LEFT;
   //HostGameTime: Word = 0;
+
+
+function IsValidFileName(const S: String): Boolean;
+const
+  Forbidden: set of Char = ['<', '>', '|', '"', ':', '*', '?'];
+var
+  I: Integer;
+begin
+  Result := S <> '';
+  for I := 1 to Length(S) do
+    Result := Result and (not(S[I] in Forbidden));
+end;
+
+function IsValidFilePath(const S: String): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  if not IsValidFileName(S) then exit;
+  if FileExists(S) then exit;
+  I := LastDelimiter('\/', S);
+  if (I > 0) then
+    if (not DirectoryExists(Copy(S, 1, I-1))) then
+      exit;
+  Result := True;
+end;
+
 
 // HOST MESSAGES //
 
@@ -3002,207 +3030,6 @@ begin
 
   g_Net_Client_Send(True, NET_CHAN_SERVICE);
 end;
-
-// i have no idea why all this stuff is in here
-
-function ReadFile(const FileName: TFileName): AByte;
-var
-  FileStream : TStream;
-  fname: string;
-begin
-  e_WriteLog(Format('NETWORK: looking for file "%s"', [FileName]), TMsgType.Notify);
-  fname := findDiskWad(FileName);
-  if length(fname) = 0 then
-  begin
-    e_WriteLog(Format('NETWORK: file "%s" not found!', [FileName]), TMsgType.Fatal);
-    SetLength(Result, 0);
-    exit;
-  end;
-  e_WriteLog(Format('NETWORK: found file "%s"', [fname]), TMsgType.Notify);
-  Result := nil;
-  FileStream := openDiskFileRO(fname);
-  try
-    if FileStream.Size > 0 then
-    begin
-      SetLength(Result, FileStream.Size);
-      FileStream.Read(Result[0], FileStream.Size);
-    end;
-  finally
-    FileStream.Free;
-  end;
-end;
-
-{
-function CreateMapDataMsg(const FileName: TFileName; ResList: TStringList): TMapDataMsg;
-var
-  i: Integer;
-begin
-  Result.MsgId := NET_MSG_MAP_RESPONSE;
-  Result.FileData := ReadFile(FileName);
-  Result.FileSize := Length(Result.FileData);
-
-  SetLength(Result.ExternalResources, ResList.Count);
-  for i:=0 to ResList.Count-1 do
-  begin
-    Result.ExternalResources[i].Name := ResList.Strings[i];
-    Result.ExternalResources[i].md5 := MD5File(GameDir+'/wads/'+ResList.Strings[i]);
-  end;
-end;
-
-procedure ResDataMsgToBytes(var bytes: AByte; const ResData: TResDataMsg);
-var
-  ResultStream: TMemoryStream;
-begin
-  ResultStream := TMemoryStream.Create;
-
-  ResultStream.WriteBuffer(ResData.MsgId, SizeOf(ResData.MsgId)); //msgId
-  ResultStream.WriteBuffer(ResData.FileSize, SizeOf(ResData.FileSize));  //file size
-  ResultStream.WriteBuffer(ResData.FileData[0], ResData.FileSize);       //file data
-
-  SetLength(bytes, ResultStream.Size);
-  ResultStream.Seek(0, soFromBeginning);
-  ResultStream.ReadBuffer(bytes[0], ResultStream.Size);
-
-  ResultStream.Free;
-end;
-
-function ResDataFromMsgStream(msgStream: TMemoryStream):TResDataMsg;
-begin
-  msgStream.ReadBuffer(Result.MsgId, SizeOf(Result.MsgId));
-  msgStream.ReadBuffer(Result.FileSize, SizeOf(Result.FileSize));
-  SetLength(Result.FileData, Result.FileSize);
-  msgStream.ReadBuffer(Result.FileData[0], Result.FileSize);
-end;
-
-procedure MapDataMsgToBytes(var bytes: AByte; const MapDataMsg: TMapDataMsg);
-var
-  ResultStream: TMemoryStream;
-  resCount: Integer;
-begin
-  resCount := Length(MapDataMsg.ExternalResources);
-
-  ResultStream := TMemoryStream.Create;
-
-  ResultStream.WriteBuffer(MapDataMsg.MsgId, SizeOf(MapDataMsg.MsgId)); //msgId
-  ResultStream.WriteBuffer(MapDataMsg.FileSize, SizeOf(MapDataMsg.FileSize));  //file size
-  ResultStream.WriteBuffer(MapDataMsg.FileData[0], MapDataMsg.FileSize);       //file data
-
-  ResultStream.WriteBuffer(resCount, SizeOf(resCount));   //res count
-  ResultStream.WriteBuffer(MapDataMsg.ExternalResources[0], resCount*SizeOf(TExternalResourceInfo)); //res data
-
-  SetLength(bytes, ResultStream.Size);
-  ResultStream.Seek(0, soFromBeginning);
-  ResultStream.ReadBuffer(bytes[0], ResultStream.Size);
-
-  ResultStream.Free;
-end;
-
-function MapDataFromMsgStream(msgStream: TMemoryStream):TMapDataMsg;
-var
-  resCount: Integer;
-begin
-  msgStream.ReadBuffer(Result.MsgId, SizeOf(Result.MsgId));
-  msgStream.ReadBuffer(Result.FileSize, SizeOf(Result.FileSize));   //file size
-
-  SetLength(Result.FileData, Result.FileSize);
-  msgStream.ReadBuffer(Result.FileData[0], Result.FileSize);  //file data
-
-  msgStream.ReadBuffer(resCount, SizeOf(resCount));  //res count
-  SetLength(Result.ExternalResources, resCount);
-
-  msgStream.ReadBuffer(Result.ExternalResources[0], resCount * SizeOf(TExternalResourceInfo)); //res data
-end;
-}
-
-function IsValidFileName(const S: String): Boolean;
-const
-  Forbidden: set of Char = ['<', '>', '|', '"', ':', '*', '?'];
-var
-  I: Integer;
-begin
-  Result := S <> '';
-  for I := 1 to Length(S) do
-    Result := Result and (not(S[I] in Forbidden));
-end;
-
-function IsValidFilePath(const S: String): Boolean;
-var
-  I: Integer;
-begin
-  Result := False;
-  if not IsValidFileName(S) then exit;
-  if FileExists(S) then exit;
-  I := LastDelimiter('\/', S);
-  if (I > 0) then
-    if (not DirectoryExists(Copy(S, 1, I-1))) then
-      exit;
-  Result := True;
-end;
-
-{
-procedure MC_SEND_MapRequest();
-begin
-  NetOut.Write(Byte(NET_MSG_MAP_REQUEST));
-  g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
-end;
-
-procedure MC_SEND_ResRequest(const resName: AnsiString);
-begin
-  NetOut.Write(Byte(NET_MSG_RES_REQUEST));
-  NetOut.Write(resName);
-  g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
-end;
-
-procedure MH_RECV_MapRequest(C: pTNetClient; var M: TMsg);
-var
-  peer: pENetPeer;
-  payload: AByte;
-  mapDataMsg: TMapDataMsg;
-begin
-  e_WriteLog('NET: Received map request from ' +
-             DecodeIPV4(C^.Peer.address.host), TMsgType.Notify);
-
-  mapDataMsg := CreateMapDataMsg(MapsDir + gGameSettings.WAD, gExternalResources);
-  peer := NetClients[C^.ID].Peer;
-
-  MapDataMsgToBytes(payload, mapDataMsg);
-  g_Net_SendData(payload, peer, True, NET_CHAN_DOWNLOAD);
-
-  payload := nil;
-  mapDataMsg.FileData := nil;
-  mapDataMsg.ExternalResources := nil;
-end;
-
-procedure MH_RECV_ResRequest(C: pTNetClient; var M: TMsg);
-var
-  payload: AByte;
-  peer: pENetPeer;
-  FileName: String;
-  resDataMsg: TResDataMsg;
-begin
-  FileName := ExtractFileName(M.ReadString());
-  e_WriteLog('NET: Received res request: ' + FileName +
-             ' from ' + DecodeIPV4(C^.Peer.address.host), TMsgType.Notify);
-
-  if not IsValidFilePath(FileName) then
-  begin
-    e_WriteLog('Invalid filename: ' + FileName, TMsgType.Warning);
-    exit;
-  end;
-
-  peer := NetClients[C^.ID].Peer;
-
-  if gExternalResources.IndexOf(FileName) > -1 then
-  begin
-    resDataMsg.MsgId := NET_MSG_RES_RESPONSE;
-    resDataMsg.FileData := ReadFile(GameDir+'/wads/'+FileName);
-    resDataMsg.FileSize := Length(resDataMsg.FileData);
-
-    ResDataMsgToBytes(payload, resDataMsg);
-    g_Net_SendData(payload, peer, True, NET_CHAN_DOWNLOAD);
-  end;
-end;
-}
 
 
 end.
