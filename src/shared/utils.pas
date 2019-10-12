@@ -104,6 +104,8 @@ function findFileCI (var pathname: AnsiString; lastIsDir: Boolean=false): Boolea
 
 // return fixed AnsiString or empty AnsiString
 function findDiskWad (fname: AnsiString): AnsiString;
+// slashes must be normalized!
+function isWadNamesEqu (wna, wnb: AnsiString): Boolean;
 
 // they throws
 function openDiskFileRO (pathname: AnsiString): TStream;
@@ -1147,6 +1149,28 @@ end;
 
 
 const fileExtensions: array [0..6] of AnsiString = ('.dfz', '.wad', '.dfwad', '.pk3', '.pak', '.zip', '.dfzip');
+
+function isWadNamesEqu (wna, wnb: AnsiString): Boolean;
+var
+  ext, newExt: AnsiString;
+  found: Boolean;
+begin
+  result := StrEquCI1251(wna, wnb);
+  if result then exit;
+  // check first ext
+  ext := getFilenameExt(wna);
+  found := false;
+  for newExt in fileExtensions do if (StrEquCI1251(ext, newExt)) then begin found := true; break; end;
+  if not found then exit;
+  // check second ext
+  ext := getFilenameExt(wnb);
+  found := false;
+  for newExt in fileExtensions do if (StrEquCI1251(ext, newExt)) then begin found := true; break; end;
+  if not found then exit;
+  wna := forceFilenameExt(wna, '');
+  wnb := forceFilenameExt(wnb, '');
+  result := StrEquCI1251(wna, wnb);
+end;
 
 function findDiskWad (fname: AnsiString): AnsiString;
 var

@@ -37,118 +37,10 @@ implementation
 
 uses g_language, sfs, utils, wadreader, g_game, hashtable;
 
-const DOWNLOAD_DIR = 'downloads';
-
-type
-  TFileInfo = record
-    diskName: AnsiString; // lowercased
-    baseName: AnsiString; // lowercased
-    md5: TMD5Digest;
-    md5valid: Boolean;
-    nextBaseNameIndex: Integer;
-  end;
+//const DOWNLOAD_DIR = 'downloads';
 
 var
-  knownFiles: array of TFileInfo;
-  knownHash: THashStrInt = nil; // key: base name; value: index
-  scannedDirs: THashStrInt = nil; // key: lowercased dir name
   replacements: THashStrStr = nil;
-
-
-function findKnownFile (diskName: AnsiString): Integer;
-var
-  idx: Integer;
-  baseName: AnsiString;
-begin
-  result := -1;
-  if not assigned(knownHash) then exit;
-  if (length(diskName) = 0) then exit;
-  baseName := toLowerCase1251(ExtractFileName(diskName));
-  if (not knownHash.get(baseName, idx)) then exit;
-  if (idx < 0) or (idx >= length(knownFiles)) then raise Exception.Create('wutafuck?');
-  while (idx >= 0) do
-  begin
-    if (strEquCI1251(knownFiles[idx].diskName, diskName)) then begin result := idx; exit; end; // i found her!
-    idx := knownFiles[idx].nextBaseNameIndex;
-  end;
-end;
-
-
-function addKnownFile (diskName: AnsiString): Integer;
-var
-  idx: Integer;
-  lastIdx: Integer = -1;
-  baseName: AnsiString;
-  fi: ^TFileInfo;
-begin
-  result := -1;
-  if not assigned(knownHash) then knownHash := THashStrInt.Create();
-  if (length(diskName) = 0) then exit;
-  baseName := toLowerCase1251(ExtractFileName(diskName));
-  if (length(baseName) = 0) then exit;
-  // check if we already have this file
-  if (knownHash.get(baseName, idx)) then
-  begin
-    if (idx < 0) or (idx >= length(knownFiles)) then raise Exception.Create('wutafuck?');
-    while (idx >= 0) do
-    begin
-      if (strEquCI1251(knownFiles[idx].diskName, diskName)) then
-      begin
-        // already here
-        result := idx;
-        exit;
-      end;
-      lastIdx := idx;
-      idx := knownFiles[idx].nextBaseNameIndex;
-    end;
-  end;
-  // this file is not there, append it
-  idx := length(knownFiles);
-  result := idx;
-  SetLength(knownFiles, idx+1); // sorry
-  fi := @knownFiles[idx];
-  fi.diskName := diskName;
-  fi.baseName := baseName;
-  fi.md5valid := false;
-  fi.nextBaseNameIndex := -1;
-  if (lastIdx < 0) then
-  begin
-    // totally new one
-    knownHash.put(baseName, idx);
-  end
-  else
-  begin
-    knownFiles[lastIdx].nextBaseNameIndex := idx;
-  end;
-end;
-
-
-function getKnownFileWithMD5 (diskDir: AnsiString; baseName: AnsiString; const md5: TMD5Digest): AnsiString;
-var
-  idx: Integer;
-begin
-  result := '';
-  if not assigned(knownHash) then exit;
-  if (not knownHash.get(toLowerCase1251(baseName), idx)) then exit;
-  if (idx < 0) or (idx >= length(knownFiles)) then raise Exception.Create('wutafuck?');
-  while (idx >= 0) do
-  begin
-    if (strEquCI1251(knownFiles[idx].diskName, IncludeTrailingPathDelimiter(diskDir)+baseName)) then
-    begin
-      if (not knownFiles[idx].md5valid) then
-      begin
-        knownFiles[idx].md5 := MD5File(knownFiles[idx].diskName);
-        knownFiles[idx].md5valid := true;
-      end;
-      if (MD5Match(knownFiles[idx].md5, md5)) then
-      begin
-        result := knownFiles[idx].diskName;
-        exit;
-      end;
-    end;
-    idx := knownFiles[idx].nextBaseNameIndex;
-  end;
-end;
 
 
 // call this before downloading a new map from a server
@@ -178,106 +70,86 @@ begin
 end;
 
 
-procedure scanDir (const dirName: AnsiString; calcMD5: Boolean);
+function scanDir (dirName: AnsiString; baseName: AnsiString; const resMd5: TMD5Digest): AnsiString;
 var
   searchResult: TSearchRec;
   dfn: AnsiString;
-  idx: Integer;
+  md5: TMD5Digest;
+  dirs: array of AnsiString;
+  f: Integer;
 begin
-  if not assigned(scannedDirs) then scannedDirs := THashStrInt.Create();
-  dfn := toLowerCase1251(IncludeTrailingPathDelimiter(dirName));
-  if scannedDirs.has(dfn) then exit;
-  scannedDirs.put(dfn, 42);
+  result := '';
+  SetLength(dirs, 0);
+  if (length(baseName) = 0) then exit;
+  dirName := IncludeTrailingPathDelimiter(dirName);
+  e_LogWritefln('scanning dir `%s` for file `%s`...', [dirName, baseName]);
 
-  if (FindFirst(dirName+'/*', faAnyFile, searchResult) <> 0) then exit;
+  // scan files
+  if (FindFirst(dirName+'*', faAnyFile, searchResult) <> 0) then exit;
   try
     repeat
-      if (searchResult.Attr and faDirectory) = 0 then
+      if ((searchResult.Attr and faDirectory) = 0) then
       begin
-        dfn := dirName+'/'+searchResult.Name;
-        idx := addKnownFile(dfn);
-        if (calcMD5) and (idx >= 0) then
+        if (isWadNamesEqu(searchResult.Name, baseName)) then
         begin
-          if (not knownFiles[idx].md5valid) then
+          dfn := dirName+searchResult.Name;
+          if FileExists(dfn) then
           begin
-            knownFiles[idx].md5 := MD5File(knownFiles[idx].diskName);
-            knownFiles[idx].md5valid := true;
+            e_LogWritefln('  found `%s`...', [dfn]);
+            md5 := MD5File(dfn);
+            if MD5Match(md5, resMd5) then
+            begin
+              e_LogWritefln('    MATCH `%s`...', [dfn]);
+              SetLength(dirs, 0);
+              result := dfn;
+              exit;
+            end;
           end;
         end;
       end
-      else if (searchResult.Name <> '.') and (searchResult.Name <> '..') then
+      else
       begin
-        scanDir(IncludeTrailingPathDelimiter(dirName)+searchResult.Name, calcMD5);
+        if (searchResult.Name <> '.') and (searchResult.Name <> '..') then
+        begin
+          dfn := dirName+searchResult.Name;
+          SetLength(dirs, Length(dirs)+1);
+          dirs[length(dirs)-1] := dfn;
+        end;
       end;
     until (FindNext(searchResult) <> 0);
   finally
     FindClose(searchResult);
   end;
-end;
 
-
-function CompareFileHash(const filename: AnsiString; const resMd5: TMD5Digest): Boolean;
-var
-  gResHash: TMD5Digest;
-  fname: AnsiString;
-begin
-  fname := findDiskWad(filename);
-  if length(fname) = 0 then begin result := false; exit; end;
-  gResHash := MD5File(fname);
-  Result := MD5Match(gResHash, resMd5);
-end;
-
-function CheckFileHash(const path, filename: AnsiString; const resMd5: TMD5Digest): Boolean;
-var
-  fname: AnsiString;
-begin
-  fname := findDiskWad(path+filename);
-  if length(fname) = 0 then begin result := false; exit; end;
-  Result := FileExists(fname) and CompareFileHash(fname, resMd5);
+  // scan subdirs
+  for f := 0 to High(dirs) do
+  begin
+    dfn := dirs[f];
+    result := scanDir(dfn, baseName, resMd5);
+    if (length(result) <> 0) then begin SetLength(dirs, 0); exit; end;
+  end;
+  SetLength(dirs, 0);
 end;
 
 
 function g_Res_SearchResWad (asMap: Boolean; fname: AnsiString; const resMd5: TMD5Digest): AnsiString;
-var
-  f: Integer;
 begin
   result := '';
   //if not assigned(scannedDirs) then scannedDirs := THashStrInt.Create();
   if (asMap) then
   begin
-    if CheckFileHash(GameDir+'/maps', fname, resMd5) then
-    begin
-      result := findDiskWad(GameDir+'/maps/'+fname);
-      if (length(result) <> 0) then exit;
-    end;
-    scanDir(GameDir+'/maps/downloads', true);
+    result := scanDir(GameDir+'/maps', ExtractFileName(fname), resMd5);
   end
   else
   begin
-    if CheckFileHash(GameDir+'/wads', fname, resMd5) then
-    begin
-      result := findDiskWad(GameDir+'/wads/'+fname);
-      if (length(result) <> 0) then exit;
-    end;
-    scanDir(GameDir+'/wads/downloads', true);
+    result := scanDir(GameDir+'/wads', ExtractFileName(fname), resMd5);
   end;
-  for f := Low(knownFiles) to High(knownFiles) do
-  begin
-    if (not knownFiles[f].md5valid) then continue;
-    if (MD5Match(knownFiles[f].md5, resMd5)) then
-    begin
-      result := knownFiles[f].diskName;
-      exit;
-    end;
-  end;
-  //resStream := createDiskFile(GameDir+'/wads/'+mapData.ExternalResources[i].Name);
 end;
 
 
 function g_Res_SearchSameWAD (const path, filename: AnsiString; const resMd5: TMD5Digest): AnsiString;
 begin
-  scanDir(path, false);
-  result := getKnownFileWithMD5(path, filename, resMd5);
+  result := scanDir(path, filename, resMd5);
 end;
 
 
@@ -287,9 +159,7 @@ var
   resList: TStringList;
   f, res: Integer;
   strm: TStream;
-  mmd5: TMD5Digest;
   fname: AnsiString;
-  idx: Integer;
   wadname: AnsiString;
 begin
   //SetLength(mapData.ExternalResources, 0);
@@ -357,22 +227,6 @@ begin
         result := '';
         exit;
       end;
-      mmd5 := MD5File(fname);
-      if (not MD5Match(mmd5, mapHash)) then
-      begin
-        e_WriteLog('error downloading map file `'+FileName+'` (bad hash)', TMsgType.Fatal);
-        result := '';
-        exit;
-      end;
-      idx := addKnownFile(fname);
-      if (idx < 0) then
-      begin
-        e_WriteLog('error downloading map file `'+FileName+'`', TMsgType.Fatal);
-        result := '';
-        exit;
-      end;
-      knownFiles[idx].md5 := mmd5;
-      knownFiles[idx].md5valid := true;
       result := fname;
     end;
 
@@ -391,6 +245,7 @@ begin
       else
       begin
         fname := GameDir+'/wads/downloads/'+tf.diskName;
+        e_LogWritefln('downloading resource `%s` to `%s`...', [tf.diskName, fname]);
         try
           strm := createDiskFile(fname);
         except
@@ -413,15 +268,6 @@ begin
           result := '';
           exit;
         end;
-        idx := addKnownFile(fname);
-        if (idx < 0) then
-        begin
-          e_WriteLog('error downloading map file `'+FileName+'`', TMsgType.Fatal);
-          result := '';
-          exit;
-        end;
-        knownFiles[idx].md5 := tf.hash;
-        knownFiles[idx].md5valid := true;
         g_Res_PutReplacementWad(tf.diskName, fname);
       end;
     end;

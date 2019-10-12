@@ -4663,10 +4663,10 @@ begin
           gGameSettings.Options := InMsg.ReadLongWord();
           T := InMsg.ReadLongWord();
 
-          newResPath := g_Res_SearchSameWAD(MapsDir, WadName, gWADHash);
-          if newResPath = '' then
+          //newResPath := g_Res_SearchSameWAD(MapsDir, WadName, gWADHash);
+          //if newResPath = '' then
           begin
-            g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
+            //g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
             newResPath := g_Res_DownloadMapWAD(WadName, gWADHash);
             if newResPath = '' then
             begin
@@ -5012,10 +5012,21 @@ procedure g_Game_ClientWAD(NewWAD: String; const WHash: TMD5Digest);
 var
   gWAD: String;
 begin
-  if LowerCase(NewWAD) = LowerCase(gGameSettings.WAD) then
+  if not g_Game_IsClient then Exit;
+
+  gWAD := g_Res_DownloadMapWAD(ExtractFileName(NewWAD), WHash);
+  if gWAD = '' then
+  begin
+    g_Game_Free();
+    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_WAD], [ExtractFileName(NewWAD)]));
     Exit;
-  if not g_Game_IsClient then
-    Exit;
+  end;
+
+  NewWAD := ExtractRelativePath(MapsDir, gWAD);
+  g_Game_LoadWAD(NewWAD);
+
+  {
+  if LowerCase(NewWAD) = LowerCase(gGameSettings.WAD) then Exit;
   gWAD := g_Res_SearchSameWAD(MapsDir, ExtractFileName(NewWAD), WHash);
   if gWAD = '' then
   begin
@@ -5030,6 +5041,7 @@ begin
   end;
   NewWAD := ExtractRelativePath(MapsDir, gWAD);
   g_Game_LoadWAD(NewWAD);
+  }
 end;
 
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
