@@ -212,6 +212,7 @@ type
 function u32Hash (a: LongWord): LongWord; inline;
 function fnvHash (constref buf; len: LongWord): LongWord;
 function joaatHash (constref buf; len: LongWord; seed: LongWord=0): LongWord;
+function joaatHashPtr (buf: Pointer; len: LongWord; seed: LongWord=0): LongWord;
 
 // has to be public due to FPC generics limitation
 function nextPOTU32 (x: LongWord): LongWord; inline;
@@ -298,6 +299,26 @@ var
 begin
   result := seed;
   b := PByte(@buf);
+  for f := 1 to len do
+  begin
+    result += b^;
+    result += (result shl 10);
+    result := result xor (result shr 6);
+    Inc(b);
+  end;
+  // finalize
+  result += (result shl 3);
+  result := result xor (result shr 11);
+  result += (result shl 15);
+end;
+
+function joaatHashPtr (buf: Pointer; len: LongWord; seed: LongWord=0): LongWord;
+var
+  b: PByte;
+  f: LongWord;
+begin
+  result := seed;
+  b := PByte(buf);
   for f := 1 to len do
   begin
     result += b^;
@@ -416,7 +437,7 @@ begin
 end;
 {$POP}
 
-class function THashKeyStrAnsiCI.hash (const k: AnsiString): LongWord; inline; begin if (Length(k) > 0) then result := fnvHash((@k[1])^, Length(k)) else result := 0; end;
+class function THashKeyStrAnsiCI.hash (const k: AnsiString): LongWord; inline; begin if (Length(k) > 0) then result := fnvHashLo((@k[1])^, Length(k)) else result := 0; end;
 class function THashKeyStrAnsiCI.equ (const a, b: AnsiString): Boolean; inline;
 var
   f: Integer;
