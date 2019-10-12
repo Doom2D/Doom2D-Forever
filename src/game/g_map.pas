@@ -908,17 +908,17 @@ begin
   end
   else
   begin
+    //e_LogWritefln('GetReplacementWad: 000: old=%s', [WadName]);
     result := g_Res_FindReplacementWad(WadName);
-    if (result <> WadName) then
-    begin
-      //e_LogWritefln('GetReplacementWad: old=%s; new=%s', [WadName, result]);
-    end
-    else
+    //e_LogWritefln('GetReplacementWad: 001: old=%s; new=%s', [WadName, result]);
+    if (result = WadName) then
     begin
       result := GameDir+'/wads/'+result;
+      //e_LogWritefln('GetReplacementWad: 002: old=%s; new=%s', [WadName, result]);
     end;
   end;
 end;
+
 
 function CreateTexture(RecName: AnsiString; Map: string; log: Boolean): Integer;
 var
@@ -1699,7 +1699,7 @@ begin
     if (gCurrentMap = nil) then
     begin
       FileName := g_ExtractWadName(Res);
-      e_WriteLog('Loading map WAD: '+FileName, TMsgType.Notify);
+      e_LogWritefln('Loading map WAD [%s] (res=[%s])', [FileName, Res], TMsgType.Notify);
       g_Game_SetLoadingText(_lc[I_LOAD_WAD_FILE], 0, False);
 
       WAD := TWADFile.Create();
