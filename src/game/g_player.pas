@@ -268,6 +268,7 @@ type
     FDummy:     Boolean;
     FFireTime:  Integer;
     FHandicap:  Integer;
+    FWaitForFirstSpawn: Boolean; // set to `true` in server, used to spawn a player on first full state request
 
     // debug: viewport offset
     viewPortX, viewPortY, viewPortW, viewPortH: Integer;
@@ -2177,6 +2178,8 @@ begin
   FBFGFireCounter := -1;
   FJustTeleported := False;
   FNetTime := 0;
+
+  FWaitForFirstSpawn := false;
 
   resetWeaponQueue();
 end;

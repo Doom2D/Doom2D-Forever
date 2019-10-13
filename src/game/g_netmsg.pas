@@ -133,6 +133,8 @@ const
 
 // HOST MESSAGES
 
+procedure MH_ProcessFirstSpawn (C: pTNetClient);
+
 procedure MH_RECV_Info(C: pTNetClient; var M: TMsg);
 procedure MH_RECV_Chat(C: pTNetClient; var M: TMsg);
 procedure MH_RECV_FullStateRequest(C: pTNetClient; var M: TMsg);
@@ -146,7 +148,7 @@ procedure MH_RECV_RCONCommand(C: pTNetClient; var M: TMsg);
 procedure MH_RECV_Vote(C: pTNetClient; var M: TMsg);
 
 // GAME
-procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_Everything(CreatePlayers: Boolean {= False}; ID: Integer {= NET_EVERYONE});
 procedure MH_SEND_Info(ID: Byte);
 procedure MH_SEND_Chat(Txt: string; Mode: Byte; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer = NET_EVERYONE);
@@ -414,6 +416,7 @@ begin
   end;
 
   C^.Player := PID;
+  C^.WaitForFirstSpawn := false;
 
   g_Console_Add(Format(_lc[I_PLAYER_JOIN], [PName]), True);
   e_WriteLog('NET: Client ' + PName + ' [' + IntToStr(C^.ID) +
@@ -432,17 +435,31 @@ begin
       FNoRespawn := True;
       Spectate;
       FWantsInGame := True; // TODO: look into this later
+      C^.WaitForFirstSpawn := true;
     end
     else
-      Respawn(gGameSettings.GameType = GT_SINGLE);
+    begin
+      e_LogWritefln('*** client #%u (cid #%u) authenticated...', [C.ID, C.Player]);
+      //e_LogWritefln('spawning player with pid #%u...', [PID]);
+      //Respawn(gGameSettings.GameType = GT_SINGLE);
+      //k8: no, do not spawn a player yet, wait for a 'i am ready' packet
+      Lives := 0;
+      Spectate;
+      FNoRespawn := True;
+      FWantsInGame := false; // TODO: look into this later
+      C^.WaitForFirstSpawn := true;
+    end;
   end;
 
-  for I := Low(NetClients) to High(NetClients) do
+  //if not C^.WaitForFirstSpawn then
   begin
-    if NetClients[I].ID = C^.ID then Continue;
-    MH_SEND_PlayerCreate(PID, NetClients[I].ID);
-    MH_SEND_PlayerPos(True, PID, NetClients[I].ID);
-    MH_SEND_PlayerStats(PID, NetClients[I].ID);
+    for I := Low(NetClients) to High(NetClients) do
+    begin
+      if NetClients[I].ID = C^.ID then Continue;
+      MH_SEND_PlayerCreate(PID, NetClients[I].ID);
+      MH_SEND_PlayerPos(True, PID, NetClients[I].ID);
+      MH_SEND_PlayerStats(PID, NetClients[I].ID);
+    end;
   end;
 
   if gState in [STATE_INTERCUSTOM, STATE_FOLD] then
@@ -451,12 +468,33 @@ begin
   if NetUseMaster then g_Net_Slist_Update;
 end;
 
+
+procedure MH_ProcessFirstSpawn (C: pTNetClient);
+var
+  plr: TPlayer;
+begin
+  if not C.WaitForFirstSpawn then exit;
+  plr := g_Player_Get(C^.Player);
+  if not assigned(plr) then exit;
+  e_LogWritefln('*** client #%u (cid #%u) first spawn', [C.ID, C.Player]);
+  C.WaitForFirstSpawn := false;
+  plr.FNoRespawn := false;
+  plr.FWantsInGame := true; // TODO: look into this later
+  plr.Respawn(False);
+end;
+
+
 procedure MH_RECV_FullStateRequest(C: pTNetClient; var M: TMsg);
 begin
+  //e_LogWritefln('*** client #%u (cid #%u) full state request', [C.ID, C.Player]);
   if gGameOn then
+  begin
     MH_SEND_Everything((C^.State = NET_STATE_AUTH), C^.ID)
+  end
   else
+  begin
     C^.RequestedFullUpdate := True;
+  end;
 end;
 
 // PLAYER
@@ -674,7 +712,7 @@ end;
 
 // GAME (SEND)
 
-procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_Everything(CreatePlayers: Boolean {= False}; ID: Integer {= NET_EVERYONE});
 
   function sendItemRespawn (it: PItem): Boolean;
   begin
@@ -698,6 +736,12 @@ procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_E
 var
   I: Integer;
 begin
+  if (ID >= 0) and (ID < length(NetClients)) then
+  begin
+    e_LogWritefln('*** client #%u (cid #%u) will get everything', [ID, NetClients[ID].Player]);
+    MH_ProcessFirstSpawn(@NetClients[ID]);
+  end;
+
   if gPlayers <> nil then
   begin
     for I := Low(gPlayers) to High(gPlayers) do
@@ -757,6 +801,7 @@ begin
 
   if gLMSRespawn > LMS_RESPAWN_NONE then
   begin
+    e_LogWritefln('*** client #%u (cid #%u) WARMUP', [ID, NetClients[ID].Player]);
     MH_SEND_GameEvent(NET_EV_LMS_WARMUP, (gLMSRespawnTime - gTime) div 1000, 'N', ID);
   end;
 

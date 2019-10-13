@@ -108,6 +108,7 @@ type
     Peer:     pENetPeer;
     Player:   Word;
     RequestedFullUpdate: Boolean;
+    WaitForFirstSpawn: Boolean; // set to `true` in server, used to spawn a player on first full state request
     RCONAuth: Boolean;
     Voted:    Boolean;
     Transfer: TNetFileTransfer; // only one transfer may be active
@@ -1274,6 +1275,7 @@ begin
     NetClients[N].Used := True;
     NetClients[N].ID := N;
     NetClients[N].RequestedFullUpdate := False;
+    NetClients[N].WaitForFirstSpawn := False;
     NetClients[N].RCONAuth := False;
     NetClients[N].Voted := False;
     NetClients[N].Player := 0;
@@ -1711,6 +1713,7 @@ begin
         TC^.Peer := nil;
         TC^.Player := 0;
         TC^.RequestedFullUpdate := False;
+        TC^.WaitForFirstSpawn := False;
         TC^.NetOut[NET_UNRELIABLE].Free();
         TC^.NetOut[NET_RELIABLE].Free();
 
