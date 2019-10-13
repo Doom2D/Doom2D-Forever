@@ -138,7 +138,11 @@
     {$ERROR Only one sound driver must be selected!}
   {$ENDIF}
 {$ELSE}
-  {$ERROR Sound driver not selected. Use -dUSE_SOUNDSTUB or -dUSE_SDLMIXER or -dUSE_FMOD or -dUSE_OPENAL}
+  {$IFDEF IN_TOOLS}
+    {$DEFINE USE_SOUNDSTUB}
+  {$ELSE}
+    {$ERROR Sound driver not selected. Use -dUSE_SOUNDSTUB or -dUSE_SDLMIXER or -dUSE_FMOD or -dUSE_OPENAL}
+  {$ENDIF}
 {$ENDIF}
 
 {$IF DEFINED(USE_GLSTUB)}
