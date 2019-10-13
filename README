@@ -1,43 +1,66 @@
 D2DF-SDL
 ---------
 
-Doom 2D Forever ( http://repo.or.cz/d2df-sdl.git ) adapted for use with the FreePascal Compiler
-and ported to SDL 2.0.
+Doom 2D Forever ( http://repo.or.cz/d2df-sdl.git ) adapted for use with the
+FreePascal Compiler and ported to SDL 2.0.
 
 Building
 ---------
 
 Requirements:
-* FPC >= 3.0.2;
-* FMODEx >= 4.26.xx or SDL_mixer >= 2.0;
+* FPC >= 3.0.4;
 * libenet >= 1.3.13;
-* SDL >= 2.0.
 
-Create the "tmp" and "bin" directories beforehand if they don't exist already. Then run
+Create the "tmp" and "bin" directories and then run:
 
-cd src/game
-fpc -O3 -Fi../lib/vampimg -Fi../lib/vampimg/JpegLib -Fi../lib/vampimg/ZLib -Fu../lib/vampimg -Fu../lib/vampimg/JpegLib -Fu../lib/vampimg/ZLib -FE../../bin -FU../../tmp Doom2DF.lpr
+  cd src/game
+  fpc -O3 -FE../../bin -FU../../tmp Doom2DF.lpr
 
-If you want SDL_mixer instead of FMOD, add -dUSE_SDLMIXER.
-If you want the server to be able to forward ports via UPNP, add -dUSE_MINIUPNPC.
-If you want to debug game with Holmes, add -dENABLE_HOLMES (not supported in GLES mode).
-If you want to render graphics using OpenGL ES, add -dUSE_GLES1.
-To build a headless (no video/audio, for dedicated servers) executable, add -dHEADLESS.
-Replace -O3 with -g -gl to enable debugging features. Run the game with --gdb when using a debugger to
-prevent it from eating exceptions.
+Additionally you can add following options:
+  System driver:
+    * -dUSE_SDL         Build with SDL 1.2.x
+    * -dUSE_SDL2        Build with SDL 2.0.x
+    * -dUSE_SYSSTUB     Disable I/O management
+  Render driver:
+    * -dUSE_OPENGL      Build with desktop OpenGL 2.x
+    * -dUSE_GLES1       Build with mobile OpenGLES 1.1
+    * -dUSE_GLSTUB      Disable rendering
+  Sound driver:
+    * -dUSE_FMOD        Build with FMODEx 4.26.x
+    * -dUSE_SDLMIXER    Build with SDL2_mixer 2.0.x
+    * -dUSE_OPENAL      Build with OpenAL 1.1
+    * -dUSE_SOUNDSTUB   Disable sound management
+  Sound file drivers (OpenAL only):
+    * -dUSE_SDL         Build with SDL 1.2.x for WAV support
+    * -dUSE_SDL2        Build with SDL 2.0.x for WAV support
+    * -dUSE_VORBIS      Build with libvorbis
+    * -dUSE_FLUIDSYNTH  Build with libfluidsynth
+    * -dUSE_MODPLUG     Build with libmodplug
+    * -dUSE_XMP         Build with linxmp
+    * -dUSE_MPG123      Build with libmpg123
+    * -dUSE_OPUS        Build with libopus
+  Other:
+    * -dUSE_MINIUPNPC   Build with libminiupnpc for automatic server port
+                        forwarding via UPNP
+    * -dENABLE_HOLMES   Build with ingame map debugger
+    * -dHEADLESS        Build a headless executable for dedicated servers
 
-Windows binaries will require the appropriate DLLs (SDL2.dll, SDL2_mixer.dll or FMODEx.dll, ENet.dll, miniupnpc.dll),
-unless you choose to static link them (see below).
+Replace -O3 with -g -gl to enable debugging features. Run the game with --gdb
+when using a debugger to prevent it from eating exceptions.
+
+Windows binaries will require the appropriate DLLs (SDL2.dll, SDL2_mixer.dll or
+FMODEx.dll, ENet.dll, miniupnpc.dll), unless you choose to static link them.
 
 
 Static Linking
 --------------
 
-See ( http://repo.or.cz/d2df-binlib.git ) repo for prebuild dynamic and static libraries.
+See ( http://repo.or.cz/d2df-binlib.git ) repo for prebuild dynamic and static
+libraries.
 
 It is now possible to link windoze LibJIT and ENet as static libs.
 
-First, you need to clone ( http://repo.or.cz/d2df-binlib.git ) (repo with prebuilt windoze libs).
+First, you need to clone ( http://repo.or.cz/d2df-binlib.git ).
 Then, you can use:
   -dLIBJIT_WINDOZE_STATIC       -- static LibJIT
   -dLIBENET_WINDOZE_STATIC      -- static ENet
@@ -45,8 +68,9 @@ Then, you can use:
 
 Don't forget to specify lib*.a location with -Fi<...>
 
-I (ketmar) used mingw-gcc 7.1.0 to build static libs; some other .a libs were taken directly from mingw.
-building libs is easy: just fire msys, install all dependencies, and do:
+I (ketmar) used mingw-gcc 7.1.0 to build static libs; some other .a libs were
+taken directly from mingw. building libs is easy: just fire msys, install all
+dependencies, and do:
 
   ./configure --enable-static --disable-shared && make
 

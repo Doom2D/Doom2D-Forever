@@ -41,7 +41,7 @@
 
 unit dzlib;
 
-{$I ImagingOptions.inc}
+{$I ../ImagingOptions.inc}
 
 interface
 
