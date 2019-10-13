@@ -422,6 +422,7 @@ implementation
     var ev: TSDL_Event;
   begin
     result := false;
+    ZeroMemory(@ev, sizeof(ev));
     while SDL_PollEvent(@ev) <> 0 do
     begin
       case ev.type_ of
