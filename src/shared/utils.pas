@@ -18,7 +18,7 @@ unit utils;
 interface
 
 uses
-  SysUtils, Classes;
+  SysUtils, Classes, md5;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -275,6 +275,21 @@ type
 procedure FillMemory (Dest: Pointer; Len: LongWord; Ch: Byte); inline;
 procedure CopyMemory (Dest: Pointer; Src: Pointer; Len: LongWord); inline;
 procedure ZeroMemory (Dest: Pointer; Len: LongWord); inline;
+
+
+type
+  TDiskFileInfo = record
+    diskName: AnsiString;
+    size: LongInt;
+    age: LongInt;
+    // not changed by info getter; used in other parts of the code
+    userName: AnsiString;
+    tag: Integer;
+    hash: TMD5Digest;
+    udata: Pointer;
+  end;
+
+function GetDiskFileInfo (fname: AnsiString; var info: TDiskFileInfo): Boolean;
 
 
 implementation
@@ -1994,6 +2009,32 @@ begin
     end;
     Inc(curarg);
   end;
+end;
+
+
+function GetDiskFileInfo (fname: AnsiString; var info: TDiskFileInfo): Boolean;
+var
+  age: LongInt;
+  size: LongInt;
+  handle: THandle;
+begin
+  result := false;
+  if (length(fname) = 0) then exit;
+  if not findFileCI(fname) then exit;
+  // get age
+  age := FileAge(fname);
+  if (age = -1) then exit;
+  // get size
+  handle := FileOpen(fname, fmOpenRead or fmShareDenyNone);
+  if (handle = THandle(-1)) then exit;
+  size := FileSeek(handle, 0, fsFromEnd);
+  FileClose(handle);
+  if (size = -1) then exit;
+  // fill info
+  info.diskName := fname;
+  info.size := size;
+  info.age := age;
+  result := true;
 end;
 
 
