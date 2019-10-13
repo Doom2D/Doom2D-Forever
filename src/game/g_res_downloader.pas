@@ -244,80 +244,6 @@ end;
 
 //==========================================================================
 //
-//  scanDir
-//
-//  look for a wad to match the hash
-//  scans subdirs, ignores known wad extensions
-//
-//  returns found wad disk name, or empty string
-//
-//==========================================================================
-(*
-function scanDir (dirName: AnsiString; baseName: AnsiString; const resMd5: TMD5Digest): AnsiString;
-var
-  searchResult: TSearchRec;
-  dfn: AnsiString;
-  md5: TMD5Digest;
-  dirs: array of AnsiString;
-  f: Integer;
-begin
-  result := '';
-  SetLength(dirs, 0);
-  if (length(baseName) = 0) then exit;
-  dirName := IncludeTrailingPathDelimiter(dirName);
-  e_LogWritefln('scanning dir `%s` for file `%s`...', [dirName, baseName]);
-
-  // scan files
-  if (FindFirst(dirName+'*', faAnyFile, searchResult) <> 0) then exit;
-  try
-    repeat
-      if ((searchResult.Attr and faDirectory) = 0) then
-      begin
-        if (isWadNamesEqu(searchResult.Name, baseName)) then
-        begin
-          dfn := dirName+searchResult.Name;
-          if FileExists(dfn) then
-          begin
-            e_LogWritefln('  found `%s`...', [dfn]);
-            md5 := MD5File(dfn);
-            if MD5Match(md5, resMd5) then
-            begin
-              e_LogWritefln('    MATCH `%s`...', [dfn]);
-              SetLength(dirs, 0);
-              result := dfn;
-              exit;
-            end;
-          end;
-        end;
-      end
-      else
-      begin
-        if (searchResult.Name <> '.') and (searchResult.Name <> '..') then
-        begin
-          dfn := dirName+searchResult.Name;
-          SetLength(dirs, Length(dirs)+1);
-          dirs[length(dirs)-1] := dfn;
-        end;
-      end;
-    until (FindNext(searchResult) <> 0);
-  finally
-    FindClose(searchResult);
-  end;
-
-  // scan subdirs
-  for f := 0 to High(dirs) do
-  begin
-    dfn := dirs[f];
-    result := scanDir(dfn, baseName, resMd5);
-    if (length(result) <> 0) then begin SetLength(dirs, 0); exit; end;
-  end;
-  SetLength(dirs, 0);
-end;
-*)
-
-
-//==========================================================================
-//
 //  findExistingMapWadWithHash
 //
 //  find map or resource wad using its base name and hash
@@ -408,7 +334,7 @@ end;
 function g_Res_DownloadMapWAD (FileName: AnsiString; const mapHash: TMD5Digest): AnsiString;
 var
   tf: TNetFileTransfer;
-  resList: TStringList;
+  resList: array of TNetMapResourceInfo = nil;
   f, res: Integer;
   strm: TStream;
   fname: AnsiString;
@@ -416,11 +342,10 @@ var
   md5: TMD5Digest;
   mapdbUpdated: Boolean = false;
   resdbUpdated: Boolean = false;
+  transStarted: Boolean;
 begin
   result := '';
   clearReplacementWads();
-
-  resList := TStringList.Create();
 
   try
     g_Res_received_map_start := 1;
@@ -513,14 +438,28 @@ begin
     end;
 
     // download resources
-    for f := 0 to resList.Count-1 do
+    for f := 0 to High(resList) do
     begin
-      res := g_Net_RequestResFileInfo(f, tf);
-      if (res <> 0) then begin result := ''; exit; end;
+      // if we got a new-style reslist packet, use received data to check for resource files
+      if (resList[f].size < 0) then
+      begin
+        // old-style packet
+        transStarted := true;
+        res := g_Net_RequestResFileInfo(f, tf);
+        if (res <> 0) then begin result := ''; exit; end;
+      end
+      else
+      begin
+        // new-style packet
+        transStarted := false;
+        tf.diskName := resList[f].wadName;
+        tf.hash := resList[f].hash;
+        tf.size := resList[f].size;
+      end;
       if (isIgnoredResWad(tf.diskName)) then
       begin
         // ignored file, abort download
-        g_Net_AbortResTransfer(tf);
+        if (transStarted) then g_Net_AbortResTransfer(tf);
         e_LogWritefln('ignoring wad resource `%s` by user request', [tf.diskName]);
         continue;
       end;
@@ -528,11 +467,16 @@ begin
       if (length(wadname) <> 0) then
       begin
         // already here
-        g_Net_AbortResTransfer(tf);
+        if (transStarted) then g_Net_AbortResTransfer(tf);
         addReplacementWad(tf.diskName, wadname);
       end
       else
       begin
+        if (not transStarted) then
+        begin
+          res := g_Net_RequestResFileInfo(f, tf);
+          if (res <> 0) then begin result := ''; exit; end;
+        end;
         try
           CreateDir(GameDir+'/wads/downloads');
         except
@@ -599,7 +543,7 @@ begin
       end;
     end;
   finally
-    resList.Free;
+    SetLength(resList, 0);
     g_Res_received_map_start := 0;
   end;
 

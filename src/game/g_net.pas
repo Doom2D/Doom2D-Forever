@@ -79,6 +79,14 @@ const
   {$ENDIF}
 
 type
+  TNetMapResourceInfo = record
+    wadName: AnsiString; // wad file name, without a path
+    size: Integer; // wad file size (-1: size and hash are not known)
+    hash: TMD5Digest; // wad hash
+  end;
+
+  TNetMapResourceInfoArray = array of TNetMapResourceInfo;
+
   TNetFileTransfer = record
     diskName: string;
     hash: TMD5Digest;
@@ -230,7 +238,7 @@ procedure g_Net_UnforwardPorts();
 
 function g_Net_UserRequestExit: Boolean;
 
-function g_Net_Wait_MapInfo (var tf: TNetFileTransfer; resList: TStringList): Integer;
+function g_Net_Wait_MapInfo (var tf: TNetFileTransfer; var resList: TNetMapResourceInfoArray): Integer;
 function g_Net_RequestResFileInfo (resIndex: LongInt; out tf: TNetFileTransfer): Integer;
 function g_Net_AbortResTransfer (var tf: TNetFileTransfer): Boolean;
 function g_Net_ReceiveResourceFile (resIndex: LongInt; var tf: TNetFileTransfer; strm: TStream): Integer;
@@ -433,8 +441,9 @@ var
   ridx: Integer;
   dfn: AnsiString;
   md5: TMD5Digest;
-  st: TStream;
+  //st: TStream;
   size: LongInt;
+  fi: TDiskFileInfo;
 begin
   // find client index by peer
   for f := Low(NetClients) to High(NetClients) do
@@ -483,13 +492,13 @@ begin
         end;
         // get resource index
         ridx := msg.ReadLongInt();
-        if (ridx < -1) or (ridx >= gExternalResources.Count) then
+        if (ridx < -1) or (ridx >= length(gExternalResources)) then
         begin
           e_LogWritefln('Invalid resource index %d', [ridx], TMsgType.Warning);
           killClientByFT(nc^);
           exit;
         end;
-        if (ridx < 0) then fname := MapsDir+gGameSettings.WAD else fname := GameDir+'/wads/'+gExternalResources[ridx];
+        if (ridx < 0) then fname := MapsDir+gGameSettings.WAD else fname := {GameDir+'/wads/'+}gExternalResources[ridx].diskName;
         if (length(fname) = 0) then
         begin
           e_WriteLog('Invalid filename: '+fname, TMsgType.Warning);
@@ -505,8 +514,8 @@ begin
           exit;
         end;
         // calculate hash
-        //TODO: cache hashes
-        tf.hash := MD5File(tf.diskName);
+        //tf.hash := MD5File(tf.diskName);
+        if (ridx < 0) then tf.hash := gWADHash else tf.hash := gExternalResources[ridx].hash;
         // create file stream
         tf.diskName := findDiskWad(fname);
         try
@@ -621,11 +630,21 @@ begin
         trans_omsg.Clear();
         dfn := findDiskWad(MapsDir+gGameSettings.WAD);
         if (dfn = '') then dfn := '!wad_not_found!.wad'; //FIXME
-        md5 := MD5File(dfn);
+        //md5 := MD5File(dfn);
+        md5 := gWADHash;
+        if (not GetDiskFileInfo(dfn, fi)) then
+        begin
+          e_LogWritefln('client #%d requested map info, but i cannot get file info', [nc.ID]);
+          killClientByFT(nc^);
+          exit;
+        end;
+        size := fi.size;
+        {
         st := openDiskFileRO(dfn);
         if not assigned(st) then exit; //wtf?!
         size := st.size;
         st.Free;
+        }
         // packet type
         trans_omsg.Write(Byte(NTF_SERVER_MAP_INFO));
         // map wad name
@@ -635,11 +654,17 @@ begin
         // map wad size
         trans_omsg.Write(size);
         // number of external resources for map
-        trans_omsg.Write(LongInt(gExternalResources.Count));
+        trans_omsg.Write(LongInt(length(gExternalResources)));
         // external resource names
-        for f := 0 to gExternalResources.Count-1 do
+        for f := 0 to High(gExternalResources) do
         begin
-          trans_omsg.Write(ExtractFileName(gExternalResources[f])); // GameDir+'/wads/'+ResList.Strings[i]
+          // old style packet
+          //trans_omsg.Write(ExtractFileName(gExternalResources[f])); // GameDir+'/wads/'+ResList.Strings[i]
+          // new style packet
+          trans_omsg.Write('!');
+          trans_omsg.Write(LongInt(gExternalResources[f].size));
+          trans_omsg.Write(gExternalResources[f].hash);
+          trans_omsg.Write(ExtractFileName(gExternalResources[f].diskName));
         end;
         // send packet
         if not ftransSendServerMsg(nc^, trans_omsg) then exit;
@@ -677,16 +702,18 @@ end;
 //
 // returns `false` on error or user abort
 // fills:
-//    hash
-//    size
-//    chunkSize
+//    diskName: map wad file name (without a path)
+//    hash: map wad hash
+//    size: map wad size
+//    chunkSize: set too
+//    resList: list of resource wads
 // returns:
 //  <0 on error
 //   0 on success
 //   1 on user abort
 //   2 on server abort
 // for maps, first `tf.diskName` name will be map wad name, and `tf.hash`/`tf.size` will contain map info
-function g_Net_Wait_MapInfo (var tf: TNetFileTransfer; resList: TStringList): Integer;
+function g_Net_Wait_MapInfo (var tf: TNetFileTransfer; var resList: TNetMapResourceInfoArray): Integer;
 var
   ev: ENetEvent;
   rMsgId: Byte;
@@ -697,7 +724,10 @@ var
   status: cint;
   s: AnsiString;
   rc, f: LongInt;
+  ri: ^TNetMapResourceInfo;
 begin
+  SetLength(resList, 0);
+
   // send request
   trans_omsg.Clear();
   trans_omsg.Write(Byte(NTF_CLIENT_MAP_REQUEST));
@@ -769,7 +799,7 @@ begin
                   e_LogWritefln('g_Net_Wait_MapInfo: creating map info packet...', []);
                   if not msg.Init(ev.packet^.data+1, ev.packet^.dataLength-1, True) then exit;
                   e_LogWritefln('g_Net_Wait_MapInfo: parsing map info packet (rd=%d; max=%d)...', [msg.ReadCount, msg.MaxSize]);
-                  resList.Clear();
+                  SetLength(resList, 0); // just in case
                   // map wad name
                   tf.diskName := msg.ReadString();
                   e_LogWritefln('g_Net_Wait_MapInfo: map wad is `%s`', [tf.diskName]);
@@ -787,16 +817,28 @@ begin
                     exit;
                   end;
                   e_LogWritefln('g_Net_Wait_MapInfo: map external resource count is %d', [rc]);
+                  SetLength(resList, rc);
                   // external resource names
                   for f := 0 to rc-1 do
                   begin
-                    s := ExtractFileName(msg.ReadString());
-                    if (length(s) = 0) then
+                    ri := @resList[f];
+                    s := msg.ReadString();
+                    if (length(s) = 0) then begin result := -1; exit; end;
+                    if (s = '!') then
                     begin
-                      Result := -1;
-                      exit;
+                      // extended packet
+                      ri.size := msg.ReadLongInt();
+                      ri.hash := msg.ReadMD5();
+                      ri.wadName := ExtractFileName(msg.ReadString());
+                      if (length(ri.wadName) = 0) or (ri.size < 0) then begin result := -1; exit; end;
+                    end
+                    else
+                    begin
+                      // old-style packet, only name
+                      ri.wadName := ExtractFileName(s);
+                      if (length(ri.wadName) = 0) then begin result := -1; exit; end;
+                      ri.size := -1; // unknown
                     end;
-                    resList.append(s);
                   end;
                   e_LogWritefln('g_Net_Wait_MapInfo: got map info', []);
                   Result := 0; // success

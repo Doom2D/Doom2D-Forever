@@ -4825,7 +4825,7 @@ begin
       end
       else
       begin
-        gWADHash := MD5File(nws);
+        if (g_Game_IsNet) then gWADHash := MD5File(nws);
         //writeln('********: nws=', nws, ' : Map=', Map, ' : nw=', NewWAD, ' : resname=', ResName);
         g_Game_LoadWAD(NewWAD);
       end;

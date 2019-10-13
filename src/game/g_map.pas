@@ -226,7 +226,7 @@ var
   gLiftMap: array of array of DWORD;
   gWADHash: TMD5Digest;
   BackID:  DWORD = DWORD(-1);
-  gExternalResources: TStringList;
+  gExternalResources: array of TDiskFileInfo = nil;
   gMovingWallIds: array of Integer = nil;
 
   gdbg_map_use_accel_render: Boolean = true;
@@ -1466,55 +1466,66 @@ begin
     Result := '';
 end;
 
-procedure addResToExternalResList(res: string);
+
+procedure addResToExternalResList (res: AnsiString);
+var
+  uname: AnsiString;
+  f: Integer;
+  fi: TDiskFileInfo;
 begin
-  //e_LogWritefln('DBG: ***trying external resource %s', [res]);
-  res := toLowerCase1251(extractWadName(res));
-  // ignore "standart.wad"
-  if (res <> '') {and (res <> 'standart.wad')} and (gExternalResources.IndexOf(res) = -1) then
+  if g_Game_IsClient or not g_Game_IsNet then exit;
+  if (length(res) = 0) then exit; // map wad
+  res := extractWadName(res);
+  if (length(res) = 0) then exit; // map wad
+  uname := toLowerCase1251(res);
+  // do not add duplicates
+  for f := 0 to High(gExternalResources) do
   begin
-    //e_LogWritefln('DBG: added external resource %s', [res]);
-    gExternalResources.Add(res);
+    if (gExternalResources[f].userName = uname) then exit;
   end;
-end;
-
-procedure generateExternalResourcesList({mapReader: TMapReader_1}map: TDynRecord);
-//var
-  //textures: TTexturesRec1Array;
-  //textures: TDynField;
-  //trec: TDynRecord;
-  //mapHeader: TMapHeaderRec_1;
-  //i: integer;
-  //resFile: String = '';
-begin
-  if gExternalResources = nil then
-    gExternalResources := TStringList.Create;
-
-  gExternalResources.Clear;
-
-  (*
-  {
-  textures := GetTextures(map);
-  for i := 0 to High(textures) do
+  // add new resource
+  fi.userName := uname;
+  if (not GetDiskFileInfo(GameDir+'/wads/'+res, fi)) then
   begin
-    addResToExternalResList(resFile);
-  end;
-  }
-
-  textures := map['texture'];
-  if (textures <> nil) then
+    fi.tag := -1;
+  end
+  else
   begin
-    for trec in textures do
-    begin
-      addResToExternalResList(resFile);
+    fi.tag := 0; // non-zero means "cannot caclucate hash"
+    try
+      fi.hash := MD5File(fi.diskName);
+    except
+      fi.tag := -1;
     end;
   end;
+  //e_LogWritefln('addext: res=[%s]; uname=[%s]; diskName=[%s]', [res, fi.userName, fi.diskName]);
+  SetLength(gExternalResources, length(gExternalResources)+1);
+  gExternalResources[High(gExternalResources)] := fi;
+end;
 
-  textures := nil;
-  *)
 
-  //mapHeader := GetMapHeader(map);
+procedure compactExtResList ();
+var
+  src, dest: Integer;
+begin
+  src := 0;
+  dest := 0;
+  for src := 0 to High(gExternalResources) do
+  begin
+    if (gExternalResources[src].tag = 0) then
+    begin
+      // copy it
+      if (dest <> src) then gExternalResources[dest] := gExternalResources[src];
+      Inc(dest);
+    end;
+  end;
+  if (dest <> length(gExternalResources)) then SetLength(gExternalResources, dest);
+end;
 
+
+procedure generateExternalResourcesList (map: TDynRecord);
+begin
+  SetLength(gExternalResources, 0);
   addResToExternalResList(map.MusicName);
   addResToExternalResList(map.SkyName);
 end;
@@ -2300,6 +2311,7 @@ begin
     end;
   end;
 
+  compactExtResList();
   e_WriteLog('Done loading map.', TMsgType.Notify);
   Result := True;
 end;
