@@ -2126,13 +2126,9 @@ begin
 
       if NetUseMaster then
       begin
-        if gTime >= NetTimeToMaster then
+        if (gTime >= NetTimeToMaster) or g_Net_Slist_IsConnectionInProgress then
         begin
-          if (NetMHost = nil) or (NetMPeer = nil) then
-          begin
-            g_Net_Slist_Connect(false); // non-blocking connection to the master
-          end;
-
+          if (not g_Net_Slist_IsConnectionActive) then g_Net_Slist_Connect(false); // non-blocking connection to the master
           g_Net_Slist_Update;
           NetTimeToMaster := gTime + NetMasterRate;
         end;
@@ -4911,11 +4907,7 @@ begin
   // Мастерсервер
     if NetUseMaster then
     begin
-      if (NetMHost = nil) or (NetMPeer = nil) then
-      begin
-        // let the connection be blocking here, why not?
-        g_Net_Slist_Connect();
-      end;
+      if (not g_Net_Slist_IsConnectionActive) then g_Net_Slist_Connect(false);  // non-blocking connection to the master
       g_Net_Slist_Update;
     end;
 
@@ -5539,14 +5531,17 @@ begin
     begin
       NetUseMaster := StrToIntDef(P[1], Byte(NetUseMaster)) > 0;
       if g_Game_IsServer and g_Game_IsNet then
+      begin
         if NetUseMaster then
         begin
-          if NetMPeer = nil then g_Net_Slist_Connect();
+          if (not g_Net_Slist_IsConnectionActive) then g_Net_Slist_Connect(false);  // non-blocking connection to the master
           g_Net_Slist_Update();
         end
         else
-          if NetMPeer <> nil then
-            g_Net_Slist_Disconnect();
+        begin
+          if (not g_Net_Slist_IsConnectionActive) then g_Net_Slist_Disconnect();
+        end;
+      end;
     end;
 
     g_Console_Add(cmd + ' = ' + IntToStr(Byte(NetUseMaster)));

@@ -54,9 +54,6 @@ type
   TNetServerTable = array of TNetServerRow;
 
 var
-  NetMHost: pENetHost = nil;
-  NetMPeer: pENetPeer = nil;
-
   slCurrent:       TNetServerList = nil;
   slTable:         TNetServerTable = nil;
   slWaitStr:       string = '';
@@ -67,12 +64,15 @@ var
 
 procedure g_Net_Slist_Set(IP: string; Port: Word);
 function  g_Net_Slist_Fetch(var SL: TNetServerList): Boolean;
-procedure g_Net_Slist_Update();
+procedure g_Net_Slist_Update (immediateSend: Boolean=true);
 procedure g_Net_Slist_Remove();
 function  g_Net_Slist_Connect(blocking: Boolean=True): Boolean;
 procedure g_Net_Slist_Check();
-procedure g_Net_Slist_Disconnect();
+procedure g_Net_Slist_Disconnect (spamConsole: Boolean=true);
 procedure g_Net_Slist_WriteInfo();
+
+function g_Net_Slist_IsConnectionActive (): Boolean; // returns `false` if totally disconnected
+function g_Net_Slist_IsConnectionInProgress (): Boolean;
 
 procedure g_Serverlist_GenerateTable(SL: TNetServerList; var ST: TNetServerTable);
 procedure g_Serverlist_Draw(var SL: TNetServerList; var ST: TNetServerTable);
@@ -89,20 +89,80 @@ uses
   wadreader;
 
 var
-  NetMEvent:      ENetEvent;
-  slSelection:    Byte = 0;
-  slFetched:      Boolean = False;
-  slDirPressed:   Boolean = False;
-  slReadUrgent:   Boolean = False;
+  NetMHost: pENetHost = nil;
+  NetMPeer: pENetPeer = nil;
+  NetMEvent: ENetEvent;
+  slSelection: Byte = 0;
+  slFetched: Boolean = False;
+  slDirPressed: Boolean = False;
+  slReadUrgent: Boolean = False;
   // inside the game, calling `g_Net_Slist_Connect()` is disasterous, as it is blocking.
   // so we'll use this variable to indicate if "connected" event is received.
   NetHostConnected: Boolean = false;
   NetHostConReqTime: Int64 = 0; // to timeout `connect`
+  NetUpdatePending: Boolean = false;
 
-function GetTimerMS(): Int64;
+
+function GetTimerMS (): Int64;
 begin
   Result := GetTimer() {div 1000};
 end;
+
+
+// returns `false` if totally disconnected
+function g_Net_Slist_IsConnectionActive (): Boolean;
+begin
+  result := (NetMHost <> nil) and (NetMPeer <> nil);
+end;
+
+
+function g_Net_Slist_IsConnectionInProgress (): Boolean;
+begin
+  if (NetMHost = nil) or (NetMPeer = nil) then begin result := false; exit; end;
+  result := (not NetHostConnected);
+end;
+
+
+// should be called only if host/peer is here
+// returns `false` if not connected/dead
+function ProcessPendingConnection (): Boolean;
+var
+  ct: Int64;
+begin
+  result := false;
+  if (NetMHost = nil) or (NetMPeer = nil) then exit;
+  // are we waiting for connection?
+  if (not NetHostConnected) then
+  begin
+    // check for connection event
+    if (enet_host_service(NetMHost, @NetMEvent, 0) > 0) then
+    begin
+      if (NetMEvent.kind = ENET_EVENT_TYPE_CONNECT) then
+      begin
+        NetHostConnected := true;
+        if NetUpdatePending then g_Net_Slist_Update(false);
+        g_Console_Add(_lc[I_NET_MSG]+_lc[I_NET_SLIST_CONN]);
+        result := true;
+        exit;
+      end;
+      if (NetMEvent.kind = ENET_EVENT_TYPE_RECEIVE) then enet_packet_destroy(NetMEvent.packet);
+    end;
+    // check for connection timeout
+    if (not NetHostConnected) then
+    begin
+      ct := GetTimerMS();
+      if (ct < NetHostConReqTime) or (ct-NetHostConReqTime >= 3000) then
+      begin
+        // do not spam with error messages, it looks like the master is down
+        //g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR], True);
+        g_Net_Slist_Disconnect(false);
+      end;
+      exit;
+    end;
+  end;
+  result := true;
+end;
+
 
 procedure PingServer(var S: TNetServer; Sock: ENetSocket);
 var
@@ -387,42 +447,18 @@ begin
   NetOut.Write(Byte(NetPassword <> ''));
 end;
 
-procedure g_Net_Slist_Update;
+
+procedure g_Net_Slist_Update (immediateSend: Boolean=true);
 var
   P: pENetPacket;
-  ct: Int64;
 begin
-  if (NetMHost = nil) or (NetMPeer = nil) then exit;
-
-  // we are waiting for connection
-  if (not NetHostConnected) then
+  if not ProcessPendingConnection() then
   begin
-    // check for connection packet
-    if (enet_host_service(NetMHost, @NetMEvent, 0) > 0) then
-    begin
-      if NetMEvent.kind = ENET_EVENT_TYPE_CONNECT then
-      begin
-        NetHostConnected := True;
-        g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_CONN]);
-      end
-      else
-      begin
-        if NetMEvent.kind = ENET_EVENT_TYPE_RECEIVE then enet_packet_destroy(NetMEvent.packet);
-      end;
-    end;
-    // check for connection timeout
-    if (not NetHostConnected) then
-    begin
-      ct := GetTimerMS();
-      if (ct-NetHostConReqTime >= 3000) then
-      begin
-        // do not spam with error messages, it looks like the master is down
-        //g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR], True);
-        g_Net_Slist_Disconnect();
-        exit;
-      end;
-    end;
+    NetUpdatePending := g_Net_Slist_IsConnectionInProgress();
+    exit;
   end;
+
+  NetUpdatePending := false;
 
   NetOut.Clear();
   NetOut.Write(Byte(NET_MMSG_UPD));
@@ -433,7 +469,7 @@ begin
   P := enet_packet_create(NetOut.Data, NetOut.CurSize, Cardinal(ENET_PACKET_FLAG_RELIABLE));
   enet_peer_send(NetMPeer, NET_MCHAN_UPD, P);
 
-  enet_host_flush(NetMHost);
+  if (immediateSend) then enet_host_flush(NetMHost);
   NetOut.Clear();
 end;
 
@@ -441,7 +477,8 @@ procedure g_Net_Slist_Remove;
 var
   P: pENetPacket;
 begin
-  if (NetMHost = nil) or (NetMPeer = nil) or (not NetHostConnected) then Exit;
+  if not ProcessPendingConnection() then exit;
+
   NetOut.Clear();
   NetOut.Write(Byte(NET_MMSG_DEL));
   NetOut.Write(NetAddr.port);
@@ -458,8 +495,16 @@ var
   delay: Integer;
 begin
   Result := False;
+
+  if g_Net_Slist_IsConnectionActive then
+  begin
+    if not blocking then exit;
+    g_Net_Slist_Disconnect(false);
+  end;
+
   NetHostConnected := False; // just in case
   NetHostConReqTime := 0; // just in case
+  NetUpdatePending := false;
 
   NetMHost := enet_host_create(nil, 1, NET_MCHANS, 0, 0);
   if (NetMHost = nil) then
@@ -500,6 +545,7 @@ begin
     NetMHost := nil;
     NetHostConnected := False;
     NetHostConReqTime := 0;
+    NetUpdatePending := false;
   end
   else
   begin
@@ -508,11 +554,11 @@ begin
   end;
 end;
 
-procedure g_Net_Slist_Disconnect;
+procedure g_Net_Slist_Disconnect (spamConsole: Boolean=true);
 begin
   if (NetMHost = nil) and (NetMPeer = nil) then Exit;
 
-  if NetMode = NET_SERVER then g_Net_Slist_Remove;
+  if (NetMode = NET_SERVER) and (NetHostConnected) then g_Net_Slist_Remove;
 
   enet_peer_disconnect(NetMPeer, 0);
   enet_host_flush(NetMHost);
@@ -524,13 +570,16 @@ begin
   NetMHost := nil;
   NetHostConnected := False;
   NetHostConReqTime := 0;
+  NetUpdatePending := false;
 
-  g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_DISC]);
+  if (spamConsole) then g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_DISC]);
 end;
 
 procedure g_Net_Slist_Check;
 begin
-  if (NetMHost = nil) or (NetMPeer = nil) or (not NetHostConnected) then Exit;
+  if not ProcessPendingConnection() then exit;
+
+  if (NetUpdatePending) then g_Net_Slist_Update(false);
 
   while (enet_host_service(NetMHost, @NetMEvent, 0) > 0) do
   begin
@@ -543,6 +592,7 @@ begin
       NetMHost := nil;
       NetHostConnected := False;
       NetHostConReqTime := 0;
+      NetUpdatePending := false;
       Break;
     end
     else

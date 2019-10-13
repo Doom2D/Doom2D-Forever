@@ -1383,8 +1383,7 @@ begin
 
   NetPeer := nil;
   NetHost := nil;
-  NetMPeer := nil;
-  NetMHost := nil;
+  g_Net_Slist_Disconnect(false); // do not spam console
   NetMyID := -1;
   NetPlrUID1 := -1;
   NetPlrUID2 := -1;
@@ -1519,7 +1518,7 @@ begin
     end;
 
   clearNetClients(false); // don't clear array
-  if (NetMPeer <> nil) and (NetMHost <> nil) then g_Net_Slist_Disconnect;
+  if (g_Net_Slist_IsConnectionActive) then g_Net_Slist_Disconnect;
   if NetPongSock <> ENET_SOCKET_NULL then
     enet_socket_destroy(NetPongSock);
 
