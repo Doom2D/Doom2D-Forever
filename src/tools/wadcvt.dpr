@@ -27,6 +27,7 @@ program __wadcvt__;
 uses
   SysUtils,
   Classes,
+  {$I ../shared/vampimg.inc}
   mempool in '../shared/mempool.pas',
   utils in '../shared/utils.pas',
   xstreams in '../shared/xstreams.pas',
@@ -42,8 +43,7 @@ uses
   conbuf in '../shared/conbuf.pas',
   MAPDEF in '../shared/MAPDEF.pas',
   CONFIG in '../shared/CONFIG.pas',
-  e_log in '../engine/e_log.pas',
-  ImagingTypes, Imaging, ImagingUtility;
+  e_log in '../engine/e_log.pas';
 
 
 {.$WARNINGS ON}

@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *)
-{$INCLUDE ../../shared/a_modes.inc}
+{$INCLUDE ../shared/a_modes.inc}
 {.$DEFINE UI_STYLE_DEBUG_SEARCH}
 unit fui_style;
 
