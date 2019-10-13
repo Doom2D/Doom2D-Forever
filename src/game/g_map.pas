@@ -908,14 +908,9 @@ begin
   end
   else
   begin
-    //e_LogWritefln('GetReplacementWad: 000: old=%s', [WadName]);
-    result := g_Res_FindReplacementWad(WadName);
-    //e_LogWritefln('GetReplacementWad: 001: old=%s; new=%s', [WadName, result]);
-    if (result = WadName) then
-    begin
-      result := GameDir+'/wads/'+result;
-      //e_LogWritefln('GetReplacementWad: 002: old=%s; new=%s', [WadName, result]);
-    end;
+    result := WadName;
+    if g_Game_IsClient then result := g_Res_FindReplacementWad(WadName);
+    if (result = WadName) then result := GameDir+'/wads/'+result;
   end;
 end;
 
