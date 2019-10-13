@@ -42,10 +42,19 @@ uses
 
 {$IFDEF USE_SDL}
   SDL,
+  {$IFDEF USE_SDLMIXER}
+    SDL_mixer,
+  {$ENDIF}
 {$ENDIF}
 {$IFDEF USE_SDL2}
   SDL2 in '../lib/sdl2/sdl2.pas',
   {$IFDEF USE_SDLMIXER}
+    SDL2_mixer in '../lib/sdl2/SDL2_mixer.pas',
+  {$ENDIF}
+{$ENDIF}
+{$IFDEF USE_SYSSTUB}
+  {$IFDEF USE_SDLMIXER}
+    SDL2 in '../lib/sdl2/sdl2.pas',
     SDL2_mixer in '../lib/sdl2/SDL2_mixer.pas',
   {$ENDIF}
 {$ENDIF}

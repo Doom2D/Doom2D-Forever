@@ -102,6 +102,7 @@ begin
     Exit;
   end;
 
+  Texture := 0;
   glGenTextures(1, @Texture);
   tex.id := Texture;
   glBindTexture(GL_TEXTURE_2D, Texture);

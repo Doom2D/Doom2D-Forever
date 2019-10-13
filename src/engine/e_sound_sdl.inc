@@ -16,7 +16,7 @@ interface
 
 uses
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-  SDL2, SDL2_mixer,
+  SDL2, SDL2_mixer, envvars,
   e_log, SysUtils;
 
 type
