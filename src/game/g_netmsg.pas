@@ -442,11 +442,22 @@ begin
       e_LogWritefln('*** client #%u (cid #%u) authenticated...', [C.ID, C.Player]);
       //e_LogWritefln('spawning player with pid #%u...', [PID]);
       //Respawn(gGameSettings.GameType = GT_SINGLE);
-      //k8: no, do not spawn a player yet, wait for a 'i am ready' packet
+      //k8: no, do not spawn a player yet, wait for "request full state" packet
       Lives := 0;
       Spectate;
       FNoRespawn := True;
-      FWantsInGame := false; // TODO: look into this later
+      // `FWantsInGame` seems to mean "spawn the player on the next occasion".
+      // that is, if we'll set it to `true`, the player can be spawned after
+      // warmup time ran out, for example, regardless of the real player state.
+      // also, this seems to work only for the initial connection. further
+      // map changes could initiate resource downloading, but the player will
+      // be spawned immediately.
+      // the proper solution will require another player state, "ephemeral".
+      // the player should start any map in "ephemeral" state, and turned into
+      // real mobj only when they sent a special "i am ready" packet. this packet
+      // must be sent after receiving the full state, so the player will get a full
+      // map view before going into game.
+      FWantsInGame := false;
       C^.WaitForFirstSpawn := true;
     end;
   end;
