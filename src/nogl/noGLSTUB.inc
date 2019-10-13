@@ -1,0 +1,193 @@
+implementation
+
+  procedure glEnable(cap: GLenum);
+  begin
+  end;
+
+  procedure glDisable(cap: GLenum);
+  begin
+  end;
+
+  function glIsEnabled(cap: GLenum): GLboolean;
+  begin
+    result := 0
+  end;
+
+  function glGetString(name: GLenum): PChar;
+  begin
+    result := ''
+  end;
+
+  procedure glClearColor(red, green, blue, alpha: GLclampf);
+  begin
+  end;
+
+  procedure glClear(mask: GLbitfield);
+  begin
+  end;
+
+  procedure glAlphaFunc(func: GLenum; ref: GLclampf);
+  begin
+  end;
+
+  procedure glBlendFunc(sfactor, dfactor: GLenum);
+  begin
+  end;
+
+  procedure glPointSize(size: GLfloat);
+  begin
+  end;
+
+  procedure glLineWidth(width: GLfloat);
+  begin
+  end;
+
+  procedure glGetIntegerv(pname: GLenum; params: PGLint);
+  begin
+  end;
+
+  procedure glFlush;
+  begin
+  end;
+
+  procedure glFinish;
+  begin
+  end;
+
+  procedure glBegin(mode: GLenum);
+  begin
+  end;
+
+  procedure glEnd;
+  begin
+  end;
+
+  procedure glVertex2f(x, y: GLfloat);
+  begin
+  end;
+
+  procedure glVertex2i(x, y: GLint);
+  begin
+  end;
+
+  procedure glColor4f(red, green, blue, alpha: GLfloat);
+  begin
+  end;
+
+  procedure glColor4ub(red, green, blue, alpha: GLubyte);
+  begin
+  end;
+
+  procedure glColor3ub(red, green, blue: GLubyte);
+  begin
+  end;
+
+  procedure glTexCoord2f(s, t: GLfloat);
+  begin
+  end;
+
+  procedure glTexCoord2i(s, t: GLint);
+  begin
+  end;
+
+  procedure glReadPixels(x, y: GLint; width, height: GLsizei; format, atype: GLenum; pixels: Pointer);
+  begin
+  end;
+
+  procedure glLoadIdentity;
+  begin
+  end;
+
+  procedure glMatrixMode(mode: GLenum);
+  begin
+  end;
+
+  procedure glLoadMatrixd(const m: PGLdouble);
+  begin
+  end;
+
+  procedure glPushMatrix;
+  begin
+  end;
+
+  procedure glPopMatrix;
+  begin
+  end;
+
+  procedure glTranslatef(x, y, z: GLfloat);
+  begin
+  end;
+
+  procedure glRotatef(angle, x, y, z: GLfloat);
+  begin
+  end;
+
+  procedure glScalef(x, y, z: GLfloat);
+  begin
+  end;
+
+  procedure glViewport(x, y: GLint; width, height: GLsizei);
+  begin
+  end;
+
+  procedure glScissor(x, y: GLint; width, height: GLsizei);
+  begin
+  end;
+
+  procedure glStencilMask(mask: GLuint);
+  begin
+  end;
+
+  procedure glStencilFunc(func: GLenum; ref: GLint; mask: GLuint);
+  begin
+  end;
+
+  procedure glStencilOp(fail, zfail, zpass: GLenum);
+  begin
+  end;
+
+  procedure glColorMask(red, green, blue, alpha: GLboolean);
+  begin
+  end;
+
+  procedure glBindTexture(target: GLenum; texture: GLuint);
+  begin
+  end;
+
+  procedure glGenTextures(n: GLsizei; textures: PGLuint);
+  begin
+  end;
+
+  procedure glTexEnvi(target: GLenum; pname: GLenum; param: GLint);
+  begin
+  end;
+
+  procedure glTexParameterf(target: GLenum; pname: GLenum; param: GLfloat);
+  begin
+  end;
+
+  procedure glTexParameteri(target: GLenum; pname: GLenum; param: GLint);
+  begin
+  end;
+
+  procedure glTexImage2D(target: GLenum; level, internalformat: GLint; width, height: GLsizei; border: GLint; format, atype: GLenum; const pixels: Pointer);
+  begin
+  end;
+
+  procedure glTexSubImage2D(target: GLenum; level, xoffset, yoffset: GLint; width, height: GLsizei; format, atype: GLenum; const pixels: Pointer);
+  begin
+  end;
+
+  procedure glDeleteTextures(n: GLsizei; const textures: PGLuint);
+  begin
+  end;
+
+  procedure nogl_Init;
+  begin
+  end;
+
+  procedure nogl_Quit;
+  begin
+  end;
+
+initialization

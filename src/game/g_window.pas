@@ -322,7 +322,7 @@ begin
     end;
   end;
 
-{$IFDEF USE_SYSSTUB}
+{$IFNDEF USE_SYSSTUB}
   PrintGLSupportedExtensions;
   glLegacyNPOT := GLExtensionSupported('GL_ARB_texture_non_power_of_two') or GLExtensionSupported('GL_OES_texture_npot');
 {$ELSE}

@@ -109,7 +109,7 @@ implementation
       screen := SDL_SetVideoMode(w, h, bpp, flags);
       if screen <> nil then
       begin
-        {$IFDEF USE_NOGL}
+        {$IFDEF NOGL_INIT}
           nogl_Init;
         {$ENDIF}
         SDL_WM_SetCaption(GameTitle, nil);
@@ -470,7 +470,7 @@ implementation
       RemoveJoystick(i);
     if screen <> nil then
     begin
-      {$IFDEF USE_NOGL}
+      {$IFDEF NOGL_INIT}
         nogl_Quit;
       {$ENDIF}
       SDL_FreeSurface(screen)

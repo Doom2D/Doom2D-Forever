@@ -128,7 +128,7 @@ implementation
         context := SDL_GL_CreateContext(window);
         if context <> nil then
         begin
-          {$IFDEF USE_NOGL}
+          {$IFDEF NOGL_INIT}
             nogl_Init;
           {$ENDIF}
           UpdateSize(w, h);
@@ -475,7 +475,7 @@ implementation
     e_WriteLog('Releasing SDL2', TMsgType.Notify);
     if context <> nil then
     begin
-      {$IFDEF USE_NOGL}
+      {$IFDEF NOGL_INIT}
         nogl_Quit;
       {$ENDIF}
       SDL_GL_DeleteContext(context);

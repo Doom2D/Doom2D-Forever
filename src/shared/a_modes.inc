@@ -92,6 +92,16 @@
     {$UNDEF USE_SDL}
     {$UNDEF USE_SDL2}
   {$ENDIF}
+  {$DEFINE USE_GLSTUB}
+  {$IF DEFINED(USE_GLES1) OR DEFINED(USE_OPENGL)}
+    {$WARNING Render drivers not needed in headless mode. Force stub driver...}
+    {$UNDEF USE_GLES1}
+    {$UNDEF USE_OPENGL}
+  {$ENDIF}
+  {$IFDEF ENABLE_HOLMES}
+    {$WARNING Holmes in headless mode has no sense. Disabled.}
+    {$UNDEF ENABLE_HOLMES}
+  {$ENDIF}
 {$ENDIF}
 
 {$IF DEFINED(USE_SYSSTUB)}
@@ -131,14 +141,28 @@
   {$ERROR Sound driver not selected. Use -dUSE_SOUNDSTUB or -dUSE_SDLMIXER or -dUSE_FMOD or -dUSE_OPENAL}
 {$ENDIF}
 
-{$IFDEF ENABLE_HOLMES}
-  {$IFDEF HEADLESS}
-    {$ERROR Holmes in HEADLESS mode has no sense}
+{$IF DEFINED(USE_GLSTUB)}
+  {$IF DEFINED(USE_GLES1) OR DEFINED(USE_OPENGL)}
+    {$ERROR Only one render driver must be selected!}
   {$ENDIF}
+{$ELSEIF DEFINED(USE_GLES1)}
+  {$IF DEFINED(USE_GLSTUB) OR DEFINED(USE_OPENGL)}
+    {$ERROR Only one render driver must be selected!}
+  {$ENDIF}
+{$ELSEIF DEFINED(USE_OPENGL)}
+  {$IF DEFINED(USE_GLSTUB) OR DEFINED(USE_GLES1)}
+    {$ERROR Only one render driver must be selected!}
+  {$ENDIF}
+{$ELSE}
+  {$DEFINE USE_OPENGL}
+  {.$ERROR Render driver not selected. Use -dUSE_GLSTUB or -dUSE_GLES1 or -dUSE_OPENGL}
+{$ENDIF}
+
+{$IFDEF ENABLE_HOLMES}
   {$IFNDEF USE_SDL2}
     {$ERROR Holmes supported only with SDL2}
   {$ENDIF}
-  {$IFDEF USE_GLES1}
-    {$ERROR Holmes not supported with GLES}
+  {$IFNDEF USE_OPENGL}
+    {$ERROR Holmes supported only with desktop OpenGL}
   {$ENDIF}
 {$ENDIF}

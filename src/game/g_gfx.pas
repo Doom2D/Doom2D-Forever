@@ -1674,16 +1674,6 @@ end;
 procedure g_GFX_Draw ();
   var
     a, len: Integer;
-{$IFDEF USE_NANOGL}
-  type
-    Vertex = record
-      x, y: GLfloat;
-      r, g, b, a: GLfloat;
-    end;
-  var
-    count: Integer;
-    v: array of Vertex;
-{$ENDIF}
 begin
   if not gpart_dbg_enabled then exit;
 
@@ -1698,34 +1688,6 @@ begin
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-{$IFDEF USE_NANOGL}
-    count := 0;
-    SetLength(v, Length(Particles));
-    for a := 0 to High(Particles) do
-    begin
-      with Particles[a] do
-      begin
-        if alive and (x >= sX) and (y >= sY) and (x <= sX + sWidth) and (sY <= sY + sHeight) then
-        begin
-          v[count].x := x + 0.37;
-          v[count].y := y + 0.37;
-          v[count].r := red / 255;
-          v[count].g := green / 255;
-          v[count].b := blue / 255;
-          v[count].a := alpha / 255;
-          Inc(count);
-        end;
-      end;
-    end;
-
-    glVertexPointer(2, GL_FLOAT, SizeOf(Vertex), @v[0].x);
-    glColorPointer(4, GL_FLOAT, SizeOf(Vertex), @v[0].r);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDrawArrays(GL_POINTS, 0, count);
-{$ELSE}
     glBegin(GL_POINTS);
 
     len := High(Particles);
@@ -1743,7 +1705,6 @@ begin
     end;
 
     glEnd();
-{$ENDIF}
 
     glDisable(GL_BLEND);
   end;
