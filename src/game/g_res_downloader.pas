@@ -30,7 +30,7 @@ function g_Res_DownloadMapWAD (FileName: AnsiString; const mapHash: TMD5Digest):
 function g_Res_FindReplacementWad (oldname: AnsiString): AnsiString;
 
 // call this somewhere in startup sequence
-procedure g_Res_CreateDatabases ();
+procedure g_Res_CreateDatabases (allowRescan: Boolean=false);
 
 
 implementation
@@ -97,40 +97,52 @@ end;
 //  g_Res_CreateDatabases
 //
 //==========================================================================
-procedure g_Res_CreateDatabases ();
+procedure g_Res_CreateDatabases (allowRescan: Boolean=false);
 var
   st: TStream;
+  upmap: Boolean;
+  upres: Boolean;
+  forcesave: Boolean;
 begin
-  // create and load a know map database, if necessary
-  knownMaps.Free;
-  knownMaps := TFileHashDB.Create(GameDir+'/maps/');
-  knownRes := TFileHashDB.Create(GameDir+'/wads/');
-  saveDBsToDiskEnabled := true;
-  // load map database
-  st := nil;
-  try
-    st := openDiskFileRO(GameDir+'/data/maphash.db');
-    knownMaps.loadFrom(st);
-    e_LogWriteln('loaded map database');
-  except
+  if not assigned(knownMaps) then
+  begin
+    // create and load a know map database, if necessary
+    knownMaps := TFileHashDB.Create(GameDir+'/maps/');
+    knownRes := TFileHashDB.Create(GameDir+'/wads/');
+    saveDBsToDiskEnabled := true;
+    // load map database
+    st := nil;
+    try
+      st := openDiskFileRO(GameDir+'/data/maphash.db');
+      knownMaps.loadFrom(st);
+      e_LogWriteln('loaded map database');
+    except
+    end;
+    st.Free;
+    // load resource database
+    st := nil;
+    try
+      st := openDiskFileRO(GameDir+'/data/reshash.db');
+      knownRes.loadFrom(st);
+      e_LogWriteln('loaded resource database');
+    except
+    end;
+    st.Free;
+    forcesave := true;
+  end
+  else
+  begin
+    if (not allowRescan) then exit;
+    forcesave := false;
   end;
-  st.Free;
-  // load resource database
-  st := nil;
-  try
-    st := openDiskFileRO(GameDir+'/data/reshash.db');
-    knownRes.loadFrom(st);
-    e_LogWriteln('loaded resource database');
-  except
-  end;
-  st.Free;
   // rescan dirs
   e_LogWriteln('refreshing map database');
-  knownMaps.scanFiles();
+  upmap := knownMaps.scanFiles();
   e_LogWriteln('refreshing resource database');
-  knownRes.scanFiles();
+  upres := knownRes.scanFiles();
   // save databases
-  saveDatabases(true, true);
+  if (forcesave) then begin upmap := true; upres := true; end;
+  if upmap or upres then saveDatabases(upmap, upres);
 end;
 
 
@@ -346,6 +358,7 @@ var
 begin
   result := '';
   clearReplacementWads();
+  g_Res_CreateDatabases();
 
   try
     g_Res_received_map_start := 1;

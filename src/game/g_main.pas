@@ -161,7 +161,7 @@ begin
   g_holmes_imfunctional := not flexloaded;
 {$ENDIF}
 
-  g_Res_CreateDatabases();
+  //g_Res_CreateDatabases(); // it will be done before connecting to the server for the first time
 
   e_WriteLog('Entering SDLMain', TMsgType.Notify);
 

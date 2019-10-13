@@ -4610,6 +4610,10 @@ begin
   NetState := NET_STATE_AUTH;
 
   g_Game_SetLoadingText(_lc[I_LOAD_CONNECT], 0, False);
+
+  // create (or update) map/resource databases
+  g_Res_CreateDatabases(true);
+
 // Стартуем клиент
   if not g_Net_Connect(Addr, Port) then
   begin
