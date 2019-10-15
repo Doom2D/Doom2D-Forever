@@ -34,10 +34,10 @@ type
   TNetServer = record
     Number: Byte;
     Protocol: Byte;
-    Name: string;
-    IP: string;
+    Name: AnsiString;
+    IP: AnsiString;
     Port: Word;
-    Map: string;
+    Map: AnsiString;
     Players, MaxPlayers, LocalPl, Bots: Byte;
     Ping: Int64;
     GameMode: Byte;
@@ -61,24 +61,25 @@ type
     hostPort: Word;
 
   public
-    //host: pENetHost;
     peer: pENetPeer;
-    event: ENetEvent;
     enetAddr: ENetAddress;
     // inside the game, calling `connect()` is disasterous, as it is blocking.
     // so we'll use this variable to indicate if "connected" event is received.
     NetHostConnected: Boolean;
-    NetHostConReqTime: Int64; // to timeout `connect`
+    NetHostConReqTime: Int64; // to timeout `connect`; -1 means "waiting for shutdown"
     NetUpdatePending: Boolean; // should we send an update after connection completes?
     updateSent: Boolean;
     lastUpdateTime: Int64;
     addressInited: Boolean;
+    // server list request working flags
+    srvAnswered: Integer;
+    srvAnswer: array of TNetServer;
+    slMOTD: AnsiString;
+    slUrgent: AnsiString;
+    slReadUrgent: Boolean;
 
   private
     netmsg: TMsg;
-
-  private
-    function processPendingConnection (timeout: Integer=0): Boolean;
 
   public
     constructor Create (hostandport: AnsiString);
@@ -92,60 +93,48 @@ type
     function isConnecting (): Boolean; // is connection in progress?
     function isConnected (): Boolean;
 
-    // returns `false` if connection failed
-    function waitForConnection (): Boolean;
-
     // call as often as you want, the object will do the rest
     // but try to call this at least once in 100 msecs
-    // returns `true` if we got a packet (it won't be parsed to TMsg)
-    function service (timeout: Integer=0): Boolean;
+    procedure pulse ();
 
-    procedure disconnect (spamConsole: Boolean=false);
+    procedure disconnect ();
     function connect (): Boolean;
 
-    procedure update (immediateSend: Boolean=true);
+    procedure update ();
     procedure remove ();
 
     class procedure writeInfo (var msg: TMsg); static;
 
-    // call only if `service()` returned `true`!
-    procedure clearPacket ();
+    procedure connectedEvent ();
+    procedure disconnectedEvent ();
+    procedure receivedEvent (pkt: pENetPacket); // `pkt` is never `nil`
   end;
 
 
 var
   slCurrent:       TNetServerList = nil;
   slTable:         TNetServerTable = nil;
-  slWaitStr:       string = '';
+  slWaitStr:       AnsiString = '';
   slReturnPressed: Boolean = True;
 
-  slMOTD:          string = '';
-  slUrgent:        string = '';
+  slMOTD: AnsiString = '';
+  slUrgent: AnsiString = '';
 
-procedure g_Net_Slist_Set (IP: string; Port: Word);
+
+procedure g_Net_Slist_Set (IP: AnsiString; Port: Word);
 function g_Net_Slist_Fetch (var SL: TNetServerList): Boolean;
-
-{
-procedure g_Net_Slist_Update (immediateSend: Boolean=true);
-procedure g_Net_Slist_Remove ();
-function g_Net_Slist_Connect (blocking: Boolean=True): Boolean;
-procedure g_Net_Slist_Check ();
-procedure g_Net_Slist_Disconnect (spamConsole: Boolean=true);
-procedure g_Net_Slist_WriteInfo ();
-
-function g_Net_Slist_IsConnectionActive (): Boolean; // returns `false` if totally disconnected
-function g_Net_Slist_IsConnectionInProgress (): Boolean;
-}
 
 // make this server private
 procedure g_Net_Slist_Private ();
+// make this server public
+procedure g_Net_Slist_Public ();
 
 // called on network mode init
 procedure g_Net_Slist_NetworkStarted ();
 // called on network mode shutdown
 procedure g_Net_Slist_NetworkStopped ();
 
-procedure g_Net_Slist_Pulse ();
+procedure g_Net_Slist_Pulse (timeout: Integer=0);
 
 procedure g_Serverlist_GenerateTable (SL: TNetServerList; var ST: TNetServerTable);
 procedure g_Serverlist_Draw (var SL: TNetServerList; var ST: TNetServerTable);
@@ -167,6 +156,12 @@ begin
 end;
 
 
+// make this server public
+procedure g_Net_Slist_Public ();
+begin
+end;
+
+
 // called on network mode init
 procedure g_Net_Slist_NetworkStarted ();
 begin
@@ -180,22 +175,13 @@ end;
 
 var
   NetMHost: pENetHost = nil;
+  NetMEvent: ENetEvent;
   mlist: array of TMasterHost = nil;
 
   slSelection: Byte = 0;
   slFetched: Boolean = False;
   slDirPressed: Boolean = False;
   slReadUrgent: Boolean = False;
-  {
-  NetMHost: pENetHost = nil;
-  NetMPeer: pENetPeer = nil;
-  NetMEvent: ENetEvent;
-  // inside the game, calling `g_Net_Slist_Connect()` is disasterous, as it is blocking.
-  // so we'll use this variable to indicate if "connected" event is received.
-  NetHostConnected: Boolean = false;
-  NetHostConReqTime: Int64 = 0; // to timeout `connect`
-  NetUpdatePending: Boolean = false;
-  }
 
 
 //==========================================================================
@@ -211,20 +197,37 @@ end;
 
 //==========================================================================
 //
+//  findByPeer
+//
+//==========================================================================
+function findByPeer (peer: pENetPeer): Integer;
+var
+  f: Integer;
+begin
+  for f := 0 to High(mlist) do if (mlist[f].peer = peer) then begin result := f; exit; end;
+  result := -1;
+end;
+
+
+//==========================================================================
+//
 //  TMasterHost.Create
 //
 //==========================================================================
 constructor TMasterHost.Create (hostandport: AnsiString);
 begin
-  //host := nil;
   peer := nil;
-  ZeroMemory(@event, sizeof(event));
   NetHostConnected := false;
   NetHostConReqTime := 0;
   NetUpdatePending := false;
   updateSent := false;
   hostName := '';
   hostPort := 25665;
+  SetLength(srvAnswer, 0);
+  srvAnswered := 0;
+  slMOTD := '';
+  slUrgent := '';
+  slReadUrgent := true;
   netmsg.Alloc(NET_BUFSIZE);
   setAddress(hostandport);
 end;
@@ -242,6 +245,11 @@ begin
   hostName := '';
   hostPort := 25665;
   netmsg.Free();
+  SetLength(srvAnswer, 0);
+  srvAnswered := 0;
+  slMOTD := '';
+  slUrgent := '';
+  slReadUrgent := true;
 end;
 
 
@@ -255,6 +263,11 @@ var
   cp, pp: Integer;
 begin
   result := false;
+  SetLength(srvAnswer, 0);
+  srvAnswered := 0;
+  slMOTD := '';
+  slUrgent := '';
+  slReadUrgent := true;
   updateSent := false; // do not send 'remove'
   disconnect();
   addressInited := false;
@@ -329,7 +342,7 @@ end;
 //==========================================================================
 function TMasterHost.isConnecting (): Boolean;
 begin
-  result := isAlive() and (not NetHostConnected);
+  result := isAlive() and (not NetHostConnected) and (NetHostConReqTime <> -1);
 end;
 
 
@@ -340,7 +353,152 @@ end;
 //==========================================================================
 function TMasterHost.isConnected (): Boolean;
 begin
-  result := isAlive() and (NetHostConnected);
+  result := isAlive() and (NetHostConnected) and (NetHostConReqTime <> -1);
+end;
+
+
+//==========================================================================
+//
+//  TMasterHost.connectedEvent
+//
+//==========================================================================
+procedure TMasterHost.connectedEvent ();
+begin
+  if not isAlive() then exit;
+  if NetHostConnected then exit;
+  NetHostConnected := true;
+  e_LogWritefln('connected to master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
+end;
+
+
+//==========================================================================
+//
+//  TMasterHost.disconnectedEvent
+//
+//==========================================================================
+procedure TMasterHost.disconnectedEvent ();
+begin
+  if not isAlive() then exit;
+  e_LogWritefln('disconnected from master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
+  enet_peer_reset(peer);
+  peer := nil;
+  NetHostConnected := False;
+  NetHostConReqTime := 0;
+  NetUpdatePending := false;
+  updateSent := false;
+  //if (spamConsole) then g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_DISC]);
+end;
+
+
+//==========================================================================
+//
+//  TMasterHost.receivedEvent
+//
+//  `pkt` is never `nil`
+//
+//==========================================================================
+procedure TMasterHost.receivedEvent (pkt: pENetPacket);
+var
+  msg: TMsg;
+  MID: Byte;
+  Cnt: Byte;
+  f: Integer;
+  s: AnsiString;
+  {
+  I, RX: Integer;
+  T: Int64;
+  Sock: ENetSocket;
+  Buf: ENetBuffer;
+  InMsg: TMsg;
+  SvAddr: ENetAddress;
+  FromSL: Boolean;
+  MyVer, Str: AnsiString;
+  }
+begin
+  e_LogWritefln('received packed from master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
+  if not msg.Init(pkt^.data, pkt^.dataLength, True) then exit;
+  // packet type
+  MID := msg.ReadByte();
+  if (MID <> NET_MMSG_GET) then exit;
+  e_LogWritefln('received list packet from master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
+  SetLength(srvAnswer, 0);
+  if (srvAnswered > 0) then Inc(srvAnswered);
+  slMOTD := '';
+  //slUrgent := '';
+  slReadUrgent := true;
+  // number of items
+  Cnt := msg.ReadByte();
+  g_Console_Add(_lc[I_NET_MSG]+Format(_lc[I_NET_SLIST_RETRIEVED], [Cnt]), True);
+  if (Cnt > 0) then
+  begin
+    SetLength(srvAnswer, Cnt);
+    for f := 0 to Cnt-1 do
+    begin
+      srvAnswer[f].Number := f;
+      srvAnswer[f].IP := msg.ReadString();
+      srvAnswer[f].Port := msg.ReadWord();
+      srvAnswer[f].Name := msg.ReadString();
+      srvAnswer[f].Map := msg.ReadString();
+      srvAnswer[f].GameMode := msg.ReadByte();
+      srvAnswer[f].Players := msg.ReadByte();
+      srvAnswer[f].MaxPlayers := msg.ReadByte();
+      srvAnswer[f].Protocol := msg.ReadByte();
+      srvAnswer[f].Password := msg.ReadByte() = 1;
+      enet_address_set_host(Addr(srvAnswer[f].PingAddr), PChar(Addr(srvAnswer[f].IP[1])));
+      srvAnswer[f].Ping := -1;
+      srvAnswer[f].PingAddr.port := NET_PING_PORT;
+    end;
+  end;
+
+  if (msg.ReadCount < msg.CurSize) then
+  begin
+    // new master, supports version reports
+    s := msg.ReadString();
+    if (s <> {MyVer}GAME_VERSION) then
+    begin
+      { TODO }
+      g_Console_Add('!!! UpdVer = `'+s+'`');
+    end;
+    // even newer master, supports extra info
+    if (msg.ReadCount < msg.CurSize) then
+    begin
+      slMOTD := b_Text_Format(msg.ReadString());
+      s := b_Text_Format(msg.ReadString());
+      // check if the message has updated and the user has to read it again
+      if (slUrgent <> s) then slReadUrgent := false;
+      slUrgent := s;
+    end;
+  end;
+end;
+
+
+//==========================================================================
+//
+//  TMasterHost.pulse
+//
+//  this performs various scheduled tasks, if necessary
+//
+//==========================================================================
+procedure TMasterHost.pulse ();
+var
+  ct: Int64;
+begin
+  if not isAlive() then exit;
+  if (NetHostConReqTime = -1) then exit; // waiting for shutdown (disconnect in progress)
+  // process pending connection timeout
+  if (not NetHostConnected) then
+  begin
+    ct := GetTimerMS();
+    if (ct < NetHostConReqTime) or (ct-NetHostConReqTime >= 3000) then
+    begin
+      e_LogWritefln('failed to connect to master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
+      // do not spam with error messages, it looks like the master is down
+      //g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR], True);
+      enet_peer_disconnect(peer, 0);
+      // main pulse will take care of the rest
+    end;
+    exit;
+  end;
 end;
 
 
@@ -349,25 +507,19 @@ end;
 //  TMasterHost.disconnect
 //
 //==========================================================================
-procedure TMasterHost.disconnect (spamConsole: Boolean=false);
+procedure TMasterHost.disconnect ();
 begin
   if not isAlive() then exit;
-  if (NetMode = NET_SERVER) and isConnected() and updateSent then remove();
+  //if (NetMode = NET_SERVER) and isConnected() and updateSent then remove();
 
-  enet_peer_disconnect(peer, 0);
-  enet_host_flush(NetMHost);
-
-  enet_peer_reset(peer);
-  //enet_host_destroy(NetMHost);
-
-  peer := nil;
-  //NetMHost := nil;
-  NetHostConnected := False;
-  NetHostConReqTime := 0;
+  enet_peer_disconnect_later(peer, 0);
+  // main pulse will take care of the rest
+  NetHostConnected := false;
+  NetHostConReqTime := -1;
   NetUpdatePending := false;
   updateSent := false;
 
-  if (spamConsole) then g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_DISC]);
+  //if (spamConsole) then g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_DISC]);
 end;
 
 
@@ -377,25 +529,18 @@ end;
 //
 //==========================================================================
 function TMasterHost.connect (): Boolean;
-var
-  res: Integer;
 begin
-  updateSent := false; // do not send 'remove'
-  disconnect();
   result := false;
-  if not isValid() then exit;
+  if not isValid() or (NetHostConReqTime = -1) then exit;
+  if isAlive() then begin result := true; exit; end;
 
+  SetLength(srvAnswer, 0);
+  srvAnswered := 0;
+  NetHostConnected := false;
+  NetHostConReqTime := 0;
+  NetUpdatePending := false;
+  updateSent := false;
   if (not NetInitDone) then exit;
-
-  if (NetMHost = nil) then
-  begin
-    NetMHost := enet_host_create(nil, 1, NET_MCHANS, 0, 0);
-    if (NetMHost = nil) then
-    begin
-      g_Console_Add(_lc[I_NET_MSG_ERROR]+_lc[I_NET_ERR_CLIENT], True);
-      Exit;
-    end;
-  end;
 
   if (not addressInited) then
   begin
@@ -413,118 +558,11 @@ begin
   if (peer = nil) then
   begin
     g_Console_Add(_lc[I_NET_MSG_ERROR]+_lc[I_NET_ERR_CLIENT], true);
-    //enet_host_destroy(NetMHost);
-    //NetMHost := nil;
     exit;
   end;
 
-  res := enet_host_service(NetMHost, @event, 0);
-  if (res < 0) then
-  begin
-    enet_peer_reset(peer);
-    peer := nil;
-    exit;
-  end;
-
-  result := true;
-  if (res > 0) then
-  begin
-    if (event.kind = ENET_EVENT_TYPE_CONNECT) then
-    begin
-      NetHostConnected := true;
-      g_Console_Add(_lc[I_NET_MSG]+_lc[I_NET_SLIST_CONN]);
-      exit;
-    end;
-    if (event.kind = ENET_EVENT_TYPE_RECEIVE) then enet_packet_destroy(event.packet);
-  end;
-
-  if not NetHostConnected then NetHostConReqTime := GetTimerMS();
-
-  {
-  if (blocking) then
-  begin
-    g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR], True);
-
-    if NetMPeer <> nil then enet_peer_reset(NetMPeer);
-    if NetMHost <> nil then enet_host_destroy(NetMHost);
-    NetMPeer := nil;
-    NetMHost := nil;
-    NetHostConnected := False;
-    NetHostConReqTime := 0;
-    NetUpdatePending := false;
-  end
-  else
-  begin
-    NetHostConReqTime := GetTimerMS();
-    g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_WCONN]);
-  end;
-  }
-end;
-
-
-//==========================================================================
-//
-//  TMasterHost.processPendingConnection
-//
-//  should be called only if host/peer is here
-//  returns `false` if not connected or dead
-//
-//==========================================================================
-function TMasterHost.processPendingConnection (timeout: Integer=0): Boolean;
-var
-  ct: Int64;
-  cres: Integer;
-begin
-  result := false;
-  if not isAlive() then exit;
-  // are we waiting for connection?
-  if (not NetHostConnected) then
-  begin
-    // check for connection event
-    cres := enet_host_service(NetMHost, @event, timeout);
-    if (cres < 0) then
-    begin
-      //TODO: reconnect here
-      updateSent := false; // do not send 'remove'
-      disconnect();
-      exit;
-    end;
-    if (cres > 0) then
-    begin
-      if (event.kind = ENET_EVENT_TYPE_CONNECT) then
-      begin
-        NetHostConnected := true;
-        if NetUpdatePending then update(false);
-        g_Console_Add(_lc[I_NET_MSG]+_lc[I_NET_SLIST_CONN]);
-        result := true;
-        exit;
-      end
-      else if (event.kind = ENET_EVENT_TYPE_DISCONNECT) then
-      begin
-        //TODO: reconnect here
-        updateSent := false; // do not send 'remove'
-        disconnect();
-        exit;
-      end
-      else if (event.kind = ENET_EVENT_TYPE_RECEIVE) then
-      begin
-        enet_packet_destroy(event.packet);
-      end;
-    end;
-    // check for connection timeout
-    if (not NetHostConnected) then
-    begin
-      ct := GetTimerMS();
-      if (ct < NetHostConReqTime) or (ct-NetHostConReqTime >= 3000) then
-      begin
-        // do not spam with error messages, it looks like the master is down
-        //g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR], True);
-        disconnect(false);
-      end;
-      exit;
-    end;
-  end;
-  result := true;
+  NetHostConReqTime := GetTimerMS();
+  e_LogWritefln('connecting to master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
 end;
 
 
@@ -535,7 +573,7 @@ end;
 //==========================================================================
 class procedure TMasterHost.writeInfo (var msg: TMsg);
 var
-  wad, map: string;
+  wad, map: AnsiString;
 begin
   wad := g_ExtractWadNameNoPath(gMapInfo.Map);
   map := g_ExtractFileName(gMapInfo.Map);
@@ -559,32 +597,32 @@ end;
 //  TMasterHost.update
 //
 //==========================================================================
-procedure TMasterHost.update (immediateSend: Boolean=true);
+procedure TMasterHost.update ();
 var
   pkt: pENetPacket;
 begin
-  if not processPendingConnection() then
+  if not isAlive() then exit;
+  if not isConnected() then
   begin
     NetUpdatePending := isConnecting();
     exit;
   end;
 
-  NetUpdatePending := false;
-
   netmsg.Clear();
-  netmsg.Write(Byte(NET_MMSG_UPD));
-  netmsg.Write(NetAddr.port);
+  try
+    netmsg.Write(Byte(NET_MMSG_UPD));
+    netmsg.Write(NetAddr.port);
 
-  writeInfo(netmsg);
+    writeInfo(netmsg);
 
-  pkt := enet_packet_create(netmsg.Data, netmsg.CurSize, ENET_PACKET_FLAG_RELIABLE);
-  if assigned(pkt) then
-  begin
-    enet_peer_send(peer, NET_MCHAN_UPD, pkt);
-    if (immediateSend) then enet_host_flush(NetMHost);
+    pkt := enet_packet_create(netmsg.Data, netmsg.CurSize, ENET_PACKET_FLAG_RELIABLE);
+    if assigned(pkt) then
+    begin
+      if (enet_peer_send(peer, NET_MCHAN_UPD, pkt) = 0) then NetUpdatePending := false;
+    end;
+  finally
+    netmsg.Clear();
   end;
-
-  netmsg.Clear();
 end;
 
 
@@ -597,120 +635,22 @@ procedure TMasterHost.remove ();
 var
   pkt: pENetPacket;
 begin
-  if not processPendingConnection() then exit;
-
-  netmsg.Clear();
-  netmsg.Write(Byte(NET_MMSG_DEL));
-  netmsg.Write(NetAddr.port);
-
-  pkt := enet_packet_create(netmsg.Data, netmsg.CurSize, ENET_PACKET_FLAG_RELIABLE);
-  if assigned(pkt) then
-  begin
-    enet_peer_send(peer, NET_MCHAN_MAIN, pkt);
-    enet_host_flush(NetMHost);
-  end;
-
-  netmsg.Clear();
-end;
-
-
-//==========================================================================
-//
-//  TMasterHost.waitForConnection
-//
-//  returns `false` if connection failed
-//
-//==========================================================================
-function TMasterHost.waitForConnection (): Boolean;
-begin
-  result := isAlive();
-  if not result then exit;
-  while isAlive() and isConnecting() do
-  begin
-    if not processPendingConnection(300) then break;
-  end;
-  if not isConnected() then
-  begin
-    updateSent := false; // do not send 'remove'
-    disconnect();
-  end;
-  result := isAlive();
-end;
-
-
-//==========================================================================
-//
-//  TMasterHost.service
-//
-//  call as often as you want, the object will do the rest
-//  but try to call this at least once in 100 msecs
-//
-// returns `true` if we got a packet (it won't be parsed to TMsg)
-//
-//==========================================================================
-function TMasterHost.service (timeout: Integer=0): Boolean;
-var
-  ct: Int64;
-  hres: Integer;
-begin
-  result := false;
+  NetUpdatePending := false;
   if not isAlive() then exit;
-  if not processPendingConnection() then exit;
+  if not isConnected() then exit;
 
-  ct := GetTimerMS();
-  if (ct < lastUpdateTime) or (ct-lastUpdateTime >= 1000*60) then
-  begin
-    lastUpdateTime := ct;
-    update(false);
-  end;
+  netmsg.Clear();
+  try
+    netmsg.Write(Byte(NET_MMSG_DEL));
+    netmsg.Write(NetAddr.port);
 
-  while true do
-  begin
-    hres := enet_host_service(NetMHost, @event, timeout);
-    if (hres < 0) then
+    pkt := enet_packet_create(netmsg.Data, netmsg.CurSize, ENET_PACKET_FLAG_RELIABLE);
+    if assigned(pkt) then
     begin
-      //TODO: reconnect here
-      updateSent := false; // do not send 'remove'
-      disconnect();
-      exit;
+      enet_peer_send(peer, NET_MCHAN_MAIN, pkt);
     end;
-    if (hres = 0) then break;
-    if (event.kind = ENET_EVENT_TYPE_CONNECT) then
-    begin
-      NetHostConnected := true;
-      if NetUpdatePending then update(false);
-      g_Console_Add(_lc[I_NET_MSG]+_lc[I_NET_SLIST_CONN]);
-    end
-    else if (event.kind = ENET_EVENT_TYPE_DISCONNECT) then
-    begin
-      //TODO: reconnect here
-      g_Console_Add(_lc[I_NET_MSG]+_lc[I_NET_SLIST_LOST], True);
-      updateSent := false; // do not send 'remove'
-      disconnect();
-      exit;
-    end
-    else if (event.kind = ENET_EVENT_TYPE_RECEIVE) then
-    begin
-      //enet_packet_destroy(event.packet);
-      //if (timeout <> 0) then break;
-      result := true;
-      exit;
-    end;
-  end;
-end;
-
-
-//==========================================================================
-//
-//  TMasterHost.clearPacket
-//
-//==========================================================================
-procedure TMasterHost.clearPacket ();
-begin
-  if (event.packet <> nil) then
-  begin
-    enet_packet_destroy(event.packet);
-    event.packet := nil;
+  finally
+    netmsg.Clear();
   end;
 end;
 
@@ -721,7 +661,7 @@ end;
 //
 //**************************************************************************
 
-procedure g_Net_Slist_Set (IP: string; Port: Word);
+procedure g_Net_Slist_Set (IP: AnsiString; Port: Word);
 begin
   if (length(mlist) = 0) then
   begin
@@ -732,7 +672,7 @@ begin
   begin
     mlist[0].setAddress(ip+':'+IntToStr(Port));
   end;
-  e_LogWritefln('Masterserver address set to %s:%u', [IP, Port], TMsgType.Notify);
+  e_LogWritefln('Masterserver address set to [%s:%u]', [IP, Port], TMsgType.Notify);
   {
   if NetInitDone then
   begin
@@ -749,8 +689,72 @@ end;
 // main pulse
 //
 //**************************************************************************
-procedure g_Net_Slist_Pulse ();
+procedure g_Net_Slist_Pulse (timeout: Integer=0);
+var
+  f: Integer;
+  sres: Integer;
+  idx: Integer;
 begin
+  if (length(mlist) = 0) then
+  begin
+    if (NetMHost <> nil) then
+    begin
+      enet_host_destroy(NetMHost);
+      NetMHost := nil;
+      exit;
+    end;
+  end;
+
+  if (NetMHost = nil) then
+  begin
+    NetMHost := enet_host_create(nil, 1, NET_MCHANS, 0, 0);
+    if (NetMHost = nil) then
+    begin
+      g_Console_Add(_lc[I_NET_MSG_ERROR]+_lc[I_NET_ERR_CLIENT], True);
+      for f := 0 to High(mlist) do mlist[f].clear();
+      SetLength(mlist, 0);
+      Exit;
+    end;
+  end;
+
+  for f := 0 to High(mlist) do mlist[f].pulse();
+
+  while true do
+  begin
+    sres := enet_host_service(NetMHost, @NetMEvent, timeout);
+    if (sres < 0) then
+    begin
+      g_Console_Add(_lc[I_NET_MSG_ERROR]+_lc[I_NET_ERR_CLIENT], True);
+      for f := 0 to High(mlist) do mlist[f].clear();
+      SetLength(mlist, 0);
+      enet_host_destroy(NetMHost);
+      NetMHost := nil;
+      exit;
+    end;
+
+    if (sres = 0) then break;
+    idx := findByPeer(NetMEvent.peer);
+    if (idx < 0) then
+    begin
+      e_LogWriteln('network event from unknown master host. ignored.', TMsgType.Warning);
+      if (NetMEvent.kind = ENET_EVENT_TYPE_RECEIVE) then enet_packet_destroy(NetMEvent.packet);
+      continue;
+    end;
+
+    if (NetMEvent.kind = ENET_EVENT_TYPE_CONNECT) then
+    begin
+      mlist[idx].connectedEvent();
+    end
+    else if (NetMEvent.kind = ENET_EVENT_TYPE_DISCONNECT) then
+    begin
+      mlist[idx].disconnectedEvent();
+    end
+    else if (NetMEvent.kind = ENET_EVENT_TYPE_RECEIVE) then
+    begin
+      mlist[idx].receivedEvent(NetMEvent.packet);
+      enet_packet_destroy(NetMEvent.packet);
+    end;
+  end;
 end;
 
 
@@ -810,8 +814,7 @@ end;
 function g_Net_Slist_Fetch (var SL: TNetServerList): Boolean;
 var
   Cnt: Byte;
-  P: pENetPacket;
-  MID: Byte;
+  pkt: pENetPacket;
   I, RX: Integer;
   T: Int64;
   Sock: ENetSocket;
@@ -819,7 +822,17 @@ var
   InMsg: TMsg;
   SvAddr: ENetAddress;
   FromSL: Boolean;
-  MyVer, Str: string;
+  MyVer: AnsiString;
+
+  procedure DisconnectAll ();
+  var
+    f: Integer;
+  begin
+    for f := 0 to High(mlist) do
+    begin
+      if (mlist[f].isAlive()) then mlist[f].disconnect();
+    end;
+  end;
 
   procedure ProcessLocal ();
   begin
@@ -880,30 +893,16 @@ var
     if Length(SL) = 0 then SL := nil;
   end;
 
+var
+  f, c, n, pos: Integer;
+  aliveCount: Integer;
+  hasUnanswered: Boolean;
+  stt, ct: Int64;
 begin
-  Result := False;
+  result := false;
   SL := nil;
 
-  if (length(mlist) > 0) and (mlist[0].isAlive()) then
-  begin
-    CheckLocalServers();
-    Exit;
-  end;
-
-  if (length(mlist) = 0) or (not mlist[0].connect()) then
-  begin
-    CheckLocalServers();
-    Exit;
-  end;
-
-  if not mlist[0].waitForConnection() then
-  begin
-    CheckLocalServers();
-    Exit;
-  end;
-
-  e_WriteLog('Fetching serverlist...', TMsgType.Notify);
-  g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_FETCH]);
+  g_Net_Slist_Pulse(); // this will create mhost
 
   NetOut.Clear();
   NetOut.Write(Byte(NET_MMSG_GET));
@@ -912,144 +911,205 @@ begin
   MyVer := GAME_VERSION;
   NetOut.Write(MyVer);
 
-  P := enet_packet_create(NetOut.Data, NetOut.CurSize, Cardinal(ENET_PACKET_FLAG_RELIABLE));
-  enet_peer_send(mlist[0].peer, NET_MCHAN_MAIN, P);
-  enet_host_flush(NetMHost);
-
-  while mlist[0].isAlive() do
-  begin
-    if not mlist[0].service(5000) then continue;
-    if not InMsg.Init(mlist[0].event.packet^.data, mlist[0].event.packet^.dataLength, True) then
+  try
+    aliveCount := 0;
+    for f := 0 to High(mlist) do
     begin
-      mlist[0].clearPacket();
-      continue;
-    end;
-
-    MID := InMsg.ReadByte();
-
-    if (MID <> NET_MMSG_GET) then
-    begin
-      mlist[0].clearPacket();
-      continue;
-    end;
-
-    Cnt := InMsg.ReadByte();
-    g_Console_Add(_lc[I_NET_MSG]+Format(_lc[I_NET_SLIST_RETRIEVED], [Cnt]), True);
-
-    if (Cnt > 0) then
-    begin
-      SetLength(SL, Cnt);
-
-      for I := 0 to Cnt-1 do
+      mlist[f].srvAnswered := 0;
+      if (not mlist[f].isValid()) then continue;
+      if (not mlist[f].isConnected()) then mlist[f].connect();
+      if (not mlist[f].isAlive()) then continue;
+      if (mlist[f].isConnected()) then
       begin
-        SL[I].Number := I;
-        SL[I].IP := InMsg.ReadString();
-        SL[I].Port := InMsg.ReadWord();
-        SL[I].Name := InMsg.ReadString();
-        SL[I].Map := InMsg.ReadString();
-        SL[I].GameMode := InMsg.ReadByte();
-        SL[I].Players := InMsg.ReadByte();
-        SL[I].MaxPlayers := InMsg.ReadByte();
-        SL[I].Protocol := InMsg.ReadByte();
-        SL[I].Password := InMsg.ReadByte() = 1;
-        enet_address_set_host(Addr(SL[I].PingAddr), PChar(Addr(SL[I].IP[1])));
-        SL[I].Ping := -1;
-        SL[I].PingAddr.port := NET_PING_PORT;
-      end;
-    end;
-
-    if InMsg.ReadCount < InMsg.CurSize then
-    begin
-      // new master, supports version reports
-      Str := InMsg.ReadString();
-      if (Str <> MyVer) then
-      begin
-        { TODO }
-        g_Console_Add('!!! UpdVer = `' + Str + '`');
-      end;
-      // even newer master, supports extra info
-      if (InMsg.ReadCount < InMsg.CurSize) then
-      begin
-        slMOTD := b_Text_Format(InMsg.ReadString());
-        Str := b_Text_Format(InMsg.ReadString());
-        // check if the message has updated and the user has to read it again
-        if slUrgent <> Str then slReadUrgent := False;
-        slUrgent := Str;
-      end;
-    end;
-
-    mlist[0].clearPacket();
-    Result := True;
-    break;
-  end;
-
-  mlist[0].disconnect(false);
-  NetOut.Clear();
-
-  if Length(SL) = 0 then
-  begin
-    CheckLocalServers();
-    Exit;
-  end;
-
-  Sock := enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
-  if Sock = ENET_SOCKET_NULL then Exit;
-  enet_socket_set_option(Sock, ENET_SOCKOPT_NONBLOCK, 1);
-
-  for I := Low(SL) to High(SL) do PingServer(SL[I], Sock);
-
-  enet_socket_set_option(Sock, ENET_SOCKOPT_BROADCAST, 1);
-  PingBcast(Sock);
-
-  T := GetTimerMS();
-
-  InMsg.Alloc(NET_BUFSIZE);
-  Buf.data := InMsg.Data;
-  Buf.dataLength := InMsg.MaxSize;
-  Cnt := 0;
-  while GetTimerMS() - T <= 500 do
-  begin
-    InMsg.Clear();
-
-    RX := enet_socket_receive(Sock, @SvAddr, @Buf, 1);
-    if RX <= 0 then continue;
-    InMsg.CurSize := RX;
-
-    InMsg.BeginReading();
-
-    if InMsg.ReadChar() <> 'D' then continue;
-    if InMsg.ReadChar() <> 'F' then continue;
-
-    FromSL := False;
-    for I := Low(SL) to High(SL) do
-      if (SL[I].PingAddr.host = SvAddr.host) and
-         (SL[I].PingAddr.port = SvAddr.port) then
-      begin
-        with SL[I] do
+        pkt := enet_packet_create(NetOut.Data, NetOut.CurSize, Cardinal(ENET_PACKET_FLAG_RELIABLE));
+        if assigned(pkt) then
         begin
-          Port := InMsg.ReadWord();
-          Ping := InMsg.ReadInt64();
-          Ping := GetTimerMS() - Ping;
-          Name := InMsg.ReadString();
-          Map := InMsg.ReadString();
-          GameMode := InMsg.ReadByte();
-          Players := InMsg.ReadByte();
-          MaxPlayers := InMsg.ReadByte();
-          Protocol := InMsg.ReadByte();
-          Password := InMsg.ReadByte() = 1;
-          LocalPl := InMsg.ReadByte();
-          Bots := InMsg.ReadWord();
+          if (enet_peer_send(mlist[f].peer, NET_MCHAN_MAIN, pkt) = 0) then
+          begin
+            Inc(aliveCount);
+            mlist[f].srvAnswered := 1;
+          end;
         end;
-        FromSL := True;
-        Inc(Cnt);
-        break;
+      end
+      else if (mlist[f].isConnecting()) then
+      begin
+        Inc(aliveCount);
       end;
-    if not FromSL then
-      ProcessLocal();
-  end;
+    end;
 
-  InMsg.Free();
-  enet_socket_destroy(Sock);
+    if (aliveCount = 0) then
+    begin
+      DisconnectAll();
+      CheckLocalServers();
+      exit;
+    end;
+
+    e_WriteLog('Fetching serverlist...', TMsgType.Notify);
+    g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_FETCH]);
+
+    // wait until all servers connected and answered
+    stt := GetTimerMS();
+    while true do
+    begin
+      g_Net_Slist_Pulse(300);
+      aliveCount := 0;
+      hasUnanswered := false;
+      for f := 0 to High(mlist) do
+      begin
+        if (not mlist[f].isValid()) then continue;
+        if (mlist[f].isConnected()) then
+        begin
+          if (mlist[f].srvAnswered = 0) then
+          begin
+            pkt := enet_packet_create(NetOut.Data, NetOut.CurSize, Cardinal(ENET_PACKET_FLAG_RELIABLE));
+            if assigned(pkt) then
+            begin
+              if (enet_peer_send(mlist[f].peer, NET_MCHAN_MAIN, pkt) = 0) then
+              begin
+                hasUnanswered := true;
+                mlist[f].srvAnswered := 1;
+              end;
+            end;
+          end
+          else if (mlist[f].srvAnswered = 1) then
+          begin
+            hasUnanswered := true;
+          end
+          else if (mlist[f].srvAnswered > 1) then
+          begin
+            Inc(aliveCount);
+          end;
+        end
+        else if (mlist[f].isConnecting()) then
+        begin
+          hasUnanswered := true;
+        end;
+      end;
+      if (not hasUnanswered) then break;
+      // check for timeout
+      ct := GetTimerMS();
+      if (ct < stt) or (ct-stt > 4000) then break;
+    end;
+
+    if (aliveCount = 0) then
+    begin
+      DisconnectAll();
+      CheckLocalServers();
+      exit;
+    end;
+
+    slMOTD := '';
+    {
+    slUrgent := '';
+    slReadUrgent := true;
+    }
+
+    SetLength(SL, 0);
+    for f := 0 to High(mlist) do
+    begin
+      if (mlist[f].srvAnswered < 2) then continue;
+      for n := 0 to High(mlist[f].srvAnswer) do
+      begin
+        pos := -1;
+        for c := 0 to High(SL) do
+        begin
+          if (SL[c].IP = mlist[f].srvAnswer[n].IP) and (SL[c].Port = mlist[f].srvAnswer[n].Port) then
+          begin
+            pos := c;
+            break;
+          end;
+        end;
+        if (pos < 0) then
+        begin
+          pos := length(SL);
+          SetLength(SL, pos+1);
+          SL[pos] := mlist[f].srvAnswer[n];
+          SL[pos].Number := pos;
+        end;
+      end;
+      if (not mlist[f].slReadUrgent) and (mlist[f].slUrgent <> '') then
+      begin
+        if (mlist[f].slUrgent <> slUrgent) then
+        begin
+          slUrgent := mlist[f].slUrgent;
+          slReadUrgent := false;
+        end;
+      end;
+      if (slMOTD <> '') and (mlist[f].slMOTD <> '') then
+      begin
+        slMOTD := mlist[f].slMOTD;
+      end;
+    end;
+
+    DisconnectAll();
+
+    if (length(SL) = 0) then
+    begin
+      CheckLocalServers();
+      exit;
+    end;
+
+    Sock := enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
+    if Sock = ENET_SOCKET_NULL then Exit;
+    enet_socket_set_option(Sock, ENET_SOCKOPT_NONBLOCK, 1);
+
+    for I := Low(SL) to High(SL) do PingServer(SL[I], Sock);
+
+    enet_socket_set_option(Sock, ENET_SOCKOPT_BROADCAST, 1);
+    PingBcast(Sock);
+
+    T := GetTimerMS();
+
+    InMsg.Alloc(NET_BUFSIZE);
+    Buf.data := InMsg.Data;
+    Buf.dataLength := InMsg.MaxSize;
+    Cnt := 0;
+    while GetTimerMS() - T <= 500 do
+    begin
+      InMsg.Clear();
+
+      RX := enet_socket_receive(Sock, @SvAddr, @Buf, 1);
+      if RX <= 0 then continue;
+      InMsg.CurSize := RX;
+
+      InMsg.BeginReading();
+
+      if InMsg.ReadChar() <> 'D' then continue;
+      if InMsg.ReadChar() <> 'F' then continue;
+
+      FromSL := False;
+      for I := Low(SL) to High(SL) do
+        if (SL[I].PingAddr.host = SvAddr.host) and
+           (SL[I].PingAddr.port = SvAddr.port) then
+        begin
+          with SL[I] do
+          begin
+            Port := InMsg.ReadWord();
+            Ping := InMsg.ReadInt64();
+            Ping := GetTimerMS() - Ping;
+            Name := InMsg.ReadString();
+            Map := InMsg.ReadString();
+            GameMode := InMsg.ReadByte();
+            Players := InMsg.ReadByte();
+            MaxPlayers := InMsg.ReadByte();
+            Protocol := InMsg.ReadByte();
+            Password := InMsg.ReadByte() = 1;
+            LocalPl := InMsg.ReadByte();
+            Bots := InMsg.ReadWord();
+          end;
+          FromSL := True;
+          Inc(Cnt);
+          break;
+        end;
+      if not FromSL then
+        ProcessLocal();
+    end;
+
+    InMsg.Free();
+    enet_socket_destroy(Sock);
+  finally
+    NetOut.Clear();
+  end;
 end;
 
 
@@ -1095,7 +1155,7 @@ var
   ch: Byte = 0;
   ww: Word = 0;
   hh: Word = 0;
-  ip: string;
+  ip: AnsiString;
 begin
   ip := '';
   sy := 0;
@@ -1243,7 +1303,7 @@ procedure g_Serverlist_GenerateTable (SL: TNetServerList; var ST: TNetServerTabl
 var
   i, j: Integer;
 
-  function FindServerInTable(Name: string): Integer;
+  function FindServerInTable(Name: AnsiString): Integer;
   var
     i: Integer;
   begin
