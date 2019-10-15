@@ -358,6 +358,7 @@ begin
   e_LogWritefln('disconnected client #%d due to file transfer error', [nc.ID], TMsgType.Warning);
   enet_peer_disconnect(nc.Peer, NET_DISC_FILE_TIMEOUT);
   clearNetClientTransfers(nc);
+  g_Net_Slist_ServerPlayerLeaves();
 end;
 
 

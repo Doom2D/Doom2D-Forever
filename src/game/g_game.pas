@@ -4273,6 +4273,7 @@ begin
     end;
     Exit;
   end;
+  g_Net_Slist_ServerPlayerLeaves();
 end;
 
 procedure g_Game_Spectate();

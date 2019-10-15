@@ -491,6 +491,7 @@ begin
   if not C.WaitForFirstSpawn then exit;
   plr := g_Player_Get(C^.Player);
   if not assigned(plr) then exit;
+  g_Net_Slist_ServerPlayerComes();
   e_LogWritefln('*** client #%u (cid #%u) first spawn', [C.ID, C.Player]);
   C.WaitForFirstSpawn := false;
   plr.FNoRespawn := false;

@@ -68,6 +68,7 @@ type
     NetHostConnected: Boolean;
     NetHostConReqTime: Int64; // to timeout `connect`; -1 means "waiting for shutdown"
     NetUpdatePending: Boolean; // should we send an update after connection completes?
+    lastConnectTime: Int64;
     updateSent: Boolean;
     lastUpdateTime: Int64;
     // server list request working flags
@@ -148,6 +149,8 @@ procedure g_Net_Slist_ServerRenamed ();
 
 procedure g_Net_Slist_Pulse (timeout: Integer=0);
 
+procedure g_Net_Slist_ShutdownAll ();
+
 procedure g_Serverlist_GenerateTable (SL: TNetServerList; var ST: TNetServerTable);
 procedure g_Serverlist_Draw (var SL: TNetServerList; var ST: TNetServerTable);
 procedure g_Serverlist_Control (var SL: TNetServerList; var ST: TNetServerTable);
@@ -162,54 +165,6 @@ uses
   g_map, g_game, g_sound, g_gui, g_menu, g_options, g_language, g_basic,
   wadreader, g_system, utils;
 
-// if g_Game_IsServer and g_Game_IsNet and NetUseMaster then
-
-// make this server private
-procedure g_Net_Slist_Private ();
-begin
-end;
-
-// make this server public
-procedure g_Net_Slist_Public ();
-begin
-end;
-
-// called while the server is running
-procedure g_Net_Slist_ServerUpdate ();
-begin
-end;
-
-// called when the server is started
-procedure g_Net_Slist_ServerStarted ();
-begin
-end;
-
-// called when the server is stopped
-procedure g_Net_Slist_ServerClosed ();
-begin
-end;
-
-// called when new netword player comes
-procedure g_Net_Slist_ServerPlayerComes ();
-begin
-end;
-
-// called when new netword player comes
-procedure g_Net_Slist_ServerPlayerLeaves ();
-begin
-end;
-
-// started new map
-procedure g_Net_Slist_ServerMapStarted ();
-begin
-end;
-
-// this server renamed (or password mode changed, or other params changed)
-procedure g_Net_Slist_ServerRenamed ();
-begin
-end;
-
-
 // ////////////////////////////////////////////////////////////////////////// //
 var
   NetMHost: pENetHost = nil;
@@ -220,6 +175,8 @@ var
   slFetched: Boolean = False;
   slDirPressed: Boolean = False;
   slReadUrgent: Boolean = False;
+
+  reportsEnabled: Boolean = true;
 
 
 //==========================================================================
@@ -249,6 +206,273 @@ end;
 
 //==========================================================================
 //
+//  ShutdownAll
+//
+//==========================================================================
+procedure g_Net_Slist_ShutdownAll ();
+var
+  f, sres, idx: Integer;
+  stt, ct: Int64;
+  activeCount: Integer = 0;
+begin
+  if (NetMHost = nil) then exit;
+  for f := 0 to High(mlist) do
+  begin
+    if (mlist[f].isAlive()) then
+    begin
+      Inc(activeCount);
+      if (mlist[f].isConnected() and mlist[f].updateSent) then
+      begin
+        writeln('unregistering from ', f);
+        mlist[f].remove();
+      end;
+      //mlist[f].disconnect(false);
+      enet_peer_disconnect_later(mlist[f].peer, 0);
+    end;
+  end;
+  if (activeCount = 0) then exit;
+  stt := GetTimerMS();
+  while (activeCount > 0) do
+  begin
+    ct := GetTimerMS();
+    if (ct < stt) or (ct-stt >= 1500) then break;
+
+    sres := enet_host_service(NetMHost, @NetMEvent, 100);
+    if (sres < 0) then break;
+    if (sres = 0) then continue;
+
+    idx := findByPeer(NetMEvent.peer);
+    if (idx < 0) then
+    begin
+      if (NetMEvent.kind = ENET_EVENT_TYPE_RECEIVE) then enet_packet_destroy(NetMEvent.packet);
+      continue;
+    end;
+
+    if (NetMEvent.kind = ENET_EVENT_TYPE_CONNECT) then
+    begin
+      mlist[idx].connectedEvent();
+      //mlist[idx].disconnect(false);
+      enet_peer_disconnect(mlist[f].peer, 0);
+    end
+    else if (NetMEvent.kind = ENET_EVENT_TYPE_DISCONNECT) then
+    begin
+      mlist[idx].disconnectedEvent();
+      Dec(activeCount);
+    end
+    else if (NetMEvent.kind = ENET_EVENT_TYPE_RECEIVE) then
+    begin
+      mlist[idx].receivedEvent(NetMEvent.packet);
+      enet_packet_destroy(NetMEvent.packet);
+    end;
+  end;
+  enet_host_destroy(NetMHost);
+  NetMHost := nil;
+end;
+
+
+//==========================================================================
+//
+//  DisconnectAll
+//
+//==========================================================================
+procedure DisconnectAll ();
+var
+  f: Integer;
+begin
+  for f := 0 to High(mlist) do
+  begin
+    if (mlist[f].isAlive()) then mlist[f].disconnect(false);
+  end;
+end;
+
+
+//==========================================================================
+//
+//  ConnectAll
+//
+//==========================================================================
+procedure ConnectAll (sendUpdate: Boolean);
+var
+  f: Integer;
+begin
+  for f := 0 to High(mlist) do
+  begin
+    // force reconnect
+    mlist[f].lastConnectTime := 0;
+    //if (not mlist[f].isAlive()) then continue;
+    // force updating
+    if (sendUpdate) then
+    begin
+      mlist[f].NetUpdatePending := true;
+      mlist[f].lastUpdateTime := 0;
+    end;
+  end;
+end;
+
+
+//==========================================================================
+//
+//  UpdateAll
+//
+//==========================================================================
+procedure UpdateAll (force: Boolean);
+var
+  f: Integer;
+begin
+  for f := 0 to High(mlist) do
+  begin
+    if (not mlist[f].isAlive()) then continue;
+    mlist[f].NetUpdatePending := true;
+    if (force) then mlist[f].lastUpdateTime := 0;
+  end;
+end;
+
+
+//**************************************************************************
+//
+// public api
+//
+//**************************************************************************
+
+//==========================================================================
+//
+//  g_Net_Slist_Private
+//
+//  make this server private
+//
+//==========================================================================
+procedure g_Net_Slist_Private ();
+begin
+  DisconnectAll();
+  reportsEnabled := false;
+end;
+
+
+//==========================================================================
+//
+//  g_Net_Slist_Public
+//
+//  make this server public
+//
+//==========================================================================
+procedure g_Net_Slist_Public ();
+begin
+  if (not reportsEnabled) then
+  begin
+    reportsEnabled := true;
+    ConnectAll(true);
+  end;
+end;
+
+
+//==========================================================================
+//
+//  g_Net_Slist_ServerUpdate
+//
+//  called while the server is running
+//
+//==========================================================================
+procedure g_Net_Slist_ServerUpdate ();
+begin
+  UpdateAll(false);
+end;
+
+
+// called when the server is started
+procedure g_Net_Slist_ServerStarted ();
+begin
+  reportsEnabled := NetUseMaster;
+  if reportsEnabled and g_Game_IsServer() and g_Game_IsNet() then
+  begin
+    writeln('*** server started; reporting to master...');
+    ConnectAll(true);
+  end;
+end;
+
+
+//==========================================================================
+//
+//  g_Net_Slist_ServerClosed
+//
+//  called when the server is stopped
+//
+//==========================================================================
+procedure g_Net_Slist_ServerClosed ();
+var
+  f: Integer;
+begin
+  if reportsEnabled then
+  begin
+    reportsEnabled := false;
+    for f := 0 to High(mlist) do
+    begin
+      if (mlist[f].isConnected()) then mlist[f].remove();
+    end;
+  end;
+  DisconnectAll();
+end;
+
+
+//==========================================================================
+//
+//  g_Net_Slist_ServerPlayerComes
+//
+//  called when new netword player comes
+//
+//==========================================================================
+procedure g_Net_Slist_ServerPlayerComes ();
+begin
+  UpdateAll(true);
+end;
+
+
+//==========================================================================
+//
+//  g_Net_Slist_ServerPlayerLeaves
+//
+//  called when new netword player comes
+//
+//==========================================================================
+procedure g_Net_Slist_ServerPlayerLeaves ();
+begin
+  UpdateAll(true);
+end;
+
+
+//==========================================================================
+//
+//  g_Net_Slist_ServerMapStarted
+//
+//  started new map
+//
+//==========================================================================
+procedure g_Net_Slist_ServerMapStarted ();
+begin
+  UpdateAll(true);
+end;
+
+
+//==========================================================================
+//
+//  g_Net_Slist_ServerRenamed
+//
+//  this server renamed (or password mode changed, or other params changed)
+//
+//==========================================================================
+procedure g_Net_Slist_ServerRenamed ();
+begin
+  UpdateAll(true);
+end;
+
+
+//**************************************************************************
+//
+// TMasterHost
+//
+//**************************************************************************
+
+//==========================================================================
+//
 //  TMasterHost.Create
 //
 //==========================================================================
@@ -258,7 +482,9 @@ begin
   NetHostConnected := false;
   NetHostConReqTime := 0;
   NetUpdatePending := false;
+  lastConnectTime := 0;
   updateSent := false;
+  lastUpdateTime := 0;
   hostName := '';
   hostPort := 25665;
   SetLength(srvAnswer, 0);
@@ -544,13 +770,14 @@ end;
 procedure TMasterHost.pulse ();
 var
   ct: Int64;
+  mrate: Cardinal;
 begin
   if not isAlive() then exit;
   if (NetHostConReqTime = -1) then exit; // waiting for shutdown (disconnect in progress)
+  ct := GetTimerMS();
   // process pending connection timeout
   if (not NetHostConnected) then
   begin
-    ct := GetTimerMS();
     if (ct < NetHostConReqTime) or (ct-NetHostConReqTime >= 3000) then
     begin
       e_LogWritefln('failed to connect to master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
@@ -560,6 +787,18 @@ begin
       // main pulse will take care of the rest
     end;
     exit;
+  end;
+  // send update, if necessary
+  if (NetUpdatePending) then
+  begin
+    mrate := NetMasterRate;
+         if (mrate < 10000) then mrate := 10000
+    else if (mrate > 1000*60*10) then mrate := 1000*60*10;
+    if (lastUpdateTime = 0) or (ct < lastUpdateTime) or (ct-lastUpdateTime >= mrate) then
+    begin
+      lastUpdateTime := ct;
+      update();
+    end;
   end;
 end;
 
@@ -572,7 +811,6 @@ end;
 procedure TMasterHost.disconnect (forced: Boolean);
 begin
   if not isAlive() then exit;
-  //if (NetMode = NET_SERVER) and isConnected() and updateSent then remove();
 
   if (forced) then
   begin
@@ -589,7 +827,9 @@ begin
 
   NetHostConnected := false;
   NetUpdatePending := false;
-  updateSent := false;
+  //updateSent := false;
+  lastUpdateTime := 0;
+  //lastConnectTime := 0;
   //if (spamConsole) then g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_DISC]);
 end;
 
@@ -612,12 +852,14 @@ begin
     if isAlive() then begin result := true; exit; end;
   end;
 
+  lastConnectTime := GetTimerMS();
   SetLength(srvAnswer, 0);
   srvAnswered := 0;
   NetHostConnected := false;
   NetHostConReqTime := 0;
   NetUpdatePending := false;
   updateSent := false;
+  lastUpdateTime := 0;
 
   peer := enet_host_connect(NetMHost, @enetAddr, NET_MCHANS, 0);
   if (peer = nil) then
@@ -626,7 +868,7 @@ begin
     exit;
   end;
 
-  NetHostConReqTime := GetTimerMS();
+  NetHostConReqTime := lastConnectTime;
   e_LogWritefln('connecting to master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
 end;
 
@@ -674,19 +916,31 @@ begin
   end;
 
   netmsg.Clear();
-  try
-    netmsg.Write(Byte(NET_MMSG_UPD));
-    netmsg.Write(NetAddr.port);
 
-    writeInfo(netmsg);
+  if reportsEnabled and g_Game_IsServer() and g_Game_IsNet() and NetUseMaster then
+  begin
+    try
+      netmsg.Write(Byte(NET_MMSG_UPD));
+      netmsg.Write(NetAddr.port);
 
-    pkt := enet_packet_create(netmsg.Data, netmsg.CurSize, ENET_PACKET_FLAG_RELIABLE);
-    if assigned(pkt) then
-    begin
-      if (enet_peer_send(peer, NET_MCHAN_UPD, pkt) = 0) then NetUpdatePending := false;
+      writeInfo(netmsg);
+
+      pkt := enet_packet_create(netmsg.Data, netmsg.CurSize, ENET_PACKET_FLAG_RELIABLE);
+      if assigned(pkt) then
+      begin
+        if (enet_peer_send(peer, NET_MCHAN_UPD, pkt) = 0) then
+        begin
+          NetUpdatePending := false;
+          updateSent := true;
+        end;
+      end;
+    finally
+      netmsg.Clear();
     end;
-  finally
-    netmsg.Clear();
+  end
+  else
+  begin
+    NetUpdatePending := false;
   end;
 end;
 
@@ -701,6 +955,8 @@ var
   pkt: pENetPacket;
 begin
   NetUpdatePending := false;
+  lastUpdateTime := 0;
+  updateSent := false;
   if not isAlive() then exit;
   if not isConnected() then exit;
 
@@ -753,6 +1009,7 @@ var
   f: Integer;
   sres: Integer;
   idx: Integer;
+  ct: Int64;
 begin
   if (not g_Net_IsNetworkAvailable()) then exit;
 
@@ -778,7 +1035,30 @@ begin
     end;
   end;
 
-  for f := 0 to High(mlist) do mlist[f].pulse();
+  ct := GetTimerMS();
+  for f := 0 to High(mlist) do
+  begin
+    if (not mlist[f].isValid()) then continue;
+    if (not mlist[f].isAlive()) then
+    begin
+      if reportsEnabled and g_Game_IsServer() and g_Game_IsNet() and NetUseMaster then
+      begin
+        if (mlist[f].lastConnectTime = 0) or (ct < mlist[f].lastConnectTime) or (ct-mlist[f].lastConnectTime >= 1000*60*5) then
+        begin
+          mlist[f].connect();
+        end;
+      end;
+    end
+    else
+    begin
+      if not reportsEnabled or not g_Game_IsServer() or not g_Game_IsNet() or not NetUseMaster then
+      begin
+        if (mlist[f].isConnected()) and (mlist[f].updateSent) then mlist[f].remove();
+        mlist[f].disconnect(false);
+      end;
+    end;
+    mlist[f].pulse();
+  end;
 
   while true do
   begin
@@ -884,34 +1164,6 @@ var
   SvAddr: ENetAddress;
   FromSL: Boolean;
   MyVer: AnsiString;
-
-  procedure DisconnectAll ();
-  var
-    f: Integer;
-    hasAlive: Boolean;
-    //stt, ct: Int64;
-  begin
-    //stt := GetTimerMS();
-    while (length(mlist) > 0) do
-    begin
-      hasAlive := false;
-      for f := 0 to High(mlist) do
-      begin
-        if (mlist[f].isAlive()) then
-        begin
-          hasAlive := true;
-          mlist[f].disconnect(false);
-        end;
-      end;
-      if not hasAlive then break;
-      break;
-      {
-      g_Net_Slist_Pulse(100);
-      ct := GetTimerMS();
-      if (ct < stt) or (ct-stt > 800) then break;
-      }
-    end;
-  end;
 
   procedure ProcessLocal ();
   begin

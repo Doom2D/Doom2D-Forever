@@ -44,7 +44,7 @@ uses
   g_console, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
   g_map, g_gfx, g_monsters, xprofiler,
-  g_touch, g_gui, g_system;
+  g_touch, g_gui, g_system, g_netmaster;
 
 
 const
@@ -348,6 +348,8 @@ begin
 
   // main loop
   while not ProcessMessage() do begin end;
+
+  g_Net_Slist_ShutdownAll();
 
   Release();
 
