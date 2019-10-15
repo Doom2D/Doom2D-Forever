@@ -2126,12 +2126,15 @@ begin
 
       if NetUseMaster then
       begin
+        {
         if (gTime >= NetTimeToMaster) or g_Net_Slist_IsConnectionInProgress then
         begin
           if (not g_Net_Slist_IsConnectionActive) then g_Net_Slist_Connect(false); // non-blocking connection to the master
           g_Net_Slist_Update;
           NetTimeToMaster := gTime + NetMasterRate;
         end;
+        }
+        g_Net_Slist_Pulse();
       end;
     end
     else if (NetMode = NET_CLIENT) then
@@ -4194,7 +4197,10 @@ begin
       gPlayer1.Respawn(False, True);
 
       if g_Game_IsNet and NetUseMaster then
-        g_Net_Slist_Update;
+      begin
+        //g_Net_Slist_Update;
+        g_Net_Slist_Pulse();
+      end;
     end;
 
     Exit;
@@ -4226,7 +4232,10 @@ begin
       gPlayer2.Respawn(False, True);
 
       if g_Game_IsNet and NetUseMaster then
-        g_Net_Slist_Update;
+      begin
+        //g_Net_Slist_Update;
+        g_Net_Slist_Pulse();
+      end;
     end;
 
     Exit;
@@ -4251,7 +4260,10 @@ begin
       g_Player_Remove(Pl.UID);
 
       if g_Game_IsNet and NetUseMaster then
-        g_Net_Slist_Update;
+      begin
+        //g_Net_Slist_Update;
+        g_Net_Slist_Pulse();
+      end;
     end else
       gPlayer2 := nil;
     Exit;
@@ -4267,7 +4279,10 @@ begin
       g_Player_Remove(Pl.UID);
 
       if g_Game_IsNet and NetUseMaster then
-        g_Net_Slist_Update;
+      begin
+        //g_Net_Slist_Update;
+        g_Net_Slist_Pulse();
+      end;
     end else
     begin
       gPlayer1 := nil;
@@ -4907,8 +4922,11 @@ begin
   // ћастерсервер
     if NetUseMaster then
     begin
+      {
       if (not g_Net_Slist_IsConnectionActive) then g_Net_Slist_Connect(false);  // non-blocking connection to the master
       g_Net_Slist_Update;
+      }
+      g_Net_Slist_Pulse();
     end;
 
     if NetClients <> nil then
@@ -5480,7 +5498,10 @@ begin
       if Length(NetServerName) > 64 then
         SetLength(NetServerName, 64);
       if g_Game_IsServer and g_Game_IsNet and NetUseMaster then
-        g_Net_Slist_Update;
+      begin
+        //g_Net_Slist_Update;
+        g_Net_Slist_Pulse();
+      end;
     end;
 
     g_Console_Add(cmd + ' = "' + NetServerName + '"');
@@ -5493,7 +5514,10 @@ begin
       if Length(NetPassword) > 24 then
         SetLength(NetPassword, 24);
       if g_Game_IsServer and g_Game_IsNet and NetUseMaster then
-        g_Net_Slist_Update;
+      begin
+        //g_Net_Slist_Update;
+        g_Net_Slist_Pulse();
+      end;
     end;
 
     g_Console_Add(cmd + ' = "' + AnsiLowerCase(NetPassword) + '"');
@@ -5519,7 +5543,10 @@ begin
             end;
           end;
         if NetUseMaster then
-          g_Net_Slist_Update;
+        begin
+          //g_Net_Slist_Update;
+          g_Net_Slist_Pulse();
+        end;
       end;
     end;
 
@@ -5534,12 +5561,16 @@ begin
       begin
         if NetUseMaster then
         begin
+          {
           if (not g_Net_Slist_IsConnectionActive) then g_Net_Slist_Connect(false);  // non-blocking connection to the master
           g_Net_Slist_Update();
+          }
+          g_Net_Slist_Pulse();
         end
         else
         begin
-          if (not g_Net_Slist_IsConnectionActive) then g_Net_Slist_Disconnect();
+          //if (not g_Net_Slist_IsConnectionActive) then g_Net_Slist_Disconnect();
+          g_Net_Slist_Private();
         end;
       end;
     end;
@@ -6197,7 +6228,10 @@ begin
         g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
         MH_SEND_GameEvent(NET_EV_PLAYER_KICK, 0, s);
         if NetUseMaster then
-          g_Net_Slist_Update;
+        begin
+          //g_Net_Slist_Update;
+          g_Net_Slist_Pulse();
+        end;
       end else if gPlayers <> nil then
         for a := Low(gPlayers) to High(gPlayers) do
           if gPlayers[a] <> nil then
@@ -6211,7 +6245,10 @@ begin
               g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayers[a].Name]), True);
               g_Player_Remove(gPlayers[a].UID);
               if NetUseMaster then
-                g_Net_Slist_Update;
+              begin
+                //g_Net_Slist_Update;
+                g_Net_Slist_Pulse();
+              end;
               // ≈сли не перемешать, при добавлении новых ботов по€в€тс€ старые
               g_Bot_MixNames();
             end;
@@ -6243,7 +6280,10 @@ begin
           g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
           MH_SEND_GameEvent(NET_EV_PLAYER_KICK, 0, s);
           if NetUseMaster then
-            g_Net_Slist_Update;
+          begin
+            //g_Net_Slist_Update;
+            g_Net_Slist_Pulse();
+          end;
         end;
       end;
     end else
@@ -6273,7 +6313,10 @@ begin
         g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
         MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
         if NetUseMaster then
-          g_Net_Slist_Update;
+        begin
+          //g_Net_Slist_Update;
+          g_Net_Slist_Pulse();
+        end;
       end else
         g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
     end else
@@ -6304,7 +6347,10 @@ begin
           g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
           MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
           if NetUseMaster then
-            g_Net_Slist_Update;
+          begin
+            //g_Net_Slist_Update;
+            g_Net_Slist_Pulse();
+          end;
         end;
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);
@@ -6334,7 +6380,10 @@ begin
         g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
         MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
         if NetUseMaster then
-          g_Net_Slist_Update;
+        begin
+          //g_Net_Slist_Update;
+          g_Net_Slist_Pulse();
+        end;
       end else
         g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
     end else
@@ -6366,7 +6415,10 @@ begin
           g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
           MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
           if NetUseMaster then
-            g_Net_Slist_Update;
+          begin
+            //g_Net_Slist_Update;
+            g_Net_Slist_Pulse();
+          end;
         end;
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);

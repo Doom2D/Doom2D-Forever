@@ -476,7 +476,11 @@ begin
   if gState in [STATE_INTERCUSTOM, STATE_FOLD] then
     MH_SEND_GameEvent(NET_EV_MAPEND, 0, 'N', C^.ID);
 
-  if NetUseMaster then g_Net_Slist_Update;
+  if NetUseMaster then
+  begin
+    //g_Net_Slist_Update;
+    g_Net_Slist_Pulse();
+  end;
 end;
 
 

@@ -1385,7 +1385,8 @@ begin
 
   NetPeer := nil;
   NetHost := nil;
-  g_Net_Slist_Disconnect(false); // do not spam console
+  g_Net_Slist_NetworkStopped();
+  //g_Net_Slist_Disconnect(false); // do not spam console
   NetMyID := -1;
   NetPlrUID1 := -1;
   NetPlrUID2 := -1;
@@ -1520,7 +1521,8 @@ begin
     end;
 
   clearNetClients(false); // don't clear array
-  if (g_Net_Slist_IsConnectionActive) then g_Net_Slist_Disconnect;
+  //if (g_Net_Slist_IsConnectionActive) then g_Net_Slist_Disconnect;
+  g_Net_Slist_NetworkStopped();
   if NetPongSock <> ENET_SOCKET_NULL then
     enet_socket_destroy(NetPongSock);
 
@@ -1590,7 +1592,8 @@ begin
     NetOut.Write(Byte(Ord('F')));
     NetOut.Write(NetPort);
     NetOut.Write(ClTime);
-    g_Net_Slist_WriteInfo();
+    //g_Net_Slist_WriteInfo();
+    TMasterHost.writeInfo(NetOut);
     NPl := 0;
     if gPlayer1 <> nil then Inc(NPl);
     if gPlayer2 <> nil then Inc(NPl);
@@ -1617,7 +1620,11 @@ begin
   IP := '';
   Result := 0;
 
-  if NetUseMaster then g_Net_Slist_Check;
+  if NetUseMaster then
+  begin
+    //g_Net_Slist_Check;
+    g_Net_Slist_Pulse();
+  end;
   g_Net_Host_CheckPings;
 
   while (enet_host_service(NetHost, @NetEvent, 0) > 0) do
@@ -1722,7 +1729,11 @@ begin
         g_Console_Add(_lc[I_NET_MSG] + Format(_lc[I_NET_MSG_HOST_DISC], [ID]));
         Dec(NetClientCount);
 
-        if NetUseMaster then g_Net_Slist_Update;
+        if NetUseMaster then
+        begin
+          //g_Net_Slist_Update;
+          g_Net_Slist_Pulse();
+        end;
       end;
     end;
   end;
