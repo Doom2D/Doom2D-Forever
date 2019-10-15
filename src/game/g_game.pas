@@ -1677,6 +1677,9 @@ begin
     Exit;
   end;
 
+  // process master server communications
+  g_Net_Slist_Pulse();
+
   case gState of
     STATE_INTERSINGLE, // Статистка после прохождения уровня в Одиночной игре
     STATE_INTERCUSTOM, // Статистка после прохождения уровня в Своей игре
@@ -2124,18 +2127,18 @@ begin
       // send unexpected platform changes
       g_Map_NetSendInterestingPanels();
 
+      g_Net_Slist_ServerUpdate();
+      {
       if NetUseMaster then
       begin
-        {
         if (gTime >= NetTimeToMaster) or g_Net_Slist_IsConnectionInProgress then
         begin
           if (not g_Net_Slist_IsConnectionActive) then g_Net_Slist_Connect(false); // non-blocking connection to the master
           g_Net_Slist_Update;
           NetTimeToMaster := gTime + NetMasterRate;
         end;
-        }
-        g_Net_Slist_Pulse();
       end;
+      }
     end
     else if (NetMode = NET_CLIENT) then
     begin
@@ -4195,12 +4198,7 @@ begin
       if g_Game_IsServer and g_Game_IsNet then
         MH_SEND_PlayerCreate(gPlayer1.UID);
       gPlayer1.Respawn(False, True);
-
-      if g_Game_IsNet and NetUseMaster then
-      begin
-        //g_Net_Slist_Update;
-        g_Net_Slist_Pulse();
-      end;
+      g_Net_Slist_ServerPlayerComes();
     end;
 
     Exit;
@@ -4230,12 +4228,7 @@ begin
       if g_Game_IsServer and g_Game_IsNet then
         MH_SEND_PlayerCreate(gPlayer2.UID);
       gPlayer2.Respawn(False, True);
-
-      if g_Game_IsNet and NetUseMaster then
-      begin
-        //g_Net_Slist_Update;
-        g_Net_Slist_Pulse();
-      end;
+      g_Net_Slist_ServerPlayerComes();
     end;
 
     Exit;
@@ -4258,12 +4251,7 @@ begin
       Pl.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
       g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [Pl.Name]), True);
       g_Player_Remove(Pl.UID);
-
-      if g_Game_IsNet and NetUseMaster then
-      begin
-        //g_Net_Slist_Update;
-        g_Net_Slist_Pulse();
-      end;
+      g_Net_Slist_ServerPlayerLeaves();
     end else
       gPlayer2 := nil;
     Exit;
@@ -4277,12 +4265,7 @@ begin
       Pl.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
       g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [Pl.Name]), True);
       g_Player_Remove(Pl.UID);
-
-      if g_Game_IsNet and NetUseMaster then
-      begin
-        //g_Net_Slist_Update;
-        g_Net_Slist_Pulse();
-      end;
+      g_Net_Slist_ServerPlayerLeaves();
     end else
     begin
       gPlayer1 := nil;
@@ -4483,6 +4466,7 @@ procedure g_Game_StartServer(Map: String; GameMode: Byte;
                              IPAddr: LongWord; Port: Word);
 begin
   g_Game_Free();
+  g_Net_Slist_ServerClosed();
 
   e_WriteLog('Starting net game (server)...', TMsgType.Notify);
 
@@ -4559,9 +4543,12 @@ begin
 
   g_Net_Slist_Set(NetSlistIP, NetSlistPort);
 
+  g_Net_Slist_ServerStarted();
+
 // Загрузка и запуск карты:
   if not g_Game_StartMap(Map, True) then
   begin
+    g_Net_Slist_ServerClosed();
     g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Map]));
     Exit;
   end;
@@ -4573,6 +4560,7 @@ begin
       g_Map_GetPointCount(RESPAWNPOINT_RED)+
       g_Map_GetPointCount(RESPAWNPOINT_BLUE)) < 1 then
   begin
+    g_Net_Slist_ServerClosed();
     g_FatalError(_lc[I_GAME_ERROR_GET_SPAWN]);
     Exit;
   end;
@@ -4580,6 +4568,7 @@ begin
 // Настройки игроков и ботов:
   g_Player_Init();
 
+  g_Net_Slist_ServerMapStarted();
   NetState := NET_STATE_GAME;
 end;
 
@@ -4920,14 +4909,7 @@ begin
     MH_SEND_GameEvent(NET_EV_MAPSTART, gGameSettings.GameMode, Map);
 
   // Мастерсервер
-    if NetUseMaster then
-    begin
-      {
-      if (not g_Net_Slist_IsConnectionActive) then g_Net_Slist_Connect(false);  // non-blocking connection to the master
-      g_Net_Slist_Update;
-      }
-      g_Net_Slist_Pulse();
-    end;
+    g_Net_Slist_ServerMapStarted();
 
     if NetClients <> nil then
       for I := 0 to High(NetClients) do
@@ -5497,11 +5479,7 @@ begin
       NetServerName := P[1];
       if Length(NetServerName) > 64 then
         SetLength(NetServerName, 64);
-      if g_Game_IsServer and g_Game_IsNet and NetUseMaster then
-      begin
-        //g_Net_Slist_Update;
-        g_Net_Slist_Pulse();
-      end;
+      g_Net_Slist_ServerRenamed();
     end;
 
     g_Console_Add(cmd + ' = "' + NetServerName + '"');
@@ -5513,11 +5491,7 @@ begin
       NetPassword := P[1];
       if Length(NetPassword) > 24 then
         SetLength(NetPassword, 24);
-      if g_Game_IsServer and g_Game_IsNet and NetUseMaster then
-      begin
-        //g_Net_Slist_Update;
-        g_Net_Slist_Pulse();
-      end;
+      g_Net_Slist_ServerRenamed();
     end;
 
     g_Console_Add(cmd + ' = "' + AnsiLowerCase(NetPassword) + '"');
@@ -5531,6 +5505,7 @@ begin
       begin
         b := 0;
         for a := 0 to High(NetClients) do
+        begin
           if NetClients[a].Used then
           begin
             Inc(b);
@@ -5542,11 +5517,8 @@ begin
               MH_SEND_GameEvent(NET_EV_PLAYER_KICK, 0, s);
             end;
           end;
-        if NetUseMaster then
-        begin
-          //g_Net_Slist_Update;
-          g_Net_Slist_Pulse();
         end;
+        g_Net_Slist_ServerRenamed();
       end;
     end;
 
@@ -5557,22 +5529,7 @@ begin
     if (Length(P) > 1) then
     begin
       NetUseMaster := StrToIntDef(P[1], Byte(NetUseMaster)) > 0;
-      if g_Game_IsServer and g_Game_IsNet then
-      begin
-        if NetUseMaster then
-        begin
-          {
-          if (not g_Net_Slist_IsConnectionActive) then g_Net_Slist_Connect(false);  // non-blocking connection to the master
-          g_Net_Slist_Update();
-          }
-          g_Net_Slist_Pulse();
-        end
-        else
-        begin
-          //if (not g_Net_Slist_IsConnectionActive) then g_Net_Slist_Disconnect();
-          g_Net_Slist_Private();
-        end;
-      end;
+      if NetUseMaster then g_Net_Slist_Public() else g_Net_Slist_Private();
     end;
 
     g_Console_Add(cmd + ' = ' + IntToStr(Byte(NetUseMaster)));
@@ -6227,11 +6184,7 @@ begin
         enet_peer_disconnect(pl^.Peer, NET_DISC_KICK);
         g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
         MH_SEND_GameEvent(NET_EV_PLAYER_KICK, 0, s);
-        if NetUseMaster then
-        begin
-          //g_Net_Slist_Update;
-          g_Net_Slist_Pulse();
-        end;
+        g_Net_Slist_ServerPlayerLeaves();
       end else if gPlayers <> nil then
         for a := Low(gPlayers) to High(gPlayers) do
           if gPlayers[a] <> nil then
@@ -6244,11 +6197,7 @@ begin
               gPlayers[a].Kill(K_SIMPLEKILL, 0, HIT_DISCON);
               g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayers[a].Name]), True);
               g_Player_Remove(gPlayers[a].UID);
-              if NetUseMaster then
-              begin
-                //g_Net_Slist_Update;
-                g_Net_Slist_Pulse();
-              end;
+              g_Net_Slist_ServerPlayerLeaves();
               // Если не перемешать, при добавлении новых ботов появятся старые
               g_Bot_MixNames();
             end;
@@ -6279,11 +6228,7 @@ begin
           enet_peer_disconnect(NetClients[a].Peer, NET_DISC_KICK);
           g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
           MH_SEND_GameEvent(NET_EV_PLAYER_KICK, 0, s);
-          if NetUseMaster then
-          begin
-            //g_Net_Slist_Update;
-            g_Net_Slist_Pulse();
-          end;
+          g_Net_Slist_ServerPlayerLeaves();
         end;
       end;
     end else
@@ -6312,11 +6257,7 @@ begin
         enet_peer_disconnect(pl^.Peer, NET_DISC_TEMPBAN);
         g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
         MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
-        if NetUseMaster then
-        begin
-          //g_Net_Slist_Update;
-          g_Net_Slist_Pulse();
-        end;
+        g_Net_Slist_ServerPlayerLeaves();
       end else
         g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
     end else
@@ -6346,11 +6287,7 @@ begin
           enet_peer_disconnect(NetClients[a].Peer, NET_DISC_TEMPBAN);
           g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
           MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
-          if NetUseMaster then
-          begin
-            //g_Net_Slist_Update;
-            g_Net_Slist_Pulse();
-          end;
+          g_Net_Slist_ServerPlayerLeaves();
         end;
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);
@@ -6379,11 +6316,7 @@ begin
         g_Net_SaveBanList();
         g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
         MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
-        if NetUseMaster then
-        begin
-          //g_Net_Slist_Update;
-          g_Net_Slist_Pulse();
-        end;
+        g_Net_Slist_ServerPlayerLeaves();
       end else
         g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
     end else
@@ -6414,11 +6347,7 @@ begin
           g_Net_SaveBanList();
           g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
           MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
-          if NetUseMaster then
-          begin
-            //g_Net_Slist_Update;
-            g_Net_Slist_Pulse();
-          end;
+          g_Net_Slist_ServerPlayerLeaves();
         end;
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);

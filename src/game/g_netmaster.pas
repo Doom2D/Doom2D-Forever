@@ -130,10 +130,21 @@ procedure g_Net_Slist_Private ();
 // make this server public
 procedure g_Net_Slist_Public ();
 
-// called on network mode init
-procedure g_Net_Slist_NetworkStarted ();
-// called on network mode shutdown
-procedure g_Net_Slist_NetworkStopped ();
+// called while the server is running
+procedure g_Net_Slist_ServerUpdate ();
+// called when the server is started
+procedure g_Net_Slist_ServerStarted ();
+// called when the server is stopped
+procedure g_Net_Slist_ServerClosed ();
+
+// called when new netword player comes
+procedure g_Net_Slist_ServerPlayerComes ();
+// called when new netword player comes
+procedure g_Net_Slist_ServerPlayerLeaves ();
+// started new map
+procedure g_Net_Slist_ServerMapStarted ();
+// this server renamed (or password mode changed, or other params changed)
+procedure g_Net_Slist_ServerRenamed ();
 
 procedure g_Net_Slist_Pulse (timeout: Integer=0);
 
@@ -151,29 +162,55 @@ uses
   g_map, g_game, g_sound, g_gui, g_menu, g_options, g_language, g_basic,
   wadreader, g_system, utils;
 
+// if g_Game_IsServer and g_Game_IsNet and NetUseMaster then
+
 // make this server private
 procedure g_Net_Slist_Private ();
 begin
 end;
-
 
 // make this server public
 procedure g_Net_Slist_Public ();
 begin
 end;
 
-
-// called on network mode init
-procedure g_Net_Slist_NetworkStarted ();
+// called while the server is running
+procedure g_Net_Slist_ServerUpdate ();
 begin
 end;
 
-// called on network mode shutdown
-procedure g_Net_Slist_NetworkStopped ();
+// called when the server is started
+procedure g_Net_Slist_ServerStarted ();
+begin
+end;
+
+// called when the server is stopped
+procedure g_Net_Slist_ServerClosed ();
+begin
+end;
+
+// called when new netword player comes
+procedure g_Net_Slist_ServerPlayerComes ();
+begin
+end;
+
+// called when new netword player comes
+procedure g_Net_Slist_ServerPlayerLeaves ();
+begin
+end;
+
+// started new map
+procedure g_Net_Slist_ServerMapStarted ();
+begin
+end;
+
+// this server renamed (or password mode changed, or other params changed)
+procedure g_Net_Slist_ServerRenamed ();
 begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 var
   NetMHost: pENetHost = nil;
   NetMEvent: ENetEvent;
@@ -852,9 +889,9 @@ var
   var
     f: Integer;
     hasAlive: Boolean;
-    stt, ct: Int64;
+    //stt, ct: Int64;
   begin
-    stt := GetTimerMS();
+    //stt := GetTimerMS();
     while (length(mlist) > 0) do
     begin
       hasAlive := false;
@@ -867,9 +904,12 @@ var
         end;
       end;
       if not hasAlive then break;
+      break;
+      {
       g_Net_Slist_Pulse(100);
       ct := GetTimerMS();
       if (ct < stt) or (ct-stt > 800) then break;
+      }
     end;
   end;
 
@@ -1426,6 +1466,8 @@ var
   qm: Boolean;
   Srv: TNetServer;
 begin
+  g_Net_Slist_Pulse();
+
   if gConsoleShow or gChatShow then
     Exit;
 
