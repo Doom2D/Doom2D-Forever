@@ -244,6 +244,10 @@ function g_Net_RequestResFileInfo (resIndex: LongInt; out tf: TNetFileTransfer):
 function g_Net_AbortResTransfer (var tf: TNetFileTransfer): Boolean;
 function g_Net_ReceiveResourceFile (resIndex: LongInt; var tf: TNetFileTransfer; strm: TStream): Integer;
 
+function g_Net_IsNetworkAvailable (): Boolean;
+procedure g_Net_InitLowLevel ();
+procedure g_Net_DeinitLowLevel ();
+
 
 implementation
 
@@ -257,8 +261,30 @@ const
   FILE_CHUNK_SIZE = 8192;
 
 var
+  enet_init_success: Boolean = false;
   g_Net_DownloadTimeout: Single;
   trans_omsg: TMsg;
+
+
+function g_Net_IsNetworkAvailable (): Boolean;
+begin
+  result := enet_init_success;
+end;
+
+procedure g_Net_InitLowLevel ();
+begin
+  if enet_init_success then raise Exception.Create('wuta?!');
+  enet_init_success := (enet_initialize() = 0);
+end;
+
+procedure g_Net_DeinitLowLevel ();
+begin
+  if enet_init_success then
+  begin
+    enet_deinitialize();
+    enet_init_success := false;
+  end;
+end;
 
 
 //**************************************************************************
@@ -1285,6 +1311,7 @@ begin
   Result := N;
 end;
 
+
 function g_Net_Init(): Boolean;
 var
   F: TextFile;
@@ -1318,7 +1345,8 @@ begin
     g_Net_SaveBanList();
   end;
 
-  Result := (enet_initialize() = 0);
+  //Result := (enet_initialize() = 0);
+  Result := enet_init_success;
 end;
 
 procedure g_Net_Flush();
@@ -1414,7 +1442,7 @@ procedure g_Net_Free();
 begin
   g_Net_Cleanup();
 
-  enet_deinitialize();
+  //enet_deinitialize();
   NetInitDone := False;
 end;
 

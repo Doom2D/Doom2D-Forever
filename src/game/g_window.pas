@@ -334,6 +334,8 @@ begin
   Init;
   Time_Old := sys_GetTicks();
 
+  g_Net_InitLowLevel();
+
   // Командная строка
   if (ParamCount > 0) then g_Game_Process_Params();
 
@@ -348,6 +350,8 @@ begin
   while not ProcessMessage() do begin end;
 
   Release();
+
+  g_Net_DeinitLowLevel();
   result := 0;
 end;
 
