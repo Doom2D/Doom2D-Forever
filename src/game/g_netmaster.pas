@@ -930,6 +930,7 @@ begin
       begin
         if (enet_peer_send(peer, NET_MCHAN_UPD, pkt) = 0) then
         begin
+          e_LogWritefln('sent update to master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
           NetUpdatePending := false;
           updateSent := true;
         end;
