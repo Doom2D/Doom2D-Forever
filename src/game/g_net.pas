@@ -149,7 +149,7 @@ var
   NetUseMaster: Boolean = True;
   NetSlistIP:   string = 'mpms.doom2d.org';
   NetSlistPort: Word = 25665;
-  NetSlistList: string = '';
+  NetSlistList: string = 'deadsoftware.ru:25665';
 
   NetClientIP:   string = '127.0.0.1';
   NetClientPort: Word   = 25666;
