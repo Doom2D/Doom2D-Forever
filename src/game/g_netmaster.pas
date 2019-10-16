@@ -238,6 +238,9 @@ begin
     ct := GetTimerMS();
     if (ct < stt) or (ct-stt >= 1500) then break;
 
+    // fuck! https://www.mail-archive.com/enet-discuss@cubik.org/msg00852.html
+    // tl;dr: on shitdows, we can get -1 sometimes, and it is *NOT* a failure.
+    //        thank you, enet. let's ignore failures altogether then.
     sres := enet_host_service(NetMHost, @NetMEvent, 100);
     // if (sres < 0) then break;
     if (sres <= 0) then continue;
@@ -1145,6 +1148,9 @@ begin
     mlist[f].pulse();
   end;
 
+  // fuck! https://www.mail-archive.com/enet-discuss@cubik.org/msg00852.html
+  // tl;dr: on shitdows, we can get -1 sometimes, and it is *NOT* a failure.
+  //        thank you, enet. let's ignore failures altogether then.
   sres := enet_host_service(NetMHost, @NetMEvent, timeout);
   while (sres > 0) do
   begin

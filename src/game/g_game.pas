@@ -4630,6 +4630,9 @@ begin
   OuterLoop := True;
   while OuterLoop do
   begin
+    // fuck! https://www.mail-archive.com/enet-discuss@cubik.org/msg00852.html
+    // tl;dr: on shitdows, we can get -1 sometimes, and it is *NOT* a failure.
+    //        thank you, enet. let's ignore failures altogether then.
     while (enet_host_service(NetHost, @NetEvent, 50) > 0) do
     begin
       if (NetEvent.kind = ENET_EVENT_TYPE_RECEIVE) then

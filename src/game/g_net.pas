@@ -251,6 +251,11 @@ procedure g_Net_DeinitLowLevel ();
 
 implementation
 
+// *enet_host_service()*
+// fuck! https://www.mail-archive.com/enet-discuss@cubik.org/msg00852.html
+// tl;dr: on shitdows, we can get -1 sometimes, and it is *NOT* a failure.
+//        thank you, enet. let's ignore failures altogether then.
+
 uses
   SysUtils,
   e_input, g_nethandler, g_netmsg, g_netmaster, g_player, g_window, g_console,
@@ -767,13 +772,15 @@ begin
     ett := getNewTimeoutEnd();
     repeat
       status := enet_host_service(NetHost, @ev, 300);
+      {
       if (status < 0) then
       begin
         g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' network error', True);
         Result := -1;
         exit;
       end;
-      if (status = 0) then
+      }
+      if (status <= 0) then
       begin
         // check for timeout
         ct := GetTimerMS();
@@ -946,13 +953,15 @@ begin
     ett := getNewTimeoutEnd();
     repeat
       status := enet_host_service(NetHost, @ev, 300);
+      {
       if (status < 0) then
       begin
         g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' network error', True);
         Result := -1;
         exit;
       end;
-      if (status = 0) then
+      }
+      if (status <= 0) then
       begin
         // check for timeout
         ct := GetTimerMS();
@@ -1128,13 +1137,15 @@ begin
     repeat
       //stx := -GetTimerMS();
       status := enet_host_service(NetHost, @ev, 300);
+      {
       if (status < 0) then
       begin
         g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' network error', True);
         Result := -1;
         exit;
       end;
-      if (status = 0) then
+      }
+      if (status <= 0) then
       begin
         // check for timeout
         ct := GetTimerMS();
