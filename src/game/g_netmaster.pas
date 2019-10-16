@@ -239,8 +239,8 @@ begin
     if (ct < stt) or (ct-stt >= 1500) then break;
 
     sres := enet_host_service(NetMHost, @NetMEvent, 100);
-    if (sres < 0) then break;
-    if (sres = 0) then continue;
+    // if (sres < 0) then break;
+    if (sres <= 0) then continue;
 
     idx := findByPeer(NetMEvent.peer);
     if (idx < 0) then
@@ -1107,7 +1107,7 @@ begin
     NetMHost := enet_host_create(nil, 64, NET_MCHANS, 1024*1024, 1024*1024);
     if (NetMHost = nil) then
     begin
-      g_Console_Add(_lc[I_NET_MSG_ERROR]+_lc[I_NET_ERR_CLIENT], True);
+      e_LogWriteln(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CLIENT] + ' (host_create)', TMsgType.Notify);
       for f := 0 to High(mlist) do mlist[f].clear();
       SetLength(mlist, 0);
       Exit;
@@ -1146,11 +1146,11 @@ begin
   end;
 
   sres := enet_host_service(NetMHost, @NetMEvent, timeout);
-  while (sres <> 0) do
+  while (sres > 0) do
   begin
     if (sres < 0) then
     begin
-      g_Console_Add(_lc[I_NET_MSG_ERROR]+_lc[I_NET_ERR_CLIENT], True);
+      e_LogWriteln(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CLIENT] + ' (host_service)', TMsgType.Notify);
       for f := 0 to High(mlist) do mlist[f].clear();
       SetLength(mlist, 0);
       enet_host_destroy(NetMHost);
