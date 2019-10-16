@@ -811,7 +811,7 @@ begin
       NetInitDone := True;
   end;
 
-  g_Net_Slist_Set(NetSlistIP, NetSlistPort);
+  g_Net_Slist_Set(NetSlistIP, NetSlistPort, NetSlistList);
 
   gState := STATE_SLIST;
   g_ActiveWindow := nil;

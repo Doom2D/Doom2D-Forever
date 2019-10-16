@@ -4542,7 +4542,7 @@ begin
     Exit;
   end;
 
-  g_Net_Slist_Set(NetSlistIP, NetSlistPort);
+  g_Net_Slist_Set(NetSlistIP, NetSlistPort, NetSlistList);
 
   g_Net_Slist_ServerStarted();
 

@@ -147,9 +147,9 @@ var
   NetPongSock:   ENetSocket = ENET_SOCKET_NULL;
 
   NetUseMaster: Boolean = True;
-  NetSlistAddr: ENetAddress;
   NetSlistIP:   string = 'mpms.doom2d.org';
   NetSlistPort: Word = 25665;
+  NetSlistList: string = '';
 
   NetClientIP:   string = '127.0.0.1';
   NetClientPort: Word   = 25666;

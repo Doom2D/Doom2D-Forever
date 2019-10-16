@@ -58,7 +58,6 @@ type
   TMasterHost = record
   public
     hostName: AnsiString;
-    hostPort: Word;
 
   public
     peer: pENetPeer;
@@ -77,18 +76,18 @@ type
     slMOTD: AnsiString;
     slUrgent: AnsiString;
     slReadUrgent: Boolean;
+    // temporary mark
+    justAdded: Boolean;
 
   private
     netmsg: TMsg;
 
   public
-    constructor Create (hostandport: AnsiString);
+    constructor Create (var ea: ENetAddress);
 
     procedure clear ();
 
-    function setAddress (hostandport: AnsiString): Boolean;
-
-    function isSameAddress (hostandport: AnsiString): Boolean;
+    function setAddress (var ea: ENetAddress; hostStr: AnsiString): Boolean;
 
     function isValid (): Boolean;
     function isAlive (): Boolean; // not disconnected
@@ -123,7 +122,7 @@ var
   slUrgent: AnsiString = '';
 
 
-procedure g_Net_Slist_Set (IP: AnsiString; Port: Word);
+procedure g_Net_Slist_Set (IP: AnsiString; Port: Word; list: AnsiString='');
 function g_Net_Slist_Fetch (var SL: TNetServerList): Boolean;
 
 // make this server private
@@ -163,7 +162,8 @@ implementation
 uses
   e_input, e_graphics, e_log, g_window, g_net, g_console,
   g_map, g_game, g_sound, g_gui, g_menu, g_options, g_language, g_basic,
-  wadreader, g_system, utils;
+  wadreader, g_system, utils, hashtable;
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
@@ -476,7 +476,7 @@ end;
 //  TMasterHost.Create
 //
 //==========================================================================
-constructor TMasterHost.Create (hostandport: AnsiString);
+constructor TMasterHost.Create (var ea: ENetAddress);
 begin
   peer := nil;
   NetHostConnected := false;
@@ -486,14 +486,14 @@ begin
   updateSent := false;
   lastUpdateTime := 0;
   hostName := '';
-  hostPort := 25665;
+  ZeroMemory(@enetAddr, sizeof(enetAddr));
   SetLength(srvAnswer, 0);
   srvAnswered := 0;
   slMOTD := '';
   slUrgent := '';
   slReadUrgent := true;
   netmsg.Alloc(NET_BUFSIZE);
-  setAddress(hostandport);
+  setAddress(ea, '');
 end;
 
 
@@ -507,50 +507,13 @@ begin
   updateSent := false; // do not send 'remove'
   disconnect(true);
   hostName := '';
-  hostPort := 25665;
   netmsg.Free();
   SetLength(srvAnswer, 0);
   srvAnswered := 0;
   slMOTD := '';
   slUrgent := '';
   slReadUrgent := true;
-end;
-
-
-//==========================================================================
-//
-//  TMasterHost.isSameAddress
-//
-//==========================================================================
-function TMasterHost.isSameAddress (hostandport: AnsiString): Boolean;
-var
-  cp, pp: Integer;
-  hn: AnsiString;
-begin
-  result := false;
-  if not isValid() then exit;
-  hostandport := Trim(hostandport);
-  if (length(hostandport) = 0) then exit;
-  hn := hostandport;
-  cp := Pos(':', hostandport);
-  if (cp > 0) then
-  begin
-    hn := Copy(hostandport, 1, cp-1);
-    Delete(hostandport, 1, cp);
-    if (length(hostandport) > 0) then
-    begin
-      try
-        pp := StrToInt(hostandport);
-      except
-        pp := -1;
-      end;
-    end;
-  end
-  else
-  begin
-    pp := 25665;
-  end;
-  result := strEquCI1251(hn, hostName) and (hostPort = pp);
+  ZeroMemory(@enetAddr, sizeof(enetAddr));
 end;
 
 
@@ -559,9 +522,7 @@ end;
 //  TMasterHost.setAddress
 //
 //==========================================================================
-function TMasterHost.setAddress (hostandport: AnsiString): Boolean;
-var
-  cp, pp: Integer;
+function TMasterHost.setAddress (var ea: ENetAddress; hostStr: AnsiString): Boolean;
 begin
   result := false;
   SetLength(srvAnswer, 0);
@@ -572,43 +533,15 @@ begin
   updateSent := false; // do not send 'remove'
   disconnect(true);
   hostName := '';
-  hostPort := 25665;
 
   if (not g_Net_IsNetworkAvailable()) then exit;
 
-  hostandport := Trim(hostandport);
-  if (length(hostandport) > 0) then
-  begin
-      hostName := hostandport;
-    cp := Pos(':', hostandport);
-    if (cp > 0) then
-    begin
-      hostName := Copy(hostandport, 1, cp-1);
-      Delete(hostandport, 1, cp);
-      if (length(hostandport) > 0) then
-      begin
-        try
-          pp := StrToInt(hostandport);
-        except
-          pp := -1;
-        end;
-        if (pp > 0) and (pp < 65536) then hostPort := pp else hostPort := 0;
-      end;
-    end;
-  end;
+  enetAddr := ea;
+  if (enetAddr.host = 0) or (enetAddr.port = 0) then exit;
 
-  if not isValid() then exit;
-
-  if (enet_address_set_host(@enetAddr, PChar(Addr(hostName[1]))) <> 0) then
-  begin
-    writeln('SHIT!');
-    hostName := '';
-    hostPort := 0;
-  end;
-  enetAddr.Port := hostPort;
+  if (length(hostStr) > 0) then hostName := hostStr else hostName := IntToStr(enetAddr.host)+':'+IntToStr(ea.port);
 
   result := isValid();
-  //writeln('*********************: ', hostandport, ' [', hostName, ':', hostPort, '] ', result);
 end;
 
 
@@ -619,7 +552,7 @@ end;
 //==========================================================================
 function TMasterHost.isValid (): Boolean;
 begin
-  result := (length(hostName) > 0) and (hostPort > 0);
+  result := (enetAddr.host <> 0) and (enetAddr.port <> 0);
 end;
 
 
@@ -670,7 +603,7 @@ begin
   if not isAlive() then exit;
   if NetHostConnected then exit;
   NetHostConnected := true;
-  e_LogWritefln('connected to master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
+  e_LogWritefln('connected to master at [%s]', [hostName], TMsgType.Notify);
 end;
 
 
@@ -682,7 +615,7 @@ end;
 procedure TMasterHost.disconnectedEvent ();
 begin
   if not isAlive() then exit;
-  e_LogWritefln('disconnected from master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
+  e_LogWritefln('disconnected from master at [%s]', [hostName], TMsgType.Notify);
   disconnect(true);
   //if (spamConsole) then g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_DISC]);
 end;
@@ -703,12 +636,12 @@ var
   f: Integer;
   s: AnsiString;
 begin
-  e_LogWritefln('received packed from master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
+  e_LogWritefln('received packed from master at [%s]', [hostName], TMsgType.Notify);
   if not msg.Init(pkt^.data, pkt^.dataLength, True) then exit;
   // packet type
   MID := msg.ReadByte();
   if (MID <> NET_MMSG_GET) then exit;
-  e_LogWritefln('received list packet from master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
+  e_LogWritefln('received list packet from master at [%s]', [hostName], TMsgType.Notify);
   SetLength(srvAnswer, 0);
   if (srvAnswered > 0) then Inc(srvAnswered);
   slMOTD := '';
@@ -780,7 +713,7 @@ begin
   begin
     if (ct < NetHostConReqTime) or (ct-NetHostConReqTime >= 3000) then
     begin
-      e_LogWritefln('failed to connect to master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
+      e_LogWritefln('failed to connect to master at [%s]', [hostName], TMsgType.Notify);
       // do not spam with error messages, it looks like the master is down
       //g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR], True);
       enet_peer_disconnect(peer, 0);
@@ -869,7 +802,7 @@ begin
   end;
 
   NetHostConReqTime := lastConnectTime;
-  e_LogWritefln('connecting to master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
+  e_LogWritefln('connecting to master at [%s]', [hostName], TMsgType.Notify);
 end;
 
 
@@ -930,7 +863,7 @@ begin
       begin
         if (enet_peer_send(peer, NET_MCHAN_UPD, pkt) = 0) then
         begin
-          e_LogWritefln('sent update to master at [%s:%u]', [hostName, hostPort], TMsgType.Notify);
+          e_LogWritefln('sent update to master at [%s]', [hostName], TMsgType.Notify);
           NetUpdatePending := false;
           updateSent := true;
         end;
@@ -982,21 +915,151 @@ end;
 // other functions
 //
 //**************************************************************************
+type
+  THashStrDWord = specialize THashBase<AnsiString, LongWord, THashKeyStrAnsiCI>;
 
-procedure g_Net_Slist_Set (IP: AnsiString; Port: Word);
+var
+  knownHosts: THashStrDWord = nil;
+
+
+//==========================================================================
+//
+//  parseAddressPort
+//
+//==========================================================================
+function parseAddressPort (var ea: ENetAddress; hostandport: AnsiString): Boolean;
+var
+  cp, port: Integer;
+  hostName: AnsiString;
+  ip: LongWord;
+begin
+  result := false;
+  if (not g_Net_IsNetworkAvailable()) then exit;
+
+  hostandport := Trim(hostandport);
+  if (length(hostandport) = 0) then exit;
+
+  hostName := hostandport;
+  port := 25665;
+
+  cp := Pos(':', hostandport);
+  if (cp > 0) then
+  begin
+    hostName := Trim(Copy(hostandport, 1, cp-1));
+    Delete(hostandport, 1, cp);
+    hostandport := Trim(hostandport);
+    if (length(hostandport) > 0) then
+    begin
+      try
+        port := StrToInt(hostandport);
+      except
+        port := -1;
+      end;
+    end;
+  end;
+
+  if (length(hostName) = 0) then exit;
+  if (port < 1) or (port > 65535) then exit;
+
+  if not assigned(knownHosts) then knownHosts := THashStrDWord.Create();
+
+  if knownHosts.get(hostName, ip) then
+  begin
+    ea.host := ip;
+  end
+  else
+  begin
+    if (enet_address_set_host(@ea, PChar(Addr(hostName[1]))) <> 0) then
+    begin
+      knownHosts.put(hostName, 0);
+      exit;
+    end;
+    knownHosts.put(hostName, ea.host);
+  end;
+  ea.Port := port;
+  result := true;
+end;
+
+
+//==========================================================================
+//
+//  addMasterRecord
+//
+//==========================================================================
+procedure addMasterRecord (var ea: ENetAddress; sa: AnsiString);
 var
   f: Integer;
+  freeIdx: Integer;
+begin
+  freeIdx := -1;
+  for f := 0 to High(mlist) do
+  begin
+    if (mlist[f].enetAddr.host = ea.host) and (mlist[f].enetAddr.port = ea.port) then
+    begin
+      mlist[f].justAdded := true;
+      exit;
+    end;
+    if (freeIdx < 0) and (not mlist[f].isValid()) then freeIdx := f;
+  end;
+  if (freeIdx < 0) then
+  begin
+    freeIdx := length(mlist);
+    SetLength(mlist, freeIdx+1);
+    mlist[freeIdx].Create(ea);
+  end;
+  mlist[freeIdx].justAdded := true;
+  mlist[freeIdx].setAddress(ea, sa);
+  e_LogWritefln('added masterserver with address [%s]', [sa], TMsgType.Notify);
+end;
+
+
+//==========================================================================
+//
+//  g_Net_Slist_Set
+//
+//==========================================================================
+procedure g_Net_Slist_Set (IP: AnsiString; Port: Word; list: AnsiString='');
+var
+  f, dest: Integer;
   sa: AnsiString;
+  ea: ENetAddress;
+  pp: Integer;
 begin
   if (not g_Net_IsNetworkAvailable()) then exit;
+
+  for f := 0 to High(mlist) do mlist[f].justAdded := false;
+
   IP := Trim(IP);
-  if (length(IP) = 0) or (Port = 0) then exit;
-  sa := IP+':'+IntToStr(Port);
-  for f := 0 to High(mlist) do if (mlist[f].isSameAddress(sa)) then exit;
-  SetLength(mlist, length(mlist)+1);
-  mlist[High(mlist)].Create(sa);
-  mlist[High(mlist)].setAddress(sa);
-  e_LogWritefln('Masterserver address set to [%s:%u]', [IP, Port], TMsgType.Notify);
+  if (length(IP) > 0) and (Port > 0) then
+  begin
+    sa := IP+':'+IntToStr(Port);
+    if parseAddressPort(ea, sa) then addMasterRecord(ea, sa);
+  end;
+
+  list := Trim(list);
+  //writeln('list=[', list, ']');
+  while (length(list) > 0) do
+  begin
+    pp := Pos(',', list);
+    if (pp < 1) then pp := length(list)+1;
+    sa := Trim(Copy(list, 1, pp-1));
+    Delete(list, 1, pp);
+    //writeln('  sa=[', sa, ']');
+    if (length(sa) > 0) and parseAddressPort(ea, sa) then addMasterRecord(ea, sa);
+  end;
+
+  // remove unknown master servers
+  dest := 0;
+  for f := 0 to High(mlist) do
+  begin
+    if (not mlist[f].justAdded) then mlist[f].clear();
+    if (mlist[f].isValid()) then
+    begin
+      if (dest <> f) then mlist[dest] := mlist[f];
+      Inc(dest);
+    end;
+  end;
+  if (dest <> length(mlist)) then SetLength(mlist, dest);
 end;
 
 
@@ -1005,6 +1068,12 @@ end;
 // main pulse
 //
 //**************************************************************************
+
+//==========================================================================
+//
+//  g_Net_Slist_Pulse
+//
+//==========================================================================
 procedure g_Net_Slist_Pulse (timeout: Integer=0);
 var
   f: Integer;
@@ -1026,7 +1095,7 @@ begin
 
   if (NetMHost = nil) then
   begin
-    NetMHost := enet_host_create(nil, 1, NET_MCHANS, 0, 0);
+    NetMHost := enet_host_create(nil, 64, NET_MCHANS, 1024*1024, 1024*1024);
     if (NetMHost = nil) then
     begin
       g_Console_Add(_lc[I_NET_MSG_ERROR]+_lc[I_NET_ERR_CLIENT], True);
@@ -1263,8 +1332,8 @@ begin
       for f := 0 to High(mlist) do
       begin
         {
-        e_LogWritefln('  master #%d: [%s:%u] valid=%d; alive=%d; connected=%d; connecting=%d',
-          [f, mlist[f].hostName, mlist[f].hostPort, Integer(mlist[f].isValid()), Integer(mlist[f].isAlive()),
+        e_LogWritefln('  master #%d: [%s] valid=%d; alive=%d; connected=%d; connecting=%d',
+          [f, mlist[f].hostName, Integer(mlist[f].isValid()), Integer(mlist[f].isAlive()),
           Integer(mlist[f].isConnected()), Integer(mlist[f].isConnecting())], TMsgType.Notify);
         }
         if (not mlist[f].isValid()) then continue;

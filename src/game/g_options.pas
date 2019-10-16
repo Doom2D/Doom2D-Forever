@@ -296,7 +296,7 @@ begin
   (* section MasterServer *)
   NetSlistIP := 'mpms.doom2d.org';
   NetSlistPort := 25665;
-  g_Net_Slist_Set(NetSlistIP, NetSlistPort);
+  g_Net_Slist_Set(NetSlistIP, NetSlistPort, NetSlistList);
 
   (* section Server *)
   NetServerName := 'Unnamed Server';
@@ -518,7 +518,8 @@ begin
   section := 'MasterServer';
   ReadString(NetSlistIP, 'IP');
   ReadInteger(NetSlistPort, 'Port', 0, 65535);
-  g_Net_Slist_Set(NetSlistIP, NetSlistPort);
+  ReadString(NetSlistList, 'List');
+  g_Net_Slist_Set(NetSlistIP, NetSlistPort, NetSlistList);
 
   section := 'Server';
   ReadString(NetServerName, 'Name');
@@ -655,6 +656,7 @@ begin
 
   config.WriteStr('MasterServer', 'IP', NetSlistIP);
   config.WriteInt('MasterServer', 'Port', NetSlistPort);
+  config.WriteStr('MasterServer', 'List', NetSlistList);
 
   config.WriteStr ('Server', 'Name', NetServerName);
   config.WriteStr ('Server', 'Password', NetPassword);
