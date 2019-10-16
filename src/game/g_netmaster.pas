@@ -146,6 +146,7 @@ procedure g_Net_Slist_ServerMapStarted ();
 // this server renamed (or password mode changed, or other params changed)
 procedure g_Net_Slist_ServerRenamed ();
 
+// non-zero timeout ignores current status (used to fetch server list)
 procedure g_Net_Slist_Pulse (timeout: Integer=0);
 
 procedure g_Net_Slist_ShutdownAll ();
@@ -223,7 +224,7 @@ begin
       Inc(activeCount);
       if (mlist[f].isConnected() and mlist[f].updateSent) then
       begin
-        writeln('unregistering from ', f);
+        writeln('unregistering from [', mlist[f].hostName, ']');
         mlist[f].remove();
       end;
       //mlist[f].disconnect(false);
@@ -275,13 +276,13 @@ end;
 //  DisconnectAll
 //
 //==========================================================================
-procedure DisconnectAll ();
+procedure DisconnectAll (forced: Boolean=false);
 var
   f: Integer;
 begin
   for f := 0 to High(mlist) do
   begin
-    if (mlist[f].isAlive()) then mlist[f].disconnect(false);
+    if (mlist[f].isAlive()) then mlist[f].disconnect(forced);
   end;
 end;
 
@@ -604,6 +605,7 @@ begin
   if NetHostConnected then exit;
   NetHostConnected := true;
   e_LogWritefln('connected to master at [%s]', [hostName], TMsgType.Notify);
+  //g_Console_Add(Format(_lc[I_NET_MSG]+_lc[I_NET_SLIST_CONN], [mlist[f].hostName]));
 end;
 
 
@@ -617,7 +619,7 @@ begin
   if not isAlive() then exit;
   e_LogWritefln('disconnected from master at [%s]', [hostName], TMsgType.Notify);
   disconnect(true);
-  //if (spamConsole) then g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_DISC]);
+  //if (spamConsole) then g_Console_Add(Format(_lc[I_NET_MSG]+_lc[I_NET_SLIST_DISC], [hostName]));
 end;
 
 
@@ -649,7 +651,8 @@ begin
   slReadUrgent := true;
   // number of items
   Cnt := msg.ReadByte();
-  g_Console_Add(_lc[I_NET_MSG]+Format(_lc[I_NET_SLIST_RETRIEVED], [Cnt]), True);
+  //g_Console_Add(_lc[I_NET_MSG]+Format(_lc[I_NET_SLIST_RETRIEVED], [Cnt, hostName]), True);
+  e_LogWritefln('got %u server(s) from master at [%s]', [Cnt, hostName], TMsgType.Notify);
   if (Cnt > 0) then
   begin
     SetLength(srvAnswer, Cnt);
@@ -684,10 +687,12 @@ begin
     if (msg.ReadCount < msg.CurSize) then
     begin
       slMOTD := b_Text_Format(msg.ReadString());
+      if (slMOTD <> '') then e_LogWritefln('got MOTD from master at [%s]: %s', [hostName, slMOTD], TMsgType.Notify);
       s := b_Text_Format(msg.ReadString());
       // check if the message has updated and the user has to read it again
       if (slUrgent <> s) then slReadUrgent := false;
       slUrgent := s;
+      if (s <> '') then e_LogWritefln('got urgent from master at [%s]: %s', [hostName, s], TMsgType.Notify);
     end;
   end;
 end;
@@ -718,6 +723,7 @@ begin
       //g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR], True);
       enet_peer_disconnect(peer, 0);
       // main pulse will take care of the rest
+      NetHostConReqTime := -1;
     end;
     exit;
   end;
@@ -763,7 +769,7 @@ begin
   //updateSent := false;
   lastUpdateTime := 0;
   //lastConnectTime := 0;
-  //if (spamConsole) then g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_DISC]);
+  //if (spamConsole) then g_Console_Add(Format(_lc[I_NET_MSG]+_lc[I_NET_SLIST_DISC], [hostName]));
 end;
 
 
@@ -855,6 +861,7 @@ begin
     try
       netmsg.Write(Byte(NET_MMSG_UPD));
       netmsg.Write(NetAddr.port);
+      //writeln(formatstrf('%08x', [NetAddr.host]), ' : ', NetAddr.host);
 
       writeInfo(netmsg);
 
@@ -1073,6 +1080,8 @@ end;
 //
 //  g_Net_Slist_Pulse
 //
+//  non-zero timeout ignores current status (used to fetch server list)
+//
 //==========================================================================
 procedure g_Net_Slist_Pulse (timeout: Integer=0);
 var
@@ -1111,28 +1120,34 @@ begin
     if (not mlist[f].isValid()) then continue;
     if (not mlist[f].isAlive()) then
     begin
-      if reportsEnabled and g_Game_IsServer() and g_Game_IsNet() and NetUseMaster then
+      if (timeout > 0) or (reportsEnabled and g_Game_IsServer() and g_Game_IsNet() and NetUseMaster) then
       begin
         if (mlist[f].lastConnectTime = 0) or (ct < mlist[f].lastConnectTime) or (ct-mlist[f].lastConnectTime >= 1000*60*5) then
         begin
+          e_LogWritefln('reconnecting to master [%s]', [mlist[f].hostName], TMsgType.Notify);
           mlist[f].connect();
         end;
       end;
     end
     else
     begin
-      if not reportsEnabled or not g_Game_IsServer() or not g_Game_IsNet() or not NetUseMaster then
+      if (timeout = 0) and (not reportsEnabled or not g_Game_IsServer() or not g_Game_IsNet() or not NetUseMaster) then
       begin
-        if (mlist[f].isConnected()) and (mlist[f].updateSent) then mlist[f].remove();
+        if (mlist[f].isConnected()) and (mlist[f].updateSent) then
+        begin
+          e_LogWritefln('removing from master [%s]', [mlist[f].hostName], TMsgType.Notify);
+          mlist[f].remove();
+        end;
+        //e_LogWritefln('disconnecting from master [%s]', [mlist[f].hostName], TMsgType.Notify);
         mlist[f].disconnect(false);
       end;
     end;
     mlist[f].pulse();
   end;
 
-  while true do
+  sres := enet_host_service(NetMHost, @NetMEvent, timeout);
+  while (sres <> 0) do
   begin
-    sres := enet_host_service(NetMHost, @NetMEvent, timeout);
     if (sres < 0) then
     begin
       g_Console_Add(_lc[I_NET_MSG_ERROR]+_lc[I_NET_ERR_CLIENT], True);
@@ -1143,28 +1158,29 @@ begin
       exit;
     end;
 
-    if (sres = 0) then break;
     idx := findByPeer(NetMEvent.peer);
     if (idx < 0) then
     begin
       e_LogWriteln('network event from unknown master host. ignored.', TMsgType.Warning);
       if (NetMEvent.kind = ENET_EVENT_TYPE_RECEIVE) then enet_packet_destroy(NetMEvent.packet);
-      continue;
-    end;
-
-    if (NetMEvent.kind = ENET_EVENT_TYPE_CONNECT) then
-    begin
-      mlist[idx].connectedEvent();
     end
-    else if (NetMEvent.kind = ENET_EVENT_TYPE_DISCONNECT) then
+    else
     begin
-      mlist[idx].disconnectedEvent();
-    end
-    else if (NetMEvent.kind = ENET_EVENT_TYPE_RECEIVE) then
-    begin
-      mlist[idx].receivedEvent(NetMEvent.packet);
-      enet_packet_destroy(NetMEvent.packet);
+      if (NetMEvent.kind = ENET_EVENT_TYPE_CONNECT) then
+      begin
+        mlist[idx].connectedEvent();
+      end
+      else if (NetMEvent.kind = ENET_EVENT_TYPE_DISCONNECT) then
+      begin
+        mlist[idx].disconnectedEvent();
+      end
+      else if (NetMEvent.kind = ENET_EVENT_TYPE_RECEIVE) then
+      begin
+        mlist[idx].receivedEvent(NetMEvent.packet);
+        enet_packet_destroy(NetMEvent.packet);
+      end;
     end;
+    sres := enet_host_service(NetMHost, @NetMEvent, 0);
   end;
 end;
 
@@ -1311,6 +1327,8 @@ begin
 
   g_Net_Slist_Pulse(); // this will create mhost
 
+  DisconnectAll(true); // forced disconnect
+
   NetOut.Clear();
   NetOut.Write(Byte(NET_MMSG_GET));
 
@@ -1320,13 +1338,12 @@ begin
 
   try
     e_WriteLog('Fetching serverlist...', TMsgType.Notify);
-    g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_FETCH]);
+    g_Console_Add(_lc[I_NET_MSG]+_lc[I_NET_SLIST_FETCH]);
 
     // wait until all servers connected and answered
     stt := GetTimerMS();
     while true do
     begin
-      g_Net_Slist_Pulse(300);
       aliveCount := 0;
       hasUnanswered := false;
       for f := 0 to High(mlist) do
@@ -1342,12 +1359,14 @@ begin
           mlist[f].connect();
           if (mlist[f].isAlive()) then
           begin
+            //g_Console_Add(Format(_lc[I_NET_MSG]+_lc[I_NET_SLIST_WCONN], [mlist[f].hostName]));
             hasUnanswered := true;
             stt := GetTimerMS();
           end;
         end
         else if (mlist[f].isConnected()) then
         begin
+          //g_Console_Add(Format(_lc[I_NET_MSG]+_lc[I_NET_SLIST_CONN], [mlist[f].hostName]));
           if (mlist[f].srvAnswered = 0) then
           begin
             pkt := enet_packet_create(NetOut.Data, NetOut.CurSize, Cardinal(ENET_PACKET_FLAG_RELIABLE));
@@ -1379,6 +1398,7 @@ begin
       // check for timeout
       ct := GetTimerMS();
       if (ct < stt) or (ct-stt > 4000) then break;
+      g_Net_Slist_Pulse(300);
     end;
 
     if (aliveCount = 0) then
