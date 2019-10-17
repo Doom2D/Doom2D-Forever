@@ -30,6 +30,14 @@ const
   NET_MMSG_DEL = 201;
   NET_MMSG_GET = 202;
 
+const
+  // all timeouts in seconds
+  NMASTER_TIMEOUT_CONNECT = 3; // 3 seconds
+  NMASTER_TIMEOUT_RECONNECT = 5*60; // 5 minutes
+  //NMASTER_TIMEOUT_RECONNECT = 30; // 5 minutes
+  //NMASTER_FORCE_UPDATE_TIMEOUT = 20;
+  //NMASTER_FORCE_UPDATE_TIMEOUT = 0;
+
 type
   TNetServer = record
     Number: Byte;
@@ -67,8 +75,8 @@ type
     NetHostConnected: Boolean;
     NetHostConReqTime: Int64; // to timeout `connect`; -1 means "waiting for shutdown"
     NetUpdatePending: Boolean; // should we send an update after connection completes?
-    lastConnectTime: Int64;
-    updateSent: Boolean;
+    lastDisconnectTime: Int64; // last real disconnect time; <0: do not reconnect
+    updateSent: Boolean; // was at least one update sent? (used to decide if we should call `remove()`)
     lastUpdateTime: Int64;
     // server list request working flags
     srvAnswered: Integer;
@@ -120,6 +128,8 @@ var
 
   slMOTD: AnsiString = '';
   slUrgent: AnsiString = '';
+
+  NMASTER_FORCE_UPDATE_TIMEOUT: Integer = 0; // fuck you, fpc, and your idiotic "diagnostics"
 
 
 procedure g_Net_Slist_Set (IP: AnsiString; Port: Word; list: AnsiString='');
@@ -299,11 +309,11 @@ procedure ConnectAll (sendUpdate: Boolean);
 var
   f: Integer;
 begin
+  // set flags; pulse will take care of the rest
   for f := 0 to High(mlist) do
   begin
     // force reconnect
-    mlist[f].lastConnectTime := 0;
-    //if (not mlist[f].isAlive()) then continue;
+    mlist[f].lastDisconnectTime := 0;
     // force updating
     if (sendUpdate) then
     begin
@@ -323,6 +333,7 @@ procedure UpdateAll (force: Boolean);
 var
   f: Integer;
 begin
+  // set flags; pulse will take care of the rest
   for f := 0 to High(mlist) do
   begin
     if (not mlist[f].isAlive()) then continue;
@@ -486,7 +497,7 @@ begin
   NetHostConnected := false;
   NetHostConReqTime := 0;
   NetUpdatePending := false;
-  lastConnectTime := 0;
+  lastDisconnectTime := 0;
   updateSent := false;
   lastUpdateTime := 0;
   hostName := '';
@@ -607,6 +618,7 @@ begin
   if not isAlive() then exit;
   if NetHostConnected then exit;
   NetHostConnected := true;
+  NetHostConReqTime := 0; // just in case
   e_LogWritefln('connected to master at [%s]', [hostName], TMsgType.Notify);
   //g_Console_Add(Format(_lc[I_NET_MSG]+_lc[I_NET_SLIST_CONN], [mlist[f].hostName]));
 end;
@@ -703,75 +715,38 @@ end;
 
 //==========================================================================
 //
-//  TMasterHost.pulse
-//
-//  this performs various scheduled tasks, if necessary
-//
-//==========================================================================
-procedure TMasterHost.pulse ();
-var
-  ct: Int64;
-  mrate: Cardinal;
-begin
-  if not isAlive() then exit;
-  if (NetHostConReqTime = -1) then exit; // waiting for shutdown (disconnect in progress)
-  ct := GetTimerMS();
-  // process pending connection timeout
-  if (not NetHostConnected) then
-  begin
-    if (ct < NetHostConReqTime) or (ct-NetHostConReqTime >= 3000) then
-    begin
-      e_LogWritefln('failed to connect to master at [%s]', [hostName], TMsgType.Notify);
-      // do not spam with error messages, it looks like the master is down
-      //g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR], True);
-      enet_peer_disconnect(peer, 0);
-      // main pulse will take care of the rest
-      NetHostConReqTime := -1;
-    end;
-    exit;
-  end;
-  // send update, if necessary
-  if (NetUpdatePending) then
-  begin
-    mrate := NetMasterRate;
-         if (mrate < 10000) then mrate := 10000
-    else if (mrate > 1000*60*10) then mrate := 1000*60*10;
-    if (lastUpdateTime = 0) or (ct < lastUpdateTime) or (ct-lastUpdateTime >= mrate) then
-    begin
-      lastUpdateTime := ct;
-      update();
-    end;
-  end;
-end;
-
-
-//==========================================================================
-//
 //  TMasterHost.disconnect
 //
 //==========================================================================
 procedure TMasterHost.disconnect (forced: Boolean);
 begin
-  if not isAlive() then exit;
-
-  if (forced) then
+  if isAlive() then
   begin
-    enet_peer_reset(peer);
-    peer := nil;
-    NetHostConReqTime := 0;
+    lastDisconnectTime := GetTimerMS();
+    if forced or (not NetHostConnected) or (NetHostConReqTime = -1) then
+    begin
+      enet_peer_reset(peer);
+      peer := nil;
+      NetHostConReqTime := 0;
+      updateSent := false;
+    end
+    else
+    begin
+      enet_peer_disconnect_later(peer, 0);
+      // main pulse will take care of the rest
+      NetHostConReqTime := -1;
+    end;
   end
   else
   begin
-    enet_peer_disconnect_later(peer, 0);
-    // main pulse will take care of the rest
-    NetHostConReqTime := -1;
+    // just in case
+    NetHostConReqTime := 0;
+    updateSent := false;
   end;
 
   NetHostConnected := false;
   NetUpdatePending := false;
-  //updateSent := false;
   lastUpdateTime := 0;
-  //lastConnectTime := 0;
   //if (spamConsole) then g_Console_Add(Format(_lc[I_NET_MSG]+_lc[I_NET_SLIST_DISC], [hostName]));
 end;
 
@@ -788,13 +763,15 @@ begin
   if (NetHostConReqTime = -1) then
   begin
     disconnect(true);
+    if (NetHostConReqTime = -1) then e_LogWritefln('ketmar broke master [%s] logic! (000)', [hostName], TMsgType.Notify);
+    if (isAlive()) then e_LogWritefln('ketmar broke master [%s] logic! (001)', [hostName], TMsgType.Notify);
   end
   else
   begin
     if isAlive() then begin result := true; exit; end;
   end;
 
-  lastConnectTime := GetTimerMS();
+  lastDisconnectTime := GetTimerMS(); // why not?
   SetLength(srvAnswer, 0);
   srvAnswered := 0;
   NetHostConnected := false;
@@ -810,7 +787,7 @@ begin
     exit;
   end;
 
-  NetHostConReqTime := lastConnectTime;
+  NetHostConReqTime := lastDisconnectTime;
   e_LogWritefln('connecting to master at [%s]', [hostName], TMsgType.Notify);
 end;
 
@@ -916,6 +893,50 @@ begin
     end;
   finally
     netmsg.Clear();
+  end;
+end;
+
+
+//==========================================================================
+//
+//  TMasterHost.pulse
+//
+//  this performs various scheduled tasks, if necessary
+//
+//==========================================================================
+procedure TMasterHost.pulse ();
+var
+  ct: Int64;
+  mrate: Cardinal;
+begin
+  if not isAlive() then exit;
+  if (NetHostConReqTime = -1) then exit; // waiting for shutdown (disconnect in progress)
+  ct := GetTimerMS();
+  // process pending connection timeout
+  if (not NetHostConnected) then
+  begin
+    if (ct < NetHostConReqTime) or (ct-NetHostConReqTime >= 1000*NMASTER_TIMEOUT_CONNECT) then
+    begin
+      e_LogWritefln('failed to connect to master at [%s]', [hostName], TMsgType.Notify);
+      // do not spam with error messages, it looks like the master is down
+      //g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR], True);
+      disconnect(true);
+    end;
+    exit;
+  end;
+  // send update, if necessary
+  if (NetUpdatePending) then
+  begin
+    mrate := NetMasterRate;
+         if (mrate < 10000) then mrate := 10000
+    else if (mrate > 1000*60*10) then mrate := 1000*60*10;
+    if (NMASTER_FORCE_UPDATE_TIMEOUT > 0) then mrate := NMASTER_FORCE_UPDATE_TIMEOUT*1000;
+    if (lastUpdateTime = 0) or (ct < lastUpdateTime) or (ct-lastUpdateTime >= mrate) then
+    begin
+      //e_LogWritefln('update timeout: %d', [Integer(mrate)], TMsgType.Notify);
+      lastUpdateTime := ct;
+      update();
+    end;
   end;
 end;
 
@@ -1081,6 +1102,17 @@ end;
 
 //==========================================================================
 //
+//  isMasterReportsEnabled
+//
+//==========================================================================
+function isMasterReportsEnabled (): Boolean;
+begin
+  result := (reportsEnabled and g_Game_IsServer() and g_Game_IsNet() and NetUseMaster);
+end;
+
+
+//==========================================================================
+//
 //  g_Net_Slist_Pulse
 //
 //  non-zero timeout ignores current status (used to fetch server list)
@@ -1092,6 +1124,8 @@ var
   sres: Integer;
   idx: Integer;
   ct: Int64;
+  isListQuery: Boolean;
+  count: Integer;
 begin
   if (not g_Net_IsNetworkAvailable()) then exit;
 
@@ -1117,31 +1151,39 @@ begin
     end;
   end;
 
+  isListQuery := (timeout > 0);
   ct := GetTimerMS();
+  // reconnect/disconnect/pulse for each master
   for f := 0 to High(mlist) do
   begin
     if (not mlist[f].isValid()) then continue;
     if (not mlist[f].isAlive()) then
     begin
-      if (timeout > 0) or (reportsEnabled and g_Game_IsServer() and g_Game_IsNet() and NetUseMaster) then
+      // not connected; try to reconnect if we're asking for a host list, or we are in netgame, and we are the host
+      if isListQuery or isMasterReportsEnabled() then
       begin
-        if (mlist[f].lastConnectTime = 0) or (ct < mlist[f].lastConnectTime) or (ct-mlist[f].lastConnectTime >= 1000*60*5) then
+        if (mlist[f].lastDisconnectTime = 0) or (ct < mlist[f].lastDisconnectTime) or (ct-mlist[f].lastDisconnectTime >= 1000*NMASTER_TIMEOUT_RECONNECT) then
         begin
           e_LogWritefln('reconnecting to master [%s]', [mlist[f].hostName], TMsgType.Notify);
           mlist[f].connect();
+        end
+        else
+        begin
+          //e_LogWritefln('DEAD master [%s]: ct=%d; ldt=%d; diff=%d', [mlist[f].hostName, Integer(ct), Integer(mlist[f].lastDisconnectTime), Integer(ct-mlist[f].lastDisconnectTime)], TMsgType.Notify);
         end;
       end;
     end
     else
     begin
-      if (timeout = 0) and (not reportsEnabled or not g_Game_IsServer() or not g_Game_IsNet() or not NetUseMaster) then
+      // if we're not in slist query, and not in netgame (or not a host), disconnect
+      if (not isListQuery) and (not isMasterReportsEnabled()) then
       begin
         if (mlist[f].isConnected()) and (mlist[f].updateSent) then
         begin
           e_LogWritefln('removing from master [%s]', [mlist[f].hostName], TMsgType.Notify);
           mlist[f].remove();
         end;
-        //e_LogWritefln('disconnecting from master [%s]', [mlist[f].hostName], TMsgType.Notify);
+        e_LogWritefln('disconnecting from master [%s]', [mlist[f].hostName], TMsgType.Notify);
         mlist[f].disconnect(false);
       end;
     end;
@@ -1151,9 +1193,11 @@ begin
   // fuck! https://www.mail-archive.com/enet-discuss@cubik.org/msg00852.html
   // tl;dr: on shitdows, we can get -1 sometimes, and it is *NOT* a failure.
   //        thank you, enet. let's ignore failures altogether then.
+  count := 10; // no more than ten events in a row
   sres := enet_host_service(NetMHost, @NetMEvent, timeout);
   while (sres > 0) do
   begin
+    {
     if (sres < 0) then
     begin
       e_LogWriteln(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CLIENT] + ' (host_service)', TMsgType.Notify);
@@ -1163,6 +1207,7 @@ begin
       NetMHost := nil;
       exit;
     end;
+    }
 
     idx := findByPeer(NetMEvent.peer);
     if (idx < 0) then
@@ -1186,6 +1231,9 @@ begin
         enet_packet_destroy(NetMEvent.packet);
       end;
     end;
+
+    Dec(count);
+    if (count = 0) then break;
     sres := enet_host_service(NetMHost, @NetMEvent, 0);
   end;
 end;
