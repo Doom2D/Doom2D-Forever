@@ -358,6 +358,7 @@ var
 begin
   result := '';
   clearReplacementWads();
+  sfsGCCollect(); // why not?
   g_Res_CreateDatabases();
 
   try
