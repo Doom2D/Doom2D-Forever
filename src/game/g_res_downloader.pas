@@ -391,17 +391,18 @@ begin
       end;
       fname := GameDir+'/maps/downloads/'+generateFileName(FileName, mapHash);
       tf.diskName := fname;
+      e_LogWritefln('map disk file for `%s` is `%s`', [FileName, fname], TMsgType.Fatal);
       try
         strm := openDiskFileRW(fname);
       except
-        e_WriteLog('cannot create map file `'+FileName+'`', TMsgType.Fatal);
+        e_WriteLog('cannot create map file `'+fname+'`', TMsgType.Fatal);
         result := '';
         exit;
       end;
       try
         res := g_Net_ReceiveResourceFile(-1{map}, tf, strm);
       except
-        e_WriteLog('error downloading map file `'+FileName+'`', TMsgType.Fatal);
+        e_WriteLog('error downloading map file (exception) `'+FileName+'`', TMsgType.Fatal);
         strm.Free;
         result := '';
         exit;
@@ -409,7 +410,7 @@ begin
       strm.Free;
       if (res <> 0) then
       begin
-        e_WriteLog('error downloading map file `'+FileName+'`', TMsgType.Fatal);
+        e_LogWritefln('error downloading map `%s` (res=%d)', [FileName, res], TMsgType.Fatal);
         result := '';
         exit;
       end;
@@ -425,7 +426,7 @@ begin
             DeleteFile(fname);
             strm := createDiskFile(fname);
           except
-            e_WriteLog('cannot create map file `'+fname+'`', TMsgType.Fatal);
+            e_WriteLog('cannot create map file `'+fname+'` (exception)', TMsgType.Fatal);
             result := '';
             exit;
           end;
@@ -440,7 +441,7 @@ begin
           strm.Free;
           if (res <> 0) then
           begin
-            e_WriteLog('error downloading map file `'+FileName+'`', TMsgType.Fatal);
+            e_LogWritefln('error downloading map `%s` (res=%d)', [FileName, res], TMsgType.Fatal);
             result := '';
             exit;
           end;
