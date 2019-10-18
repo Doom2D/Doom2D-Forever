@@ -86,6 +86,7 @@ type
     slReadUrgent: Boolean;
     // temporary mark
     justAdded: Boolean;
+    connectCount: Integer;
 
   private
     netmsg: TMsg;
@@ -507,6 +508,8 @@ begin
   slMOTD := '';
   slUrgent := '';
   slReadUrgent := true;
+  justAdded := false;
+  connectCount := 0;
   netmsg.Alloc(NET_BUFSIZE);
   setAddress(ea, '');
 end;
@@ -779,6 +782,7 @@ begin
   NetUpdatePending := false;
   updateSent := false;
   lastUpdateTime := 0;
+  Inc(connectCount);
 
   peer := enet_host_connect(NetMHost, @enetAddr, NET_MCHANS, 0);
   if (peer = nil) then
@@ -1160,7 +1164,7 @@ begin
     if (not mlist[f].isAlive()) then
     begin
       // not connected; try to reconnect if we're asking for a host list, or we are in netgame, and we are the host
-      if isListQuery or isMasterReportsEnabled() then
+      if (not isListQuery) and isMasterReportsEnabled() then
       begin
         if (mlist[f].lastDisconnectTime = 0) or (ct < mlist[f].lastDisconnectTime) or (ct-mlist[f].lastDisconnectTime >= 1000*NMASTER_TIMEOUT_RECONNECT) then
         begin
@@ -1383,6 +1387,12 @@ begin
 
   DisconnectAll(true); // forced disconnect
 
+  for f := 0 to High(mlist) do
+  begin
+    mlist[f].connectCount := 0;
+    mlist[f].srvAnswered := 0;
+  end;
+
   NetOut.Clear();
   NetOut.Write(Byte(NET_MMSG_GET));
 
@@ -1410,12 +1420,19 @@ begin
         if (not mlist[f].isValid()) then continue;
         if (not mlist[f].isAlive()) then
         begin
-          mlist[f].connect();
-          if (mlist[f].isAlive()) then
+          if (mlist[f].connectCount = 0) then
           begin
-            //g_Console_Add(Format(_lc[I_NET_MSG]+_lc[I_NET_SLIST_WCONN], [mlist[f].hostName]));
-            hasUnanswered := true;
-            stt := GetTimerMS();
+            mlist[f].connect();
+            if (mlist[f].isAlive()) then
+            begin
+              //g_Console_Add(Format(_lc[I_NET_MSG]+_lc[I_NET_SLIST_WCONN], [mlist[f].hostName]));
+              hasUnanswered := true;
+              stt := GetTimerMS();
+            end;
+          end
+          else if (mlist[f].srvAnswered > 1) then
+          begin
+            Inc(aliveCount);
           end;
         end
         else if (mlist[f].isConnected()) then
@@ -1441,6 +1458,7 @@ begin
           else if (mlist[f].srvAnswered > 1) then
           begin
             Inc(aliveCount);
+            mlist[f].disconnect(false); // not forced
           end;
         end
         else if (mlist[f].isConnecting()) then
