@@ -122,7 +122,7 @@ begin
     sys_EnableVSync(gVSync);
 
   gTextureFilter := TGUISwitch(menu.GetControl('swTextureFilter')).ItemIndex = 0;
-  glLegacyNPOT := not (TGUISwitch(menu.GetControl('swLegacyNPOT')).ItemIndex = 0);
+  glNPOTOverride := not (TGUISwitch(menu.GetControl('swLegacyNPOT')).ItemIndex = 0);
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
 
@@ -398,7 +398,7 @@ begin
     if gVSync then ItemIndex := 0 else ItemIndex := 1;
 
   with TGUISwitch(menu.GetControl('swLegacyNPOT')) do
-    if not glLegacyNPOT then ItemIndex := 0 else ItemIndex := 1;
+    if not glNPOTOverride then ItemIndex := 0 else ItemIndex := 1;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
 

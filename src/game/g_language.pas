@@ -1127,8 +1127,8 @@ const
                                        'Вертикальная синхронизация:'),
     ('MENU VIDEO FILTER SKY',          'Anisotropic sky',
                                        'Фильтрация неба:'),
-    ('MENU VIDEO LEGACY COMPATIBLE',   'Compatibility with NPOT textures:',
-                                       'Совместимость с NPOT-текстурами:'),
+    ('MENU VIDEO LEGACY COMPATIBLE',   'Force compatibility with NPOT textures:',
+                                       'Эмуляция NPOT-текстур:'),
     ('MENU VIDEO NEED RESTART',        'Video settings will be changed after game restart.',
                                        'Данные настройки видео вступят в силу после перезапуска игры.'),
 

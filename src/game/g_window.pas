@@ -184,36 +184,42 @@ begin
 end;
 
 function GLExtensionList (): SSArray;
-  var s: PChar; i, j, num: GLint;
+var
+  s: PChar;
+  i, j, num: GLint;
 begin
   result := nil;
   s := glGetString(GL_EXTENSIONS);
   if s <> nil then
   begin
-    num := 0; i := 0; j := 0;
-    while s[i] <> #0 do
+    num := 0;
+    i := 0;
+    j := 0;
+    while (s[i] <> #0) and (s[i] = ' ') do Inc(i);
+    while (s[i] <> #0) do
     begin
       while (s[i] <> #0) and (s[i] <> ' ') do Inc(i);
-      SetLength(result, num + 1);
-      result[num] := Copy(s, j, i - j);
+      SetLength(result, num+1);
+      result[num] := Copy(s, j+1, i-j);
       while (s[i] <> #0) and (s[i] = ' ') do Inc(i);
       j := i;
-      Inc(num)
-    end
-  end
+      Inc(num);
+    end;
+  end;
 end;
 
 function GLExtensionSupported (ext: AnsiString): Boolean;
-  var i, len: GLint; exts: SSArray;
+var
+  exts: SSArray;
+  e: AnsiString;
 begin
   result := false;
   exts := GLExtensionList();
-  if exts <> nil then
+  for e in exts do
   begin
-    i := 0; len := Length(exts);
-    while (i < len) and (exts[i] <> ext) do Inc(i);
-    result := i < len
-  end
+    //writeln('<', e, '> : [', ext, '] = ', strEquCI1251(e, ext));
+    if (strEquCI1251(e, ext)) then begin result := true; exit; end;
+  end;
 end;
 
 procedure PrintGLSupportedExtensions;
@@ -324,11 +330,20 @@ begin
 
 {$IFNDEF USE_SYSSTUB}
   PrintGLSupportedExtensions;
-  glLegacyNPOT := GLExtensionSupported('GL_ARB_texture_non_power_of_two') or GLExtensionSupported('GL_OES_texture_npot');
+  glLegacyNPOT := not (GLExtensionSupported('GL_ARB_texture_non_power_of_two') or GLExtensionSupported('GL_OES_texture_npot'));
 {$ELSE}
   glLegacyNPOT := False;
 {$ENDIF}
-  e_logWritefln('NPOT textures: %s', [glLegacyNPOT]);
+  if glNPOTOverride and glLegacyNPOT then
+  begin
+    glLegacyNPOT := true;
+    e_logWriteln('NPOT texture emulation: FORCED');
+  end
+  else
+  begin
+    if (glLegacyNPOT) then e_logWriteln('NPOT texture emulation: enabled')
+    else e_logWriteln('NPOT texture emulation: disabled');
+  end;
   gwin_dump_extensions := false;
 
   Init;

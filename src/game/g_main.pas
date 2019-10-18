@@ -204,12 +204,12 @@ begin
   e_WriteLog('Releasing engine', TMsgType.Notify);
   e_ReleaseEngine();
 
-  e_WriteLog('Releasing Input', TMsgType.Notify);
+  e_WriteLog('Releasing input', TMsgType.Notify);
   e_ReleaseInput();
 
   if not gNoSound then
   begin
-    e_WriteLog('Releasing FMOD', TMsgType.Notify);
+    e_WriteLog('Releasing sound', TMsgType.Notify);
     e_ReleaseSoundSystem();
   end;
 end;

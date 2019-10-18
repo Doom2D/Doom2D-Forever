@@ -91,6 +91,7 @@ var
   gSFSFastMode: Boolean;
   gDefaultMegawadStart: AnsiString;
   gBerserkAutoswitch: Boolean;
+  glNPOTOverride: Boolean = false;
 
 implementation
 
@@ -380,7 +381,7 @@ begin
   ReadInteger(gFreq, 'Freq', 0);
   ReadBoolean(gVSync, 'VSync');
   ReadBoolean(gTextureFilter, 'TextureFilter');
-  ReadBoolean(glLegacyNPOT, 'LegacyCompatible');
+  ReadBoolean(glNPOTOverride, 'LegacyCompatibleForce');
 
   section := 'Sound';
   ReadBoolean(gNoSound, 'NoSound');
@@ -564,7 +565,7 @@ begin
   config.WriteInt('Video', 'BPP', gBPP);
   config.WriteBool('Video', 'VSync', gVSync);
   config.WriteBool('Video', 'TextureFilter', gTextureFilter);
-  config.WriteBool('Video', 'LegacyCompatible', glLegacyNPOT);
+  config.WriteBool('Video', 'LegacyCompatibleForce', glNPOTOverride);
 
   config.WriteBool('Sound', 'NoSound', gNoSound);
   config.WriteInt('Sound', 'SoundLevel', gSoundLevel);
