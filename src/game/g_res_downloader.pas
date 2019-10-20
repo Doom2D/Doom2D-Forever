@@ -35,7 +35,7 @@ procedure g_Res_CreateDatabases (allowRescan: Boolean=false);
 
 implementation
 
-uses g_language, sfs, utils, wadreader, g_game, hashtable, fhashdb;
+uses g_language, sfs, utils, wadreader, g_game, hashtable, fhashdb, e_res;
 
 var
   // cvars
@@ -58,8 +58,11 @@ procedure saveDatabases (saveMap, saveRes: Boolean);
 var
   err: Boolean;
   st: TStream;
+  ccdir: AnsiString = '';
 begin
   if (not saveDBsToDiskEnabled) or (not g_res_save_databases) then exit;
+  ccdir := e_GetWriteableDir(CacheDirs, false);
+  if (length(ccdir) = 0) then exit;
   // rescan dirs
   // save map database
   if (saveMap) then
@@ -67,7 +70,7 @@ begin
     err := true;
     st := nil;
     try
-      st := createDiskFile(GameDir+'/data/maphash.db');
+      st := createDiskFile(ccdir+'/maphash.db');
       knownMaps.saveTo(st);
       err := false;
     except
@@ -81,7 +84,7 @@ begin
     err := true;
     st := nil;
     try
-      st := createDiskFile(GameDir+'/data/reshash.db');
+      st := createDiskFile(ccdir+'/reshash.db');
       knownRes.saveTo(st);
       err := false;
     except
@@ -103,28 +106,38 @@ var
   upmap: Boolean;
   upres: Boolean;
   forcesave: Boolean;
+  ccdir: AnsiString = '';
 begin
   if not assigned(knownMaps) then
   begin
     // create and load a know map database, if necessary
-    knownMaps := TFileHashDB.Create(GameDir+'/maps/');
-    knownRes := TFileHashDB.Create(GameDir+'/wads/');
+    knownMaps := TFileHashDB.Create({GameDir}'', MapDirs);
+    knownMaps.appendMoreDirs(MapDownloadDirs);
+    knownRes := TFileHashDB.Create({GameDir}'', WadDirs);
+    knownRes.appendMoreDirs(WadDownloadDirs);
     saveDBsToDiskEnabled := true;
     // load map database
     st := nil;
     try
-      st := openDiskFileRO(GameDir+'/data/maphash.db');
-      knownMaps.loadFrom(st);
-      e_LogWriteln('loaded map database');
+      ccdir := e_GetWriteableDir(CacheDirs, false);
+      if (length(ccdir) > 0) then
+      begin
+        st := openDiskFileRO(ccdir+'/maphash.db');
+        knownMaps.loadFrom(st);
+        e_LogWriteln('loaded map database');
+      end;
     except
     end;
     st.Free;
     // load resource database
     st := nil;
     try
-      st := openDiskFileRO(GameDir+'/data/reshash.db');
-      knownRes.loadFrom(st);
-      e_LogWriteln('loaded resource database');
+      if (length(ccdir) > 0) then
+      begin
+        st := openDiskFileRO(ccdir+'/reshash.db');
+        knownRes.loadFrom(st);
+        e_LogWriteln('loaded resource database');
+      end;
     except
     end;
     st.Free;
@@ -265,11 +278,10 @@ end;
 //==========================================================================
 function findExistingMapWadWithHash (fname: AnsiString; const resMd5: TMD5Digest): AnsiString;
 begin
-  //result := scanDir(GameDir+'/maps', ExtractFileName(fname), resMd5);
   result := knownMaps.findByHash(resMd5);
   if (length(result) > 0) then
   begin
-    result := GameDir+'/maps/'+result;
+    //result := GameDir+'/maps/'+result;
     if not FileExists(result) then
     begin
       if (knownMaps.scanFiles()) then saveDatabases(true, false);
@@ -290,11 +302,10 @@ end;
 //==========================================================================
 function findExistingResWadWithHash (fname: AnsiString; const resMd5: TMD5Digest): AnsiString;
 begin
-  //result := scanDir(GameDir+'/wads', ExtractFileName(fname), resMd5);
   result := knownRes.findByHash(resMd5);
   if (length(result) > 0) then
   begin
-    result := GameDir+'/wads/'+result;
+    //result := GameDir+'/wads/'+result;
     if not FileExists(result) then
     begin
       if (knownRes.scanFiles()) then saveDatabases(false, true);
@@ -355,6 +366,8 @@ var
   mapdbUpdated: Boolean = false;
   resdbUpdated: Boolean = false;
   transStarted: Boolean;
+  destMapDir: AnsiString = '';
+  destResDir: AnsiString = '';
 begin
   result := '';
   clearReplacementWads();
@@ -387,10 +400,16 @@ begin
         exit;
       end;
       try
-        CreateDir(GameDir+'/maps/downloads');
+        destMapDir := e_GetWriteableDir(MapDownloadDirs, false); // not required
       except
       end;
-      fname := GameDir+'/maps/downloads/'+generateFileName(FileName, mapHash);
+      if (length(destMapDir) = 0) then
+      begin
+        e_LogWriteln('cannot create map download directory', TMsgType.Fatal);
+        result := '';
+        exit;
+      end;
+      fname := destMapDir+'/'+generateFileName(FileName, mapHash);
       tf.diskName := fname;
       e_LogWritefln('map disk file for `%s` is `%s`', [FileName, fname], TMsgType.Fatal);
       try
@@ -493,10 +512,16 @@ begin
           if (res <> 0) then begin result := ''; exit; end;
         end;
         try
-          CreateDir(GameDir+'/wads/downloads');
+          destResDir := e_GetWriteableDir(WadDownloadDirs, false); // not required
         except
         end;
-        fname := GameDir+'/wads/downloads/'+generateFileName(tf.diskName, tf.hash);
+        if (length(destResDir) = 0) then
+        begin
+          e_LogWriteln('cannot create wad download directory', TMsgType.Fatal);
+          result := '';
+          exit;
+        end;
+        fname := destResDir+'/'+generateFileName(tf.diskName, tf.hash);
         e_LogWritefln('downloading resource `%s` to `%s`...', [tf.diskName, fname]);
         try
           strm := openDiskFileRW(fname);

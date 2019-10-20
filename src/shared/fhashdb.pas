@@ -36,9 +36,11 @@ type
 
   TFileHashDB = class
   private
+    type TStrDynArray = array of AnsiString;
+
     type
       TFileInfo = record
-        name: AnsiString; // names are relative to `mBasePath`
+        name: AnsiString; // name includes `mBasePath`, if necessary
         hash: TMD5Digest;
         size: LongWord;
         age: LongInt;
@@ -48,7 +50,8 @@ type
       end;
 
   private
-    mBasePath: AnsiString; // ends with '/'
+    mBasePath: AnsiString; // ends with '/', or empty string
+    mPathList: TStrDynArray;
     mHash2List: THashMD5Int; // hash -> list index
     mFile2List: THashStrCIInt; // file name -> list index
     mFileList: array of TFileInfo;
@@ -60,9 +63,17 @@ type
 
     procedure scanDir (path: AnsiString; var changed: Boolean);
 
+    procedure appendOneDir (dir: AnsiString);
+
+    procedure setup (aBasePath: AnsiString; const aPathList: TStrDynArray);
+
   public
-    constructor Create (aBasePath: AnsiString);
+    constructor Create (aBasePath: AnsiString; const aPathList: TStrDynArray);
+    constructor Create (aBasePath: AnsiString; const aPathList: SSArray);
     destructor Destroy (); override;
+
+    // doesn't automatically rescans
+    procedure appendMoreDirs (const aPathList: SSArray);
 
     // doesn't clear base path
     procedure clear ();
@@ -81,7 +92,7 @@ type
     function findByHash (const md5: TMD5Digest): AnsiString;
     // returns `true` if something was changed
     // name is relative to base
-    function addWithHash (relname: AnsiString; const md5: TMD5Digest): Boolean;
+    function addWithHash (fdiskname: AnsiString; const md5: TMD5Digest): Boolean;
   end;
 
 
@@ -116,10 +127,42 @@ end;
 
 //==========================================================================
 //
-//  TFileHashDB.Create
+//  TFileHashDB.appendOneDir
 //
 //==========================================================================
-constructor TFileHashDB.Create (aBasePath: AnsiString);
+procedure TFileHashDB.appendOneDir (dir: AnsiString);
+var
+  mps: AnsiString;
+  found: Boolean;
+begin
+  if (length(dir) = 0) then exit;
+  if not findFileCI(dir, true) then exit;
+  dir := fixSlashes(dir, true);
+  if (mBasePath <> '') and (dir[1] <> '/') then
+  begin
+    dir := mBasePath+dir;
+    if not findFileCI(dir, true) then exit;
+    dir := fixSlashes(dir, true);
+  end;
+  if (dir = '/') then exit;
+  found := false;
+  for mps in mPathList do if (dir = mps) then begin found := true; break; end;
+  if not found then
+  begin
+    SetLength(mPathList, length(mPathList)+1);
+    mPathList[High(mPathList)] := dir;
+  end;
+end;
+
+
+//==========================================================================
+//
+//  TFileHashDB.setup
+//
+//==========================================================================
+procedure TFileHashDB.setup (aBasePath: AnsiString; const aPathList: TStrDynArray);
+var
+  s: AnsiString;
 begin
   mBasePath := aBasePath;
   if (length(aBasePath) <> 0) then
@@ -127,10 +170,52 @@ begin
     if not findFileCI(mBasePath, true) then mBasePath := aBasePath;
   end;
   mBasePath := fixSlashes(mBasePath, true);
+  SetLength(mPathList, 0);
+  for s in aPathList do appendOneDir(s);
   mHash2List := THashMD5Int.Create();
   mFile2List := THashStrCIInt.Create();
   SetLength(mFileList, 0);
   mFreeHead := -1;
+end;
+
+
+//==========================================================================
+//
+//  TFileHashDB.Create
+//
+//==========================================================================
+constructor TFileHashDB.Create (aBasePath: AnsiString; const aPathList: TStrDynArray);
+begin
+  setup(aBasePath, aPathList);
+end;
+
+
+//==========================================================================
+//
+//  TFileHashDB.Create
+//
+//==========================================================================
+constructor TFileHashDB.Create (aBasePath: AnsiString; const aPathList: SSArray);
+var
+  f: Integer;
+  pl: TStrDynArray = nil;
+begin
+  SetLength(pl, length(aPathList));
+  for f := Low(pl) to High(pl) do pl[f] := aPathList[f-Low(pl)+Low(aPathList)];
+  setup(aBasePath, pl);
+end;
+
+
+//==========================================================================
+//
+//  TFileHashDB.appendMoreDirs
+//
+//==========================================================================
+procedure TFileHashDB.appendMoreDirs (const aPathList: SSArray);
+var
+  f: Integer;
+begin
+  for f := Low(aPathList) to High(aPathList) do appendOneDir(aPathList[f]);
 end;
 
 
@@ -145,6 +230,7 @@ begin
   mHash2List.Free;
   mFile2List.Free;
   SetLength(mFileList, 0);
+  SetLength(mPathList, 0);
   mFreeHead := -1;
 end;
 
@@ -161,6 +247,7 @@ begin
   mHash2List.clear();
   mFile2List.clear();
   SetLength(mFileList, 0);
+  //SetLength(mPathList, 0);
   mFreeHead := -1;
 end;
 
@@ -177,7 +264,7 @@ var
 begin
   sign := 'FHDB';
   st.WriteBuffer(sign, 4);
-  st.WriteWord(0); // version
+  st.WriteWord(1); // version
   st.WriteDWord(LongWord(mFile2List.count));
   for f := Low(mFileList) to High(mFileList) do
   begin
@@ -207,7 +294,7 @@ begin
     st.ReadBuffer(sign, 4);
     if (sign <> 'FHDB') then raise Exception.Create('invalid database signature');
     count := st.ReadWord();
-    if (count <> 0) then raise Exception.Create('invalid database version');
+    if (count <> 1) then raise Exception.Create('invalid database version');
     count := Integer(st.ReadDWord());
     if (count < 0) or (count > 1024*1024) then raise Exception.Create('invalid database file count');
     while (count > 0) do
@@ -285,7 +372,13 @@ var
   age: LongInt;
   needUpdate: Boolean;
 begin
-  if (FindFirst(path+'*', faAnyFile, sr) <> 0) then exit;
+  //writeln('TFileHashDB.scanDir(000): [', path, ']');
+  if (FindFirst(path+'*', faAnyFile, sr) <> 0) then
+  begin
+    FindClose(sr);
+    exit;
+  end;
+  //writeln('TFileHashDB.scanDir(001): [', path, ']');
   try
     repeat
       if ((sr.Attr and faDirectory) <> 0) then
@@ -299,7 +392,7 @@ begin
         dfn := fixSlashes(path+sr.Name, false);
         // build internal file name
         hfn := dfn;
-        Delete(hfn, 1, length(mBasePath)); // remove prefix
+        //Delete(hfn, 1, length(mBasePath)); // remove prefix
         // find file in hash
         if not mFile2List.get(hfn, idx) then idx := -1;
         // check if we already have this file
@@ -395,7 +488,9 @@ var
 begin
   result := false;
   for f := Low(mFileList) to High(mFileList) do mFileList[f].wasSeen := false;
-  scanDir(mBasePath, result);
+  //scanDir(mBasePath, result);
+  //writeln('TFileHashDB.scanFiles: dll=', length(mPathList));
+  for f := Low(mPathList) to High(mPathList) do scanDir(mPathList[f], result);
   // remove all unseen files
   f := High(mFileList);
   while (f >= 0) do
@@ -427,10 +522,10 @@ end;
 //  TFileHashDB.addWithHash
 //
 //  returns `true` if something was changed
-//  name is relative to base
+//  name is *NOT* relative to base
 //
 //==========================================================================
-function TFileHashDB.addWithHash (relname: AnsiString; const md5: TMD5Digest): Boolean;
+function TFileHashDB.addWithHash (fdiskname: AnsiString; const md5: TMD5Digest): Boolean;
 var
   age: LongInt;
   size: LongInt;
@@ -439,9 +534,10 @@ var
   idx: Integer;
 begin
   result := false;
-  if (length(relname) > length(mBasePath)) and strEquCI1251(mBasePath, Copy(relname, 1, length(mBasePath))) then Delete(relname, 1, Length(mBasePath));
-  if (length(relname) = 0) then exit;
-  fn := mBasePath+relname;
+  //if (length(fdiskname) > length(mBasePath)) and strEquCI1251(mBasePath, Copy(fdiskname, 1, length(mBasePath))) then Delete(fdiskname, 1, Length(mBasePath));
+  if (length(fdiskname) = 0) then exit;
+  //fn := mBasePath+fdiskname;
+  fn := fdiskname;
   if not findFileCI(fn) then exit;
   // get age
   age := FileAge(fn);
@@ -453,7 +549,7 @@ begin
   FileClose(handle);
   if (size = -1) then exit;
   // find old file, if any
-  Delete(fn, 1, length(mBasePath));
+  //Delete(fn, 1, length(mBasePath));
   if not mFile2List.get(fn, idx) then idx := -1;
   // check for changes
   if (idx >= 0) then

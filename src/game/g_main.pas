@@ -29,7 +29,7 @@ procedure CharPress (C: AnsiChar);
 
 var
   {--- TO REMOVE ---}
-  GameDir: string;
+  //GameDir: string;
   {-----------------}
 
   {--- Read-only dirs ---}
@@ -86,7 +86,7 @@ procedure InitPath;
   end;
 
 begin
-  GetDir(0, GameDir);
+  //GetDir(0, GameDir);
 
   i := 1;
   while i < ParamCount do
@@ -138,7 +138,7 @@ begin
   AddDef(CacheDirs, 'data/cache');
   AddDef(ConfigDirs, '.');
   AddDef(MapDownloadDirs, 'maps/downloads');
-  AddDef(WadDownloadDirs, 'wad/downloads');
+  AddDef(WadDownloadDirs, 'wads/downloads');
   AddDef(ScreenshotDirs, 'screenshots');
 
   for i := 0 to High(MapDirs) do
@@ -266,7 +266,7 @@ begin
   if assigned(oglInitCB) then oglInitCB;
 {$ENDIF}
 
-  //g_Res_CreateDatabases(); // it will be done before connecting to the server for the first time
+  //g_Res_CreateDatabases(true); // it will be done before connecting to the server for the first time
 
   e_WriteLog('Entering SDLMain', TMsgType.Notify);
 

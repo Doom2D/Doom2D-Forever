@@ -540,7 +540,6 @@ begin
           exit;
         end;
         tf.diskName := findDiskWad(fname);
-        //if (length(tf.diskName) = 0) then tf.diskName := findDiskWad(GameDir+'/wads/'+fname);
         if (length(tf.diskName) = 0) then
         begin
           e_LogWritefln('NETWORK: file "%s" not found!', [fname], TMsgType.Fatal);

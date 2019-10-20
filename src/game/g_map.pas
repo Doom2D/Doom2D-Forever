@@ -900,21 +900,100 @@ begin
 end;
 
 
+function extractWadName (resourceName: string): string;
+var
+  posN: Integer;
+begin
+  posN := Pos(':', resourceName);
+  if posN > 0 then
+    Result:= Copy(resourceName, 0, posN-1)
+  else
+    Result := '';
+end;
+
+
+procedure addResToExternalResList (res: AnsiString);
+var
+  uname: AnsiString;
+  f: Integer;
+  fi: TDiskFileInfo;
+begin
+  if g_Game_IsClient or not g_Game_IsNet then exit;
+  if (length(res) = 0) then exit; // map wad
+  //res := extractWadName(res);
+  //if (length(res) = 0) then exit; // map wad
+  uname := toLowerCase1251(res);
+  // do not add duplicates
+  for f := 0 to High(gExternalResources) do
+  begin
+    if (gExternalResources[f].userName = uname) then exit;
+  end;
+  //writeln('***(000) addResToExternalResList: res=[', res, ']');
+  // add new resource
+  fi.userName := uname;
+  if not findFileCI(res) then exit;
+  //writeln('***(001) addResToExternalResList: res=[', res, ']');
+  fi.diskName := res;
+  if (not GetDiskFileInfo(res, fi)) then
+  begin
+    fi.tag := -1;
+  end
+  else
+  begin
+    //writeln('***(002) addResToExternalResList: res=[', res, ']');
+    fi.tag := 0; // non-zero means "cannot caclucate hash"
+    try
+      fi.hash := MD5File(fi.diskName);
+    except
+      fi.tag := -1;
+    end;
+  end;
+  //e_LogWritefln('addext: res=[%s]; uname=[%s]; diskName=[%s]', [res, fi.userName, fi.diskName]);
+  SetLength(gExternalResources, length(gExternalResources)+1);
+  gExternalResources[High(gExternalResources)] := fi;
+end;
+
+
+procedure compactExtResList ();
+var
+  src, dest: Integer;
+begin
+  src := 0;
+  dest := 0;
+  for src := 0 to High(gExternalResources) do
+  begin
+    if (gExternalResources[src].tag = 0) then
+    begin
+      // copy it
+      if (dest <> src) then gExternalResources[dest] := gExternalResources[src];
+      Inc(dest);
+    end;
+  end;
+  if (dest <> length(gExternalResources)) then SetLength(gExternalResources, dest);
+end;
+
+
 function GetReplacementWad (WadName: AnsiString): AnsiString;
 begin
   result := '';
   if WadName <> '' then
   begin
     result := WadName;
-    if g_Game_IsClient then
-      result := g_Res_FindReplacementWad(WadName);
-    if (result = WadName) then
-      result := e_FindWad(WadDirs, result)
+    if g_Game_IsClient then result := g_Res_FindReplacementWad(WadName);
+    if (result = WadName) then result := e_FindWad(WadDirs, result)
   end;
 end;
 
 
-function CreateTexture(RecName: AnsiString; Map: string; log: Boolean): Integer;
+procedure generateExternalResourcesList (map: TDynRecord);
+begin
+  SetLength(gExternalResources, 0);
+  addResToExternalResList(GetReplacementWad(g_ExtractWadName(map.MusicName)));
+  addResToExternalResList(GetReplacementWad(g_ExtractWadName(map.SkyName)));
+end;
+
+
+function CreateTexture (RecName: AnsiString; Map: string; log: Boolean): Integer;
 var
   WAD: TWADFile;
   TextureData: Pointer;
@@ -973,6 +1052,7 @@ begin
 
   // «агружаем ресурс текстуры в пам€ть из WAD'а:
   WADName := GetReplacementWad(g_ExtractWadName(RecName));
+  if (WADName <> '') then addResToExternalResList(WADName);
   if WADName = '' then WADName := Map; //WADName := GameDir+'/wads/'+WADName else
 
   WAD := TWADFile.Create();
@@ -1059,6 +1139,7 @@ begin
 
   // „итаем WAD-ресурс аним.текстуры из WAD'а в пам€ть:
   WADName := GetReplacementWad(g_ExtractWadName(RecName));
+  if (WADName <> '') then addResToExternalResList(WADName);
   if WADName = '' then WADName := Map; //WADName := GameDir+'/wads/'+WADName else
 
   WAD := TWADFile.Create();
@@ -1449,82 +1530,6 @@ begin
   g_Mons_ForEach(monsDieTrig);
 end;
 
-function extractWadName(resourceName: string): string;
-var
-  posN: Integer;
-begin
-  posN := Pos(':', resourceName);
-  if posN > 0 then
-    Result:= Copy(resourceName, 0, posN-1)
-  else
-    Result := '';
-end;
-
-
-procedure addResToExternalResList (res: AnsiString);
-var
-  uname: AnsiString;
-  f: Integer;
-  fi: TDiskFileInfo;
-begin
-  if g_Game_IsClient or not g_Game_IsNet then exit;
-  if (length(res) = 0) then exit; // map wad
-  res := extractWadName(res);
-  if (length(res) = 0) then exit; // map wad
-  uname := toLowerCase1251(res);
-  // do not add duplicates
-  for f := 0 to High(gExternalResources) do
-  begin
-    if (gExternalResources[f].userName = uname) then exit;
-  end;
-  // add new resource
-  fi.userName := uname;
-  if (not GetDiskFileInfo(GameDir+'/wads/'+res, fi)) then
-  begin
-    fi.tag := -1;
-  end
-  else
-  begin
-    fi.tag := 0; // non-zero means "cannot caclucate hash"
-    try
-      fi.hash := MD5File(fi.diskName);
-    except
-      fi.tag := -1;
-    end;
-  end;
-  //e_LogWritefln('addext: res=[%s]; uname=[%s]; diskName=[%s]', [res, fi.userName, fi.diskName]);
-  SetLength(gExternalResources, length(gExternalResources)+1);
-  gExternalResources[High(gExternalResources)] := fi;
-end;
-
-
-procedure compactExtResList ();
-var
-  src, dest: Integer;
-begin
-  src := 0;
-  dest := 0;
-  for src := 0 to High(gExternalResources) do
-  begin
-    if (gExternalResources[src].tag = 0) then
-    begin
-      // copy it
-      if (dest <> src) then gExternalResources[dest] := gExternalResources[src];
-      Inc(dest);
-    end;
-  end;
-  if (dest <> length(gExternalResources)) then SetLength(gExternalResources, dest);
-end;
-
-
-procedure generateExternalResourcesList (map: TDynRecord);
-begin
-  SetLength(gExternalResources, 0);
-  addResToExternalResList(map.MusicName);
-  addResToExternalResList(map.SkyName);
-end;
-
-
 procedure mapCreateGrid ();
 var
   mapX0: Integer = $3fffffff;
@@ -1864,14 +1869,7 @@ begin
               ntn := CreateTexture(rec.Resource, FileName, True);
               if (ntn < 0) then g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_SIMPLE], [rec.Resource]));
             end;
-            if (ntn < 0) then
-            begin
-              ntn := CreateNullTexture(rec.Resource);
-            end
-            else
-            begin
-              addResToExternalResList(rec.Resource);
-            end;
+            if (ntn < 0) then ntn := CreateNullTexture(rec.Resource);
 
             rec.tagInt := ntn; // remember texture number
           end;

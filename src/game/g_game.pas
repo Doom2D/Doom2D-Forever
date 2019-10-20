@@ -6750,6 +6750,7 @@ begin
             if found then
             begin
               // no such map, found wad
+              pw := P[1];
               SetLength(P, 3);
               P[1] := ExpandFileName(pw);
               P[2] := g_Game_GetFirstMap(P[1]);
