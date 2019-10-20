@@ -1801,7 +1801,7 @@ begin
         gGameSettings.GameMode := gSwitchGameMode;
 
         gWADHash := EvHash;
-        if not g_Game_StartMap(EvStr, True) then
+        if not g_Game_StartMap(false{asMegawad}, EvStr, True) then
         begin
           if not isWadPath(EvStr) then
             g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [gGameSettings.WAD + ':\' + EvStr]))

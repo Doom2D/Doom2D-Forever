@@ -403,7 +403,8 @@ begin
         g_Game_SetupScreenSize();
 
         // Загрузка и запуск карты
-        if not g_Game_StartMap(WAD_Path+':\'+Map_Name, True, curmapfile) then
+        //FIXME: save/load `asMegawad`
+        if not g_Game_StartMap(false{asMegawad}, WAD_Path+':\'+Map_Name, True, curmapfile) then
         begin
           g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [WAD_Path + ':\' + Map_Name]));
           exit;

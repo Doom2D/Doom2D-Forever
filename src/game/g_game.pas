@@ -103,7 +103,7 @@ procedure g_Game_RestartLevel();
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
 function  g_Game_ClientWAD (NewWAD: String; const WHash: TMD5Digest): AnsiString;
 procedure g_Game_SaveOptions();
-function  g_Game_StartMap(Map: String; Force: Boolean = False; const oldMapPath: AnsiString=''): Boolean;
+function  g_Game_StartMap(asMegawad: Boolean; Map: String; Force: Boolean = False; const oldMapPath: AnsiString=''): Boolean;
 procedure g_Game_ChangeMap(const MapPath: String);
 procedure g_Game_ExitLevel(const Map: AnsiString);
 function  g_Game_GetFirstMap(WAD: String): String;
@@ -4364,7 +4364,7 @@ begin
   end;
 
 // Загрузка и запуск карты:
-  if not g_Game_StartMap(MAP, True) then
+  if not g_Game_StartMap(false{asMegawad}, MAP, True) then
   begin
     if (Pos(':\', Map) > 0) or (Pos(':/', Map) > 0) then tmps := Map else tmps := gGameSettings.WAD + ':\' + MAP;
     g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [tmps]));
@@ -4454,7 +4454,7 @@ begin
   end;
 
 // Загрузка и запуск карты:
-  if not g_Game_StartMap(Map, True) then
+  if not g_Game_StartMap(true{asMegawad}, Map, True) then
   begin
     g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Map]));
     Exit;
@@ -4565,7 +4565,7 @@ begin
   g_Net_Slist_ServerStarted();
 
 // Загрузка и запуск карты:
-  if not g_Game_StartMap(Map, True) then
+  if not g_Game_StartMap(false{asMegawad}, Map, True) then
   begin
     g_Net_Slist_ServerClosed();
     g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Map]));
@@ -4723,7 +4723,7 @@ begin
           gPlayer1.UID := NetPlrUID1;
           gPlayer1.Reset(True);
 
-          if not g_Game_StartMap(newResPath + ':\' + Map, True) then
+          if not g_Game_StartMap(false{asMegawad}, newResPath + ':\' + Map, True) then
           begin
             g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [WadName + ':\' + Map]));
 
@@ -4791,6 +4791,9 @@ begin
     e_LogWritefln('unable to find or create directory for configs', []);
 end;
 
+var
+  lastAsMegaWad: Boolean = false;
+
 procedure g_Game_ChangeMap(const MapPath: String);
 var
   Force: Boolean;
@@ -4804,7 +4807,7 @@ begin
     Force := False;
     gExitByTrigger := False;
   end;
-  if not g_Game_StartMap(MapPath, Force) then
+  if not g_Game_StartMap(lastAsMegaWad, MapPath, Force) then
     g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [MapPath]));
 end;
 
@@ -4820,10 +4823,10 @@ begin
   MessageTime := 0;
   gGameOn := False;
   g_Game_ClearLoading();
-  g_Game_StartMap(Map, True, gCurrentMapFileName);
+  g_Game_StartMap(lastAsMegaWad, Map, True, gCurrentMapFileName);
 end;
 
-function g_Game_StartMap(Map: String; Force: Boolean = False; const oldMapPath: AnsiString=''): Boolean;
+function g_Game_StartMap (asMegawad: Boolean; Map: String; Force: Boolean = False; const oldMapPath: AnsiString=''): Boolean;
 var
   NewWAD, ResName: String;
   I: Integer;
@@ -4845,6 +4848,7 @@ begin
 
   g_Player_ResetTeams();
 
+  lastAsMegaWad := asMegawad;
   if isWadPath(Map) then
   begin
     NewWAD := g_ExtractWadName(Map);
@@ -4853,7 +4857,17 @@ begin
     begin
       nws := findDiskWad(NewWAD);
       //writeln('000: Map=[', Map, ']; nws=[', nws, ']; NewWAD=[', NewWAD, ']');
-      if (length(nws) = 0) then nws := e_FindWad(MapDirs, NewWAD);
+      if (asMegawad) then
+      begin
+        if (length(nws) = 0) then nws := e_FindWad(MegawadDirs, NewWAD);
+        if (length(nws) = 0) then nws := e_FindWad(MapDirs, NewWAD);
+      end
+      else
+      begin
+        if (length(nws) = 0) then nws := e_FindWad(MapDirs, NewWAD);
+        if (length(nws) = 0) then nws := e_FindWad(MegawadDirs, NewWAD);
+      end;
+      //if (length(nws) = 0) then nws := e_FindWad(MapDownloadDirs, NewWAD);
       //writeln('001: Map=[', Map, ']; nws=[', nws, ']; NewWAD=[', NewWAD, ']');
       //nws := NewWAD;
       if (length(nws) = 0) then

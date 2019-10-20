@@ -860,6 +860,7 @@ begin
     WAD := TGUIFileListBox(GetControl('lsWAD')).SelectedItem();
     TwoPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex = 1;
   end;
+  WAD := e_FindWadRel(MegawadDirs, WAD);
 
   if TwoPlayers then
     n := 2
@@ -1356,6 +1357,8 @@ begin
 
   if (wad = '') or (map = '') then
     Exit;
+
+  wad := e_FindWadRel(MapDirs, WAD);
 
   res := wad+':\'+map;
 

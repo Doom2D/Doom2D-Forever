@@ -48,6 +48,9 @@ interface
   function e_FindResource (dirs: SSArray; var name: AnsiString; nameIsDir: Boolean = false): Boolean;
   function e_FindWad (dirs: SSArray; name: AnsiString): AnsiString;
 
+  {--- returns relative wad name; never empty string ---}
+  function e_FindWadRel (dirs: SSArray; name: AnsiString): AnsiString;
+
   {--- append dirs to 'path.wad:\file'. if disk is void, append defWad ---}
   function e_GetResourcePath (dirs: SSArray; path: AnsiString; defWad: AnsiString): AnsiString;
 
@@ -213,6 +216,32 @@ implementation
         e_LogWritefln('  %s -> %s', [dirs[i] + DirectorySeparator + name, result]);
       Dec(i)
     end
+  end;
+
+  function e_FindWadRel (dirs: SSArray; name: AnsiString): AnsiString;
+  var
+    s: AnsiString;
+    maxpfx: AnsiString = '';
+    pfx: AnsiString;
+  begin
+    result := name;
+    if not findFileCI(name) then exit;
+    for s in dirs do
+    begin
+      if (length(s) = 0) then continue;
+      if (length(name) <= length(s)) then continue;
+      if (length(s) < length(maxpfx)) then continue;
+      pfx := s;
+      if not findFileCI(pfx, true) then continue;
+      if (pfx[length(pfx)] <> '/') and (pfx[length(pfx)] <> '\') then pfx := pfx+'/';
+      if (length(pfx)+1 > length(name)) then continue;
+      if (strEquCI1251(copy(name, 1, length(pfx)), pfx)) then maxpfx := pfx;
+    end;
+    if (length(maxpfx) > 0) then
+    begin
+      result := name;
+      Delete(result, 1, length(maxpfx));
+    end;
   end;
 
   function e_GetResourcePath (dirs: SSArray; path: AnsiString; defWad: AnsiString): AnsiString;
