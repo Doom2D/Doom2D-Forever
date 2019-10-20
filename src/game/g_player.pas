@@ -613,7 +613,7 @@ uses
   g_holmes,
 {$ENDIF}
   e_log, g_map, g_items, g_console, g_gfx, Math,
-  g_options, g_triggers, g_menu, g_game, g_grid,
+  g_options, g_triggers, g_menu, g_game, g_grid, e_res,
   wadreader, g_main, g_monsters, CONFIG, g_language,
   g_net, g_netmsg, g_window,
   utils, xstreams;
@@ -1254,14 +1254,16 @@ var
   a, b: Integer;
   config: TConfig;
   sa: SSArray;
+  path: AnsiString;
 begin
   BotNames := nil;
 
-  if not FileExists(DataDir + BOTNAMES_FILENAME) then
+  path := BOTNAMES_FILENAME;
+  if e_FindResource(DataDirs, path) = false then
     Exit;
 
 // Читаем возможные имена ботов из файла:
-  AssignFile(F, DataDir + BOTNAMES_FILENAME);
+  AssignFile(F, path);
   Reset(F);
 
   while not EOF(F) do
@@ -1282,7 +1284,7 @@ begin
   g_Bot_MixNames();
 
 // Читаем файл с параметрами ботов:
-  config := TConfig.CreateFile(DataDir + BOTLIST_FILENAME);
+  config := TConfig.CreateFile(path);
   BotList := nil;
   a := 0;
 

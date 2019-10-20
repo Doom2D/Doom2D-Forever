@@ -253,7 +253,7 @@ implementation
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
-  e_input, g_main, e_log, e_texture, g_items, g_gfx, g_console,
+  e_input, g_main, e_log, e_texture, e_res, g_items, g_gfx, g_console,
   g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, g_triggers, g_player,
   Math, g_monsters, g_saveload, g_language, g_netmsg,
@@ -345,8 +345,8 @@ begin
 
   try
     e_LogWritefln('parsing "mapdef.txt"...', []);
-    st := openDiskFileRO(DataDir+'mapdef.txt');
-    e_LogWritefln('found local "%smapdef.txt"', [DataDir]);
+    st := e_OpenResourceRO(DataDirs, 'mapdef.txt');
+    e_LogWritefln('found local "mapdef.txt"', []);
   except
     st := nil;
   end;
@@ -902,15 +902,14 @@ end;
 
 function GetReplacementWad (WadName: AnsiString): AnsiString;
 begin
-  if (length(WadName) = 0) then
-  begin
-    result := '';
-  end
-  else
+  result := '';
+  if WadName <> '' then
   begin
     result := WadName;
-    if g_Game_IsClient then result := g_Res_FindReplacementWad(WadName);
-    if (result = WadName) then result := GameDir+'/wads/'+result;
+    if g_Game_IsClient then
+      result := g_Res_FindReplacementWad(WadName);
+    if (result = WadName) then
+      result := e_FindWad(WadDirs, result)
   end;
 end;
 
@@ -2218,21 +2217,13 @@ begin
     begin
       e_WriteLog('  Loading sky: ' + gMapInfo.SkyName, TMsgType.Notify);
       g_Game_SetLoadingText(_lc[I_LOAD_SKY], 0, False);
-      FileName := g_ExtractWadName(gMapInfo.SkyName);
-
-      if (FileName <> '') then FileName := GameDir+'/wads/'+FileName else FileName := g_ExtractWadName(Res);
-
       if gTextureFilter then TEXTUREFILTER := GL_LINEAR else TEXTUREFILTER := GL_NEAREST;
       try
-        s := FileName+':'+g_ExtractFilePathName(gMapInfo.SkyName);
+        s := e_GetResourcePath(WadDirs, gMapInfo.SkyName, g_ExtractWadName(Res));
         if g_Texture_CreateWAD(BackID, s) then
-        begin
-          g_Game_SetupScreenSize();
-        end
+          g_Game_SetupScreenSize
         else
-        begin
-          g_FatalError(Format(_lc[I_GAME_ERROR_SKY], [s]));
-        end;
+          g_FatalError(Format(_lc[I_GAME_ERROR_SKY], [s]))
       finally
         TEXTUREFILTER := GL_NEAREST;
       end;
@@ -2244,16 +2235,8 @@ begin
     begin
       e_WriteLog('  Loading music: ' + gMapInfo.MusicName, TMsgType.Notify);
       g_Game_SetLoadingText(_lc[I_LOAD_MUSIC], 0, False);
-      FileName := g_ExtractWadName(gMapInfo.MusicName);
 
-      if FileName <> '' then
-        FileName := GameDir+'/wads/'+FileName
-      else
-        begin
-          FileName := g_ExtractWadName(Res);
-        end;
-
-      s := FileName+':'+g_ExtractFilePathName(gMapInfo.MusicName);
+      s := e_GetResourcePath(WadDirs, gMapInfo.MusicName, g_ExtractWadName(Res));
       if g_Sound_CreateWADEx(gMapInfo.MusicName, s, True) then
         ok := True
       else

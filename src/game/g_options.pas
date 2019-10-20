@@ -22,7 +22,8 @@ uses
 
 function GenPlayerName (n: Integer): String;
 
-procedure g_Options_SetDefault();
+procedure g_Options_SetDefault;
+procedure g_Options_SetDefaultVideo;
 procedure g_Options_Read(FileName: String);
 procedure g_Options_Write(FileName: String);
 procedure g_Options_Write_Language(FileName: String);

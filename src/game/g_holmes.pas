@@ -48,7 +48,7 @@ implementation
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
-  {rttiobj,} typinfo, e_texture,
+  {rttiobj,} typinfo, e_texture, e_res,
   SysUtils, Classes, SDL2,
   MAPDEF, g_main, g_options,
   utils, hashtable, xparser;
@@ -1740,7 +1740,7 @@ begin
 
     // load bindings from file
     try
-      st := openDiskFileRO(GameDir+'holmes.rc');
+      st := e_OpenResourceRO(ConfigDirs, 'holmes.rc');
       pr := TFileTextParser.Create(st);
       conwriteln('parsing "holmes.rc"...');
       while (pr.tokType <> pr.TTEOF) do

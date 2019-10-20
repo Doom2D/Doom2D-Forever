@@ -258,7 +258,8 @@ implementation
 
 uses
   SysUtils,
-  e_input, g_nethandler, g_netmsg, g_netmaster, g_player, g_window, g_console,
+  e_input, e_res,
+  g_nethandler, g_netmsg, g_netmaster, g_player, g_window, g_console,
   g_main, g_game, g_language, g_weapons, utils, ctypes, g_system,
   g_map;
 
@@ -531,7 +532,7 @@ begin
           killClientByFT(nc^);
           exit;
         end;
-        if (ridx < 0) then fname := MapsDir+gGameSettings.WAD else fname := {GameDir+'/wads/'+}gExternalResources[ridx].diskName;
+        if (ridx < 0) then fname := gGameSettings.WAD else fname := gExternalResources[ridx].diskName;
         if (length(fname) = 0) then
         begin
           e_WriteLog('Invalid filename: '+fname, TMsgType.Warning);
@@ -661,7 +662,7 @@ begin
       begin
         e_LogWritefln('client #%d requested map info', [nc.ID]);
         trans_omsg.Clear();
-        dfn := findDiskWad(MapsDir+gGameSettings.WAD);
+        dfn := findDiskWad(gGameSettings.WAD);
         if (dfn = '') then dfn := '!wad_not_found!.wad'; //FIXME
         //md5 := MD5File(dfn);
         md5 := gWADHash;
@@ -1329,6 +1330,7 @@ var
   F: TextFile;
   IPstr: string;
   IP: LongWord;
+  path: AnsiString;
 begin
   NetIn.Clear();
   NetOut.Clear();
@@ -1343,9 +1345,10 @@ begin
   NetPlrUID2 := -1;
   NetAddr.port := 25666;
   SetLength(NetBannedHosts, 0);
-  if FileExists(DataDir + BANLIST_FILENAME) then
+  path := BANLIST_FILENAME;
+  if e_FindResource(DataDirs, path) = true then
   begin
-    Assign(F, DataDir + BANLIST_FILENAME);
+    Assign(F, path);
     Reset(F);
     while not EOF(F) do
     begin
@@ -2184,22 +2187,28 @@ procedure g_Net_SaveBanList();
 var
   F: TextFile;
   I: Integer;
+  path: AnsiString;
 begin
-  Assign(F, DataDir + BANLIST_FILENAME);
-  Rewrite(F);
-  if NetBannedHosts <> nil then
-    for I := 0 to High(NetBannedHosts) do
-      if NetBannedHosts[I].Perm and (NetBannedHosts[I].IP > 0) then
-        Writeln(F, IpToStr(NetBannedHosts[I].IP));
-  CloseFile(F);
+  path := e_GetDir(DataDirs);
+  if path <> '' then
+  begin
+    path := e_CatPath(path, BANLIST_FILENAME);
+    Assign(F, path);
+    Rewrite(F);
+    if NetBannedHosts <> nil then
+      for I := 0 to High(NetBannedHosts) do
+        if NetBannedHosts[I].Perm and (NetBannedHosts[I].IP > 0) then
+          Writeln(F, IpToStr(NetBannedHosts[I].IP));
+    CloseFile(F)
+  end
 end;
 
 procedure g_Net_DumpStart();
 begin
   if NetMode = NET_SERVER then
-    NetDumpFile := createDiskFile(NETDUMP_FILENAME + '_server')
+    NetDumpFile := e_CreateResource(LogDirs, NETDUMP_FILENAME + '_server')
   else
-    NetDumpFile := createDiskFile(NETDUMP_FILENAME + '_client');
+    NetDumpFile := e_CreateResource(LogDirs, NETDUMP_FILENAME + '_client');
 end;
 
 procedure g_Net_DumpSendBuffer();

@@ -105,7 +105,7 @@ uses
   Math,
   g_player, g_map, g_panel, g_gfx, g_game, g_textures,
   g_console, g_monsters, g_items, g_phys, g_weapons,
-  wadreader, g_main, e_log, g_language,
+  wadreader, g_main, e_log, g_language, e_res,
   g_options, g_net, g_netmsg, utils, xparser, xstreams;
 
 const
@@ -2344,7 +2344,7 @@ end;
 function g_Triggers_Create (aTrigger: TTrigger; trec: TDynRecord; forceInternalIndex: Integer=-1): DWORD;
 var
   find_id: DWORD;
-  fn, mapw: AnsiString;
+  fn: AnsiString;
   f, olen: Integer;
   ptg: PTrigger;
 begin
@@ -2518,17 +2518,7 @@ begin
     // Еще нет такого звука
     if not g_Sound_Exists(ptg.tgcSoundName) then
     begin
-      fn := g_ExtractWadName(ptg.tgcSoundName);
-      if (fn = '') then
-      begin // Звук в файле с картой
-        mapw := g_ExtractWadName(gMapInfo.Map);
-        fn := mapw+':'+g_ExtractFilePathName(ptg.tgcSoundName);
-      end
-      else // Звук в отдельном файле
-      begin
-        fn := GameDir + '/wads/' + ptg.tgcSoundName;
-      end;
-
+      fn := e_GetResourcePath(WadDirs, ptg.tgcSoundName, g_ExtractWadName(gMapInfo.Map));
       //e_LogWritefln('loading trigger sound ''%s''', [fn]);
       if not g_Sound_CreateWADEx(ptg.tgcSoundName, fn) then
       begin
@@ -2554,18 +2544,7 @@ begin
     // Еще нет такой музыки
     if not g_Sound_Exists(ptg.tgcMusicName) then
     begin
-      fn := g_ExtractWadName(ptg.tgcMusicName);
-
-      if fn = '' then
-      begin // Музыка в файле с картой
-        mapw := g_ExtractWadName(gMapInfo.Map);
-        fn := mapw+':'+g_ExtractFilePathName(ptg.tgcMusicName);
-      end
-      else // Музыка в файле с картой
-      begin
-        fn := GameDir+'/wads/'+ptg.tgcMusicName;
-      end;
-
+      fn := e_GetResourcePath(WadDirs, ptg.tgcMusicName, g_ExtractWadName(gMapInfo.Map));
       if not g_Sound_CreateWADEx(ptg.tgcMusicName, fn, True) then
       begin
         g_FatalError(Format(_lc[I_GAME_ERROR_TR_SOUND], [fn, ptg.tgcMusicName]));

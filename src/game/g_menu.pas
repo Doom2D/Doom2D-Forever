@@ -47,7 +47,7 @@ uses
   g_basic, g_console, g_sound, g_gfx, g_player, g_options, g_weapons,
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
   MAPDEF, Math, g_saveload,
-  e_texture, g_language,
+  e_texture, g_language, e_res,
   g_net, g_netmsg, g_netmaster, g_items, e_input, g_touch,
   utils, wadreader, g_system;
 
@@ -108,6 +108,7 @@ var
   menu: TGUIMenu;
   i: Integer;
   ovs: Boolean;
+  s: AnsiString;
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoMenu').GetControl('mOptionsVideoMenu'));
 
@@ -374,8 +375,10 @@ begin
 
   if g_Game_IsClient then MC_SEND_PlayerSettings;
 
-  g_Options_Write(GameDir+'/'+CONFIG_FILENAME);
-  g_Console_WriteGameConfig();
+  s := e_GetDir(ConfigDirs);
+  if s <> '' then
+    g_Options_Write(s + '/' + CONFIG_FILENAME);
+  g_Console_WriteGameConfig;
 end;
 
 procedure ReadOptions();
@@ -647,6 +650,7 @@ var
   Map: String;
   GameMode: Byte;
   Options: LongWord;
+  s: AnsiString;
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mCustomGameMenu')) do
   begin
@@ -695,7 +699,9 @@ begin
     gcMap := Map;
   end;
 
-  g_Options_Write_Gameplay_Custom(GameDir+'/'+CONFIG_FILENAME);
+  s := e_GetDir(ConfigDirs);
+  if s <> '' then
+    g_Options_Write_Gameplay_Custom(s + '/' + CONFIG_FILENAME);
 
   g_Game_StartCustom(Map, GameMode, gcTimeLimit, gcGoalLimit,
                      gcMaxLives, Options, gcPlayers);
@@ -707,6 +713,7 @@ var
   Map: String;
   GameMode: Byte;
   Options: LongWord;
+  s: AnsiString;
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mNetServerMenu')) do
   begin
@@ -761,8 +768,12 @@ begin
     NetUseMaster := TGUISwitch(GetControl('swUseMaster')).ItemIndex = 0;
   end;
 
-  g_Options_Write_Net_Server(GameDir+'/'+CONFIG_FILENAME);
-  g_Options_Write_Gameplay_Net(GameDir+'/'+CONFIG_FILENAME);
+  s := e_GetDir(ConfigDirs);
+  if s <> '' then
+  begin
+    g_Options_Write_Net_Server(s + '/' + CONFIG_FILENAME);
+    g_Options_Write_Gameplay_Net(s + '/' + CONFIG_FILENAME)
+  end;
 
   g_Game_StartServer(Map, GameMode, gnTimeLimit, gnGoalLimit, gnMaxLives,
                      Options, gnPlayers, 0, NetPort);
@@ -771,6 +782,7 @@ end;
 procedure ProcConnectNetGame();
 var
   PW: String;
+  s: AnsiString;
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mNetClientMenu')) do
   begin
@@ -779,13 +791,16 @@ begin
     PW := TGUIEdit(GetControl('edPW')).Text;
   end;
 
-  g_Options_Write_Net_Client(GameDir+'/'+CONFIG_FILENAME);
+  s := e_GetDir(ConfigDirs);
+  if s <> '' then
+    g_Options_Write_Net_Client(s + '/' + CONFIG_FILENAME);
   g_Game_StartClient(NetClientIP, NetClientPort, PW);
 end;
 
 procedure ProcEnterPassword();
 var
   PW: string;
+  s: AnsiString;
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mClientPasswordMenu')) do
   begin
@@ -794,7 +809,9 @@ begin
     PW := TGUIEdit(GetControl('edPW')).Text;
   end;
 
-  g_Options_Write_Net_Client(GameDir+'/'+CONFIG_FILENAME);
+  s := e_GetDir(ConfigDirs);
+  if s <> '' then
+    g_Options_Write_Net_Client(s + '/' + CONFIG_FILENAME);
   g_Game_StartClient(NetClientIP, NetClientPort, PW);
 end;
 
@@ -840,7 +857,7 @@ var
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mCampaignMenu')) do
   begin
-    WAD := ExtractRelativePath(MapsDir, TGUIFileListBox(GetControl('lsWAD')).SelectedItem());
+    WAD := TGUIFileListBox(GetControl('lsWAD')).SelectedItem();
     TwoPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex = 1;
   end;
 
@@ -1260,14 +1277,26 @@ begin
   end;
 end;
 
-procedure ProcSingle1Player();
+procedure ProcSinglePlayer (n: Integer);
+  var wad, map: AnsiString;
 begin
-  g_Game_StartSingle(gDefaultMegawadStart, False, 1);
+  wad := g_ExtractWadName(gDefaultMegawadStart);
+  map := g_ExtractFilePathName(gDefaultMegawadStart);
+  if e_FindResource(AllMapDirs, wad) then
+  begin
+    wad := ExpandFileName(wad);
+    g_Game_StartSingle(wad + ':\' + map, False, n);
+  end;
 end;
 
-procedure ProcSingle2Players();
+procedure ProcSingle1Player;
 begin
-  g_Game_StartSingle(gDefaultMegawadStart, True, 2);
+  ProcSinglePlayer(1)
+end;
+
+procedure ProcSingle2Players;
+begin
+  ProcSinglePlayer(2)
 end;
 
 procedure ProcSelectMapMenu();
@@ -1321,7 +1350,7 @@ var
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mSelectMapMenu')) do
   begin
-    wad := ExtractRelativePath(MapsDir, TGUIFileListBox(GetControl('lsMapWAD')).SelectedItem());
+    wad := TGUIFileListBox(GetControl('lsMapWAD')).SelectedItem();
     map := TGUIListBox(GetControl('lsMapRes')).SelectedItem();
   end;
 
@@ -1623,7 +1652,8 @@ begin
   if yes then gExit := EXIT_SIMPLE else g_GUI_HideWindow;
 end;
 
-procedure ProcSetRussianLanguage();
+procedure ProcSetRussianLanguage;
+  var s: AnsiString;
 begin
   if gLanguage <> LANGUAGE_RUSSIAN then
   begin
@@ -1631,14 +1661,17 @@ begin
     gLanguageChange := True;
     gAskLanguage := False;
 
-    g_Options_Write_Language(GameDir+'/'+CONFIG_FILENAME);
+    s := e_GetDir(ConfigDirs);
+    if s <> '' then
+      g_Options_Write_Language(s + '/' + CONFIG_FILENAME);
 
   // Сохраняем изменения всех настроек:
     ProcApplyOptions();
   end;
 end;
 
-procedure ProcSetEnglishLanguage();
+procedure ProcSetEnglishLanguage;
+  var s: AnsiString;
 begin
   if gLanguage <> LANGUAGE_ENGLISH then
   begin
@@ -1646,7 +1679,9 @@ begin
     gLanguageChange := True;
     gAskLanguage := False;
 
-    g_Options_Write_Language(GameDir+'/'+CONFIG_FILENAME);
+    s := e_GetDir(ConfigDirs);
+    if s <> '' then
+      g_Options_Write_Language(s + '/' + CONFIG_FILENAME);
 
   // Сохраняем изменения всех настроек:
     ProcApplyOptions();
@@ -1883,22 +1918,28 @@ begin
   ProcApplyOptions();
 end;
 
-procedure ProcSetFirstRussianLanguage();
+procedure ProcSetFirstRussianLanguage;
+  var s: AnsiString;
 begin
   gLanguage := LANGUAGE_RUSSIAN;
   gLanguageChange := True;
   gAskLanguage := False;
 
-  g_Options_Write_Language(GameDir+'/'+CONFIG_FILENAME);
+  s := e_GetDir(ConfigDirs);
+  if s <> '' then
+    g_Options_Write_Language(s + '/' + CONFIG_FILENAME)
 end;
 
-procedure ProcSetFirstEnglishLanguage();
+procedure ProcSetFirstEnglishLanguage;
+  var s: AnsiString;
 begin
   gLanguage := LANGUAGE_ENGLISH;
   gLanguageChange := True;
   gAskLanguage := False;
 
-  g_Options_Write_Language(GameDir+'/'+CONFIG_FILENAME);
+  s := e_GetDir(ConfigDirs);
+  if s <> '' then
+    g_Options_Write_Language(s + '/' + CONFIG_FILENAME)
 end;
 
 procedure ProcRecallAddress();
@@ -2437,7 +2478,7 @@ begin
       Sort := True;
       Dirs := True;
       FileMask := '*.wad|*.pk3|*.zip|*.dfz';
-      SetBase(MapsDir+'megawads/');
+      SetBase(MegawadDirs);
     end;
 
     with AddLabel(_lc[I_MENU_MAP_NAME]) do
@@ -2492,7 +2533,7 @@ begin
       Sort := True;
       Dirs := True;
       FileMask := '*.wad|*.pk3|*.zip|*.dfz';
-      SetBase(MapsDir);
+      SetBase(MapDirs);
     end;
     with AddList(_lc[I_MENU_MAP_RESOURCE], 12, 4) do
     begin

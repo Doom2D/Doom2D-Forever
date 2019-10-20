@@ -101,6 +101,7 @@ uses
   e_sound in '../engine/e_sound.pas',
   e_texture in '../engine/e_texture.pas',
   e_msg in '../engine/e_msg.pas',
+  e_res in '../engine/e_res.pas',
   utils in '../shared/utils.pas',
   xstreams in '../shared/xstreams.pas',
   sfs in '../sfs/sfs.pas',
@@ -240,15 +241,6 @@ begin
       end;
     end;
     Inc(f)
-  end;
-
-  if LogFileName = '' then
-  begin
-{$IFDEF HEADLESS}
-    LogFileName := 'Doom2DF_H.log';
-{$ELSE}
-    LogFileName := 'Doom2DF.log';
-{$ENDIF}
   end;
 
   if noct then

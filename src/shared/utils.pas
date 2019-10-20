@@ -99,12 +99,13 @@ function utf8Valid (const s: AnsiString): Boolean;
 
 function utf8to1251 (s: AnsiString): AnsiString;
 
-// `pathname` will be modified if path is valid
-// `lastIsDir` should be `true` if we are searching for directory
-// nobody cares about shitdoze, so i'll use the same code path for it
+// findFileCI eats case-insensitive path, traverses it and rewrites it to a
+// case-sensetive. result value means success.
+// if file/dir not founded than pathname is in undefined state!
 function findFileCI (var pathname: AnsiString; lastIsDir: Boolean=false): Boolean;
 
-// return fixed AnsiString or empty AnsiString
+// findDiskWad tries to find wad file and rewrites extension if needed
+// result is new filename or empty string
 function findDiskWad (fname: AnsiString): AnsiString;
 // slashes must be normalized!
 function isWadNamesEqu (wna, wnb: AnsiString): Boolean;
@@ -1123,9 +1124,9 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-// `pathname` will be modified if path is valid
-// `lastIsDir` should be `true` if we are searching for directory
-// nobody cares about shitdoze, so i'll use the same code path for it
+// findFileCI eats case-insensitive path, traverses it and rewrites it to a
+// case-sensetive. result value means success.
+// if file/dir not founded than pathname is in undefined state!
 function findFileCI (var pathname: AnsiString; lastIsDir: Boolean=false): Boolean;
 var
   sr: TSearchRec;

@@ -17,6 +17,8 @@ unit g_main;
 
 interface
 
+  uses Utils;
+
 procedure Main ();
 procedure Init ();
 procedure Release ();
@@ -26,12 +28,28 @@ procedure KeyPress (K: Word);
 procedure CharPress (C: AnsiChar);
 
 var
-  GameDir: string;
-  DataDir: string;
-  MapsDir: string;
-  ModelsDir: string;
+  {--- TO REMOVE ---}
+  GameDir: string; 
+  {-----------------}
+
+  {--- Read-only dirs ---}
   GameWAD: string;
+  DataDirs: SSArray;
+  ModelDirs: SSArray;
+  MegawadDirs: SSArray;
+  MapDirs: SSArray;
+  WadDirs: SSArray;
+  AllMapDirs: SSArray; // Maps + Megawads
+
+  {--- Read-Write dirs ---}
   LogFileName: string;
+  LogDirs: SSArray;
+  SaveDirs: SSArray;
+  CacheDirs: SSArray;
+  ConfigDirs: SSArray;
+  ScreenshotDirs: SSArray;
+  MapDownloadDirs: SSArray;
+  WadDownloadDirs: SSArray;
 
 implementation
 
@@ -43,29 +61,121 @@ uses
   wadreader, e_log, g_window,
   e_graphics, e_input, g_game, g_console, g_gui,
   e_sound, g_options, g_sound, g_player, g_basic,
-  g_weapons, SysUtils, g_triggers, MAPDEF, g_map,
+  g_weapons, SysUtils, g_triggers, MAPDEF, g_map, e_res,
   g_menu, g_language, g_net, g_touch, g_system, g_res_downloader,
-  utils, conbuf, envvars,
+  conbuf, envvars,
   xparser;
 
 
 var
   charbuff: packed array [0..15] of AnsiChar;
 
+procedure InitPath;
+  var i: Integer; rwdir, rodir: AnsiString;
+
+  procedure AddPath (var arr: SSArray; str: AnsiString);
+  begin
+    SetLength(arr, Length(arr) + 1);
+    arr[High(arr)] := ExpandFileName(str)
+  end;
+
+  procedure AddDef (var arr: SSArray; str: AnsiString);
+  begin
+    if arr = nil then
+      AddPath(arr, str)
+  end;
+
+begin
+  GetDir(0, GameDir);
+
+  i := 1;
+  while i < ParamCount do
+  begin
+    case ParamStr(i) of
+    '--rw-dir':
+      begin
+        Inc(i);
+        rwdir := ParamStr(i);
+        (* RW *)
+        AddPath(LogDirs, e_CatPath(rwdir, ''));
+        AddPath(SaveDirs, e_CatPath(rwdir, 'data'));
+        AddPath(CacheDirs, e_CatPath(rwdir, 'data/cache'));
+        AddPath(ConfigDirs, e_CatPath(rwdir, ''));
+        AddPath(MapDownloadDirs, e_CatPath(rwdir, 'maps/downloads'));
+        AddPath(WadDownloadDirs, e_CatPath(rwdir, 'wads/downloads'));
+        AddPath(ScreenshotDirs, e_CatPath(rwdir, 'screenshots'));
+        (* RO *)
+        AddPath(DataDirs, e_CatPath(rwdir, 'data'));
+        AddPath(ModelDirs, e_CatPath(rwdir, 'data/models'));
+        AddPath(MegawadDirs, e_CatPath(rwdir, 'maps/megawads'));
+        AddPath(MapDirs, e_CatPath(rwdir, 'maps'));
+        AddPath(WadDirs, e_CatPath(rwdir, 'wads'));
+      end;
+    '--ro-dir':
+      begin
+        Inc(i);
+        rodir := ParamStr(i);
+        (* RO *)
+        AddPath(DataDirs, e_CatPath(rodir, 'data'));
+        AddPath(ModelDirs, e_CatPath(rodir, 'data/models'));
+        AddPath(MegawadDirs, e_CatPath(rodir, 'maps/megawads'));
+        AddPath(MapDirs, e_CatPath(rodir, 'maps'));
+        AddPath(WadDirs, e_CatPath(rodir, 'wads'));
+      end;
+    end;
+    Inc(i)
+  end;
+
+  (* RO *)
+  AddDef(DataDirs, 'data');
+  AddDef(ModelDirs, 'data/models');
+  AddDef(MegawadDirs, 'maps/megawads');
+  AddDef(MapDirs, 'maps');
+  AddDef(WadDirs, 'wads');
+  (* RW *)
+  AddDef(LogDirs, '.');
+  AddDef(SaveDirs, 'data');
+  AddDef(CacheDirs, 'data/cache');
+  AddDef(ConfigDirs, '.');
+  AddDef(MapDownloadDirs, 'maps/downloads');
+  AddDef(WadDownloadDirs, 'wad/downloads');
+  AddDef(ScreenshotDirs, 'screenshots');
+
+  for i := 0 to High(MapDirs) do
+    AddPath(AllMapDirs, MapDirs[i]);
+  for i := 0 to High(MegawadDirs) do
+    AddPath(AllMapDirs, MegawadDirs[i]);
+
+  if LogFileName = '' then
+  begin
+    rwdir := e_GetDir(LogDirs);
+    if rwdir <> '' then
+    begin
+      {$IFDEF HEADLESS}
+        LogFileName := e_CatPath(rwdir, 'Doom2DF_H.log');
+      {$ELSE}
+        LogFileName := e_Catpath(rwdir, 'Doom2DF.log');
+      {$ENDIF}      
+    end
+  end
+end;
+
 procedure Main();
 {$IFDEF ENABLE_HOLMES}
   var flexloaded: Boolean;
 {$ENDIF}
+  var s: AnsiString;
 begin
+  InitPath;
+  if LogFileName <> '' then
+    e_InitLog(LogFileName, TWriteMode.WM_NEWFILE);
   e_InitWritelnDriver();
 
-  GetDir(0, GameDir);
-  MapsDir := GameDir + '/maps/';
-  DataDir := GameDir + '/data/';
-  ModelsDir := DataDir + 'models/';
-  GameWAD := DataDir + 'Game.wad';
+  GameWAD := e_FindWad(DataDirs, 'GAME');
+  assert(GameWad <> '', 'GAME.WAD not installed?');
 
-  e_InitLog(GameDir + '/' + LogFileName, TWriteMode.WM_NEWFILE);
+
+//  e_InitLog(GameDir + '/' + LogFileName, TWriteMode.WM_NEWFILE);
 
   e_WriteLog(
     'Doom 2D: Forever version ' + GAME_VERSION +
@@ -85,7 +195,17 @@ begin
   e_InitInput;
 
   sys_Init;
-  g_Options_Read(GameDir + '/' + CONFIG_FILENAME);
+
+  s := CONFIG_FILENAME;
+  if e_FindResource(ConfigDirs, s) = true then
+  begin
+    g_Options_Read(s)
+  end
+  else
+  begin
+    g_Options_SetDefault;
+    g_Options_SetDefaultVideo
+  end;
   if sys_SetDisplayMode(gScreenWidth, gScreenHeight, gBPP, gFullScreen) = False then
     raise Exception.Create('Failed to set videomode on startup.');
 
@@ -372,9 +492,9 @@ begin
   s2 := Copy(charbuff, 15, 2);
   if CheckCheat(I_GAME_CHEAT_CHANGEMAP, 2) and (s2[1] >= '0') and (s2[1] <= '9') and (s2[2] >= '0') and (s2[2] <= '9') then
   begin
-    if g_Map_Exist(MapsDir+gGameSettings.WAD+':\MAP'+s2) then
+    if g_Map_Exist(gGameSettings.WAD + ':\MAP' + s2) then
     begin
-      c := 'MAP'+s2;
+      c := 'MAP' + s2;
       g_Game_ExitLevel(c);
     end;
     goto Cheated;
@@ -568,6 +688,5 @@ begin
     Cheat();
   end;
 end;
-
 
 end.

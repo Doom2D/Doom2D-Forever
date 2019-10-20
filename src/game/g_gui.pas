@@ -401,6 +401,7 @@ type
     procedure OnMessage(var Msg: TMessage); override;
     procedure Draw(); override;
     procedure AddItem(Item: String);
+    function ItemExists (item: String): Boolean;
     procedure SelectItem(Item: String);
     procedure Clear();
     function  GetWidth(): Integer; override;
@@ -420,22 +421,21 @@ type
 
   TGUIFileListBox = class(TGUIListBox)
   private
-    FBasePath: String;
-    FPath: String;
+    FSubPath: String;
     FFileMask: String;
     FDirs: Boolean;
+    FBaseList: SSArray; // highter index have highter priority
 
-    procedure OpenDir(path: String);
+    procedure ScanDirs;
 
   public
-    procedure OnMessage(var Msg: TMessage); override;
-    procedure SetBase(path: String);
+    procedure OnMessage (var Msg: TMessage); override;
+    procedure SetBase (dirs: SSArray; path: String = '');
     function  SelectedItem(): String;
-    procedure UpdateFileList();
+    procedure UpdateFileList;
 
     property Dirs: Boolean read FDirs write FDirs;
     property FileMask: String read FFileMask write FFileMask;
-    property Path: String read FPath;
   end;
 
   TGUIMemo = class(TGUIControl)
@@ -551,7 +551,7 @@ implementation
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
-  g_textures, g_sound, SysUtils,
+  g_textures, g_sound, SysUtils, e_res,
   g_game, Math, StrUtils, g_player, g_options,
   g_map, g_weapons, xdynrec, wadreader;
 
@@ -2983,7 +2983,15 @@ begin
   if FSort then g_Basic.Sort(FItems);
 end;
 
-procedure TGUIListBox.Clear();
+function TGUIListBox.ItemExists (item: String): Boolean;
+  var i: Integer;
+begin
+  i := 0;
+  while (i <= High(FItems)) and (FItems[i] <> item) do Inc(i);
+  result := i <= High(FItems)
+end;
+
+procedure TGUIListBox.Clear;
 begin
   FItems := nil;
 
@@ -3173,7 +3181,7 @@ end;
 
 procedure TGUIFileListBox.OnMessage(var Msg: TMessage);
 var
-  a, b: Integer;
+  a, b: Integer; s: AnsiString;
 begin
   if not FEnabled then
     Exit;
@@ -3256,7 +3264,18 @@ begin
                 begin
                   if FItems[FIndex][1] = #29 then // Папка
                   begin
-                    OpenDir(FPath+Copy(FItems[FIndex], 2, 255));
+                    if FItems[FIndex] = #29 + '..' then
+                    begin
+                      e_LogWritefln('TGUIFileListBox: Upper dir "%s" -> "%s"', [FSubPath, e_UpperDir(FSubPath)]);
+                      FSubPath := e_UpperDir(FSubPath)
+                    end
+                    else
+                    begin
+                      s := Copy(AnsiString(FItems[FIndex]), 2);
+                      e_LogWritefln('TGUIFileListBox: Enter dir "%s" -> "%s"', [FSubPath, e_CatPath(FSubPath, s)]);
+                      FSubPath := e_CatPath(FSubPath, s);
+                    end;
+                    ScanDirs;
                     FIndex := 0;
                     Exit;
                   end;
@@ -3289,70 +3308,78 @@ begin
     end;
 end;
 
-procedure TGUIFileListBox.OpenDir(path: String);
-var
-  SR: TSearchRec;
-  i: Integer;
-  sm, sc: string;
+procedure TGUIFileListBox.ScanDirs;
+  var i, j: Integer; path: AnsiString; SR: TSearchRec; sm, sc: String;
 begin
-  Clear();
+  Clear;
 
-  path := IncludeTrailingPathDelimiter(path);
-  path := ExpandFileName(path);
-
-  // Каталоги:
-  if FDirs then
+  i := High(FBaseList);
+  while i >= 0 do
   begin
-    if FindFirst(path+'*', faDirectory, SR) = 0 then
-    repeat
-      if not LongBool(SR.Attr and faDirectory) then
-        Continue;
-      if (SR.Name = '.') or
-         ((SR.Name = '..') and (path = ExpandFileName(FBasePath))) then
-        Continue;
-
-      AddItem(#1 + SR.Name);
-    until FindNext(SR) <> 0;
-
-    FindClose(SR);
+    path := e_CatPath(FBaseList[i], FSubPath);
+    if FDirs then
+    begin
+      if FindFirst(path + '/' + '*', faDirectory, SR) = 0 then
+      begin
+        repeat
+          if LongBool(SR.Attr and faDirectory) then
+            if (SR.Name <> '.') and ((FSubPath <> '') or (SR.Name <> '..')) then
+              if Self.ItemExists(#1 + SR.Name) = false then
+                Self.AddItem(#1 + SR.Name)
+        until FindNext(SR) <> 0
+      end;
+      FindClose(SR)
+    end;
+    Dec(i)
   end;
 
-  // Файлы:
-  sm := FFileMask;
-  while sm <> '' do
+  i := High(FBaseList);
+  while i >= 0 do
   begin
-    i := Pos('|', sm);
-    if i = 0 then i := length(sm)+1;
-    sc := Copy(sm, 1, i-1);
-    Delete(sm, 1, i);
-    if FindFirst(path+sc, faAnyFile, SR) = 0 then repeat AddItem(SR.Name); until FindNext(SR) <> 0;
-    FindClose(SR);
+    path := e_CatPath(FBaseList[i], FSubPath);
+    sm := FFileMask;
+    while sm <> '' do
+    begin
+      j := Pos('|', sm);
+      if j = 0 then
+        j := length(sm) + 1;
+      sc := Copy(sm, 1, j - 1);
+      Delete(sm, 1, j);
+      if FindFirst(path + '/' + sc, faAnyFile, SR) = 0 then
+      begin
+        repeat
+          if Self.ItemExists(SR.Name) = false then
+            AddItem(SR.Name)
+        until FindNext(SR) <> 0
+      end;
+      FindClose(SR)
+    end;
+    Dec(i)
   end;
 
   for i := 0 to High(FItems) do
     if FItems[i][1] = #1 then
       FItems[i][1] := #29;
-
-  FPath := path;
 end;
 
-procedure TGUIFileListBox.SetBase(path: String);
+procedure TGUIFileListBox.SetBase (dirs: SSArray; path: String = '');
 begin
-  FBasePath := path;
-  OpenDir(FBasePath);
+  FBaseList := dirs;
+  FSubPath := path;
+  ScanDirs
 end;
 
-function TGUIFileListBox.SelectedItem(): String;
+function TGUIFileListBox.SelectedItem (): String;
+  var s: AnsiString;
 begin
-  Result := '';
-
-  if (FIndex = -1) or (FItems = nil) or
-     (FIndex > High(FItems)) or
-     (FItems[FIndex][1] = '/') or
-     (FItems[FIndex][1] = '\') then
-    Exit;
-
-  Result := FPath + FItems[FIndex];
+  result := '';
+  if (FIndex >= 0) and (FIndex <= High(FItems)) and (FItems[FIndex][1] <> '/') and (FItems[FIndex][1] <> '\') then
+  begin
+    s := e_CatPath(FSubPath, FItems[FIndex]);
+    if e_FindResource(FBaseList, s) = true then
+      result := ExpandFileName(s)
+  end;
+  e_LogWritefln('TGUIFileListBox.SelectedItem -> "%s"', [result]);
 end;
 
 procedure TGUIFileListBox.UpdateFileList();
@@ -3367,7 +3394,8 @@ begin
   else
     fn := FItems[FIndex];
 
-  OpenDir(FPath);
+//  OpenDir(FPath);
+  ScanDirs;
 
   if fn <> '' then
     SelectItem(fn);

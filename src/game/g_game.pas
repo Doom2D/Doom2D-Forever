@@ -377,7 +377,7 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes,
 {$ENDIF}
-  e_texture, g_textures, g_main, g_window, g_menu,
+  e_texture, e_res, g_textures, g_main, g_window, g_menu,
   e_input, e_log, g_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
@@ -762,17 +762,17 @@ var
   cfg: TConfig;
   p: Pointer;
   {b, }len: Integer;
-  s: string;
+  s: AnsiString;
 begin
   g_Game_FreeWAD();
   gGameSettings.WAD := WAD;
   if not (gGameSettings.GameMode in [GM_COOP, GM_SINGLE]) then
     Exit;
 
-  MegaWAD.info := g_Game_GetMegaWADInfo(MapsDir + WAD);
+  MegaWAD.info := g_Game_GetMegaWADInfo(WAD);
 
   w := TWADFile.Create();
-  w.ReadFile(MapsDir + WAD);
+  w.ReadFile(WAD);
 
   if not w.GetResource('INTERSCRIPT', p, len) then
   begin
@@ -811,18 +811,16 @@ begin
   MegaWAD.endpic := cfg.ReadStr('megawad', 'endpic', '');
   if MegaWAD.endpic <> '' then
   begin
-    s := g_ExtractWadName(MegaWAD.endpic);
-    if s = '' then s := MapsDir+WAD else s := GameDir+'/wads/';
     TEXTUREFILTER := GL_LINEAR;
-    g_Texture_CreateWADEx('TEXTURE_endpic', s+MegaWAD.endpic);
+    s := e_GetResourcePath(WadDirs, MegaWAD.endpic, WAD);
+    g_Texture_CreateWADEx('TEXTURE_endpic', s);
     TEXTUREFILTER := GL_NEAREST;
   end;
   MegaWAD.endmus := cfg.ReadStr('megawad', 'endmus', 'Standart.wad:D2DMUS\КОНЕЦ');
   if MegaWAD.endmus <> '' then
   begin
-    s := g_ExtractWadName(MegaWAD.endmus);
-    if s = '' then s := MapsDir+WAD else s := GameDir+'/wads/';
-    g_Sound_CreateWADEx('MUSIC_endmus', s+MegaWAD.endmus, True);
+    s := e_GetResourcePath(WadDirs, MegaWAD.endmus, WAD);
+    g_Sound_CreateWADEx('MUSIC_endmus', s, True);
   end;
 
   cfg.Free();
@@ -1304,23 +1302,23 @@ begin
     g_Game_SetLoadingText(_lc[I_LOAD_MODELS], 0, False);
     g_PlayerModel_LoadData();
 
-    if FindFirst(ModelsDir+'*.wad', faAnyFile, SR) = 0 then
+    if e_FindFirst(ModelDirs, '*.wad', faAnyFile, SR) = 0 then
       repeat
-        if not g_PlayerModel_Load(ModelsDir+SR.Name) then
+        if not g_PlayerModel_Load(e_FindWad(ModelDirs, SR.Name)) then
           e_WriteLog(Format('Error loading model %s', [SR.Name]), TMsgType.Warning);
       until FindNext(SR) <> 0;
     FindClose(SR);
 
-    if FindFirst(ModelsDir+'*.pk3', faAnyFile, SR) = 0 then
+    if e_FindFirst(ModelDirs, '*.pk3', faAnyFile, SR) = 0 then
       repeat
-        if not g_PlayerModel_Load(ModelsDir+SR.Name) then
+        if not g_PlayerModel_Load(e_FindWad(ModelDirs, SR.Name)) then
           e_WriteLog(Format('Error loading model %s', [SR.Name]), TMsgType.Warning);
       until FindNext(SR) <> 0;
     FindClose(SR);
 
-    if FindFirst(ModelsDir+'*.zip', faAnyFile, SR) = 0 then
+    if e_FindFirst(ModelDirs, '*.zip', faAnyFile, SR) = 0 then
       repeat
-        if not g_PlayerModel_Load(ModelsDir+SR.Name) then
+        if not g_PlayerModel_Load(e_FindWad(ModelDirs, SR.Name)) then
           e_WriteLog(Format('Error loading model %s', [SR.Name]), TMsgType.Warning);
       until FindNext(SR) <> 0;
     FindClose(SR);
@@ -4685,7 +4683,8 @@ begin
             end;
             e_LogWritefln('using downloaded map wad [%s] for [%s]`', [newResPath, WadName], TMsgType.Notify);
           end;
-          newResPath := ExtractRelativePath(MapsDir, newResPath);
+          //newResPath := ExtractRelativePath(MapsDir, newResPath);
+          
 
           gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                                    gPlayer1Settings.Color,
@@ -4762,9 +4761,14 @@ begin
   e_WriteLog('NET: Connection successful.', TMsgType.Notify);
 end;
 
-procedure g_Game_SaveOptions();
+procedure g_Game_SaveOptions;
+  var s: AnsiString;
 begin
-  g_Options_Write_Video(GameDir+'/'+CONFIG_FILENAME);
+  s := e_GetDir(ConfigDirs);
+  if s <> '' then
+    g_Options_Write_Video(s + '/' + CONFIG_FILENAME)
+  else
+    e_LogWritefln('unable to find or create directory for configs', []);
 end;
 
 procedure g_Game_ChangeMap(const MapPath: String);
@@ -4791,6 +4795,7 @@ begin
   if g_Game_IsClient then
     Exit;
   map := g_ExtractFileName(gMapInfo.Map);
+  e_LogWritefln('g_Game_Restart: map = "%s" gCurrentMapFileName = "%s"', [map, gCurrentMapFileName]);
 
   MessageTime := 0;
   gGameOn := False;
@@ -4826,7 +4831,8 @@ begin
     ResName := g_ExtractFileName(Map);
     if g_Game_IsServer then
     begin
-      nws := findDiskWad(MapsDir+NewWAD);
+//     nws := e_FindWad(MapDirs, NewWAD);
+      nws := NewWAD;
       if (length(nws) = 0) then
       begin
         ResName := '';
@@ -4844,7 +4850,9 @@ begin
     ResName := Map;
 
   //writeln('********: gsw=', gGameSettings.WAD, '; rn=', ResName);
-  Result := (ResName <> '') and g_Map_Load(MapsDir + gGameSettings.WAD + ':\' + ResName);
+  result := false;
+  if ResName <> '' then
+    result := g_Map_Load(gGameSettings.WAD + ':\' + ResName);
   if Result then
     begin
       g_Player_ResetAll(Force or gLastMap, gGameSettings.GameType = GT_SINGLE);
@@ -4942,11 +4950,11 @@ begin
   g_Game_ExecuteEvent('onmapstart');
 end;
 
-procedure SetFirstLevel();
+procedure SetFirstLevel;
 begin
   gNextMap := '';
 
-  MapList := g_Map_GetMapsList(MapsDir + gGameSettings.WAD);
+  MapList := g_Map_GetMapsList(gGameSettings.WAD);
   if MapList = nil then
     Exit;
 
@@ -4974,7 +4982,7 @@ begin
     if gGameSettings.GameMode = GM_COOP then
       g_Player_RememberAll;
 
-    if not g_Map_Exist(MapsDir + gGameSettings.WAD + ':\' + gNextMap) then
+    if not g_Map_Exist(gGameSettings.WAD + ':\' + gNextMap) then
     begin
       gLastMap := True;
       if gGameSettings.GameMode = GM_COOP then
@@ -4983,7 +4991,7 @@ begin
       gStatsPressed := True;
       gNextMap := 'MAP01';
 
-      if not g_Map_Exist(MapsDir + gGameSettings.WAD + ':\' + gNextMap) then
+      if not g_Map_Exist(gGameSettings.WAD + ':\' + gNextMap) then
         g_Game_NextLevel;
 
       if g_Game_IsNet then
@@ -5011,7 +5019,7 @@ end;
 
 procedure g_Game_ClientWAD(NewWAD: String; const WHash: TMD5Digest);
 var
-  gWAD, xwad: String;
+  gWAD{, xwad}: String;
 begin
   if not g_Game_IsClient then Exit;
   //e_LogWritefln('*** g_Game_ClientWAD: `%s`', [NewWAD]);
@@ -5024,9 +5032,14 @@ begin
     Exit;
   end;
 
+(*
   xwad := ExtractRelativePath(MapsDir, gWAD);
   e_LogWritefln('using downloaded client map wad [%s] for [%s]`', [xwad, NewWAD], TMsgType.Notify);
   NewWAD := xwad;
+  g_Game_LoadWAD(NewWAD);
+*)
+
+  e_LogWritefln('using downloaded client map wad [%s]`', [NewWAD], TMsgType.Notify);
   g_Game_LoadWAD(NewWAD);
 
   {
@@ -5156,7 +5169,7 @@ var
 begin
   Result := '';
 
-  MapList := g_Map_GetMapsList(MapsDir + gGameSettings.WAD);
+  MapList := g_Map_GetMapsList(gGameSettings.WAD);
   if MapList = nil then
     Exit;
 
@@ -5178,7 +5191,7 @@ begin
     else
       Result := MapList[MapIndex + 1];
 
-    if not g_Map_Exist(MapsDir + gGameSettings.WAD + ':\' + Result) then Result := Map;
+    if not g_Map_Exist(gGameSettings.WAD + ':\' + Result) then Result := Map;
   end;
 
   MapList := nil;
@@ -5439,27 +5452,34 @@ begin
   begin
     if (Length(P) > 1) then
       NetInterpLevel := StrToIntDef(P[1], NetInterpLevel);
-
     g_Console_Add('net_interp = ' + IntToStr(NetInterpLevel));
-    config := TConfig.CreateFile(GameDir+'/'+CONFIG_FILENAME);
-    config.WriteInt('Client', 'InterpolationSteps', NetInterpLevel);
-    config.SaveFile(GameDir+'/'+CONFIG_FILENAME);
-    config.Free();
+    s := e_GetDir(ConfigDirs);
+    if s <> '' then
+    begin
+      config := TConfig.CreateFile(s + '/' + CONFIG_FILENAME);
+      config.WriteInt('Client', 'InterpolationSteps', NetInterpLevel);
+      config.SaveFile(s + '/' + CONFIG_FILENAME);
+      config.Free
+    end
   end
   else if cmd = 'net_forceplayerupdate' then
   begin
-    if (Length(P) > 1) and
-       ((P[1] = '1') or (P[1] = '0')) then
+    if (Length(P) > 1) and ((P[1] = '1') or (P[1] = '0')) then
       NetForcePlayerUpdate := (P[1][1] = '1');
 
     if NetForcePlayerUpdate then
       g_Console_Add('net_forceplayerupdate = 1')
     else
       g_Console_Add('net_forceplayerupdate = 0');
-    config := TConfig.CreateFile(GameDir+'/'+CONFIG_FILENAME);
-    config.WriteBool('Client', 'ForcePlayerUpdate', NetForcePlayerUpdate);
-    config.SaveFile(GameDir+'/'+CONFIG_FILENAME);
-    config.Free();
+
+    s := e_GetDir(ConfigDirs);
+    if s <> '' then
+    begin
+      config := TConfig.CreateFile(s + '/' + CONFIG_FILENAME);
+      config.WriteBool('Client', 'ForcePlayerUpdate', NetForcePlayerUpdate);
+      config.SaveFile(s + '/' + CONFIG_FILENAME);
+      config.Free
+    end
   end
   else if cmd = 'net_predictself' then
   begin
@@ -5471,10 +5491,15 @@ begin
       g_Console_Add('net_predictself = 1')
     else
       g_Console_Add('net_predictself = 0');
-    config := TConfig.CreateFile(GameDir+'/'+CONFIG_FILENAME);
-    config.WriteBool('Client', 'PredictSelf', NetPredictSelf);
-    config.SaveFile(GameDir+'/'+CONFIG_FILENAME);
-    config.Free();
+
+    s := e_GetDir(ConfigDirs);
+    if s <> '' then
+    begin
+      config := TConfig.CreateFile(s + '/' + CONFIG_FILENAME);
+      config.WriteBool('Client', 'PredictSelf', NetPredictSelf);
+      config.SaveFile(s + '/' + CONFIG_FILENAME);
+      config.Free
+    end
   end
   else if cmd = 'sv_name' then
   begin
@@ -6134,6 +6159,7 @@ var
   prt: Word;
   nm: Boolean;
   listen: LongWord;
+  found: Boolean;
 begin
 // Общие команды:
   cmd := LowerCase(P[0]);
@@ -6541,22 +6567,26 @@ begin
       g_Console_Add(cmd + ' <WAD> [MAP] [# players]');
       Exit;
     end;
-    // Игра ещё не запущена, сначала нам надо загрузить какой-то WAD
-    P[1] := addWadExtension(P[1]);
-    if FileExists(MapsDir + P[1]) then
+    // game not started yet, load fist map from some wad
+    found := false;
+    s := addWadExtension(P[1]);
+    found := e_FindResource(AllMapDirs, s);
+    P[1] := s;
+    if found then
     begin
-      // Если карта не указана, берём первую карту в файле
+      P[1] := ExpandFileName(P[1]);
+      // if map not choosed then set first map
       if Length(P) < 3 then
       begin
         SetLength(P, 3);
-        P[2] := g_Game_GetFirstMap(MapsDir + P[1]);
+        P[2] := g_Game_GetFirstMap(P[1]);
       end;
 
       s := P[1] + ':\' + UpperCase(P[2]);
 
-      if g_Map_Exist(MapsDir + s) then
+      if g_Map_Exist(s) then
       begin
-        // Запускаем свою игру
+        // start game
         g_Game_Free();
         with gGameSettings do
         begin
@@ -6596,43 +6626,46 @@ begin
       Exit;
     prt := StrToIntDef(P[2], 25666);
 
-    P[3] := addWadExtension(P[3]);
-    if FileExists(MapsDir + P[3]) then
+    s := addWadExtension(P[3]);
+    found := e_FindResource(AllMapDirs, s);
+    P[3] := s;
+    if found then
     begin
-      // Если карта не указана, берём первую карту в файле
+      // get first map in wad, if not specified
       if Length(P) < 5 then
       begin
         SetLength(P, 5);
-        P[4] := g_Game_GetFirstMap(MapsDir + P[1]);
+        P[4] := g_Game_GetFirstMap(P[1]);
       end;
-
       s := P[3] + ':\' + UpperCase(P[4]);
-
-      if g_Map_Exist(MapsDir + s) then
+      if g_Map_Exist(s) then
       begin
-        // Запускаем свою игру
+        // start game
         g_Game_Free();
         with gGameSettings do
         begin
           GameMode := g_Game_TextToMode(gcGameMode);
-          if gSwitchGameMode <> GM_NONE then
-            GameMode := gSwitchGameMode;
+          if gSwitchGameMode <> GM_NONE then GameMode := gSwitchGameMode;
           if GameMode = GM_NONE then GameMode := GM_DM;
           if GameMode = GM_SINGLE then GameMode := GM_COOP;
           b := 0;
           if Length(P) >= 6 then
             b := StrToIntDef(P[5], 0);
-          g_Game_StartServer(s, GameMode, TimeLimit,
-                             GoalLimit, MaxLives, Options, b, listen, prt);
-        end;
+          g_Game_StartServer(s, GameMode, TimeLimit, GoalLimit, MaxLives, Options, b, listen, prt)
+        end
       end
       else
+      begin
         if P[4] = '' then
           g_Console_Add(Format(_lc[I_MSG_NO_MAPS], [P[3]]))
         else
-          g_Console_Add(Format(_lc[I_MSG_NO_MAP_FALLBACK], [UpperCase(P[4]), P[3]]));
-    end else
-      g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[3]]));
+          g_Console_Add(Format(_lc[I_MSG_NO_MAP_FALLBACK], [UpperCase(P[4]), P[3]]))
+      end
+    end
+    else
+    begin
+      g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[3]]))
+    end
   end
   else if cmd = 'map' then
   begin
@@ -6641,92 +6674,125 @@ begin
       if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
       begin
         g_Console_Add(cmd + ' <MAP>');
-        g_Console_Add(cmd + ' <WAD> [MAP]');
-      end else
-        g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
-    end else
+        g_Console_Add(cmd + ' <WAD> [MAP]')
+      end
+      else
+      begin
+        g_Console_Add(_lc[I_MSG_GM_UNAVAIL])
+      end
+    end
+    else
+    begin
       if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
       begin
-        // Идёт своя игра или сервер
         if Length(P) < 3 then
         begin
-          // Первый параметр - либо карта, либо имя WAD файла
+          // first param is map or wad
           s := UpperCase(P[1]);
-          if g_Map_Exist(MapsDir + gGameSettings.WAD + ':\' + s) then
-          begin // Карта нашлась
+          if g_Map_Exist(gGameSettings.WAD + ':\' + s) then
+          begin
             gExitByTrigger := False;
             if gGameOn then
-            begin // Идёт игра - завершаем уровень
+            begin
+              // already in game, finish current map
               gNextMap := s;
               gExit := EXIT_ENDLEVELCUSTOM;
             end
-            else // Интермиссия - сразу загружаем карту
-              g_Game_ChangeMap(s);
-          end else
-          begin
-            // Такой карты нет, ищем WAD файл
-            pw := findDiskWad(MapsDir + P[1]);
-            g_Console_Add(Format(_lc[I_MSG_NO_MAP_FALLBACK], [s, 'WAD ' + P[1]]));
-            if FileExists(pw) then
+            else
             begin
-              // Параметра карты нет, поэтому ставим первую из файла
+              // intermission, so change map immediately
+              g_Game_ChangeMap(s)
+            end
+          end
+          else
+          begin
+            s := P[1];
+            found := e_FindResource(AllMapDirs, s);
+            P[1] := s;
+            g_Console_Add(Format(_lc[I_MSG_NO_MAP_FALLBACK], [s, 'WAD ' + P[1]]));
+            if found then
+            begin
+              // no such map, found wad
               SetLength(P, 3);
-              P[1] := ExtractRelativePath(MapsDir, pw);
-              P[2] := g_Game_GetFirstMap(MapsDir + P[1]);
-
+              P[1] := ExpandFileName(pw);
+              P[2] := g_Game_GetFirstMap(P[1]);
               s := P[1] + ':\' + P[2];
-
-              if g_Map_Exist(MapsDir + s) then
+              if g_Map_Exist(s) then
               begin
                 gExitByTrigger := False;
                 if gGameOn then
-                begin // Идёт игра - завершаем уровень
+                begin
+                  // already in game, finish current map
                   gNextMap := s;
-                  gExit := EXIT_ENDLEVELCUSTOM;
+                  gExit := EXIT_ENDLEVELCUSTOM
                 end
-                else // Интермиссия - сразу загружаем карту
-                  g_Game_ChangeMap(s);
-              end else
+                else
+                begin
+                  // intermission, so change map immediately
+                  g_Game_ChangeMap(s)
+                end
+              end
+              else
+              begin
                 if P[2] = '' then
                   g_Console_Add(Format(_lc[I_MSG_NO_MAPS], [P[1]]))
                 else
-                  g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[2]]));
-            end else
-              g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[1]]));
+                  g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[2]]))
+              end
+            end
+            else
+            begin
+              g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[1]]))
+            end
           end;
-        end else
+        end
+        else
         begin
-          // Указано два параметра, значит первый - WAD файл, а второй - карта
-          P[1] := addWadExtension(P[1]);
-          if FileExists(MapsDir + P[1]) then
+          s := addWadExtension(P[1]);
+          found := e_FindResource(AllMapDirs, s);
+          P[1] := s;
+          if found then
           begin
-            // Нашли WAD файл
             P[2] := UpperCase(P[2]);
             s := P[1] + ':\' + P[2];
-
-            if g_Map_Exist(MapsDir + s) then
-            begin // Нашли карту
+            if g_Map_Exist(s) then
+            begin
               gExitByTrigger := False;
               if gGameOn then
-              begin // Идёт игра - завершаем уровень
+              begin
                 gNextMap := s;
-                gExit := EXIT_ENDLEVELCUSTOM;
+                gExit := EXIT_ENDLEVELCUSTOM
               end
-              else // Интермиссия - сразу загружаем карту
-                g_Game_ChangeMap(s);
-            end else
-              g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[2]]));
-          end else
-            g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[1]]));
-        end;
-      end else
-        g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
+              else
+              begin
+                g_Game_ChangeMap(s)
+              end
+            end
+            else
+            begin
+              g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[2]]))
+            end
+          end
+          else
+          begin
+            g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[1]]))
+          end
+        end
+      end
+      else
+      begin
+        g_Console_Add(_lc[I_MSG_GM_UNAVAIL])
+      end
+    end
   end
   else if cmd = 'nextmap' then
   begin
     if not(gGameOn or (gState = STATE_INTERCUSTOM)) then
+    begin
       g_Console_Add(_lc[I_MSG_NOT_GAME])
-    else begin
+    end
+    else
+    begin
       nm := True;
       if Length(P) = 1 then
       begin
@@ -6734,113 +6800,148 @@ begin
         begin
           g_Console_Add(cmd + ' <MAP>');
           g_Console_Add(cmd + ' <WAD> [MAP]');
-        end else begin
+        end
+        else
+        begin
           nm := False;
           g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
         end;
-      end else
+      end
+      else
       begin
         nm := False;
         if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
         begin
           if Length(P) < 3 then
           begin
-            // Первый параметр - либо карта, либо имя WAD файла
+            // first param is map or wad
             s := UpperCase(P[1]);
-            if g_Map_Exist(MapsDir + gGameSettings.WAD + ':\' + s) then
-            begin // Карта нашлась
+            if g_Map_Exist(gGameSettings.WAD + ':\' + s) then
+            begin
+              // map founded
               gExitByTrigger := False;
               gNextMap := s;
               nm := True;
-            end else
+            end
+            else
             begin
-              // Такой карты нет, ищем WAD файл
-              P[1] := addWadExtension(P[1]);
+              // no such map, found wad
+              pw := addWadExtension(P[1]);
+              found := e_FindResource(MapDirs, pw);
+              if not found then
+                found := e_FindResource(WadDirs, pw);
+              P[1] := pw;
               g_Console_Add(Format(_lc[I_MSG_NO_MAP_FALLBACK], [s, P[1]]));
-              if FileExists(MapsDir + P[1]) then
+              if found then
               begin
-                // Параметра карты нет, поэтому ставим первую из файла
+                // map not specified, select first map
                 SetLength(P, 3);
-                P[2] := g_Game_GetFirstMap(MapsDir + P[1]);
-
+                P[2] := g_Game_GetFirstMap(P[1]);
                 s := P[1] + ':\' + P[2];
-
-                if g_Map_Exist(MapsDir + s) then
-                begin // Устанавливаем карту
+                if g_Map_Exist(s) then
+                begin
                   gExitByTrigger := False;
                   gNextMap := s;
-                  nm := True;
-                end else
+                  nm := True
+                end
+                else
+                begin
                   if P[2] = '' then
                     g_Console_Add(Format(_lc[I_MSG_NO_MAPS], [P[1]]))
                   else
-                    g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[2]]));
-              end else
-                g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[1]]));
-            end;
-          end else
+                    g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[2]]))
+                end
+              end
+              else
+              begin
+                g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[1]]))
+              end
+            end
+          end
+          else
           begin
-            // Указано два параметра, значит первый - WAD файл, а второй - карта
-            P[1] := addWadExtension(P[1]);
-            if FileExists(MapsDir + P[1]) then
+            // specified two params wad + map
+            pw := addWadExtension(P[1]);
+            found := e_FindResource(MapDirs, pw);
+            if not found then
+              found := e_FindResource(MapDirs, pw);
+            P[1] := pw;
+            if found then
             begin
-              // Нашли WAD файл
               P[2] := UpperCase(P[2]);
               s := P[1] + ':\' + P[2];
-
-              if g_Map_Exist(MapsDir + s) then
-              begin // Нашли карту
+              if g_Map_Exist(s) then
+              begin
                 gExitByTrigger := False;
                 gNextMap := s;
-                nm := True;
-              end else
-                g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[2]]));
-            end else
-              g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[1]]));
-          end;
-        end else
-          g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
+                nm := True
+              end
+              else
+              begin
+                g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[2]]))
+              end
+            end
+            else
+            begin
+              g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[1]]))
+            end
+          end
+        end
+        else
+        begin
+          g_Console_Add(_lc[I_MSG_GM_UNAVAIL])
+        end
       end;
       if nm then
+      begin
         if gNextMap = '' then
           g_Console_Add(_lc[I_MSG_NEXTMAP_UNSET])
         else
-          g_Console_Add(Format(_lc[I_MSG_NEXTMAP_SET], [gNextMap]));
-    end;
+          g_Console_Add(Format(_lc[I_MSG_NEXTMAP_SET], [gNextMap]))
+      end
+    end
   end
   else if (cmd = 'endmap') or (cmd = 'goodbye') then
   begin
     if not gGameOn then
+    begin
       g_Console_Add(_lc[I_MSG_NOT_GAME])
+    end
     else
+    begin
       if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
       begin
         gExitByTrigger := False;
-        // Следующая карта не задана, пробуем найти триггер Выход
+        // next map not specified, try to find trigger EXIT
         if (gNextMap = '') and (gTriggers <> nil) then
+        begin
           for a := 0 to High(gTriggers) do
+          begin
             if gTriggers[a].TriggerType = TRIGGER_EXIT then
             begin
               gExitByTrigger := True;
               //gNextMap := gTriggers[a].Data.MapName;
               gNextMap := gTriggers[a].tgcMap;
-              Break;
-            end;
-        // Ищем следующую карту в WAD файле
+              Break
+            end
+          end
+        end;
         if gNextMap = '' then
           gNextMap := g_Game_GetNextMap();
-        // Проверяем, не задан ли WAD файл ресурсной строкой
         if not isWadPath(gNextMap) then
           s := gGameSettings.WAD + ':\' + gNextMap
         else
           s := gNextMap;
-        // Если карта найдена, выходим с уровня
-        if g_Map_Exist(MapsDir + s) then
+        if g_Map_Exist(s) then
           gExit := EXIT_ENDLEVELCUSTOM
         else
-          g_Console_Add(Format(_lc[I_MSG_NO_MAP], [gNextMap]));
-      end else
-        g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
+          g_Console_Add(Format(_lc[I_MSG_NO_MAP], [gNextMap]))
+      end
+      else
+      begin
+        g_Console_Add(_lc[I_MSG_GM_UNAVAIL])
+      end
+    end
   end
   else if (cmd = 'event') then
   begin
@@ -7095,47 +7196,20 @@ begin
   end;
 end;
 
-procedure g_TakeScreenShot();
-var
-  a: Word;
-  FileName: string;
-  ssdir, t: string;
-  st: TStream;
-  ok: Boolean;
+procedure g_TakeScreenShot;
+  var s: TStream; t: TDateTime; date, name: String;
 begin
   if e_NoGraphics then Exit;
-  ssdir := GameDir+'/screenshots';
-  if not findFileCI(ssdir, true) then
-  begin
-    // try to create dir
-    try
-      CreateDir(ssdir);
-    except
-    end;
-    if not findFileCI(ssdir, true) then exit; // alas
-  end;
+  t := Now;
+  DateTimeToString(date, 'yyyy-mm-dd-hh-nn-ss', t);
+  name := 'screenshot-' + date + '.png';
   try
-    for a := 1 to High(Word) do
-    begin
-      FileName := Format(ssdir+'screenshot%.3d.png', [a]);
-      t := FileName;
-      if findFileCI(t, true) then continue;
-      if not findFileCI(FileName) then
-      begin
-        ok := false;
-        st := createDiskFile(FileName);
-        try
-          e_MakeScreenshot(st, gScreenWidth, gScreenHeight);
-          ok := true;
-        finally
-          st.Free();
-        end;
-        if not ok then try DeleteFile(FileName); except end else g_Console_Add(Format(_lc[I_CONSOLE_SCREENSHOT], [ExtractFileName(FileName)]));
-        break;
-      end;
-    end;
+    s := e_CreateResource(ScreenshotDirs, name);
+    e_MakeScreenshot(s, gScreenWidth, gScreenHeight);
+    g_Console_Add(Format(_lc[I_CONSOLE_SCREENSHOT], [name]))
   except
-  end;
+    g_Console_Add('oh shit, i can''t create screenshot!')
+  end
 end;
 
 procedure g_Game_InGameMenu(Show: Boolean);
@@ -7812,13 +7886,17 @@ begin
   // Override map to test:
     s := LowerCase(Find_Param_Value(pars, '-testmap'));
     if s <> '' then
-      gTestMap := MapsDir + s;
+    begin
+      if e_IsValidResourceName(s) then
+        e_FindResource(AllMapDirs, s);
+      gTestMap := ExpandFileName(s);
+    end;
 
   // Delete test map after play:
     s := Find_Param_Value(pars, '--testdelete');
     if (s <> '') then
     begin
-      gMapToDelete := MapsDir + map;
+      //gMapToDelete := MapsDir + map;
       e_WriteLog('"--testdelete" is deprecated, use --tempdelete.', TMsgType.Fatal);
       Halt(1);
     end;
@@ -7850,8 +7928,8 @@ begin
   s := Find_Param_Value(pars, '-exec');
   if s <> '' then
   begin
-    if not isWadPath(s) then
-      s := GameDir + '/' + s;
+//    if not isWadPath(s) then
+//      s := GameDir + '/' + s;
 
     {$I-}
     AssignFile(F, s);

@@ -41,7 +41,7 @@ uses
   g_game, g_items, g_map, g_monsters, g_triggers,
   g_basic, g_main, Math, wadreader,
   g_weapons, g_player, g_console,
-  e_log, g_language;
+  e_log, e_res, g_language;
 
 const
   SAVE_SIGNATURE = $56534644; // 'DFSV'
@@ -101,9 +101,7 @@ end;
 
 function buildSaveName (n: Integer): AnsiString;
 begin
-  result := '';
-  if (n < 0) or (n > 65535) then exit;
-  result := formatstrf('%sSAVGAME%s.DAT', [DataDir, n]);
+  result := 'SAVGAME' + IntToStr(n) + '.DAT'
 end;
 
 
@@ -120,7 +118,7 @@ begin
   try
     // Открываем файл сохранений
     filename := buildSaveName(n);
-    st := openDiskFileRO(filename);
+    st := e_OpenResourceRO(SaveDirs, filename);
     try
       if not utils.checkSign(st, 'DFSV') then
       begin
@@ -172,7 +170,7 @@ var
 begin
   result := false;
   try
-    st := createDiskFile(filename);
+    st := e_CreateResource(SaveDirs, filename);
     try
       utils.writeSign(st, 'DFSV');
       utils.writeInt(st, Byte(SAVE_VERSION));
@@ -280,6 +278,7 @@ begin
         e_WriteLog('SaveState Error: '+e.message, TMsgType.Warning);
         if deleteOnError then DeleteFile(filename);
         {$IF DEFINED(D2F_DEBUG)}e_WriteStackTrace(e.message);{$ENDIF}
+e_WriteStackTrace(e.message);
         result := false;
       end;
   end;
@@ -311,7 +310,7 @@ begin
   result := false;
 
   try
-    st := openDiskFileRO(filename);
+    st := e_OpenResourceRO(SaveDirs, filename);
     try
       if not utils.checkSign(st, 'DFSV') then raise XStreamError.Create('invalid save game signature');
       if (utils.readByte(st) <> SAVE_VERSION) then raise XStreamError.Create('invalid save game version');
@@ -528,16 +527,12 @@ end;
 
 function g_SaveGame (n: Integer; const aname: AnsiString): Boolean;
 begin
-  result := false;
-  if (n < 0) or (n > 65535) then exit;
   result := g_SaveGameTo(buildSaveName(n), aname, true);
 end;
 
 
 function g_LoadGame (n: Integer): Boolean;
 begin
-  result := false;
-  if (n < 0) or (n > 65535) then exit;
   result := g_LoadGameFrom(buildSaveName(n));
 end;
 
