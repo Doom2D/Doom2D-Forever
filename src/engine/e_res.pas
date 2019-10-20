@@ -54,15 +54,21 @@ interface
   {--- same as SysUtils.FinFirst ---}
   function e_FindFirst (dirs: SSArray; name: AnsiString; attr: LongInt; out Rslt: TSearchRec): LongInt;
 
-  {--- try to create directory from list, throws if no one directory created ---}
-  function e_GetDir (dirs: SSArray): AnsiString;
+  {--- try to get a writeable directory from list, throws if no one directory created ---}
+  {--- (unless `required` is `false`: in this case, returns empty string) ---}
+  {--- creates all necessary subdirs, if it can ---}
+  function e_GetWriteableDir (dirs: SSArray; required: Boolean=true): AnsiString;
 
 implementation
 
-  uses WadReader, e_log;
+  uses WadReader, e_log, hashtable;
 
   type
     SpawnProc = function (pathname: AnsiString): Tstream;
+
+  var
+    writeableDirs: THashStrCIStr = nil;
+
 
   function e_UpperDir (path: AnsiString): AnsiString;
     var i: Integer;
@@ -214,7 +220,7 @@ implementation
   begin
     if debug_e_res then
       e_LogWritefln('e_GetResourcePath0 %s (%s)', [path, defWad]);
-    assert(dirs <> nil);
+    assert(length(dirs) > 0);
     assert(path <> '');
     assert(defWad <> '');
     diskName := g_ExtractWadName(path);
@@ -244,16 +250,78 @@ implementation
     end
   end;
 
-  function e_GetDir (dirs: SSArray): AnsiString;
-    var i: Integer;
+  // k8: sorry. i know that this sux, but checking directory access rights is unreliable (unportable).
+  function canCreateFiles (dir: AnsiString): Boolean;
+  var
+    f: Integer;
+    st: TStream = nil;
+    sr: TSearchRec;
+    fn: AnsiString;
   begin
+    result := false;
+    for f := 0 to $7fffffff do
+    begin
+      fn := Format('%s/$$$temptest$$$_%d.$$$%d$$$', [dir, f, f]);
+      if (FindFirst(fn, faAnyFile, sr) = 0) then
+      begin
+        FindClose(sr);
+        continue;
+      end;
+      FindClose(sr);
+      try
+        st := TFileStream.Create(fn, fmCreate);
+      except // sorry
+        st := nil; // just in case
+      end;
+      if assigned(st) then
+      begin
+        st.Free();
+        try DeleteFile(fn); except end;
+        result := true;
+      end;
+      exit;
+    end;
+  end;
+
+  function e_GetWriteableDir (dirs: SSArray; required: Boolean=true): AnsiString;
+  var
+    f: Integer;
+  begin
+    assert(length(dirs) > 0);
     result := '';
-    i := High(dirs);
-    while (i >= 0) and (ForceDirectories(dirs[i]) = false) do Dec(i);
-    if i >= 0 then
-      result := dirs[i]
-    else
-      raise Exception.Create('unable to create directory')
+    if assigned(writeableDirs) then
+    begin
+      for f := High(dirs) downto Low(dirs) do
+      begin
+        if (writeableDirs.get(dirs[f], result)) then
+        begin
+          //writeln('*** KNOWN WRITEABLE DIR: "', result, '"');
+          exit;
+        end;
+      end;
+    end;
+    for f := High(dirs) downto Low(dirs) do
+    begin
+      try
+        if ForceDirectories(dirs[f]) then
+        begin
+          result := dirs[f];
+          if (findFileCI(result, true)) then
+          begin
+            if canCreateFiles(result) then
+            begin
+              if not assigned(writeableDirs) then writeableDirs := THashStrCIStr.Create();
+              writeableDirs.put(dirs[f], result);
+              //writeln('*** NEW WRITEABLE DIR: "', result, '" ("', dirs[f], '"); rq=', required);
+              exit;
+            end;
+          end;
+        end;
+      except // sorry
+      end;
+    end;
+    if required then raise Exception.Create(Format('unable to create directory "%s"', [dirs[High(dirs)]]));
+    result := '';
   end;
 
 end.

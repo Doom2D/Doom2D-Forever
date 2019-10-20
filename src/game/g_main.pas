@@ -29,7 +29,7 @@ procedure CharPress (C: AnsiChar);
 
 var
   {--- TO REMOVE ---}
-  GameDir: string; 
+  GameDir: string;
   {-----------------}
 
   {--- Read-only dirs ---}
@@ -148,14 +148,14 @@ begin
 
   if LogFileName = '' then
   begin
-    rwdir := e_GetDir(LogDirs);
+    rwdir := e_GetWriteableDir(LogDirs, false);
     if rwdir <> '' then
     begin
       {$IFDEF HEADLESS}
         LogFileName := e_CatPath(rwdir, 'Doom2DF_H.log');
       {$ELSE}
         LogFileName := e_Catpath(rwdir, 'Doom2DF.log');
-      {$ENDIF}      
+      {$ENDIF}
     end
   end
 end;

@@ -2189,7 +2189,7 @@ var
   I: Integer;
   path: AnsiString;
 begin
-  path := e_GetDir(DataDirs);
+  path := e_GetWriteableDir(DataDirs);
   if path <> '' then
   begin
     path := e_CatPath(path, BANLIST_FILENAME);

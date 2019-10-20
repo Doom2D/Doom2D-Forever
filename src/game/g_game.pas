@@ -4784,7 +4784,7 @@ end;
 procedure g_Game_SaveOptions;
   var s: AnsiString;
 begin
-  s := e_GetDir(ConfigDirs);
+  s := e_GetWriteableDir(ConfigDirs);
   if s <> '' then
     g_Options_Write_Video(s + '/' + CONFIG_FILENAME)
   else
@@ -5473,7 +5473,7 @@ begin
     if (Length(P) > 1) then
       NetInterpLevel := StrToIntDef(P[1], NetInterpLevel);
     g_Console_Add('net_interp = ' + IntToStr(NetInterpLevel));
-    s := e_GetDir(ConfigDirs);
+    s := e_GetWriteableDir(ConfigDirs);
     if s <> '' then
     begin
       config := TConfig.CreateFile(s + '/' + CONFIG_FILENAME);
@@ -5492,7 +5492,7 @@ begin
     else
       g_Console_Add('net_forceplayerupdate = 0');
 
-    s := e_GetDir(ConfigDirs);
+    s := e_GetWriteableDir(ConfigDirs);
     if s <> '' then
     begin
       config := TConfig.CreateFile(s + '/' + CONFIG_FILENAME);
@@ -5512,7 +5512,7 @@ begin
     else
       g_Console_Add('net_predictself = 0');
 
-    s := e_GetDir(ConfigDirs);
+    s := e_GetWriteableDir(ConfigDirs);
     if s <> '' then
     begin
       config := TConfig.CreateFile(s + '/' + CONFIG_FILENAME);

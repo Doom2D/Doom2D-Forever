@@ -594,7 +594,7 @@ begin
     // writeconfig <filename>
     if Length(p) = 2 then
     begin
-      s := e_GetDir(ConfigDirs);
+      s := e_GetWriteableDir(ConfigDirs);
       g_Console_WriteConfig(e_CatPath(s, p[1]))
     end
     else
@@ -1965,7 +1965,7 @@ procedure g_Console_WriteGameConfig;
 begin
   if gParsingBinds = false then
   begin
-    s := e_GetDir(ConfigDirs);
+    s := e_GetWriteableDir(ConfigDirs);
     g_Console_WriteConfig(e_CatPath(s, configScript))
   end
 end;

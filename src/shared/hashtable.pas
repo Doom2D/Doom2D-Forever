@@ -204,9 +204,12 @@ type
 type
   THashIntInt = specialize THashBase<Integer, Integer, THashKeyInt>;
   THashStrInt = specialize THashBase<AnsiString, Integer, THashKeyStr>;
+  THashStrCIInt = specialize THashBase<AnsiString, Integer, THashKeyStrAnsiCI>;
   THashIntStr = specialize THashBase<Integer, AnsiString, THashKeyInt>;
   THashStrStr = specialize THashBase<AnsiString, AnsiString, THashKeyStr>;
+  THashStrCIStr = specialize THashBase<AnsiString, AnsiString, THashKeyStrAnsiCI>;
   THashStrVariant = specialize THashBase<AnsiString, Variant, THashKeyStr>;
+  THashStrCIVariant = specialize THashBase<AnsiString, Variant, THashKeyStrAnsiCI>;
 
 
 function u32Hash (a: LongWord): LongWord; inline;

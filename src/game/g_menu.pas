@@ -375,7 +375,7 @@ begin
 
   if g_Game_IsClient then MC_SEND_PlayerSettings;
 
-  s := e_GetDir(ConfigDirs);
+  s := e_GetWriteableDir(ConfigDirs);
   if s <> '' then
     g_Options_Write(s + '/' + CONFIG_FILENAME);
   g_Console_WriteGameConfig;
@@ -699,7 +699,7 @@ begin
     gcMap := Map;
   end;
 
-  s := e_GetDir(ConfigDirs);
+  s := e_GetWriteableDir(ConfigDirs);
   if s <> '' then
     g_Options_Write_Gameplay_Custom(s + '/' + CONFIG_FILENAME);
 
@@ -768,7 +768,7 @@ begin
     NetUseMaster := TGUISwitch(GetControl('swUseMaster')).ItemIndex = 0;
   end;
 
-  s := e_GetDir(ConfigDirs);
+  s := e_GetWriteableDir(ConfigDirs);
   if s <> '' then
   begin
     g_Options_Write_Net_Server(s + '/' + CONFIG_FILENAME);
@@ -791,7 +791,7 @@ begin
     PW := TGUIEdit(GetControl('edPW')).Text;
   end;
 
-  s := e_GetDir(ConfigDirs);
+  s := e_GetWriteableDir(ConfigDirs);
   if s <> '' then
     g_Options_Write_Net_Client(s + '/' + CONFIG_FILENAME);
   g_Game_StartClient(NetClientIP, NetClientPort, PW);
@@ -809,7 +809,7 @@ begin
     PW := TGUIEdit(GetControl('edPW')).Text;
   end;
 
-  s := e_GetDir(ConfigDirs);
+  s := e_GetWriteableDir(ConfigDirs);
   if s <> '' then
     g_Options_Write_Net_Client(s + '/' + CONFIG_FILENAME);
   g_Game_StartClient(NetClientIP, NetClientPort, PW);
@@ -1661,7 +1661,7 @@ begin
     gLanguageChange := True;
     gAskLanguage := False;
 
-    s := e_GetDir(ConfigDirs);
+    s := e_GetWriteableDir(ConfigDirs);
     if s <> '' then
       g_Options_Write_Language(s + '/' + CONFIG_FILENAME);
 
@@ -1679,7 +1679,7 @@ begin
     gLanguageChange := True;
     gAskLanguage := False;
 
-    s := e_GetDir(ConfigDirs);
+    s := e_GetWriteableDir(ConfigDirs);
     if s <> '' then
       g_Options_Write_Language(s + '/' + CONFIG_FILENAME);
 
@@ -1925,7 +1925,7 @@ begin
   gLanguageChange := True;
   gAskLanguage := False;
 
-  s := e_GetDir(ConfigDirs);
+  s := e_GetWriteableDir(ConfigDirs);
   if s <> '' then
     g_Options_Write_Language(s + '/' + CONFIG_FILENAME)
 end;
@@ -1937,7 +1937,7 @@ begin
   gLanguageChange := True;
   gAskLanguage := False;
 
-  s := e_GetDir(ConfigDirs);
+  s := e_GetWriteableDir(ConfigDirs);
   if s <> '' then
     g_Options_Write_Language(s + '/' + CONFIG_FILENAME)
 end;
