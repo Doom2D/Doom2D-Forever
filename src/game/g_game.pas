@@ -101,7 +101,7 @@ procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
 procedure g_Game_Restart();
 procedure g_Game_RestartLevel();
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
-procedure g_Game_ClientWAD(NewWAD: String; const WHash: TMD5Digest);
+function  g_Game_ClientWAD (NewWAD: String; const WHash: TMD5Digest): AnsiString;
 procedure g_Game_SaveOptions();
 function  g_Game_StartMap(Map: String; Force: Boolean = False; const oldMapPath: AnsiString=''): Boolean;
 procedure g_Game_ChangeMap(const MapPath: String);
@@ -4704,7 +4704,7 @@ begin
             e_LogWritefln('using downloaded map wad [%s] for [%s]`', [newResPath, WadName], TMsgType.Notify);
           end;
           //newResPath := ExtractRelativePath(MapsDir, newResPath);
-          
+
 
           gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                                    gPlayer1Settings.Color,
@@ -4851,28 +4851,42 @@ begin
     ResName := g_ExtractFileName(Map);
     if g_Game_IsServer then
     begin
-//     nws := e_FindWad(MapDirs, NewWAD);
-      nws := NewWAD;
+      nws := findDiskWad(NewWAD);
+      //writeln('000: Map=[', Map, ']; nws=[', nws, ']; NewWAD=[', NewWAD, ']');
+      if (length(nws) = 0) then nws := e_FindWad(MapDirs, NewWAD);
+      //writeln('001: Map=[', Map, ']; nws=[', nws, ']; NewWAD=[', NewWAD, ']');
+      //nws := NewWAD;
       if (length(nws) = 0) then
       begin
-        ResName := '';
+        ResName := ''; // failed
       end
       else
       begin
+        NewWAD := nws;
         if (g_Game_IsNet) then gWADHash := MD5File(nws);
         //writeln('********: nws=', nws, ' : Map=', Map, ' : nw=', NewWAD, ' : resname=', ResName);
         g_Game_LoadWAD(NewWAD);
       end;
-    end else
+    end
+    else
+    begin
       // hash received in MC_RECV_GameEvent -> NET_EV_MAPSTART
-      g_Game_ClientWAD(NewWAD, gWADHash);
-  end else
+      NewWAD := g_Game_ClientWAD(NewWAD, gWADHash);
+    end;
+  end
+  else
+  begin
+    NewWAD := gGameSettings.WAD;
     ResName := Map;
+  end;
 
   //writeln('********: gsw=', gGameSettings.WAD, '; rn=', ResName);
   result := false;
-  if ResName <> '' then
-    result := g_Map_Load(gGameSettings.WAD + ':\' + ResName);
+  if (ResName <> '') and (NewWAD <> '') then
+  begin
+    //result := g_Map_Load(gGameSettings.WAD + ':\' + ResName);
+    result := g_Map_Load(NewWAD+':\'+ResName);
+  end;
   if Result then
     begin
       g_Player_ResetAll(Force or gLastMap, gGameSettings.GameType = GT_SINGLE);
@@ -5037,16 +5051,18 @@ begin
   gNextMap := Map;
 end;
 
-procedure g_Game_ClientWAD(NewWAD: String; const WHash: TMD5Digest);
+function g_Game_ClientWAD (NewWAD: String; const WHash: TMD5Digest): AnsiString;
 var
   gWAD{, xwad}: String;
 begin
+  result := NewWAD;
   if not g_Game_IsClient then Exit;
   //e_LogWritefln('*** g_Game_ClientWAD: `%s`', [NewWAD]);
 
   gWAD := g_Res_DownloadMapWAD(ExtractFileName(NewWAD), WHash);
   if gWAD = '' then
   begin
+    result := '';
     g_Game_Free();
     g_FatalError(Format(_lc[I_GAME_ERROR_MAP_WAD], [ExtractFileName(NewWAD)]));
     Exit;
@@ -5061,6 +5077,7 @@ begin
 
   e_LogWritefln('using downloaded client map wad [%s]`', [NewWAD], TMsgType.Notify);
   g_Game_LoadWAD(NewWAD);
+  result := NewWAD;
 
   {
   if LowerCase(NewWAD) = LowerCase(gGameSettings.WAD) then Exit;
