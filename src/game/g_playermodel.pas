@@ -397,7 +397,7 @@ var
   prefix: string;
   ok, chk: Boolean;
 begin
-  e_WriteLog(Format('Loading player model: %s', [ExtractFileName(FileName)]), TMsgType.Notify);
+  e_WriteLog(Format('Loading player model "%s"...', [FileName]), TMsgType.Notify);
 
   Result := False;
 

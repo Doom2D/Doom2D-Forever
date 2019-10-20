@@ -1273,6 +1273,10 @@ end;
 procedure g_Game_Init();
 var
   SR: TSearchRec;
+  knownFiles: array of AnsiString = nil;
+  found: Boolean;
+  wext, s: AnsiString;
+  f: Integer;
 begin
   gExit := 0;
   gMapToDelete := '';
@@ -1302,26 +1306,42 @@ begin
     g_Game_SetLoadingText(_lc[I_LOAD_MODELS], 0, False);
     g_PlayerModel_LoadData();
 
-    if e_FindFirst(ModelDirs, '*.wad', faAnyFile, SR) = 0 then
-      repeat
-        if not g_PlayerModel_Load(e_FindWad(ModelDirs, SR.Name)) then
-          e_WriteLog(Format('Error loading model %s', [SR.Name]), TMsgType.Warning);
-      until FindNext(SR) <> 0;
-    FindClose(SR);
+    // load models from all possible wad types, in all known directories
+    // this does a loosy job (linear search, ooph!), but meh
+    for wext in wadExtensions do
+    begin
+      for f := High(ModelDirs) downto Low(ModelDirs) do
+      begin
+        if (FindFirst(ModelDirs[f]+DirectorySeparator+'*'+wext, faAnyFile, SR) = 0) then
+        begin
+          repeat
+            found := false;
+            for s in knownFiles do
+            begin
+              if (strEquCI1251(forceFilenameExt(SR.Name, ''), forceFilenameExt(ExtractFileName(s), ''))) then
+              begin
+                found := true;
+                break;
+              end;
+            end;
+            if not found then
+            begin
+              SetLength(knownFiles, length(knownFiles)+1);
+              knownFiles[High(knownFiles)] := ModelDirs[f]+DirectorySeparator+SR.Name;
+            end;
+          until (FindNext(SR) <> 0);
+        end;
+        FindClose(SR);
+      end;
+    end;
 
-    if e_FindFirst(ModelDirs, '*.pk3', faAnyFile, SR) = 0 then
-      repeat
-        if not g_PlayerModel_Load(e_FindWad(ModelDirs, SR.Name)) then
-          e_WriteLog(Format('Error loading model %s', [SR.Name]), TMsgType.Warning);
-      until FindNext(SR) <> 0;
-    FindClose(SR);
+    if (length(knownFiles) = 0) then raise Exception.Create('no player models found!');
 
-    if e_FindFirst(ModelDirs, '*.zip', faAnyFile, SR) = 0 then
-      repeat
-        if not g_PlayerModel_Load(e_FindWad(ModelDirs, SR.Name)) then
-          e_WriteLog(Format('Error loading model %s', [SR.Name]), TMsgType.Warning);
-      until FindNext(SR) <> 0;
-    FindClose(SR);
+    if (length(knownFiles) = 1) then e_LogWriteln('1 player model found.', TMsgType.Notify) else e_LogWritefln('%d player models found.', [Integer(length(knownFiles))], TMsgType.Notify);
+    for s in knownFiles do
+    begin
+      if not g_PlayerModel_Load(s) then e_LogWritefln('Error loading model "%s"', [s], TMsgType.Warning);
+    end;
 
     gGameOn := false;
     gPauseMain := false;

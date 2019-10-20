@@ -52,7 +52,7 @@ interface
   function e_GetResourcePath (dirs: SSArray; path: AnsiString; defWad: AnsiString): AnsiString;
 
   {--- same as SysUtils.FinFirst ---}
-  function e_FindFirst (dirs: SSArray; name: AnsiString; attr: LongInt; out Rslt: TRawbyteSearchRec): LongInt;
+  function e_FindFirst (dirs: SSArray; name: AnsiString; attr: LongInt; out Rslt: TSearchRec): LongInt;
 
   {--- try to create directory from list, throws if no one directory created ---}
   function e_GetDir (dirs: SSArray): AnsiString;
@@ -226,7 +226,7 @@ implementation
       e_LogWritefln('  this>>> %s', [result]);
   end;
 
-  function e_FindFirst (dirs: SSArray; name: AnsiString; attr: LongInt; out Rslt: TRawbyteSearchRec): LongInt;
+  function e_FindFirst (dirs: SSArray; name: AnsiString; attr: LongInt; out Rslt: TSearchRec): LongInt;
     var i: Integer; dir: AnsiString;
   begin
     if debug_e_res then
@@ -240,7 +240,7 @@ implementation
       result := FindFirst(dir, attr, Rslt);
       if debug_e_res then
         e_LogWritefln('  %s: %s -- %s', [i, dir, result]);
-      Dec(i); 
+      Dec(i);
     end
   end;
 
