@@ -26,6 +26,17 @@ type
   SSArray = array of ShortString;
 
 
+const wadExtensions: array [0..6] of AnsiString = (
+  '.dfz',
+  '.wad',
+  '.dfwad',
+  '.pk3',
+  '.pak',
+  '.zip',
+  '.dfzip'
+);
+
+
 // ////////////////////////////////////////////////////////////////////////// //
 type
   TUtf8DecoderFast = packed record
@@ -99,13 +110,18 @@ function utf8Valid (const s: AnsiString): Boolean;
 
 function utf8to1251 (s: AnsiString): AnsiString;
 
-// findFileCI eats case-insensitive path, traverses it and rewrites it to a
-// case-sensetive. result value means success.
-// if file/dir not founded than pathname is in undefined state!
+// findFileCI takes case-insensitive path, traverses it, and rewrites it to
+// a case-sensetive one (using real on-disk names). return value means 'success'.
+// if some dir or file wasn't found, pathname is undefined (destroyed, but not
+// necessarily cleared).
+// last name assumed to be a file, not directory (unless `lastIsDir` flag is set).
 function findFileCI (var pathname: AnsiString; lastIsDir: Boolean=false): Boolean;
 
-// findDiskWad tries to find wad file and rewrites extension if needed
-// result is new filename or empty string
+// findDiskWad tries to find the wad file using common wad extensions
+// (see `wadExtensions` array).
+// returns real on-disk filename, or empty string.
+// original wad extension is used as a hint for the first try.
+// also, this automatically performs `findFileCI()`.
 function findDiskWad (fname: AnsiString): AnsiString;
 // slashes must be normalized!
 function isWadNamesEqu (wna, wnb: AnsiString): Boolean;
@@ -113,7 +129,7 @@ function isWadNamesEqu (wna, wnb: AnsiString): Boolean;
 // they throws
 function openDiskFileRO (pathname: AnsiString): TStream;
 function createDiskFile (pathname: AnsiString): TStream;
-// creates file if necessary
+// create file if necessary, but don't truncate the existing one
 function openDiskFileRW (pathname: AnsiString): TStream;
 
 // little endian
@@ -299,17 +315,6 @@ implementation
 
 uses
   xstreams;
-
-const wadExtensions: array [0..6] of AnsiString = (
-  '.dfz',
-  '.wad',
-  '.dfwad',
-  '.pk3',
-  '.pak',
-  '.zip',
-  '.dfzip'
-);
-
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure CopyMemory (Dest: Pointer; Src: Pointer; Len: LongWord); inline;
