@@ -885,7 +885,7 @@ end;
 function isWadPath (const fn: AnsiString): Boolean;
 var
   pos: Integer;
-  s: AnsiString;
+  s, wext: AnsiString;
 begin
   result := false;
   pos := 1;
@@ -897,10 +897,13 @@ begin
       if (pos-4 > 1) and (fn[pos-4] = '.') and ((fn[pos+1] = '\') or (fn[pos+1] = '/')) then
       begin
         s := Copy(fn, pos-4, 4);
-        if StrEquCI1251(s, '.wad') or StrEquCI1251(s, '.pk3') or StrEquCI1251(s, '.zip') or StrEquCI1251(s, '.dfz') then
+        for wext in wadExtensions do
         begin
-          result := true;
-          exit;
+          if strEquCI1251(s, wext) then
+          begin
+            result := true;
+            exit;
+          end;
         end;
       end;
     end;
