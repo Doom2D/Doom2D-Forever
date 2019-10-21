@@ -58,6 +58,9 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes, sdlcarcass, fui_ctls, fui_wadread, fui_style, fui_gfx_gl,
 {$ENDIF}
+{$IFDEF LINUX}
+  BaseUnix,
+{$ENDIF}
   wadreader, e_log, g_window,
   e_graphics, e_input, g_game, g_console, g_gui,
   e_sound, g_options, g_sound, g_player, g_basic,
@@ -69,24 +72,108 @@ uses
 
 var
   charbuff: packed array [0..15] of AnsiChar;
+  binPath: AnsiString = '';
+  forceCurrentDir: Boolean = false;
+
+
+function GetBinaryPath (): AnsiString;
+{$IFDEF LINUX}
+var
+  //cd: AnsiString;
+  sl: AnsiString;
+{$ENDIF}
+begin
+  result := ExtractFilePath(ParamStr(0));
+  {$IFDEF LINUX}
+  // it may be a symlink; do some guesswork here
+  sl := fpReadLink(ExtractFileName(ParamStr(0)));
+  if (sl = ParamStr(0)) then
+  begin
+    // use current directory, as we don't have anything better
+    //result := '.';
+    GetDir(0, result);
+  end;
+  {$ENDIF}
+  result := fixSlashes(result);
+  if (length(result) > 0) and (result[length(result)] <> '/') then result := result+'/';
+end;
+
 
 procedure InitPath;
   var i: Integer; rwdir, rodir: AnsiString;
+  //first: Boolean = true;
+
+  procedure xput (s: AnsiString);
+  {
+  var
+    f: TextFile;
+  begin
+    AssignFile(f, 'zzz.log');
+    if (first) then
+    begin
+      Rewrite(f);
+      first := false;
+    end
+    else
+    begin
+      Append(f);
+    end;
+    writeln(f, s);
+    CloseFile(f);
+  end;
+  }
+  begin
+  end;
 
   procedure AddPath (var arr: SSArray; str: AnsiString);
+  var
+    ss: ShortString;
   begin
-    SetLength(arr, Length(arr) + 1);
-    arr[High(arr)] := ExpandFileName(str)
+    if (length(str) = 0) then exit;
+    if (forceCurrentDir) then
+    begin
+      str := fixSlashes(ExpandFileName(str));
+    end
+    else
+    begin
+      str := fixSlashes(str);
+      if (str[1] <> '/') then str := binPath+str;
+      while (length(str) > 0) do
+      begin
+        if (str = '/') then exit;
+        if (str[length(str)] = '/') then begin Delete(str, length(str), 1); continue; end;
+        if (length(str) >= 2) and (Copy(str, length(str)-1, 2) = '/.') then begin Delete(str, length(str)-1, 2); continue; end;
+        break;
+      end;
+    end;
+    if (length(str) = 0) then exit;
+    if (length(str) > 255) then
+    begin
+      xput('path too long: ['+str+']');
+      raise Exception.Create(Format('path "%s" too long', [str]));
+    end;
+    for ss in arr do
+    begin
+      //writeln('<<<', ss, '>>> : [', str, ']');
+      if (ss = str) then exit;
+    end;
+    SetLength(arr, Length(arr)+1);
+    //arr[High(arr)] := ExpandFileName(str);
+    arr[High(arr)] := str;
+    xput('NEW PATH: ['+str+']');
   end;
 
   procedure AddDef (var arr: SSArray; str: AnsiString);
   begin
-    if arr = nil then
-      AddPath(arr, str)
+    if (length(arr) = 0) then AddPath(arr, str)
   end;
 
 begin
   //GetDir(0, GameDir);
+  binPath := GetBinaryPath();
+  xput('binPath=['+binPath+']');
+
+  for i := 1 to ParamCount do if (ParamStr(i) = '--cwd') then begin forceCurrentDir := true; break; end;
 
   i := 1;
   while i < ParamCount do
@@ -157,7 +244,9 @@ begin
         LogFileName := e_Catpath(rwdir, 'Doom2DF.log');
       {$ENDIF}
     end
-  end
+  end;
+
+  xput('binPath=['+binPath+']');
 end;
 
 procedure Main();
@@ -171,10 +260,6 @@ begin
     e_InitLog(LogFileName, TWriteMode.WM_NEWFILE);
   e_InitWritelnDriver();
 
-  GameWAD := e_FindWad(DataDirs, 'GAME');
-  assert(GameWad <> '', 'GAME.WAD not installed?');
-
-
 //  e_InitLog(GameDir + '/' + LogFileName, TWriteMode.WM_NEWFILE);
 
   e_WriteLog(
@@ -186,6 +271,11 @@ begin
     'Build date: ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME,
     TMsgType.Notify
   );
+
+  e_LogWritefln('BINARY PATH: [%s]', [binPath], TMsgType.Notify);
+
+  GameWAD := e_FindWad(DataDirs, 'GAME');
+  assert(GameWad <> '', 'GAME.WAD not installed?');
 
 {$IFDEF HEADLESS}
   conbufDumpToStdOut := true;

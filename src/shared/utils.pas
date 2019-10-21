@@ -71,6 +71,9 @@ function getFilenameExt (const fn: AnsiString): AnsiString;
 function setFilenameExt (const fn, ext: AnsiString): AnsiString;
 function forceFilenameExt (const fn, ext: AnsiString): AnsiString;
 
+// rewrites slashes to '/'
+function fixSlashes (s: AnsiString): AnsiString;
+
 // strips out name from `fn`, leaving trailing slash
 function getFilenamePath (const fn: AnsiString): AnsiString;
 
@@ -330,6 +333,17 @@ end;
 procedure ZeroMemory (Dest: Pointer; Len: LongWord); inline;
 begin
   FillChar(Dest^, Len, 0);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+// rewrites slashes to '/'
+function fixSlashes (s: AnsiString): AnsiString;
+var
+  f: Integer;
+begin
+  result := s;
+  for f := 1 to length(result) do if (result[f] = '\') then result[f] := '/';
 end;
 
 
