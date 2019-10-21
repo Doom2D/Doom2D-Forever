@@ -1799,10 +1799,12 @@ var
   i: LongWord;
 begin
 // Ќазвани€ клавиш перемещени€ курсора:
+  { that was absolitely fucked idea
   e_KeyNames[IK_UP]    := _lc[I_KEY_UP] + ' ' + Chr(30);
   e_KeyNames[IK_LEFT]  := _lc[I_KEY_LEFT] + ' ' + Chr(17);
   e_KeyNames[IK_RIGHT] := _lc[I_KEY_RIGHT] + ' ' + Chr(16);
   e_KeyNames[IK_DOWN]  := _lc[I_KEY_DOWN] + ' ' + Chr(31);
+  }
 
 // »мена монстров в творительном падеже:
   KilledByMonster[MONSTER_DEMON] := _lc[I_MONSTER_DEMON];
