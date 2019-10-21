@@ -61,6 +61,9 @@ uses
 {$IFDEF LINUX}
   BaseUnix,
 {$ENDIF}
+{$IFDEF USE_SDL2}
+  SDL2,
+{$ENDIF}
   wadreader, e_log, g_window,
   e_graphics, e_input, g_game, g_console, g_gui,
   e_sound, g_options, g_sound, g_player, g_basic,
@@ -98,9 +101,16 @@ begin
   if (length(result) > 0) and (result[length(result)] <> '/') then result := result+'/';
 end;
 
+procedure PrintDirs (msg: AnsiString; dirs: SSArray);
+  var dir: AnsiString;
+begin
+  e_LogWriteln(msg + ':');
+  for dir in dirs do
+    e_LogWriteln('  ' + dir);
+end;
 
 procedure InitPath;
-  var i: Integer; rwdir, rodir: AnsiString;
+  var i: Integer; rwdir, rodir: AnsiString; rwdirs, rodirs: SSArray;
   //first: Boolean = true;
 
   procedure xput (s: AnsiString);
@@ -164,9 +174,62 @@ procedure InitPath;
     //writeln('NEW PATH(1): ['+str+']');
   end;
 
-  procedure AddDef (var arr: SSArray; str: AnsiString);
+  procedure AddDef (var dirs: SSArray; base: SSArray; append: AnsiString);
+    var s: AnsiString;
   begin
-    if (length(arr) = 0) then AddPath(arr, str, false)
+    if Length(dirs) = 0 then
+      for s in base do
+        AddPath(dirs, e_CatPath(s, append), false)
+  end;
+
+  procedure AddDir (var dirs: SSArray; append: AnsiString);
+  begin
+    SetLength(dirs, Length(dirs) + 1);
+    dirs[High(dirs)] := append
+  end;
+
+  function GetDefaultRODirs (): SSArray;
+    {$IFDEF UNIX}
+      var home: AnsiString;
+    {$ENDIF}
+  begin
+    {$IFDEF USE_SDL2}
+      AddDir(result, SDL_GetBasePath());
+      AddDir(result, SDL_GetPrefPath('', 'doom2df'));
+    {$ENDIF}
+    {$IFDEF UNIX}
+      AddDir(result, '/usr/share/doom2df');
+      AddDir(result, '/usr/local/share/doom2df');
+      home := GetEnvironmentVariable('HOME');
+      if home <> '' then
+        AddDir(result, e_CatPath(home, '.doom2df'));
+    {$ENDIF}
+    {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
+      AddDir(result, SDL_AndroidGetInternalStoragePath());
+      if SDL_AndroidGetExternalStorageState() <> 0 then
+        AddDir(result, SDL_AndroidGetExternalStoragePath());
+    {$ENDIF}
+    AddDir(result, '.');
+  end;
+
+  function GetDefaultRWDirs (): SSArray;
+    {$IFDEF UNIX}
+      var home: AnsiString;
+    {$ENDIF}
+  begin
+    {$IF DEFINED(USE_SDL2)}
+      AddDir(result, SDL_GetPrefPath('', 'doom2df'));
+    {$ENDIF}
+    {$IFDEF UNIX}
+      home := GetEnvironmentVariable('HOME');
+      if home <> '' then
+        AddDir(result, e_CatPath(home, '.doom2df'));
+    {$ENDIF}
+    {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
+      if SDL_AndroidGetExternalStorageState() <> 0 then
+        AddDir(result, SDL_AndroidGetExternalStoragePath());
+    {$ENDIF}
+    AddDir(result, '.');
   end;
 
 begin
@@ -174,7 +237,14 @@ begin
   binPath := GetBinaryPath();
   xput('binPath=['+binPath+']');
 
-  for i := 1 to ParamCount do if (ParamStr(i) = '--cwd') then begin forceCurrentDir := true; break; end;
+  for i := 1 to ParamCount do
+  begin
+    if (ParamStr(i) = '--cwd') then
+    begin
+      forceCurrentDir := true;
+      break
+    end
+  end;
 
   i := 1;
   while i < ParamCount do
@@ -215,19 +285,22 @@ begin
   end;
 
   (* RO *)
-  AddDef(DataDirs, 'data');
-  AddDef(ModelDirs, 'data/models');
-  AddDef(MegawadDirs, 'maps/megawads');
-  AddDef(MapDirs, 'maps');
-  AddDef(WadDirs, 'wads');
+  rodirs := GetDefaultRODirs();
+  AddDef(DataDirs, rodirs, 'data');
+  AddDef(ModelDirs, rodirs, 'data/models');
+  AddDef(MegawadDirs, rodirs, 'maps/megawads');
+  AddDef(MapDirs, rodirs, 'maps');
+  AddDef(WadDirs, rodirs, 'wads');
+
   (* RW *)
-  AddDef(LogDirs, '.');
-  AddDef(SaveDirs, 'data');
-  AddDef(CacheDirs, 'data/cache');
-  AddDef(ConfigDirs, '.');
-  AddDef(MapDownloadDirs, 'maps/downloads');
-  AddDef(WadDownloadDirs, 'wads/downloads');
-  AddDef(ScreenshotDirs, 'screenshots');
+  rwdirs := GetDefaultRWDirs();
+  AddDef(LogDirs, rwdirs, '');
+  AddDef(SaveDirs, rwdirs, 'data');
+  AddDef(CacheDirs, rwdirs, 'data/cache');
+  AddDef(ConfigDirs, rwdirs, '');
+  AddDef(MapDownloadDirs, rwdirs, 'maps/downloads');
+  AddDef(WadDownloadDirs, rwdirs, 'wads/downloads');
+  AddDef(ScreenshotDirs, rwdirs, 'screenshots');
 
   for i := 0 to High(MapDirs) do
     AddPath(AllMapDirs, MapDirs[i]);
@@ -242,12 +315,73 @@ begin
       {$IFDEF HEADLESS}
         LogFileName := e_CatPath(rwdir, 'Doom2DF_H.log');
       {$ELSE}
-        LogFileName := e_Catpath(rwdir, 'Doom2DF.log');
+        LogFileName := e_CatPath(rwdir, 'Doom2DF.log');
       {$ENDIF}
     end
   end;
 
   xput('binPath=['+binPath+']');
+end;
+
+procedure InitPrep;
+  {$IF DEFINED(ANDROID) AND DEFINED(USE_SDLMIXER)}
+    var timiditycfg: AnsiString;
+  {$ENDIF}
+  var i: Integer;
+begin
+  {$IFDEF HEADLESS}
+    conbufDumpToStdOut := true;
+  {$ENDIF}
+  for i := 1 to ParamCount do
+  begin
+    if (ParamStr(i) = '--con-stdout') then
+    begin
+      conbufDumpToStdOut := true;
+      break
+    end
+  end;
+
+  if LogFileName <> '' then
+    e_InitLog(LogFileName, TWriteMode.WM_NEWFILE);
+  e_InitWritelnDriver();
+  e_WriteLog('Doom 2D: Forever version ' + GAME_VERSION + ' proto ' + IntToStr(NET_PROTOCOL_VER), TMsgType.Notify);
+  e_WriteLog('Build date: ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME, TMsgType.Notify);
+
+  e_LogWritefln('BINARY PATH: [%s]', [binPath], TMsgType.Notify);
+
+  PrintDirs('DataDirs', DataDirs);
+  PrintDirs('ModelDirs', ModelDirs);
+  PrintDirs('MegawadDirs', MegawadDirs);
+  PrintDirs('MapDirs', MapDirs);
+  PrintDirs('WadDirs', WadDirs);
+
+  PrintDirs('LogDirs', LogDirs);
+  PrintDirs('SaveDirs', SaveDirs);
+  PrintDirs('CacheDirs', CacheDirs);
+  PrintDirs('ConfigDirs', ConfigDirs);
+  PrintDirs('ScreenshotDirs', ScreenshotDirs);
+  PrintDirs('MapDownloadDirs', MapDownloadDirs);
+  PrintDirs('WadDownloadDirs', WadDownloadDirs);
+
+  GameWAD := e_FindWad(DataDirs, 'GAME');
+  if GameWad = '' then
+  begin
+    e_WriteLog('GAME.WAD not installed?', TMsgType.Fatal);
+    {$IFDEF USE_SDL2}
+      SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, 'Doom 2D Forever', 'GAME.WAD not installed?', nil);
+    {$ENDIF}
+    Halt(1);
+  end;
+
+  {$IF DEFINED(ANDROID) AND DEFINED(USE_SDLMIXER)}
+    timiditycfg := 'timidity.cfg';
+    if e_FindResource(ConfigDirs, timiditycfg) = true then
+    begin
+      timiditycfg := ExpandFileName(timiditycfg);
+      SetEnvVar('TIMIDITY_CFG', timiditycfg);
+      e_LogWritefln('Set TIMIDITY_CFG = "%s"', [timiditycfg]);
+    end;
+  {$ENDIF}
 end;
 
 procedure Main();
@@ -257,34 +391,8 @@ procedure Main();
   var s: AnsiString;
 begin
   InitPath;
-  if LogFileName <> '' then
-    e_InitLog(LogFileName, TWriteMode.WM_NEWFILE);
-  e_InitWritelnDriver();
-
-//  e_InitLog(GameDir + '/' + LogFileName, TWriteMode.WM_NEWFILE);
-
-  e_WriteLog(
-    'Doom 2D: Forever version ' + GAME_VERSION +
-    ' proto ' + IntToStr(NET_PROTOCOL_VER),
-    TMsgType.Notify
-  );
-  e_WriteLog(
-    'Build date: ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME,
-    TMsgType.Notify
-  );
-
-  e_LogWritefln('BINARY PATH: [%s]', [binPath], TMsgType.Notify);
-
-  GameWAD := e_FindWad(DataDirs, 'GAME');
-  assert(GameWad <> '', 'GAME.WAD not installed?');
-
-{$IFDEF HEADLESS}
-  conbufDumpToStdOut := true;
-{$ENDIF}
-  e_WriteToStdOut := False; //{$IFDEF HEADLESS}True;{$ELSE}False;{$ENDIF}
-
+  InitPrep;
   e_InitInput;
-
   sys_Init;
 
   s := CONFIG_FILENAME;

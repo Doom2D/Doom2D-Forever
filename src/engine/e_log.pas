@@ -42,13 +42,7 @@ procedure e_InitWritelnDriver ();
 procedure e_LogWritefln (const fmt: AnsiString; args: array of const; category: TMsgType=TMsgType.Notify; writeTime: Boolean=true; writeConsole: Boolean=true);
 procedure e_LogWriteln (const s: AnsiString; category: TMsgType=TMsgType.Notify; writeTime: Boolean=true);
 
-
 procedure e_WriteStackTrace (const msg: AnsiString);
-
-
-var
-  e_WriteToStdOut: Boolean = False;
-
 
 implementation
 

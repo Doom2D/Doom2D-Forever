@@ -122,9 +122,10 @@ uses
 
 {$IFDEF USE_SDL2}
 procedure g_Options_SetDefaultVideo;
-var
-  target, closest, display: TSDL_DisplayMode;
-  percentage: Integer;
+  var display: TSDL_DisplayMode;
+  {$IFNDEF ANDROID}
+    var target, closest: TSDL_DisplayMode; percentage: Integer;
+  {$ENDIF}
 begin
   (* Display 0 = Primary display *)
   gScreenWidth := 640;
