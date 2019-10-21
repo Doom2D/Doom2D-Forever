@@ -193,22 +193,25 @@ procedure InitPath;
       var home: AnsiString;
     {$ENDIF}
   begin
-    {$IFDEF USE_SDL2}
-      AddDir(result, SDL_GetBasePath());
-      AddDir(result, SDL_GetPrefPath('', 'doom2df'));
-    {$ENDIF}
-    {$IFDEF UNIX}
-      AddDir(result, '/usr/share/doom2df');
-      AddDir(result, '/usr/local/share/doom2df');
-      home := GetEnvironmentVariable('HOME');
-      if home <> '' then
-        AddDir(result, e_CatPath(home, '.doom2df'));
-    {$ENDIF}
-    {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
-      AddDir(result, SDL_AndroidGetInternalStoragePath());
-      if SDL_AndroidGetExternalStorageState() <> 0 then
-        AddDir(result, SDL_AndroidGetExternalStoragePath());
-    {$ENDIF}
+    if forceCurrentDir = false then
+    begin
+      {$IFDEF USE_SDL2}
+        AddDir(result, SDL_GetBasePath());
+        AddDir(result, SDL_GetPrefPath('', 'doom2df'));
+      {$ENDIF}
+      {$IFDEF UNIX}
+        AddDir(result, '/usr/share/doom2df');
+        AddDir(result, '/usr/local/share/doom2df');
+        home := GetEnvironmentVariable('HOME');
+        if home <> '' then
+          AddDir(result, e_CatPath(home, '.doom2df'));
+      {$ENDIF}
+      {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
+        AddDir(result, SDL_AndroidGetInternalStoragePath());
+        if SDL_AndroidGetExternalStorageState() <> 0 then
+          AddDir(result, SDL_AndroidGetExternalStoragePath());
+      {$ENDIF}
+    end;
     AddDir(result, '.');
   end;
 
@@ -217,18 +220,21 @@ procedure InitPath;
       var home: AnsiString;
     {$ENDIF}
   begin
-    {$IF DEFINED(USE_SDL2)}
-      AddDir(result, SDL_GetPrefPath('', 'doom2df'));
-    {$ENDIF}
-    {$IFDEF UNIX}
-      home := GetEnvironmentVariable('HOME');
-      if home <> '' then
-        AddDir(result, e_CatPath(home, '.doom2df'));
-    {$ENDIF}
-    {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
-      if SDL_AndroidGetExternalStorageState() <> 0 then
-        AddDir(result, SDL_AndroidGetExternalStoragePath());
-    {$ENDIF}
+    if forceCurrentDir = false then
+    begin
+      {$IF DEFINED(USE_SDL2)}
+        AddDir(result, SDL_GetPrefPath('', 'doom2df'));
+      {$ENDIF}
+      {$IFDEF UNIX}
+        home := GetEnvironmentVariable('HOME');
+        if home <> '' then
+          AddDir(result, e_CatPath(home, '.doom2df'));
+      {$ENDIF}
+      {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
+        if SDL_AndroidGetExternalStorageState() <> 0 then
+          AddDir(result, SDL_AndroidGetExternalStoragePath());
+      {$ENDIF}
+    end;
     AddDir(result, '.');
   end;
 
@@ -239,6 +245,7 @@ begin
 
   for i := 1 to ParamCount do
   begin
+    // use it only if you ketmar
     if (ParamStr(i) = '--cwd') then
     begin
       forceCurrentDir := true;
@@ -368,8 +375,10 @@ begin
   begin
     e_WriteLog('GAME.WAD not installed?', TMsgType.Fatal);
     {$IF DEFINED(USE_SDL2) AND NOT DEFINED(HEADLESS)}
-      SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, 'Doom 2D Forever', 'GAME.WAD not installed?', nil);
+      if forceCurrentDir = false then
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, 'Doom 2D Forever', 'GAME.WAD not installed?', nil);
     {$ENDIF}
+    e_DeinitLog;
     Halt(1);
   end;
 
