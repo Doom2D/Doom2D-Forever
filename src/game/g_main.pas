@@ -367,7 +367,7 @@ begin
   if GameWad = '' then
   begin
     e_WriteLog('GAME.WAD not installed?', TMsgType.Fatal);
-    {$IFDEF USE_SDL2}
+    {$IF DEFINED(USE_SDL2) AND NOT DEFINED(HEADLESS)}
       SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, 'Doom 2D Forever', 'GAME.WAD not installed?', nil);
     {$ENDIF}
     Halt(1);
