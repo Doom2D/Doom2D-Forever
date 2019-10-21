@@ -125,22 +125,23 @@ procedure InitPath;
   begin
   end;
 
-  procedure AddPath (var arr: SSArray; str: AnsiString);
+  procedure AddPath (var arr: SSArray; str: AnsiString; usecwd: Boolean=true);
   var
     ss: ShortString;
   begin
     if (length(str) = 0) then exit;
-    if (forceCurrentDir) then
+    //writeln('NEW PATH(0): ['+str+']');
+    if (forceCurrentDir or usecwd) then
     begin
       str := fixSlashes(ExpandFileName(str));
     end
     else
     begin
       str := fixSlashes(str);
-      if (str[1] <> '/') then str := binPath+str;
+      if (not isAbsolutePath(str)) then str := binPath+str;
       while (length(str) > 0) do
       begin
-        if (str = '/') then exit;
+        if (isRootPath(str)) then exit;
         if (str[length(str)] = '/') then begin Delete(str, length(str), 1); continue; end;
         if (length(str) >= 2) and (Copy(str, length(str)-1, 2) = '/.') then begin Delete(str, length(str)-1, 2); continue; end;
         break;
@@ -160,12 +161,12 @@ procedure InitPath;
     SetLength(arr, Length(arr)+1);
     //arr[High(arr)] := ExpandFileName(str);
     arr[High(arr)] := str;
-    xput('NEW PATH: ['+str+']');
+    //writeln('NEW PATH(1): ['+str+']');
   end;
 
   procedure AddDef (var arr: SSArray; str: AnsiString);
   begin
-    if (length(arr) = 0) then AddPath(arr, str)
+    if (length(arr) = 0) then AddPath(arr, str, false)
   end;
 
 begin
