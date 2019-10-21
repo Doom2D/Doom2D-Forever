@@ -51,7 +51,8 @@ interface
   {--- returns relative wad name; never empty string ---}
   function e_FindWadRel (dirs: SSArray; name: AnsiString): AnsiString;
 
-  {--- append dirs to 'path.wad:\file'. if disk is void, append defWad ---}
+  {--- prepend dirs to 'disk.wad:\file'. if empty disk string then prepend defWad  ---}
+  {--- return empty string if error occured or 'path/to/disk.wad:\file' on success ---}
   function e_GetResourcePath (dirs: SSArray; path: AnsiString; defWad: AnsiString): AnsiString;
 
   {--- same as SysUtils.FinFirst ---}
@@ -248,15 +249,14 @@ implementation
     var diskName, fileName: AnsiString;
   begin
     if debug_e_res then
-      e_LogWritefln('e_GetResourcePath0 %s (%s)', [path, defWad]);
+      e_LogWritefln('e_GetResourcePath %s (%s)', [path, defWad]);
     assert(length(dirs) > 0);
     assert(path <> '');
     assert(defWad <> '');
     diskName := g_ExtractWadName(path);
     fileName := g_ExtractFilePathName(path);
     if diskName = '' then diskName := defWad else diskName := e_FindWad(dirs, diskName);
-    assert(diskName <> '', 'oh fuck, wad "' + diskName + '" not founded');
-    result := diskName + ':\' + fileName;
+    if diskName = '' then result := '' else result := diskName + ':\' + fileName;
     if debug_e_res then
       e_LogWritefln('  this>>> %s', [result]);
   end;
