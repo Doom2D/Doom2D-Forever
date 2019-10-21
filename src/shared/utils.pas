@@ -74,6 +74,9 @@ function forceFilenameExt (const fn, ext: AnsiString): AnsiString;
 // rewrites slashes to '/'
 function fixSlashes (s: AnsiString): AnsiString;
 
+function isAbsolutePath (const s: AnsiString): Boolean;
+function isRootPath (const s: AnsiString): Boolean;
+
 // strips out name from `fn`, leaving trailing slash
 function getFilenamePath (const fn: AnsiString): AnsiString;
 
@@ -344,6 +347,32 @@ var
 begin
   result := s;
   for f := 1 to length(result) do if (result[f] = '\') then result[f] := '/';
+end;
+
+
+function isAbsolutePath (const s: AnsiString): Boolean;
+begin
+  result := false;
+  if (length(s) = 0) then exit;
+  {$IFDEF WINDOWS}
+  if (s[1] = '/') or (s[1] = '\') then begin result := true; exit; end;
+  if (length(s) > 2) and (s[2] = ':') and ((s[3] = '/') or (s[3] = '\')) then begin result := true; exit; end;
+  {$ELSE}
+  result := (s[1] = '/');
+  {$ENDIF}
+end;
+
+
+function isRootPath (const s: AnsiString): Boolean;
+begin
+  result := false;
+  if (length(s) = 0) then exit;
+  {$IFDEF WINDOWS}
+  if (s = '/') or (s = '\') then begin result := true; exit; end;
+  if (length(s) = 3) and (s[2] = ':') and ((s[3] = '/') or (s[3] = '\')) then begin result := true; exit; end;
+  {$ELSE}
+  result := (s = '/');
+  {$ENDIF}
 end;
 
 
