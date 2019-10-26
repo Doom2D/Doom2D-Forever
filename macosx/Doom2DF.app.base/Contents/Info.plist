@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>CFBundleGetInfoString</key>
+		<string>Copyleft 2003-2019 Doom 2D: Forever Developers</string>
+		<key>NSHumanReadableCopyright</key>
+		<string>Copyleft 2003-2019 Doom 2D: Forever Developers</string>
+		<key>CFBundleExecutable</key>
+		<string>Doom2DF</string>
+		<key>CFBundleIdentifier</key>
+		<string>org.doom2df</string>
+		<key>CFBundleName</key>
+		<string>Doom 2D: Forever</string>
+		<key>CFBundleDisplayName</key>
+		<string>Doom 2D: Forever</string>
+		<key>CFBundleIconFile</key>
+		<string>Doom2DF</string>
+		<key>CFBundleShortVersionString</key>
+		<string>0.667</string>
+		<key>CFBundleInfoDictionaryVersion</key>
+		<string>6.0</string>
+		<key>CFBundlePackageType</key>
+		<string>APPL</string>
+		<key>IFmajorVersion</key>
+		<integer>0</integer>
+		<key>IFMinorVersion</key>
+		<integer>667</integer>
+	</dict>
+</plist>
