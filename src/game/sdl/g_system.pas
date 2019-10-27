@@ -24,7 +24,7 @@ interface
   procedure sys_Delay (ms: Integer);
 
   (* --- Graphics --- *)
-  function sys_GetDispalyModes (bpp: Integer): SSArray;
+  function sys_GetDisplayModes (bpp: Integer): SSArray;
   function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen: Boolean): Boolean;
   procedure sys_EnableVSync (yes: Boolean);
   procedure sys_Repaint;
@@ -133,7 +133,7 @@ implementation
     (* ??? *)
   end;
 
-  function sys_GetDispalyModes (bpp: Integer): SSArray;
+  function sys_GetDisplayModes (bpp: Integer): SSArray;
     var m: PPSDL_Rect; f: TSDL_PixelFormat; i, count: Integer;
   begin
     SetLength(result, 0);

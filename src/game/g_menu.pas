@@ -1873,7 +1873,7 @@ begin
 
   with TGUIListBox(menu.GetControl('lsResolution')) do
   begin
-    list := sys_GetDispalyModes(gBPP);
+    list := sys_GetDisplayModes(gBPP);
     if list <> nil then
     begin
       Items := list;
