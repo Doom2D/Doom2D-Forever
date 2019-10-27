@@ -63,6 +63,8 @@ interface
   {--- creates all necessary subdirs, if it can ---}
   function e_GetWriteableDir (dirs: SSArray; required: Boolean=true): AnsiString;
 
+  function e_CanCreateFilesAt (dir: AnsiString): Boolean;
+
 implementation
 
   uses WadReader, e_log, hashtable;
@@ -280,7 +282,7 @@ implementation
   end;
 
   // k8: sorry. i know that this sux, but checking directory access rights is unreliable (unportable).
-  function canCreateFiles (dir: AnsiString): Boolean;
+  function e_CanCreateFilesAt (dir: AnsiString): Boolean;
   var
     f: Integer;
     st: TStream = nil;
@@ -337,7 +339,7 @@ implementation
           result := dirs[f];
           if (findFileCI(result, true)) then
           begin
-            if canCreateFiles(result) then
+            if e_CanCreateFilesAt(result) then
             begin
               if not assigned(writeableDirs) then writeableDirs := THashStrCIStr.Create();
               writeableDirs.put(dirs[f], result);

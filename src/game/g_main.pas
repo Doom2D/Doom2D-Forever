@@ -28,10 +28,6 @@ procedure KeyPress (K: Word);
 procedure CharPress (C: AnsiChar);
 
 var
-  {--- TO REMOVE ---}
-  //GameDir: string;
-  {-----------------}
-
   {--- Read-only dirs ---}
   GameWAD: string;
   DataDirs: SSArray;
@@ -79,8 +75,7 @@ uses
 var
   charbuff: packed array [0..15] of AnsiChar;
   binPath: AnsiString = '';
-  forceCurrentDir: Boolean = false;
-
+  forceBinDir: Boolean;
 
 function GetBinaryPath (): AnsiString;
 {$IFDEF LINUX}
@@ -135,67 +130,80 @@ end;
 
 procedure InitPath;
   var i: Integer; rwdir, rodir: AnsiString; rwdirs, rodirs: SSArray;
-  //first: Boolean = true;
 
-  procedure xput (s: AnsiString);
-  {
-  var
-    f: TextFile;
+  procedure AddDir (var dirs: SSArray; append: AnsiString);
   begin
-    AssignFile(f, 'zzz.log');
-    if (first) then
-    begin
-      Rewrite(f);
-      first := false;
-    end
-    else
-    begin
-      Append(f);
-    end;
-    writeln(f, s);
-    CloseFile(f);
-  end;
-  }
-  begin
+    SetLength(dirs, Length(dirs) + 1);
+    dirs[High(dirs)] := ExpandFileName(append)
   end;
 
-  procedure AddPath (var arr: SSArray; str: AnsiString; usecwd: Boolean=true);
-  var
-    ss: ShortString;
+  function IsSep (ch: Char): Boolean;
   begin
-    if (length(str) = 0) then exit;
-    //writeln('NEW PATH(0): ['+str+']');
-    if (forceCurrentDir or usecwd) then
+    result := (ch = '/') or (ch = '\')
+  end;
+
+  function OptimizePath (dir: AnsiString): AnsiString;
+    var i, len: Integer; s: AnsiString;
+  begin
+    i := 1; len := Length(dir); s := '';
+    while i <= len do
     begin
-      str := fixSlashes(ExpandFileName(str));
-    end
-    else
-    begin
-      str := fixSlashes(str);
-      if (not isAbsolutePath(str)) then str := binPath+str;
-      while (length(str) > 0) do
+      if IsSep(dir[i]) then
       begin
-        if (isRootPath(str)) then exit;
-        if (str[length(str)] = '/') then begin Delete(str, length(str), 1); continue; end;
-        if (length(str) >= 2) and (Copy(str, length(str)-1, 2) = '/.') then begin Delete(str, length(str)-1, 2); continue; end;
-        break;
+        s := s + DirectorySeparator;
+        Inc(i);
+        while (i <= len) and IsSep(dir[i]) do Inc(i);
+        if (i <= len) and (dir[i] = '.') then
+        begin
+          if (i = len) or IsSep(dir[i + 1]) then
+          begin
+            Inc(i)
+          end
+          else if (i + 1 <= len) and (dir[i + 1] = '.') then
+          begin
+            if (i + 1 = len) or IsSep(dir[i + 2]) then
+            begin
+              s := e_UpperDir(s);
+              Inc(i, 2)
+            end
+          end
+        end
+      end
+      else
+      begin
+        s := s + dir[i];
+        Inc(i)
+      end
+    end;
+    result := s
+  end;
+
+  procedure OptimizeDirs (var dirs: SSArray);
+    var i, j, k: Integer;
+  begin
+    for i := 0 to High(dirs) do
+      dirs[i] := OptimizePath(dirs[i]);
+    // deduplicate
+    i := High(dirs);
+    while i >= 0 do
+    begin
+      j := 0;
+      while j < i do
+      begin
+        if dirs[j] = dirs[i] then
+        begin
+          for k := j + 1 to High(dirs) do
+            dirs[k - 1] := dirs[k];
+          Dec(i);
+          SetLength(dirs, High(dirs))
+        end
+        else
+        begin
+          Inc(j)
+        end
       end;
-    end;
-    if (length(str) = 0) then exit;
-    if (length(str) > 255) then
-    begin
-      xput('path too long: ['+str+']');
-      raise Exception.Create(Format('path "%s" too long', [str]));
-    end;
-    for ss in arr do
-    begin
-      //writeln('<<<', ss, '>>> : [', str, ']');
-      if (ss = str) then exit;
-    end;
-    SetLength(arr, Length(arr)+1);
-    //arr[High(arr)] := ExpandFileName(str);
-    arr[High(arr)] := str;
-    //writeln('NEW PATH(1): ['+str+']');
+      Dec(i)
+    end
   end;
 
   procedure AddDef (var dirs: SSArray; base: SSArray; append: AnsiString);
@@ -203,13 +211,8 @@ procedure InitPath;
   begin
     if Length(dirs) = 0 then
       for s in base do
-        AddPath(dirs, e_CatPath(s, append), false)
-  end;
-
-  procedure AddDir (var dirs: SSArray; append: AnsiString);
-  begin
-    SetLength(dirs, Length(dirs) + 1);
-    dirs[High(dirs)] := append
+        AddDir(dirs, e_CatPath(s, append));
+    OptimizeDirs(dirs)
   end;
 
   function GetDefaultRODirs (): SSArray;
@@ -224,7 +227,14 @@ procedure InitPath;
     {$ENDIF}
   begin
     result := nil;
-    if forceCurrentDir = false then
+    {$IFDEF DARWIN}
+      bundle := GetBundlePath();
+      if ExtractFileExt(bundle) <> '.app' then
+        AddDir(result, binpath);
+    {$ELSE}
+      AddDir(result, binPath);
+    {$ENDIF}
+    if forceBinDir = false then
     begin
       {$IFDEF USE_SDL2}
         AddDir(result, SDL_GetBasePath());
@@ -258,15 +268,7 @@ procedure InitPath;
         if SDL_AndroidGetExternalStorageState() <> 0 then
           AddDir(result, SDL_AndroidGetExternalStoragePath());
       {$ENDIF}
-    end;
-    {$IFNDEF ANDROID}
-      {$IFDEF DARWIN}
-        if ExtractFileExt(bundle) <> '.app' then
-          AddDir(result, '');
-      {$ELSE}
-        AddDir(result, '');
-      {$ENDIF}
-    {$ENDIF}
+    end
   end;
 
   function GetDefaultRWDirs (): SSArray;
@@ -281,7 +283,14 @@ procedure InitPath;
     {$ENDIF}
   begin
     result := nil;
-    if forceCurrentDir = false then
+    {$IFDEF DARWIN}
+      bundle := GetBundlePath();
+      if ExtractFileExt(bundle) <> '.app' then
+        AddDir(result, binPath);
+    {$ELSE}
+      AddDir(result, binPath);
+    {$ENDIF}
+    if forceBinDir = false then
     begin
       {$IFDEF USE_SDL2}
         AddDir(result, SDL_GetPrefPath('', 'doom2df'));
@@ -308,70 +317,58 @@ procedure InitPath;
         if SDL_AndroidGetExternalStorageState() <> 0 then
           AddDir(result, SDL_AndroidGetExternalStoragePath());
       {$ENDIF}
-    end;
-    {$IFNDEF ANDROID}
-      {$IFDEF DARWIN}
-        bundle := GetBundlePath();
-        if ExtractFileExt(bundle) <> '.app' then
-        if bundle = '' then
-          AddDir(result, '');
-      {$ELSE}
-        AddDir(result, '');
-      {$ENDIF}
-    {$ENDIF}
+    end
   end;
 
 begin
-  //GetDir(0, GameDir);
+  forceBinDir := false;
   binPath := GetBinaryPath();
-  xput('binPath=['+binPath+']');
-
-  for i := 1 to ParamCount do
-  begin
-    // use it only if you ketmar
-    if (ParamStr(i) = '--cwd') then
-    begin
-      forceCurrentDir := true;
-      break
-    end
-  end;
 
   i := 1;
   while i < ParamCount do
   begin
     case ParamStr(i) of
+    '--like-windoze': forceBinDir := true;
     '--rw-dir':
       begin
         Inc(i);
         rwdir := ParamStr(i);
         (* RW *)
-        AddPath(LogDirs, e_CatPath(rwdir, ''));
-        AddPath(SaveDirs, e_CatPath(rwdir, 'data'));
-        AddPath(CacheDirs, e_CatPath(rwdir, 'data/cache'));
-        AddPath(ConfigDirs, e_CatPath(rwdir, ''));
-        AddPath(MapDownloadDirs, e_CatPath(rwdir, 'maps/downloads'));
-        AddPath(WadDownloadDirs, e_CatPath(rwdir, 'wads/downloads'));
-        AddPath(ScreenshotDirs, e_CatPath(rwdir, 'screenshots'));
+        AddDir(LogDirs, e_CatPath(rwdir, ''));
+        AddDir(SaveDirs, e_CatPath(rwdir, 'data'));
+        AddDir(CacheDirs, e_CatPath(rwdir, 'data/cache'));
+        AddDir(ConfigDirs, e_CatPath(rwdir, ''));
+        AddDir(MapDownloadDirs, e_CatPath(rwdir, 'maps/downloads'));
+        AddDir(WadDownloadDirs, e_CatPath(rwdir, 'wads/downloads'));
+        AddDir(ScreenshotDirs, e_CatPath(rwdir, 'screenshots'));
         (* RO *)
-        AddPath(DataDirs, e_CatPath(rwdir, 'data'));
-        AddPath(ModelDirs, e_CatPath(rwdir, 'data/models'));
-        AddPath(MegawadDirs, e_CatPath(rwdir, 'maps/megawads'));
-        AddPath(MapDirs, e_CatPath(rwdir, 'maps'));
-        AddPath(WadDirs, e_CatPath(rwdir, 'wads'));
+        AddDir(DataDirs, e_CatPath(rwdir, 'data'));
+        AddDir(ModelDirs, e_CatPath(rwdir, 'data/models'));
+        AddDir(MegawadDirs, e_CatPath(rwdir, 'maps/megawads'));
+        AddDir(MapDirs, e_CatPath(rwdir, 'maps'));
+        AddDir(WadDirs, e_CatPath(rwdir, 'wads'));
       end;
     '--ro-dir':
       begin
         Inc(i);
         rodir := ParamStr(i);
         (* RO *)
-        AddPath(DataDirs, e_CatPath(rodir, 'data'));
-        AddPath(ModelDirs, e_CatPath(rodir, 'data/models'));
-        AddPath(MegawadDirs, e_CatPath(rodir, 'maps/megawads'));
-        AddPath(MapDirs, e_CatPath(rodir, 'maps'));
-        AddPath(WadDirs, e_CatPath(rodir, 'wads'));
+        AddDir(DataDirs, e_CatPath(rodir, 'data'));
+        AddDir(ModelDirs, e_CatPath(rodir, 'data/models'));
+        AddDir(MegawadDirs, e_CatPath(rodir, 'maps/megawads'));
+        AddDir(MapDirs, e_CatPath(rodir, 'maps'));
+        AddDir(WadDirs, e_CatPath(rodir, 'wads'));
       end;
     end;
     Inc(i)
+  end;
+
+  // prefer bin dir if it writable and contains game.wad
+  if forceBinDir = false then
+  begin
+    if findDiskWad(binPath + 'data' + '/' + 'GAME') <> '' then
+      if e_CanCreateFilesAt(binPath) then
+        forceBinDir := true
   end;
 
   (* RO *)
@@ -393,9 +390,10 @@ begin
   AddDef(ScreenshotDirs, rwdirs, 'screenshots');
 
   for i := 0 to High(MapDirs) do
-    AddPath(AllMapDirs, MapDirs[i]);
+    AddDir(AllMapDirs, MapDirs[i]);
   for i := 0 to High(MegawadDirs) do
-    AddPath(AllMapDirs, MegawadDirs[i]);
+    AddDir(AllMapDirs, MegawadDirs[i]);
+  OptimizeDirs(AllMapDirs);
 
   if LogFileName = '' then
   begin
@@ -409,8 +407,6 @@ begin
       {$ENDIF}
     end
   end;
-
-  xput('binPath=['+binPath+']');
 end;
 
 procedure InitPrep;
@@ -437,6 +433,7 @@ begin
   e_WriteLog('Doom 2D: Forever version ' + GAME_VERSION + ' proto ' + IntToStr(NET_PROTOCOL_VER), TMsgType.Notify);
   e_WriteLog('Build date: ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME, TMsgType.Notify);
 
+  e_LogWritefln('Force bin dir: %s', [forceBinDir], TMsgType.Notify);
   e_LogWritefln('BINARY PATH: [%s]', [binPath], TMsgType.Notify);
 
   PrintDirs('DataDirs', DataDirs);
@@ -458,7 +455,7 @@ begin
   begin
     e_WriteLog('GAME.WAD not installed?', TMsgType.Fatal);
     {$IF DEFINED(USE_SDL2) AND NOT DEFINED(HEADLESS)}
-      if forceCurrentDir = false then
+      if forceBinDir = false then
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, 'Doom 2D Forever', 'GAME.WAD not installed?', nil);
     {$ENDIF}
     e_DeinitLog;
