@@ -408,14 +408,12 @@ implementation
   procedure HandleTextInput (var ev: TSDL_TextInputEvent);
     var ch: UnicodeChar; sch: AnsiChar;
   begin
-    if g_dbg_input then
-      e_LogWritefln('Input Debug: text, text=%s', [ev.text]);
     Utf8ToUnicode(@ch, PChar(ev.text), 1);
-    if IsValid1251(Word(ch)) then
-    begin
-      sch := AnsiChar(wchar2win(ch));
+    sch := AnsiChar(wchar2win(ch));
+    if g_dbg_input then
+      e_LogWritefln('Input Debug: text, text="%s", ch = %s, sch = %s', [ev.text, Ord(ch), Ord(sch)]);
+    if IsValid1251(Word(ch)) and IsPrintable1251(ch) then
       CharPress(sch);
-    end;
   end;
 
   function sys_HandleInput (): Boolean;
