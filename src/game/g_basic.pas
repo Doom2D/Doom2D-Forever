@@ -629,37 +629,41 @@ begin
 end;
 
 function GetLines (Text: string; FontID: DWORD; MaxWidth: Word): SSArray;
-  var i, j, len, lines: Integer; w, cw, ch: Word; skip: Boolean;
-begin
-  result := nil; lines := 0; w := 0;
-  j := 1; i := 1; len := Length(Text);
-  while i <= len do
+  var i, j, len, lines: Integer;
+
+  function GetLine (j, i: Integer): String;
   begin
-    e_CharFont_GetSize(FontID, '' + Text[i], cw, ch);
-    if (i >= len) or (w + cw >= MaxWidth) then
-    begin
-      skip := (i < len) and (Text[i] <> ' ');
-      if skip then
-      begin
-        // alt: while (i >= j) and (Text[i] <> ' ') do Dec(i);
-        while (i <= len) and (Text[i] <> ' ') do Inc(i);
-      end;
-      while (i >= j) and (Text[i] = ' ') do Dec(i);
-      (* --- *)
-      SetLength(result, lines + 1);
-      result[lines] := Copy(Text, j, i - j + 1);
-      Inc(lines);
-      (* --- *)
-      if skip then
-      begin
-        while (i <= len) and (Text[i] = ' ') do Inc(i);
-        Inc(i);
-      end;
-      j := i + 1;
-      w := 0
-    end;
-    Inc(w, cw);
-    Inc(i)
+    result := Copy(text, j, i - j + 1);
+  end;
+
+  function GetWidth (j, i: Integer): Integer;
+    var w, h: Word;
+  begin
+    e_CharFont_GetSize(FontID, GetLine(j, i), w, h);
+    result := w
+  end;
+
+begin
+  result := nil; lines := 0;
+  j := 1; i := 1; len := Length(Text);
+  e_LogWritefln('GetLines @%s len=%s [%s]', [MaxWidth, len, Text]);
+  while j <= len do
+  begin
+    (* --- Get longest possible sequence --- *)
+    while (i + 1 <= len) and (GetWidth(j, i + 1) <= MaxWidth) do Inc(i);
+    (* --- Do not include part of word --- *)
+    if (i < len) and (text[i] <> ' ') then
+      while (i >= j) and (text[i] <> ' ') do Dec(i);
+    (* --- Do not include spaces --- *)
+    while (i >= j) and (text[i] = ' ') do Dec(i);
+    (* --- Add line --- *)
+    SetLength(result, lines + 1);
+    result[lines] := GetLine(j, i);
+    e_LogWritefln('  -> (%s:%s::%s) [%s]', [j, i, GetWidth(j, i), result[lines]]);
+    Inc(lines);
+    (* --- Skip spaces --- *)
+    while (i <= len) and (text[i] = ' ') do Inc(i);
+    j := i + 2;
   end;
 end;
 
