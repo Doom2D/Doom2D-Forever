@@ -7249,16 +7249,24 @@ begin
 end;
 
 procedure g_TakeScreenShot;
-  var s: TStream; t: TDateTime; date, name: String;
+  var s: TStream; t: TDateTime; dir, date, name: String;
 begin
   if e_NoGraphics then Exit;
-  t := Now;
-  DateTimeToString(date, 'yyyy-mm-dd-hh-nn-ss', t);
-  name := 'screenshot-' + date + '.png';
   try
-    s := e_CreateResource(ScreenshotDirs, name);
-    e_MakeScreenshot(s, gScreenWidth, gScreenHeight);
-    g_Console_Add(Format(_lc[I_CONSOLE_SCREENSHOT], [name]))
+    t := Now;
+    dir := e_GetWriteableDir(ScreenshotDirs);
+    DateTimeToString(date, 'yyyy-mm-dd-hh-nn-ss', t);
+    name := e_CatPath(dir, 'screenshot-' + date + '.png');
+    s := createDiskFile(name);
+    try
+      e_MakeScreenshot(s, gScreenWidth, gScreenHeight);
+      s.Free;
+      g_Console_Add(Format(_lc[I_CONSOLE_SCREENSHOT], [name]))
+    except
+      g_Console_Add(Format(_lc[I_CONSOLE_ERROR_WRITE], [name]));
+      s.Free;
+      DeleteFile(name)
+    end
   except
     g_Console_Add('oh shit, i can''t create screenshot!')
   end
