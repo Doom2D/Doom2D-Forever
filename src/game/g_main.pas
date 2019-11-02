@@ -139,7 +139,11 @@ procedure InitPath;
 
   function IsSep (ch: Char): Boolean;
   begin
-    result := (ch = '/') or (ch = '\')
+    {$IFDEF WINDOWS}
+    result := (ch = '/') or (ch = '\');
+    {$ELSE}
+    result := (ch = '/');
+    {$ENDIF}
   end;
 
   function OptimizePath (dir: AnsiString): AnsiString;

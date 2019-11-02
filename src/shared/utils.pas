@@ -342,11 +342,15 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 // rewrites slashes to '/'
 function fixSlashes (s: AnsiString): AnsiString;
+{$IFDEF WINDOWS}
 var
   f: Integer;
+{$ENDIF}
 begin
   result := s;
+  {$IFDEF WINDOWS}
   for f := 1 to length(result) do if (result[f] = '\') then result[f] := '/';
+  {$ENDIF}
 end;
 
 
