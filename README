@@ -55,7 +55,7 @@ FMODEx.dll, ENet.dll, miniupnpc.dll), unless you choose to static link them.
 Static Linking
 --------------
 
-See ( http://repo.or.cz/d2df-binlib.git ) repo for prebuild dynamic and static
+See ( http://repo.or.cz/d2df-binlib.git ) repo for prebuilt dynamic and static
 libraries.
 
 It is now possible to link windoze LibJIT and ENet as static libs.
