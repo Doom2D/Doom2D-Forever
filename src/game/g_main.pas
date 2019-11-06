@@ -436,6 +436,8 @@ begin
   e_InitWritelnDriver();
   e_WriteLog('Doom 2D: Forever version ' + GAME_VERSION + ' proto ' + IntToStr(NET_PROTOCOL_VER), TMsgType.Notify);
   e_WriteLog('Build date: ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME, TMsgType.Notify);
+  e_WriteLog('Build hash: ' + g_GetBuildHash(), TMsgType.Notify);
+  e_WriteLog('Build by: ' + g_GetBuilderName(), TMsgType.Notify);
 
   e_LogWritefln('Force bin dir: %s', [forceBinDir], TMsgType.Notify);
   e_LogWritefln('BINARY PATH: [%s]', [binPath], TMsgType.Notify);

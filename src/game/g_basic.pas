@@ -38,6 +38,9 @@ type
   DWArray = array of DWORD;
   String20 = String[20];
 
+function g_GetBuilderName (): AnsiString;
+function g_GetBuildHash (full: Boolean = True): AnsiString;
+
 function g_CreateUID(UIDType: Byte): Word;
 function g_GetUIDType(UID: Word): Byte;
 function g_Collide(X1, Y1: Integer; Width1, Height1: Word;
@@ -99,6 +102,33 @@ implementation
 uses
   Math, geom, e_log, g_map, g_gfx, g_player, SysUtils, MAPDEF,
   StrUtils, e_graphics, g_monsters, g_items, g_game;
+
+{$PUSH}
+{$WARN 2054 OFF} // unknwon env var
+{$WARN 6018 OFF} // unreachable code
+function g_GetBuilderName (): AnsiString;
+begin
+  if {$I %D2DF_BUILD_USER%} <> '' then
+    result := {$I %D2DF_BUILD_USER%} // custom
+  else if {$I %USER%} <> '' then
+    result := {$I %USER%} // unix username
+  else if {$I %USERNAME%} <> '' then
+    result := {$I %USERNAME%} // windows username
+  else
+    result := 'unknown'
+end;
+
+function g_GetBuildHash (full: Boolean = True): AnsiString;
+begin
+  if {$I %D2DF_BUILD_USER%} <> '' then
+    if full then
+      result := {$I %D2DF_BUILD_HASH%}
+    else
+      result := Copy({$I %D2DF_BUILD_HASH%}, 1, 7)
+  else
+    result := 'custom build'
+end;
+{$POP}
 
 function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
 begin

@@ -43,10 +43,10 @@ implementation
     SysUtils, SDL, Math,
     {$INCLUDE ../nogl/noGLuses.inc}
     e_log, e_graphics, e_input, e_sound,
-    g_options, g_window, g_console, g_game, g_menu, g_gui, g_main;
+    g_options, g_window, g_console, g_game, g_menu, g_gui, g_main, g_basic;
 
   const
-    GameTitle = 'Doom 2D: Forever (SDL 1.2)';
+    GameTitle = 'Doom 2D: Forever (SDL 1.2, %s)';
 
   var
     userResize: Boolean;
@@ -89,6 +89,15 @@ implementation
     g_Game_ClearLoading;
   end;
 
+  function GetTitle (): PChar;
+    var info: AnsiString;
+  begin
+    info := g_GetBuildHash(false);
+    if info = 'custom build' then
+      info := info + ' by ' + g_GetBuilderName() + ' ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME;
+    result := PChar(Format(GameTitle, [info]))
+  end;
+
   function InitWindow (w, h, bpp: Integer; fullScreen: Boolean): Boolean;
     var flags: Uint32;
   begin
@@ -112,7 +121,7 @@ implementation
         {$IFDEF NOGL_INIT}
           nogl_Init;
         {$ENDIF}
-        SDL_WM_SetCaption(GameTitle, nil);
+        SDL_WM_SetCaption(GetTitle(), nil);
         UpdateSize(w, h);
         result := True
       end

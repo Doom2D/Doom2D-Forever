@@ -46,10 +46,10 @@ implementation
     {$IFDEF ENABLE_HOLMES}
       g_holmes, sdlcarcass, fui_ctls,
     {$ENDIF}
-    g_touch, g_options, g_window, g_console, g_game, g_menu, g_gui, g_main;
+    g_touch, g_options, g_window, g_console, g_game, g_menu, g_gui, g_main, g_basic;
 
   const
-    GameTitle = 'Doom 2D: Forever (SDL 2)';
+    GameTitle = 'Doom 2D: Forever (SDL 2, %s)';
 
   var
     window: PSDL_Window;
@@ -98,6 +98,15 @@ implementation
     {$ENDIF}
   end;
 
+  function GetTitle (): PChar;
+    var info: AnsiString;
+  begin
+    info := g_GetBuildHash(false);
+    if info = 'custom build' then
+      info := info + ' by ' + g_GetBuilderName() + ' ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME;
+    result := PChar(Format(GameTitle, [info]))
+  end;
+
   function InitWindow (w, h, bpp: Integer; fullScreen: Boolean): Boolean;
     var flags: UInt32;
   begin
@@ -122,7 +131,7 @@ implementation
       {$ENDIF}
       flags := SDL_WINDOW_OPENGL or SDL_WINDOW_RESIZABLE;
       if fullScreen then flags := flags or SDL_WINDOW_FULLSCREEN;
-      window := SDL_CreateWindow(GameTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, flags);
+      window := SDL_CreateWindow(GetTitle(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, flags);
       if window <> nil then
       begin
         context := SDL_GL_CreateContext(window);
