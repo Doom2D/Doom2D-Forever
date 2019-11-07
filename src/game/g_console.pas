@@ -1975,6 +1975,7 @@ initialization
   conRegVar('console_height', @ConsoleHeight, 0.0, 1.0, 'set console size', 'set console size');
   conRegVar('console_trans', @ConsoleTrans, 0.0, 1.0, 'set console transparency', 'set console transparency');
   conRegVar('console_step', @ConsoleStep, 0.0, 1.0, 'set console animation speed', 'set console animation speed');
+  conRegVar('d_eres', @debug_e_res, '', '');
 {$IFDEF ANDROID}
   ChatTop := True;
   ConsoleHeight := 0.35;

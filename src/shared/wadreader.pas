@@ -56,11 +56,19 @@ type
     property isOpen: Boolean read getIsOpen;
   end;
 
-
+// g_ExtractWadName C:\svr\shit.wad:\MAPS\MAP01 -> C:/svr/shit.wad
 function g_ExtractWadName (resourceStr: AnsiString): AnsiString;
+
+// g_ExtractWadNameNoPath C:\svr\shit.wad:\MAPS\MAP01 -> shit.wad
 function g_ExtractWadNameNoPath (resourceStr: AnsiString): AnsiString;
+
+// g_ExtractFilePath C:\svr\shit.wad:\MAPS\MAP01 -> :/MAPS
 function g_ExtractFilePath (resourceStr: AnsiString): AnsiString;
+
+// g_ExtractFileName C:\svr\shit.wad:\MAPS\MAP01 -> MAP01
 function g_ExtractFileName (resourceStr: AnsiString): AnsiString; // without path
+
+// g_ExtractFilePathName C:\svr\shit.wad:\MAPS\MAP01 -> MAPS/MAP01
 function g_ExtractFilePathName (resourceStr: AnsiString): AnsiString;
 
 
