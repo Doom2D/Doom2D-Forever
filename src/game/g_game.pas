@@ -4693,7 +4693,7 @@ begin
           //if newResPath = '' then
           begin
             //g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
-            newResPath := g_Res_DownloadMapWAD(WadName, gWADHash);
+            newResPath := g_Res_DownloadMapWAD(ExtractFileName(WadName), gWADHash);
             if newResPath = '' then
             begin
               g_FatalError(_lc[I_NET_ERR_HASH]);

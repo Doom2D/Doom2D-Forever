@@ -180,7 +180,7 @@ begin
       //if (Length(gCurrentMapFileName) <> 0) then e_LogWritefln('SAVE: current map is ''%s''...', [gCurrentMapFileName]);
       utils.writeStr(st, gCurrentMapFileName);
       // Путь к карте
-      utils.writeStr(st, gGameSettings.WAD);
+      utils.writeStr(st, ExtractFileName(gGameSettings.WAD));
       // Имя карты
       utils.writeStr(st, g_ExtractFileName(gMapInfo.Map));
       // Количество игроков

@@ -825,18 +825,14 @@ begin
 end;
 
 procedure MH_SEND_Info(ID: Byte);
-var
-  Map: string;
 begin
-  Map := g_ExtractFileName(gMapInfo.Map);
-
   NetOut.Clear();
 
   NetOut.Write(Byte(NET_MSG_INFO));
   NetOut.Write(ID);
   NetOut.Write(NetClients[ID].Player);
-  NetOut.Write(gGameSettings.WAD);
-  NetOut.Write(Map);
+  NetOut.Write(ExtractFileName(gGameSettings.WAD));
+  NetOut.Write(g_ExtractFileName(gMapInfo.Map));
   NetOut.Write(gWADHash);
   NetOut.Write(gGameSettings.GameMode);
   NetOut.Write(gGameSettings.GoalLimit);

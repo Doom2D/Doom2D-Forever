@@ -681,7 +681,7 @@ begin
         // packet type
         trans_omsg.Write(Byte(NTF_SERVER_MAP_INFO));
         // map wad name
-        trans_omsg.Write(gGameSettings.WAD);
+        trans_omsg.Write(ExtractFileName(gGameSettings.WAD));
         // map wad md5
         trans_omsg.Write(md5);
         // map wad size
