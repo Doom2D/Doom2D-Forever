@@ -373,15 +373,14 @@ begin
   clearReplacementWads();
   sfsGCCollect(); // why not?
   g_Res_CreateDatabases();
+  FileName := ExtractFileName(FileName);
+  if (length(FileName) = 0) then FileName := '__unititled__.wad';
 
   try
     g_Res_received_map_start := 1;
     g_Console_Add(Format(_lc[I_NET_MAP_DL], [FileName]));
-    e_WriteLog('Downloading map `' + FileName + '` from server', TMsgType.Notify);
+    e_LogWritefln('Downloading map [%s] from server...', [FileName], TMsgType.Notify);
     g_Game_SetLoadingText(FileName + '...', 0, False);
-
-    FileName := ExtractFileName(FileName);
-    if (length(FileName) = 0) then FileName := 'fucked_map_wad.wad';
 
     // this also sends map request
     res := g_Net_Wait_MapInfo(tf, resList);
