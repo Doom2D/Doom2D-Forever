@@ -737,7 +737,13 @@ end;
 
 constructor TAnimation.Create (aframesID: LongWord; aloop: Boolean; aspeed: Byte);
 begin
-  if (aframesID >= Length(framesArray)) then raise Exception.Create('trying to create inexisting frame: something is very wrong here');
+  if (aframesID >= Length(framesArray)) then
+  begin
+    //raise Exception.Create('trying to create inexisting frame: something is very wrong here');
+    e_LogWritefln('trying to create inexisting frame %u of %u: something is very wrong here', [aframesID, LongWord(Length(framesArray))], TMsgType.Warning);
+    aframesID := 0;
+    if (Length(framesArray) = 0) then raise Exception.Create('trying to create inexisting frame: something is very wrong here');
+  end;
   mId := aframesID;
   mMinLength := 0;
   mLoop := aloop;
