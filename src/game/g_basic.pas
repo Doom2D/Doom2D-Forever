@@ -120,7 +120,7 @@ end;
 
 function g_GetBuildHash (full: Boolean = True): AnsiString;
 begin
-  if {$I %D2DF_BUILD_USER%} <> '' then
+  if {$I %D2DF_BUILD_HASH%} <> '' then
     if full then
       result := {$I %D2DF_BUILD_HASH%}
     else
