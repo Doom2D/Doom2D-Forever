@@ -5082,14 +5082,9 @@ begin
     Exit;
   end;
 
-(*
-  xwad := ExtractRelativePath(MapsDir, gWAD);
-  e_LogWritefln('using downloaded client map wad [%s] for [%s]`', [xwad, NewWAD], TMsgType.Notify);
-  NewWAD := xwad;
-  g_Game_LoadWAD(NewWAD);
-*)
+  e_LogWritefln('using downloaded client map wad [%s] for [%s]', [gWAD, NewWAD], TMsgType.Notify);
+  NewWAD := gWAD;
 
-  e_LogWritefln('using downloaded client map wad [%s]`', [NewWAD], TMsgType.Notify);
   g_Game_LoadWAD(NewWAD);
   result := NewWAD;
 
