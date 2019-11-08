@@ -490,20 +490,15 @@ begin
   e_InitInput;
   sys_Init;
 
+  g_Options_SetDefault;
+  g_Options_SetDefaultVideo;
   s := CONFIG_FILENAME;
   if e_FindResource(ConfigDirs, s) = true then
-  begin
-    g_Options_Read(s)
-  end
-  else
-  begin
-    g_Options_SetDefault;
-    g_Options_SetDefaultVideo
-  end;
+    g_Options_Read(s);
+  g_Console_SysInit;
   if sys_SetDisplayMode(gScreenWidth, gScreenHeight, gBPP, gFullScreen) = False then
     raise Exception.Create('Failed to set videomode on startup.');
 
-  g_Console_SysInit;
   e_WriteLog(gLanguage, TMsgType.Notify);
   g_Language_Set(gLanguage);
 
@@ -572,6 +567,7 @@ begin
     if assigned(oglDeinitCB) then oglDeinitCB;
   {$ENDIF}
 
+  g_Console_WriteGameConfig;
   sys_Final;
 end;
 

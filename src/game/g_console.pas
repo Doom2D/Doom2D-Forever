@@ -860,6 +860,9 @@ begin
 
   AddCommand('segfault', segfault, 'make segfault');
 
+  AddCommand('r_reset', g_Options_Commands);
+  AddCommand('g_language', g_Options_Commands);
+
   AddCommand('bind', BindCommands);
   AddCommand('bindlist', BindCommands);
   AddCommand('unbind', BindCommands);
@@ -1957,6 +1960,11 @@ begin
       end
     end
   end;
+  if gAskLanguage then
+    WriteLn(f, 'g_language ask')
+  else
+    WriteLn(f, 'g_language ', gLanguage);    
+  WriteLn(f, 'r_reset');
   CloseFile(f)
 end;
 
@@ -1970,12 +1978,13 @@ begin
   end
 end;
 
-initialization
+procedure Init;
+  var i: Integer;
+begin
   conRegVar('chat_at_top', @ChatTop, 'draw chat at top border', 'draw chat at top border');
   conRegVar('console_height', @ConsoleHeight, 0.0, 1.0, 'set console size', 'set console size');
   conRegVar('console_trans', @ConsoleTrans, 0.0, 1.0, 'set console transparency', 'set console transparency');
   conRegVar('console_step', @ConsoleStep, 0.0, 1.0, 'set console animation speed', 'set console animation speed');
-  conRegVar('d_eres', @debug_e_res, '', '');
 {$IFDEF ANDROID}
   ChatTop := True;
   ConsoleHeight := 0.35;
@@ -1985,4 +1994,11 @@ initialization
 {$ENDIF}
   ConsoleTrans := 0.1;
   ConsoleStep := 0.07;
+  conRegVar('d_eres', @debug_e_res, '', '');
+  for i := 1 to e_MaxJoys do
+    conRegVar('joy' + IntToStr(i) + '_deadzone', @e_JoystickDeadzones[i - 1], '', '')
+end;
+
+initialization
+  Init
 end.

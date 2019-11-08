@@ -74,8 +74,6 @@ implementation
   begin
     gWinSizeX := w;
     gWinSizeY := h;
-    gWinRealPosX := 0;
-    gWinRealPosY := 0;
     gScreenWidth := w;
     gScreenHeight := h;
     {$IFDEF ENABLE_HOLMES}

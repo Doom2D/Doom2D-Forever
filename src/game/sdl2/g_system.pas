@@ -77,8 +77,6 @@ implementation
   begin
     gWinSizeX := w;
     gWinSizeY := h;
-    gWinRealPosX := 0;
-    gWinRealPosY := 0;
     gScreenWidth := w;
     gScreenHeight := h;
     {$IFDEF ENABLE_HOLMES}
@@ -108,7 +106,7 @@ implementation
   end;
 
   function InitWindow (w, h, bpp: Integer; fullScreen: Boolean): Boolean;
-    var flags: UInt32;
+    var flags: UInt32; x, y: Integer;
   begin
     // note: on window close make: if assigned(oglDeinitCB) then oglDeinitCB;
     e_LogWritefln('InitWindow %s %s %s %s', [w, h, bpp, fullScreen]);
@@ -131,7 +129,9 @@ implementation
       {$ENDIF}
       flags := SDL_WINDOW_OPENGL or SDL_WINDOW_RESIZABLE;
       if fullScreen then flags := flags or SDL_WINDOW_FULLSCREEN;
-      window := SDL_CreateWindow(GetTitle(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, flags);
+      x := SDL_WINDOWPOS_CENTERED;
+      y := SDL_WINDOWPOS_CENTERED;
+      window := SDL_CreateWindow(GetTitle(), x, y, w, h, flags);
       if window <> nil then
       begin
         context := SDL_GL_CreateContext(window);

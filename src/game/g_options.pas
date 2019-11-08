@@ -18,7 +18,7 @@ unit g_options;
 interface
 
 uses
-  g_language, g_weapons;
+  g_language, g_weapons, utils;
 
 function GenPlayerName (n: Integer): String;
 
@@ -26,22 +26,18 @@ procedure g_Options_SetDefault;
 procedure g_Options_SetDefaultVideo;
 procedure g_Options_Read(FileName: String);
 procedure g_Options_Write(FileName: String);
-procedure g_Options_Write_Language(FileName: String);
-procedure g_Options_Write_Video(FileName: String);
 procedure g_Options_Write_Gameplay_Custom(FileName: String);
 procedure g_Options_Write_Gameplay_Net(FileName: String);
 procedure g_Options_Write_Net_Server(FileName: String);
 procedure g_Options_Write_Net_Client(FileName: String);
+procedure g_Options_Commands (p: SSArray);
 
 const DF_Default_Megawad_Start = 'megawads/DOOM2D.WAD:\MAP01';
 
 var
-//  gGameControls: TControls;
   gScreenWidth: Word;
   gScreenHeight: Word;
-  gWinRealPosX: Integer;
-  gWinRealPosY: Integer;
-  gBPP: Byte;
+  gBPP: Integer;
   gFreq: Byte;
   gFullscreen: Boolean;
   gWinMaximized: Boolean;
@@ -49,9 +45,9 @@ var
   glLegacyNPOT: Boolean;
   gTextureFilter: Boolean;
   gNoSound: Boolean;
-  gSoundLevel: Byte;
-  gMusicLevel: Byte;
-  gMaxSimSounds: Byte;
+  gSoundLevel: Integer;
+  gMusicLevel: Integer;
+  gMaxSimSounds: Integer;
   gMuteWhenInactive: Boolean;
   gAdvCorpses: Boolean;
   gAdvBlood: Boolean;
@@ -103,7 +99,7 @@ uses
   {$ENDIF}
   e_log, e_input, g_console, g_window, g_sound, g_gfx, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_texture,
-  g_items, wadreader, e_graphics, g_touch, envvars;
+  g_items, wadreader, e_graphics, g_touch, envvars, g_system;
 
   var
     machine: Integer;
@@ -173,8 +169,6 @@ begin
     e_LogWritefln('SDL: Failed to get desktop display mode: %s', [SDL_GetError])
   end;
   (* Must be positioned on primary display *)
-  gWinRealPosX := SDL_WINDOWPOS_CENTERED;
-  gWinRealPosY := SDL_WINDOWPOS_CENTERED;
   gWinMaximized := False;
   gVSync := True;
   gTextureFilter := True;
@@ -189,8 +183,6 @@ begin
   gScreenHeight := 480;
   gBPP := 32;
   gFullScreen := False;
-  gWinRealPosX := 0;
-  gWinRealPosY := 0;
   gWinMaximized := False;
   gVSync := True;
   gTextureFilter := True;
@@ -372,31 +364,6 @@ begin
 
   config := TConfig.CreateFile(FileName);
 
-  section := 'Video';
-  ReadInteger(gScreenWidth, 'ScreenWidth', 0);
-  ReadInteger(gScreenHeight, 'ScreenHeight', 0);
-  ReadInteger(gWinRealPosX, 'WinPosX', 60);
-  ReadInteger(gWinRealPosY, 'WinPosY', 60);
-  ReadBoolean(gFullScreen, 'Fullscreen');
-  ReadBoolean(gWinMaximized, 'Maximized');
-  ReadInteger(gBPP, 'BPP', 0);
-  ReadInteger(gFreq, 'Freq', 0);
-  ReadBoolean(gVSync, 'VSync');
-  ReadBoolean(gTextureFilter, 'TextureFilter');
-  ReadBoolean(glNPOTOverride, 'LegacyCompatibleForce');
-
-  section := 'Sound';
-  ReadBoolean(gNoSound, 'NoSound');
-  ReadInteger(gSoundLevel, 'SoundLevel', 0, 255);
-  ReadInteger(gMusicLevel, 'MusicLevel', 0, 255);
-  ReadInteger(gMaxSimSounds, 'MaxSimSounds', 2, 66);
-  ReadBoolean(gMuteWhenInactive, 'MuteInactive');
-  ReadInteger(gAnnouncer, 'Announcer', ANNOUNCE_NONE, ANNOUNCE_ALL);
-  ReadBoolean(gSoundEffectsDF, 'SoundEffectsDF');
-  ReadBoolean(gUseChatSounds, 'ChatSounds');
-  ReadInteger(gsSDLSampleRate, 'SDLSampleRate', 11025, 96000);
-  ReadInteger(gsSDLBufferSize, 'SDLBufferSize', 64, 16384);
-
   section := 'Player1';
   with gPlayer1Settings do
   begin
@@ -421,12 +388,6 @@ begin
     ReadInteger(Team, 'team');
     if (Team < TEAM_RED) or (Team > TEAM_BLUE) then
       Team := TEAM_RED;
-  end;
-
-  section := 'Joysticks';
-  for i := 0 to e_MaxJoys - 1 do
-  begin
-    ReadInteger(e_JoystickDeadzones[i], 'Deadzone' + IntToStr(i))
   end;
 
   section := 'Game';
@@ -458,11 +419,6 @@ begin
   ReadString(gDefaultMegawadStart, 'DefaultMegawadStart');
   ReadBoolean(gBerserkAutoswitch, 'BerserkAutoswitching');
   i := Trunc(g_dbg_scale * 100); ReadInteger(i, 'Scale', 100); g_dbg_scale := i / 100;
-  ReadString(gLanguage, 'Language');
-  if (gLanguage = LANGUAGE_RUSSIAN) or (gLanguage = LANGUAGE_ENGLISH) then
-    gAskLanguage := False
-  else
-    gLanguage := LANGUAGE_ENGLISH;
 
   section := 'GameplayCustom';
   ReadString(gcMap, 'Map');
@@ -550,35 +506,11 @@ begin
 end;
 
 procedure g_Options_Write(FileName: String);
-var
-  config: TConfig;
-  i: Integer;
+  var config: TConfig;
 begin
   e_WriteLog('Writing config', TMsgType.Notify);
 
   config := TConfig.CreateFile(FileName);
-
-  config.WriteInt('Video', 'ScreenWidth', gScreenWidth);
-  config.WriteInt('Video', 'ScreenHeight', gScreenHeight);
-  config.WriteInt('Video', 'WinPosX', gWinRealPosX);
-  config.WriteInt('Video', 'WinPosY', gWinRealPosY);
-  config.WriteBool('Video', 'Fullscreen', gFullScreen);
-  config.WriteBool('Video', 'Maximized', gWinMaximized);
-  config.WriteInt('Video', 'BPP', gBPP);
-  config.WriteBool('Video', 'VSync', gVSync);
-  config.WriteBool('Video', 'TextureFilter', gTextureFilter);
-  config.WriteBool('Video', 'LegacyCompatibleForce', glNPOTOverride);
-
-  config.WriteBool('Sound', 'NoSound', gNoSound);
-  config.WriteInt('Sound', 'SoundLevel', gSoundLevel);
-  config.WriteInt('Sound', 'MusicLevel', gMusicLevel);
-  config.WriteInt('Sound', 'MaxSimSounds', gMaxSimSounds);
-  config.WriteBool('Sound', 'MuteInactive', gMuteWhenInactive);
-  config.WriteInt('Sound', 'Announcer', gAnnouncer);
-  config.WriteBool('Sound', 'SoundEffectsDF', gSoundEffectsDF);
-  config.WriteBool('Sound', 'ChatSounds', gUseChatSounds);
-  config.WriteInt('Sound', 'SDLSampleRate', gsSDLSampleRate);
-  config.WriteInt('Sound', 'SDLBufferSize', gsSDLBufferSize);
 
   with config, gPlayer1Settings do
   begin
@@ -599,9 +531,6 @@ begin
     WriteInt('Player2', 'blue', Color.B);
     WriteInt('Player2', 'team', Team);
   end;
-
-  for i := 0 to e_MaxJoys-1 do
-    config.WriteInt('Joysticks', 'Deadzone' + IntToStr(i), e_JoystickDeadzones[i]);
 
   with config do
     case gGibsCount of
@@ -678,53 +607,6 @@ begin
   config.WriteBool ('Client', 'PredictSelf', NetPredictSelf);
   config.WriteStr  ('Client', 'LastIP', NetClientIP);
   config.WriteInt  ('Client', 'LastPort', NetClientPort);
-
-  config.SaveFile(FileName);
-  config.Free();
-end;
-
-procedure g_Options_Write_Language(FileName: String);
-var
-  config: TConfig;
-begin
-  e_WriteLog('Writing language config', TMsgType.Notify);
-
-  config := TConfig.CreateFile(FileName);
-  config.WriteStr('Game', 'Language', gLanguage);
-  config.SaveFile(FileName);
-  config.Free();
-end;
-
-procedure g_Options_Write_Video(FileName: String);
-var
-  config: TConfig;
-  sW, sH: Integer;
-begin
-  e_WriteLog('Writing resolution to config', TMsgType.Notify);
-
-  config := TConfig.CreateFile(FileName);
-
-  if gWinMaximized and (not gFullscreen) then
-    begin
-      sW := gWinSizeX;
-      sH := gWinSizeY;
-    end
-  else
-    begin
-      sW := gScreenWidth;
-      sH := gScreenHeight;
-    end;
-  e_LogWritefln('  (ws=%dx%d) (ss=%dx%d)', [gWinSizeX, gWinSizeY, gScreenWidth, gScreenHeight]);
-
-  config.WriteInt('Video', 'ScreenWidth', sW);
-  config.WriteInt('Video', 'ScreenHeight', sH);
-  config.WriteInt('Video', 'WinPosX', gWinRealPosX);
-  config.WriteInt('Video', 'WinPosY', gWinRealPosY);
-  config.WriteBool('Video', 'Fullscreen', gFullscreen);
-  config.WriteBool('Video', 'Maximized', gWinMaximized);
-
-  config.WriteStr('Player1', 'Name', gPlayer1Settings.Name);
-  config.WriteStr('Player2', 'Name', gPlayer2Settings.Name);
 
   config.SaveFile(FileName);
   config.Free();
@@ -812,7 +694,76 @@ begin
   config.Free();
 end;
 
+procedure g_Options_Commands (p: SSArray);
+  var cmd: AnsiString;
+begin
+  cmd := LowerCase(p[0]);
+  case cmd of
+    'r_reset':
+      begin
+        sys_EnableVSync(gVSync);
+        gRC_Width := Max(1, gRC_Width);
+        gRC_Height := Max(1, gRC_Height);
+        gBPP := Max(1, gBPP);
+        if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen) = True then
+          e_LogWriteln('resolution changed')
+        else
+          e_LogWriteln('resolution not changed')
+      end;
+    'g_language':
+      begin
+        if Length(p) = 2 then
+        begin
+          gAskLanguage := true;
+          gLanguage := LANGUAGE_ENGLISH;
+          case LowerCase(p[1]) of
+            'english':
+               begin
+                 gAskLanguage := false;
+                 gLanguage := LANGUAGE_ENGLISH;
+               end;
+            'russian':
+               begin
+                 gAskLanguage := false;
+                 gLanguage := LANGUAGE_RUSSIAN;
+               end;
+            'ask':
+               begin
+                 gAskLanguage := true;
+                 gLanguage := LANGUAGE_ENGLISH;
+               end;
+          end;
+          g_Language_Set(gLanguage)
+        end
+      end
+  end;
+end;
+
 initialization
   Randomize;
-  machine := Random(10000)
+  machine := Random(10000);
+
+  (* Video *)
+  conRegVar('r_width', @gRC_Width, '', '');
+  conRegVar('r_height', @gRC_Height, '', '');
+  conRegVar('r_fullscreen', @gRC_FullScreen, '', '');
+  conRegVar('r_maximized', @gRC_Maximized, '', '');
+  conRegVar('r_bpp', @gBPP, '', '');
+  conRegVar('r_vsync', @gVSync, '', '');
+  conRegVar('r_texfilter', @gTextureFilter, '', '');
+  conRegVar('r_npot', @glNPOTOverride, '', '');
+
+  (* Sound *)
+  conRegVar('s_nosound', @gNoSound, '', '');
+  conRegVar('s_soundvolume', @gSoundLevel, '', '');
+  conRegVar('s_musicvolume', @gMusicLevel, '', '');
+  conRegVar('s_maxsim', @gMaxSimSounds, '', ''); // e_sound_fmod/sdl?
+  conRegVar('s_muteinactive', @gMuteWhenInactive, '', '');
+  conRegVar('s_announcer', @gAnnouncer, '', '');
+  conRegVar('s_sfx', @gSoundEffectsDF, '', '');
+  conRegVar('s_chatsounds', @gUseChatSounds, '', '');
+  {$IFDEF USE_SDLMIXER}
+    conRegVar('sdl_mixer_samplerate', @gsSDLSampleRate, '', '');
+    conRegVar('sdl_mixer_buffersize', @gsSDLBufferSize, '', '');
+  {$ENDIF}
 end.

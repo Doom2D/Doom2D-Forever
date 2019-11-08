@@ -102,7 +102,6 @@ procedure g_Game_Restart();
 procedure g_Game_RestartLevel();
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
 function  g_Game_ClientWAD (NewWAD: String; const WHash: TMD5Digest): AnsiString;
-procedure g_Game_SaveOptions();
 function  g_Game_StartMap(asMegawad: Boolean; Map: String; Force: Boolean = False; const oldMapPath: AnsiString=''): Boolean;
 procedure g_Game_ChangeMap(const MapPath: String);
 procedure g_Game_ExitLevel(const Map: AnsiString);
@@ -238,7 +237,7 @@ var
   gHearPoint1, gHearPoint2: THearPoint;
   gSoundEffectsDF: Boolean = False;
   gSoundTriggerTime: Word = 0;
-  gAnnouncer: Byte = ANNOUNCE_NONE;
+  gAnnouncer: Integer = ANNOUNCE_NONE;
   goodsnd: array[0..3] of TPlayableSound;
   killsnd: array[0..3] of TPlayableSound;
   hahasnd: array[0..2] of TPlayableSound;
@@ -287,12 +286,11 @@ var
   gMapToDelete: String;
   gTempDelete: Boolean = False;
   gLastMap: Boolean = False;
-  gWinPosX, gWinPosY: Integer;
   gWinSizeX, gWinSizeY: Integer;
   gWinFrameX, gWinFrameY, gWinCaption: Integer;
   gWinActive: Boolean = True; // by default window is active, lol
   gResolutionChange: Boolean = False;
-  gRC_Width, gRC_Height: Word;
+  gRC_Width, gRC_Height: Integer;
   gRC_FullScreen, gRC_Maximized: Boolean;
   gLanguageChange: Boolean = False;
   gDebugMode: Boolean = False;
@@ -4106,7 +4104,6 @@ procedure g_Game_Quit();
 begin
   g_Game_StopAllSounds(True);
   gMusic.Free();
-  g_Game_SaveOptions();
   g_Game_FreeData();
   g_PlayerModel_FreeData();
   g_Texture_DeleteAll();
@@ -4779,16 +4776,6 @@ begin
   NetState := NET_STATE_GAME;
   MC_SEND_FullStateRequest;
   e_WriteLog('NET: Connection successful.', TMsgType.Notify);
-end;
-
-procedure g_Game_SaveOptions;
-  var s: AnsiString;
-begin
-  s := e_GetWriteableDir(ConfigDirs);
-  if s <> '' then
-    g_Options_Write_Video(s + '/' + CONFIG_FILENAME)
-  else
-    e_LogWritefln('unable to find or create directory for configs', []);
 end;
 
 var
@@ -5861,8 +5848,6 @@ begin
     cmd := LowerCase(P[0]);
     if cmd = 'd_window' then
     begin
-      g_Console_Add(Format('gWinPosX = %d, gWinPosY %d', [gWinPosX, gWinPosY]));
-      g_Console_Add(Format('gWinRealPosX = %d, gWinRealPosY %d', [gWinRealPosX, gWinRealPosY]));
       g_Console_Add(Format('gScreenWidth = %d, gScreenHeight = %d', [gScreenWidth, gScreenHeight]));
       g_Console_Add(Format('gWinSizeX = %d, gWinSizeY = %d', [gWinSizeX, gWinSizeY]));
       g_Console_Add(Format('Frame X = %d, Y = %d, Caption Y = %d', [gWinFrameX, gWinFrameY, gWinCaption]));

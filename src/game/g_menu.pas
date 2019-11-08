@@ -1656,37 +1656,23 @@ begin
 end;
 
 procedure ProcSetRussianLanguage;
-  var s: AnsiString;
 begin
   if gLanguage <> LANGUAGE_RUSSIAN then
   begin
     gLanguage := LANGUAGE_RUSSIAN;
     gLanguageChange := True;
     gAskLanguage := False;
-
-    s := e_GetWriteableDir(ConfigDirs);
-    if s <> '' then
-      g_Options_Write_Language(s + '/' + CONFIG_FILENAME);
-
-  // Сохраняем изменения всех настроек:
     ProcApplyOptions();
   end;
 end;
 
 procedure ProcSetEnglishLanguage;
-  var s: AnsiString;
 begin
   if gLanguage <> LANGUAGE_ENGLISH then
   begin
     gLanguage := LANGUAGE_ENGLISH;
     gLanguageChange := True;
     gAskLanguage := False;
-
-    s := e_GetWriteableDir(ConfigDirs);
-    if s <> '' then
-      g_Options_Write_Language(s + '/' + CONFIG_FILENAME);
-
-  // Сохраняем изменения всех настроек:
     ProcApplyOptions();
   end;
 end;
@@ -1922,27 +1908,17 @@ begin
 end;
 
 procedure ProcSetFirstRussianLanguage;
-  var s: AnsiString;
 begin
   gLanguage := LANGUAGE_RUSSIAN;
   gLanguageChange := True;
   gAskLanguage := False;
-
-  s := e_GetWriteableDir(ConfigDirs);
-  if s <> '' then
-    g_Options_Write_Language(s + '/' + CONFIG_FILENAME)
 end;
 
 procedure ProcSetFirstEnglishLanguage;
-  var s: AnsiString;
 begin
   gLanguage := LANGUAGE_ENGLISH;
   gLanguageChange := True;
   gAskLanguage := False;
-
-  s := e_GetWriteableDir(ConfigDirs);
-  if s <> '' then
-    g_Options_Write_Language(s + '/' + CONFIG_FILENAME)
 end;
 
 procedure ProcRecallAddress();

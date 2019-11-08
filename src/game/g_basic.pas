@@ -676,7 +676,7 @@ function GetLines (Text: string; FontID: DWORD; MaxWidth: Word): SSArray;
 begin
   result := nil; lines := 0;
   j := 1; i := 1; len := Length(Text);
-  e_LogWritefln('GetLines @%s len=%s [%s]', [MaxWidth, len, Text]);
+  // e_LogWritefln('GetLines @%s len=%s [%s]', [MaxWidth, len, Text]);
   while j <= len do
   begin
     (* --- Get longest possible sequence --- *)
@@ -689,7 +689,7 @@ begin
     (* --- Add line --- *)
     SetLength(result, lines + 1);
     result[lines] := GetLine(j, i);
-    e_LogWritefln('  -> (%s:%s::%s) [%s]', [j, i, GetWidth(j, i), result[lines]]);
+    // e_LogWritefln('  -> (%s:%s::%s) [%s]', [j, i, GetWidth(j, i), result[lines]]);
     Inc(lines);
     (* --- Skip spaces --- *)
     while (i <= len) and (text[i] = ' ') do Inc(i);
