@@ -85,7 +85,7 @@ var
 implementation
 
 uses
-  g_textures, g_main, e_graphics, e_input, g_game,
+  g_textures, g_main, e_graphics, e_input, g_game, g_gfx, g_player, g_items,
   SysUtils, g_basic, g_options, Math, g_touch, e_res,
   g_menu, g_gui, g_language, g_net, g_netmsg, e_log, conbuf;
 
@@ -862,6 +862,11 @@ begin
 
   AddCommand('r_reset', g_Options_Commands);
   AddCommand('g_language', g_Options_Commands);
+  AddCommand('g_max_particles', g_Options_Commands);
+  AddCommand('g_max_shells', g_Options_Commands);
+  AddCommand('g_max_gibs', g_Options_Commands);
+  AddCommand('g_max_corpses', g_Options_Commands);
+  AddCommand('g_item_respawn_time', g_Options_Commands);
 
   AddCommand('bind', BindCommands);
   AddCommand('bindlist', BindCommands);
@@ -1934,6 +1939,25 @@ begin
         Write(f, ' ', QuoteStr(GetCommandString(gInputBinds[i].up)));
       WriteLn(f, '');
     end;
+  if gAskLanguage then
+    WriteLn(f, 'g_language ask')
+  else
+    WriteLn(f, 'g_language ', gLanguage);
+  WriteLn(f, 'g_max_particles ', g_GFX_GetMax());
+  WriteLn(f, 'g_max_shells ', g_Shells_GetMax());
+  WriteLn(f, 'g_max_gibs ', g_Gibs_GetMax());
+  WriteLn(f, 'g_max_corpses ', g_Corpses_GetMax());
+  WriteLn(f, 'g_item_respawn_time ', ITEM_RESPAWNTIME div 36);
+  with gPlayer1Settings do
+  begin
+    WriteLn(f, 'p1_name ', QuoteStr(Name));
+    WriteLn(f, 'p1_color ', Color.R, ' ', Color.G, ' ', Color.B);
+  end;
+  with gPlayer2Settings do
+  begin
+    WriteLn(f, 'p2_name ', QuoteStr(Name));
+    WriteLn(f, 'p2_color ', Color.R, ' ', Color.G, ' ', Color.B);
+  end;
   for i := 0 to High(commands) do
   begin
     if not commands[i].cheat then
@@ -1960,10 +1984,6 @@ begin
       end
     end
   end;
-  if gAskLanguage then
-    WriteLn(f, 'g_language ask')
-  else
-    WriteLn(f, 'g_language ', gLanguage);    
   WriteLn(f, 'r_reset');
   CloseFile(f)
 end;

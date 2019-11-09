@@ -555,7 +555,7 @@ var
   gTeamStat: TTeamStat;
   gFly: Boolean = False;
   gAimLine: Boolean = False;
-  gChatBubble: Byte = 0;
+  gChatBubble: Integer = 0;
   gPlayerIndicator: Integer = 1;
   gPlayerIndicatorStyle: Integer = 0;
   gNumBots: Word = 0;

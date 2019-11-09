@@ -53,8 +53,8 @@ var
   gAdvBlood: Boolean;
   gAdvGibs: Boolean;
   gGibsCount: Integer;
-  gBloodCount: Byte;
-  gFlash: Byte;
+  gBloodCount: Integer;
+  gFlash: Integer;
   gDrawBackGround: Boolean;
   gShowMessages: Boolean;
   gRevertPlayers: Boolean;
@@ -84,8 +84,6 @@ var
   gnBotsVS: String;
   gsSDLSampleRate: Integer;
   gsSDLBufferSize: Integer;
-  gSFSDebug: Boolean;
-  gSFSFastMode: Boolean;
   gDefaultMegawadStart: AnsiString;
   gBerserkAutoswitch: Boolean;
   glNPOTOverride: Boolean = false;
@@ -252,8 +250,8 @@ begin
   gShowMessages := True;
   gRevertPlayers := False;
   gChatBubble := 4;
-  gSFSDebug := False;
-  gSFSFastMode := False;
+  wadoptDebug := False;
+  wadoptFast := False;
   e_FastScreenshots := True;
   gDefaultMegawadStart := DF_Default_Megawad_Start;
   gBerserkAutoswitch := True;
@@ -316,7 +314,6 @@ end;
 
 procedure g_Options_Read(FileName: String);
 var
-  i: Integer;
   config: TConfig;
   section: String;
   
@@ -389,36 +386,6 @@ begin
     if (Team < TEAM_RED) or (Team > TEAM_BLUE) then
       Team := TEAM_RED;
   end;
-
-  section := 'Game';
-  ReadInteger(i, 'MaxParticles', 0, 50000); g_GFX_SetMax(i);
-  ReadInteger(i, 'MaxShells', 0, 600); g_Shells_SetMax(i);
-  ReadInteger(i, 'MaxGibs', 0, 500); g_Gibs_SetMax(i);
-  ReadInteger(i, 'MaxCorpses', 0, 100); g_Corpses_SetMax(i);
-  ReadInteger(i, 'GibsCount');
-  case i of
-    0: gGibsCount := 0;
-    1: gGibsCount := 8;
-    2: gGibsCount := 16;
-    3: gGibsCount := 32;
-    else gGibsCount := 48;
-  end;
-  i := ITEM_RESPAWNTIME div 36; ReadInteger(i, 'ItemRespawnTime', 0); ITEM_RESPAWNTIME := i * 36;
-  ReadInteger(gBloodCount, 'BloodCount', 0, 4);
-  ReadBoolean(gAdvBlood, 'AdvancesBlood');
-  ReadBoolean(gAdvCorpses, 'AdvancesCorpses');
-  ReadBoolean(gAdvGibs, 'AdvancesGibs');
-  ReadInteger(gFlash, 'Flash', 0, 2);
-  ReadBoolean(gDrawBackGround, 'BackGround');
-  ReadBoolean(gShowMessages, 'Messages');
-  ReadBoolean(gRevertPlayers, 'RevertPlayers');
-  ReadInteger(gChatBubble, 'ChatBubble', 0, 4);
-  ReadBoolean(gSFSDebug, 'SFSDebug'); wadoptDebug := gSFSDebug;
-  ReadBoolean(gSFSFastMode, 'SFSFastMode'); wadoptFast := gSFSFastMode;
-  ReadBoolean(e_FastScreenshots, 'FastScreenshots');
-  ReadString(gDefaultMegawadStart, 'DefaultMegawadStart');
-  ReadBoolean(gBerserkAutoswitch, 'BerserkAutoswitching');
-  i := Trunc(g_dbg_scale * 100); ReadInteger(i, 'Scale', 100); g_dbg_scale := i / 100;
 
   section := 'GameplayCustom';
   ReadString(gcMap, 'Map');
@@ -531,36 +498,6 @@ begin
     WriteInt('Player2', 'blue', Color.B);
     WriteInt('Player2', 'team', Team);
   end;
-
-  with config do
-    case gGibsCount of
-      0: config.WriteInt('Game', 'GibsCount', 0);
-      8: config.WriteInt('Game', 'GibsCount', 1);
-      16: config.WriteInt('Game', 'GibsCount', 2);
-      32: config.WriteInt('Game', 'GibsCount', 3);
-      else config.WriteInt('Game', 'GibsCount', 4);
-    end;
-
-  config.WriteInt('Game', 'ItemRespawnTime', ITEM_RESPAWNTIME div 36);
-  config.WriteInt('Game', 'MaxParticles', g_GFX_GetMax());
-  config.WriteInt('Game', 'MaxShells', g_Shells_GetMax());
-  config.WriteInt('Game', 'MaxGibs', g_Gibs_GetMax());
-  config.WriteInt('Game', 'MaxCorpses', g_Corpses_GetMax());
-  config.WriteInt('Game', 'BloodCount', gBloodCount);
-  config.WriteBool('Game', 'AdvancesBlood', gAdvBlood);
-  config.WriteBool('Game', 'AdvancesCorpses', gAdvCorpses);
-  config.WriteBool('Game', 'AdvancesGibs', gAdvGibs);
-  config.WriteInt('Game', 'Flash', gFlash);
-  config.WriteBool('Game', 'BackGround', gDrawBackGround);
-  config.WriteBool('Game', 'Messages', gShowMessages);
-  config.WriteBool('Game', 'RevertPlayers', gRevertPlayers);
-  config.WriteInt('Game', 'ChatBubble', gChatBubble);
-  config.WriteBool('Game', 'SFSDebug', gSFSDebug);
-  config.WriteBool('Game', 'SFSFastMode', gSFSFastMode);
-  config.WriteBool('Game', 'FastScreenshots', e_FastScreenshots);
-  config.WriteStr('Game', 'DefaultMegawadStart', gDefaultMegawadStart);
-  config.WriteBool('Game', 'BerserkAutoswitching', gBerserkAutoswitch);
-  config.WriteInt('Game', 'Scale', Round(g_dbg_scale * 100));
 
   config.WriteStr ('GameplayCustom', 'Map', gcMap);
   config.WriteStr ('GameplayCustom', 'GameMode', gcGameMode);
@@ -695,7 +632,7 @@ begin
 end;
 
 procedure g_Options_Commands (p: SSArray);
-  var cmd: AnsiString;
+  var cmd: AnsiString; i: Integer;
 begin
   cmd := LowerCase(p[0]);
   case cmd of
@@ -735,7 +672,84 @@ begin
           end;
           g_Language_Set(gLanguage)
         end
-      end
+        else
+        begin
+          e_LogWritefln('usage: %s <English|Russian|Ask>', [cmd])
+        end
+      end;
+    'g_max_particles':
+      begin
+        if Length(p) = 2 then
+        begin
+          i := Max(0, StrToInt(p[1]));
+          g_GFX_SetMax(i)
+        end
+        else if Length(p) = 1 then
+        begin
+          e_LogWritefln('%s', [g_GFX_GetMax()])
+        end
+        else
+        begin
+          e_LogWritefln('usage: %s <n>', [cmd])
+        end
+      end;
+    'g_max_shells':
+      begin
+        if Length(p) = 2 then
+        begin
+          i := Max(0, StrToInt(p[1]));
+          g_Shells_SetMax(i)
+        end
+        else if Length(p) = 1 then
+        begin
+          e_LogWritefln('%s', [g_Shells_GetMax()])
+        end
+        else
+        begin
+          e_LogWritefln('usage: %s <n>', [cmd])
+        end
+      end;
+    'g_max_gibs':
+      begin
+        if Length(p) = 2 then
+        begin
+          i := Max(0, StrToInt(p[1]));
+          g_Gibs_SetMax(i)
+        end
+        else if Length(p) = 1 then
+        begin
+          e_LogWritefln('%s', [g_Gibs_GetMax()])
+        end
+        else
+        begin
+          e_LogWritefln('usage: %s <n>', [cmd])
+        end
+      end;
+    'g_max_corpses':
+      begin
+        if Length(p) = 2 then
+        begin
+          i := Max(0, StrToInt(p[1]));
+          g_Corpses_SetMax(i)
+        end
+        else if Length(p) = 1 then
+        begin
+          e_LogWritefln('%s', [g_Corpses_GetMax()])
+        end
+        else
+        begin
+          e_LogWritefln('usage: %s <n>', [cmd])
+        end
+      end;
+    'g_item_respawn_time':
+      begin
+        if Length(p) = 2 then
+          ITEM_RESPAWNTIME := Max(0, StrToInt(p[1])) * 36
+        else if Length(p) = 1 then
+          e_LogWritefln('%s', [ITEM_RESPAWNTIME div 36])
+        else
+          e_LogWritefln('usage: %s <n>', [cmd])
+      end;
   end;
 end;
 
@@ -766,4 +780,21 @@ initialization
     conRegVar('sdl_mixer_samplerate', @gsSDLSampleRate, '', '');
     conRegVar('sdl_mixer_buffersize', @gsSDLBufferSize, '', '');
   {$ENDIF}
+
+  (* Game *)
+  conRegVar('g_gibs_count', @gGibsCount, '', '');
+  conRegVar('g_blood_count', @gBloodCount, '', '');
+  conRegVar('g_adv_blood', @gAdvBlood, '', '');
+  conRegVar('g_adv_corpses', @gAdvCorpses, '', '');
+  conRegVar('g_adv_gibs', @gAdvGibs, '', '');
+  conRegVar('r_flash', @gFlash, '', '');
+  conRegVar('r_background', @gDrawBackGround, '', '');
+  conRegVar('g_show_messages', @gShowMessages, '', '');
+  conRegVar('r_revert_players', @gRevertPlayers, '', '');
+  conRegVar('r_chat_bubble', @gChatBubble, '', '');
+  conRegVar('sfs_debug', @wadoptDebug, '', '');
+  conRegVar('sfs_fastmode', @wadoptFast, '', '');
+  conRegVar('g_fast_screenshots', @e_FastScreenshots, '', '');
+  conRegVar('g_default_megawad', @gDefaultMegawadStart, '', '');
+
 end.
