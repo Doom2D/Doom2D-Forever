@@ -1844,7 +1844,7 @@ end;
 function g_Net_Client_Update(): enet_size_t;
 begin
   Result := 0;
-  while (enet_host_service(NetHost, @NetEvent, 0) > 0) do
+  while (NetHost <> nil) and (enet_host_service(NetHost, @NetEvent, 0) > 0) do
   begin
     case NetEvent.kind of
       ENET_EVENT_TYPE_RECEIVE:
