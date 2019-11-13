@@ -25,7 +25,7 @@ interface
 
   (* --- Graphics --- *)
   function sys_GetDisplayModes (bpp: Integer): SSArray;
-  function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen: Boolean): Boolean;
+  function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
   procedure sys_EnableVSync (yes: Boolean);
   procedure sys_Repaint;
 
@@ -68,7 +68,7 @@ implementation
     result := nil
   end;
 
-  function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen: Boolean): Boolean;
+  function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
   begin
     result := true
   end;

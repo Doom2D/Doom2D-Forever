@@ -25,7 +25,7 @@ interface
 
   (* --- Graphics --- *)
   function sys_GetDisplayModes (bpp: Integer): SSArray;
-  function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen: Boolean): Boolean;
+  function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
   procedure sys_EnableVSync (yes: Boolean);
   procedure sys_Repaint;
 
@@ -76,6 +76,8 @@ implementation
     gWinSizeY := h;
     gScreenWidth := w;
     gScreenHeight := h;
+    gRC_Width := w;
+    gRC_Height := h;
     {$IFDEF ENABLE_HOLMES}
       fuiScrWdt := w;
       fuiScrHgt := h;
@@ -100,7 +102,7 @@ implementation
     var flags: Uint32;
   begin
     e_LogWritefln('InitWindow %s %s %s %s', [w, h, bpp, fullScreen]);
-    result := False;
+    result := false;
     SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
@@ -120,6 +122,8 @@ implementation
           nogl_Init;
         {$ENDIF}
         SDL_WM_SetCaption(GetTitle(), nil);
+        gFullScreen := fullscreen;
+        gRC_FullScreen := fullscreen;
         UpdateSize(w, h);
         result := True
       end
@@ -159,7 +163,7 @@ implementation
     end
   end;
 
-  function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen: Boolean): Boolean;
+  function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
   begin
     result := InitWindow(w, h, bpp, fullscreen)
   end;

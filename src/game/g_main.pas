@@ -496,7 +496,7 @@ begin
   if e_FindResource(ConfigDirs, s) = true then
     g_Options_Read(s);
   g_Console_SysInit;
-  if sys_SetDisplayMode(gScreenWidth, gScreenHeight, gBPP, gFullScreen) = False then
+  if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized) = False then
     raise Exception.Create('Failed to set videomode on startup.');
 
   e_WriteLog(gLanguage, TMsgType.Notify);

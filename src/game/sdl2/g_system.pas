@@ -25,7 +25,7 @@ interface
 
   (* --- Graphics --- *)
   function sys_GetDisplayModes (bpp: Integer): SSArray;
-  function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen: Boolean): Boolean;
+  function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
   procedure sys_EnableVSync (yes: Boolean);
   procedure sys_Repaint;
 
@@ -79,6 +79,8 @@ implementation
     gWinSizeY := h;
     gScreenWidth := w;
     gScreenHeight := h;
+    gRC_Width := w;
+    gRC_Height := h;
     {$IFDEF ENABLE_HOLMES}
       fuiScrWdt := w;
       fuiScrHgt := h;
@@ -105,7 +107,7 @@ implementation
     result := PChar(Format(GameTitle, [info]))
   end;
 
-  function InitWindow (w, h, bpp: Integer; fullScreen: Boolean): Boolean;
+  function InitWindow (w, h, bpp: Integer; fullScreen, maximized: Boolean): Boolean;
     var flags: UInt32; x, y: Integer;
   begin
     // note: on window close make: if assigned(oglDeinitCB) then oglDeinitCB;
@@ -129,6 +131,7 @@ implementation
       {$ENDIF}
       flags := SDL_WINDOW_OPENGL or SDL_WINDOW_RESIZABLE;
       if fullScreen then flags := flags or SDL_WINDOW_FULLSCREEN;
+      if maximized then flags := flags or SDL_WINDOW_MAXIMIZED;
       x := SDL_WINDOWPOS_CENTERED;
       y := SDL_WINDOWPOS_CENTERED;
       window := SDL_CreateWindow(GetTitle(), x, y, w, h, flags);
@@ -140,6 +143,10 @@ implementation
           {$IFDEF NOGL_INIT}
             nogl_Init;
           {$ENDIF}
+          gFullScreen := fullscreen;
+          gWinMaximized := maximized;
+          gRC_FullScreen := fullscreen;
+          gRC_Maximized := maximized;
           UpdateSize(w, h);
           result := true
         end
@@ -155,9 +162,15 @@ implementation
     end
     else
     begin
-      if fullScreen then flags := SDL_WINDOW_FULLSCREEN else flags := 0;
       SDL_SetWindowSize(window, w, h);
+      if maximized then
+        SDL_MaximizeWindow(window);
+      if fullScreen then flags := SDL_WINDOW_FULLSCREEN else flags := 0;
       SDL_SetWindowFullscreen(window, flags);
+      gFullScreen := fullscreen;
+      gWinMaximized := maximized;
+      gRC_FullScreen := fullscreen;
+      gRC_Maximized := maximized;
       UpdateSize(w, h);
       result := true
     end
@@ -208,9 +221,9 @@ implementation
     end
   end;
 
-  function sys_SetDisplayMode (w, h, bpp: Integer; fullScreen: Boolean): Boolean;
+  function sys_SetDisplayMode (w, h, bpp: Integer; fullScreen, maximized: Boolean): Boolean;
   begin
-    result := InitWindow(w, h, bpp, fullScreen)
+    result := InitWindow(w, h, bpp, fullScreen, maximized)
   end;
 
   (* --------- Joystick --------- *)
@@ -363,6 +376,8 @@ implementation
   function HandleWindow (var ev: TSDL_WindowEvent): Boolean;
   begin
     result := false;
+    if g_dbg_input then
+      e_LogWritefln('Window Event: event = %s, data1 = %s, data2 = %s', [ev.event, ev.data1, ev.data2]);
     case ev.event of
       SDL_WINDOWEVENT_RESIZED: UpdateSize(ev.data1, ev.data2);
       SDL_WINDOWEVENT_EXPOSED: sys_Repaint;
@@ -378,6 +393,10 @@ implementation
         end;
       SDL_WINDOWEVENT_FOCUS_GAINED, SDL_WINDOWEVENT_MAXIMIZED, SDL_WINDOWEVENT_RESTORED:
         begin
+          if ev.event = SDL_WINDOWEVENT_MAXIMIZED then
+            gRC_Maximized := true
+          else if ev.event = SDL_WINDOWEVENT_RESTORED then
+            gRC_Maximized := false;
           e_MuteChannels(false);
           {$IFDEF ENABLE_HOLMES}
             if assigned(winFocusCB) then winFocusCB;

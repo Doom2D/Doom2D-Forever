@@ -4177,7 +4177,7 @@ end;
 
 procedure g_Game_ChangeResolution(newWidth, newHeight: Word; nowFull, nowMax: Boolean);
 begin
-  sys_SetDisplayMode(newWidth, newHeight, gBPP, nowFull);
+  sys_SetDisplayMode(newWidth, newHeight, gBPP, nowFull, nowMax);
 end;
 
 procedure g_Game_AddPlayer(Team: Byte = TEAM_NONE);

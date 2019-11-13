@@ -174,6 +174,7 @@ begin
   gRC_Width := gScreenWidth;
   gRC_Height := gScreenHeight;
   gRC_FullScreen := gFullScreen;
+  gRC_Maximized := gWinMaximized;
   e_LogWriteLn('g_Options_SetDefaultVideo: w = ' + IntToStr(gScreenWidth) + ' h = ' + IntToStr(gScreenHeight));
   g_Console_ResetBinds;
 end;
@@ -191,6 +192,7 @@ begin
   gRC_Width := gScreenWidth;
   gRC_Height := gScreenHeight;
   gRC_FullScreen := gFullScreen;
+  gRC_Maximized := gWinMaximized;
   e_LogWriteLn('g_Options_SetDefaultVideo: w = ' + IntToStr(gScreenWidth) + ' h = ' + IntToStr(gScreenHeight));
   g_Console_ResetBinds;
 end;
@@ -648,7 +650,7 @@ begin
         gRC_Width := Max(1, gRC_Width);
         gRC_Height := Max(1, gRC_Height);
         gBPP := Max(1, gBPP);
-        if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen) = True then
+        if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized) = True then
           e_LogWriteln('resolution changed')
         else
           e_LogWriteln('resolution not changed')
