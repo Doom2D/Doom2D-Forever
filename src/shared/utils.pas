@@ -1021,7 +1021,7 @@ end;
 
 function IsValid1251 (ch: Word): Boolean;
 begin
-  result := ((ch = Ord('?')) or (wc2shitmap[ch] <> '?')) and (ch <> $98)
+  result := ((ch = Ord('?')) or (wc2shitmap[ch] <> '?')) and (wc2shitmap[ch] <> #$98)
 end;
 
 function IsPrintable1251 (ch: AnsiChar): Boolean;
