@@ -171,6 +171,9 @@ begin
   gVSync := True;
   gTextureFilter := True;
   glLegacyNPOT := False;
+  gRC_Width := gScreenWidth;
+  gRC_Height := gScreenHeight;
+  gRC_FullScreen := gFullScreen;
   e_LogWriteLn('g_Options_SetDefaultVideo: w = ' + IntToStr(gScreenWidth) + ' h = ' + IntToStr(gScreenHeight));
   g_Console_ResetBinds;
 end;
@@ -185,6 +188,9 @@ begin
   gVSync := True;
   gTextureFilter := True;
   glLegacyNPOT := False;
+  gRC_Width := gScreenWidth;
+  gRC_Height := gScreenHeight;
+  gRC_FullScreen := gFullScreen;
   e_LogWriteLn('g_Options_SetDefaultVideo: w = ' + IntToStr(gScreenWidth) + ' h = ' + IntToStr(gScreenHeight));
   g_Console_ResetBinds;
 end;
