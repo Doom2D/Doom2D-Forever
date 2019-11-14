@@ -287,8 +287,6 @@ var
   gTempDelete: Boolean = False;
   gLastMap: Boolean = False;
   gWinSizeX, gWinSizeY: Integer;
-  gWinFrameX, gWinFrameY, gWinCaption: Integer;
-  gWinActive: Boolean = True; // by default window is active, lol
   gResolutionChange: Boolean = False;
   gRC_Width, gRC_Height: Integer;
   gRC_FullScreen, gRC_Maximized: Boolean;
@@ -5850,7 +5848,6 @@ begin
     begin
       g_Console_Add(Format('gScreenWidth = %d, gScreenHeight = %d', [gScreenWidth, gScreenHeight]));
       g_Console_Add(Format('gWinSizeX = %d, gWinSizeY = %d', [gWinSizeX, gWinSizeY]));
-      g_Console_Add(Format('Frame X = %d, Y = %d, Caption Y = %d', [gWinFrameX, gWinFrameY, gWinCaption]));
     end
     else if cmd = 'd_sounds' then
     begin

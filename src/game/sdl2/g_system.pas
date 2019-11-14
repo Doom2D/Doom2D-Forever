@@ -40,7 +40,7 @@ interface
 implementation
 
   uses
-    SysUtils, SDL2, Math,
+    SysUtils, SDL2, Math, ctypes,
     e_log, e_graphics, e_input, e_sound,
     {$INCLUDE ../nogl/noGLuses.inc}
     {$IFDEF ENABLE_HOLMES}
@@ -54,7 +54,8 @@ implementation
   var
     window: PSDL_Window;
     context: TSDL_GLContext;
-    display: Integer;
+    display, wx, wy: Integer;
+    wc: Boolean;
     JoystickHandle: array [0..e_MaxJoys - 1] of PSDL_Joystick;
     JoystickHatState: array [0..e_MaxJoys - 1, 0..e_MaxJoyHats - 1, HAT_LEFT..HAT_DOWN] of Boolean;
     JoystickZeroAxes: array [0..e_MaxJoys - 1, 0..e_MaxJoyAxes - 1] of Integer;
@@ -108,7 +109,7 @@ implementation
   end;
 
   function InitWindow (w, h, bpp: Integer; fullScreen, maximized: Boolean): Boolean;
-    var flags: UInt32; x, y: Integer;
+    var flags: UInt32; x, y: cint;
   begin
     // note: on window close make: if assigned(oglDeinitCB) then oglDeinitCB;
     e_LogWritefln('InitWindow %s %s %s %s', [w, h, bpp, fullScreen]);
@@ -132,8 +133,16 @@ implementation
       flags := SDL_WINDOW_OPENGL or SDL_WINDOW_RESIZABLE;
       if fullScreen then flags := flags or SDL_WINDOW_FULLSCREEN;
       if maximized then flags := flags or SDL_WINDOW_MAXIMIZED;
-      x := SDL_WINDOWPOS_CENTERED;
-      y := SDL_WINDOWPOS_CENTERED;
+      if wc then
+      begin
+        x := SDL_WINDOWPOS_CENTERED;
+        y := SDL_WINDOWPOS_CENTERED
+      end
+      else
+      begin
+        x := wx;
+        y := wy
+      end;
       window := SDL_CreateWindow(GetTitle(), x, y, w, h, flags);
       if window <> nil then
       begin
@@ -143,6 +152,11 @@ implementation
           {$IFDEF NOGL_INIT}
             nogl_Init;
           {$ENDIF}
+          if (fullscreen = false) and (maximized = false) and (wc = false) then
+          begin
+            SDL_GetWindowPosition(window, @x, @y);
+            wx := x; wy := y
+          end;
           gFullScreen := fullscreen;
           gWinMaximized := maximized;
           gRC_FullScreen := fullscreen;
@@ -152,6 +166,7 @@ implementation
         end
         else
         begin
+          // SDL_DestroyWindow(window);
           e_LogWritefln('SDL: unable to create OpenGL context: %s', [SDL_GetError])
         end
       end
@@ -163,6 +178,22 @@ implementation
     else
     begin
       SDL_SetWindowSize(window, w, h);
+      if wc then
+      begin
+        x := SDL_WINDOWPOS_CENTERED;
+        y := SDL_WINDOWPOS_CENTERED
+      end
+      else
+      begin
+        x := wx;
+        y := wy
+      end;
+      SDL_SetWindowPosition(window, x, y);
+      if (fullscreen = false) and (maximized = false) and (wc = false) then
+      begin
+        SDL_GetWindowPosition(window, @x, @y);
+        wx := x; wy := y
+      end;
       if maximized then
         SDL_MaximizeWindow(window);
       if fullScreen then flags := SDL_WINDOW_FULLSCREEN else flags := 0;
@@ -382,6 +413,11 @@ implementation
       SDL_WINDOWEVENT_RESIZED: UpdateSize(ev.data1, ev.data2);
       SDL_WINDOWEVENT_EXPOSED: sys_Repaint;
       SDL_WINDOWEVENT_CLOSE: result := true;
+      SDL_WINDOWEVENT_MOVED:
+        begin
+          wx := ev.data1;
+          wy := ev.data2
+        end;
       SDL_WINDOWEVENT_FOCUS_LOST, SDL_WINDOWEVENT_MINIMIZED:
         begin
           e_UnpressAllKeys;
@@ -394,9 +430,15 @@ implementation
       SDL_WINDOWEVENT_FOCUS_GAINED, SDL_WINDOWEVENT_MAXIMIZED, SDL_WINDOWEVENT_RESTORED:
         begin
           if ev.event = SDL_WINDOWEVENT_MAXIMIZED then
+          begin
+            gWinMaximized := true;
             gRC_Maximized := true
+          end
           else if ev.event = SDL_WINDOWEVENT_RESTORED then
-            gRC_Maximized := false;
+          begin
+            gWinMaximized := false;
+            gRC_Maximized := false
+          end;
           e_MuteChannels(false);
           {$IFDEF ENABLE_HOLMES}
             if assigned(winFocusCB) then winFocusCB;
@@ -518,4 +560,11 @@ implementation
 
 initialization
   conRegVar('sdl2_display_index', @display, 'use display index as base', '');
+  conRegVar('sdl2_window_x', @wx, 'window position x', '');
+  conRegVar('sdl2_window_y', @wy, 'window position y', '');
+  conRegVar('sdl2_window_center', @wc, 'force window creation at center', '');
+  display := 0;
+  wx := SDL_WINDOWPOS_CENTERED;
+  wy := SDL_WINDOWPOS_CENTERED;
+  wc := false
 end.
