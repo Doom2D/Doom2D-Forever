@@ -1000,7 +1000,7 @@ const
                                        'Мёртвая зона джойстика %d'),
 
     ('MENU CONTROL TOUCH',             'Touchscreen Settings',
-                                       'Настройки сенсрного экрана'),
+                                       'Настройки сенсорного экрана'),
     ('MENU CONTROL TOUCH ALT',         'Alternative layout:',
                                        'Альтернативная раскладка:'),
     ('MENU CONTROL TOUCH FIRE',        'Shoot Up/Down:',
