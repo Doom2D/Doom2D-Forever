@@ -1281,13 +1281,14 @@ end;
 procedure ProcSinglePlayer (n: Integer);
   var wad, map: AnsiString;
 begin
+  assert(n >= 1);
   wad := g_ExtractWadName(gDefaultMegawadStart);
   map := g_ExtractFilePathName(gDefaultMegawadStart);
   if e_FindResource(AllMapDirs, wad) then
   begin
     wad := ExpandFileName(wad);
-    g_Game_StartSingle(wad + ':\' + map, False, n);
-  end;
+    g_Game_StartSingle(wad + ':\' + map, n > 1, n)
+  end
 end;
 
 procedure ProcSingle1Player;
