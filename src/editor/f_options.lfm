@@ -1,6 +1,6 @@
 object OptionsForm: TOptionsForm
   Left = 202
-  Height = 285
+  Height = 300
   Top = 174
   Width = 435
   BorderIcons = [biSystemMenu]
@@ -124,8 +124,8 @@ object OptionsForm: TOptionsForm
       Top = 74
       Width = 12
       Associate = eDotStepOne
-      Max = 255
-      Min = 2
+      Max = 2048
+      Min = 4
       Position = 16
       TabOrder = 4
       Wrap = False
@@ -230,8 +230,8 @@ object OptionsForm: TOptionsForm
       Top = 98
       Width = 12
       Associate = eDotStepTwo
-      Max = 255
-      Min = 2
+      Max = 2048
+      Min = 4
       Position = 8
       TabOrder = 6
       Wrap = False

@@ -7,7 +7,7 @@ interface
 uses
   LCLIntf, LCLType, SysUtils, Variants, Classes,
   Graphics, Controls, Forms, Dialogs, StdCtrls,
-  ExtCtrls, ComCtrls, Registry;
+  ExtCtrls, ComCtrls, Registry, Math;
 
 type
 
@@ -182,8 +182,8 @@ begin
     d1 := True
   else
     d1 := False;
-  DotStepOne := StrToIntDef(eDotStepOne.Text, 16);
-  DotStepTwo := StrToIntDef(eDotStepTwo.Text, 8);
+  DotStepOne := EnsureRange(StrToIntDef(eDotStepOne.Text, 16), 4, 2048);
+  DotStepTwo := EnsureRange(StrToIntDef(eDotStepTwo.Text, 8), 4, 2048);
   if d1 then
     DotStep := DotStepOne
   else

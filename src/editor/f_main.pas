@@ -292,8 +292,8 @@ var
 
   DotColor: TColor;
   DotEnable: Boolean;
-  DotStep: Byte;
-  DotStepOne, DotStepTwo: Byte;
+  DotStep: Word;
+  DotStepOne, DotStepTwo: Word;
   DotSize: Byte;
   DrawTexturePanel: Boolean;
   DrawPanelSize: Boolean;
@@ -694,10 +694,10 @@ begin
   begin
     ScaleSz := 16 div Scale;
   // Размер видимой части карты:
-    rx := min(Normalize16(Width), Normalize16(gMapInfo.Width)) div 2;
-    ry := min(Normalize16(Height), Normalize16(gMapInfo.Height)) div 2;
+    rx := Min(Normalize16(Width), Normalize16(gMapInfo.Width)) div 2;
+    ry := Min(Normalize16(Height), Normalize16(gMapInfo.Height)) div 2;
   // Место клика на мини-карте:
-    MapOffset.X := X - (Width-max(gMapInfo.Width div ScaleSz, 1)-1);
+    MapOffset.X := X - (Width - Max(gMapInfo.Width div ScaleSz, 1) - 1);
     MapOffset.Y := Y - 1;
   // Это же место на "большой" карте:
     MapOffset.X := MapOffset.X * ScaleSz;
@@ -706,17 +706,17 @@ begin
     MapOffset.X := MapOffset.X - rx;
     MapOffset.Y := MapOffset.Y - ry;
   // Выход за границы:
-    if MapOffset.X < 0 then
-      MapOffset.X := 0;
-    if MapOffset.Y < 0 then
-      MapOffset.Y := 0;
+    if MapOffset.X < MainForm.sbHorizontal.Min then
+      MapOffset.X := MainForm.sbHorizontal.Min;
+    if MapOffset.Y < MainForm.sbVertical.Min then
+      MapOffset.Y := MainForm.sbVertical.Min;
     if MapOffset.X > MainForm.sbHorizontal.Max then
       MapOffset.X := MainForm.sbHorizontal.Max;
     if MapOffset.Y > MainForm.sbVertical.Max then
       MapOffset.Y := MainForm.sbVertical.Max;
   // Кратно 16:
-    MapOffset.X := Normalize16(MapOffset.X);
-    MapOffset.Y := Normalize16(MapOffset.Y);
+  //  MapOffset.X := Normalize16(MapOffset.X);
+  //  MapOffset.Y := Normalize16(MapOffset.Y);
   end;
 
   MainForm.sbHorizontal.Position := MapOffset.X;
@@ -2853,12 +2853,22 @@ begin
     else
       a := 0;
 
-    for x := 0 to (RenderPanel.Width div DotStep) do
-      for y := 0 to (RenderPanel.Height div DotStep) do
-        e_DrawPoint(DotSize, x*DotStep + a, y*DotStep + a,
+    x := MapOffset.X mod DotStep;
+    y := MapOffset.Y mod DotStep;
+
+    while x < RenderPanel.Width do
+    begin
+      while y < RenderPanel.Height do
+      begin
+        e_DrawPoint(DotSize, x + a, y + a,
                     GetRValue(DotColor),
                     GetGValue(DotColor),
                     GetBValue(DotColor));
+        y += DotStep;
+      end;
+      x += DotStep;
+      y := MapOffset.Y mod DotStep;
+    end;
   end;
 
 // Превью текстуры:
@@ -3109,18 +3119,13 @@ procedure TMainForm.FormResize(Sender: TObject);
 begin
   e_SetViewPort(0, 0, RenderPanel.Width, RenderPanel.Height);
 
-  if gMapInfo.Width >= RenderPanel.Width then
-    sbHorizontal.Max := Normalize16(gMapInfo.Width-RenderPanel.Width+16)
-  else
-    sbHorizontal.Max := 0;
+  sbHorizontal.Min := Min(gMapInfo.Width - RenderPanel.Width, -RenderPanel.Width div 2);
+  sbHorizontal.Max := Max(0, gMapInfo.Width - RenderPanel.Width div 2);
+  sbVertical.Min := Min(gMapInfo.Height - RenderPanel.Height, -RenderPanel.Height div 2);
+  sbVertical.Max := Max(0, gMapInfo.Height - RenderPanel.Height div 2);
 
-  if gMapInfo.Height >= RenderPanel.Height then
-    sbVertical.Max := Normalize16(gMapInfo.Height-RenderPanel.Height+16)
-  else
-    sbVertical.Max := 0;
-
-  MapOffset.X := -Normalize16(sbHorizontal.Position);
-  MapOffset.Y := -Normalize16(sbVertical.Position);
+  MapOffset.X := -sbHorizontal.Position;
+  MapOffset.Y := -sbVertical.Position;
 end;
 
 procedure SelectNextObject(X, Y: Integer; ObjectType: Byte; ID: DWORD);
@@ -4100,8 +4105,8 @@ begin
       end
     else
       begin // Кнопки мыши не зажаты
-        MousePos.X := (Round(X/sX)*sX);
-        MousePos.Y := (Round(Y/sY)*sY);
+        MousePos.X := Round((-MapOffset.X + X) / sX) * sX + MapOffset.X;
+        MousePos.Y := Round((-MapOffset.Y + Y) / sY) * sY + MapOffset.Y;
       end;
 
 // Изменение размера закончилось - ставим обычный курсор:
@@ -4406,34 +4411,42 @@ begin
       begin
         if Key = Ord('W') then
         begin
-          if (MouseLDown or MouseRDown) and (Position >= DotStep) then
+          dy := Position;
+          if ssShift in Shift then Position := EnsureRange(Position - DotStep * 4, Min, Max)
+          else Position := EnsureRange(Position - DotStep, Min, Max);
+          MapOffset.Y := -Position;
+          dy -= Position;
+
+          if (MouseLDown or MouseRDown) then
           begin
             if DrawRect <> nil then
             begin
-              Inc(MouseLDownPos.y, DotStep);
-              Inc(MouseRDownPos.y, DotStep);
+              Inc(MouseLDownPos.y, dy);
+              Inc(MouseRDownPos.y, dy);
             end;
-            Inc(LastMovePoint.Y, DotStep);
+            Inc(LastMovePoint.Y, dy);
             RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
-          Position := IfThen(Position > DotStep, Position-DotStep, 0);
-          MapOffset.Y := -Round(Position/16) * 16;
         end;
 
         if Key = Ord('S') then
         begin
-          if (MouseLDown or MouseRDown) and (Position+DotStep <= Max) then
+          dy := Position;
+          if ssShift in Shift then Position := EnsureRange(Position + DotStep * 4, Min, Max)
+          else Position := EnsureRange(Position + DotStep, Min, Max);
+          MapOffset.Y := -Position;
+          dy -= Position;
+
+          if (MouseLDown or MouseRDown) then
           begin
             if DrawRect <> nil then
             begin
-              Dec(MouseLDownPos.y, DotStep);
-              Dec(MouseRDownPos.y, DotStep);
+              Inc(MouseLDownPos.y, dy);
+              Inc(MouseRDownPos.y, dy);
             end;
-            Dec(LastMovePoint.Y, DotStep);
+            Inc(LastMovePoint.Y, dy);
             RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
-          Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
-          MapOffset.Y := -Round(Position/16) * 16;
         end;
       end;
 
@@ -4442,34 +4455,42 @@ begin
       begin
         if Key = Ord('A') then
         begin
-          if (MouseLDown or MouseRDown) and (Position >= DotStep) then
+          dx := Position;
+          if ssShift in Shift then Position := EnsureRange(Position - DotStep * 4, Min, Max)
+          else Position := EnsureRange(Position - DotStep, Min, Max);
+          MapOffset.X := -Position;
+          dx -= Position;
+
+          if (MouseLDown or MouseRDown) then
           begin
             if DrawRect <> nil then
             begin
-              Inc(MouseLDownPos.x, DotStep);
-              Inc(MouseRDownPos.x, DotStep);
+              Inc(MouseLDownPos.x, dx);
+              Inc(MouseRDownPos.x, dx);
             end;
-            Inc(LastMovePoint.X, DotStep);
+            Inc(LastMovePoint.X, dx);
             RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
-          Position := IfThen(Position > DotStep, Position-DotStep, 0);
-          MapOffset.X := -Round(Position/16) * 16;
         end;
 
         if Key = Ord('D') then
         begin
-          if (MouseLDown or MouseRDown) and (Position+DotStep <= Max) then
+          dx := Position;
+          if ssShift in Shift then Position := EnsureRange(Position + DotStep * 4, Min, Max)
+          else Position := EnsureRange(Position + DotStep, Min, Max);
+          MapOffset.X := -Position;
+          dx -= Position;
+
+          if (MouseLDown or MouseRDown) then
           begin
             if DrawRect <> nil then
             begin
-              Dec(MouseLDownPos.x, DotStep);
-              Dec(MouseRDownPos.x, DotStep);
+              Inc(MouseLDownPos.x, dx);
+              Inc(MouseRDownPos.x, dx);
             end;
-            Dec(LastMovePoint.X, DotStep);
+            Inc(LastMovePoint.X, dx);
             RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
-          Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
-          MapOffset.X := -Round(Position/16) * 16;
         end;
       end;
     end
@@ -6793,13 +6814,13 @@ end;
 procedure TMainForm.sbVerticalScroll(Sender: TObject;
   ScrollCode: TScrollCode; var ScrollPos: Integer);
 begin
-  MapOffset.Y := -Normalize16(sbVertical.Position);
+  MapOffset.Y := -sbVertical.Position;
 end;
 
 procedure TMainForm.sbHorizontalScroll(Sender: TObject;
   ScrollCode: TScrollCode; var ScrollPos: Integer);
 begin
-  MapOffset.X := -Normalize16(sbHorizontal.Position);
+  MapOffset.X := -sbHorizontal.Position;
 end;
 
 procedure TMainForm.miOpenWadMapClick(Sender: TObject);
