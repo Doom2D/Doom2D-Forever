@@ -40,7 +40,6 @@ var
   img:        TImageData;
   clr:        TColor32Rec;
   bgc:        TColor32Rec;
-  ii:         PByte;
   Width,
   Height:     Integer;
   x, y:       Integer;
@@ -68,47 +67,36 @@ begin
 
   Width  := img.width;
   Height := img.height;
-
   BitMap := TBitMap.Create();
   BitMap.PixelFormat := pf24bit;
-
   BitMap.Width := Width;
   BitMap.Height := Height;
-
-// Копируем в BitMap:
-  ii := BitMap.RawImage.Data;
-  for y := 0 to height-1 do
+  for y := 0 to height - 1 do
   begin
-    for x := 0 to width-1 do
+    for x := 0 to width - 1 do
     begin
       clr := GetPixel32(img, x, y);
       // HACK: Lazarus's TBitMap doesn't seem to have a working 32 bit mode, so
       //       mix color with checkered background. Also, can't really read
       //       CHECKERS.tga from here. FUCK!
       if UseCheckerboard then
-        begin
-          if (((x shr 3) and 1) = 0) xor (((y shr 3) and 1) = 0) then
-            bgc.Color := $FDFDFD
-          else
-            bgc.Color := $CBCBCB;
-        end
+      begin
+        if (((x shr 3) and 1) = 0) xor (((y shr 3) and 1) = 0) then
+          bgc.Color := $FDFDFD
+        else
+          bgc.Color := $CBCBCB
+      end
       else
-        begin
-          bgc.r := GetRValue(PreviewColor);
-          bgc.g := GetGValue(PreviewColor);
-          bgc.b := GetBValue(PreviewColor);
-        end;
+      begin
+        bgc.r := GetRValue(PreviewColor);
+        bgc.g := GetGValue(PreviewColor);
+        bgc.b := GetBValue(PreviewColor)
+      end;
       clr.r := ClampToByte((Byte(255 - clr.a) * bgc.r + clr.a * clr.r) div 255);
       clr.g := ClampToByte((Byte(255 - clr.a) * bgc.g + clr.a * clr.g) div 255);
       clr.b := ClampToByte((Byte(255 - clr.a) * bgc.b + clr.a * clr.b) div 255);
-      // TODO: check for RGB/BGR somehow?
-      ii^ := clr.b; Inc(ii);
-      ii^ := clr.g; Inc(ii);
-      ii^ := clr.r; Inc(ii);
-
-      (* Why this works in linux? *)
-      {$IFNDEF WINDOWS}Inc(ii){$ENDIF}
-    end;
+      BitMap.Canvas.Pixels[x, y] := RGBToColor(clr.r, clr.g, clr.b)
+    end
   end;
   FreeMem(TextureData);
   FreeImage(img);
