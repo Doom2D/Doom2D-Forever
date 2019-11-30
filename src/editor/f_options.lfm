@@ -1,12 +1,12 @@
 object OptionsForm: TOptionsForm
   Left = 202
-  Height = 300
+  Height = 310
   Top = 174
   Width = 435
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'Настройки редактора'
-  ClientHeight = 285
+  ClientHeight = 310
   ClientWidth = 435
   Color = clBtnFace
   Font.Color = clWindowText
@@ -17,10 +17,10 @@ object OptionsForm: TOptionsForm
   LCLVersion = '1.8.4.0'
   object GroupBox1: TGroupBox
     Left = 8
-    Height = 248
+    Height = 272
     Top = 0
     Width = 425
-    ClientHeight = 246
+    ClientHeight = 272
     ClientWidth = 423
     TabOrder = 0
     object sDotColor: TShape
@@ -298,7 +298,7 @@ object OptionsForm: TOptionsForm
   object bOK: TButton
     Left = 262
     Height = 25
-    Top = 256
+    Top = 280
     Width = 75
     Caption = 'ОК'
     Default = True
@@ -308,7 +308,7 @@ object OptionsForm: TOptionsForm
   object bCancel: TButton
     Left = 358
     Height = 25
-    Top = 256
+    Top = 280
     Width = 75
     Cancel = True
     Caption = 'Отмена'

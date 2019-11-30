@@ -2720,25 +2720,25 @@ begin
 // Границы карты:
   if PreviewMode = 0 then
   begin
-    e_DrawFillQuad(-32+MapOffset.X,
-                   -32+MapOffset.Y,
-                   gMapInfo.Width+31+MapOffset.X,
-                   -1+MapOffset.Y,
+    e_DrawFillQuad(0,
+                   0,
+                   MainForm.RenderPanel.Width,
+                   -1 + MapOffset.Y,
                    drEdge[0], drEdge[1], drEdge[2], drEdge[3], B_NONE); // Top
-    e_DrawFillQuad(-32+MapOffset.X,
-                   gMapInfo.Height+MapOffset.Y,
-                   gMapInfo.Width+31+MapOffset.X,
-                   gMapInfo.Height+31+MapOffset.Y,
+    e_DrawFillQuad(0,
+                   gMapInfo.Height + MapOffset.Y,
+                   MainForm.RenderPanel.Width,
+                   MainForm.RenderPanel.Height,
                    drEdge[0], drEdge[1], drEdge[2], drEdge[3], B_NONE); // Bottom
-    e_DrawFillQuad(-32+MapOffset.X,
+    e_DrawFillQuad(0,
                    MapOffset.Y,
-                   -1+MapOffset.X,
-                   gMapInfo.Height+MapOffset.Y-1,
+                   -1 + MapOffset.X,
+                   gMapInfo.Height + MapOffset.Y - 1,
                    drEdge[0], drEdge[1], drEdge[2], drEdge[3], B_NONE); // Left
-    e_DrawFillQuad(gMapInfo.Width+MapOffset.X,
+    e_DrawFillQuad(gMapInfo.Width + MapOffset.X,
                    MapOffset.Y,
-                   gMapInfo.Width+31+MapOffset.X,
-                   gMapInfo.Height+MapOffset.Y-1,
+                   MainForm.RenderPanel.Width,
+                   gMapInfo.Height + MapOffset.Y - 1,
                    drEdge[0], drEdge[1], drEdge[2], drEdge[3], B_NONE); // Right
   end;
 end;
