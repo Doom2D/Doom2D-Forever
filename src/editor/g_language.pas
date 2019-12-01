@@ -1829,10 +1829,10 @@ Const
     ('WAD SPECIAL TEXS',               '<EXTRA TEXTURES>',
                                        '<СПЕЦТЕКСТУРЫ>'),
 
-    ('FILE FILTER ALL',                'Doom 2D: Forever Maps (*.dfz, *.wad)|*.dfz;*.wad|Doom 2D: Forever 0.30 Maps (*.ini)|*.ini|Все файлы (*.*)|*.*',
-                                       'Карты Doom 2D: Forever (*.dfz, *.wad)|*.dfz;*.wad|Старые карты Doom 2D: Forever 0.30 (*.ini)|*.ini|Все файлы (*.*)|*.*'),
-    ('FILE FILTER WAD',                'Doom 2D: Forever Maps (*.dfz)|*.dfz|Doom 2D: Forever Maps (*.wad)|*.wad|Все файлы (*.*)|*.*',
-                                       'Карты Doom 2D: Forever (*.dfz)|*.dfz|Карты Doom 2D: Forever (*.wad)|*.wad|Все файлы (*.*)|*.*'),
+    ('FILE FILTER ALL',                'Doom 2D: Forever Maps (*.dfz, *.dfzip, *.zip, *.wad)|*.dfz;*.dfzip;*.zip;*.wad|Doom 2D: Forever 0.30 Maps (*.ini)|*.ini|All Files (*.*)|*.*',
+                                       'Карты Doom 2D: Forever (*.dfz, *.dfzip, *.zip, *.wad)|*.dfz;*.dfzip;*.zip;*.wad|Старые карты Doom 2D: Forever 0.30 (*.ini)|*.ini|Все файлы (*.*)|*.*'),
+    ('FILE FILTER WAD',                'Doom 2D: Forever Maps (*.dfz)|*.dfz|Doom 2D: Forever Maps (*.dfzip)|*.dfzip|Doom 2D: Forever Maps (*.zip)|*.zip|Doom 2D: Forever Maps (*.wad)|*.wad|All Files (*.*)|*.*',
+                                       'Карты Doom 2D: Forever (*.dfz)|*.dfz|Карты Doom 2D: Forever (*.dfzip)|*.dfzip|Карты Doom 2D: Forever (*.zip)|*.zip|Карты Doom 2D: Forever (*.wad)|*.wad|Все файлы (*.*)|*.*'),
 
     ('EDITOR TITLE',                   'Doom 2D: Forever Map Editor',
                                        'Редактор карт Doom 2D: Forever'),
