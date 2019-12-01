@@ -14,7 +14,7 @@ Requirements:
 Create the "tmp" and "bin" directories and then run:
 
   cd src/game
-  fpc -O3 -FE../../bin -FU../../tmp Doom2DF.lpr
+  fpc -g -gl -O3 -FE../../bin -FU../../tmp Doom2DF.lpr
 
 Additionally you can add following options:
   System driver:
@@ -40,13 +40,14 @@ Additionally you can add following options:
     * -dUSE_MPG123      Build with libmpg123
     * -dUSE_OPUS        Build with libopus
   Other:
+    * -dSDL2_NODPI      Build for old libSDL2
     * -dUSE_MINIUPNPC   Build with libminiupnpc for automatic server port
                         forwarding via UPNP
     * -dENABLE_HOLMES   Build with ingame map debugger
     * -dHEADLESS        Build a headless executable for dedicated servers
 
-Replace -O3 with -g -gl to enable debugging features. Run the game with --gdb
-when using a debugger to prevent it from eating exceptions.
+Run the game with --gdb when using a debugger to prevent it from eating
+exceptions.
 
 Windows binaries will require the appropriate DLLs (SDL2.dll, SDL2_mixer.dll or
 FMODEx.dll, ENet.dll, miniupnpc.dll), unless you choose to static link them.

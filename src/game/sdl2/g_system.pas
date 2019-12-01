@@ -531,11 +531,15 @@ implementation
         flags := SDL_INIT_TIMER or $00004000;
       {$ENDIF}
     {$ELSE}
-      flags := SDL_INIT_JOYSTICK or SDL_INIT_TIMER or SDL_INIT_VIDEO;
+      flags := SDL_INIT_TIMER or SDL_INIT_VIDEO;
     {$ENDIF}
     SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, '0');
     if SDL_Init(flags) <> 0 then
       raise Exception.Create('SDL: Init failed: ' + SDL_GetError);
+    {$IFNDEF HEADLESS}
+      if SDL_InitSubSystem(SDL_INIT_JOYSTICK) <> 0 then
+        e_LogWritefln('SDL: Init subsystem failed: %s', [SDL_GetError()]);
+    {$ENDIF}
     SDL_ShowCursor(SDL_DISABLE);
   end;
 

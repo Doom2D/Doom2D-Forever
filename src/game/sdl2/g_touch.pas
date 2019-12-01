@@ -58,8 +58,12 @@ implementation
 
   begin
     founded := false;
-    if SDL_GetDisplayDPI(0, @dpi, nil, nil) <> 0 then
+    {$IFNDEF SDL2_NODPI}
+      if SDL_GetDisplayDPI(0, @dpi, nil, nil) <> 0 then
+        dpi := 96;
+    {$ELSE}
       dpi := 96;
+    {$ENDIF}
 
     sz := Trunc(g_touch_size * dpi); sw := gScreenWidth; sh := gScreenHeight;
     x := 0; y := Round(sh * g_touch_offset / 100);
