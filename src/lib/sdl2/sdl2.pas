@@ -147,8 +147,6 @@ interface
 
   {$IFDEF DARWIN}
     uses
-      X,
-      XLib,
       CocoaAll;
   {$ENDIF}
 
