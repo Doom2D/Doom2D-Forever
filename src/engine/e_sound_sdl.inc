@@ -197,7 +197,7 @@ begin
   if (res and MIX_INIT_FLUIDSYNTH) <> 0 then e_WriteLog('SDL: FLUIDSYNTH playback is active', TMsgType.Notify);
 
   e_WriteLog(Format('SDL: initializing mixer at %d with buffer %d', [gsSDLSampleRate, gsSDLBufferSize]), TMsgType.Notify);
-  res := Mix_OpenAudio(gsSDLSampleRate, AUDIO_S16LSB, 2, gsSDLBufferSize);
+  res := Mix_OpenAudio(gsSDLSampleRate, {$IFDEF FPC_LITTLE_ENDIAN}AUDIO_S16LSB{$ELSE}AUDIO_S16MSB{$ENDIF}, 2, gsSDLBufferSize);
   if res = -1 then
   begin
     e_WriteLog('Error initializing SDL mixer:', TMsgType.Fatal);
