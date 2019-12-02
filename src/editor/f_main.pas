@@ -442,8 +442,10 @@ var
   LastMovePoint: Types.TPoint;
   MouseLDown: Boolean;
   MouseRDown: Boolean;
+  MouseMDown: Boolean;
   MouseLDownPos: Types.TPoint;
   MouseRDownPos: Types.TPoint;
+  MouseMDownPos: Types.TPoint;
 
   SelectFlag: Byte = SELECTFLAG_NONE;
   MouseAction: Byte = MOUSEACTION_NONE;
@@ -706,14 +708,8 @@ begin
     MapOffset.X := MapOffset.X - rx;
     MapOffset.Y := MapOffset.Y - ry;
   // Выход за границы:
-    if MapOffset.X < MainForm.sbHorizontal.Min then
-      MapOffset.X := MainForm.sbHorizontal.Min;
-    if MapOffset.Y < MainForm.sbVertical.Min then
-      MapOffset.Y := MainForm.sbVertical.Min;
-    if MapOffset.X > MainForm.sbHorizontal.Max then
-      MapOffset.X := MainForm.sbHorizontal.Max;
-    if MapOffset.Y > MainForm.sbVertical.Max then
-      MapOffset.Y := MainForm.sbVertical.Max;
+    MapOffset.X := EnsureRange(MapOffset.X, MainForm.sbHorizontal.Min, MainForm.sbHorizontal.Max);
+    MapOffset.Y := EnsureRange(MapOffset.Y, MainForm.sbVertical.Min, MainForm.sbVertical.Max);
   // Кратно 16:
   //  MapOffset.X := Normalize16(MapOffset.X);
   //  MapOffset.Y := Normalize16(MapOffset.Y);
@@ -3598,6 +3594,16 @@ begin
         end;
   end; // if Button = mbRight
 
+  if Button = mbMiddle then // Middle Mouse Button
+  begin
+    SetCapture(RenderPanel.Handle);
+    RenderPanel.Cursor := crSize;
+  end;
+
+  MouseMDown := Button = mbMiddle;
+  if MouseMDown then
+    MouseMDownPos := Mouse.CursorPos;
+
   MouseRDown := Button = mbRight;
   if MouseRDown then
     MouseRDownPos := MousePos;
@@ -3635,6 +3641,8 @@ begin
     MouseLDown := False;
   if Button = mbRight then
     MouseRDown := False;
+  if Button = mbMiddle then
+    MouseMDown := False;
 
   DrawRect := nil;
   ResizeType := RESIZETYPE_NONE;
@@ -3944,7 +3952,7 @@ begin
         MouseAction := MOUSEACTION_NONE;
       end;
     end // if Button = mbLeft...
-  else // Right Mouse Button:
+  else if Button = mbRight then // Right Mouse Button:
     begin
       if MouseAction = MOUSEACTION_NOACTION then
       begin
@@ -3955,6 +3963,7 @@ begin
     // Объект передвинут или изменен в размере:
       if MouseAction in [MOUSEACTION_MOVEOBJ, MOUSEACTION_RESIZE] then
       begin
+        RenderPanel.Cursor := crDefault;
         MouseAction := MOUSEACTION_NONE;
         FillProperty();
         Exit;
@@ -4007,6 +4016,12 @@ begin
         SelectObjects(pcObjects.ActivePageIndex+1);
 
       FillProperty();
+    end
+
+  else // Middle Mouse Button
+    begin
+      RenderPanel.Cursor := crDefault;
+      ReleaseCapture();
     end;
 end;
 
@@ -4091,12 +4106,8 @@ begin
         MousePos.Y := Round((-MapOffset.Y + Y) / sY) * sY + MapOffset.Y;
       end;
 
-// Изменение размера закончилось - ставим обычный курсор:
-  if ResizeType = RESIZETYPE_NONE then
-    RenderPanel.Cursor := crDefault;
-
 // Зажата только правая кнопка мыши:
-  if (not MouseLDown) and (MouseRDown) then
+  if (not MouseLDown) and (MouseRDown) and (not MouseMDown) then
   begin
   // Рисуем прямоугольник выделения:
     if MouseAction = MOUSEACTION_NONE then
@@ -4145,7 +4156,7 @@ begin
   end;
 
 // Зажата только левая кнопка мыши:
-  if (not MouseRDown) and (MouseLDown) then
+  if (not MouseRDown) and (MouseLDown) and (not MouseMDown) then
   begin
   // Рисуем прямоугольник планирования панели:
     if MouseAction in [MOUSEACTION_DRAWPANEL,
@@ -4183,6 +4194,18 @@ begin
       begin
         MoveMap(X, Y);
       end;
+  end;
+
+// Only Middle Mouse Button is pressed
+  if (not MouseLDown) and (not MouseRDown) and (MouseMDown) then
+  begin
+    MapOffset.X := -EnsureRange(-MapOffset.X + MouseMDownPos.X - Mouse.CursorPos.X,
+                                sbHorizontal.Min, sbHorizontal.Max);
+    sbHorizontal.Position := -MapOffset.X;
+    MapOffset.Y := -EnsureRange(-MapOffset.Y + MouseMDownPos.Y - Mouse.CursorPos.Y,
+                                sbVertical.Min, sbVertical.Max);
+    sbVertical.Position := -MapOffset.Y;
+    MouseMDownPos := Mouse.CursorPos;
   end;
 
 // Клавиши мыши не зажаты:
