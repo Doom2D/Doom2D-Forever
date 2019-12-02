@@ -337,7 +337,7 @@ uses
   f_options, e_graphics, e_log, GL, Math,
   f_mapoptions, g_basic, f_about, f_mapoptimization,
   f_mapcheck, f_addresource_texture, g_textures,
-  f_activationtype, f_keys,
+  f_activationtype, f_keys, wadreader,
   MAPREADER, f_selectmap, f_savemap, WADEDITOR, MAPDEF,
   g_map, f_saveminimap, f_addresource, CONFIG, f_packmap,
   f_addresource_sound, f_maptest, f_choosetype,
@@ -2583,45 +2583,27 @@ end;
 
 procedure TMainForm.aRecentFileExecute(Sender: TObject);
 var
-  n, pw: Integer;
-  s, fn: String;
-  b: Boolean;
+  n: Integer;
+  fn, s: String;
 begin
   s := LowerCase((Sender as TMenuItem).Caption);
   Delete(s, Pos('&', s), 1);
   s := Trim(Copy(s, 1, 2));
   n := StrToIntDef(s, 0) - 1;
-
-  if (n < 0) or (n >= RecentFiles.Count) then
-    Exit;
-
-  s := RecentFiles[n];
-  pw := Pos('.wad:\', LowerCase(s));
-  b := False;
-  
-  if pw > 0 then
-    begin // Map name included
-      fn := Copy(s, 1, pw + 3);
-      Delete(s, 1, pw + 5);
-      if (FileExists(fn)) then
-      begin
-        OpenMap(fn, s);
-        b := True;
-      end;
-    end
-  else // Only wad name
-    if (FileExists(s)) then
-    begin
-      OpenMap(s, '');
-      b := True;
-    end;
-
-  if (not b) and (MessageBox(0, PChar(_lc[I_MSG_DEL_RECENT_PROMT]),
-    PChar(_lc[I_MSG_DEL_RECENT]), MB_ICONQUESTION or MB_YESNO) = idYes) then
+  if (n >= 0) and (n <= RecentFiles.Count) then
   begin
-    RecentFiles.Delete(n);
-    RefreshRecentMenu();
-  end;
+    fn := g_ExtractWadName(RecentFiles[n]);
+    if FileExists(fn) then
+    begin
+      s := g_ExtractFilePathName(RecentFiles[n]);
+      OpenMap(fn, s)
+    end
+    else if MessageBox(0, PChar(_lc[I_MSG_DEL_RECENT_PROMT]), PChar(_lc[I_MSG_DEL_RECENT]), MB_ICONQUESTION or MB_YESNO) = idYes then
+    begin
+      RecentFiles.Delete(n);
+      RefreshRecentMenu();
+    end
+  end
 end;
 
 procedure TMainForm.aEditorOptionsExecute(Sender: TObject);
