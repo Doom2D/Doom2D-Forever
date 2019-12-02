@@ -6728,21 +6728,13 @@ end;
 
 procedure TMainForm.miTestMapClick(Sender: TObject);
 var
-  mapWAD, mapToRun, tempWAD: String;
+  mapWAD, tempWAD: String;
   args: SSArray;
   opt: LongWord;
   time, i: Integer;
   proc: TProcessUTF8;
   res: Boolean;
 begin
-  mapToRun := '';
-  if OpenedMap <> '' then
-  begin
-    // Указываем текущую карту для теста:
-    g_ProcessResourceStr(OpenedMap, @mapWAD, nil, @mapToRun);
-    mapToRun := mapWAD + ':\' + mapToRun;
-    mapToRun := ExtractRelativePath(ExtractFilePath(TestD2dExe) + 'maps/', mapToRun);
-  end;
   // Сохраняем временную карту:
   time := 0;
   repeat
@@ -6751,11 +6743,7 @@ begin
   until not FileExists(mapWAD);
   tempWAD := mapWAD + ':\' + TEST_MAP_NAME;
   SaveMap(tempWAD);
-
   tempWAD := ExtractRelativePath(ExtractFilePath(TestD2dExe) + 'maps/', tempWAD);
-// Если карта не была открыта, указываем временную в качестве текущей:
-  if mapToRun = '' then
-    mapToRun := tempWAD;
 
 // Опции игры:
   opt := 32 + 64;
@@ -6774,7 +6762,7 @@ begin
   proc := TProcessUTF8.Create(nil);
   proc.Executable := TestD2dExe;
   proc.Parameters.Add('-map');
-  proc.Parameters.Add(mapToRun);
+  proc.Parameters.Add(tempWAD);
   proc.Parameters.Add('-testmap');
   proc.Parameters.Add(tempWAD);
   proc.Parameters.Add('-gm');
