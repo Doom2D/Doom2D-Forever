@@ -73,7 +73,7 @@ uses
     unixtype, linux
   {$ELSEIF DEFINED(WINDOWS)}
     Windows
-  {$ELSEIF DEFINED(HAIKU)}
+  {$ELSEIF DEFINED(HAIKU) OR DEFINED(UNIX)}
     unixtype
   {$ELSE}
     {$WARNING You suck!}
