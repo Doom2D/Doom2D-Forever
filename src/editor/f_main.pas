@@ -337,7 +337,7 @@ uses
   f_options, e_graphics, e_log, GL, Math,
   f_mapoptions, g_basic, f_about, f_mapoptimization,
   f_mapcheck, f_addresource_texture, g_textures,
-  f_activationtype, f_keys, wadreader,
+  f_activationtype, f_keys, wadreader, fileutil,
   MAPREADER, f_selectmap, f_savemap, WADEDITOR, MAPDEF,
   g_map, f_saveminimap, f_addresource, CONFIG, f_packmap,
   f_addresource_sound, f_maptest, f_choosetype,
@@ -6728,7 +6728,7 @@ end;
 
 procedure TMainForm.miTestMapClick(Sender: TObject);
 var
-  mapWAD, tempWAD: String;
+  newWAD, oldWAD, tempMap: String;
   args: SSArray;
   opt: LongWord;
   time, i: Integer;
@@ -6738,12 +6738,18 @@ begin
   // Сохраняем временную карту:
   time := 0;
   repeat
-    mapWAD := ExtractFilePath(TestD2dExe) + Format('maps/temp%.4d.wad', [time]);
+    newWAD := ExtractFilePath(TestD2dExe) + Format('maps/temp%.4d.wad', [time]);
     Inc(time);
-  until not FileExists(mapWAD);
-  tempWAD := mapWAD + ':\' + TEST_MAP_NAME;
-  SaveMap(tempWAD);
-  tempWAD := ExtractRelativePath(ExtractFilePath(TestD2dExe) + 'maps/', tempWAD);
+  until not FileExists(newWAD);
+  if OpenedMap <> '' then
+  begin
+    oldWad := g_ExtractWadName(OpenedMap);
+    if CopyFile(oldWad, newWad) = false then
+      e_WriteLog('MapTest: unable to copy [' + oldWad + '] to [' + newWad + ']', MSG_WARNING)
+  end;
+  tempMap := newWAD + ':\' + TEST_MAP_NAME;
+  SaveMap(tempMap);
+  tempMap := ExtractRelativePath(ExtractFilePath(TestD2dExe) + 'maps/', tempMap);
 
 // Опции игры:
   opt := 32 + 64;
@@ -6762,9 +6768,7 @@ begin
   proc := TProcessUTF8.Create(nil);
   proc.Executable := TestD2dExe;
   proc.Parameters.Add('-map');
-  proc.Parameters.Add(tempWAD);
-  proc.Parameters.Add('-testmap');
-  proc.Parameters.Add(tempWAD);
+  proc.Parameters.Add(tempMap);
   proc.Parameters.Add('-gm');
   proc.Parameters.Add(TestGameMode);
   proc.Parameters.Add('-limt');
@@ -6800,7 +6804,7 @@ begin
   end;
   proc.Free();
 
-  SysUtils.DeleteFile(mapWAD);
+  SysUtils.DeleteFile(newWAD);
   Application.Restore();
 end;
 
