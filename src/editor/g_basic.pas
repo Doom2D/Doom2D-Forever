@@ -7,6 +7,11 @@ interface
 uses
   LCLIntf, LCLType, LMessages;
 
+const
+  EDITOR_VERSION = '0.667';
+  EDITOR_BUILDDATE = {$I %DATE%};
+  EDITOR_BUILDTIME = {$I %TIME%};
+
 Type
   String16   = String[16];
   Char16     = packed array[0..15] of Char;
@@ -18,6 +23,9 @@ Type
   DWArray    = Array of DWORD;
 
   TDirection = (D_LEFT, D_RIGHT);
+
+function g_GetBuilderName (): AnsiString;
+function g_GetBuildHash (full: Boolean = True): AnsiString;
 
 function  g_Collide(X1, Y1: Integer; Width1, Height1: Word;
                     X2, Y2: Integer; Width2, Height2: Word): Boolean;
@@ -52,6 +60,33 @@ implementation
 
 uses
   Math, g_map, MAPDEF, SysUtils;
+
+{$PUSH}
+{$WARN 2054 OFF} // unknwon env var
+{$WARN 6018 OFF} // unreachable code
+function g_GetBuilderName (): AnsiString;
+begin
+  if {$I %D2DF_BUILD_USER%} <> '' then
+    result := {$I %D2DF_BUILD_USER%} // custom
+  else if {$I %USER%} <> '' then
+    result := {$I %USER%} // unix username
+  else if {$I %USERNAME%} <> '' then
+    result := {$I %USERNAME%} // windows username
+  else
+    result := 'unknown'
+end;
+
+function g_GetBuildHash (full: Boolean = True): AnsiString;
+begin
+  if {$I %D2DF_BUILD_HASH%} <> '' then
+    if full then
+      result := {$I %D2DF_BUILD_HASH%}
+    else
+      result := Copy({$I %D2DF_BUILD_HASH%}, 1, 7)
+  else
+    result := 'custom build'
+end;
+{$POP}
 
 procedure g_ChangeDir(var dir: TDirection);
 begin

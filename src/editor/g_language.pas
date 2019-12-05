@@ -2056,15 +2056,16 @@ begin
 end;
 
 procedure SetupCaptions();
-var
-  i: Integer;
-
+  var i: Integer; s: AnsiString;
 begin
 // Главная форма:
   with MainForm do
   begin
   // Заголовок:
-    FormCaption := _lc[I_EDITOR_TITLE];
+    s := g_GetBuildHash(false);
+    if s = 'custom build' then
+      s := s + ' by ' + g_GetBuilderName() + ' ' + EDITOR_BUILDDATE + ' ' + EDITOR_BUILDTIME;
+    FormCaption := _lc[I_EDITOR_TITLE] + ' (' + s + ')';
     i := Pos('-', Caption);
     if i > 0 then
       begin
