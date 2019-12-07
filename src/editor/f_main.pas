@@ -6732,7 +6732,7 @@ end;
 
 procedure TMainForm.miTestMapClick(Sender: TObject);
 var
-  newWAD, oldWAD, tempMap: String;
+  newWAD, oldWAD, tempMap, ext: String;
   args: SSArray;
   opt: LongWord;
   time, i: Integer;
@@ -6742,14 +6742,19 @@ begin
   // Сохраняем временную карту:
   time := 0;
   repeat
-    newWAD := ExtractFilePath(TestD2dExe) + Format('maps/temp%.4d.wad', [time]);
+    newWAD := ExtractFilePath(TestD2dExe) + Format('maps/temp%.4d', [time]);
     Inc(time);
   until not FileExists(newWAD);
   if OpenedMap <> '' then
   begin
     oldWad := g_ExtractWadName(OpenedMap);
+    newWad := newWad + ExtractFileExt(oldWad);
     if CopyFile(oldWad, newWad) = false then
       e_WriteLog('MapTest: unable to copy [' + oldWad + '] to [' + newWad + ']', MSG_WARNING)
+  end
+  else
+  begin
+    newWad := newWad + '.wad'
   end;
   tempMap := newWAD + ':\' + TEST_MAP_NAME;
   SaveMap(tempMap);
