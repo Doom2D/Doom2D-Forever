@@ -79,34 +79,29 @@ begin
 end;
 
 (* TWAVLoader *)
-function FixSoundEndian (Buf: PUInt8; Len: UInt32; format: UInt16; rate: cint; chan: UInt8): Boolean;
-  const
-    {$IFDEF FPC_LITTLE_ENDIAN}
-      TARGET_AUDIO_S16 = AUDIO_S16LSB;
-      TARGET_AUDIO_U16 = AUDIO_U16LSB;
-    {$ELSE}
-      TARGET_AUDIO_S16 = AUDIO_S16MSB;
-      TARGET_AUDIO_U16 = AUDIO_U16MSB;
-    {$ENDIF}
+function ConvertSound (var buf: PUInt8; var len: UInt32; var format: UInt16; rate: cint; chan: UInt8): Boolean;
   var cvt: TSDL_AudioCVT; tformat: UInt16;
 begin
+  result := true;
   case format of
-    AUDIO_U16LSB, AUDIO_U16MSB: tformat := TARGET_AUDIO_U16;
-    AUDIO_S16LSB, AUDIO_S16MSB: tformat := TARGET_AUDIO_S16;
-  else tformat := format
+    AUDIO_U8,     AUDIO_S8    : tformat := AUDIO_U8; (* yes, unsigned *)
+    AUDIO_U16LSB, AUDIO_U16MSB: tformat := AUDIO_S16SYS; (* and yes, signed *)
+    AUDIO_S16LSB, AUDIO_S16MSB: tformat := AUDIO_S16SYS;
+    AUDIO_S32LSB, AUDIO_S32MSB: tformat := AUDIO_S16SYS; (* 32bit not supported in al core *)
+    AUDIO_F32LSB, AUDIO_F32MSB: tformat := AUDIO_S16SYS; (* float not supported in al core *)
+  else result := false (* unsupported format *)
   end;
-  Result := True;
-  if format <> tformat then
+  if (result = true) and (format <> tformat) then
   begin
     Result := False;
     if SDL_BuildAudioCVT(@cvt, format, chan, rate, tformat, chan, rate) <> -1 then
     begin
-      cvt.buf := Buf;
-      cvt.len := Len;
-      assert(cvt.len_mult = 1);
-      Result := SDL_ConvertAudio(@cvt) = 0;
-      assert(cvt.len_ratio = 1);
-      assert(cvt.len = Len)
+      buf := SDL_realloc(buf, len * cvt.len_mult);
+      cvt.len := len;
+      cvt.buf := buf;
+      result := SDL_ConvertAudio(@cvt) = 0;
+      len := cvt.len_cvt;
+      format := tformat
     end
   end
 end;
@@ -124,7 +119,7 @@ begin
   if SDL_LoadWAV_RW(RW, 0, @Spec, PUInt8(@Buf), @Len) <> nil then
 {$ENDIF}
   begin
-    Result := FixSoundEndian(Buf, Len, Spec.format, Spec.freq, Spec.channels);
+    Result := ConvertSound(Buf, Len, Spec.format, Spec.freq, Spec.channels);
     if Result = True then
     begin
       with Loader do

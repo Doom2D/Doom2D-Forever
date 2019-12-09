@@ -212,6 +212,7 @@ const
 {$I sdlfilesystem.inc}
 {$I sdllog.inc}
 {$I sdlsystem.inc}
+{$I sdlstdinc.inc}
 {$I sdl.inc}
 
 implementation
