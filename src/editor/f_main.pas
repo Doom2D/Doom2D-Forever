@@ -5155,7 +5155,7 @@ begin
                 if vleObjectProperty.Values[_lc[I_PROP_TR_MUSIC_ACT]] = _lc[I_PROP_TR_MUSIC_ON] then
                   Data.MusicAction := 1
                 else
-                  Data.MusicAction := 2;
+                  Data.MusicAction := 0;
               end;
 
             TRIGGER_PUSH:

@@ -50,7 +50,7 @@ type
 implementation
 
 uses
-  BinEditor, SysUtils;
+  MAPDEF, BinEditor, SysUtils, Math;
 
 { TMapWriter }
 
@@ -268,12 +268,22 @@ end;
 
 function TMapWriter_1.AddTriggers(Triggers: TTriggersRec1Array): Boolean;
 var
-  a, size: LongWord;
+  a, i, size: LongWord;
+  tr: ^TTriggerData;
 begin
  if Triggers = nil then
  begin
   Result := True;
   Exit;
+ end;
+
+ // fix broken maps
+ for i := 0 to High(Triggers) do
+ begin
+   tr := @Triggers[i].data;
+   case Triggers[i].TriggerType of
+     TRIGGER_MUSIC: tr.MusicAction := Min(Max(tr.MusicAction, 0), 1);
+   end
  end;
 
  SetLength(FDataBlocks, Length(FDataBlocks)+1);
