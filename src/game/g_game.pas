@@ -125,7 +125,7 @@ procedure g_Game_Announce_KillCombo(Param: Integer);
 procedure g_Game_Announce_BodyKill(SpawnerUID: Word);
 procedure g_Game_StartVote(Command, Initiator: string);
 procedure g_Game_CheckVote;
-procedure g_TakeScreenShot();
+procedure g_TakeScreenShot(Filename: string = ''; StatShot: Boolean = False);
 procedure g_FatalError(Text: String);
 procedure g_SimpleError(Text: String);
 function  g_Game_IsTestMap(): Boolean;
@@ -219,6 +219,8 @@ const
 {$ELSE}
   DEFAULT_PLAYERS = 1;
 {$ENDIF}
+
+  STATFILE_VERSION = $03;
 
 var
   gStdFont: DWORD;
@@ -373,11 +375,11 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes,
 {$ENDIF}
-  e_texture, e_res, g_textures, g_main, g_window, g_menu,
+  e_texture, e_res, g_textures, g_window, g_menu,
   e_input, e_log, g_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
-  g_language, g_net,
+  g_language, g_net, g_main,
   ENet, e_msg, g_netmsg, g_netmaster,
   sfs, wadreader, g_system;
 
@@ -581,6 +583,9 @@ var
   MapList: SSArray = nil;
   MapIndex: Integer = -1;
   InterReadyTime: Integer = -1;
+  StatShotDone: Boolean = False;
+  StatFilename: string = ''; // used by stat screenshot to save with the same name as the csv
+  StatDate: string = '';
   MegaWAD: record
     info: TMegaWADInfo;
     endpic: String;
@@ -637,6 +642,55 @@ begin
         stat[J] := stat[J + 1];
         stat[J + 1] := T;
       end;
+end;
+
+// saves a shitty CSV containing the game stats passed to it
+procedure SaveGameStat(Stat: TEndCustomGameStat; Path: string);
+var 
+  s: TextFile;
+  dir, fname, map, mode, etime: String;
+  I: Integer;
+begin
+  try
+    dir := e_GetWriteableDir(StatsDirs);
+    // stats are placed in stats/yy/mm/dd/*.csv
+    fname := e_CatPath(dir, Path);
+    ForceDirectories(fname); // ensure yy/mm/dd exists within the stats dir
+    fname := e_CatPath(fname, StatFilename + '.csv');
+    AssignFile(s, fname);
+    try
+      Rewrite(s);
+      // line 1: stats version, datetime, server name, map name, game mode, time limit, score limit, dmflags, game time, number of players
+      if g_Game_IsNet then fname := NetServerName else fname := '';
+      map := g_ExtractWadNameNoPath(gMapInfo.Map) + ':/' + g_ExtractFileName(gMapInfo.Map);
+      mode := g_Game_ModeToText(Stat.GameMode);
+      etime := Format('%d:%.2d:%.2d', [Stat.GameTime div 1000 div 3600,
+                                       (Stat.GameTime div 1000 div 60) mod 60,
+                                       Stat.GameTime div 1000 mod 60]);
+      WriteLn(s, 'stats_ver,datetime,server,map,mode,timelimit,scorelimit,dmflags,time,num_players');
+      WriteLn(s,
+        Format('%d,%s,%s,%s,%s,%u,%u,%u,%s,%d',
+          [STATFILE_VERSION, StatDate, fname, map, mode, gGameSettings.TimeLimit, gGameSettings.GoalLimit, gGameSettings.Options, etime, Length(Stat.PlayerStat)]));
+      // line 2: game specific shit
+      //   if it's a team game: red score, blue score
+      //   if it's a coop game: monsters killed, monsters total, secrets found, secrets total
+      //   otherwise nothing
+      if Stat.GameMode in [GM_TDM, GM_CTF] then
+        WriteLn(s, Format('red_score,blue_score' + LineEnding + '%d,%d', [Stat.TeamStat[TEAM_RED].Goals, Stat.TeamStat[TEAM_BLUE].Goals]))
+      else if Stat.GameMode in [GM_COOP, GM_SINGLE] then
+        WriteLn(s, Format('mon_killed,mon_total,secrets_found,secrets_total' + LineEnding + '%d,%d,%d,%d', [gCoopMonstersKilled, gTotalMonsters, gCoopSecretsFound, gSecretsCount]));
+      // lines 3-...: team, player name, frags, deaths
+      WriteLn(s, 'team,name,frags,deaths');
+      for I := Low(Stat.PlayerStat) to High(Stat.PlayerStat) do
+        with Stat.PlayerStat[I] do
+          WriteLn(s, Format('%d,%s,%d,%d', [Team, Name, Frags, Deaths]));
+    except
+      g_Console_Add(Format(_lc[I_CONSOLE_ERROR_WRITE], [fname]));
+    end;
+  except
+    g_Console_Add('could not create gamestats file "' + fname + '"');
+  end;
+  CloseFile(s);
 end;
 
 function g_Game_ModeToText(Mode: Byte): string;
@@ -898,6 +952,7 @@ procedure EndGame();
 var
   a: Integer;
   FileName: string;
+  t: TDateTime;
 begin
   if g_Game_IsNet and g_Game_IsServer then
     MH_SEND_GameEvent(NET_EV_MAPEND, Byte(gMissionFailed));
@@ -993,6 +1048,18 @@ begin
             end;
 
           SortGameStat(CustomStat.PlayerStat);
+
+          if gSaveStats or gScreenshotStats then
+          begin
+            t := Now;
+            if g_Game_IsNet then StatFilename := NetServerName else StatFilename := 'local';
+            StatDate := FormatDateTime('yymmdd_hhnnss', t);
+            StatFilename := StatFilename + '_' + CustomStat.Map + '_' + g_Game_ModeToText(CustomStat.GameMode);
+            StatFilename := sanitizeFilename(StatFilename) + '_' + StatDate;
+            if gSaveStats then SaveGameStat(CustomStat, FormatDateTime('yyyy"/"mm"/"dd', t));
+          end;
+
+          StatShotDone := False;
         end;
 
         g_Game_ExecuteEvent('onmapend');
@@ -1723,7 +1790,7 @@ begin
             and (not gJustChatted) and (not gConsoleShow) and (not gChatShow)
             and (g_ActiveWindow = nil)
           )
-          or (g_Game_IsNet and ((gInterTime > gInterEndTime) or (gInterReadyCount >= NetClientCount)))
+          or (g_Game_IsNet and ((gInterTime > gInterEndTime) or ((gInterReadyCount >= NetClientCount) and (NetClientCount > 0))))
         )
         then
         begin // Нажали <Enter>/<Пробел> или прошло достаточно времени:
@@ -2789,6 +2856,13 @@ begin
         e_TextureFontPrintEx(x+w1+w2+8+16+8, _y+4, IntToStr(Deaths), gStdFont, r, r, r, 1, True);
         _y := _y+24;
       end;
+  end;
+
+  // HACK: take stats screenshot immediately after the first frame of the stats showing
+  if gScreenshotStats and not StatShotDone then
+  begin
+    g_TakeScreenShot('stats/' + StatFilename, True);
+    StatShotDone := True;
   end;
 end;
 
@@ -7225,15 +7299,21 @@ begin
   end;
 end;
 
-procedure g_TakeScreenShot;
+procedure g_TakeScreenShot(Filename: string = ''; StatShot: Boolean = False);
   var s: TStream; t: TDateTime; dir, date, name: String;
 begin
   if e_NoGraphics then Exit;
   try
-    t := Now;
     dir := e_GetWriteableDir(ScreenshotDirs);
-    DateTimeToString(date, 'yyyy-mm-dd-hh-nn-ss', t);
-    name := e_CatPath(dir, 'screenshot-' + date + '.png');
+
+    if Filename = '' then
+    begin
+      t := Now;
+      DateTimeToString(date, 'yyyy-mm-dd-hh-nn-ss', t);
+      Filename := 'screenshot-' + date;
+    end;
+    
+    name := e_CatPath(dir, Filename + '.png');
     s := createDiskFile(name);
     try
       e_MakeScreenshot(s, gScreenWidth, gScreenHeight);

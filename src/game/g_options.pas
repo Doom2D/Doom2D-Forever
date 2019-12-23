@@ -60,6 +60,8 @@ var
   gRevertPlayers: Boolean;
   gLanguage: String;
   gAskLanguage: Boolean;
+  gSaveStats: Boolean = False;
+  gScreenshotStats: Boolean = False;
   gcMap: String;
   gcGameMode: String;
   gcTimeLimit: Word;
@@ -264,6 +266,7 @@ begin
   gDefaultMegawadStart := DF_Default_Megawad_Start;
   gBerserkAutoswitch := True;
   g_dbg_scale := 1.0;
+  gSaveStats := False;
 
   gAskLanguage := True;
   gLanguage := LANGUAGE_ENGLISH;
@@ -804,5 +807,6 @@ initialization
   conRegVar('sfs_fastmode', @wadoptFast, '', '');
   conRegVar('g_fast_screenshots', @e_FastScreenshots, '', '');
   conRegVar('g_default_megawad', @gDefaultMegawadStart, '', '');
-
+  conRegVar('g_save_stats', @gSaveStats, '', '');
+  conRegVar('g_screenshot_stats', @gScreenshotStats, '', '');
 end.

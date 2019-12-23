@@ -74,6 +74,10 @@ function forceFilenameExt (const fn, ext: AnsiString): AnsiString;
 // rewrites slashes to '/'
 function fixSlashes (s: AnsiString): AnsiString;
 
+// replaces all the shitty characters with '_'
+// (everything except alphanumerics, '_', '.')
+function sanitizeFilename (s: AnsiString): AnsiString;
+
 function isAbsolutePath (const s: AnsiString): Boolean;
 function isRootPath (const s: AnsiString): Boolean;
 
@@ -353,6 +357,20 @@ begin
   {$ENDIF}
 end;
 
+// replaces all the shitty characters with '_'
+// (everything except alphanumerics, '_', '.')
+function sanitizeFilename (s: AnsiString): AnsiString;
+var
+  i: Integer;
+const
+  leaveChars: set of Char = [ '0'..'9', 'A'..'Z', 'a'..'z', '_', '.', #192..#255 ];
+  replaceWith: Char = '_';
+begin
+  result := s;
+  for i := 1 to length(result) do
+    if not (result[i] in leaveChars) then
+      result[i] := replaceWith;
+end;
 
 function isAbsolutePath (const s: AnsiString): Boolean;
 begin

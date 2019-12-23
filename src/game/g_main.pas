@@ -44,6 +44,7 @@ var
   CacheDirs: SSArray;
   ConfigDirs: SSArray;
   ScreenshotDirs: SSArray;
+  StatsDirs: SSArray;
   MapDownloadDirs: SSArray;
   WadDownloadDirs: SSArray;
 
@@ -345,6 +346,7 @@ begin
         AddDir(MapDownloadDirs, e_CatPath(rwdir, 'maps/downloads'));
         AddDir(WadDownloadDirs, e_CatPath(rwdir, 'wads/downloads'));
         AddDir(ScreenshotDirs, e_CatPath(rwdir, 'screenshots'));
+        AddDir(StatsDirs, e_CatPath(rwdir, 'stats'));
         (* RO *)
         AddDir(DataDirs, e_CatPath(rwdir, 'data'));
         AddDir(ModelDirs, e_CatPath(rwdir, 'data/models'));
@@ -392,6 +394,7 @@ begin
   AddDef(MapDownloadDirs, rwdirs, 'maps/downloads');
   AddDef(WadDownloadDirs, rwdirs, 'wads/downloads');
   AddDef(ScreenshotDirs, rwdirs, 'screenshots');
+  AddDef(StatsDirs, rwdirs, 'stats');
 
   for i := 0 to High(MapDirs) do
     AddDir(AllMapDirs, MapDirs[i]);
@@ -411,6 +414,10 @@ begin
       {$ENDIF}
     end
   end;
+  
+  // HACK: ensure the screenshots folder also has a stats subfolder in it
+  rwdir := e_GetWriteableDir(ScreenshotDirs, false);
+  if rwdir <> '' then CreateDir(rwdir + '/stats');
 end;
 
 procedure InitPrep;
@@ -453,6 +460,7 @@ begin
   PrintDirs('CacheDirs', CacheDirs);
   PrintDirs('ConfigDirs', ConfigDirs);
   PrintDirs('ScreenshotDirs', ScreenshotDirs);
+  PrintDirs('StatsDirs', StatsDirs);
   PrintDirs('MapDownloadDirs', MapDownloadDirs);
   PrintDirs('WadDownloadDirs', WadDownloadDirs);
 
