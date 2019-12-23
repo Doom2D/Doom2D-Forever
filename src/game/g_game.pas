@@ -125,7 +125,7 @@ procedure g_Game_Announce_KillCombo(Param: Integer);
 procedure g_Game_Announce_BodyKill(SpawnerUID: Word);
 procedure g_Game_StartVote(Command, Initiator: string);
 procedure g_Game_CheckVote;
-procedure g_TakeScreenShot(Filename: string = ''; StatShot: Boolean = False);
+procedure g_TakeScreenShot(Filename: string = '');
 procedure g_FatalError(Text: String);
 procedure g_SimpleError(Text: String);
 function  g_Game_IsTestMap(): Boolean;
@@ -2861,7 +2861,7 @@ begin
   // HACK: take stats screenshot immediately after the first frame of the stats showing
   if gScreenshotStats and not StatShotDone then
   begin
-    g_TakeScreenShot('stats/' + StatFilename, True);
+    g_TakeScreenShot('stats/' + StatFilename);
     StatShotDone := True;
   end;
 end;
@@ -7299,7 +7299,7 @@ begin
   end;
 end;
 
-procedure g_TakeScreenShot(Filename: string = ''; StatShot: Boolean = False);
+procedure g_TakeScreenShot(Filename: string = '');
   var s: TStream; t: TDateTime; dir, date, name: String;
 begin
   if e_NoGraphics then Exit;
