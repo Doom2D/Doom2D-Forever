@@ -660,30 +660,43 @@ begin
     AssignFile(s, fname);
     try
       Rewrite(s);
-      // line 1: stats version, datetime, server name, map name, game mode, time limit, score limit, dmflags, game time, number of players
+      // line 1: stats ver, datetime, server name, map name, game mode, time limit, score limit, dmflags, game time, num players
       if g_Game_IsNet then fname := NetServerName else fname := '';
       map := g_ExtractWadNameNoPath(gMapInfo.Map) + ':/' + g_ExtractFileName(gMapInfo.Map);
       mode := g_Game_ModeToText(Stat.GameMode);
-      etime := Format('%d:%.2d:%.2d', [Stat.GameTime div 1000 div 3600,
-                                       (Stat.GameTime div 1000 div 60) mod 60,
-                                       Stat.GameTime div 1000 mod 60]);
+      etime := Format('%d:%.2d:%.2d', [
+        Stat.GameTime div 1000 div 3600,
+        (Stat.GameTime div 1000 div 60) mod 60,
+        Stat.GameTime div 1000 mod 60
+      ]);
       WriteLn(s, 'stats_ver,datetime,server,map,mode,timelimit,scorelimit,dmflags,time,num_players');
-      WriteLn(s,
-        Format('%d,%s,%s,%s,%s,%u,%u,%u,%s,%d',
-          [STATFILE_VERSION, StatDate, fname, map, mode, gGameSettings.TimeLimit, gGameSettings.GoalLimit, gGameSettings.Options, etime, Length(Stat.PlayerStat)]));
+      WriteLn(s, Format('%d,%s,%s,%s,%s,%u,%u,%u,%s,%d', [
+        STATFILE_VERSION,
+        StatDate,
+        dquoteStr(fname),
+        dquoteStr(map),
+        mode,
+        gGameSettings.TimeLimit,
+        gGameSettings.GoalLimit,
+        gGameSettings.Options,
+        etime,
+        Length(Stat.PlayerStat)
+      ]));
       // line 2: game specific shit
       //   if it's a team game: red score, blue score
       //   if it's a coop game: monsters killed, monsters total, secrets found, secrets total
       //   otherwise nothing
       if Stat.GameMode in [GM_TDM, GM_CTF] then
-        WriteLn(s, Format('red_score,blue_score' + LineEnding + '%d,%d', [Stat.TeamStat[TEAM_RED].Goals, Stat.TeamStat[TEAM_BLUE].Goals]))
+        WriteLn(s, 
+          Format('red_score,blue_score' + LineEnding + '%d,%d', [Stat.TeamStat[TEAM_RED].Goals, Stat.TeamStat[TEAM_BLUE].Goals]))
       else if Stat.GameMode in [GM_COOP, GM_SINGLE] then
-        WriteLn(s, Format('mon_killed,mon_total,secrets_found,secrets_total' + LineEnding + '%d,%d,%d,%d', [gCoopMonstersKilled, gTotalMonsters, gCoopSecretsFound, gSecretsCount]));
+        WriteLn(s,
+          Format('mon_killed,mon_total,secrets_found,secrets_total' + LineEnding + '%d,%d,%d,%d',[gCoopMonstersKilled, gTotalMonsters, gCoopSecretsFound, gSecretsCount]));
       // lines 3-...: team, player name, frags, deaths
       WriteLn(s, 'team,name,frags,deaths');
       for I := Low(Stat.PlayerStat) to High(Stat.PlayerStat) do
         with Stat.PlayerStat[I] do
-          WriteLn(s, Format('%d,%s,%d,%d', [Team, Name, Frags, Deaths]));
+          WriteLn(s, Format('%d,%s,%d,%d', [Team, dquoteStr(Name), Frags, Deaths]));
     except
       g_Console_Add(Format(_lc[I_CONSOLE_ERROR_WRITE], [fname]));
     end;

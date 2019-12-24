@@ -247,6 +247,9 @@ function digitInBase (ch: AnsiChar; base: Integer): Integer;
 // double quotes supports c-style escapes
 // function will select quote mode automatically
 function quoteStr (const s: AnsiString): AnsiString;
+// separate single-quote and double-quote escape functions
+function squoteStr (const s: AnsiString): AnsiString;
+function dquoteStr (const s: AnsiString): AnsiString;
 
 
 type
@@ -720,53 +723,52 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+function squoteStr (const s: AnsiString): AnsiString;
+var
+  f: Integer;
+begin
+  result := '''';
+  for f := 1 to Length(s) do
+  begin
+    if (s[f] = '''') then result += '''';
+    result += s[f];
+  end;
+  result += '''';
+end;
+
+function dquoteStr (const s: AnsiString): AnsiString;
+var
+  f: Integer;
+  ch: AnsiChar;
+begin
+  result := '"';
+  for f := 1 to Length(s) do
+  begin
+    ch := s[f];
+         if (ch = #0) then result += '\z'
+    else if (ch = #9) then result += '\t'
+    else if (ch = #10) then result += '\n'
+    else if (ch = #13) then result += '\r'
+    else if (ch = #27) then result += '\e'
+    else if (ch < ' ') or (ch = #127) then
+    begin
+      result += '\x';
+      result += LowerCase(IntToHex(Integer(ch), 2));
+    end
+    else if (ch = '"') or (ch = '\') then
+    begin
+      result += '\';
+      result += ch;
+    end
+    else
+    begin
+      result += ch;
+    end;
+  end;
+  result += '"';
+end;
+
 function quoteStr (const s: AnsiString): AnsiString;
-
-  function squote (const s: AnsiString): AnsiString;
-  var
-    f: Integer;
-  begin
-    result := '''';
-    for f := 1 to Length(s) do
-    begin
-      if (s[f] = '''') then result += '''';
-      result += s[f];
-    end;
-    result += '''';
-  end;
-
-  function dquote (const s: AnsiString): AnsiString;
-  var
-    f: Integer;
-    ch: AnsiChar;
-  begin
-    result := '"';
-    for f := 1 to Length(s) do
-    begin
-      ch := s[f];
-           if (ch = #0) then result += '\z'
-      else if (ch = #9) then result += '\t'
-      else if (ch = #10) then result += '\n'
-      else if (ch = #13) then result += '\r'
-      else if (ch = #27) then result += '\e'
-      else if (ch < ' ') or (ch = #127) then
-      begin
-        result += '\x';
-        result += LowerCase(IntToHex(Integer(ch), 2));
-      end
-      else if (ch = '"') or (ch = '\') then
-      begin
-        result += '\';
-        result += ch;
-      end
-      else
-      begin
-        result += ch;
-      end;
-    end;
-    result += '"';
-  end;
-
 var
   needSingle: Boolean = false;
   f: Integer;
@@ -774,9 +776,9 @@ begin
   for f := 1 to Length(s) do
   begin
     if (s[f] = '''') then begin needSingle := true; continue; end;
-    if (s[f] < ' ') or (s[f] = #127) then begin result := dquote(s); exit; end;
+    if (s[f] < ' ') or (s[f] = #127) then begin result := dquoteStr(s); exit; end;
   end;
-  if needSingle then result := squote(s) else result := ''''+s+'''';
+  if needSingle then result := squoteStr(s) else result := ''''+s+'''';
 end;
 
 
