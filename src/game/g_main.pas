@@ -48,6 +48,8 @@ var
   MapDownloadDirs: SSArray;
   WadDownloadDirs: SSArray;
 
+  GameWADName: string = 'GAME';
+
 implementation
 
 uses
@@ -365,6 +367,11 @@ begin
         AddDir(MapDirs, e_CatPath(rodir, 'maps'));
         AddDir(WadDirs, e_CatPath(rodir, 'wads'));
       end;
+    '--game-wad':
+      begin
+        Inc(i);
+        GameWADName := ParamStr(i);
+      end;
     end;
     Inc(i)
   end;
@@ -372,7 +379,7 @@ begin
   // prefer bin dir if it writable and contains game.wad
   if forceBinDir = false then
   begin
-    if findDiskWad(binPath + 'data' + '/' + 'GAME') <> '' then
+    if findDiskWad(binPath + 'data' + '/' + GameWADName) <> '' then
       if e_CanCreateFilesAt(binPath) then
         forceBinDir := true
   end;
@@ -464,13 +471,18 @@ begin
   PrintDirs('MapDownloadDirs', MapDownloadDirs);
   PrintDirs('WadDownloadDirs', WadDownloadDirs);
 
-  GameWAD := e_FindWad(DataDirs, 'GAME');
+  GameWAD := e_FindWad(DataDirs, GameWADName);
   if GameWad = '' then
   begin
-    e_WriteLog('GAME.WAD not installed?', TMsgType.Fatal);
+    e_WriteLog('WAD ' + GameWADName + ' not found in data directories.', TMsgType.Fatal);
     {$IF DEFINED(USE_SDL2) AND NOT DEFINED(HEADLESS)}
       if forceBinDir = false then
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, 'Doom 2D Forever', 'GAME.WAD not installed?', nil);
+        SDL_ShowSimpleMessageBox(
+          SDL_MESSAGEBOX_ERROR, 
+          'Doom 2D Forever',
+          PChar('WAD ' + GameWADName + ' not found in data directories.'),
+          nil
+        );
     {$ENDIF}
     e_DeinitLog;
     Halt(1);
