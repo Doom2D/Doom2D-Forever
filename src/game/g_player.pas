@@ -267,6 +267,7 @@ type
     FReady:     Boolean;
     FDummy:     Boolean;
     FFireTime:  Integer;
+    FSpawnInvul: Integer;
     FHandicap:  Integer;
     FWaitForFirstSpawn: Boolean; // set to `true` in server, used to spawn a player on first full state request
 
@@ -2229,6 +2230,7 @@ begin
     FMegaRulez[MR_SUIT] := 0;
     FMegaRulez[MR_INVUL] := 0;
     FMegaRulez[MR_INVIS] := 0;
+    FSpawnInvul := 0;
     FBerserk := 0;
   end;
 
@@ -2507,7 +2509,7 @@ begin
       end;
     end;
 
-    if (FMegaRulez[MR_INVUL] > gTime) and (gPlayerDrawn <> Self) then
+    if (FMegaRulez[MR_INVUL] > gTime) and ((gPlayerDrawn <> Self) or (FSpawnInvul >= gTime)) then
       if g_Texture_Get('TEXTURE_PLAYER_INVULPENTA', ID) then
       begin
         e_GetTextureSize(ID, @w, @h);
@@ -2875,7 +2877,7 @@ var
   dr: Boolean;
 begin
   // При взятии неуязвимости рисуется инверсионный белый фон
-  if FMegaRulez[MR_INVUL] >= gTime then
+  if (FMegaRulez[MR_INVUL] >= gTime) and (FSpawnInvul < gTime) then
   begin
     if (FMegaRulez[MR_INVUL]-gTime) <= 2100 then
       dr := not Odd((FMegaRulez[MR_INVUL]-gTime) div 300)
@@ -3539,7 +3541,8 @@ begin
       PushItem(ITEM_JETPACK);
 
 // Выброс ключей:
-    if not (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) then
+    if (not (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) or
+       LongBool(gGameSettings.Options and GAME_OPTION_DMKEYS) then
     begin
       if R_KEY_RED in FRulez then
         PushItem(ITEM_KEY_RED);
@@ -4279,6 +4282,7 @@ begin
       if FMegaRulez[MR_INVUL] < gTime+PLAYER_INVUL_TIME then
       begin
         FMegaRulez[MR_INVUL] := gTime+PLAYER_INVUL_TIME;
+        FSpawnInvul := 0;
         Result := True;
         remove := True;
         if gFlash = 2 then Inc(FPickup, 5);
@@ -4634,7 +4638,8 @@ begin
     FMaxAmmo[A_CELLS] := AmmoLimits[0, A_CELLS];
     FMaxAmmo[A_FUEL] := AmmoLimits[0, A_FUEL];
 
-    if gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF] then
+    if (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) and
+       LongBool(gGameSettings.Options and GAME_OPTION_DMKEYS) then
       FRulez := [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE]
     else
       FRulez := [];
@@ -4669,6 +4674,13 @@ begin
 
   for a := Low(FMegaRulez) to High(FMegaRulez) do
     FMegaRulez[a] := 0;
+
+// Respawn invulnerability
+  if (gGameSettings.GameType <> GT_SINGLE) and (gGameSettings.SpawnInvul > 0) then
+  begin
+    FMegaRulez[MR_INVUL] := gTime + gGameSettings.SpawnInvul * 1000;
+    FSpawnInvul := FMegaRulez[MR_INVUL];
+  end;
 
   FDamageBuffer := 0;
   FJetpack := False;

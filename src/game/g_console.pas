@@ -920,6 +920,7 @@ begin
   AddCommand('g_friendlyfire', GameCVars);
   AddCommand('g_weaponstay', GameCVars);
   AddCommand('g_allow_exit', GameCVars);
+  AddCommand('g_dm_keys', GameCVars);
   AddCommand('g_allow_monsters', GameCVars);
   AddCommand('g_bot_vsmonsters', GameCVars);
   AddCommand('g_bot_vsplayers', GameCVars);
@@ -927,6 +928,7 @@ begin
   AddCommand('g_timelimit', GameCVars);
   AddCommand('g_maxlives', GameCVars);
   AddCommand('g_warmuptime', GameCVars);
+  AddCommand('g_spawn_invul', GameCVars);
   AddCommand('net_interp', GameCVars);
   AddCommand('net_forceplayerupdate', GameCVars);
   AddCommand('net_predictself', GameCVars);

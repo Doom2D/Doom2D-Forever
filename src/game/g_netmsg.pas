@@ -1178,6 +1178,7 @@ begin
     NetOut.Write(Byte(FJetpack));
     NetOut.Write(FFireTime);
     NetOut.Write(Byte(FFlaming));
+    NetOut.Write(FSpawnInvul);
   end;
 
   g_Net_Host_Send(ID, True, NET_CHAN_PLAYER);

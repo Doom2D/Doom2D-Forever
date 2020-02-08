@@ -31,6 +31,7 @@ type
     TimeLimit: Word;
     GoalLimit: Word;
     WarmupTime: Word;
+    SpawnInvul: Word;
     MaxLives: Byte;
     Options: LongWord;
     WAD: String;
@@ -178,6 +179,7 @@ const
   GAME_OPTION_MONSTERS     = 16;
   GAME_OPTION_BOTVSPLAYER  = 32;
   GAME_OPTION_BOTVSMONSTER = 64;
+  GAME_OPTION_DMKEYS       = 128;
 
   STATE_NONE        = 0;
   STATE_MENU        = 1;
@@ -5552,6 +5554,28 @@ begin
       if g_Game_IsNet then MH_SEND_GameSettings;
     end;
   end
+  else if (cmd = 'g_dm_keys') and not g_Game_IsClient then
+  begin
+    with gGameSettings do
+    begin
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
+      begin
+        if (P[1][1] = '1') then
+          Options := Options or GAME_OPTION_DMKEYS
+        else
+          Options := Options and (not GAME_OPTION_DMKEYS);
+      end;
+
+      if (LongBool(Options and GAME_OPTION_DMKEYS)) then
+        g_Console_Add(_lc[I_MSG_DMKEYS_ON])
+      else
+        g_Console_Add(_lc[I_MSG_DMKEYS_OFF]);
+      g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+
+      if g_Game_IsNet then MH_SEND_GameSettings;
+    end;
+  end
   else if (cmd = 'g_warmuptime') and not g_Game_IsClient then
   begin
     if Length(P) > 1 then
@@ -5564,6 +5588,20 @@ begin
 
     g_Console_Add(Format(_lc[I_MSG_WARMUP],
                  [gGameSettings.WarmupTime]));
+    g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+  end
+  else if (cmd = 'g_spawn_invul') and not g_Game_IsClient then
+  begin
+    if Length(P) > 1 then
+    begin
+      if StrToIntDef(P[1], gGameSettings.SpawnInvul) = 0 then
+        gGameSettings.SpawnInvul := 0
+      else
+        gGameSettings.SpawnInvul := StrToIntDef(P[1], gGameSettings.SpawnInvul);
+    end;
+
+    g_Console_Add(Format(_lc[I_MSG_SPAWNINVUL],
+                 [gGameSettings.SpawnInvul]));
     g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
   end
   else if cmd = 'net_interp' then
