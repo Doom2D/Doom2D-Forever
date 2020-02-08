@@ -4641,7 +4641,7 @@ begin
 // Стартуем сервер
   if not g_Net_Host(IPAddr, Port, NetMaxClients) then
   begin
-    g_FatalError(_lc[I_NET_MSG] + _lc[I_NET_ERR_HOST]);
+    g_FatalError(_lc[I_NET_MSG] + Format(_lc[I_NET_ERR_HOST], [Port]));
     Exit;
   end;
 
