@@ -7246,6 +7246,30 @@ begin
       end else
         g_Console_Add(_lc[I_MSG_SERVERONLY]);
     end
+    else if cmd = 'centerprint' then
+    begin
+      if (Length(P) > 2) and (P[1] <> '') then
+      begin
+        chstr := '';
+        for a := 2 to High(P) do
+          chstr := chstr + P[a] + ' ';
+
+        if Length(chstr) > 200 then SetLength(chstr, 200);
+
+        if Length(chstr) < 1 then
+        begin
+          g_Console_Add('centerprint <timeout> <text>');
+          Exit;
+        end;
+
+        a := StrToIntDef(P[1], 100);
+        chstr := b_Text_Format(chstr);
+        g_Game_Message(chstr, a);
+        if g_Game_IsNet and g_Game_IsServer then
+          MH_SEND_GameEvent(NET_EV_BIGTEXT, a, chstr);
+      end
+      else g_Console_Add('centerprint <timeout> <text>');
+    end
     else if (cmd = 'overtime') and not g_Game_IsClient then
     begin
       if (Length(P) = 1) or (StrToIntDef(P[1], -1) <= 0) then
