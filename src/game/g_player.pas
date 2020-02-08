@@ -3542,7 +3542,7 @@ begin
 
 // Выброс ключей:
     if (not (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) or
-       LongBool(gGameSettings.Options and GAME_OPTION_DMKEYS) then
+       (not LongBool(gGameSettings.Options and GAME_OPTION_DMKEYS)) then
     begin
       if R_KEY_RED in FRulez then
         PushItem(ITEM_KEY_RED);
