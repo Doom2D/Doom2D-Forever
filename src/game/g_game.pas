@@ -1064,14 +1064,15 @@ begin
 
           SortGameStat(CustomStat.PlayerStat);
 
-          if gSaveStats or gScreenshotStats then
+          if (gSaveStats or gScreenshotStats) and (Length(gPlayers) > 1) then
           begin
             t := Now;
             if g_Game_IsNet then StatFilename := NetServerName else StatFilename := 'local';
             StatDate := FormatDateTime('yymmdd_hhnnss', t);
             StatFilename := StatFilename + '_' + CustomStat.Map + '_' + g_Game_ModeToText(CustomStat.GameMode);
             StatFilename := sanitizeFilename(StatFilename) + '_' + StatDate;
-            if gSaveStats then SaveGameStat(CustomStat, FormatDateTime('yyyy"/"mm"/"dd', t));
+            if gSaveStats then
+              SaveGameStat(CustomStat, FormatDateTime('yyyy"/"mm"/"dd', t));
           end;
 
           StatShotDone := False;
