@@ -453,8 +453,10 @@ begin
   it.slotIsUsed := true;
 
   it.ItemType := ItemType;
-  it.Respawnable := Respawnable;
-  if g_Game_IsServer and (ITEM_RESPAWNTIME = 0) then it.Respawnable := False;
+  if g_Game_IsServer and ((ITEM_RESPAWNTIME = 0) or not LongBool(gGameSettings.Options and GAME_OPTION_RESPAWNITEMS)) then
+    it.Respawnable := False
+  else
+    it.Respawnable := Respawnable;
   it.InitX := X;
   it.InitY := Y;
   it.RespawnTime := 0;
