@@ -4827,7 +4827,7 @@ begin
 
   if FDirection = TDirection.D_LEFT then FAngle := ANGLE_LEFTDOWN else FAngle := ANGLE_RIGHTDOWN;
 
-  if FIncCam > -120.0 * g_dbg_scale then DecMin(FIncCam, 5, Integer(-120.0 * g_dbg_scale));
+  if FIncCam > -120 then DecMin(FIncCam, 5, -120);
 end;
 
 procedure TPlayer.SeeUp();
@@ -4836,7 +4836,7 @@ begin
 
   if FDirection = TDirection.D_LEFT then FAngle := ANGLE_LEFTUP else FAngle := ANGLE_RIGHTUP;
 
-  if FIncCam < 120.0 * g_dbg_scale then IncMax(FIncCam, 5, Integer(120.0 * g_dbg_scale));
+  if FIncCam < 120 then IncMax(FIncCam, 5, 120);
 end;
 
 procedure TPlayer.SetAction(Action: Byte; Force: Boolean = False);
