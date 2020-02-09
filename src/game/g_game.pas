@@ -3702,10 +3702,10 @@ begin
     if (sY+sHeight > gMapInfo.Height) then sY := gMapInfo.Height-sHeight;
     if (sX < 0) then sX := 0;
     if (sY < 0) then sY := 0;
-
-    if (gBackSize.X <= gPlayerScreenSize.X) or (gMapInfo.Width <= sWidth) then c := 0 else c := trunc((gBackSize.X-gPlayerScreenSize.X)*sX/(gMapInfo.Width-sWidth));
-    if (gBackSize.Y <= gPlayerScreenSize.Y) or (gMapInfo.Height <= sHeight) then d := 0 else d := trunc((gBackSize.Y-gPlayerScreenSize.Y)*sY/(gMapInfo.Height-sHeight));
   end;
+
+  if (gBackSize.X <= gPlayerScreenSize.X) or (gMapInfo.Width <= sWidth) then c := 0 else c := trunc((gBackSize.X-gPlayerScreenSize.X)*sX/(gMapInfo.Width-sWidth));
+  if (gBackSize.Y <= gPlayerScreenSize.Y) or (gMapInfo.Height <= sHeight) then d := 0 else d := trunc((gBackSize.Y-gPlayerScreenSize.Y)*sY/(gMapInfo.Height-sHeight));
 
   //r_smallmap_h: 0: left; 1: center; 2: right
   //r_smallmap_v: 0: top; 1: center; 2: bottom
