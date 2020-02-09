@@ -559,7 +559,7 @@ var
 
   procedure clearEdgeBmp ();
   begin
-    SetLength(edgeBmp, (gWinSizeX+4)*(gWinSizeY+4));
+    SetLength(edgeBmp, (gScreenWidth+4)*(gScreenHeight+4));
     FillChar(edgeBmp[0], Length(edgeBmp)*sizeof(edgeBmp[0]), 0);
   end;
 
@@ -574,19 +574,19 @@ var
     begin
       sx := pan.X-(vpx-1);
       len := pan.Width;
-      if (len > gWinSizeX+4) then len := gWinSizeX+4;
+      if (len > gScreenWidth+4) then len := gScreenWidth+4;
       if (sx < 0) then begin len += sx; sx := 0; end;
-      if (sx+len > gWinSizeX+4) then len := gWinSizeX+4-sx;
+      if (sx+len > gScreenWidth+4) then len := gScreenWidth+4-sx;
       if (len < 1) then exit;
       assert(sx >= 0);
-      assert(sx+len <= gWinSizeX+4);
+      assert(sx+len <= gScreenWidth+4);
       y0 := pan.Y-(vpy-1);
       y1 := y0+pan.Height;
       if (y0 < 0) then y0 := 0;
-      if (y1 > gWinSizeY+4) then y1 := gWinSizeY+4;
+      if (y1 > gScreenHeight+4) then y1 := gScreenHeight+4;
       while (y0 < y1) do
       begin
-        FillChar(edgeBmp[y0*(gWinSizeX+4)+sx], len*sizeof(edgeBmp[0]), 1);
+        FillChar(edgeBmp[y0*(gScreenWidth+4)+sx], len*sizeof(edgeBmp[0]), 1);
         Inc(y0);
       end;
     end
@@ -651,15 +651,15 @@ var
     glColor4f(r/255.0, g/255.0, b/255.0, 1.0);
     for y := 1 to vph do
     begin
-      a := @edgeBmp[y*(gWinSizeX+4)+1];
+      a := @edgeBmp[y*(gScreenWidth+4)+1];
       startLine(y);
       for x := 1 to vpw do
       begin
         if (a[0] <> 0) then
         begin
-          if (a[-1] = 0) or (a[1] = 0) or (a[-(gWinSizeX+4)] = 0) or (a[gWinSizeX+4] = 0) or
-             (a[-(gWinSizeX+4)-1] = 0) or (a[-(gWinSizeX+4)+1] = 0) or
-             (a[gWinSizeX+4-1] = 0) or (a[gWinSizeX+4+1] = 0) then
+          if (a[-1] = 0) or (a[1] = 0) or (a[-(gScreenWidth+4)] = 0) or (a[gScreenWidth+4] = 0) or
+             (a[-(gScreenWidth+4)-1] = 0) or (a[-(gScreenWidth+4)+1] = 0) or
+             (a[gScreenWidth+4-1] = 0) or (a[gScreenWidth+4+1] = 0) then
           begin
             putPixel(x);
           end;
@@ -684,7 +684,7 @@ var
     glColor4f(r/255.0, g/255.0, b/255.0, 1.0);
     for y := 1 to vph do
     begin
-      a := @edgeBmp[y*(gWinSizeX+4)+1];
+      a := @edgeBmp[y*(gScreenWidth+4)+1];
       startLine(y);
       for x := 1 to vpw do
       begin
@@ -1258,7 +1258,7 @@ begin
 
   gxSetContext(hlmContext);
   try
-    //glScissor(0, gWinSizeY-gPlayerScreenSize.Y-1, vpw, vph);
+    //glScissor(0, gScreenHeight-gPlayerScreenSize.Y-1, vpw, vph);
     //hlmContext.clip := TGxRect.Create(0, gScreenHeight-gPlayerScreenSize.Y-1, gPlayerScreenSize.X, gPlayerScreenSize.Y);
 
     {
@@ -1333,11 +1333,11 @@ begin
     begin
       for dx := -1 to 1 do
       begin
-        if (dx <> 0) or (dy <> 0) then hlmContext.drawText(4+dx, gWinSizeY-10+dy, s);
+        if (dx <> 0) or (dy <> 0) then hlmContext.drawText(4+dx, gScreenHeight-10+dy, s);
       end;
     end;
     hlmContext.color := TGxRGBA.Create(255, 255, 0);
-    hlmContext.drawText(4, gWinSizeY-10, s);
+    hlmContext.drawText(4, gScreenHeight-10, s);
     gxSetContext(nil);
   end;
 end;

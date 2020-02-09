@@ -38,6 +38,7 @@ var
   PromptIP: string;
   PromptPort: Word;
   TempScale: Integer = -1;
+  TempResScale: Integer = -1;
 
 implementation
 
@@ -1881,8 +1882,8 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoResMenu').GetControl('mOptionsVideoResMenu'));
 
   TGUILabel(menu.GetControl('lbCurrentRes')).Text :=
-    IntToStr(gScreenWidth) +
-    ' x ' + IntToStr(gScreenHeight) +
+    IntToStr(gWinSizeX) +
+    ' x ' + IntToStr(gWinSizeY) +
     ', ' + IntToStr(gBPP) + ' bpp';
 
   with TGUIListBox(menu.GetControl('lsResolution')) do
@@ -1904,6 +1905,9 @@ begin
       ItemIndex := 0
     else
       ItemIndex := 1;
+
+  TempResScale := Round(r_pixel_scale - 1);
+  TGUIScroll(menu.GetControl('scResFactor')).Value := TempResScale;
 end;
 
 procedure ProcApplyVideoOptions();
@@ -1911,18 +1915,34 @@ var
   menu: TGUIMenu;
   Fullscreen: Boolean;
   SWidth, SHeight: Integer;
+  ScaleChanged: Boolean;
   str: String;
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoResMenu').GetControl('mOptionsVideoResMenu'));
 
   str := TGUIListBox(menu.GetControl('lsResolution')).SelectedItem;
-  SScanf(str, '%dx%d', [@SWidth, @SHeight]);
+  if str <> '' then
+    SScanf(str, '%dx%d', [@SWidth, @SHeight])
+  else
+  begin
+    SWidth := gWinSizeX;
+    SHeight := gWinSizeY;
+  end;
 
   Fullscreen := TGUISwitch(menu.GetControl('swFullScreen')).ItemIndex = 0;
 
-  if (SWidth <> gScreenWidth) or
-     (SHeight <> gScreenHeight) or
-     (Fullscreen <> gFullscreen) then
+  ScaleChanged := False;
+  if TGUIScroll(menu.GetControl('scResFactor')).Value <> TempResScale then
+  begin
+    TempResScale := TGUIScroll(menu.GetControl('scResFactor')).Value;
+    r_pixel_scale := TempResScale + 1;
+    ScaleChanged := True;
+  end;
+
+  if (SWidth <> gWinSizeX) or
+     (SHeight <> gWinSizeY) or
+     (Fullscreen <> gFullscreen) or
+     ScaleChanged then
   begin
     gResolutionChange := True;
     gRC_Width := SWidth;
@@ -2714,6 +2734,11 @@ begin
       Name := 'swFullScreen';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
+    end;
+    with AddScroll(_lc[I_MENU_GAME_SCALE_FACTOR]) do
+    begin
+      Name := 'scResFactor';
+      Max := 10;
     end;
     AddSpace();
     AddButton(@ProcApplyVideoOptions, _lc[I_MENU_RESOLUTION_APPLY]);

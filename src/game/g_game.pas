@@ -291,7 +291,8 @@ var
   gMapToDelete: String;
   gTempDelete: Boolean = False;
   gLastMap: Boolean = False;
-  gWinSizeX, gWinSizeY: Integer;
+  gScreenWidth: Word;
+  gScreenHeight: Word;
   gResolutionChange: Boolean = False;
   gRC_Width, gRC_Height: Integer;
   gRC_FullScreen, gRC_Maximized: Boolean;
@@ -1065,7 +1066,7 @@ begin
 
           SortGameStat(CustomStat.PlayerStat);
 
-          if (gSaveStats or gScreenshotStats) and (Length(gPlayers) > 1) then
+          if (gSaveStats or gScreenshotStats) and (Length(CustomStat.PlayerStat) > 1) then
           begin
             t := Now;
             if g_Game_IsNet then StatFilename := NetServerName else StatFilename := 'local';
@@ -2876,7 +2877,7 @@ begin
   end;
 
   // HACK: take stats screenshot immediately after the first frame of the stats showing
-  if gScreenshotStats and not StatShotDone then
+  if gScreenshotStats and (not StatShotDone) and (Length(CustomStat.PlayerStat) > 1) then
   begin
     g_TakeScreenShot('stats/' + StatFilename);
     StatShotDone := True;
@@ -3418,7 +3419,7 @@ begin
     end
     else
     begin
-      glScissor(0, 0, gWinSizeX, gWinSizeY);
+      glScissor(0, 0, gScreenWidth, gScreenHeight);
     end;
     // no need to clear stencil buffer, light blitting will do it for us... but only for normal scale
     if (g_dbg_scale <> 1.0) then glClear(GL_STENCIL_BUFFER_BIT);
@@ -5973,7 +5974,7 @@ begin
     if cmd = 'd_window' then
     begin
       g_Console_Add(Format('gScreenWidth = %d, gScreenHeight = %d', [gScreenWidth, gScreenHeight]));
-      g_Console_Add(Format('gWinSizeX = %d, gWinSizeY = %d', [gWinSizeX, gWinSizeY]));
+      g_Console_Add(Format('gScreenWidth = %d, gScreenHeight = %d', [gScreenWidth, gScreenHeight]));
     end
     else if cmd = 'd_sounds' then
     begin
@@ -8182,6 +8183,7 @@ begin
   conRegVar('dbg_ignore_level_bounds', @g_dbg_ignore_bounds, 'ignore level bounds', '',  false);
 
   conRegVar('r_scale', @g_dbg_scale, 0.01, 100.0, 'render scale', '',  false);
+  conRegVar('r_resolution_scale', @r_pixel_scale, 0.01, 100.0, 'upscale factor', '', false);
 
   conRegVar('light_enabled', @gwin_k8_enable_light_experiments, 'enable/disable dynamic lighting', 'lighting');
   conRegVar('light_player_halo', @g_playerLight, 'enable/disable player halo', 'player light halo');

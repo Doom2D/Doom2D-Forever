@@ -74,10 +74,17 @@ implementation
   begin
     gWinSizeX := w;
     gWinSizeY := h;
-    gScreenWidth := w;
-    gScreenHeight := h;
     gRC_Width := w;
     gRC_Height := h;
+    if glRenderToFBO then
+    begin
+      // store real window size in gWinSize, downscale resolution now
+      w := round(w / r_pixel_scale);
+      h := round(h / r_pixel_scale);
+      e_ResizeFramebuffer(w, h);
+    end;
+    gScreenWidth := w;
+    gScreenHeight := h;
     {$IFDEF ENABLE_HOLMES}
       fuiScrWdt := w;
       fuiScrHgt := h;
@@ -120,6 +127,15 @@ implementation
       begin
         {$IFDEF NOGL_INIT}
           nogl_Init;
+          glRenderToFBO := False; // TODO: check for GL_OES_framebuffer_object
+        {$ELSE}
+          if glRenderToFBO then
+            if not Load_GL_ARB_framebuffer_object() then
+              if not Load_GL_EXT_framebuffer_object() then
+              begin
+                e_LogWriteln('SDL: no framebuffer support detected');
+                glRenderToFBO := False
+              end;
         {$ENDIF}
         SDL_WM_SetCaption(GetTitle(), nil);
         gFullScreen := fullscreen;
@@ -136,6 +152,8 @@ implementation
 
   procedure sys_Repaint;
   begin
+    if glRenderToFBO then
+      e_BlitFramebuffer(gWinSizeX, gWinSizeY);
     SDL_GL_SwapBuffers
   end;
 

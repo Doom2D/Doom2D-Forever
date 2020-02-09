@@ -326,6 +326,15 @@ begin
       mdfo.Free();
       Halt(0);
     end;
+
+    if (arg = '--pixel-scale') or (arg = '-pixel-scale') then
+    begin
+      if (idx <= ParamCount) then
+      begin
+        if not conParseFloat(r_pixel_scale, ParamStr(idx)) then r_pixel_scale := 1.0;
+        Inc(idx);
+      end;
+    end;
   end;
 
 {$IFNDEF USE_SYSSTUB}
@@ -333,6 +342,7 @@ begin
   glLegacyNPOT := not (GLExtensionSupported('GL_ARB_texture_non_power_of_two') or GLExtensionSupported('GL_OES_texture_npot'));
 {$ELSE}
   glLegacyNPOT := False;
+  glRenderToFBO := False;
 {$ENDIF}
   if glNPOTOverride and glLegacyNPOT then
   begin

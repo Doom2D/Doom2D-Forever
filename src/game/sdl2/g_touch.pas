@@ -65,7 +65,7 @@ implementation
       dpi := 96;
     {$ENDIF}
 
-    sz := Trunc(g_touch_size * dpi); sw := gScreenWidth; sh := gScreenHeight;
+    sz := Trunc(g_touch_size * dpi); sw := gWinSizeX; sh := gWinSizeY;
     x := 0; y := Round(sh * g_touch_offset / 100);
     w := sz; h := sz;
 
@@ -274,8 +274,8 @@ implementation
       Exit;
 
     finger := ev.fingerId + 2;
-    x := Trunc(ev.x * gScreenWidth);
-    y := Trunc(ev.y * gScreenHeight);
+    x := Trunc(ev.x * gWinSizeX);
+    y := Trunc(ev.y * gWinSizeY);
 
     for i := VK_FIRSTKEY to VK_LASTKEY do
     begin

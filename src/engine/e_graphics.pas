@@ -62,6 +62,8 @@ type
 procedure e_InitGL();
 procedure e_SetViewPort(X, Y, Width, Height: Word);
 procedure e_ResizeWindow(Width, Height: Integer);
+procedure e_ResizeFramebuffer(Width, Height: Integer);
+procedure e_BlitFramebuffer(WinWidth, WinHeight: Integer);
 
 procedure e_Draw(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
                  Blending: Boolean; Mirror: TMirrorType = TMirrorType.None);
@@ -151,6 +153,7 @@ var
   e_NoGraphics: Boolean = False;
   e_FastScreenshots: Boolean = true; // it's REALLY SLOW with `false`
   g_dbg_scale: Single = 1.0;
+  r_pixel_scale: Single = 1.0;
 
 
 implementation
@@ -196,6 +199,11 @@ var
   e_TextureFonts: array of TTextureFont = nil;
   e_CharFonts: array of TCharFont;
   //e_SavedTextures: array of TSavedTexture;
+  e_FBO: GLuint = 0;
+  e_RBO: GLuint = 0;
+  e_Frame: GLuint = 0;
+  e_FrameW: Integer = -1;
+  e_FrameH: Integer = -1;
 
 //function e_getTextGLId (ID: DWORD): GLuint; begin result := e_Textures[ID].tx.id; end;
 
@@ -371,6 +379,50 @@ begin
  if Height <> nil then Height^ := e_Textures[ID].tx.Height;
 end;
 
+procedure e_ResizeFramebuffer(Width, Height: Integer);
+begin
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  if e_Frame > 0 then
+  begin
+    glDeleteTextures(1, @e_Frame);
+    e_Frame := 0;
+  end;
+
+  if e_RBO > 0 then
+  begin
+    glDeleteRenderbuffers(1, @e_RBO);
+    e_RBO := 0;
+  end;
+
+  if e_FBO > 0 then
+  begin
+    glDeleteFramebuffers(1, @e_FBO);
+    e_FBO := 0;
+  end;
+
+  e_FrameW := Width;
+  e_FrameH := Height;
+
+  glGenFramebuffers(1, @e_FBO);
+
+  glGenTextures(1, @e_Frame);
+  glBindTexture(GL_TEXTURE_2D, e_Frame);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, nil);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+  glGenRenderbuffers(1, @e_RBO);
+  glBindRenderbuffer(GL_RENDERBUFFER, e_RBO);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, Width, Height);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, e_FBO);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, e_Frame, 0);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, e_RBO);
+end;
+
 procedure e_ResizeWindow(Width, Height: Integer);
 begin
   if Height = 0 then
@@ -397,6 +449,22 @@ begin
   glTexCoord2f(0, 0); glVertex2i(x0, y1);
   glTexCoord2f(u, 0); glVertex2i(x1, y1);
   glTexCoord2f(u, v); glVertex2i(x1, y0);
+end;
+
+procedure e_BlitFramebuffer(WinWidth, WinHeight: Integer);
+begin
+  if (e_FBO = 0) or (e_Frame = 0) then exit;
+  glDisable(GL_BLEND);
+  glEnable(GL_TEXTURE_2D);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glBindTexture(GL_TEXTURE_2D, e_Frame);
+  glColor4ub(255, 255, 255, 255);
+  e_SetViewPort(0, 0, WinWidth, WinHeight);
+  glBegin(GL_QUADS);
+  drawTxQuad(0, 0, WinWidth, WinHeight, e_FrameW, e_FrameH, 1, 1, TMirrorType.None);
+  glEnd();
+  glBindFramebuffer(GL_FRAMEBUFFER, e_FBO);
+  e_SetViewPort(0, 0, e_FrameW, e_FrameH);
 end;
 
 procedure e_Draw(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;

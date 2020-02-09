@@ -35,14 +35,14 @@ procedure g_Options_Commands (p: SSArray);
 const DF_Default_Megawad_Start = 'megawads/DOOM2D.WAD:\MAP01';
 
 var
-  gScreenWidth: Word;
-  gScreenHeight: Word;
   gBPP: Integer;
   gFreq: Byte;
   gFullscreen: Boolean;
+  gWinSizeX, gWinSizeY: Integer;
   gWinMaximized: Boolean;
   gVSync: Boolean;
   glLegacyNPOT: Boolean;
+  glRenderToFBO: Boolean = True;
   gTextureFilter: Boolean;
   gNoSound: Boolean;
   gSoundLevel: Integer;
@@ -132,6 +132,8 @@ begin
   (* Display 0 = Primary display *)
   gScreenWidth := 640;
   gScreenHeight := 480;
+  gWinSizeX := 640;
+  gWinSizeY := 480;
   //gBPP := SDL_BITSPERPIXEL(dispaly.format);
   gBPP := 32;
   {$IFDEF ANDROID}
@@ -142,8 +144,8 @@ begin
   if SDL_GetDesktopDisplayMode(0, @display) = 0 then
   begin
   {$IFDEF ANDROID}
-    gScreenWidth := display.w;
-    gScreenHeight := display.h;
+    gWinSizeX := display.w;
+    gWinSizeY := display.h;
   {$ELSE}
     (* Window must be smaller than display *)
     closest.w := display.w;
@@ -165,8 +167,8 @@ begin
       SDL_GetClosestDisplayMode(0, @target, @closest);
       Dec(percentage);
     end;
-    gScreenWidth := closest.w;
-    gScreenHeight := closest.h;
+    gWinSizeX := closest.w;
+    gWinSizeY := closest.h;
     //gBPP := SDL_BITSPERPIXEL(closest.format); (* Resolution list didn't work for some reason *)
   {$ENDIF}
   end
@@ -179,29 +181,31 @@ begin
   gVSync := True;
   gTextureFilter := True;
   glLegacyNPOT := False;
-  gRC_Width := gScreenWidth;
-  gRC_Height := gScreenHeight;
+  gRC_Width := gWinSizeX;
+  gRC_Height := gWinSizeY;
   gRC_FullScreen := gFullScreen;
   gRC_Maximized := gWinMaximized;
-  e_LogWriteLn('g_Options_SetDefaultVideo: w = ' + IntToStr(gScreenWidth) + ' h = ' + IntToStr(gScreenHeight));
+  e_LogWriteLn('g_Options_SetDefaultVideo: w = ' + IntToStr(gWinSizeX) + ' h = ' + IntToStr(gWinSizeY));
   g_Console_ResetBinds;
 end;
 {$ELSE}
 procedure g_Options_SetDefaultVideo;
 begin
-  gScreenWidth := 640;
-  gScreenHeight := 480;
+  gWinSizeX := 640;
+  gWinSizeY := 480;
   gBPP := 32;
   gFullScreen := False;
   gWinMaximized := False;
   gVSync := True;
   gTextureFilter := True;
   glLegacyNPOT := False;
-  gRC_Width := gScreenWidth;
-  gRC_Height := gScreenHeight;
+  gScreenWidth := gWinSizeX;
+  gScreenHeight := gWinSizeY;
+  gRC_Width := gWinSizeX;
+  gRC_Height := gWinSizeY;
   gRC_FullScreen := gFullScreen;
   gRC_Maximized := gWinMaximized;
-  e_LogWriteLn('g_Options_SetDefaultVideo: w = ' + IntToStr(gScreenWidth) + ' h = ' + IntToStr(gScreenHeight));
+  e_LogWriteLn('g_Options_SetDefaultVideo: w = ' + IntToStr(gWinSizeX) + ' h = ' + IntToStr(gWinSizeY));
   g_Console_ResetBinds;
 end;
 {$ENDIF}
@@ -811,6 +815,7 @@ initialization
   conRegVar('r_vsync', @gVSync, '', '');
   conRegVar('r_texfilter', @gTextureFilter, '', '');
   conRegVar('r_npot', @glNPOTOverride, '', '');
+  conRegVar('r_fbo', @glRenderToFBO, '', '');
 
   (* Sound *)
   conRegVar('s_nosound', @gNoSound, '', '');
