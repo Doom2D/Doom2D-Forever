@@ -668,6 +668,7 @@ begin
 
     gcTeamDamage := TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0;
     gcRespawnItems := TGUISwitch(GetControl('swRespawnItems')).ItemIndex = 0;
+    gcDeathmatchKeys := TGUISwitch(GetControl('swDeathmatchKeys')).ItemIndex = 0;
     gcAllowExit := TGUISwitch(GetControl('swEnableExits')).ItemIndex = 0;
     gcWeaponStay := TGUISwitch(GetControl('swWeaponStay')).ItemIndex = 0;
     gcMonsters := TGUISwitch(GetControl('swMonsters')).ItemIndex = 0;
@@ -676,6 +677,8 @@ begin
       Options := Options or GAME_OPTION_TEAMDAMAGE;
     if gcRespawnItems then
       Options := Options or GAME_OPTION_RESPAWNITEMS;
+    if gcDeathmatchKeys then
+      Options := Options or GAME_OPTION_DMKEYS;
     if gcAllowExit then
       Options := Options or GAME_OPTION_ALLOWEXIT;
     if gcWeaponStay then
@@ -735,6 +738,7 @@ begin
 
     gnTeamDamage := TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0;
     gnRespawnItems := TGUISwitch(GetControl('swRespawnItems')).ItemIndex = 0;
+    gnDeathmatchKeys := TGUISwitch(GetControl('swDeathmatchKeys')).ItemIndex = 0;
     gnAllowExit := TGUISwitch(GetControl('swEnableExits')).ItemIndex = 0;
     gnWeaponStay := TGUISwitch(GetControl('swWeaponStay')).ItemIndex = 0;
     gnMonsters := TGUISwitch(GetControl('swMonsters')).ItemIndex = 0;
@@ -743,6 +747,8 @@ begin
       Options := Options or GAME_OPTION_TEAMDAMAGE;
     if gnRespawnItems then
       Options := Options or GAME_OPTION_RESPAWNITEMS;
+    if gnDeathmatchKeys then
+      Options := Options or GAME_OPTION_DMKEYS;
     if gnAllowExit then
       Options := Options or GAME_OPTION_ALLOWEXIT;
     if gnWeaponStay then
@@ -1697,6 +1703,11 @@ begin
         ItemIndex := 0
       else
         ItemIndex := 1;
+    with TGUISwitch(menu.GetControl('swDeathmatchKeys')) do
+      if LongBool(Options and GAME_OPTION_DMKEYS) then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
 
     TGUIEdit(menu.GetControl('edTimeLimit')).Text := IntToStr(TimeLimit);
     TGUIEdit(menu.GetControl('edGoalLimit')).Text := IntToStr(GoalLimit);
@@ -1715,6 +1726,7 @@ begin
     if GameType in [GT_CUSTOM, GT_SERVER] then
       begin
         TGUISwitch(menu.GetControl('swTeamDamage')).Enabled := True;
+        TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled := (GameMode in [GM_DM, GM_TDM, GM_CTF]);
         TGUIEdit(menu.GetControl('edTimeLimit')).Enabled := True;
         TGUILabel(menu.GetControlsText('edTimeLimit')).Color := MENU_ITEMSTEXT_COLOR;
         TGUIEdit(menu.GetControl('edGoalLimit')).Enabled := True;
@@ -1726,6 +1738,7 @@ begin
     else
       begin
         TGUISwitch(menu.GetControl('swTeamDamage')).Enabled := True;
+        TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled := False;
         with TGUIEdit(menu.GetControl('edTimeLimit')) do
         begin
           Enabled := False;
@@ -1767,6 +1780,14 @@ begin
         Options := Options or GAME_OPTION_TEAMDAMAGE
       else
         Options := Options and (not GAME_OPTION_TEAMDAMAGE);
+    end;
+
+    if TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled then
+    begin
+      if TGUISwitch(menu.GetControl('swDeathmatchKeys')).ItemIndex = 0 then
+        Options := Options or GAME_OPTION_DMKEYS
+      else
+        Options := Options and (not GAME_OPTION_DMKEYS);
     end;
 
     if TGUIEdit(menu.GetControl('edTimeLimit')).Enabled then
@@ -2204,6 +2225,16 @@ begin
       else
         ItemIndex := 1;
     end;
+    with AddSwitch(_lc[I_MENU_DEATHMATCH_KEYS]) do
+    begin
+      Name := 'swDeathmatchKeys';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      if gnDeathmatchKeys then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
+    end;
     with AddSwitch(_lc[I_MENU_ENABLE_EXITS]) do
     begin
       Name := 'swEnableExits';
@@ -2410,6 +2441,16 @@ begin
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
       if gcRespawnItems then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
+    end;
+    with AddSwitch(_lc[I_MENU_DEATHMATCH_KEYS]) do
+    begin
+      Name := 'swDeathmatchKeys';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      if gcDeathmatchKeys then
         ItemIndex := 0
       else
         ItemIndex := 1;
@@ -3270,6 +3311,13 @@ begin
     with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
     begin
       Name := 'swTeamDamage';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      ItemIndex := 1;
+    end;
+    with AddSwitch(_lc[I_MENU_DEATHMATCH_KEYS]) do
+    begin
+      Name := 'swDeathmatchKeys';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
       ItemIndex := 1;
