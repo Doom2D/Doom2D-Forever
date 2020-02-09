@@ -3668,57 +3668,35 @@ begin
     b := -py+(gPlayerScreenSize.Y div 2);
   end;
 
-  if p.IncCam <> 0 then
-  begin
-    if py > gMapInfo.Height-(gPlayerScreenSize.Y div 2) then
-    begin
-      if p.IncCam > 120-(py-(gMapInfo.Height-(gPlayerScreenSize.Y div 2))) then
-      begin
-        p.IncCam := 120-(py-(gMapInfo.Height-(gPlayerScreenSize.Y div 2)));
-      end;
-    end;
-
-    if py < gPlayerScreenSize.Y div 2 then
-    begin
-      if p.IncCam < -120+((gPlayerScreenSize.Y div 2)-py) then
-      begin
-        p.IncCam := -120+((gPlayerScreenSize.Y div 2)-py);
-      end;
-    end;
-
-    if p.IncCam < 0 then
-    begin
-      while (py+(gPlayerScreenSize.Y div 2)-p.IncCam > gMapInfo.Height) and (p.IncCam < 0) do p.IncCam := p.IncCam+1; //Inc(p.IncCam);
-    end;
-
-    if p.IncCam > 0 then
-    begin
-      while (py-(gPlayerScreenSize.Y div 2)-p.IncCam < 0) and (p.IncCam > 0) do p.IncCam := p.IncCam-1; //Dec(p.IncCam);
-    end;
-  end;
-
-       if (px < gPlayerScreenSize.X div 2) or (gMapInfo.Width-gPlayerScreenSize.X <= 256) then c := 0
-  else if (px > gMapInfo.Width-(gPlayerScreenSize.X div 2)) then c := gBackSize.X-gPlayerScreenSize.X
-  else c := round((px-(gPlayerScreenSize.X div 2))/(gMapInfo.Width-gPlayerScreenSize.X)*(gBackSize.X-gPlayerScreenSize.X));
-
-       if (py-p.IncCam <= gPlayerScreenSize.Y div 2) or (gMapInfo.Height-gPlayerScreenSize.Y <= 256) then d := 0
-  else if (py-p.IncCam >= gMapInfo.Height-(gPlayerScreenSize.Y div 2)) then d := gBackSize.Y-gPlayerScreenSize.Y
-  else d := round((py-p.IncCam-(gPlayerScreenSize.Y div 2))/(gMapInfo.Height-gPlayerScreenSize.Y)*(gBackSize.Y-gPlayerScreenSize.Y));
-
   sX := -a;
-  sY := -(b+p.IncCam);
+  sY := -b;
   sWidth := gPlayerScreenSize.X;
   sHeight := gPlayerScreenSize.Y;
-
-  //glTranslatef(a, b+p.IncCam, 0);
-
-  //if (p = gPlayer1) and (g_dbg_scale >= 1.0) then g_Holmes_plrViewSize(sWidth, sHeight);
-
-  //conwritefln('OLD: (%s,%s)-(%s,%s)', [sX, sY, sWidth, sHeight]);
   fixViewportForScale();
-  //conwritefln('     (%s,%s)-(%s,%s)', [sX, sY, sWidth, sHeight]);
 
-  if (g_dbg_scale <> 1.0) and (not g_dbg_ignore_bounds) then
+  i := py - (sY + sHeight div 2);
+  if (p.IncCam > 0) then
+  begin
+    // clamp to level bounds
+    if (sY - p.IncCam < 0) then
+      p.IncCam := nclamp(sY, 0, 120);
+    // clamp around player position
+    if (i > 0) then
+      p.IncCam := nclamp(p.IncCam, 0, max(0, 120 - i));
+  end
+  else if (p.IncCam < 0) then
+  begin
+    // clamp to level bounds
+    if (sY + sHeight - p.IncCam > gMapInfo.Height) then
+      p.IncCam := nclamp(sY + sHeight - gMapInfo.Height, -120, 0);
+    // clamp around player position
+    if (i < 0) then
+      p.IncCam := nclamp(p.IncCam, min(0, -120 - i), 0);
+  end;
+
+  sY := sY - p.IncCam;
+
+  if (not g_dbg_ignore_bounds) then
   begin
     if (sX+sWidth > gMapInfo.Width) then sX := gMapInfo.Width-sWidth;
     if (sY+sHeight > gMapInfo.Height) then sY := gMapInfo.Height-sHeight;
