@@ -2354,6 +2354,7 @@ begin
     if (OldFire <= 0) and (FFireTime > 0) then
       g_Sound_PlayExAt('SOUND_IGNITE', Obj.X, Obj.Y);
     Flam := M.ReadByte() <> 0;
+    FSpawnInvul := M.ReadLongInt();
     if OldJet and not FJetpack then
       JetpackOff
     else if not OldJet and FJetpack then

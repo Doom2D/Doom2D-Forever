@@ -4368,6 +4368,7 @@ begin
   FMonsterKills := 0;
   FDeath := 0;
   FSecrets := 0;
+  FSpawnInvul := 0;
   FReady := False;
   if FNoRespawn then
   begin
@@ -4560,6 +4561,7 @@ begin
   FShellTimer := -1;
   FPain := 0;
   FLastHit := 0;
+  FSpawnInvul := 0;
 
   if not g_Game_IsServer then
     Exit;
@@ -6303,6 +6305,7 @@ begin
       if FMegaRulez[MR_INVUL] < gTime+PLAYER_INVUL_TIME then
       begin
         FMegaRulez[MR_INVUL] := gTime+PLAYER_INVUL_TIME;
+        FSpawnInvul := 0;
       end;
 
     ITEM_INVIS:
