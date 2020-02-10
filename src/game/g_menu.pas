@@ -1727,7 +1727,16 @@ begin
     if GameType in [GT_CUSTOM, GT_SERVER] then
       begin
         TGUISwitch(menu.GetControl('swTeamDamage')).Enabled := True;
-        TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled := (GameMode in [GM_DM, GM_TDM, GM_CTF]);
+        if (GameMode in [GM_DM, GM_TDM, GM_CTF]) then
+        begin
+          TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled := True;
+          TGUILabel(menu.GetControlsText('swDeathmatchKeys')).Color := MENU_ITEMSTEXT_COLOR;
+        end
+        else
+        begin
+          TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled := False;
+          TGUILabel(menu.GetControlsText('swDeathmatchKeys')).Color := MENU_UNACTIVEITEMS_COLOR;
+        end;
         TGUIEdit(menu.GetControl('edTimeLimit')).Enabled := True;
         TGUILabel(menu.GetControlsText('edTimeLimit')).Color := MENU_ITEMSTEXT_COLOR;
         TGUIEdit(menu.GetControl('edGoalLimit')).Enabled := True;
@@ -1740,6 +1749,7 @@ begin
       begin
         TGUISwitch(menu.GetControl('swTeamDamage')).Enabled := True;
         TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled := False;
+        TGUILabel(menu.GetControlsText('swDeathmatchKeys')).Color := MENU_UNACTIVEITEMS_COLOR;
         with TGUIEdit(menu.GetControl('edTimeLimit')) do
         begin
           Enabled := False;
