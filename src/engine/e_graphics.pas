@@ -199,13 +199,11 @@ var
   e_TextureFonts: array of TTextureFont = nil;
   e_CharFonts: array of TCharFont;
   //e_SavedTextures: array of TSavedTexture;
-{$IF NOT DEFINED(HEADLESS) AND NOT DEFINED(USE_GLES1)}
   e_FBO: GLuint = 0;
   e_RBO: GLuint = 0;
   e_Frame: GLuint = 0;
   e_FrameW: Integer = -1;
   e_FrameH: Integer = -1;
-{$ENDIF}
 
 //function e_getTextGLId (ID: DWORD): GLuint; begin result := e_Textures[ID].tx.id; end;
 
@@ -383,7 +381,6 @@ end;
 
 procedure e_ResizeFramebuffer(Width, Height: Integer);
 begin
-{$IF NOT DEFINED(HEADLESS) AND NOT DEFINED(USE_GLES1)}
   if e_NoGraphics then Exit;
 
   glBindTexture(GL_TEXTURE_2D, 0);
@@ -421,12 +418,11 @@ begin
 
   glGenRenderbuffers(1, @e_RBO);
   glBindRenderbuffer(GL_RENDERBUFFER, e_RBO);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, Width, Height);
+  glRenderbufferStorage(GL_RENDERBUFFER, {$IFNDEF USE_GLES1}GL_DEPTH24_STENCIL8{$ELSE}GL_DEPTH_COMPONENT16{$ENDIF}, Width, Height);
 
   glBindFramebuffer(GL_FRAMEBUFFER, e_FBO);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, e_Frame, 0);
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, e_RBO);
-{$ENDIF}
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, {$IFNDEF USE_GLES1}GL_DEPTH_STENCIL_ATTACHMENT{$ELSE}GL_DEPTH_ATTACHMENT{$ENDIF}, GL_RENDERBUFFER, e_RBO);
 end;
 
 procedure e_ResizeWindow(Width, Height: Integer);
@@ -459,7 +455,6 @@ end;
 
 procedure e_BlitFramebuffer(WinWidth, WinHeight: Integer);
 begin
-{$IF NOT DEFINED(HEADLESS) AND NOT DEFINED(USE_GLES1)}
   if (e_FBO = 0) or (e_Frame = 0) or e_NoGraphics then exit;
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
@@ -472,7 +467,6 @@ begin
   glEnd();
   glBindFramebuffer(GL_FRAMEBUFFER, e_FBO);
   e_SetViewPort(0, 0, e_FrameW, e_FrameH);
-{$ENDIF}
 end;
 
 procedure e_Draw(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;

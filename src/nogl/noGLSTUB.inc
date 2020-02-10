@@ -182,12 +182,58 @@ implementation
   begin
   end;
 
+  procedure glGenFramebuffers(n: GLsizei; framebuffers: PGLuint);
+  begin
+  end;
+
+  procedure glBindFramebuffer(target: GLenum; framebuffer: GLuint);
+  begin
+  end;
+
+  procedure glFramebufferTexture2D(target, attachment, textarget: GLenum; texture: GLuint; level: GLint);
+  begin
+  end;
+
+  procedure glFramebufferRenderbuffer(target, attachment, rbotarget: GLenum; rbo: GLuint);
+  begin
+  end;
+
+  function glCheckFramebufferStatus(framebuffer: GLuint): GLenum;
+  begin
+    result := GL_FRAMEBUFFER_UNSUPPORTED
+  end;
+
+  procedure glDeleteFramebuffers(n: GLsizei; const framebuffers: PGLuint);
+  begin
+  end;
+
+  procedure glGenRenderbuffers(n: GLsizei; renderbuffers: PGLuint);
+  begin
+  end;
+
+  procedure glBindRenderbuffer(target: GLenum; renderbuffer: GLuint);
+  begin
+  end;
+
+  procedure glRenderbufferStorage(target, internalformat: GLenum; w, h: GLsizei);
+  begin
+  end;
+
+  procedure glDeleteRenderbuffers(n: GLsizei; const renderbuffers: PGLuint);
+  begin
+  end;
+
   procedure nogl_Init;
   begin
   end;
 
   procedure nogl_Quit;
   begin
+  end;
+
+  function nogl_ExtensionSupported(ext: string): Boolean;
+  begin
+    result := false;
   end;
 
 initialization

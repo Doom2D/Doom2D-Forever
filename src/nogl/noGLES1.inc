@@ -29,6 +29,9 @@ implementation
     cmds: TCmds;
 
   var
+    extList: string = '';
+
+  var
     es_glVertexPointer: procedure (size: GLint; _type: GLenum; stride: GLsizei; pointer: PGLvoid); cdecl;
     es_glColorPointer: procedure (size: GLint; _type: GLenum; stride: GLsizei; pointer: PGLvoid); cdecl;
     es_glTexCoordPointer: procedure (size: GLint; _type: GLenum; stride: GLsizei; pointer: PGLvoid); cdecl;
@@ -79,6 +82,18 @@ implementation
     es_glTexImage2D: procedure (target: GLenum; level, internalformat: GLint; width, height: GLsizei; border: GLint; format, _type:GLenum; pixels: PGLvoid); cdecl;
     es_glTexSubImage2D: procedure (target: GLenum; level: GLint; xoffset, yoffset: GLint; width, height: GLsizei; format, _type: GLenum; pixels: PGLvoid); cdecl;
     es_glDeleteTextures: procedure (n: GLsizei; textures: PGLuint); cdecl;
+
+    es_glGenFramebuffers: procedure (n: GLsizei; framebuffers: PGLuint); cdecl;
+    es_glBindFramebuffer: procedure (target: GLenum; framebuffer: GLuint); cdecl;
+    es_glFramebufferTexture2D: procedure (target, attachment, textarget: GLenum; texture: GLuint; level: GLint); cdecl;
+    es_glFramebufferRenderbuffer: procedure (target, attachment, rbotarget: GLenum; rbo: GLuint); cdecl;
+    es_glCheckFramebufferStatus: function (framebuffer: GLuint): GLenum; cdecl;
+    es_glDeleteFramebuffers: procedure (n: GLsizei; const framebuffers: PGLuint); cdecl;
+
+    es_glGenRenderbuffers: procedure (n: GLsizei; framebuffers: PGLuint); cdecl;
+    es_glBindRenderbuffer: procedure (target: GLenum; renderbuffer: GLuint); cdecl;
+    es_glRenderbufferStorage: procedure (target, internalformat: GLenum; w, h: GLsizei); cdecl;
+    es_glDeleteRenderbuffers: procedure (n: GLsizei; const renderbuffers: PGLuint); cdecl;
 
   procedure glEnable(cap: GLenum);
   begin
@@ -405,6 +420,62 @@ implementation
 
 
 
+
+  procedure glGenFramebuffers(n: GLsizei; framebuffers: PGLuint);
+  begin
+    es_glGenFramebuffers(n, framebuffers);
+  end;
+
+  procedure glBindFramebuffer(target: GLenum; framebuffer: GLuint);
+  begin
+    es_glBindFramebuffer(target, framebuffer);
+  end;
+
+  procedure glFramebufferTexture2D(target, attachment, textarget: GLenum; texture: GLuint; level: GLint);
+  begin
+    es_glFramebufferTexture2D(target, attachment, textarget, texture, level);
+  end;
+
+  procedure glFramebufferRenderbuffer(target, attachment, rbotarget: GLenum; rbo: GLuint);
+  begin
+    es_glFramebufferRenderbuffer(target, attachment, rbotarget, rbo);
+  end;
+
+  function glCheckFramebufferStatus(framebuffer: GLuint): GLenum;
+  begin
+    result := es_glCheckFramebufferStatus(framebuffer);
+  end;
+
+  procedure glDeleteFramebuffers(n: GLsizei; const framebuffers: PGLuint);
+  begin
+    es_glDeleteFramebuffers(n, framebuffers);
+  end;
+
+  procedure glGenRenderbuffers(n: GLsizei; renderbuffers: PGLuint);
+  begin
+    es_glGenRenderbuffers(n, renderbuffers);
+  end;
+
+  procedure glBindRenderbuffer(target: GLenum; renderbuffer: GLuint);
+  begin
+    es_glBindRenderbuffer(target, renderbuffer);
+  end;
+
+  procedure glRenderbufferStorage(target, internalformat: GLenum; w, h: GLsizei);
+  begin
+    es_glRenderbufferStorage(target, internalformat, w, h);
+  end;
+
+  procedure glDeleteRenderbuffers(n: GLsizei; const renderbuffers: PGLuint);
+  begin
+    es_glDeleteRenderbuffers(n, renderbuffers);
+  end;
+
+
+
+
+
+
   procedure nogl_Init;
   begin
     es_glVertexPointer := SDL_GL_GetProcAddress('glVertexPointer');
@@ -457,6 +528,18 @@ implementation
     es_glTexImage2D := SDL_GL_GetProcAddress('glTexImage2D');
     es_glTexSubImage2D := SDL_GL_GetProcAddress('glTexSubImage2D');
     es_glDeleteTextures := SDL_GL_GetProcAddress('glDeleteTextures');
+
+    es_glGenFramebuffers := SDL_GL_GetProcAddress('glGenFramebuffersOES');
+    es_glBindFramebuffer := SDL_GL_GetProcAddress('glBindFramebufferOES');
+    es_glFramebufferTexture2D := SDL_GL_GetProcAddress('glFramebufferTexture2DOES');;
+    es_glFramebufferRenderbuffer := SDL_GL_GetProcAddress('glFramebufferRenderbufferOES');
+    es_glCheckFramebufferStatus := SDL_GL_GetProcAddress('glCheckFramebufferStatusOES');
+    es_glDeleteFramebuffers := SDL_GL_GetProcAddress('glDeleteFramebuffersOES');
+
+    es_glGenRenderbuffers := SDL_GL_GetProcAddress('glGenRenderbuffersOES');
+    es_glBindRenderbuffer := SDL_GL_GetProcAddress('glBindRenderbufferOES');
+    es_glRenderbufferStorage := SDL_GL_GetProcAddress('glRenderbufferStorageOES');
+    es_glDeleteRenderbuffers := SDL_GL_GetProcAddress('glDeleteRenderbuffersOES');
 
     cmds.mode := GL_INVALID_ENUM
   end;
@@ -513,6 +596,25 @@ implementation
     es_glTexImage2D := nil;
     es_glTexSubImage2D := nil;
     es_glDeleteTextures := nil;
+
+    es_glGenFramebuffers := nil;
+    es_glBindFramebuffer := nil;
+    es_glFramebufferTexture2D := nil;
+    es_glFramebufferRenderbuffer := nil;
+    es_glCheckFramebufferStatus := nil;
+    es_glDeleteFramebuffers := nil;
+
+    es_glGenRenderbuffers := nil;
+    es_glBindRenderbuffer := nil;
+    es_glRenderbufferStorage := nil;
+    es_glDeleteRenderbuffers := nil;
+  end;
+
+  function nogl_ExtensionSupported(ext: string): Boolean;
+  begin
+    if (extList = '') and Assigned(es_glGetString) then
+      extList := glGetString(GL_EXTENSIONS);
+    result := pos(ext, extList) <> 0;
   end;
 
 initialization

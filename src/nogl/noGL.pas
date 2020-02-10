@@ -86,6 +86,39 @@ interface
     GL_TEXTURE_ENV_MODE = $2200;
     GL_MODULATE = $2100;
 
+    GL_INVALID_FRAMEBUFFER_OPERATION = $0506;
+    GL_FRAMEBUFFER_DEFAULT = $8218;
+    GL_FRAMEBUFFER_UNDEFINED = $8219;
+    GL_DEPTH_STENCIL_ATTACHMENT = $821A;
+    GL_MAX_RENDERBUFFER_SIZE = $84E8;
+    GL_DEPTH_STENCIL = $84F9;
+    GL_DEPTH_COMPONENT16 = $81A5;
+    GL_DEPTH24_STENCIL8 = $88F0;
+    GL_FRAMEBUFFER_BINDING = $8CA6;
+    GL_DRAW_FRAMEBUFFER_BINDING = GL_FRAMEBUFFER_BINDING;
+    GL_RENDERBUFFER_BINDING = $8CA7;
+    GL_READ_FRAMEBUFFER = $8CA8;
+    GL_DRAW_FRAMEBUFFER = $8CA9;
+    GL_READ_FRAMEBUFFER_BINDING = $8CAA;
+    GL_RENDERBUFFER_SAMPLES = $8CAB;
+    GL_FRAMEBUFFER_COMPLETE = $8CD5;
+    GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT = $8CD6;
+    GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT = $8CD7;
+    GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER = $8CDB;
+    GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER = $8CDC;
+    GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE = $8D56;
+    GL_FRAMEBUFFER_UNSUPPORTED = $8CDD;
+    GL_MAX_COLOR_ATTACHMENTS = $8CDF;
+    GL_COLOR_ATTACHMENT0 = $8CE0;
+    GL_DEPTH_ATTACHMENT = $8D00;
+    GL_STENCIL_ATTACHMENT = $8D20;
+    GL_FRAMEBUFFER = $8D40;
+    GL_RENDERBUFFER = $8D41;
+    GL_STENCIL_INDEX1 = $8D46;
+    GL_STENCIL_INDEX4 = $8D47;
+    GL_STENCIL_INDEX8 = $8D48;
+    GL_MAX_SAMPLES = $8D57;
+
     GL_VENDOR = $1F00;
     GL_RENDERER = $1F01;
     GL_VERSION = $1F02;
@@ -162,6 +195,18 @@ interface
   procedure glTexSubImage2D(target: GLenum; level, xoffset, yoffset: GLint; width, height: GLsizei; format, atype: GLenum; const pixels: Pointer);
   procedure glDeleteTextures(n: GLsizei; const textures: PGLuint);
 
+  procedure glGenFramebuffers(n: GLsizei; framebuffers: PGLuint);
+  procedure glBindFramebuffer(target: GLenum; framebuffer: GLuint);
+  procedure glFramebufferTexture2D(target, attachment, textarget: GLenum; texture: GLuint; level: GLint);
+  procedure glFramebufferRenderbuffer(target, attachment, rbotarget: GLenum; rbo: GLuint);
+  function glCheckFramebufferStatus(framebuffer: GLuint): GLenum;
+  procedure glDeleteFramebuffers(n: GLsizei; const framebuffers: PGLuint);
+
+  procedure glGenRenderbuffers(n: GLsizei; renderbuffers: PGLuint);
+  procedure glBindRenderbuffer(target: GLenum; renderbuffer: GLuint);
+  procedure glRenderbufferStorage(target, internalformat: GLenum; w, h: GLsizei);
+  procedure glDeleteRenderbuffers(n: GLsizei; const renderbuffers: PGLuint);
+
 //  procedure glVertexPointer(size: GLint; atype: GLenum; stride: GLsizei; const pointer: Pointer);
 //  procedure glEnableClientState(aarray: GLenum);
 //  procedure glDisableClientState(aarray: GLenum);
@@ -174,6 +219,7 @@ interface
 
   procedure nogl_Init;
   procedure nogl_Quit;
+  function nogl_ExtensionSupported(ext: string): Boolean;
 
 {$IFDEF USE_GLES1}
   {$I noGLES1.inc}

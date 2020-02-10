@@ -157,17 +157,15 @@ implementation
         if context <> nil then
         begin
           {$IFDEF NOGL_INIT}
-            nogl_Init;
-            glRenderToFBO := False; // TODO: check for GL_OES_framebuffer_object
+          nogl_Init;
+          if glRenderToFBO and (not nogl_ExtensionSupported('GL_OES_framebuffer_object')) then
           {$ELSE}
-            if glRenderToFBO then
-              if not Load_GL_ARB_framebuffer_object() then
-                if not Load_GL_EXT_framebuffer_object() then
-                begin
-                  e_LogWriteln('SDL: no framebuffer support detected');
-                  glRenderToFBO := False
-                end;
+          if glRenderToFBO and (not Load_GL_ARB_framebuffer_object()) then
           {$ENDIF}
+          begin
+            e_LogWriteln('SDL: no framebuffer object support detected');
+            glRenderToFBO := False
+          end;
           if (fullscreen = false) and (maximized = false) and (wc = false) then
           begin
             SDL_GetWindowPosition(window, @x, @y);
