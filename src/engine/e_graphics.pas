@@ -199,7 +199,7 @@ var
   e_TextureFonts: array of TTextureFont = nil;
   e_CharFonts: array of TCharFont;
   //e_SavedTextures: array of TSavedTexture;
-{$IFNDEF HEADLESS}
+{$IF NOT DEFINED(HEADLESS) AND NOT DEFINED(USE_GLES1)}
   e_FBO: GLuint = 0;
   e_RBO: GLuint = 0;
   e_Frame: GLuint = 0;
@@ -383,7 +383,7 @@ end;
 
 procedure e_ResizeFramebuffer(Width, Height: Integer);
 begin
-{$IFNDEF HEADLESS}
+{$IF NOT DEFINED(HEADLESS) AND NOT DEFINED(USE_GLES1)}
   if e_NoGraphics then Exit;
 
   glBindTexture(GL_TEXTURE_2D, 0);
@@ -459,7 +459,7 @@ end;
 
 procedure e_BlitFramebuffer(WinWidth, WinHeight: Integer);
 begin
-{$IFNDEF HEADLESS}
+{$IF NOT DEFINED(HEADLESS) AND NOT DEFINED(USE_GLES1)}
   if (e_FBO = 0) or (e_Frame = 0) or e_NoGraphics then exit;
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
