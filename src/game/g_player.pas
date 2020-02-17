@@ -1072,12 +1072,6 @@ begin
         Break;
       end;
 
-// Имени нет, задаем случайное:
-  if _name = '' then
-    repeat
-      _name := Format('DFBOT%.2d', [Random(100)]);
-    until g_Player_ValidName(_name);
-
 // Выбираем случайную модель:
   _model := m[Random(Length(m))];
 
@@ -1088,7 +1082,11 @@ begin
                                          Min(Random(9)*32, 255)),
                                     Team, True)) as TBot do
   begin
-    Name := _name;
+  // Если имени нет, делаем его из UID бота
+    if _name = '' then
+      Name := Format('DFBOT%.5d', [UID])
+    else
+      Name := _name;
 
     case Difficult of
       1: FDifficult := DIFFICULT_EASY;
