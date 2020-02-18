@@ -815,7 +815,6 @@ initialization
   conRegVar('r_vsync', @gVSync, '', '');
   conRegVar('r_texfilter', @gTextureFilter, '', '');
   conRegVar('r_npot', @glNPOTOverride, '', '');
-  conRegVar('r_fbo', @glRenderToFBO, '', '');
 
   (* Sound *)
   conRegVar('s_nosound', @gNoSound, '', '');

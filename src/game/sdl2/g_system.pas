@@ -158,9 +158,9 @@ implementation
         begin
           {$IFDEF NOGL_INIT}
           nogl_Init;
-          if (not nogl_ExtensionSupported('GL_OES_framebuffer_object')) and glRenderToFBO then
+          if glRenderToFBO and (not nogl_ExtensionSupported('GL_OES_framebuffer_object')) then
           {$ELSE}
-          if (not Load_GL_ARB_framebuffer_object()) and glRenderToFBO then
+          if glRenderToFBO and (not Load_GL_ARB_framebuffer_object()) then
           {$ENDIF}
           begin
             e_LogWriteln('SDL: no framebuffer object support detected');

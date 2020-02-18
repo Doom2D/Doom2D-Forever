@@ -438,10 +438,9 @@ begin
   {$ENDIF}
   for i := 1 to ParamCount do
   begin
-    if (ParamStr(i) = '--con-stdout') then
-    begin
-      conbufDumpToStdOut := true;
-      break
+    case ParamStr(i) of
+      '--con-stdout': conbufDumpToStdOut := true;
+      '--no-fbo': glRenderToFBO := false;
     end
   end;
 
