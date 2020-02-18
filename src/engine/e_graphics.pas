@@ -441,12 +441,6 @@ begin
   y1 := y0+h;
        if Mirror = TMirrorType.Horizontal then begin tmp := x1; x1 := x0; x0 := tmp; end
   else if Mirror = TMirrorType.Vertical then begin tmp := y1; y1 := y0; y0 := tmp; end;
-  //HACK: make texture one pixel shorter, so it won't wrap
-  if (g_dbg_scale <> 1.0) then
-  begin
-    u := u*tw/(tw+1);
-    v := v*th/(th+1);
-  end;
   glTexCoord2f(0, v); glVertex2i(x0, y0);
   glTexCoord2f(0, 0); glVertex2i(x0, y1);
   glTexCoord2f(u, 0); glVertex2i(x1, y1);
@@ -456,15 +450,21 @@ end;
 procedure e_BlitFramebuffer(WinWidth, WinHeight: Integer);
 begin
   if (e_FBO = 0) or (e_Frame = 0) or e_NoGraphics then exit;
+
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glBindTexture(GL_TEXTURE_2D, e_Frame);
-  glColor4ub(255, 255, 255, 255);
   e_SetViewPort(0, 0, WinWidth, WinHeight);
+  glColor4ub(255, 255, 255, 255);
+
   glBegin(GL_QUADS);
-  drawTxQuad(0, 0, WinWidth, WinHeight, e_FrameW, e_FrameH, 1, 1, TMirrorType.None);
+    glTexCoord2f(0, 1); glVertex2i(       0,         0);
+    glTexCoord2f(0, 0); glVertex2i(       0, WinHeight);
+    glTexCoord2f(1, 0); glVertex2i(WinWidth, WinHeight);
+    glTexCoord2f(1, 1); glVertex2i(WinWidth,         0);
   glEnd();
+
   glBindFramebuffer(GL_FRAMEBUFFER, e_FBO);
   e_SetViewPort(0, 0, e_FrameW, e_FrameH);
 end;
