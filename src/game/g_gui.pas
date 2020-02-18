@@ -2226,21 +2226,25 @@ begin
           else
             FIndex := 0;
 
+          g_Sound_PlayEx(SCROLL_ADDSOUND);
+
           if @FOnChangeEvent <> nil then
             FOnChangeEvent(Self);
         end;
 
-    IK_LEFT, IK_KPLEFT, VK_LEFT,
-    JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
-      begin
-        if FIndex > 0 then
-          Dec(FIndex)
-        else
-          FIndex := High(FItems);
+      IK_LEFT, IK_KPLEFT, VK_LEFT,
+      JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
+        begin
+          if FIndex > 0 then
+            Dec(FIndex)
+          else
+            FIndex := High(FItems);
 
-        if @FOnChangeEvent <> nil then
-          FOnChangeEvent(Self);
-      end;
+          g_Sound_PlayEx(SCROLL_SUBSOUND);
+
+          if @FOnChangeEvent <> nil then
+            FOnChangeEvent(Self);
+        end;
     end;
   end;
 end;
