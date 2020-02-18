@@ -191,8 +191,12 @@ implementation
     end
     else
     begin
+      if fullScreen then flags := SDL_WINDOW_FULLSCREEN else flags := 0;
+      SDL_SetWindowFullscreen(window, flags);
       SDL_SetWindowSize(window, w, h);
-      if wc then
+      if maximized then SDL_MaximizeWindow(window);
+      // always reset to center when changing fullscreen->windowed for safety purposes
+      if wc or (gFullscreen and not fullscreen) or (gWinMaximized and not maximized) then
       begin
         x := SDL_WINDOWPOS_CENTERED;
         y := SDL_WINDOWPOS_CENTERED
@@ -208,10 +212,6 @@ implementation
         SDL_GetWindowPosition(window, @x, @y);
         wx := x; wy := y
       end;
-      if maximized then
-        SDL_MaximizeWindow(window);
-      if fullScreen then flags := SDL_WINDOW_FULLSCREEN else flags := 0;
-      SDL_SetWindowFullscreen(window, flags);
       gFullScreen := fullscreen;
       gWinMaximized := maximized;
       gRC_FullScreen := fullscreen;
