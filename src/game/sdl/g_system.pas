@@ -24,7 +24,6 @@ interface
   procedure sys_Delay (ms: Integer);
 
   (* --- Graphics --- *)
-  function sys_LoadGL: Boolean;
   function sys_GetDisplayModes (bpp: Integer): SSArray;
   function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
   procedure sys_EnableVSync (yes: Boolean);
