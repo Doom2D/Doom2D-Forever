@@ -449,8 +449,8 @@ begin
       begin // Обычная текстура
         case FTextureIDs[FCurTexture].Tex of
           LongWord(TEXTURE_SPECIAL_WATER): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 0, 0, 255, 0, TBlending.Filter);
-          LongWord(TEXTURE_SPECIAL_ACID1): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 0, 128, 0, 0, TBlending.Filter);
-          LongWord(TEXTURE_SPECIAL_ACID2): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 128, 0, 0, 0, TBlending.Filter);
+          LongWord(TEXTURE_SPECIAL_ACID1): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 0, 230, 0, 0, TBlending.Filter);
+          LongWord(TEXTURE_SPECIAL_ACID2): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 230, 0, 0, 0, TBlending.Filter);
           LongWord(TEXTURE_NONE):
             if g_Texture_Get('NOTEXTURE', NoTextureID) then
             begin
