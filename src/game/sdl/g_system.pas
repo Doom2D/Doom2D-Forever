@@ -24,6 +24,7 @@ interface
   procedure sys_Delay (ms: Integer);
 
   (* --- Graphics --- *)
+  function sys_LoadGL: Boolean;
   function sys_GetDisplayModes (bpp: Integer): SSArray;
   function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
   procedure sys_EnableVSync (yes: Boolean);
@@ -69,6 +70,28 @@ implementation
   end;
 
   (* --------- Graphics --------- *)
+
+  function LoadGL: Boolean;
+  begin
+    result := true;
+    {$IFDEF NOGL_INIT}
+    nogl_Init;
+    if glRenderToFBO and (not nogl_ExtensionSupported('GL_OES_framebuffer_object')) then
+    {$ELSE}
+    if glRenderToFBO and (not Load_GL_ARB_framebuffer_object) then
+    {$ENDIF}
+    begin
+      e_LogWriteln('GL: framebuffer objects not supported; disabling FBO rendering');
+      glRenderToFBO := false;
+    end;
+  end;
+
+  procedure FreeGL;
+  begin
+    {$IFDEF NOGL_INIT}
+    nogl_Quit();
+    {$ENDIF}
+  end;
 
   procedure UpdateSize (w, h: Integer);
   begin
@@ -125,15 +148,10 @@ implementation
       screen := SDL_SetVideoMode(w, h, bpp, flags);
       if screen <> nil then
       begin
-        {$IFDEF NOGL_INIT}
-        nogl_Init;
-        if glRenderToFBO and (not nogl_ExtensionSupported('GL_OES_framebuffer_object')) then
-        {$ELSE}
-        if glRenderToFBO and (not Load_GL_ARB_framebuffer_object()) then
-        {$ENDIF}
+        if not LoadGL then
         begin
-          e_LogWriteln('SDL: no framebuffer object support detected');
-          glRenderToFBO := False
+          e_LogWriteln('GL: unable to load OpenGL functions', TMsgType.Fatal);
+          exit;
         end;
         SDL_WM_SetCaption(GetTitle(), nil);
         gFullScreen := fullscreen;
@@ -497,9 +515,7 @@ implementation
       RemoveJoystick(i);
     if screen <> nil then
     begin
-      {$IFDEF NOGL_INIT}
-        nogl_Quit;
-      {$ENDIF}
+      FreeGL;
       SDL_FreeSurface(screen)
     end;
     SDL_Quit

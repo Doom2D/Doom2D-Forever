@@ -74,6 +74,28 @@ implementation
 
   (* --------- Graphics --------- *)
 
+  function LoadGL: Boolean;
+  begin
+    result := true;
+    {$IFDEF NOGL_INIT}
+    nogl_Init;
+    if glRenderToFBO and (not nogl_ExtensionSupported('GL_OES_framebuffer_object')) then
+    {$ELSE}
+    if glRenderToFBO and (not Load_GL_ARB_framebuffer_object) then
+    {$ENDIF}
+    begin
+      e_LogWriteln('GL: framebuffer objects not supported; disabling FBO rendering');
+      glRenderToFBO := false;
+    end;
+  end;
+
+  procedure FreeGL;
+  begin
+    {$IFDEF NOGL_INIT}
+    nogl_Quit();
+    {$ENDIF}
+  end;
+
   procedure UpdateSize (w, h: Integer);
   begin
     gWinSizeX := w;
@@ -156,15 +178,11 @@ implementation
         context := SDL_GL_CreateContext(window);
         if context <> nil then
         begin
-          {$IFDEF NOGL_INIT}
-          nogl_Init;
-          if glRenderToFBO and (not nogl_ExtensionSupported('GL_OES_framebuffer_object')) then
-          {$ELSE}
-          if glRenderToFBO and (not Load_GL_ARB_framebuffer_object()) then
-          {$ENDIF}
+          if not LoadGL then
           begin
-            e_LogWriteln('SDL: no framebuffer object support detected');
-            glRenderToFBO := False
+            e_LogWriteln('GL: unable to load OpenGL functions', TMsgType.Fatal);
+            SDL_GL_DeleteContext(context); context := nil;
+            exit;
           end;
           if (fullscreen = false) and (maximized = false) and (wc = false) then
           begin
@@ -564,9 +582,7 @@ implementation
     e_WriteLog('Releasing SDL2', TMsgType.Notify);
     if context <> nil then
     begin
-      {$IFDEF NOGL_INIT}
-        nogl_Quit;
-      {$ENDIF}
+      FreeGL;
       SDL_GL_DeleteContext(context);
       context := nil;
     end;
