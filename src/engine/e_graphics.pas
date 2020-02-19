@@ -994,17 +994,12 @@ begin
   else
     glDisable(GL_BLEND);
 
-  if Blending = TBlending.Blend then
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE)
-  else
-    if Blending = TBlending.Filter then
-      glBlendFunc(GL_DST_COLOR, GL_SRC_COLOR)
-    else
-      if Blending = TBlending.Invert then
-        glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO)
-      else
-        if Alpha > 0 then
-          glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  case Blending of
+    TBlending.None: if Alpha > 0 then glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    TBlending.Blend: glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    TBlending.Invert: glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
+    TBlending.Filter: glBlendFunc(GL_ZERO, GL_SRC_COLOR);
+  end;
 
   glDisable(GL_TEXTURE_2D);
   glColor4ub(Red, Green, Blue, 255-Alpha);
@@ -1020,7 +1015,6 @@ begin
   glEnd();
 
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
-
   glDisable(GL_BLEND);
 end;
 
