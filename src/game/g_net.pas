@@ -2343,12 +2343,12 @@ begin
   if NetPongForwarded then
   begin
     NetPongForwarded := False;
-    StrPort := IntToStr(NetPortForwarded + 1);
+    StrPort := IntToStr(NET_PING_PORT);
     I := UPNP_DeletePortMapping(
       PChar(NetIGDControl), Addr(NetIGDService[1]),
       PChar(StrPort), PChar('UDP'), nil
     );
-    conwritefln('  port %d: %d', [NetPortForwarded + 1, I]);
+    conwritefln('  port %d: %d', [NET_PING_PORT, I]);
   end;
 
   NetPortForwarded := 0;
