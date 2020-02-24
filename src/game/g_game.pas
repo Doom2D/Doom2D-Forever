@@ -5708,87 +5708,93 @@ begin
   end
   else if cmd = 'p1_name' then
   begin
-    if (Length(P) > 1) and gGameOn then
+    if (Length(P) > 1) then
     begin
+      gPlayer1Settings.Name := b_Text_Unformat(P[1]);
       if g_Game_IsClient then
+        MC_SEND_PlayerSettings
+      else if gGameOn and (gPlayer1 <> nil) then
       begin
-        gPlayer1Settings.Name := b_Text_Unformat(P[1]);
-        MC_SEND_PlayerSettings;
-      end
-      else
-        if gPlayer1 <> nil then
-        begin
-          gPlayer1.Name := b_Text_Unformat(P[1]);
-          if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
-        end
-        else
-          gPlayer1Settings.Name := b_Text_Unformat(P[1]);
+        gPlayer1.Name := b_Text_Unformat(P[1]);
+        if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
+      end;
     end;
   end
   else if cmd = 'p2_name' then
   begin
-    if (Length(P) > 1) and gGameOn then
+    if (Length(P) > 1) then
     begin
+      gPlayer2Settings.Name := b_Text_Unformat(P[1]);
       if g_Game_IsClient then
+        MC_SEND_PlayerSettings
+      else if gGameOn and (gPlayer2 <> nil) then
       begin
-        gPlayer2Settings.Name := b_Text_Unformat(P[1]);
-        MC_SEND_PlayerSettings;
-      end
-      else
-        if gPlayer2 <> nil then
-        begin
-          gPlayer2.Name := b_Text_Unformat(P[1]);
-          if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer2.UID);
-        end
-        else
-          gPlayer2Settings.Name := b_Text_Unformat(P[1]);
+        gPlayer2.Name := b_Text_Unformat(P[1]);
+        if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer2.UID);
+      end;
     end;
   end
   else if cmd = 'p1_color' then
   begin
     if Length(P) > 3 then
+    begin
+      gPlayer1Settings.Color := _RGB(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
+                                     EnsureRange(StrToIntDef(P[2], 0), 0, 255),
+                                     EnsureRange(StrToIntDef(P[3], 0), 0, 255));
       if g_Game_IsClient then
+        MC_SEND_PlayerSettings
+      else if gGameOn and (gPlayer1 <> nil) then
       begin
-        gPlayer1Settings.Color := _RGB(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
-                                       EnsureRange(StrToIntDef(P[2], 0), 0, 255),
-                                       EnsureRange(StrToIntDef(P[3], 0), 0, 255));
-        MC_SEND_PlayerSettings;
-      end
-      else
-        if gPlayer1 <> nil then
-        begin
-          gPlayer1.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
-                                  EnsureRange(StrToIntDef(P[2], 0), 0, 255),
-                                  EnsureRange(StrToIntDef(P[3], 0), 0, 255));
-          if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
-        end
-        else
-          gPlayer1Settings.Color := _RGB(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
-                                         EnsureRange(StrToIntDef(P[2], 0), 0, 255),
-                                         EnsureRange(StrToIntDef(P[3], 0), 0, 255));
+        gPlayer1.SetColor(gPlayer1Settings.Color);
+        if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
+      end;
+    end;
   end
-  else if (cmd = 'p2_color') and not g_Game_IsNet then
+  else if cmd = 'p2_color' then
   begin
     if Length(P) > 3 then
+    begin
+      gPlayer2Settings.Color := _RGB(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
+                                     EnsureRange(StrToIntDef(P[2], 0), 0, 255),
+                                     EnsureRange(StrToIntDef(P[3], 0), 0, 255));
       if g_Game_IsClient then
+        MC_SEND_PlayerSettings
+      else if gGameOn and (gPlayer2 <> nil) then
       begin
-        gPlayer2Settings.Color := _RGB(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
-                                       EnsureRange(StrToIntDef(P[2], 0), 0, 255),
-                                       EnsureRange(StrToIntDef(P[3], 0), 0, 255));
-        MC_SEND_PlayerSettings;
-      end
-      else
-        if gPlayer2 <> nil then
-        begin
-          gPlayer2.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
-                                  EnsureRange(StrToIntDef(P[2], 0), 0, 255),
-                                  EnsureRange(StrToIntDef(P[3], 0), 0, 255));
-          if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer2.UID);
-        end
-        else
-          gPlayer2Settings.Color := _RGB(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
-                                         EnsureRange(StrToIntDef(P[2], 0), 0, 255),
-                                         EnsureRange(StrToIntDef(P[3], 0), 0, 255));
+        gPlayer2.SetColor(gPlayer2Settings.Color);
+        if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer2.UID);
+      end;
+    end;
+  end
+  else if cmd = 'p1_model' then
+  begin
+    if (Length(P) > 1) then
+    begin
+      gPlayer1Settings.Model := P[1];
+      if g_Game_IsClient then
+        MC_SEND_PlayerSettings
+      else if gGameOn and (gPlayer1 <> nil) then
+      begin
+        gPlayer1.FActualModelName := gPlayer1Settings.Model;
+        gPlayer1.SetModel(gPlayer1Settings.Model);
+        if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
+      end;
+    end;
+  end
+  else if cmd = 'p2_model' then
+  begin
+    if (Length(P) > 1) then
+    begin
+      gPlayer2Settings.Model := P[1];
+      if g_Game_IsClient then
+        MC_SEND_PlayerSettings
+      else if gGameOn and (gPlayer2 <> nil) then
+      begin
+        gPlayer2.FActualModelName := gPlayer2Settings.Model;
+        gPlayer2.SetModel(gPlayer2Settings.Model);
+        if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer2.UID);
+      end;
+    end;
   end
   else if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
   begin
