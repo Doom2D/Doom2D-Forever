@@ -5382,7 +5382,6 @@ var
   a, b: Integer;
   stat: TPlayerStatArray;
   cmd, s: string;
-  config: TConfig;
 begin
   stat := nil;
   cmd := LowerCase(P[0]);
@@ -5589,14 +5588,6 @@ begin
     if (Length(P) > 1) then
       NetInterpLevel := StrToIntDef(P[1], NetInterpLevel);
     g_Console_Add('net_interp = ' + IntToStr(NetInterpLevel));
-    s := e_GetWriteableDir(ConfigDirs);
-    if s <> '' then
-    begin
-      config := TConfig.CreateFile(s + '/' + CONFIG_FILENAME);
-      config.WriteInt('Client', 'InterpolationSteps', NetInterpLevel);
-      config.SaveFile(s + '/' + CONFIG_FILENAME);
-      config.Free
-    end
   end
   else if cmd = 'net_forceplayerupdate' then
   begin
@@ -5607,15 +5598,6 @@ begin
       g_Console_Add('net_forceplayerupdate = 1')
     else
       g_Console_Add('net_forceplayerupdate = 0');
-
-    s := e_GetWriteableDir(ConfigDirs);
-    if s <> '' then
-    begin
-      config := TConfig.CreateFile(s + '/' + CONFIG_FILENAME);
-      config.WriteBool('Client', 'ForcePlayerUpdate', NetForcePlayerUpdate);
-      config.SaveFile(s + '/' + CONFIG_FILENAME);
-      config.Free
-    end
   end
   else if cmd = 'net_predictself' then
   begin
@@ -5627,15 +5609,6 @@ begin
       g_Console_Add('net_predictself = 1')
     else
       g_Console_Add('net_predictself = 0');
-
-    s := e_GetWriteableDir(ConfigDirs);
-    if s <> '' then
-    begin
-      config := TConfig.CreateFile(s + '/' + CONFIG_FILENAME);
-      config.WriteBool('Client', 'PredictSelf', NetPredictSelf);
-      config.SaveFile(s + '/' + CONFIG_FILENAME);
-      config.Free
-    end
   end
   else if cmd = 'sv_name' then
   begin
@@ -5796,137 +5769,134 @@ begin
       end;
     end;
   end
-  else if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
+  else if cmd = 'r_showscore' then
   begin
-    if cmd = 'r_showscore' then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        gShowGoals := (P[1][1] = '1');
+    if (Length(P) > 1) and
+       ((P[1] = '1') or (P[1] = '0')) then
+      gShowGoals := (P[1][1] = '1');
 
-      if gShowGoals then
-        g_Console_Add(_lc[I_MSG_SCORE_ON])
+    if gShowGoals then
+      g_Console_Add(_lc[I_MSG_SCORE_ON])
+    else
+      g_Console_Add(_lc[I_MSG_SCORE_OFF]);
+  end
+  else if cmd = 'r_showstat' then
+  begin
+    if (Length(P) > 1) and
+       ((P[1] = '1') or (P[1] = '0')) then
+      gShowStat := (P[1][1] = '1');
+
+    if gShowStat then
+      g_Console_Add(_lc[I_MSG_STATS_ON])
+    else
+      g_Console_Add(_lc[I_MSG_STATS_OFF]);
+  end
+  else if cmd = 'r_showkillmsg' then
+  begin
+    if (Length(P) > 1) and
+       ((P[1] = '1') or (P[1] = '0')) then
+      gShowKillMsg := (P[1][1] = '1');
+
+    if gShowKillMsg then
+      g_Console_Add(_lc[I_MSG_KILL_MSGS_ON])
+    else
+      g_Console_Add(_lc[I_MSG_KILL_MSGS_OFF]);
+  end
+  else if cmd = 'r_showlives' then
+  begin
+    if (Length(P) > 1) and
+       ((P[1] = '1') or (P[1] = '0')) then
+      gShowLives := (P[1][1] = '1');
+
+    if gShowLives then
+      g_Console_Add(_lc[I_MSG_LIVES_ON])
+    else
+      g_Console_Add(_lc[I_MSG_LIVES_OFF]);
+  end
+  else if cmd = 'r_showspect' then
+  begin
+    if (Length(P) > 1) and
+       ((P[1] = '1') or (P[1] = '0')) then
+      gSpectHUD := (P[1][1] = '1');
+
+    if gSpectHUD then
+      g_Console_Add(_lc[I_MSG_SPECT_HUD_ON])
+    else
+      g_Console_Add(_lc[I_MSG_SPECT_HUD_OFF]);
+  end
+  else if cmd = 'r_showping' then
+  begin
+    if (Length(P) > 1) and
+       ((P[1] = '1') or (P[1] = '0')) then
+      gShowPing := (P[1][1] = '1');
+
+    if gShowPing then
+      g_Console_Add(_lc[I_MSG_PING_ON])
+    else
+      g_Console_Add(_lc[I_MSG_PING_OFF]);
+  end
+  else if (cmd = 'g_scorelimit') and not g_Game_IsClient then
+  begin
+    if Length(P) > 1 then
+    begin
+      if StrToIntDef(P[1], gGameSettings.GoalLimit) = 0 then
+        gGameSettings.GoalLimit := 0
       else
-        g_Console_Add(_lc[I_MSG_SCORE_OFF]);
-    end
-    else if cmd = 'r_showstat' then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        gShowStat := (P[1][1] = '1');
-
-      if gShowStat then
-        g_Console_Add(_lc[I_MSG_STATS_ON])
-      else
-        g_Console_Add(_lc[I_MSG_STATS_OFF]);
-    end
-    else if cmd = 'r_showkillmsg' then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        gShowKillMsg := (P[1][1] = '1');
-
-      if gShowKillMsg then
-        g_Console_Add(_lc[I_MSG_KILL_MSGS_ON])
-      else
-        g_Console_Add(_lc[I_MSG_KILL_MSGS_OFF]);
-    end
-    else if cmd = 'r_showlives' then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        gShowLives := (P[1][1] = '1');
-
-      if gShowLives then
-        g_Console_Add(_lc[I_MSG_LIVES_ON])
-      else
-        g_Console_Add(_lc[I_MSG_LIVES_OFF]);
-    end
-    else if cmd = 'r_showspect' then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        gSpectHUD := (P[1][1] = '1');
-
-      if gSpectHUD then
-        g_Console_Add(_lc[I_MSG_SPECT_HUD_ON])
-      else
-        g_Console_Add(_lc[I_MSG_SPECT_HUD_OFF]);
-    end
-    else if cmd = 'r_showping' then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        gShowPing := (P[1][1] = '1');
-
-      if gShowPing then
-        g_Console_Add(_lc[I_MSG_PING_ON])
-      else
-        g_Console_Add(_lc[I_MSG_PING_OFF]);
-    end
-    else if (cmd = 'g_scorelimit') and not g_Game_IsClient then
-    begin
-      if Length(P) > 1 then
-      begin
-        if StrToIntDef(P[1], gGameSettings.GoalLimit) = 0 then
-          gGameSettings.GoalLimit := 0
-        else
-          begin
-            b := 0;
-
-            if gGameSettings.GameMode = GM_DM then
-              begin // DM
-                stat := g_Player_GetStats();
-                if stat <> nil then
-                  for a := 0 to High(stat) do
-                    if stat[a].Frags > b then
-                      b := stat[a].Frags;
-              end
-            else // TDM/CTF
-              b := Max(gTeamStat[TEAM_RED].Goals, gTeamStat[TEAM_BLUE].Goals);
-
-            gGameSettings.GoalLimit := Max(StrToIntDef(P[1], gGameSettings.GoalLimit), b);
-          end;
-
-        if g_Game_IsNet then MH_SEND_GameSettings;
-      end;
-
-      g_Console_Add(Format(_lc[I_MSG_SCORE_LIMIT], [gGameSettings.GoalLimit]));
-    end
-    else if (cmd = 'g_timelimit') and not g_Game_IsClient then
-    begin
-      if (Length(P) > 1) and (StrToIntDef(P[1], -1) >= 0) then
-        gGameSettings.TimeLimit := StrToIntDef(P[1], -1);
-
-      g_Console_Add(Format(_lc[I_MSG_TIME_LIMIT],
-                           [gGameSettings.TimeLimit div 3600,
-                           (gGameSettings.TimeLimit div 60) mod 60,
-                            gGameSettings.TimeLimit mod 60]));
-      if g_Game_IsNet then MH_SEND_GameSettings;
-    end
-    else if (cmd = 'g_maxlives') and not g_Game_IsClient then
-    begin
-      if Length(P) > 1 then
-      begin
-        if StrToIntDef(P[1], gGameSettings.MaxLives) = 0 then
-          gGameSettings.MaxLives := 0
-        else
         begin
           b := 0;
-          stat := g_Player_GetStats();
-          if stat <> nil then
-            for a := 0 to High(stat) do
-              if stat[a].Lives > b then
-                b := stat[a].Lives;
-          gGameSettings.MaxLives :=
-            Max(StrToIntDef(P[1], gGameSettings.MaxLives), b);
-        end;
-      end;
 
-      g_Console_Add(Format(_lc[I_MSG_LIVES],
-                           [gGameSettings.MaxLives]));
+          if gGameSettings.GameMode = GM_DM then
+            begin // DM
+              stat := g_Player_GetStats();
+              if stat <> nil then
+                for a := 0 to High(stat) do
+                  if stat[a].Frags > b then
+                    b := stat[a].Frags;
+            end
+          else // TDM/CTF
+            b := Max(gTeamStat[TEAM_RED].Goals, gTeamStat[TEAM_BLUE].Goals);
+
+          gGameSettings.GoalLimit := Max(StrToIntDef(P[1], gGameSettings.GoalLimit), b);
+        end;
+
       if g_Game_IsNet then MH_SEND_GameSettings;
     end;
+
+    g_Console_Add(Format(_lc[I_MSG_SCORE_LIMIT], [gGameSettings.GoalLimit]));
+  end
+  else if (cmd = 'g_timelimit') and not g_Game_IsClient then
+  begin
+    if (Length(P) > 1) and (StrToIntDef(P[1], -1) >= 0) then
+      gGameSettings.TimeLimit := StrToIntDef(P[1], -1);
+
+    g_Console_Add(Format(_lc[I_MSG_TIME_LIMIT],
+                         [gGameSettings.TimeLimit div 3600,
+                         (gGameSettings.TimeLimit div 60) mod 60,
+                          gGameSettings.TimeLimit mod 60]));
+    if g_Game_IsNet then MH_SEND_GameSettings;
+  end
+  else if (cmd = 'g_maxlives') and not g_Game_IsClient then
+  begin
+    if Length(P) > 1 then
+    begin
+      if StrToIntDef(P[1], gGameSettings.MaxLives) = 0 then
+        gGameSettings.MaxLives := 0
+      else
+      begin
+        b := 0;
+        stat := g_Player_GetStats();
+        if stat <> nil then
+          for a := 0 to High(stat) do
+            if stat[a].Lives > b then
+              b := stat[a].Lives;
+        gGameSettings.MaxLives :=
+          Max(StrToIntDef(P[1], gGameSettings.MaxLives), b);
+      end;
+    end;
+
+    g_Console_Add(Format(_lc[I_MSG_LIVES],
+                         [gGameSettings.MaxLives]));
+    if g_Game_IsNet then MH_SEND_GameSettings;
   end;
 end;
 
