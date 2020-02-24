@@ -109,7 +109,6 @@ var
   menu: TGUIMenu;
   i: Integer;
   ovs: Boolean;
-  s: AnsiString;
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoMenu').GetControl('mOptionsVideoMenu'));
 
@@ -376,9 +375,6 @@ begin
 
   if g_Game_IsClient then MC_SEND_PlayerSettings;
 
-  s := e_GetWriteableDir(ConfigDirs);
-  if s <> '' then
-    g_Options_Write(s + '/' + CONFIG_FILENAME);
   g_Console_WriteGameConfig;
 end;
 
@@ -646,14 +642,13 @@ begin
     }
 end;
 
-procedure ProcStartCustomGame();
+function LatchGameOptions(const MenuName: string): Byte;
 var
-  Map: String;
-  GameMode: Byte;
-  Options: LongWord;
-  s: AnsiString;
+  Map: string;
 begin
-  with TGUIMenu(g_ActiveWindow.GetControl('mCustomGameMenu')) do
+  Result := GM_NONE;
+
+  with TGUIMenu(g_ActiveWindow.GetControl(MenuName)) do
   begin
     Map := TGUILabel(GetControl('lbMap')).Text;
     if Map = '' then
@@ -661,113 +656,60 @@ begin
     if not isWadPath(Map) then
       Exit;
 
-    GameMode := TGUISwitch(GetControl('swGameMode')).ItemIndex+1;
-    gcGameMode := TGUISwitch(GetControl('swGameMode')).GetText;
-    gcTimeLimit := StrToIntDef(TGUIEdit(GetControl('edTimeLimit')).Text, 0);
-    gcGoalLimit := StrToIntDef(TGUIEdit(GetControl('edGoalLimit')).Text, 0);
-    gcMaxLives := StrToIntDef(TGUIEdit(GetControl('edMaxLives')).Text, 0);
+    Result := TGUISwitch(GetControl('swGameMode')).ItemIndex+1;
+    gsGameMode := TGUISwitch(GetControl('swGameMode')).GetText;
+    gsTimeLimit := StrToIntDef(TGUIEdit(GetControl('edTimeLimit')).Text, 0);
+    gsGoalLimit := StrToIntDef(TGUIEdit(GetControl('edGoalLimit')).Text, 0);
+    gsMaxLives := StrToIntDef(TGUIEdit(GetControl('edMaxLives')).Text, 0);
+    gsItemRespawnTime := StrToIntDef(TGUIEdit(GetControl('edItemRespawnTime')).Text, 0);
+    gsPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex;
+    gsMap := Map;
 
-    gcTeamDamage := TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0;
-    gcDeathmatchKeys := TGUISwitch(GetControl('swDeathmatchKeys')).ItemIndex = 0;
-    gcAllowExit := TGUISwitch(GetControl('swEnableExits')).ItemIndex = 0;
-    gcWeaponStay := TGUISwitch(GetControl('swWeaponStay')).ItemIndex = 0;
-    gcMonsters := TGUISwitch(GetControl('swMonsters')).ItemIndex = 0;
-    Options := 0;
-    if gcTeamDamage then
-      Options := Options or GAME_OPTION_TEAMDAMAGE;
-    if gcDeathmatchKeys then
-      Options := Options or GAME_OPTION_DMKEYS;
-    if gcAllowExit then
-      Options := Options or GAME_OPTION_ALLOWEXIT;
-    if gcWeaponStay then
-      Options := Options or GAME_OPTION_WEAPONSTAY;
-    if gcMonsters then
-      Options := Options or GAME_OPTION_MONSTERS;
-    gcPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex;
+    gsGameFlags := 0;
+    if TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0 then
+      gsGameFlags := gsGameFlags or GAME_OPTION_TEAMDAMAGE;
+    if TGUISwitch(GetControl('swDeathmatchKeys')).ItemIndex = 0 then
+      gsGameFlags := gsGameFlags or GAME_OPTION_DMKEYS;
+    if TGUISwitch(GetControl('swEnableExits')).ItemIndex = 0 then
+      gsGameFlags := gsGameFlags or GAME_OPTION_ALLOWEXIT;
+    if TGUISwitch(GetControl('swWeaponStay')).ItemIndex = 0 then
+      gsGameFlags := gsGameFlags or GAME_OPTION_WEAPONSTAY;
+    if TGUISwitch(GetControl('swMonsters')).ItemIndex = 0 then
+      gsGameFlags := gsGameFlags or GAME_OPTION_MONSTERS;
 
     case TGUISwitch(GetControl('swBotsVS')).ItemIndex of
-      1: begin
-        Options := Options or GAME_OPTION_BOTVSMONSTER;
-        gcBotsVS := 'Monsters';
-      end;
-      2: begin
-        Options := Options or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
-        gcBotsVS := 'Everybody';
-      end;
-      else begin
-        Options := Options or GAME_OPTION_BOTVSPLAYER;
-        gcBotsVS := 'Players';
-      end;
+      1: gsGameFlags := gsGameFlags or GAME_OPTION_BOTVSMONSTER;
+      2: gsGameFlags := gsGameFlags or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
+      else gsGameFlags := gsGameFlags or GAME_OPTION_BOTVSPLAYER;
     end;
 
-    gcMap := Map;
+    gGameSettings.ItemRespawnTime := gsItemRespawnTime; // TODO: get this crap out of here
   end;
+end;
 
-  s := e_GetWriteableDir(ConfigDirs);
-  if s <> '' then
-    g_Options_Write_Gameplay_Custom(s + '/' + CONFIG_FILENAME);
+procedure ProcStartCustomGame();
+var
+  GameMode: Byte;
+begin
+  GameMode := LatchGameOptions('mCustomGameMenu');
+  if GameMode = GM_NONE then Exit;
 
-  g_Game_StartCustom(Map, GameMode, gcTimeLimit, gcGoalLimit,
-                     gcMaxLives, Options, gcPlayers);
+  g_Console_WriteGameConfig;
+  g_Game_StartCustom(gsMap, GameMode, gsTimeLimit, gsGoalLimit,
+                     gsMaxLives, gsGameFlags, gsPlayers);
 end;
 
 
 procedure ProcStartNetGame();
 var
-  Map: String;
   GameMode: Byte;
-  Options: LongWord;
-  s: AnsiString;
 begin
+  GameMode := LatchGameOptions('mNetServerMenu');
+  if GameMode = GM_NONE then Exit;
+
   with TGUIMenu(g_ActiveWindow.GetControl('mNetServerMenu')) do
   begin
-    Map := TGUILabel(GetControl('lbMap')).Text;
-    if Map = '' then
-      Exit;
-    if not isWadPath(Map) then
-      Exit;
-
-    GameMode := TGUISwitch(GetControl('swGameMode')).ItemIndex+1;
-    gnGameMode := TGUISwitch(GetControl('swGameMode')).GetText;
-    gnTimeLimit := StrToIntDef(TGUIEdit(GetControl('edTimeLimit')).Text, 0);
-    gnGoalLimit := StrToIntDef(TGUIEdit(GetControl('edGoalLimit')).Text, 0);
-    gnMaxLives := StrToIntDef(TGUIEdit(GetControl('edMaxLives')).Text, 0);
     NetPort := StrToIntDef(TGUIEdit(GetControl('edPort')).Text, 0);
-
-    gnTeamDamage := TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0;
-    gnDeathmatchKeys := TGUISwitch(GetControl('swDeathmatchKeys')).ItemIndex = 0;
-    gnAllowExit := TGUISwitch(GetControl('swEnableExits')).ItemIndex = 0;
-    gnWeaponStay := TGUISwitch(GetControl('swWeaponStay')).ItemIndex = 0;
-    gnMonsters := TGUISwitch(GetControl('swMonsters')).ItemIndex = 0;
-    Options := 0;
-    if gnTeamDamage then
-      Options := Options or GAME_OPTION_TEAMDAMAGE;
-    if gnDeathmatchKeys then
-      Options := Options or GAME_OPTION_DMKEYS;
-    if gnAllowExit then
-      Options := Options or GAME_OPTION_ALLOWEXIT;
-    if gnWeaponStay then
-      Options := Options or GAME_OPTION_WEAPONSTAY;
-    if gnMonsters then
-      Options := Options or GAME_OPTION_MONSTERS;
-    gnPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex;
-
-    case TGUISwitch(GetControl('swBotsVS')).ItemIndex of
-      1: begin
-        Options := Options or GAME_OPTION_BOTVSMONSTER;
-        gnBotsVS := 'Monsters';
-      end;
-      2: begin
-        Options := Options or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
-        gnBotsVS := 'Everybody';
-      end;
-      else begin
-        Options := Options or GAME_OPTION_BOTVSPLAYER;
-        gnBotsVS := 'Players';
-      end;
-    end;
-
-    gnMap := Map;
     NetServerName := TGUIEdit(GetControl('edSrvName')).Text;
     NetMaxClients := Max(1, StrToIntDef(TGUIEdit(GetControl('edMaxPlayers')).Text, 1));
     NetMaxClients := Min(NET_MAXCLIENTS, NetMaxClients);
@@ -775,21 +717,14 @@ begin
     NetUseMaster := TGUISwitch(GetControl('swUseMaster')).ItemIndex = 0;
   end;
 
-  s := e_GetWriteableDir(ConfigDirs);
-  if s <> '' then
-  begin
-    g_Options_Write_Net_Server(s + '/' + CONFIG_FILENAME);
-    g_Options_Write_Gameplay_Net(s + '/' + CONFIG_FILENAME)
-  end;
-
-  g_Game_StartServer(Map, GameMode, gnTimeLimit, gnGoalLimit, gnMaxLives,
-                     Options, gnPlayers, 0, NetPort);
+  g_Console_WriteGameConfig;
+  g_Game_StartServer(gsMap, GameMode, gsTimeLimit, gsGoalLimit, gsMaxLives,
+                     gsGameFlags, gsPlayers, 0, NetPort);
 end;
 
 procedure ProcConnectNetGame();
 var
   PW: String;
-  s: AnsiString;
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mNetClientMenu')) do
   begin
@@ -798,16 +733,13 @@ begin
     PW := TGUIEdit(GetControl('edPW')).Text;
   end;
 
-  s := e_GetWriteableDir(ConfigDirs);
-  if s <> '' then
-    g_Options_Write_Net_Client(s + '/' + CONFIG_FILENAME);
+  g_Console_WriteGameConfig;
   g_Game_StartClient(NetClientIP, NetClientPort, PW);
 end;
 
 procedure ProcEnterPassword();
 var
   PW: string;
-  s: AnsiString;
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mClientPasswordMenu')) do
   begin
@@ -816,9 +748,7 @@ begin
     PW := TGUIEdit(GetControl('edPW')).Text;
   end;
 
-  s := e_GetWriteableDir(ConfigDirs);
-  if s <> '' then
-    g_Options_Write_Net_Client(s + '/' + CONFIG_FILENAME);
+  g_Console_WriteGameConfig;
   g_Game_StartClient(NetClientIP, NetClientPort, PW);
 end;
 
@@ -835,7 +765,7 @@ begin
       NetInitDone := True;
   end;
 
-  g_Net_Slist_Set(NetSlistIP, NetSlistPort, NetSlistList);
+  g_Net_Slist_Set(NetMasterList);
 
   gState := STATE_SLIST;
   g_ActiveWindow := nil;
@@ -1873,6 +1803,12 @@ begin
           end;
       end;
     end;
+
+    // don't forget to latch this shit
+    gsGameFlags := Options;
+    gsMaxLives := MaxLives;
+    gsGoalLimit := GoalLimit;
+    gsTimeLimit := TimeLimit;
   end;
 
   if g_Game_IsNet then MH_SEND_GameSettings;
@@ -2174,7 +2110,7 @@ begin
     begin
       Name := 'lbMap';
       FixedLength := 16;
-      Text := gnMap;
+      Text := gsMap;
       OnClick := @ProcSelectMapMenu;
     end;
     with AddSwitch(_lc[I_MENU_GAME_TYPE]) do
@@ -2184,7 +2120,7 @@ begin
       AddItem(_lc[I_MENU_GAME_TYPE_TDM]);
       AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
       AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
-      case g_Game_TextToMode(gnGameMode) of
+      case g_Game_TextToMode(gsGameMode) of
         GM_NONE,
         GM_DM:   ItemIndex := 0;
         GM_TDM:  ItemIndex := 1;
@@ -2192,7 +2128,7 @@ begin
         GM_SINGLE,
         GM_COOP: ItemIndex := 3;
       end;
-      OnChange := ProcSwitchMonstersNet;
+      OnChange := ProcSwitchMonstersCustom;
     end;
     with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
     begin
@@ -2200,8 +2136,8 @@ begin
       OnlyDigits := True;
       Width := 4;
       MaxLength := 5;
-      if gnTimeLimit > 0 then
-        Text := IntToStr(gnTimeLimit);
+      if gsTimeLimit > 0 then
+        Text := IntToStr(gsTimeLimit);
     end;
     with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
     begin
@@ -2209,32 +2145,41 @@ begin
       OnlyDigits := True;
       Width := 4;
       MaxLength := 5;
-      if gnGoalLimit > 0 then
-        Text := IntToStr(gnGoalLimit);
+      if gsGoalLimit > 0 then
+        Text := IntToStr(gsGoalLimit);
     end;
     with AddEdit(_lc[I_MENU_MAX_LIVES]) do
     begin
       Name := 'edMaxLives';
       OnlyDigits := True;
       Width := 4;
-      MaxLength := 3;
-      if gnMaxLives > 0 then
-        Text := IntToStr(gnMaxLives);
+      MaxLength := 5;
+      if gsMaxLives > 0 then
+        Text := IntToStr(gsMaxLives);
     end;
-    with AddSwitch(_lc[I_MENU_SERVER_PLAYERS]) do
+    with AddEdit(_lc[I_MENU_ITEM_RESPAWN_TIME]) do
+    begin
+      Name := 'edItemRespawnTime';
+      OnlyDigits := True;
+      Width := 4;
+      MaxLength := 5;
+      if gsItemRespawnTime > 0 then
+        Text := IntToStr(gsItemRespawnTime);
+    end;
+    with AddSwitch(_lc[I_MENU_PLAYERS]) do
     begin
       Name := 'swPlayers';
       AddItem(_lc[I_MENU_COUNT_NONE]);
       AddItem(_lc[I_MENU_PLAYERS_ONE]);
       AddItem(_lc[I_MENU_PLAYERS_TWO]);
-      ItemIndex := gnPlayers;
+      ItemIndex := gsPlayers;
     end;
     with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
     begin
       Name := 'swTeamDamage';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if gnTeamDamage then
+      if LongBool(gsGameFlags and GAME_OPTION_TEAMDAMAGE) then
         ItemIndex := 0
       else
         ItemIndex := 1;
@@ -2244,7 +2189,7 @@ begin
       Name := 'swDeathmatchKeys';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if gnDeathmatchKeys then
+      if LongBool(gsGameFlags and GAME_OPTION_DMKEYS) then
         ItemIndex := 0
       else
         ItemIndex := 1;
@@ -2254,7 +2199,7 @@ begin
       Name := 'swEnableExits';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if gnAllowExit then
+      if LongBool(gsGameFlags and GAME_OPTION_ALLOWEXIT) then
         ItemIndex := 0
       else
         ItemIndex := 1;
@@ -2264,7 +2209,7 @@ begin
       Name := 'swWeaponStay';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if gnWeaponStay then
+      if LongBool(gsGameFlags and GAME_OPTION_WEAPONSTAY) then
         ItemIndex := 0
       else
         ItemIndex := 1;
@@ -2274,7 +2219,7 @@ begin
       Name := 'swMonsters';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if gnMonsters then
+      if LongBool(gsGameFlags and GAME_OPTION_MONSTERS) then
         ItemIndex := 0
       else
         ItemIndex := 1;
@@ -2286,9 +2231,9 @@ begin
       AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
       AddItem(_lc[I_MENU_BOTS_VS_ALL]);
       ItemIndex := 2;
-      if gnBotsVS = 'Players' then
+      if not LongBool(gsGameFlags and GAME_OPTION_BOTVSMONSTER) then
         ItemIndex := 0;
-      if gnBotsVS = 'Monsters' then
+      if not LongBool(gsGameFlags and GAME_OPTION_BOTVSPLAYER) then
         ItemIndex := 1;
     end;
     AddSpace();
@@ -2384,7 +2329,7 @@ begin
     begin
       Name := 'lbMap';
       FixedLength := 16;
-      Text := gcMap;
+      Text := gsMap;
       OnClick := @ProcSelectMapMenu;
     end;
     with AddSwitch(_lc[I_MENU_GAME_TYPE]) do
@@ -2394,7 +2339,7 @@ begin
       AddItem(_lc[I_MENU_GAME_TYPE_TDM]);
       AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
       AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
-      case g_Game_TextToMode(gcGameMode) of
+      case g_Game_TextToMode(gsGameMode) of
         GM_NONE,
         GM_DM:   ItemIndex := 0;
         GM_TDM:  ItemIndex := 1;
@@ -2410,8 +2355,8 @@ begin
       OnlyDigits := True;
       Width := 4;
       MaxLength := 5;
-      if gcTimeLimit > 0 then
-        Text := IntToStr(gcTimeLimit);
+      if gsTimeLimit > 0 then
+        Text := IntToStr(gsTimeLimit);
     end;
     with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
     begin
@@ -2419,8 +2364,8 @@ begin
       OnlyDigits := True;
       Width := 4;
       MaxLength := 5;
-      if gcGoalLimit > 0 then
-        Text := IntToStr(gcGoalLimit);
+      if gsGoalLimit > 0 then
+        Text := IntToStr(gsGoalLimit);
     end;
     with AddEdit(_lc[I_MENU_MAX_LIVES]) do
     begin
@@ -2428,8 +2373,17 @@ begin
       OnlyDigits := True;
       Width := 4;
       MaxLength := 5;
-      if gcMaxLives > 0 then
-        Text := IntToStr(gcMaxLives);
+      if gsMaxLives > 0 then
+        Text := IntToStr(gsMaxLives);
+    end;
+    with AddEdit(_lc[I_MENU_ITEM_RESPAWN_TIME]) do
+    begin
+      Name := 'edItemRespawnTime';
+      OnlyDigits := True;
+      Width := 4;
+      MaxLength := 5;
+      if gsItemRespawnTime > 0 then
+        Text := IntToStr(gsItemRespawnTime);
     end;
     with AddSwitch(_lc[I_MENU_PLAYERS]) do
     begin
@@ -2437,14 +2391,14 @@ begin
       AddItem(_lc[I_MENU_COUNT_NONE]);
       AddItem(_lc[I_MENU_PLAYERS_ONE]);
       AddItem(_lc[I_MENU_PLAYERS_TWO]);
-      ItemIndex := gcPlayers;
+      ItemIndex := gsPlayers;
     end;
     with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
     begin
       Name := 'swTeamDamage';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if gcTeamDamage then
+      if LongBool(gsGameFlags and GAME_OPTION_TEAMDAMAGE) then
         ItemIndex := 0
       else
         ItemIndex := 1;
@@ -2454,7 +2408,7 @@ begin
       Name := 'swDeathmatchKeys';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if gcDeathmatchKeys then
+      if LongBool(gsGameFlags and GAME_OPTION_DMKEYS) then
         ItemIndex := 0
       else
         ItemIndex := 1;
@@ -2464,7 +2418,7 @@ begin
       Name := 'swEnableExits';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if gcAllowExit then
+      if LongBool(gsGameFlags and GAME_OPTION_ALLOWEXIT) then
         ItemIndex := 0
       else
         ItemIndex := 1;
@@ -2474,7 +2428,7 @@ begin
       Name := 'swWeaponStay';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if gcWeaponStay then
+      if LongBool(gsGameFlags and GAME_OPTION_WEAPONSTAY) then
         ItemIndex := 0
       else
         ItemIndex := 1;
@@ -2484,7 +2438,7 @@ begin
       Name := 'swMonsters';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if gcMonsters then
+      if LongBool(gsGameFlags and GAME_OPTION_MONSTERS) then
         ItemIndex := 0
       else
         ItemIndex := 1;
@@ -2496,9 +2450,9 @@ begin
       AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
       AddItem(_lc[I_MENU_BOTS_VS_ALL]);
       ItemIndex := 2;
-      if gcBotsVS = 'Players' then
+      if not LongBool(gsGameFlags and GAME_OPTION_BOTVSMONSTER) then
         ItemIndex := 0;
-      if gcBotsVS = 'Monsters' then
+      if not LongBool(gsGameFlags and GAME_OPTION_BOTVSPLAYER) then
         ItemIndex := 1;
     end;
     AddSpace();

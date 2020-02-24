@@ -24,13 +24,7 @@ function GenPlayerName (n: Integer): String;
 
 procedure g_Options_SetDefault;
 procedure g_Options_SetDefaultVideo;
-procedure g_Options_Read(FileName: String);
-procedure g_Options_Write(FileName: String);
-procedure g_Options_Write_Gameplay_Custom(FileName: String);
-procedure g_Options_Write_Gameplay_Net(FileName: String);
-procedure g_Options_Write_Net_Server(FileName: String);
-procedure g_Options_Write_Net_Client(FileName: String);
-procedure g_Options_Commands (p: SSArray);
+procedure g_Options_ApplyGameSettings;
 
 const DF_Default_Megawad_Start = 'megawads/DOOM2D.WAD:\MAP01';
 
@@ -62,37 +56,23 @@ var
   gAskLanguage: Boolean;
   gSaveStats: Boolean = False;
   gScreenshotStats: Boolean = False;
-  gcMap: String;
-  gcGameMode: String;
-  gcTimeLimit: Word;
-  gcGoalLimit: Word;
-  gcMaxLives: Byte;
-  gcPlayers: Byte;
-  gcTeamDamage: Boolean;
-  gcAllowExit: Boolean;
-  gcWeaponStay: Boolean;
-  gcMonsters: Boolean;
-  gcBotsVS: String;
-  gcDeathmatchKeys: Boolean = True;
-  gcSpawnInvul: Integer = 0;
-  gnMap: String;
-  gnGameMode: String;
-  gnTimeLimit: Word;
-  gnGoalLimit: Word;
-  gnMaxLives: Byte;
-  gnPlayers: Byte;
-  gnTeamDamage: Boolean;
-  gnAllowExit: Boolean;
-  gnWeaponStay: Boolean;
-  gnMonsters: Boolean;
-  gnBotsVS: String;
-  gnDeathmatchKeys: Boolean = True;
-  gnSpawnInvul: Integer = 0;
   gsSDLSampleRate: Integer;
   gsSDLBufferSize: Integer;
   gDefaultMegawadStart: AnsiString;
   gBerserkAutoswitch: Boolean;
   glNPOTOverride: Boolean = false;
+
+  (* Latched game settings *)
+  gsMap: String;
+  gsGameMode: String;
+  gsTimeLimit: Word;
+  gsGoalLimit: Word;
+  gsMaxLives: Byte;
+  gsPlayers: Byte;
+  gsGameFlags: LongWord;
+  gsSpawnInvul: Integer = 0;
+  gsItemRespawnTime: Word = 60;
+  gsWarmupTime: Word = 30;
 
 implementation
 
@@ -258,7 +238,6 @@ begin
   g_Gibs_SetMax(150);
   g_Corpses_SetMax(20);
   gGibsCount := 32;
-  ITEM_RESPAWNTIME := 60 * 36;
   gBloodCount := 4;
   gAdvBlood := True;
   gAdvCorpses := True;
@@ -279,40 +258,21 @@ begin
   gAskLanguage := True;
   gLanguage := LANGUAGE_ENGLISH;
 
-  (* section GameplayCustom *)
-  gcMap := '';
-  gcGameMode := _lc[I_MENU_GAME_TYPE_DM];
-  gcTimeLimit := 0;
-  gcGoalLimit := 0;
-  gcMaxLives := 0;
-  gcPlayers := 1;
-  gcTeamDamage := False;
-  gcAllowExit := True;
-  gcWeaponStay := False;
-  gcMonsters := False;
-  gcBotsVS := 'Everybody';
-  gcDeathmatchKeys := True;
-  gcSpawnInvul := 0;
-
-  (* section GameplayNetwork *)
-  gnMap := '';
-  gnGameMode := _lc[I_MENU_GAME_TYPE_DM];
-  gnTimeLimit := 0;
-  gnGoalLimit := 0;
-  gnMaxLives := 0;
-  gnPlayers := 1;
-  gnTeamDamage := False;
-  gnAllowExit := True;
-  gnWeaponStay := False;
-  gnMonsters := False;
-  gnBotsVS := 'Everybody';
-  gnDeathmatchKeys := True;
-  gnSpawnInvul := 0;
+  gsMap := '';
+  gsGameMode := _lc[I_MENU_GAME_TYPE_DM];
+  gsTimeLimit := 0;
+  gsGoalLimit := 0;
+  gsMaxLives := 0;
+  gsPlayers := 1;
+  gsSpawnInvul := 0;
+  gsItemRespawnTime := 60;
+  gsGameFlags := GAME_OPTION_ALLOWEXIT or GAME_OPTION_DMKEYS or
+    GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
+  gsPlayers := 1;
 
   (* section MasterServer *)
-  NetSlistIP := 'mpms.doom2d.org';
-  NetSlistPort := 25665;
-  g_Net_Slist_Set(NetSlistIP, NetSlistPort, NetSlistList);
+  NetMasterList := 'mpms.doom2d.org:25665,deadsoftware.ru:25665';
+  g_Net_Slist_Set(NetMasterList);
 
   (* section Server *)
   NetServerName := 'Unnamed Server';
@@ -335,458 +295,22 @@ begin
   NetClientPort := NetPort;
 end;
 
-procedure g_Options_Read(FileName: String);
-var
-  config: TConfig;
-  section: String;
-  
-  procedure ReadInteger (VAR v: Integer; param: String; minv: Integer = Low(Integer); maxv: Integer = High(Integer));
-  begin
-    v := Max(Min(config.ReadInt(section, param, v), maxv), minv)
-  end;
-
-  procedure ReadInteger (VAR v: LongWord; param: String; minv: LongWord = Low(LongWord); maxv: LongWord = High(LongWord)); overload;
-  begin
-    v := Max(Min(config.ReadInt(section, param, v), maxv), minv)
-  end;
-
-  procedure ReadInteger (VAR v: Word; param: String; minv: Word = Low(Word); maxv: Word = High(Word)); overload;
-  begin
-    v := Max(Min(config.ReadInt(section, param, v), maxv), minv)
-  end;
-
-  procedure ReadInteger (VAR v: Byte; param: String; minv: Byte = Low(Byte); maxv: Byte = High(Byte)); overload;
-  begin
-    v := Max(Min(config.ReadInt(section, param, v), maxv), minv)
-  end;
-
-  procedure ReadBoolean (VAR v: Boolean; param: String);
-  begin
-    v := config.ReadBool(section, param, v)
-  end;
-
-  procedure ReadString (VAR v: String; param: String);
-  begin
-    v := config.ReadStr(section, param, v)
-  end;
-
+procedure g_Options_ApplyGameSettings;
 begin
-  gAskLanguage := True;
-  e_WriteLog('Reading config', TMsgType.Notify);
-  g_Options_SetDefault;
-
-  if FileExists(FileName) = False then
-  begin
-    e_WriteLog('Config file '+FileName+' not found', TMsgType.Warning);
-    g_Options_SetDefaultVideo;
-    Exit
-  end;
-
-  config := TConfig.CreateFile(FileName);
-
-  section := 'Player1';
-  with gPlayer1Settings do
-  begin
-    ReadString(Name, 'name');
-    ReadString(Model, 'model');
-    ReadInteger(Color.R, 'red', 0, 255);
-    ReadInteger(Color.G, 'green', 0, 255);
-    ReadInteger(Color.B, 'blue', 0, 255);
-    ReadInteger(Team, 'team');
-    if (Team < TEAM_RED) or (Team > TEAM_BLUE) then
-      Team := TEAM_RED;
-  end;
-
-  section := 'Player2';
-  with gPlayer2Settings do
-  begin
-    ReadString(Name, 'name');
-    ReadString(Model, 'model');
-    ReadInteger(Color.R, 'red', 0, 255);
-    ReadInteger(Color.G, 'green', 0, 255);
-    ReadInteger(Color.B, 'blue', 0, 255);
-    ReadInteger(Team, 'team');
-    if (Team < TEAM_RED) or (Team > TEAM_BLUE) then
-      Team := TEAM_RED;
-  end;
-
-  section := 'GameplayCustom';
-  ReadString(gcMap, 'Map');
-  ReadString(gcGameMode, 'GameMode');
-  ReadInteger(gcTimeLimit, 'TimeLimit', 0, 65535);
-  ReadInteger(gcGoalLimit, 'GoalLimit', 0, 65535);
-  ReadInteger(gcMaxLives, 'MaxLives', 0, 255);
-  ReadInteger(gcPlayers, 'Players', 0, 2);
-  ReadBoolean(gcTeamDamage, 'TeamDamage');
-  ReadBoolean(gcAllowExit, 'AllowExit');
-  ReadBoolean(gcWeaponStay, 'WeaponStay');
-  ReadBoolean(gcMonsters, 'Monsters');
-  ReadString(gcBotsVS, 'BotsVS');
-  ReadBoolean(gcDeathmatchKeys, 'DeathmatchKeys');
-  ReadInteger(gcSpawnInvul, 'SpawnInvul');
-
   with gGameSettings do
   begin
-    GameMode := g_Game_TextToMode(gcGameMode);
+    GameMode := g_Game_TextToMode(gsGameMode);
     if GameMode = GM_NONE then
       GameMode := GM_DM;
     if GameMode = GM_SINGLE then
       GameMode := GM_COOP;
-    TimeLimit := gcTimeLimit;
-    GoalLimit := gcGoalLimit;
-    MaxLives := gcMaxLives;
-
-    Options := 0;
-    if gcTeamDamage then
-      Options := Options or GAME_OPTION_TEAMDAMAGE;
-    if gcAllowExit then
-      Options := Options or GAME_OPTION_ALLOWEXIT;
-    if gcWeaponStay then
-      Options := Options or GAME_OPTION_WEAPONSTAY;
-    if gcMonsters then
-      Options := Options or GAME_OPTION_MONSTERS;
-    if gcBotsVS = 'Everybody' then
-      Options := Options or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
-    if gcBotsVS = 'Players' then
-      Options := Options or GAME_OPTION_BOTVSPLAYER;
-    if gcBotsVS = 'Monsters' then
-      Options := Options or GAME_OPTION_BOTVSMONSTER;
-    if gcDeathmatchKeys then
-      Options := Options or GAME_OPTION_DMKEYS;
-  end;
-
-  section := 'GameplayNetwork';
-  ReadString(gnMap, 'Map');
-  ReadString(gnGameMode, 'GameMode');
-  ReadInteger(gnTimeLimit, 'TimeLimit', 0, 65535);
-  ReadInteger(gnGoalLimit, 'GoalLimit', 0, 65535);
-  ReadInteger(gnMaxLives, 'MaxLives', 0, 255);
-  ReadInteger(gnPlayers, 'Players', 0, 2);
-  ReadBoolean(gnTeamDamage, 'TeamDamage');
-  ReadBoolean(gnAllowExit, 'AllowExit');
-  ReadBoolean(gnWeaponStay, 'WeaponStay');
-  ReadBoolean(gnMonsters, 'Monsters');
-  ReadString(gnBotsVS, 'BotsVS');
-  ReadBoolean(gnDeathmatchKeys, 'DeathmatchKeys');
-  ReadInteger(gnSpawnInvul, 'SpawnInvul');
-
-  section := 'MasterServer';
-  ReadString(NetSlistIP, 'IP');
-  ReadInteger(NetSlistPort, 'Port', 0, 65535);
-  ReadString(NetSlistList, 'List');
-  g_Net_Slist_Set(NetSlistIP, NetSlistPort, NetSlistList);
-
-  section := 'Server';
-  ReadString(NetServerName, 'Name');
-  ReadString(NetPassword, 'Password');
-  ReadInteger(NetPort, 'Port', 0, 65535);
-  ReadInteger(NetMaxClients, 'MaxClients', 0, NET_MAXCLIENTS);
-  ReadBoolean(NetAllowRCON, 'RCON');
-  ReadString(NetRCONPassword, 'RCONPassword');
-  ReadBoolean(NetUseMaster, 'SyncWithMaster');
-  ReadInteger(NetUpdateRate, 'UpdateInterval', 0);
-  ReadInteger(NetRelupdRate, 'ReliableUpdateInterval', 0);
-  ReadInteger(NetMasterRate, 'MasterSyncInterval', 1);
-  ReadBoolean(NetForwardPorts, 'ForwardPorts');
-
-  section := 'Client';
-  ReadInteger(NetInterpLevel, 'InterpolationSteps', 0);
-  ReadBoolean(NetForcePlayerUpdate, 'ForcePlayerUpdate');
-  ReadBoolean(NetPredictSelf, 'PredictSelf');
-  ReadString(NetClientIP, 'LastIP');
-  ReadInteger(NetClientPort, 'LastPort', 0, 65535);
-
-  config.Free();
-
-  //if gTextureFilter then TEXTUREFILTER := GL_LINEAR else TEXTUREFILTER := GL_NEAREST;
-end;
-
-procedure g_Options_Write(FileName: String);
-  var config: TConfig;
-begin
-  e_WriteLog('Writing config', TMsgType.Notify);
-
-  config := TConfig.CreateFile(FileName);
-
-  with config, gPlayer1Settings do
-  begin
-    WriteStr('Player1', 'Name', Name);
-    WriteStr('Player1', 'model', Model);
-    WriteInt('Player1', 'red', Color.R);
-    WriteInt('Player1', 'green', Color.G);
-    WriteInt('Player1', 'blue', Color.B);
-    WriteInt('Player1', 'team', Team);
-  end;
-
-  with config, gPlayer2Settings do
-  begin
-    WriteStr('Player2', 'Name', Name);
-    WriteStr('Player2', 'model', Model);
-    WriteInt('Player2', 'red', Color.R);
-    WriteInt('Player2', 'green', Color.G);
-    WriteInt('Player2', 'blue', Color.B);
-    WriteInt('Player2', 'team', Team);
-  end;
-
-  config.WriteStr ('GameplayCustom', 'Map', gcMap);
-  config.WriteStr ('GameplayCustom', 'GameMode', gcGameMode);
-  config.WriteInt ('GameplayCustom', 'TimeLimit', gcTimeLimit);
-  config.WriteInt ('GameplayCustom', 'GoalLimit', gcGoalLimit);
-  config.WriteInt ('GameplayCustom', 'MaxLives', gcMaxLives);
-  config.WriteInt ('GameplayCustom', 'Players', gcPlayers);
-  config.WriteBool('GameplayCustom', 'TeamDamage', gcTeamDamage);
-  config.WriteBool('GameplayCustom', 'AllowExit', gcAllowExit);
-  config.WriteBool('GameplayCustom', 'WeaponStay', gcWeaponStay);
-  config.WriteBool('GameplayCustom', 'Monsters', gcMonsters);
-  config.WriteStr ('GameplayCustom', 'BotsVS', gcBotsVS);
-  config.WriteBool('GameplayCustom', 'DeathmatchKeys', gcDeathmatchKeys);
-  config.WriteInt ('GameplayCustom', 'SpawnInvul', gcSpawnInvul);
-
-  config.WriteStr ('GameplayNetwork', 'Map', gnMap);
-  config.WriteStr ('GameplayNetwork', 'GameMode', gnGameMode);
-  config.WriteInt ('GameplayNetwork', 'TimeLimit', gnTimeLimit);
-  config.WriteInt ('GameplayNetwork', 'GoalLimit', gnGoalLimit);
-  config.WriteInt ('GameplayNetwork', 'MaxLives', gnMaxLives);
-  config.WriteInt ('GameplayNetwork', 'Players', gnPlayers);
-  config.WriteBool('GameplayNetwork', 'TeamDamage', gnTeamDamage);
-  config.WriteBool('GameplayNetwork', 'AllowExit', gnAllowExit);
-  config.WriteBool('GameplayNetwork', 'WeaponStay', gnWeaponStay);
-  config.WriteBool('GameplayNetwork', 'Monsters', gnMonsters);
-  config.WriteStr ('GameplayNetwork', 'BotsVS', gnBotsVS);
-  config.WriteBool('GameplayNetwork', 'DeathmatchKeys', gnDeathmatchKeys);
-  config.WriteInt ('GameplayNetwork', 'SpawnInvul', gnSpawnInvul);
-
-  config.WriteStr('MasterServer', 'IP', NetSlistIP);
-  config.WriteInt('MasterServer', 'Port', NetSlistPort);
-  config.WriteStr('MasterServer', 'List', NetSlistList);
-
-  config.WriteStr ('Server', 'Name', NetServerName);
-  config.WriteStr ('Server', 'Password', NetPassword);
-  config.WriteInt ('Server', 'Port', NetPort);
-  config.WriteInt ('Server', 'MaxClients', NetMaxClients);
-  config.WriteBool('Server', 'RCON', NetAllowRCON);
-  config.WriteStr ('Server', 'RCONPassword', NetRCONPassword);
-  config.WriteBool('Server', 'SyncWithMaster', NetUseMaster);
-  config.WriteBool('Server', 'ForwardPorts', NetForwardPorts);
-  config.WriteInt ('Server', 'UpdateInterval', NetUpdateRate);
-  config.WriteInt ('Server', 'ReliableUpdateInterval', NetRelupdRate);
-  config.WriteInt ('Server', 'MasterSyncInterval', NetMasterRate);
-
-  config.WriteInt  ('Client', 'InterpolationSteps', NetInterpLevel);
-  config.WriteBool ('Client', 'ForcePlayerUpdate', NetForcePlayerUpdate);
-  config.WriteBool ('Client', 'PredictSelf', NetPredictSelf);
-  config.WriteStr  ('Client', 'LastIP', NetClientIP);
-  config.WriteInt  ('Client', 'LastPort', NetClientPort);
-
-  config.SaveFile(FileName);
-  config.Free();
-end;
-
-procedure g_Options_Write_Gameplay_Custom(FileName: String);
-var
-  config: TConfig;
-begin
-  e_WriteLog('Writing custom gameplay config', TMsgType.Notify);
-
-  config := TConfig.CreateFile(FileName);
-
-  config.WriteStr ('GameplayCustom', 'Map', gcMap);
-  config.WriteStr ('GameplayCustom', 'GameMode', gcGameMode);
-  config.WriteInt ('GameplayCustom', 'TimeLimit', gcTimeLimit);
-  config.WriteInt ('GameplayCustom', 'GoalLimit', gcGoalLimit);
-  config.WriteInt ('GameplayCustom', 'MaxLives', gcMaxLives);
-  config.WriteInt ('GameplayCustom', 'Players', gcPlayers);
-  config.WriteBool('GameplayCustom', 'TeamDamage', gcTeamDamage);
-  config.WriteBool('GameplayCustom', 'AllowExit', gcAllowExit);
-  config.WriteBool('GameplayCustom', 'WeaponStay', gcWeaponStay);
-  config.WriteBool('GameplayCustom', 'Monsters', gcMonsters);
-  config.WriteStr ('GameplayCustom', 'BotsVS', gcBotsVS);
-  config.WriteBool('GameplayCustom', 'DeathmatchKeys', gcDeathmatchKeys);
-  config.WriteInt ('GameplayCustom', 'SpawnInvul', gcSpawnInvul);
-
-  config.SaveFile(FileName);
-  config.Free();
-end;
-
-procedure g_Options_Write_Gameplay_Net(FileName: String);
-var
-  config: TConfig;
-begin
-  e_WriteLog('Writing network gameplay config', TMsgType.Notify);
-
-  config := TConfig.CreateFile(FileName);
-
-  config.WriteStr ('GameplayNetwork', 'Map', gnMap);
-  config.WriteStr ('GameplayNetwork', 'GameMode', gnGameMode);
-  config.WriteInt ('GameplayNetwork', 'TimeLimit', gnTimeLimit);
-  config.WriteInt ('GameplayNetwork', 'GoalLimit', gnGoalLimit);
-  config.WriteInt ('GameplayNetwork', 'MaxLives', gnMaxLives);
-  config.WriteInt ('GameplayNetwork', 'Players', gnPlayers);
-  config.WriteBool('GameplayNetwork', 'TeamDamage', gnTeamDamage);
-  config.WriteBool('GameplayNetwork', 'AllowExit', gnAllowExit);
-  config.WriteBool('GameplayNetwork', 'WeaponStay', gnWeaponStay);
-  config.WriteBool('GameplayNetwork', 'Monsters', gnMonsters);
-  config.WriteStr ('GameplayNetwork', 'BotsVS', gnBotsVS);
-  config.WriteBool('GameplayNetwork', 'DeathmatchKeys', gnDeathmatchKeys);
-  config.WriteInt ('GameplayNetwork', 'SpawnInvul', gnSpawnInvul);
-
-  config.SaveFile(FileName);
-  config.Free();
-end;
-
-procedure g_Options_Write_Net_Server(FileName: String);
-var
-  config: TConfig;
-begin
-  e_WriteLog('Writing server config', TMsgType.Notify);
-
-  config := TConfig.CreateFile(FileName);
-
-  config.WriteStr ('Server', 'Name', NetServerName);
-  config.WriteStr ('Server', 'Password', NetPassword);
-  config.WriteInt ('Server', 'Port', NetPort);
-  config.WriteInt ('Server', 'MaxClients', NetMaxClients);
-  config.WriteBool('Server', 'SyncWithMaster', NetUseMaster);
-  config.WriteBool('Server', 'ForwardPorts', NetForwardPorts);
-
-  config.SaveFile(FileName);
-  config.Free();
-end;
-
-procedure g_Options_Write_Net_Client(FileName: String);
-var
-  config: TConfig;
-begin
-  e_WriteLog('Writing client config', TMsgType.Notify);
-
-  config := TConfig.CreateFile(FileName);
-
-  config.WriteStr('Client', 'LastIP', NetClientIP);
-  config.WriteInt('Client', 'LastPort', NetClientPort);
-
-  config.SaveFile(FileName);
-  config.Free();
-end;
-
-procedure g_Options_Commands (p: SSArray);
-  var cmd: AnsiString; i: Integer;
-begin
-  cmd := LowerCase(p[0]);
-  case cmd of
-    'r_reset':
-      begin
-        sys_EnableVSync(gVSync);
-        gRC_Width := Max(1, gRC_Width);
-        gRC_Height := Max(1, gRC_Height);
-        gBPP := Max(1, gBPP);
-        if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized) = True then
-          e_LogWriteln('resolution changed')
-        else
-          e_LogWriteln('resolution not changed')
-      end;
-    'g_language':
-      begin
-        if Length(p) = 2 then
-        begin
-          gAskLanguage := true;
-          gLanguage := LANGUAGE_ENGLISH;
-          case LowerCase(p[1]) of
-            'english':
-               begin
-                 gAskLanguage := false;
-                 gLanguage := LANGUAGE_ENGLISH;
-               end;
-            'russian':
-               begin
-                 gAskLanguage := false;
-                 gLanguage := LANGUAGE_RUSSIAN;
-               end;
-            'ask':
-               begin
-                 gAskLanguage := true;
-                 gLanguage := LANGUAGE_ENGLISH;
-               end;
-          end;
-          g_Language_Set(gLanguage)
-        end
-        else
-        begin
-          e_LogWritefln('usage: %s <English|Russian|Ask>', [cmd])
-        end
-      end;
-    'g_max_particles':
-      begin
-        if Length(p) = 2 then
-        begin
-          i := Max(0, StrToInt(p[1]));
-          g_GFX_SetMax(i)
-        end
-        else if Length(p) = 1 then
-        begin
-          e_LogWritefln('%s', [g_GFX_GetMax()])
-        end
-        else
-        begin
-          e_LogWritefln('usage: %s <n>', [cmd])
-        end
-      end;
-    'g_max_shells':
-      begin
-        if Length(p) = 2 then
-        begin
-          i := Max(0, StrToInt(p[1]));
-          g_Shells_SetMax(i)
-        end
-        else if Length(p) = 1 then
-        begin
-          e_LogWritefln('%s', [g_Shells_GetMax()])
-        end
-        else
-        begin
-          e_LogWritefln('usage: %s <n>', [cmd])
-        end
-      end;
-    'g_max_gibs':
-      begin
-        if Length(p) = 2 then
-        begin
-          i := Max(0, StrToInt(p[1]));
-          g_Gibs_SetMax(i)
-        end
-        else if Length(p) = 1 then
-        begin
-          e_LogWritefln('%s', [g_Gibs_GetMax()])
-        end
-        else
-        begin
-          e_LogWritefln('usage: %s <n>', [cmd])
-        end
-      end;
-    'g_max_corpses':
-      begin
-        if Length(p) = 2 then
-        begin
-          i := Max(0, StrToInt(p[1]));
-          g_Corpses_SetMax(i)
-        end
-        else if Length(p) = 1 then
-        begin
-          e_LogWritefln('%s', [g_Corpses_GetMax()])
-        end
-        else
-        begin
-          e_LogWritefln('usage: %s <n>', [cmd])
-        end
-      end;
-    'g_item_respawn_time':
-      begin
-        if Length(p) = 2 then
-          ITEM_RESPAWNTIME := Max(0, StrToInt(p[1])) * 36
-        else if Length(p) = 1 then
-          e_LogWritefln('%s', [ITEM_RESPAWNTIME div 36])
-        else
-          e_LogWritefln('usage: %s <n>', [cmd])
-      end;
+    TimeLimit := gsTimeLimit;
+    GoalLimit := gsGoalLimit;
+    MaxLives := gsMaxLives;
+    SpawnInvul := gsSpawnInvul;
+    ItemRespawnTime := gsItemRespawnTime;
+    WarmupTime := gsWarmupTime;
+    Options := gsGameFlags;
   end;
 end;
 
@@ -835,4 +359,5 @@ initialization
   conRegVar('g_default_megawad', @gDefaultMegawadStart, '', '');
   conRegVar('g_save_stats', @gSaveStats, '', '');
   conRegVar('g_screenshot_stats', @gScreenshotStats, '', '');
+  conRegVar('g_lastmap', @gsMap, '', '');
 end.

@@ -372,6 +372,11 @@ begin
         Inc(i);
         GameWADName := ParamStr(i);
       end;
+    '--config':
+      begin
+        Inc(i);
+        gConfigScript := ParamStr(i);
+      end;
     end;
     Inc(i)
   end;
@@ -502,7 +507,6 @@ procedure Main();
 {$IFDEF ENABLE_HOLMES}
   var flexloaded: Boolean;
 {$ENDIF}
-  var s: AnsiString;
 begin
   InitPath;
   InitPrep;
@@ -511,9 +515,6 @@ begin
 
   g_Options_SetDefault;
   g_Options_SetDefaultVideo;
-  s := CONFIG_FILENAME;
-  if e_FindResource(ConfigDirs, s) = true then
-    g_Options_Read(s);
   g_Console_SysInit;
   if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized) = False then
     raise Exception.Create('Failed to set videomode on startup.');

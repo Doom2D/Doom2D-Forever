@@ -83,7 +83,6 @@ function g_Items_ForEachAlive (cb: TItemEachAliveCB; backwards: Boolean=false): 
 var
   gItemsTexturesID: Array [1..ITEM_MAX] of DWORD;
   gMaxDist: Integer = 1; // for sounds
-  ITEM_RESPAWNTIME: Integer = 60 * 36;
 
 implementation
 
@@ -576,7 +575,7 @@ begin
               // Ќадо убрать с карты, если это не ключ, которым нужно поделитьс€ с другим игроком
               if r then
               begin
-                if not (Respawnable and (ITEM_RESPAWNTIME > 0)) then
+                if not (Respawnable and (gGameSettings.ItemRespawnTime > 0)) then
                   g_Items_Remove(i)
                 else 
                   g_Items_Pick(i);
@@ -692,7 +691,7 @@ begin
   if (ID < Length(ggItems)) then
   begin
     ggItems[ID].alive := false;
-    ggItems[ID].RespawnTime := ITEM_RESPAWNTIME;
+    ggItems[ID].RespawnTime := gGameSettings.ItemRespawnTime * 36;
   end;
 end;
 

@@ -133,7 +133,7 @@ var
   NMASTER_FORCE_UPDATE_TIMEOUT: Integer = 0; // fuck you, fpc, and your idiotic "diagnostics"
 
 
-procedure g_Net_Slist_Set (IP: AnsiString; Port: Word; list: AnsiString='');
+procedure g_Net_Slist_Set (list: AnsiString);
 function g_Net_Slist_Fetch (var SL: TNetServerList): Boolean;
 
 // make this server private
@@ -1053,7 +1053,7 @@ end;
 //  g_Net_Slist_Set
 //
 //==========================================================================
-procedure g_Net_Slist_Set (IP: AnsiString; Port: Word; list: AnsiString='');
+procedure g_Net_Slist_Set (list: AnsiString);
 var
   f, dest: Integer;
   sa: AnsiString;
@@ -1063,13 +1063,6 @@ begin
   if (not g_Net_IsNetworkAvailable()) then exit;
 
   for f := 0 to High(mlist) do mlist[f].justAdded := false;
-
-  IP := Trim(IP);
-  if (length(IP) > 0) and (Port > 0) then
-  begin
-    sa := IP+':'+IntToStr(Port);
-    if parseAddressPort(ea, sa) then addMasterRecord(ea, sa);
-  end;
 
   list := Trim(list);
   //writeln('list=[', list, ']');

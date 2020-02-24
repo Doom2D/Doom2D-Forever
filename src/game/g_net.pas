@@ -147,9 +147,7 @@ var
   NetPongSock:   ENetSocket = ENET_SOCKET_NULL;
 
   NetUseMaster: Boolean = True;
-  NetSlistIP:   string = 'mpms.doom2d.org';
-  NetSlistPort: Word = 25665;
-  NetSlistList: string = 'deadsoftware.ru:25665';
+  NetMasterList: string = 'mpms.doom2d.org:25665,deadsoftware.ru:25665';
 
   NetClientIP:   string = '127.0.0.1';
   NetClientPort: Word   = 25666;
@@ -2374,7 +2372,7 @@ begin
             SetLength(NetServerName, 64);
           g_Net_Slist_ServerRenamed();
         end;
-        g_Console_Add(cmd + ' = "' + NetServerName + '"');
+        g_Console_Add(cmd + ' "' + NetServerName + '"');
       end;
     'sv_passwd':
       begin
@@ -2385,7 +2383,7 @@ begin
             SetLength(NetPassword, 24);
           g_Net_Slist_ServerRenamed();
         end;
-        g_Console_Add(cmd + ' = "' + AnsiLowerCase(NetPassword) + '"');
+        g_Console_Add(cmd + ' "' + AnsiLowerCase(NetPassword) + '"');
       end;
     'sv_maxplrs':
       begin
@@ -2412,16 +2410,27 @@ begin
             g_Net_Slist_ServerRenamed();
           end;
         end;
-        g_Console_Add(cmd + ' = ' + IntToStr(NetMaxClients));
+        g_Console_Add(cmd + ' ' + IntToStr(NetMaxClients));
       end;
     'sv_public':
       begin
         if (Length(P) > 1) then
         begin
-          NetUseMaster := StrToIntDef(P[1], Byte(NetUseMaster)) > 0;
+          NetUseMaster := StrToIntDef(P[1], Byte(NetUseMaster)) <> 0;
           if NetUseMaster then g_Net_Slist_Public() else g_Net_Slist_Private();
         end;
-        g_Console_Add(cmd + ' = ' + IntToStr(Byte(NetUseMaster)));
+        g_Console_Add(cmd + ' ' + IntToStr(Byte(NetUseMaster)));
+      end;
+    'sv_port':
+      begin
+        if (Length(P) > 1) then
+        begin
+          if not g_Game_IsNet then
+            NetPort := nclamp(StrToIntDef(P[1], NetPort), 0, $FFFF)
+          else
+            g_Console_Add(_lc[I_MSG_NOT_NETGAME]);
+        end;
+        g_Console_Add(cmd + ' ' + IntToStr(Ord(NetUseMaster)));
       end;
   end;
 end;
@@ -2431,7 +2440,18 @@ initialization
   conRegVar('cl_predictself', @NetPredictSelf, '', 'predict local player');
   conRegVar('cl_forceplayerupdate', @NetForcePlayerUpdate, '', 'update net players on NET_MSG_PLRPOS');
   conRegVar('cl_interp', @NetInterpLevel, '', 'net player interpolation steps');
+  conRegVar('cl_last_ip', @NetClientIP, '', 'address of the last you have connected to');
+  conRegVar('cl_last_port', @NetClientPort, '', 'port of the last server you have connected to');
+
   conRegVar('sv_forwardports', @NetForwardPorts, '', 'forward server port using miniupnpc (requires server restart)');
+  conRegVar('sv_rcon', @NetAllowRCON, '', 'enable remote console');
+  conRegVar('sv_rcon_password', @NetRCONPassword, '', 'remote console password');
+  conRegVar('sv_update_interval', @NetUpdateRate, '', 'unreliable update interval');
+  conRegVar('sv_reliable_interval', @NetRelupdRate, '', 'reliable update interval');
+  conRegVar('sv_master_interval', @NetMasterRate, '', 'master server update interval');
+
+  conRegVar('net_master_list', @NetMasterList, '', 'list of master servers');
+
   SetLength(NetClients, 0);
   g_Net_DownloadTimeout := 60;
   NetIn.Alloc(NET_BUFSIZE);

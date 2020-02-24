@@ -32,6 +32,7 @@ type
     GoalLimit: Word;
     WarmupTime: Word;
     SpawnInvul: Word;
+    ItemRespawnTime: Word;
     MaxLives: Byte;
     Options: LongWord;
     WAD: String;
@@ -133,6 +134,7 @@ function  g_Game_IsTestMap(): Boolean;
 procedure g_Game_DeleteTestMap();
 procedure GameCVars(P: SSArray);
 procedure PlayerSettingsCVars(P: SSArray);
+procedure SystemCommands(P: SSArray);
 procedure GameCommands(P: SSArray);
 procedure GameCheats(P: SSArray);
 procedure DebugCommands(P: SSArray);
@@ -4625,7 +4627,7 @@ begin
     Exit;
   end;
 
-  g_Net_Slist_Set(NetSlistIP, NetSlistPort, NetSlistList);
+  g_Net_Slist_Set(NetMasterList);
 
   g_Net_Slist_ServerStarted();
 
@@ -5383,64 +5385,61 @@ var
   a, b: Integer;
   stat: TPlayerStatArray;
   cmd: string;
+
+  procedure ParseGameFlag(Flag: LongWord; OffMsg, OnMsg: TStrings_Locale; OnMapChange: Boolean = False);
+  var
+    x: Boolean;
+  begin
+    if Length(P) > 1 then
+    begin
+      x := P[1] = '1';
+
+      if x then
+        gsGameFlags := gsGameFlags or Flag
+      else
+        gsGameFlags := gsGameFlags and (not Flag);
+
+      if g_Game_IsServer then
+      begin
+        if x then
+          gGameSettings.Options := gGameSettings.Options or Flag
+        else
+          gGameSettings.Options := gGameSettings.Options and (not Flag);
+        if g_Game_IsNet then MH_SEND_GameSettings;
+      end;
+    end;
+
+    if LongBool(gsGameFlags and Flag) then
+      g_Console_Add(_lc[OnMsg])
+    else
+      g_Console_Add(_lc[OffMsg]);
+
+    if OnMapChange and g_Game_IsServer then
+      g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+  end;
+
 begin
   stat := nil;
   cmd := LowerCase(P[0]);
-  if (cmd = 'g_friendlyfire') and not g_Game_IsClient then
+
+  if cmd = 'g_gamemode' then
   begin
-    with gGameSettings do
+    if (Length(P) > 1) then
     begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
+      a := g_Game_TextToMode(P[1]);
+      if a = GM_SINGLE then a := GM_COOP;
+      gsGameMode := g_Game_ModeToText(a);
+      if g_Game_IsServer then
       begin
-        if (P[1][1] = '1') then
-          Options := Options or GAME_OPTION_TEAMDAMAGE
-        else
-          Options := Options and (not GAME_OPTION_TEAMDAMAGE);
+        gSwitchGameMode := a;
+        if (gGameOn and (gGameSettings.GameMode = GM_SINGLE)) or
+           (gState = STATE_INTERSINGLE) then
+          gSwitchGameMode := GM_SINGLE;
+        if not gGameOn then
+          gGameSettings.GameMode := gSwitchGameMode;
       end;
-
-      if (LongBool(Options and GAME_OPTION_TEAMDAMAGE)) then
-        g_Console_Add(_lc[I_MSG_FRIENDLY_FIRE_ON])
-      else
-        g_Console_Add(_lc[I_MSG_FRIENDLY_FIRE_OFF]);
-
-      if g_Game_IsNet then MH_SEND_GameSettings;
     end;
-  end
-  else if (cmd = 'g_weaponstay') and not g_Game_IsClient then
-  begin
-    with gGameSettings do
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-      begin
-        if (P[1][1] = '1') then
-          Options := Options or GAME_OPTION_WEAPONSTAY
-        else
-          Options := Options and (not GAME_OPTION_WEAPONSTAY);
-      end;
 
-      if (LongBool(Options and GAME_OPTION_WEAPONSTAY)) then
-        g_Console_Add(_lc[I_MSG_WEAPONSTAY_ON])
-      else
-        g_Console_Add(_lc[I_MSG_WEAPONSTAY_OFF]);
-
-      if g_Game_IsNet then MH_SEND_GameSettings;
-    end;
-  end
-  else if cmd = 'g_gamemode' then
-  begin
-    a := g_Game_TextToMode(P[1]);
-    if a = GM_SINGLE then a := GM_COOP;
-    if (Length(P) > 1) and (a <> GM_NONE) and (not g_Game_IsClient) then
-    begin
-      gSwitchGameMode := a;
-      if (gGameOn and (gGameSettings.GameMode = GM_SINGLE)) or
-         (gState = STATE_INTERSINGLE) then
-        gSwitchGameMode := GM_SINGLE;
-      if not gGameOn then
-        gGameSettings.GameMode := gSwitchGameMode;
-    end;
     if gSwitchGameMode = gGameSettings.GameMode then
       g_Console_Add(Format(_lc[I_MSG_GAMEMODE_CURRENT],
                           [g_Game_ModeToText(gGameSettings.GameMode)]))
@@ -5449,140 +5448,91 @@ begin
                           [g_Game_ModeToText(gGameSettings.GameMode),
                            g_Game_ModeToText(gSwitchGameMode)]));
   end
-  else if (cmd = 'g_allow_exit') and not g_Game_IsClient then
+  else if cmd = 'g_friendlyfire' then
   begin
-    with gGameSettings do
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-      begin
-        if (P[1][1] = '1') then
-          Options := Options or GAME_OPTION_ALLOWEXIT
-        else
-          Options := Options and (not GAME_OPTION_ALLOWEXIT);
-      end;
-
-      if (LongBool(Options and GAME_OPTION_ALLOWEXIT)) then
-        g_Console_Add(_lc[I_MSG_ALLOWEXIT_ON])
-      else
-        g_Console_Add(_lc[I_MSG_ALLOWEXIT_OFF]);
-      g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
-
-      if g_Game_IsNet then MH_SEND_GameSettings;
-    end;
+    ParseGameFlag(GAME_OPTION_TEAMDAMAGE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);
   end
-  else if (cmd = 'g_allow_monsters') and not g_Game_IsClient then
+  else if cmd = 'g_weaponstay' then
   begin
-    with gGameSettings do
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-      begin
-        if (P[1][1] = '1') then
-          Options := Options or GAME_OPTION_MONSTERS
-        else
-          Options := Options and (not GAME_OPTION_MONSTERS);
-      end;
-
-      if (LongBool(Options and GAME_OPTION_MONSTERS)) then
-        g_Console_Add(_lc[I_MSG_ALLOWMON_ON])
-      else
-        g_Console_Add(_lc[I_MSG_ALLOWMON_OFF]);
-      g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
-
-      if g_Game_IsNet then MH_SEND_GameSettings;
-    end;
+    ParseGameFlag(GAME_OPTION_WEAPONSTAY, I_MSG_WEAPONSTAY_OFF, I_MSG_WEAPONSTAY_ON);
   end
-  else if (cmd = 'g_bot_vsplayers') and not g_Game_IsClient then
+  else if cmd = 'g_allow_exit' then
   begin
-    with gGameSettings do
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-      begin
-        if (P[1][1] = '1') then
-          Options := Options or GAME_OPTION_BOTVSPLAYER
-        else
-          Options := Options and (not GAME_OPTION_BOTVSPLAYER);
-      end;
-
-      if (LongBool(Options and GAME_OPTION_BOTVSPLAYER)) then
-        g_Console_Add(_lc[I_MSG_BOTSVSPLAYERS_ON])
-      else
-        g_Console_Add(_lc[I_MSG_BOTSVSPLAYERS_OFF]);
-
-      if g_Game_IsNet then MH_SEND_GameSettings;
-    end;
+    ParseGameFlag(GAME_OPTION_ALLOWEXIT, I_MSG_ALLOWEXIT_OFF, I_MSG_ALLOWEXIT_ON, True);
   end
-  else if (cmd = 'g_bot_vsmonsters') and not g_Game_IsClient then
+  else if cmd = 'g_allow_monsters' then
   begin
-    with gGameSettings do
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-      begin
-        if (P[1][1] = '1') then
-          Options := Options or GAME_OPTION_BOTVSMONSTER
-        else
-          Options := Options and (not GAME_OPTION_BOTVSMONSTER);
-      end;
-
-      if (LongBool(Options and GAME_OPTION_BOTVSMONSTER)) then
-        g_Console_Add(_lc[I_MSG_BOTSVSMONSTERS_ON])
-      else
-        g_Console_Add(_lc[I_MSG_BOTSVSMONSTERS_OFF]);
-
-      if g_Game_IsNet then MH_SEND_GameSettings;
-    end;
+    ParseGameFlag(GAME_OPTION_MONSTERS, I_MSG_ALLOWMON_OFF, I_MSG_ALLOWMON_ON, True);
   end
-  else if (cmd = 'g_dm_keys') and not g_Game_IsClient then
+  else if cmd = 'g_bot_vsplayers' then
   begin
-    with gGameSettings do
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-      begin
-        if (P[1][1] = '1') then
-          Options := Options or GAME_OPTION_DMKEYS
-        else
-          Options := Options and (not GAME_OPTION_DMKEYS);
-      end;
-
-      if (LongBool(Options and GAME_OPTION_DMKEYS)) then
-        g_Console_Add(_lc[I_MSG_DMKEYS_ON])
-      else
-        g_Console_Add(_lc[I_MSG_DMKEYS_OFF]);
-
-      if g_Game_IsNet then MH_SEND_GameSettings;
-    end;
+    ParseGameFlag(GAME_OPTION_BOTVSPLAYER, I_MSG_BOTSVSPLAYERS_OFF, I_MSG_BOTSVSPLAYERS_ON);
   end
-  else if (cmd = 'g_warmuptime') and not g_Game_IsClient then
+  else if cmd = 'g_bot_vsmonsters' then
+  begin
+    ParseGameFlag(GAME_OPTION_BOTVSMONSTER, I_MSG_BOTSVSMONSTERS_OFF, I_MSG_BOTSVSMONSTERS_ON);
+  end
+  else if cmd = 'g_dm_keys' then
+  begin
+    ParseGameFlag(GAME_OPTION_DMKEYS, I_MSG_DMKEYS_OFF, I_MSG_DMKEYS_ON, True);
+  end
+  else if cmd = 'g_gameflags' then
   begin
     if Length(P) > 1 then
     begin
-      if StrToIntDef(P[1], gGameSettings.WarmupTime) = 0 then
-        gGameSettings.WarmupTime := 30
-      else
-        gGameSettings.WarmupTime := StrToIntDef(P[1], gGameSettings.WarmupTime);
+      gsGameFlags := StrToDWordDef(P[1], gsGameFlags);
+      if g_Game_IsServer then
+      begin
+        gGameSettings.Options := gsGameFlags;
+        if g_Game_IsNet then MH_SEND_GameSettings;
+      end;
     end;
 
-    g_Console_Add(Format(_lc[I_MSG_WARMUP],
-                 [gGameSettings.WarmupTime]));
-    g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+    g_Console_Add(Format('%s %u', [cmd, gsGameFlags]));
   end
-  else if (cmd = 'g_spawn_invul') and not g_Game_IsClient then
+  else if cmd = 'g_warmup_time' then
   begin
     if Length(P) > 1 then
     begin
-      if StrToIntDef(P[1], gGameSettings.SpawnInvul) = 0 then
-        gGameSettings.SpawnInvul := 0
-      else
-        gGameSettings.SpawnInvul := StrToIntDef(P[1], gGameSettings.SpawnInvul);
+      gsWarmupTime := nclamp(StrToIntDef(P[1], gsWarmupTime), 0, $FFFF);
+      if g_Game_IsServer then
+      begin
+        gGameSettings.WarmupTime := gsWarmupTime;
+        if g_Game_IsNet then MH_SEND_GameSettings;
+      end;
     end;
 
-    g_Console_Add(Format(_lc[I_MSG_SPAWNINVUL],
-                 [gGameSettings.SpawnInvul]));
-    g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+    g_Console_Add(Format(_lc[I_MSG_WARMUP], [Integer(gsWarmupTime)]));
+    if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+  end
+  else if cmd = 'g_spawn_invul' then
+  begin
+    if Length(P) > 1 then
+    begin
+      gsSpawnInvul := nclamp(StrToIntDef(P[1], gsSpawnInvul), 0, $FFFF);
+      if g_Game_IsServer then
+      begin
+        gGameSettings.SpawnInvul := gsSpawnInvul;
+        if g_Game_IsNet then MH_SEND_GameSettings;
+      end;
+    end;
+
+    g_Console_Add(Format('%s %d', [cmd, Integer(gsSpawnInvul)]));
+  end
+  else if cmd = 'g_item_respawn_time' then
+  begin
+    if Length(P) > 1 then
+    begin
+      gsItemRespawnTime := nclamp(StrToIntDef(P[1], gsItemRespawnTime), 0, $FFFF);
+      if g_Game_IsServer then
+      begin
+        gGameSettings.ItemRespawnTime := gsItemRespawnTime;
+        if g_Game_IsNet then MH_SEND_GameSettings;
+      end;
+    end;
+
+    g_Console_Add(Format('%s %d', [cmd, Integer(gsItemRespawnTime)]));
+    if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
   end
   else if cmd = 'sv_intertime' then
   begin
@@ -5591,134 +5541,129 @@ begin
 
     g_Console_Add(cmd + ' = ' + IntToStr(gDefInterTime));
   end
-  else if cmd = 'r_showscore' then
+  else if cmd = 'g_max_particles' then
   begin
-    if (Length(P) > 1) and
-       ((P[1] = '1') or (P[1] = '0')) then
-      gShowGoals := (P[1][1] = '1');
-
-    if gShowGoals then
-      g_Console_Add(_lc[I_MSG_SCORE_ON])
+    if Length(p) = 2 then
+    begin
+      a := Max(0, StrToInt(p[1]));
+      g_GFX_SetMax(a)
+    end
+    else if Length(p) = 1 then
+    begin
+      e_LogWritefln('%s', [g_GFX_GetMax()])
+    end
     else
-      g_Console_Add(_lc[I_MSG_SCORE_OFF]);
+    begin
+      e_LogWritefln('usage: %s <n>', [cmd])
+    end
   end
-  else if cmd = 'r_showstat' then
+  else if cmd = 'g_max_shells' then
   begin
-    if (Length(P) > 1) and
-       ((P[1] = '1') or (P[1] = '0')) then
-      gShowStat := (P[1][1] = '1');
-
-    if gShowStat then
-      g_Console_Add(_lc[I_MSG_STATS_ON])
+    if Length(p) = 2 then
+    begin
+      a := Max(0, StrToInt(p[1]));
+      g_Shells_SetMax(a)
+    end
+    else if Length(p) = 1 then
+    begin
+      e_LogWritefln('%s', [g_Shells_GetMax()])
+    end
     else
-      g_Console_Add(_lc[I_MSG_STATS_OFF]);
+    begin
+      e_LogWritefln('usage: %s <n>', [cmd])
+    end
   end
-  else if cmd = 'r_showkillmsg' then
+  else if cmd = 'g_max_gibs' then
   begin
-    if (Length(P) > 1) and
-       ((P[1] = '1') or (P[1] = '0')) then
-      gShowKillMsg := (P[1][1] = '1');
-
-    if gShowKillMsg then
-      g_Console_Add(_lc[I_MSG_KILL_MSGS_ON])
+    if Length(p) = 2 then
+    begin
+      a := Max(0, StrToInt(p[1]));
+      g_Gibs_SetMax(a)
+    end
+    else if Length(p) = 1 then
+    begin
+      e_LogWritefln('%s', [g_Gibs_GetMax()])
+    end
     else
-      g_Console_Add(_lc[I_MSG_KILL_MSGS_OFF]);
+    begin
+      e_LogWritefln('usage: %s <n>', [cmd])
+    end
   end
-  else if cmd = 'r_showlives' then
+  else if cmd = 'g_max_corpses' then
   begin
-    if (Length(P) > 1) and
-       ((P[1] = '1') or (P[1] = '0')) then
-      gShowLives := (P[1][1] = '1');
-
-    if gShowLives then
-      g_Console_Add(_lc[I_MSG_LIVES_ON])
+    if Length(p) = 2 then
+    begin
+      a := Max(0, StrToInt(p[1]));
+      g_Corpses_SetMax(a)
+    end
+    else if Length(p) = 1 then
+    begin
+      e_LogWritefln('%s', [g_Corpses_GetMax()])
+    end
     else
-      g_Console_Add(_lc[I_MSG_LIVES_OFF]);
+    begin
+      e_LogWritefln('usage: %s <n>', [cmd])
+    end
   end
-  else if cmd = 'r_showspect' then
-  begin
-    if (Length(P) > 1) and
-       ((P[1] = '1') or (P[1] = '0')) then
-      gSpectHUD := (P[1][1] = '1');
-
-    if gSpectHUD then
-      g_Console_Add(_lc[I_MSG_SPECT_HUD_ON])
-    else
-      g_Console_Add(_lc[I_MSG_SPECT_HUD_OFF]);
-  end
-  else if cmd = 'r_showping' then
-  begin
-    if (Length(P) > 1) and
-       ((P[1] = '1') or (P[1] = '0')) then
-      gShowPing := (P[1][1] = '1');
-
-    if gShowPing then
-      g_Console_Add(_lc[I_MSG_PING_ON])
-    else
-      g_Console_Add(_lc[I_MSG_PING_OFF]);
-  end
-  else if (cmd = 'g_scorelimit') and not g_Game_IsClient then
+  else if cmd = 'g_scorelimit' then
   begin
     if Length(P) > 1 then
     begin
-      if StrToIntDef(P[1], gGameSettings.GoalLimit) = 0 then
-        gGameSettings.GoalLimit := 0
-      else
-        begin
-          b := 0;
+      gsGoalLimit := nclamp(StrToIntDef(P[1], gsGoalLimit), 0, $FFFF);
 
-          if gGameSettings.GameMode = GM_DM then
-            begin // DM
-              stat := g_Player_GetStats();
-              if stat <> nil then
-                for a := 0 to High(stat) do
-                  if stat[a].Frags > b then
-                    b := stat[a].Frags;
-            end
-          else // TDM/CTF
-            b := Max(gTeamStat[TEAM_RED].Goals, gTeamStat[TEAM_BLUE].Goals);
-
-          gGameSettings.GoalLimit := Max(StrToIntDef(P[1], gGameSettings.GoalLimit), b);
-        end;
-
-      if g_Game_IsNet then MH_SEND_GameSettings;
-    end;
-
-    g_Console_Add(Format(_lc[I_MSG_SCORE_LIMIT], [gGameSettings.GoalLimit]));
-  end
-  else if (cmd = 'g_timelimit') and not g_Game_IsClient then
-  begin
-    if (Length(P) > 1) and (StrToIntDef(P[1], -1) >= 0) then
-      gGameSettings.TimeLimit := StrToIntDef(P[1], -1);
-
-    g_Console_Add(Format(_lc[I_MSG_TIME_LIMIT],
-                         [gGameSettings.TimeLimit div 3600,
-                         (gGameSettings.TimeLimit div 60) mod 60,
-                          gGameSettings.TimeLimit mod 60]));
-    if g_Game_IsNet then MH_SEND_GameSettings;
-  end
-  else if (cmd = 'g_maxlives') and not g_Game_IsClient then
-  begin
-    if Length(P) > 1 then
-    begin
-      if StrToIntDef(P[1], gGameSettings.MaxLives) = 0 then
-        gGameSettings.MaxLives := 0
-      else
+      if g_Game_IsServer then
       begin
         b := 0;
-        stat := g_Player_GetStats();
-        if stat <> nil then
-          for a := 0 to High(stat) do
-            if stat[a].Lives > b then
-              b := stat[a].Lives;
-        gGameSettings.MaxLives :=
-          Max(StrToIntDef(P[1], gGameSettings.MaxLives), b);
+        if gGameSettings.GameMode = GM_DM then
+        begin // DM
+          stat := g_Player_GetStats();
+          if stat <> nil then
+            for a := 0 to High(stat) do
+              if stat[a].Frags > b then
+                b := stat[a].Frags;
+        end
+        else // TDM/CTF
+          b := Max(gTeamStat[TEAM_RED].Goals, gTeamStat[TEAM_BLUE].Goals);
+
+        // if someone has a higher score, set it to that instead
+        gsGoalLimit := max(gsGoalLimit, b);
+        gGameSettings.GoalLimit := gsGoalLimit;
+ 
+        if g_Game_IsNet then MH_SEND_GameSettings;
       end;
     end;
 
-    g_Console_Add(Format(_lc[I_MSG_LIVES],
-                         [gGameSettings.MaxLives]));
-    if g_Game_IsNet then MH_SEND_GameSettings;
+    g_Console_Add(Format(_lc[I_MSG_SCORE_LIMIT], [Integer(gsGoalLimit)]));
+  end
+  else if cmd = 'g_timelimit' then
+  begin
+    if Length(P) > 1 then
+    begin
+      gsTimeLimit := nclamp(StrToIntDef(P[1], gsTimeLimit), 0, $FFFF);
+      if g_Game_IsServer then
+      begin
+        gGameSettings.TimeLimit := gsTimeLimit;
+        if g_Game_IsNet then MH_SEND_GameSettings;
+      end;
+    end;
+    g_Console_Add(Format(_lc[I_MSG_TIME_LIMIT],
+                         [gsTimeLimit div 3600,
+                         (gsTimeLimit div 60) mod 60,
+                          gsTimeLimit mod 60]));
+  end
+  else if cmd = 'g_maxlives' then
+  begin
+    if Length(P) > 1 then
+    begin
+      gsMaxLives := nclamp(StrToIntDef(P[1], gsMaxLives), 0, $FFFF);
+      if g_Game_IsServer then
+      begin
+        gGameSettings.MaxLives := gsMaxLives;
+        if g_Game_IsNet then MH_SEND_GameSettings;
+      end;
+    end;
+
+    g_Console_Add(Format(_lc[I_MSG_LIVES], [Integer(gsMaxLives)]));
   end;
 end;
 
@@ -6194,14 +6139,7 @@ begin
 // Общие команды:
   cmd := LowerCase(P[0]);
   chstr := '';
-  if (cmd = 'quit') or
-     (cmd = 'exit') then
-  begin
-    g_Game_Free();
-    g_Game_Quit();
-    Exit;
-  end
-  else if cmd = 'pause' then
+  if cmd = 'pause' then
   begin
     if (g_ActiveWindow = nil) then
       g_Game_Pause(not gPauseMain);
@@ -6620,7 +6558,7 @@ begin
         g_Game_Free();
         with gGameSettings do
         begin
-          GameMode := g_Game_TextToMode(gcGameMode);
+          GameMode := g_Game_TextToMode(gsGameMode);
           if gSwitchGameMode <> GM_NONE then
             GameMode := gSwitchGameMode;
           if GameMode = GM_NONE then GameMode := GM_DM;
@@ -6674,7 +6612,7 @@ begin
         g_Game_Free();
         with gGameSettings do
         begin
-          GameMode := g_Game_TextToMode(gcGameMode);
+          GameMode := g_Game_TextToMode(gsGameMode);
           if gSwitchGameMode <> GM_NONE then GameMode := gSwitchGameMode;
           if GameMode = GM_NONE then GameMode := GM_DM;
           if GameMode = GM_SINGLE then GameMode := GM_COOP;
@@ -7248,6 +7186,61 @@ begin
         end;
       end;
     end
+  end;
+end;
+
+procedure SystemCommands(P: SSArray);
+var
+  cmd: string;
+begin
+  cmd := LowerCase(P[0]);
+  case cmd of
+    'exit', 'quit':
+      begin
+        g_Game_Free();
+        g_Game_Quit();
+      end;
+    'r_reset':
+      begin
+        sys_EnableVSync(gVSync);
+        gRC_Width := Max(1, gRC_Width);
+        gRC_Height := Max(1, gRC_Height);
+        gBPP := Max(1, gBPP);
+        if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized) = True then
+          e_LogWriteln('resolution changed')
+        else
+          e_LogWriteln('resolution not changed');
+      end;
+    'g_language':
+      begin
+        if Length(p) = 2 then
+        begin
+          gAskLanguage := true;
+          gLanguage := LANGUAGE_ENGLISH;
+          case LowerCase(p[1]) of
+            'english':
+               begin
+                 gAskLanguage := false;
+                 gLanguage := LANGUAGE_ENGLISH;
+               end;
+            'russian':
+               begin
+                 gAskLanguage := false;
+                 gLanguage := LANGUAGE_RUSSIAN;
+               end;
+            'ask':
+               begin
+                 gAskLanguage := true;
+                 gLanguage := LANGUAGE_ENGLISH;
+               end;
+          end;
+          g_Language_Set(gLanguage);
+        end
+        else
+        begin
+          e_LogWritefln('usage: %s <English|Russian|Ask>', [cmd]);
+        end
+      end;
   end;
 end;
 
@@ -7941,11 +7934,10 @@ begin
   // Options:
     s := Find_Param_Value(pars, '-opt');
     if (s = '') then
-      Opt := GAME_OPTION_ALLOWEXIT or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER
+      Opt := GAME_OPTION_ALLOWEXIT or GAME_OPTION_BOTVSPLAYER or
+        GAME_OPTION_BOTVSMONSTER or GAME_OPTION_DMKEYS
     else
       Opt := StrToIntDef(s, 0);
-    if Opt = 0 then
-      Opt := GAME_OPTION_ALLOWEXIT or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
 
   // Close after map:
     s := Find_Param_Value(pars, '--close');
@@ -8068,4 +8060,10 @@ begin
 
   conRegVar('r_showfps', @gShowFPS, 'draw fps counter', 'draw fps counter');
   conRegVar('r_showtime', @gShowTime, 'show game time', 'show game time');
+  conRegVar('r_showping', @gShowPing, 'show ping', 'show ping');
+  conRegVar('r_showscore', @gShowGoals, 'show score', 'show score');
+  conRegVar('r_showkillmsg', @gShowKillMsg, 'show kill log', 'show kill log');
+  conRegVar('r_showlives', @gShowLives, 'show lives', 'show lives');
+  conRegVar('r_showspect', @gSpectHUD, 'show spectator hud', 'show spectator hud');
+  conRegVar('r_showstat', @gShowStat, 'show stats', 'show stats');
 end.
