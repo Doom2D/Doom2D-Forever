@@ -929,7 +929,6 @@ begin
   AddCommand('g_maxlives', GameCVars);
   AddCommand('g_warmuptime', GameCVars);
   AddCommand('g_spawn_invul', GameCVars);
-  AddCommand('g_respawn_items', GameCVars);
   AddCommand('net_interp', GameCVars);
   AddCommand('net_forceplayerupdate', GameCVars);
   AddCommand('net_predictself', GameCVars);
@@ -1036,7 +1035,6 @@ begin
   WhitelistCommand('g_scorelimit');
   WhitelistCommand('g_timelimit');
   WhitelistCommand('g_dm_keys');
-  WhitelistCommand('g_respawn_items');
   WhitelistCommand('g_spawn_invul');
   WhitelistCommand('g_warmuptime');
 

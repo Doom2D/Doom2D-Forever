@@ -180,7 +180,6 @@ const
   GAME_OPTION_BOTVSPLAYER  = 32;
   GAME_OPTION_BOTVSMONSTER = 64;
   GAME_OPTION_DMKEYS       = 128;
-  GAME_OPTION_RESPAWNITEMS = 256;
 
   STATE_NONE        = 0;
   STATE_MENU        = 1;
@@ -5553,27 +5552,6 @@ begin
         g_Console_Add(_lc[I_MSG_DMKEYS_ON])
       else
         g_Console_Add(_lc[I_MSG_DMKEYS_OFF]);
-
-      if g_Game_IsNet then MH_SEND_GameSettings;
-    end;
-  end
-  else if (cmd = 'g_respawn_items') and not g_Game_IsClient then
-  begin
-    with gGameSettings do
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-      begin
-        if (P[1][1] = '1') then
-          Options := Options or GAME_OPTION_RESPAWNITEMS
-        else
-          Options := Options and (not GAME_OPTION_RESPAWNITEMS);
-      end;
-
-      if (LongBool(Options and GAME_OPTION_RESPAWNITEMS)) then
-        g_Console_Add(_lc[I_MSG_RESPAWNITEMS_ON])
-      else
-        g_Console_Add(_lc[I_MSG_RESPAWNITEMS_OFF]);
 
       if g_Game_IsNet then MH_SEND_GameSettings;
     end;

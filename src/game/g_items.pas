@@ -509,7 +509,6 @@ var
   Anim: TAnimation;
   m: Word;
   r, nxt: Boolean;
-  actualRespawnable: Boolean;
 begin
   if (ggItems = nil) then exit;
 
@@ -577,9 +576,10 @@ begin
               // Ќадо убрать с карты, если это не ключ, которым нужно поделитьс€ с другим игроком
               if r then
               begin
-                actualRespawnable := Respawnable
-                  and ((ITEM_RESPAWNTIME > 0) and LongBool(gGameSettings.Options and GAME_OPTION_RESPAWNITEMS));
-                if not actualRespawnable then g_Items_Remove(i) else g_Items_Pick(i);
+                if not (Respawnable and (ITEM_RESPAWNTIME > 0)) then
+                  g_Items_Remove(i)
+                else 
+                  g_Items_Pick(i);
                 if g_Game_IsNet then MH_SEND_ItemDestroy(False, i);
                 nxt := True;
                 break;

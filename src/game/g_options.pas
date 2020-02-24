@@ -74,7 +74,6 @@ var
   gcMonsters: Boolean;
   gcBotsVS: String;
   gcDeathmatchKeys: Boolean = True;
-  gcRespawnItems: Boolean = True;
   gcSpawnInvul: Integer = 0;
   gnMap: String;
   gnGameMode: String;
@@ -88,7 +87,6 @@ var
   gnMonsters: Boolean;
   gnBotsVS: String;
   gnDeathmatchKeys: Boolean = True;
-  gnRespawnItems: Boolean = True;
   gnSpawnInvul: Integer = 0;
   gsSDLSampleRate: Integer;
   gsSDLBufferSize: Integer;
@@ -294,7 +292,6 @@ begin
   gcMonsters := False;
   gcBotsVS := 'Everybody';
   gcDeathmatchKeys := True;
-  gcRespawnItems := True;
   gcSpawnInvul := 0;
 
   (* section GameplayNetwork *)
@@ -310,7 +307,6 @@ begin
   gnMonsters := False;
   gnBotsVS := 'Everybody';
   gnDeathmatchKeys := True;
-  gnRespawnItems := True;
   gnSpawnInvul := 0;
 
   (* section MasterServer *)
@@ -427,7 +423,6 @@ begin
   ReadBoolean(gcMonsters, 'Monsters');
   ReadString(gcBotsVS, 'BotsVS');
   ReadBoolean(gcDeathmatchKeys, 'DeathmatchKeys');
-  ReadBoolean(gcRespawnItems, 'RespawnItems');
   ReadInteger(gcSpawnInvul, 'SpawnInvul');
 
   with gGameSettings do
@@ -458,8 +453,6 @@ begin
       Options := Options or GAME_OPTION_BOTVSMONSTER;
     if gcDeathmatchKeys then
       Options := Options or GAME_OPTION_DMKEYS;
-    if gcRespawnItems then
-      Options := Options or GAME_OPTION_RESPAWNITEMS;
   end;
 
   section := 'GameplayNetwork';
@@ -475,7 +468,6 @@ begin
   ReadBoolean(gnMonsters, 'Monsters');
   ReadString(gnBotsVS, 'BotsVS');
   ReadBoolean(gnDeathmatchKeys, 'DeathmatchKeys');
-  ReadBoolean(gnRespawnItems, 'RespawnItems');
   ReadInteger(gnSpawnInvul, 'SpawnInvul');
 
   section := 'MasterServer';
@@ -548,7 +540,6 @@ begin
   config.WriteBool('GameplayCustom', 'Monsters', gcMonsters);
   config.WriteStr ('GameplayCustom', 'BotsVS', gcBotsVS);
   config.WriteBool('GameplayCustom', 'DeathmatchKeys', gcDeathmatchKeys);
-  config.WriteBool('GameplayCustom', 'RespawnItems', gcRespawnItems);
   config.WriteInt ('GameplayCustom', 'SpawnInvul', gcSpawnInvul);
 
   config.WriteStr ('GameplayNetwork', 'Map', gnMap);
@@ -563,7 +554,6 @@ begin
   config.WriteBool('GameplayNetwork', 'Monsters', gnMonsters);
   config.WriteStr ('GameplayNetwork', 'BotsVS', gnBotsVS);
   config.WriteBool('GameplayNetwork', 'DeathmatchKeys', gnDeathmatchKeys);
-  config.WriteBool('GameplayNetwork', 'RespawnItems', gnRespawnItems);
   config.WriteInt ('GameplayNetwork', 'SpawnInvul', gnSpawnInvul);
 
   config.WriteStr('MasterServer', 'IP', NetSlistIP);
@@ -612,7 +602,6 @@ begin
   config.WriteBool('GameplayCustom', 'Monsters', gcMonsters);
   config.WriteStr ('GameplayCustom', 'BotsVS', gcBotsVS);
   config.WriteBool('GameplayCustom', 'DeathmatchKeys', gcDeathmatchKeys);
-  config.WriteBool('GameplayCustom', 'RespawnItems', gcRespawnItems);
   config.WriteInt ('GameplayCustom', 'SpawnInvul', gcSpawnInvul);
 
   config.SaveFile(FileName);
@@ -639,7 +628,6 @@ begin
   config.WriteBool('GameplayNetwork', 'Monsters', gnMonsters);
   config.WriteStr ('GameplayNetwork', 'BotsVS', gnBotsVS);
   config.WriteBool('GameplayNetwork', 'DeathmatchKeys', gnDeathmatchKeys);
-  config.WriteBool('GameplayNetwork', 'RespawnItems', gnRespawnItems);
   config.WriteInt ('GameplayNetwork', 'SpawnInvul', gnSpawnInvul);
 
   config.SaveFile(FileName);

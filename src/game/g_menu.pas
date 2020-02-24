@@ -668,7 +668,6 @@ begin
     gcMaxLives := StrToIntDef(TGUIEdit(GetControl('edMaxLives')).Text, 0);
 
     gcTeamDamage := TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0;
-    gcRespawnItems := TGUISwitch(GetControl('swRespawnItems')).ItemIndex = 0;
     gcDeathmatchKeys := TGUISwitch(GetControl('swDeathmatchKeys')).ItemIndex = 0;
     gcAllowExit := TGUISwitch(GetControl('swEnableExits')).ItemIndex = 0;
     gcWeaponStay := TGUISwitch(GetControl('swWeaponStay')).ItemIndex = 0;
@@ -676,8 +675,6 @@ begin
     Options := 0;
     if gcTeamDamage then
       Options := Options or GAME_OPTION_TEAMDAMAGE;
-    if gcRespawnItems then
-      Options := Options or GAME_OPTION_RESPAWNITEMS;
     if gcDeathmatchKeys then
       Options := Options or GAME_OPTION_DMKEYS;
     if gcAllowExit then
@@ -738,7 +735,6 @@ begin
     NetPort := StrToIntDef(TGUIEdit(GetControl('edPort')).Text, 0);
 
     gnTeamDamage := TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0;
-    gnRespawnItems := TGUISwitch(GetControl('swRespawnItems')).ItemIndex = 0;
     gnDeathmatchKeys := TGUISwitch(GetControl('swDeathmatchKeys')).ItemIndex = 0;
     gnAllowExit := TGUISwitch(GetControl('swEnableExits')).ItemIndex = 0;
     gnWeaponStay := TGUISwitch(GetControl('swWeaponStay')).ItemIndex = 0;
@@ -746,8 +742,6 @@ begin
     Options := 0;
     if gnTeamDamage then
       Options := Options or GAME_OPTION_TEAMDAMAGE;
-    if gnRespawnItems then
-      Options := Options or GAME_OPTION_RESPAWNITEMS;
     if gnDeathmatchKeys then
       Options := Options or GAME_OPTION_DMKEYS;
     if gnAllowExit then
@@ -2245,16 +2239,6 @@ begin
       else
         ItemIndex := 1;
     end;
-    with AddSwitch(_lc[I_MENU_RESPAWN_ITEMS]) do
-    begin
-      Name := 'swRespawnItems';
-      AddItem(_lc[I_MENU_YES]);
-      AddItem(_lc[I_MENU_NO]);
-      if gnRespawnItems then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
-    end;
     with AddSwitch(_lc[I_MENU_DEATHMATCH_KEYS]) do
     begin
       Name := 'swDeathmatchKeys';
@@ -2461,16 +2445,6 @@ begin
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
       if gcTeamDamage then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
-    end;
-    with AddSwitch(_lc[I_MENU_RESPAWN_ITEMS]) do
-    begin
-      Name := 'swRespawnItems';
-      AddItem(_lc[I_MENU_YES]);
-      AddItem(_lc[I_MENU_NO]);
-      if gcRespawnItems then
         ItemIndex := 0
       else
         ItemIndex := 1;
