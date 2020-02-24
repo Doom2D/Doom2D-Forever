@@ -906,12 +906,13 @@ begin
   AddCommand('d_joy', DebugCommands);
   AddCommand('d_mem', DebugCommands);
 
-  AddCommand('p1_name', GameCVars);
-  AddCommand('p2_name', GameCVars);
-  AddCommand('p1_color', GameCVars);
-  AddCommand('p2_color', GameCVars);
-  AddCommand('p1_model', GameCVars);
-  AddCommand('p2_model', GameCVars);
+  AddCommand('p1_name', PlayerSettingsCVars);
+  AddCommand('p2_name', PlayerSettingsCVars);
+  AddCommand('p1_color', PlayerSettingsCVars);
+  AddCommand('p2_color', PlayerSettingsCVars);
+  AddCommand('p1_model', PlayerSettingsCVars);
+  AddCommand('p2_model', PlayerSettingsCVars);
+
   AddCommand('r_showscore', GameCVars);
   AddCommand('r_showlives', GameCVars);
   AddCommand('r_showstat', GameCVars);
@@ -931,14 +932,12 @@ begin
   AddCommand('g_maxlives', GameCVars);
   AddCommand('g_warmuptime', GameCVars);
   AddCommand('g_spawn_invul', GameCVars);
-  AddCommand('net_interp', GameCVars);
-  AddCommand('net_forceplayerupdate', GameCVars);
-  AddCommand('net_predictself', GameCVars);
-  AddCommand('sv_name', GameCVars);
-  AddCommand('sv_passwd', GameCVars);
-  AddCommand('sv_maxplrs', GameCVars);
-  AddCommand('sv_public', GameCVars);
   AddCommand('sv_intertime', GameCVars);
+
+  AddCommand('sv_name', NetServerCVars);
+  AddCommand('sv_passwd', NetServerCVars);
+  AddCommand('sv_maxplrs', NetServerCVars);
+  AddCommand('sv_public', NetServerCVars);
 
   AddCommand('quit', GameCommands);
   AddCommand('exit', GameCommands);

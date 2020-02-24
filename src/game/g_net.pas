@@ -18,7 +18,7 @@ unit g_net;
 interface
 
 uses
-  e_log, e_msg, ENet, Classes, md5, MAPDEF{$IFDEF USE_MINIUPNPC}, miniupnpc;{$ELSE};{$ENDIF}
+  e_log, e_msg, utils, ENet, Classes, md5, MAPDEF{$IFDEF USE_MINIUPNPC}, miniupnpc;{$ELSE};{$ENDIF}
 
 const
   NET_PROTOCOL_VER = 184;
@@ -248,6 +248,8 @@ function g_Net_IsNetworkAvailable (): Boolean;
 procedure g_Net_InitLowLevel ();
 procedure g_Net_DeinitLowLevel ();
 
+procedure NetServerCVars(P: SSArray);
+
 
 implementation
 
@@ -260,8 +262,7 @@ uses
   SysUtils,
   e_input, e_res,
   g_nethandler, g_netmsg, g_netmaster, g_player, g_window, g_console,
-  g_main, g_game, g_language, g_weapons, utils, ctypes, g_system,
-  g_map;
+  g_main, g_game, g_language, g_weapons, ctypes, g_system, g_map;
 
 const
   FILE_CHUNK_SIZE = 8192;
@@ -2297,12 +2298,12 @@ begin
 
     if I <> 0 then
     begin
-      conwritefln('forwarding port %d failed: error %d', [NetPort + 1, I]);
+      conwritefln('forwarding port %d failed: error %d', [NET_PING_PORT, I]);
       NetPongForwarded := False;
     end
     else
     begin
-      conwritefln('forwarded port %d successfully', [NetPort + 1]);
+      conwritefln('forwarded port %d successfully', [NET_PING_PORT]);
       NetPongForwarded := True;
     end;
   end;
@@ -2357,9 +2358,80 @@ begin
 end;
 {$ENDIF}
 
+procedure NetServerCVars(P: SSArray);
+var
+  cmd, s: string;
+  a, b: Integer;
+begin
+  cmd := LowerCase(P[0]);
+  case cmd of
+    'sv_name':
+      begin
+        if (Length(P) > 1) and (Length(P[1]) > 0) then
+        begin
+          NetServerName := P[1];
+          if Length(NetServerName) > 64 then
+            SetLength(NetServerName, 64);
+          g_Net_Slist_ServerRenamed();
+        end;
+        g_Console_Add(cmd + ' = "' + NetServerName + '"');
+      end;
+    'sv_passwd':
+      begin
+        if (Length(P) > 1) and (Length(P[1]) > 0) then
+        begin
+          NetPassword := P[1];
+          if Length(NetPassword) > 24 then
+            SetLength(NetPassword, 24);
+          g_Net_Slist_ServerRenamed();
+        end;
+        g_Console_Add(cmd + ' = "' + AnsiLowerCase(NetPassword) + '"');
+      end;
+    'sv_maxplrs':
+      begin
+        if (Length(P) > 1) then
+        begin
+          NetMaxClients := nclamp(StrToIntDef(P[1], NetMaxClients), 1, NET_MAXCLIENTS);
+          if g_Game_IsServer and g_Game_IsNet then
+          begin
+            b := 0;
+            for a := 0 to High(NetClients) do
+            begin
+              if NetClients[a].Used then
+              begin
+                Inc(b);
+                if b > NetMaxClients then
+                begin
+                  s := g_Player_Get(NetClients[a].Player).Name;
+                  enet_peer_disconnect(NetClients[a].Peer, NET_DISC_FULL);
+                  g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
+                  MH_SEND_GameEvent(NET_EV_PLAYER_KICK, 0, s);
+                end;
+              end;
+            end;
+            g_Net_Slist_ServerRenamed();
+          end;
+        end;
+        g_Console_Add(cmd + ' = ' + IntToStr(NetMaxClients));
+      end;
+    'sv_public':
+      begin
+        if (Length(P) > 1) then
+        begin
+          NetUseMaster := StrToIntDef(P[1], Byte(NetUseMaster)) > 0;
+          if NetUseMaster then g_Net_Slist_Public() else g_Net_Slist_Private();
+        end;
+        g_Console_Add(cmd + ' = ' + IntToStr(Byte(NetUseMaster)));
+      end;
+  end;
+end;
 
 initialization
   conRegVar('cl_downloadtimeout', @g_Net_DownloadTimeout, 0.0, 1000000.0, '', 'timeout in seconds, 0 to disable it');
+  conRegVar('cl_predictself', @NetPredictSelf, '', 'predict local player');
+  conRegVar('cl_forceplayerupdate', @NetForcePlayerUpdate, '', 'update net players on NET_MSG_PLRPOS');
+  conRegVar('cl_interp', @NetInterpLevel, '', 'net player interpolation steps');
+  conRegVar('sv_forwardports', @NetForwardPorts, '', 'forward server port using miniupnpc (requires server restart)');
   SetLength(NetClients, 0);
   g_Net_DownloadTimeout := 60;
   NetIn.Alloc(NET_BUFSIZE);
