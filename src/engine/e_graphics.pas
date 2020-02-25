@@ -62,7 +62,7 @@ type
 procedure e_InitGL();
 procedure e_SetViewPort(X, Y, Width, Height: Word);
 procedure e_ResizeWindow(Width, Height: Integer);
-procedure e_ResizeFramebuffer(Width, Height: Integer);
+function e_ResizeFramebuffer(Width, Height: Integer): Boolean;
 procedure e_BlitFramebuffer(WinWidth, WinHeight: Integer);
 
 procedure e_Draw(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
@@ -379,10 +379,8 @@ begin
  if Height <> nil then Height^ := e_Textures[ID].tx.Height;
 end;
 
-procedure e_ResizeFramebuffer(Width, Height: Integer);
+procedure DestroyFramebuffer;
 begin
-  if e_NoGraphics then Exit;
-
   glBindTexture(GL_TEXTURE_2D, 0);
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -404,11 +402,28 @@ begin
     glDeleteFramebuffers(1, @e_FBO);
     e_FBO := 0;
   end;
+end;
+
+function e_ResizeFramebuffer(Width, Height: Integer): Boolean;
+begin
+  Result := False;
+
+  if e_NoGraphics then Exit;
+
+  DestroyFramebuffer;
 
   e_FrameW := Width;
   e_FrameH := Height;
 
+  glGetError();
+
   glGenFramebuffers(1, @e_FBO);
+
+  if glGetError() <> GL_NO_ERROR then
+  begin
+    e_LogWriteln('GL: glGenFramebuffers failed');
+    Exit;
+  end;
 
   glGenTextures(1, @e_Frame);
   glBindTexture(GL_TEXTURE_2D, e_Frame);
@@ -416,13 +431,38 @@ begin
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-  glGenRenderbuffers(1, @e_RBO);
-  glBindRenderbuffer(GL_RENDERBUFFER, e_RBO);
-  glRenderbufferStorage(GL_RENDERBUFFER, {$IFNDEF USE_GLES1}GL_DEPTH24_STENCIL8{$ELSE}GL_DEPTH_COMPONENT16{$ENDIF}, Width, Height);
+  if glGetError() <> GL_NO_ERROR then
+  begin
+    e_LogWriteln('GL: can''t create FBO color buffer');
+    DestroyFramebuffer;
+    Exit;
+  end;
 
   glBindFramebuffer(GL_FRAMEBUFFER, e_FBO);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, e_Frame, 0);
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, {$IFNDEF USE_GLES1}GL_DEPTH_STENCIL_ATTACHMENT{$ELSE}GL_DEPTH_ATTACHMENT{$ENDIF}, GL_RENDERBUFFER, e_RBO);
+
+{$IFNDEF USE_GLES1}
+  glGenRenderbuffers(1, @e_RBO);
+  glBindRenderbuffer(GL_RENDERBUFFER, e_RBO);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, Width, Height);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, e_RBO);
+  if glCheckFramebufferStatus(GL_FRAMEBUFFER) <> GL_FRAMEBUFFER_COMPLETE then
+  begin
+    e_LogWriteln('GL: can''t construct framebuffer with depth+stencil attachment');
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 0);
+    glDeleteRenderbuffers(1, @e_RBO); e_RBO := 0;
+    Exit;
+  end;
+{$ENDIF}
+
+  if glCheckFramebufferStatus(GL_FRAMEBUFFER) <> GL_FRAMEBUFFER_COMPLETE then
+  begin
+    e_LogWriteln('GL: can''t construct framebuffer with color attachment');
+    DestroyFramebuffer;
+    Exit;
+  end;
+
+  Result := True;
 end;
 
 procedure e_ResizeWindow(Width, Height: Integer);

@@ -103,7 +103,13 @@ implementation
       // store real window size in gWinSize, downscale resolution now
       w := round(w / r_pixel_scale);
       h := round(h / r_pixel_scale);
-      e_ResizeFramebuffer(w, h);
+      if not e_ResizeFramebuffer(w, h) then
+      begin
+        e_LogWriteln('GL: could not create framebuffer, falling back to --no-fbo');
+        glRenderToFBO := False;
+        w := gWinSizeX;
+        h := gWinSizeY;
+      end;
     end;
     gScreenWidth := w;
     gScreenHeight := h;
