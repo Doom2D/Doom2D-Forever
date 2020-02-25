@@ -201,6 +201,7 @@ var
   //e_SavedTextures: array of TSavedTexture;
   e_FBO: GLuint = 0;
   e_RBO: GLuint = 0;
+  e_RBOSupported: Boolean = True;
   e_Frame: GLuint = 0;
   e_FrameW: Integer = -1;
   e_FrameH: Integer = -1;
@@ -440,27 +441,29 @@ begin
 
   glBindFramebuffer(GL_FRAMEBUFFER, e_FBO);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, e_Frame, 0);
-
-{$IFNDEF USE_GLES1}
-  glGenRenderbuffers(1, @e_RBO);
-  glBindRenderbuffer(GL_RENDERBUFFER, e_RBO);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, Width, Height);
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, e_RBO);
-  if glCheckFramebufferStatus(GL_FRAMEBUFFER) <> GL_FRAMEBUFFER_COMPLETE then
-  begin
-    e_LogWriteln('GL: can''t construct framebuffer with depth+stencil attachment');
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 0);
-    glDeleteRenderbuffers(1, @e_RBO); e_RBO := 0;
-    Exit;
-  end;
-{$ENDIF}
-
   if glCheckFramebufferStatus(GL_FRAMEBUFFER) <> GL_FRAMEBUFFER_COMPLETE then
   begin
     e_LogWriteln('GL: can''t construct framebuffer with color attachment');
     DestroyFramebuffer;
     Exit;
   end;
+
+{$IFNDEF USE_GLES1}
+  if e_RBOSupported then
+  begin
+    glGenRenderbuffers(1, @e_RBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, e_RBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, Width, Height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, e_RBO);
+    if glCheckFramebufferStatus(GL_FRAMEBUFFER) <> GL_FRAMEBUFFER_COMPLETE then
+    begin
+      e_LogWriteln('GL: can''t construct framebuffer with depth+stencil attachment, trying without');
+      e_RBOSupported := False;
+      Result := e_ResizeFramebuffer(Width, Height);
+      Exit;
+    end;
+  end;
+{$ENDIF}
 
   Result := True;
 end;
