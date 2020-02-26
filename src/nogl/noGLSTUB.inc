@@ -18,6 +18,11 @@ implementation
     result := ''
   end;
 
+  function glGetError: GLenum;
+  begin
+    result := GL_NO_ERROR
+  end;
+
   procedure glClearColor(red, green, blue, alpha: GLclampf);
   begin
   end;

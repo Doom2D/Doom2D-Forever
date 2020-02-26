@@ -46,6 +46,7 @@ implementation
     es_glDisable: procedure (cap: GLenum); cdecl;
     es_glIsEnabled: function (cap: GLenum): GLBoolean; cdecl;
     es_glGetString: function (name: GLenum): PChar; cdecl;
+    es_glGetError: function (): GLenum; cdecl;
     es_glClearColor: procedure (red, green, blue, alpha: GLclampf); cdecl;
     es_glClear: procedure (mask: GLbitfield); cdecl;
     es_glAlphaFunc: procedure (func: GLenum; ref: GLclampf); cdecl;
@@ -113,6 +114,11 @@ implementation
   function glGetString(name: GLenum): PChar;
   begin
     result := es_glGetString(name);
+  end;
+
+  function glGetError: GLenum;
+  begin
+    result := es_glGetError
   end;
 
   procedure glClearColor(red, green, blue, alpha: GLclampf);
@@ -492,6 +498,7 @@ implementation
     es_glDisable := SDL_GL_GetProcAddress('glDisable');
     es_glIsEnabled := SDL_GL_GetProcAddress('glIsEnabled');
     es_glGetString := SDL_GL_GetProcAddress('glGetString');
+    es_glGetError := SDL_GL_GetProcAddress('glGetError');
     es_glClearColor := SDL_GL_GetProcAddress('glClearColor');
     es_glClear := SDL_GL_GetProcAddress('glClear');
     es_glAlphaFunc := SDL_GL_GetProcAddress('glAlphaFunc');

@@ -42,6 +42,7 @@ interface
     TGLclampx   = GLclampx;
 
   const
+    GL_NO_ERROR = 0;
     GL_NEAREST = $2600;
     GL_DEPTH_TEST = $0B71;
     GL_SCISSOR_TEST = $0C11;
@@ -148,6 +149,7 @@ interface
   procedure glDisable(cap: GLenum);
   function  glIsEnabled(cap: GLenum): GLboolean;
   function  glGetString(name: GLenum): PChar;
+  function  glGetError: GLenum;
   procedure glClearColor(red, green, blue, alpha: GLclampf);
   procedure glClear(mask: GLbitfield);
   procedure glAlphaFunc(func: GLenum; ref: GLclampf);
