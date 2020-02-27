@@ -506,10 +506,13 @@ var
   i, j, k: Integer;
   ID: DWord;
   Anim: TAnimation;
-  m: Word;
+  m, ItemRespawnTime: Word;
   r, nxt: Boolean;
 begin
   if (ggItems = nil) then exit;
+
+  // respawn items in 15 seconds regardless of settings during warmup
+  ItemRespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.ItemRespawnTime, 15);
 
   for i := 0 to High(ggItems) do
   begin
@@ -575,7 +578,7 @@ begin
               // Ќадо убрать с карты, если это не ключ, которым нужно поделитьс€ с другим игроком
               if r then
               begin
-                if not (Respawnable and (gGameSettings.ItemRespawnTime > 0)) then
+                if not (Respawnable and (ItemRespawnTime > 0)) then
                   g_Items_Remove(i)
                 else 
                   g_Items_Pick(i);
@@ -691,7 +694,7 @@ begin
   if (ID < Length(ggItems)) then
   begin
     ggItems[ID].alive := false;
-    ggItems[ID].RespawnTime := gGameSettings.ItemRespawnTime * 36;
+    ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.ItemRespawnTime, 15) * 36;
   end;
 end;
 
