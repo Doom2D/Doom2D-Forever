@@ -1224,7 +1224,7 @@ begin
 
   if not Trigger.Enabled then exit;
   if (Trigger.TimeOut <> 0) and (actType <> ACTIVATE_CUSTOM) then exit;
-  if (gLMSRespawn = LMS_RESPAWN_WARMUP) then exit;
+  if (gLMSRespawn > LMS_RESPAWN_NONE) then exit;
 
   if (Trigger.exoCheck <> nil) then
   begin

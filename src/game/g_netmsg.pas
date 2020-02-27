@@ -495,7 +495,7 @@ begin
   else
   begin
     plr.Respawn(False);
-    if gLMSRespawn = LMS_RESPAWN_WARMUP then
+    if gLMSRespawn > LMS_RESPAWN_NONE then
       MH_SEND_GameEvent(NET_EV_LMS_WARMUP, gLMSRespawnTime - gTime, 'N', C.ID);
   end;
 end;

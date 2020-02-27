@@ -1994,7 +1994,7 @@ begin
   Result := False;
 
 // Монстр статичен пока идет warmup
-  if (gLMSRespawn = LMS_RESPAWN_WARMUP) then exit;
+  if (gLMSRespawn > LMS_RESPAWN_NONE) then exit;
 
 // Умирает, умер или воскрешается => урон делать некому:
   if (FState = MONSTATE_DEAD) or (FState = MONSTATE_DIE) or (FState = MONSTATE_REVIVE) then
@@ -2454,7 +2454,7 @@ begin
   fall := True;
 
 // Монстр статичен пока идет warmup
-  if (gLMSRespawn = LMS_RESPAWN_WARMUP) then exit;
+  if (gLMSRespawn > LMS_RESPAWN_NONE) then exit;
 
 // Рыбы "летают" только в воде:
   if FMonsterType = MONSTER_FISH then
@@ -3447,7 +3447,7 @@ begin
   fall := True;
 
 // Монстр статичен пока идет warmup
-  if (gLMSRespawn = LMS_RESPAWN_WARMUP) then exit;
+  if (gLMSRespawn > LMS_RESPAWN_NONE) then exit;
 
 // Рыбы "летают" только в воде:
   if FMonsterType = MONSTER_FISH then

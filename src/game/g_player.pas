@@ -2766,7 +2766,7 @@ begin
       e_CharFont_PrintEx(gMenuSmallFont, X-16-tw, Y+32, s, _RGB(255, 0, 0));
     end;
 
-    if gLMSRespawn = LMS_RESPAWN_WARMUP then
+    if gLMSRespawn > LMS_RESPAWN_NONE then
     begin
       s := _lc[I_GAME_WARMUP];
       e_CharFont_GetSize(gMenuFont, s, tw, th);
