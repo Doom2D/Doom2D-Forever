@@ -112,6 +112,7 @@ const
   NET_EV_PLAYER_TOUCH = 18;
   NET_EV_SECRET       = 19;
   NET_EV_INTER_READY  = 20;
+  NET_EV_LMS_NOSPAWN  = 21;
 
   NET_VE_STARTED      = 1;
   NET_VE_PASSED       = 2;
@@ -429,37 +430,26 @@ begin
     Name := PName;
     FClientID := C^.ID;
     // round in progress, don't spawn
-    if (gGameSettings.MaxLives > 0) and (gLMSRespawn = LMS_RESPAWN_NONE) then
-    begin
-      Lives := 0;
-      FNoRespawn := True;
-      Spectate;
-      FWantsInGame := True; // TODO: look into this later
-      C^.WaitForFirstSpawn := true;
-    end
-    else
-    begin
-      e_LogWritefln('*** client #%u (cid #%u) authenticated...', [C.ID, C.Player]);
-      //e_LogWritefln('spawning player with pid #%u...', [PID]);
-      //Respawn(gGameSettings.GameType = GT_SINGLE);
-      //k8: no, do not spawn a player yet, wait for "request full state" packet
-      Lives := 0;
-      Spectate;
-      FNoRespawn := True;
-      // `FWantsInGame` seems to mean "spawn the player on the next occasion".
-      // that is, if we'll set it to `true`, the player can be spawned after
-      // warmup time ran out, for example, regardless of the real player state.
-      // also, this seems to work only for the initial connection. further
-      // map changes could initiate resource downloading, but the player will
-      // be spawned immediately.
-      // the proper solution will require another player state, "ephemeral".
-      // the player should start any map in "ephemeral" state, and turned into
-      // real mobj only when they sent a special "i am ready" packet. this packet
-      // must be sent after receiving the full state, so the player will get a full
-      // map view before going into game.
-      FWantsInGame := false;
-      C^.WaitForFirstSpawn := true;
-    end;
+    e_LogWritefln('*** client #%u (cid #%u) authenticated...', [C.ID, C.Player]);
+    //e_LogWritefln('spawning player with pid #%u...', [PID]);
+    //Respawn(gGameSettings.GameType = GT_SINGLE);
+    //k8: no, do not spawn a player yet, wait for "request full state" packet
+    Lives := 0;
+    Spectate;
+    FNoRespawn := True;
+    // `FWantsInGame` seems to mean "spawn the player on the next occasion".
+    // that is, if we'll set it to `true`, the player can be spawned after
+    // warmup time ran out, for example, regardless of the real player state.
+    // also, this seems to work only for the initial connection. further
+    // map changes could initiate resource downloading, but the player will
+    // be spawned immediately.
+    // the proper solution will require another player state, "ephemeral".
+    // the player should start any map in "ephemeral" state, and turned into
+    // real mobj only when they sent a special "i am ready" packet. this packet
+    // must be sent after receiving the full state, so the player will get a full
+    // map view before going into game.
+    FWantsInGame := false;
+    C^.WaitForFirstSpawn := true;
   end;
 
   //if not C^.WaitForFirstSpawn then
@@ -496,7 +486,18 @@ begin
   C.WaitForFirstSpawn := false;
   plr.FNoRespawn := false;
   plr.FWantsInGame := true; // TODO: look into this later
-  plr.Respawn(False);
+
+  if (gGameSettings.MaxLives > 0) and (gLMSRespawn = LMS_RESPAWN_NONE) then
+  begin
+    plr.Spectate;
+    MH_SEND_GameEvent(NET_EV_LMS_NOSPAWN, 0, 'N', C.ID);
+  end
+  else
+  begin
+    plr.Respawn(False);
+    if gLMSRespawn = LMS_RESPAWN_WARMUP then
+      MH_SEND_GameEvent(NET_EV_LMS_WARMUP, gLMSRespawnTime - gTime, 'N', C.ID);
+  end;
 end;
 
 
@@ -593,7 +594,12 @@ begin
     NET_CHEAT_SPECTATE:
     begin
       if Pl.FSpectator then
-        Pl.Respawn(False)
+      begin
+        if (gGameSettings.MaxLives = 0) or (gLMSRespawn = LMS_RESPAWN_WARMUP) then
+          Pl.Respawn(False)
+        else
+          MH_SEND_GameEvent(NET_EV_LMS_NOSPAWN, Pl.UID);
+      end
       else
         Pl.Spectate;
     end;
@@ -814,12 +820,6 @@ begin
   end;
 
   if CreatePlayers and (ID >= 0) then NetClients[ID].State := NET_STATE_GAME;
-
-  if gLMSRespawn > LMS_RESPAWN_NONE then
-  begin
-    e_LogWritefln('*** client #%u (cid #%u) WARMUP', [ID, NetClients[ID].Player]);
-    MH_SEND_GameEvent(NET_EV_LMS_WARMUP, (gLMSRespawnTime - gTime) div 1000, 'N', ID);
-  end;
 
   g_Net_Flush();
 end;
@@ -1768,6 +1768,8 @@ begin
 
   gTime := EvTime;
 
+  e_LogWritefln('EVENT %d %d', [EvType, EvNum]);
+
   if (g_Res_received_map_start <> 0) then
   begin
     if (g_Res_received_map_start < 0) then exit;
@@ -1777,6 +1779,7 @@ begin
       NET_EV_MAPEND: goodCmd := true;
       NET_EV_PLAYER_KICK: goodCmd := true;
       NET_EV_PLAYER_BAN: goodCmd := true;
+      NET_EV_LMS_WARMUP: goodCmd := true;
     end;
     if not goodCmd then exit;
   end;
@@ -1813,6 +1816,8 @@ begin
 
     NET_EV_MAPEND:
     begin
+      gLMSRespawn := LMS_RESPAWN_NONE;
+      gLMSRespawnTime := 0;
       if (g_Res_received_map_start <> 0) then
       begin
         g_Res_received_map_start := -1;
@@ -1857,7 +1862,18 @@ begin
       end;
 
     NET_EV_LMS_WARMUP:
-      g_Console_Add(Format(_lc[I_MSG_WARMUP_START], [EvNum]), True);
+    begin
+      if EvNum > 0 then
+      begin
+        gLMSRespawn := LMS_RESPAWN_WARMUP;
+        gLMSRespawnTime := gTime + EvNum;
+        g_Console_Add(Format(_lc[I_MSG_WARMUP_START], [EvNum div 1000]), True);
+      end
+      else if gPlayer1 = nil then
+      begin
+        g_Console_Add(_lc[I_PLAYER_SPECT4], True);
+      end;
+    end;
 
     NET_EV_LMS_SURVIVOR:
       g_Console_Add('*** ' + _lc[I_MESSAGE_LMS_SURVIVOR] + ' ***', True);
@@ -1943,6 +1959,7 @@ begin
     NET_EV_LMS_START:
     begin
       g_Player_RemoveAllCorpses;
+      gLMSRespawn := LMS_RESPAWN_NONE;
       g_Game_Message(_lc[I_MESSAGE_LMS_START], 144);
     end;
 
@@ -1962,6 +1979,9 @@ begin
 
     NET_EV_LMS_DRAW:
       g_Game_Message(_lc[I_GAME_WIN_DRAW], 144);
+
+    NET_EV_LMS_NOSPAWN:
+      g_Console_Add(_lc[I_PLAYER_SPECT4], True);
 
     NET_EV_KILLCOMBO:
       g_Game_Announce_KillCombo(EvNum);
@@ -2328,21 +2348,27 @@ begin
     begin
       if Pl = gPlayer1 then
       begin
-        gLMSPID1 := UID;
+        gSpectLatchPID1 := UID;
         gPlayer1 := nil;
       end;
       if Pl = gPlayer2 then
       begin
-        gLMSPID2 := UID;
+        gSpectLatchPID2 := UID;
         gPlayer2 := nil;
       end;
     end
     else
     begin
-      if (gPlayer1 = nil) and (gLMSPID1 > 0) then
-        gPlayer1 := g_Player_Get(gLMSPID1);
-      if (gPlayer2 = nil) and (gLMSPID2 > 0) then
-        gPlayer2 := g_Player_Get(gLMSPID2);
+      if (gPlayer1 = nil) and (gSpectLatchPID1 > 0) and (UID = gSpectLatchPID1) then
+      begin
+        gPlayer1 := Pl;
+        gSpectLatchPID1 := 0;
+      end;
+      if (gPlayer2 = nil) and (gSpectLatchPID2 > 0) and (UID = gSpectLatchPID2) then
+      begin
+        gPlayer2 := Pl;
+        gSpectLatchPID2 := 0;
+      end;
     end;
     FGhost := M.ReadByte() <> 0;
     FPhysics := M.ReadByte() <> 0;

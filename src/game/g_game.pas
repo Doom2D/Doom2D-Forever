@@ -3769,10 +3769,6 @@ begin
               else gPlayers[i].DrawIndicator(gPlayers[i].GetColor);
     end;
 
-  if p.FSpectator then
-    e_TextureFontPrintEx(p.GameX + PLAYER_RECT_CX - 4,
-                         p.GameY + PLAYER_RECT_CY - 4,
-                         'X', gStdFont, 255, 255, 255, 1, True);
   {
   for a := 0 to High(gCollideMap) do
     for b := 0 to High(gCollideMap[a]) do
@@ -4260,10 +4256,7 @@ begin
     if g_Game_IsClient then
     begin
       if NetPlrUID1 > -1 then
-      begin
         MC_SEND_CheatRequest(NET_CHEAT_SPECTATE);
-        gPlayer1 := g_Player_Get(NetPlrUID1);
-      end;
       Exit;
     end;
 
@@ -4337,8 +4330,12 @@ begin
       g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [Pl.Name]), True);
       g_Player_Remove(Pl.UID);
       g_Net_Slist_ServerPlayerLeaves();
-    end else
+    end
+    else
+    begin
+      gSpectLatchPID2 := Pl.UID;
       gPlayer2 := nil;
+    end;
     Exit;
   end;
   Pl := gPlayer1;
@@ -4353,6 +4350,7 @@ begin
       g_Net_Slist_ServerPlayerLeaves();
     end else
     begin
+      gSpectLatchPID1 := Pl.UID;
       gPlayer1 := nil;
       MC_SEND_CheatRequest(NET_CHEAT_SPECTATE);
     end;
@@ -4700,6 +4698,11 @@ begin
   // create (or update) map/resource databases
   g_Res_CreateDatabases(true);
 
+  gLMSRespawn := LMS_RESPAWN_NONE;
+  gLMSRespawnTime := 0;
+  gSpectLatchPID1 := 0;
+  gSpectLatchPID2 := 0;
+
 // Стартуем клиент
   if not g_Net_Connect(Addr, Port) then
   begin
@@ -4838,9 +4841,6 @@ begin
     NetState := NET_STATE_NONE;
     Exit;
   end;
-
-  gLMSRespawn := LMS_RESPAWN_NONE;
-  gLMSRespawnTime := 0;
 
   g_Player_Init();
   NetState := NET_STATE_GAME;
@@ -4992,8 +4992,8 @@ begin
   NetTimeToUpdate := 1;
   NetTimeToReliable := 0;
   NetTimeToMaster := NetMasterRate;
-  gLMSRespawn := LMS_RESPAWN_NONE;
-  gLMSRespawnTime := 0;
+  gSpectLatchPID1 := 0;
+  gSpectLatchPID2 := 0;
   gMissionFailed := False;
   gNextMap := '';
 
@@ -5011,15 +5011,21 @@ begin
 
   g_Game_SpectateCenterView();
 
-  if (gGameSettings.MaxLives > 0) and (gGameSettings.WarmupTime > 0) then
+  if g_Game_IsServer then
   begin
-    gLMSRespawn := LMS_RESPAWN_WARMUP;
-    gLMSRespawnTime := gTime + gGameSettings.WarmupTime*1000;
-    gLMSSoftSpawn := True;
-    if NetMode = NET_SERVER then
-      MH_SEND_GameEvent(NET_EV_LMS_WARMUP, (gLMSRespawnTime - gTime) div 1000)
+    if (gGameSettings.MaxLives > 0) and (gGameSettings.WarmupTime > 0) then
+    begin
+      gLMSRespawn := LMS_RESPAWN_WARMUP;
+      gLMSRespawnTime := gTime + gGameSettings.WarmupTime*1000;
+      gLMSSoftSpawn := True;
+      if g_Game_IsNet then
+        MH_SEND_GameEvent(NET_EV_LMS_WARMUP, gLMSRespawnTime - gTime);
+    end
     else
-      g_Console_Add(Format(_lc[I_MSG_WARMUP_START], [(gLMSRespawnTime - gTime) div 1000]), True);
+    begin
+      gLMSRespawn := LMS_RESPAWN_NONE;
+      gLMSRespawnTime := 0;
+    end;
   end;
 
   if NetMode = NET_SERVER then
@@ -5168,13 +5174,6 @@ end;
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
 var
   i, n, nb, nr: Integer;
-
-  function monRespawn (mon: TMonster): Boolean;
-  begin
-    result := false; // don't stop
-    if not mon.FNoRespawn then mon.Respawn();
-  end;
-
 begin
   if not g_Game_IsServer then Exit;
   if gLMSRespawn = LMS_RESPAWN_NONE then Exit;
@@ -5235,16 +5234,13 @@ begin
       gPlayers[i].Frags := 0;
       gPlayers[i].RecallState;
     end;
-    if (gPlayer1 = nil) and (gLMSPID1 > 0) then
-      gPlayer1 := g_Player_Get(gLMSPID1);
-    if (gPlayer2 = nil) and (gLMSPID2 > 0) then
-      gPlayer2 := g_Player_Get(gLMSPID2);
+    if (gPlayer1 = nil) and (gSpectLatchPID1 > 0) then
+      gPlayer1 := g_Player_Get(gSpectLatchPID1);
+    if (gPlayer2 = nil) and (gSpectLatchPID2 > 0) then
+      gPlayer2 := g_Player_Get(gSpectLatchPID2);
   end;
 
   g_Items_RestartRound();
-
-
-  g_Mons_ForEach(monRespawn);
 
   gLMSSoftSpawn := False;
 end;

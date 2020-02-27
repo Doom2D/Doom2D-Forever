@@ -80,6 +80,7 @@ type
     I_GAME_SECRETS,
     I_GAME_MONSTERS_TOTAL,
     I_GAME_SECRETS_TOTAL,
+    I_GAME_WARMUP,
 
     I_GAME_CHEAT_GODMODE,
     I_GAME_CHEAT_WEAPONS,
@@ -764,6 +765,8 @@ const
                                        'Всего монстров убито:'),
     ('GAME SECRETS TOTAL',             'Total secrets found:',
                                        'Всего секретов найдено:'),
+    ('GAME WARMUP',                    'Warmup',
+                                       'Подготовка'),
 
     ('GAME CHEAT GODMODE',             'MACLEOD',
                                        'ГОРЕЦ'),

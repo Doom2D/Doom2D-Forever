@@ -1993,6 +1993,9 @@ var
 begin
   Result := False;
 
+// Монстр статичен пока идет warmup
+  if (gLMSRespawn = LMS_RESPAWN_WARMUP) then exit;
+
 // Умирает, умер или воскрешается => урон делать некому:
   if (FState = MONSTATE_DEAD) or (FState = MONSTATE_DIE) or (FState = MONSTATE_REVIVE) then
     Exit;
@@ -2449,6 +2452,9 @@ label
   _end;
 begin
   fall := True;
+
+// Монстр статичен пока идет warmup
+  if (gLMSRespawn = LMS_RESPAWN_WARMUP) then exit;
 
 // Рыбы "летают" только в воде:
   if FMonsterType = MONSTER_FISH then
@@ -3439,6 +3445,10 @@ begin
   sx := 0; // SHUT UP COMPILER
   sy := 0;
   fall := True;
+
+// Монстр статичен пока идет warmup
+  if (gLMSRespawn = LMS_RESPAWN_WARMUP) then exit;
+
 // Рыбы "летают" только в воде:
   if FMonsterType = MONSTER_FISH then
     if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_WATER or PANEL_ACID1 or PANEL_ACID2) then

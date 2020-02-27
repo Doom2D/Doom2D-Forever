@@ -560,8 +560,8 @@ var
   gPlayerIndicator: Integer = 1;
   gPlayerIndicatorStyle: Integer = 0;
   gNumBots: Word = 0;
-  gLMSPID1: Word = 0;
-  gLMSPID2: Word = 0;
+  gSpectLatchPID1: Word = 0;
+  gSpectLatchPID2: Word = 0;
   MAX_RUNVEL: Integer = 8;
   VEL_JUMP: Integer = 10;
   SHELL_TIMEOUT: Cardinal = 60000;
@@ -2766,7 +2766,14 @@ begin
       e_CharFont_PrintEx(gMenuSmallFont, X-16-tw, Y+32, s, _RGB(255, 0, 0));
     end;
 
-    if gShowLives and (gGameSettings.MaxLives > 0) then
+    if gLMSRespawn = LMS_RESPAWN_WARMUP then
+    begin
+      s := _lc[I_GAME_WARMUP];
+      e_CharFont_GetSize(gMenuFont, s, tw, th);
+      s := s + ': ' + IntToStr((gLMSRespawnTime - gTime) div 1000);
+      e_CharFont_PrintEx(gMenuFont, X-64-tw, SY-32, s, _RGB(0, 255, 0));
+    end
+    else if gShowLives and (gGameSettings.MaxLives > 0) then
     begin
       s := IntToStr(Lives);
       e_CharFont_GetSize(gMenuFont, s, tw, th);
@@ -3660,7 +3667,7 @@ begin
     if srv and (OldLR = LMS_RESPAWN_NONE) and (gLMSRespawn > LMS_RESPAWN_NONE) then
     begin
       if NetMode = NET_SERVER then
-        MH_SEND_GameEvent(NET_EV_LMS_WARMUP, (gLMSRespawnTime - gTime) div 1000)
+        MH_SEND_GameEvent(NET_EV_LMS_WARMUP, gLMSRespawnTime - gTime)
       else
         g_Console_Add(Format(_lc[I_MSG_WARMUP_START], [(gLMSRespawnTime - gTime) div 1000]), True);
     end;
@@ -4706,9 +4713,9 @@ begin
   FSpectatePlayer := -1;
   FSpawned := True;
 
-  if (gPlayer1 = nil) and (gLMSPID1 = FUID) then
+  if (gPlayer1 = nil) and (gSpectLatchPID1 = FUID) then
     gPlayer1 := self;
-  if (gPlayer2 = nil) and (gLMSPID2 = FUID) then
+  if (gPlayer2 = nil) and (gSpectLatchPID2 = FUID) then
     gPlayer2 := self;
 
   if g_Game_IsNet then
@@ -4745,12 +4752,12 @@ begin
   begin
     if Self = gPlayer1 then
     begin
-      gLMSPID1 := FUID;
+      gSpectLatchPID1 := FUID;
       gPlayer1 := nil;
-    end;
-    if Self = gPlayer2 then
+    end
+    else if Self = gPlayer2 then
     begin
-      gLMSPID2 := FUID;
+      gSpectLatchPID2 := FUID;
       gPlayer2 := nil;
     end;
   end;
