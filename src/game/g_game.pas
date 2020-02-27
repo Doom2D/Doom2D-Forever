@@ -5203,7 +5203,7 @@ begin
   begin
     // wait a second until the fuckers finally decide to join
     gLMSRespawn := LMS_RESPAWN_WARMUP;
-    gLMSRespawnTime := gTime + 1000;
+    gLMSRespawnTime := gTime + gGameSettings.WarmupTime;
     gLMSSoftSpawn := NoMapRestart;
     Exit;
   end;
