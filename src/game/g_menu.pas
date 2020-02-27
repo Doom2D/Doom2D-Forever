@@ -683,7 +683,10 @@ begin
       else gsGameFlags := gsGameFlags or GAME_OPTION_BOTVSPLAYER;
     end;
 
-    gGameSettings.ItemRespawnTime := gsItemRespawnTime; // TODO: get this crap out of here
+    // TODO: get this crap out of here
+    gGameSettings.ItemRespawnTime := gsItemRespawnTime;
+    gGameSettings.WarmupTime := gsWarmupTime;
+    gGameSettings.SpawnInvul := gsSpawnInvul;
   end;
 end;
 

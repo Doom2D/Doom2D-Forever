@@ -4394,6 +4394,11 @@ begin
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_BOTVSMONSTER;
   gSwitchGameMode := GM_SINGLE;
 
+  gLMSRespawn := LMS_RESPAWN_NONE;
+  gLMSRespawnTime := 0;
+  gSpectLatchPID1 := 0;
+  gSpectLatchPID2 := 0;
+
   g_Game_ExecuteEvent('ongamestart');
 
 // Установка размеров окон игроков:
@@ -4472,6 +4477,11 @@ begin
   gCoopTotalSecrets := 0;
   gAimLine := False;
   gShowMap := False;
+
+  gLMSRespawn := LMS_RESPAWN_NONE;
+  gLMSRespawnTime := 0;
+  gSpectLatchPID1 := 0;
+  gSpectLatchPID2 := 0;
 
   g_Game_ExecuteEvent('ongamestart');
 
@@ -4571,6 +4581,11 @@ begin
   gCoopTotalSecrets := 0;
   gAimLine := False;
   gShowMap := False;
+
+  gLMSRespawn := LMS_RESPAWN_NONE;
+  gLMSRespawnTime := 0;
+  gSpectLatchPID1 := 0;
+  gSpectLatchPID2 := 0;
 
   g_Game_ExecuteEvent('ongamestart');
 
