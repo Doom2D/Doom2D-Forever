@@ -461,12 +461,12 @@ begin
     if (t <> HIT_FLAME) or (m.FFireTime = 0) or (vx <> 0) or (vy <> 0) then
       Result := m.Damage(d, vx, vy, SpawnerUID, t)
     else
-      Result := True;
+      Result := (gLMSRespawn <> LMS_RESPAWN_WARMUP); // don't hit monsters when it's warmup time
     if t = HIT_FLAME then
       m.CatchFire(SpawnerUID);
   end
   else
-    Result := True;
+    Result := (gLMSRespawn <> LMS_RESPAWN_WARMUP); // don't hit monsters when it's warmup time
 end;
 
 
