@@ -1768,8 +1768,6 @@ begin
 
   gTime := EvTime;
 
-  e_LogWritefln('EVENT %d %d', [EvType, EvNum]);
-
   if (g_Res_received_map_start <> 0) then
   begin
     if (g_Res_received_map_start < 0) then exit;
