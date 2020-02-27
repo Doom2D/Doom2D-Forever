@@ -2053,6 +2053,7 @@ begin
   WriteLn(f, 'sv_passwd ', QuoteStr(NetPassword));
   WriteLn(f, 'sv_maxplrs ', NetMaxClients);
   WriteLn(f, 'sv_port ', NetPort);
+  WriteLn(f, 'sv_public ', IfThen(NetUseMaster, 1, 0));
 
   // game settings
   WriteLn(f, 'g_max_particles ', g_GFX_GetMax());
