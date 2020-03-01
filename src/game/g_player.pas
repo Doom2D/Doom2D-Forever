@@ -5988,7 +5988,7 @@ begin
   end;
 
   SavedState.Used := True;
-  SavedStates[i] := SavedState;
+  SavedStates[FSavedStateNum] := SavedState;
 end;
 
 procedure TPlayer.RecallState();
