@@ -130,7 +130,7 @@ type
     MaxAmmo:    Array [A_BULLETS..A_HIGH] of Word;
     Weapon:     Array [WP_FIRST..WP_LAST] of Boolean;
     Rulez:      Set of R_ITEM_BACKPACK..R_BERSERK;
-    WaitRecall: Boolean;
+    Used:       Boolean;
   end;
 
   TKeyState = record
@@ -176,7 +176,7 @@ type
     FFirePainTime:   Integer;
     FFireAttacker:   Word;
 
-    FSavedState: TPlayerSavedState;
+    FSavedStateNum:   Integer;
 
     FModel:     TPlayerModel;
     FPunchAnim: TAnimation;
@@ -703,6 +703,7 @@ var
   CurrentShell: Integer = 0;
   BotNames: Array of String;
   BotList: Array of TBotProfile;
+  SavedStates: Array of TPlayerSavedState;
 
 
 function Lerp(X, Y, Factor: Integer): Integer;
@@ -1340,6 +1341,7 @@ begin
   end;
 
   config.Free();
+  SetLength(SavedStates, 0);
 end;
 
 procedure g_Player_Free();
@@ -1363,6 +1365,7 @@ begin
 
   gPlayer1 := nil;
   gPlayer2 := nil;
+  SetLength(SavedStates, 0);
 end;
 
 procedure g_Player_UpdateAll();
@@ -2164,7 +2167,7 @@ begin
   FClientID := -1;
   FPing := 0;
   FLoss := 0;
-  FSavedState.WaitRecall := False;
+  FSavedStateNum := -1;
   FShellTimer := -1;
   FFireTime := 0;
   FFirePainTime := 0;
@@ -5954,45 +5957,69 @@ end;
 procedure TPlayer.RememberState();
 var
   i: Integer;
+  SavedState: TPlayerSavedState;
 begin
-  FSavedState.Health := FHealth;
-  FSavedState.Armor := FArmor;
-  FSavedState.Air := FAir;
-  FSavedState.JetFuel := FJetFuel;
-  FSavedState.CurrWeap := FCurrWeap;
-  FSavedState.NextWeap := FNextWeap;
-  FSavedState.NextWeapDelay := FNextWeapDelay;
+  SavedState.Health := FHealth;
+  SavedState.Armor := FArmor;
+  SavedState.Air := FAir;
+  SavedState.JetFuel := FJetFuel;
+  SavedState.CurrWeap := FCurrWeap;
+  SavedState.NextWeap := FNextWeap;
+  SavedState.NextWeapDelay := FNextWeapDelay;
+  for i := Low(FWeapon) to High(FWeapon) do
+    SavedState.Weapon[i] := FWeapon[i];
+  for i := Low(FAmmo) to High(FAmmo) do
+    SavedState.Ammo[i] := FAmmo[i];
+  for i := Low(FMaxAmmo) to High(FMaxAmmo) do
+    SavedState.MaxAmmo[i] := FMaxAmmo[i];
+  SavedState.Rulez := FRulez - [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE];
 
-  for i := 0 to 3 do
-    FSavedState.Ammo[i] := FAmmo[i];
-  for i := 0 to 3 do
-    FSavedState.MaxAmmo[i] := FMaxAmmo[i];
+  if FSavedStateNum < 0 then
+  begin
+    for i := Low(SavedStates) to High(SavedStates) do
+      if not SavedStates[i].Used then
+      begin
+        FSavedStateNum := i;
+        break;
+      end;
+    if FSavedStateNum < 0 then
+    begin
+      SetLength(SavedStates, Length(SavedStates) + 1);
+      FSavedStateNum := High(SavedStates);
+    end;
+  end;
 
-  FSavedState.Rulez := FRulez;
-  FSavedState.WaitRecall := True;
+
+  SavedState.Used := True;
+  SavedStates[i] := SavedState;
 end;
 
 procedure TPlayer.RecallState();
 var
   i: Integer;
+  SavedState: TPlayerSavedState;
 begin
-  if not FSavedState.WaitRecall then Exit;
+  if(FSavedStateNum < 0) or (FSavedStateNum > High(SavedStates)) then
+    Exit;
 
-  FHealth := FSavedState.Health;
-  FArmor := FSavedState.Armor;
-  FAir := FSavedState.Air;
-  FJetFuel := FSavedState.JetFuel;
-  FCurrWeap := FSavedState.CurrWeap;
-  FNextWeap := FSavedState.NextWeap;
-  FNextWeapDelay := FSavedState.NextWeapDelay;
+  SavedState := SavedStates[FSavedStateNum];
+  SavedStates[FSavedStateNum].Used := False;
+  FSavedStateNum := -1;
 
-  for i := 0 to 3 do
-    FAmmo[i] := FSavedState.Ammo[i];
-  for i := 0 to 3 do
-    FMaxAmmo[i] := FSavedState.MaxAmmo[i];
-
-  FRulez := FSavedState.Rulez;
-  FSavedState.WaitRecall := False;
+  FHealth := SavedState.Health;
+  FArmor := SavedState.Armor;
+  FAir := SavedState.Air;
+  FJetFuel := SavedState.JetFuel;
+  FCurrWeap := SavedState.CurrWeap;
+  FNextWeap := SavedState.NextWeap;
+  FNextWeapDelay := SavedState.NextWeapDelay;
+  for i := Low(FWeapon) to High(FWeapon) do
+    FWeapon[i] := SavedState.Weapon[i];
+  for i := Low(FAmmo) to High(FAmmo) do
+    FAmmo[i] := SavedState.Ammo[i];
+  for i := Low(FMaxAmmo) to High(FMaxAmmo) do
+    FMaxAmmo[i] := SavedState.MaxAmmo[i];
+  FRulez := SavedState.Rulez;
 
   if gGameSettings.GameType = GT_SERVER then
     MH_SEND_PlayerStats(FUID);

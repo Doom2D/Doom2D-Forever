@@ -1349,17 +1349,13 @@ begin
         begin
           Enabled := False;
           Result := True;
-          if gLMSRespawn = LMS_RESPAWN_NONE then
+          p := g_Player_Get(ActivateUID);
+          p.GetSecret();
+          Inc(gCoopSecretsFound);
+          if g_Game_IsNet then
           begin
-            p := g_Player_Get(ActivateUID);
-            p.GetSecret();
-            Inc(gCoopSecretsFound);
-            if g_Game_IsNet then
-            begin
-              MH_SEND_GameStats();
-              if p.FClientID >= 0 then
-                MH_SEND_GameEvent(NET_EV_SECRET, p.UID, '');
-            end;
+            MH_SEND_GameStats();
+            MH_SEND_GameEvent(NET_EV_SECRET, p.UID, '');
           end;
         end;
 
@@ -2599,8 +2595,9 @@ var
 begin
   if (tgMonsList = nil) then tgMonsList := TSimpleMonsterList.Create();
 
-  if gTriggers = nil then
-    Exit;
+  if gTriggers = nil then Exit;
+  if gLMSRespawn > LMS_RESPAWN_NONE then Exit; // don't update triggers at all
+
   SetLength(Affected, 0);
 
   for a := 0 to High(gTriggers) do

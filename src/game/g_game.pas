@@ -5218,7 +5218,7 @@ begin
         else if gPlayers[i].Team = TEAM_BLUE then Inc(nb)
       end;
 
-  if (n < 2) or ((gGameSettings.GameMode = GM_TDM) and ((nr = 0) or (nb = 0))) then
+  if (n < 1) or ((gGameSettings.GameMode = GM_TDM) and ((nr = 0) or (nb = 0))) then
   begin
     // wait a second until the fuckers finally decide to join
     gLMSRespawn := LMS_RESPAWN_WARMUP;
@@ -5515,6 +5515,12 @@ begin
       if g_Game_IsServer then
       begin
         gGameSettings.WarmupTime := gsWarmupTime;
+        // extend warmup if it's already going
+        if gLMSRespawn = LMS_RESPAWN_WARMUP then
+        begin
+          gLMSRespawnTime := gTime + gsWarmupTime * 1000;
+          if g_Game_IsNet then MH_SEND_GameEvent(NET_EV_LMS_WARMUP, gLMSRespawnTime - gTime);
+        end;
         if g_Game_IsNet then MH_SEND_GameSettings;
       end;
     end;
