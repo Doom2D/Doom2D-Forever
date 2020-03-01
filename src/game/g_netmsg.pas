@@ -595,7 +595,7 @@ begin
     begin
       if Pl.FSpectator then
       begin
-        if (gGameSettings.MaxLives = 0) or (gLMSRespawn = LMS_RESPAWN_WARMUP) then
+        if (gGameSettings.MaxLives = 0) or (gLMSRespawn > LMS_RESPAWN_NONE) then
           Pl.Respawn(False)
         else
           MH_SEND_GameEvent(NET_EV_LMS_NOSPAWN, Pl.UID);
@@ -2344,12 +2344,12 @@ begin
     FSpectator := M.ReadByte() <> 0;
     if FSpectator then
     begin
-      if PID = NetPlrUID1 then
+      if UID = NetPlrUID1 then
       begin
         gSpectLatchPID1 := UID;
         gPlayer1 := nil;
       end;
-      if PID = NetPlrUID2 then
+      if UID = NetPlrUID2 then
       begin
         gSpectLatchPID2 := UID;
         gPlayer2 := nil;

@@ -4251,6 +4251,10 @@ begin
   if ((not gGameOn) and (gState <> STATE_INTERCUSTOM))
   or (not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT])) then
     Exit;
+
+  if (gGameSettings.MaxLives > 0) and (gLMSRespawn = LMS_RESPAWN_NONE) then
+    Exit;
+
   if gPlayer1 = nil then
   begin
     if g_Game_IsClient then
@@ -5220,6 +5224,8 @@ begin
     gLMSRespawn := LMS_RESPAWN_WARMUP;
     gLMSRespawnTime := gTime + gGameSettings.WarmupTime*1000;
     gLMSSoftSpawn := NoMapRestart;
+    if g_Game_IsNet then
+      MH_SEND_GameEvent(NET_EV_LMS_WARMUP, gLMSRespawnTime - gTime);
     Exit;
   end;
 
