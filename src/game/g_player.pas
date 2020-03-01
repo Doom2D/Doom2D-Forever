@@ -5974,6 +5974,7 @@ begin
     SavedState.MaxAmmo[i] := FMaxAmmo[i];
   SavedState.Rulez := FRulez - [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE];
 
+  FSavedStateNum := -1;
   for i := Low(SavedStates) to High(SavedStates) do
     if not SavedStates[i].Used then
     begin
