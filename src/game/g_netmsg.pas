@@ -2344,12 +2344,12 @@ begin
     FSpectator := M.ReadByte() <> 0;
     if FSpectator then
     begin
-      if Pl = gPlayer1 then
+      if PID = NetPlrUID1 then
       begin
         gSpectLatchPID1 := UID;
         gPlayer1 := nil;
       end;
-      if Pl = gPlayer2 then
+      if PID = NetPlrUID2 then
       begin
         gSpectLatchPID2 := UID;
         gPlayer2 := nil;
