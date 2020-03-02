@@ -124,6 +124,7 @@ type
     function Damage(aDamage: Word; VelX, VelY: Integer; SpawnerUID: Word; t: Byte): Boolean;
     function Heal(Value: Word): Boolean;
     procedure BFGHit();
+    procedure PreUpdate();
     procedure Update();
     procedure ClientUpdate();
     procedure ClientAttack(wx, wy, atx, aty: Integer);
@@ -232,6 +233,7 @@ procedure g_Monsters_Init ();
 procedure g_Monsters_Free (clearGrid: Boolean=true);
 function g_Monsters_Create (MonsterType: Byte; X, Y: Integer; Direction: TDirection;
   AdjCoord: Boolean = False; ForcedUID: Integer = -1): TMonster;
+procedure g_Monsters_PreUpdate ();
 procedure g_Monsters_Update ();
 procedure g_Monsters_Draw ();
 procedure g_Monsters_DrawHealth ();
@@ -1377,6 +1379,8 @@ begin
     FStartDirection := Direction;
     FStartX := GameX;
     FStartY := GameY;
+    FObj.oldX := FObj.X;
+    FObj.oldY := FObj.Y;
   end;
 
   mon.positionChanged();
@@ -1410,6 +1414,16 @@ begin
       end;
     end;
   end;
+end;
+
+procedure g_Monsters_PreUpdate();
+var
+  a: Integer;
+begin
+  if gMonsters = nil then Exit;
+  for a := 0 to High(gMonsters) do
+    if (gMonsters[a] <> nil) and (not gMonsters[a].FRemoved) then
+      gMonsters[a].PreUpdate();
 end;
 
 procedure g_Monsters_Update();
@@ -2209,11 +2223,13 @@ end;
 procedure TMonster.Draw();
 var
   m: TMirrorType;
-  dx, dy, c: Integer;
+  dx, dy, c, fX, fY: Integer;
   o: TObj;
 begin
   //e_CharFont_Print(gMenuSmallFont, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y, 'TYPE: '+IntToStr(FMonsterType));
   //e_CharFont_Print(gMenuSmallFont, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y+16, 'STATE: '+IntToStr(FState));
+
+  FObj.lerp(gLerpFactor, fX, fY);
 
 // Если колдун стреляет, то рисуем огонь:
   if FMonsterType = MONSTER_VILE then
@@ -2274,7 +2290,7 @@ begin
       end;
 
   // Рисуем:
-    FAnim[FCurAnim, FDirection].Draw(Obj.X+dx, Obj.Y+dy, m);
+    FAnim[FCurAnim, FDirection].Draw(fX+dx, fY+dy, m);
   end;
 
   if g_debug_Frames then
@@ -2406,6 +2422,8 @@ begin
 
   FObj.X := X - FObj.Rect.X;
   FObj.Y := Y - FObj.Rect.Y;
+  FObj.oldX := FObj.X; // don't interpolate after teleport
+  FObj.oldY := FObj.Y;
   positionChanged();
 
   if dir = 1 then
@@ -2437,6 +2455,12 @@ begin
 
   if g_Game_IsServer and g_Game_IsNet then MH_SEND_MonsterPos(FUID);
   Result := True;
+end;
+
+procedure TMonster.PreUpdate();
+begin
+  FObj.oldX := FObj.X;
+  FObj.oldY := FObj.Y;
 end;
 
 procedure TMonster.Update();

@@ -52,6 +52,7 @@ const
 
 var
   Time, Time_Delta, Time_Old: Int64;
+  Frame: Int64;
   flag: Boolean;
   wNeedTimeReset: Boolean = false;
   wMinimized: Boolean = false;
@@ -124,6 +125,7 @@ begin
 
   if wNeedTimeReset then
   begin
+    Frame := 0;
     Time_Delta := 28;
     wNeedTimeReset := false;
   end;
@@ -167,18 +169,23 @@ begin
 
   // Время предыдущего обновления
   if flag then
-  begin
     Time_Old := Time - (Time_Delta mod 28);
+
+  if (Time - Frame > 4) then
+  begin
     if (not wMinimized) then
     begin
+      if gPause or not gLerpActors then
+        gLerpFactor := 1.0
+      else
+        gLerpFactor := nmin(1.0, (Time - Time_Old) / 28.0);
       Draw;
       sys_Repaint
-    end
+    end;
+    Frame := Time
   end
   else
-  begin
-    sys_Delay(1) // release time slice, so we won't eat 100% CPU
-  end;
+    sys_Delay(1);
 
   e_SoundUpdate();
 end;

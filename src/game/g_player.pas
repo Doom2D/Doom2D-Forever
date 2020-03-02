@@ -186,6 +186,7 @@ type
     FActionChanged:  Boolean;
     FAngle:     SmallInt;
     FFireAngle: SmallInt;
+    FIncCamOld:      Integer;
     FIncCam:         Integer;
     FShellTimer:     Integer;
     FShellType:      Byte;
@@ -325,6 +326,7 @@ type
     procedure   DrawIndicator(Color: TRGB);
     procedure   DrawBubble();
     procedure   DrawGUI();
+    procedure   PreUpdate();
     procedure   Update(); virtual;
     procedure   RememberState();
     procedure   RecallState();
@@ -379,6 +381,7 @@ type
     property    GameAccelX: Integer read FObj.Accel.X write FObj.Accel.X;
     property    GameAccelY: Integer read FObj.Accel.Y write FObj.Accel.Y;
     property    IncCam: Integer read FIncCam write FIncCam;
+    property    IncCamOld: Integer read FIncCamOld write FIncCamOld;
     property    UID: Word read FUID write FUID;
     property    JustTeleported: Boolean read FJustTeleported write FJustTeleported;
     property    NetTime: LongWord read FNetTime write FNetTime;
@@ -581,6 +584,7 @@ function  g_Player_Create(ModelName: String; Color: TRGB; Team: Byte; Bot: Boole
 function  g_Player_CreateFromState (st: TStream): Word;
 procedure g_Player_Remove(UID: Word);
 procedure g_Player_ResetTeams();
+procedure g_Player_PreUpdate();
 procedure g_Player_UpdateAll();
 procedure g_Player_DrawAll();
 procedure g_Player_DrawDebug(p: TPlayer);
@@ -1368,6 +1372,16 @@ begin
   SetLength(SavedStates, 0);
 end;
 
+procedure g_Player_PreUpdate();
+var
+  i: Integer;
+begin
+  if gPlayers = nil then Exit;
+  for i := 0 to High(gPlayers) do
+    if gPlayers[i] <> nil then
+      gPlayers[i].PreUpdate();
+end;
+
 procedure g_Player_UpdateAll();
 var
   i: Integer;
@@ -1713,6 +1727,9 @@ begin
       if gGibs[i].alive then
         with gGibs[i] do
         begin
+          Obj.oldX := Obj.X;
+          Obj.oldY := Obj.Y;
+
           vel := Obj.Vel;
           mr := g_Obj_Move(@Obj, True, False, True);
           positionChanged(); // this updates spatial accelerators
@@ -1763,6 +1780,9 @@ begin
       if gShells[i].alive then
         with gShells[i] do
         begin
+          Obj.oldX := Obj.X;
+          Obj.oldY := Obj.Y;
+
           vel := Obj.Vel;
           mr := g_Obj_Move(@Obj, True, False, True);
           positionChanged(); // this updates spatial accelerators
@@ -1851,7 +1871,7 @@ procedure TShell.positionChanged (); inline; begin end;
 
 procedure g_Player_DrawCorpses();
 var
-  i: Integer;
+  i, fX, fY: Integer;
   a: TDFPoint;
 begin
   if gGibs <> nil then
@@ -1862,13 +1882,15 @@ begin
           if not g_Obj_Collide(sX, sY, sWidth, sHeight, @Obj) then
             Continue;
 
+          Obj.lerp(gLerpFactor, fX, fY);
+
           a.X := Obj.Rect.X+(Obj.Rect.Width div 2);
           a.y := Obj.Rect.Y+(Obj.Rect.Height div 2);
 
-          e_DrawAdv(ID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, TMirrorType.None);
+          e_DrawAdv(ID, fX, fY, 0, True, False, RAngle, @a, TMirrorType.None);
 
           e_Colors := Color;
-          e_DrawAdv(MaskID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, TMirrorType.None);
+          e_DrawAdv(MaskID, fX, fY, 0, True, False, RAngle, @a, TMirrorType.None);
           e_Colors.R := 255;
           e_Colors.G := 255;
           e_Colors.B := 255;
@@ -1882,7 +1904,7 @@ end;
 
 procedure g_Player_DrawShells();
 var
-  i: Integer;
+  i, fX, fY: Integer;
   a: TDFPoint;
 begin
   if gShells <> nil then
@@ -1893,10 +1915,12 @@ begin
           if not g_Obj_Collide(sX, sY, sWidth, sHeight, @Obj) then
             Continue;
 
+          Obj.lerp(gLerpFactor, fX, fY);
+
           a.X := CX;
           a.Y := CY;
 
-          e_DrawAdv(SpriteID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, TMirrorType.None);
+          e_DrawAdv(SpriteID, fX, fY, 0, True, False, RAngle, @a, TMirrorType.None);
         end;
 end;
 
@@ -2338,7 +2362,7 @@ end;
 
 procedure TPlayer.DrawIndicator(Color: TRGB);
 var
-  indX, indY: Integer;
+  indX, indY, fX, fY: Integer;
   indW, indH: Word;
   indA: Single;
   a: TDFPoint;
@@ -2347,6 +2371,8 @@ var
   c: TRGB;
 begin
   if FAlive then
+  begin
+    FObj.lerp(gLerpFactor, fX, fY);
     case gPlayerIndicatorStyle of
       0:
         begin
@@ -2359,29 +2385,29 @@ begin
             if (FObj.X + FObj.Rect.X) < 0 then
             begin
               indA := 90;
-              indX := FObj.X + FObj.Rect.X + FObj.Rect.Width;
-              indY := FObj.Y + FObj.Rect.Y + (FObj.Rect.Height - indW) div 2;
+              indX := fX + FObj.Rect.X + FObj.Rect.Width;
+              indY := fY + FObj.Rect.Y + (FObj.Rect.Height - indW) div 2;
             end
 
             else if (FObj.X + FObj.Rect.X + FObj.Rect.Width) > Max(gMapInfo.Width, gPlayerScreenSize.X) then
             begin
               indA := 270;
-              indX := FObj.X + FObj.Rect.X - indH;
-              indY := FObj.Y + FObj.Rect.Y + (FObj.Rect.Height - indW) div 2;
+              indX := fX + FObj.Rect.X - indH;
+              indY := fY + FObj.Rect.Y + (FObj.Rect.Height - indW) div 2;
             end
 
-            else if (fObj.Y - indH) < 0 then
+            else if (FObj.Y - indH) < 0 then
             begin
               indA := 180;
-              indX := FObj.X + FObj.Rect.X + (FObj.Rect.Width - indW) div 2;
-              indY := FObj.Y + FObj.Rect.Y + FObj.Rect.Height;
+              indX := fX + FObj.Rect.X + (FObj.Rect.Width - indW) div 2;
+              indY := fY + FObj.Rect.Y + FObj.Rect.Height;
             end
 
             else
             begin
               indA := 0;
-              indX := FObj.X + FObj.Rect.X + (FObj.Rect.Width - indW) div 2;
-              indY := FObj.Y - indH;
+              indX := fX + FObj.Rect.X + (FObj.Rect.Width - indW) div 2;
+              indY := fY - indH;
             end;
 
             indX := EnsureRange(indX, 0, Max(gMapInfo.Width, gPlayerScreenSize.X) - indW);
@@ -2397,23 +2423,25 @@ begin
       1:
         begin
           e_TextureFontGetSize(gStdFont, nW, nH);
-          indX := FObj.X + FObj.Rect.X + (FObj.Rect.Width - Length(FName) * nW) div 2;
-          indY := FObj.Y - nH;
+          indX := fX + FObj.Rect.X + (FObj.Rect.Width - Length(FName) * nW) div 2;
+          indY := fY - nH;
           e_TextureFontPrintEx(indX, indY, FName, gStdFont, Color.R, Color.G, Color.B, 1.0, True);
         end;
     end;
+  end;
 end;
 
 procedure TPlayer.DrawBubble();
 var
-  bubX, bubY: Integer;
+  bubX, bubY, fX, fY: Integer;
   ID: LongWord;
   Rb, Gb, Bb,
   Rw, Gw, Bw: SmallInt;
   Dot: Byte;
 begin
-  bubX := FObj.X+FObj.Rect.X + IfThen(FDirection = TDirection.D_LEFT, -4, 18);
-  bubY := FObj.Y+FObj.Rect.Y - 18;
+  FObj.lerp(gLerpFactor, fX, fY);
+  bubX := fX+FObj.Rect.X + IfThen(FDirection = TDirection.D_LEFT, -4, 18);
+  bubY := fY+FObj.Rect.Y - 18;
   Rb := 64;
   Gb := 64;
   Bb := 64;
@@ -2423,8 +2451,8 @@ begin
   case gChatBubble of
     1: // simple textual non-bubble
     begin
-      bubX := FObj.X+FObj.Rect.X - 11;
-      bubY := FObj.Y+FObj.Rect.Y - 17;
+      bubX := fX+FObj.Rect.X - 11;
+      bubY := fY+FObj.Rect.Y - 17;
       e_TextureFontPrint(bubX, bubY, '[...]', gStdFont);
       Exit;
     end;
@@ -2491,7 +2519,10 @@ var
   w, h: Word;
   dr: Boolean;
   Mirror: TMirrorType;
+  fX, fY: Integer;
 begin
+  FObj.lerp(gLerpFactor, fX, fY);
+
   if FAlive then
   begin
     if Direction = TDirection.D_RIGHT then
@@ -2501,8 +2532,8 @@ begin
 
     if FPunchAnim <> nil then
     begin
-      FPunchAnim.Draw(FObj.X+IfThen(Direction = TDirection.D_LEFT, 15-FObj.Rect.X, FObj.Rect.X-15),
-                      FObj.Y+FObj.Rect.Y-11, Mirror);
+      FPunchAnim.Draw(fX+IfThen(Direction = TDirection.D_LEFT, 15-FObj.Rect.X, FObj.Rect.X-15),
+                      fY+FObj.Rect.Y-11, Mirror);
       if FPunchAnim.played then
       begin
         FPunchAnim.Free;
@@ -2515,11 +2546,11 @@ begin
       begin
         e_GetTextureSize(ID, @w, @h);
         if FDirection = TDirection.D_LEFT then
-          e_Draw(ID, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-(w div 2)+4,
-                     FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-(h div 2)-7+FObj.slopeUpLeft, 0, True, False)
+          e_Draw(ID, fX+FObj.Rect.X+(FObj.Rect.Width div 2)-(w div 2)+4,
+                     fY+FObj.Rect.Y+(FObj.Rect.Height div 2)-(h div 2)-7+FObj.slopeUpLeft, 0, True, False)
         else
-          e_Draw(ID, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-(w div 2)-2,
-                     FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-(h div 2)-7+FObj.slopeUpLeft, 0, True, False);
+          e_Draw(ID, fX+FObj.Rect.X+(FObj.Rect.Width div 2)-(w div 2)-2,
+                     fY+FObj.Rect.Y+(FObj.Rect.Height div 2)-(h div 2)-7+FObj.slopeUpLeft, 0, True, False);
       end;
 
     if FMegaRulez[MR_INVIS] > gTime then
@@ -2532,15 +2563,15 @@ begin
         else
           dr := True;
         if dr then
-          FModel.Draw(FObj.X, FObj.Y+FObj.slopeUpLeft, 200)
+          FModel.Draw(fX, fY+FObj.slopeUpLeft, 200)
         else
-          FModel.Draw(FObj.X, FObj.Y+FObj.slopeUpLeft);
+          FModel.Draw(fX, fY+FObj.slopeUpLeft);
       end
       else
-        FModel.Draw(FObj.X, FObj.Y+FObj.slopeUpLeft, 254);
+        FModel.Draw(fX, fY+FObj.slopeUpLeft, 254);
     end
     else
-      FModel.Draw(FObj.X, FObj.Y+FObj.slopeUpLeft);
+      FModel.Draw(fX, fY+FObj.slopeUpLeft);
   end;
 
   if g_debug_Frames then
@@ -4396,6 +4427,7 @@ begin
   ReleaseKeys();
 
   FDamageBuffer := 0;
+  FIncCamOld := 0;
   FIncCam := 0;
   FBFGFireCounter := -1;
   FShellTimer := -1;
@@ -4564,6 +4596,7 @@ var
   Anim: TAnimation;
   ID: DWORD;
 begin
+  FIncCamOld := 0;
   FIncCam := 0;
   FBFGFireCounter := -1;
   FShellTimer := -1;
@@ -4665,6 +4698,8 @@ begin
 // Установка координат и сброс всех параметров:
   FObj.X := RespawnPoint.X-PLAYER_RECT.X;
   FObj.Y := RespawnPoint.Y-PLAYER_RECT.Y;
+  FObj.oldX := FObj.X; // don't interpolate after respawn
+  FObj.oldY := FObj.Y;
   FObj.Vel.X := 0;
   FObj.Vel.Y := 0;
   FObj.Accel.X := 0;
@@ -4922,6 +4957,8 @@ begin
 
   FObj.X := X-PLAYER_RECT.X;
   FObj.Y := Y-PLAYER_RECT.Y;
+  FObj.oldX := FObj.X; // don't interpolate after respawn
+  FObj.oldY := FObj.Y;
   if FAlive and FGhost then
   begin
     FXTo := FObj.X;
@@ -5004,6 +5041,13 @@ begin
       end;
 end;
 
+procedure TPlayer.PreUpdate();
+begin
+  FIncCamOld := FIncCam;
+  FObj.oldX := FObj.X;
+  FObj.oldY := FObj.Y;
+end;
+
 procedure TPlayer.Update();
 var
   b: Byte;
@@ -5016,11 +5060,8 @@ begin
   NetServer := g_Game_IsNet and g_Game_IsServer;
   AnyServer := g_Game_IsServer;
 
-  if g_Game_IsClient and (NetInterpLevel > 0) then
-    DoLerp(NetInterpLevel + 1)
-  else
-    if FGhost then
-      DoLerp(4);
+  if FGhost then
+    DoLerp(4);
 
   if NetServer then
     if FClientID >= 0 then
@@ -6586,17 +6627,21 @@ begin
 end;
 
 procedure TCorpse.Draw();
+var
+  fX, fY: Integer;
 begin
   if FState = CORPSE_STATE_REMOVEME then
     Exit;
 
+  FObj.lerp(gLerpFactor, fX, fY);
+
   if FAnimation <> nil then
-    FAnimation.Draw(FObj.X, FObj.Y, TMirrorType.None);
+    FAnimation.Draw(fX, fY, TMirrorType.None);
 
   if FAnimationMask <> nil then
   begin
     e_Colors := FColor;
-    FAnimationMask.Draw(FObj.X, FObj.Y, TMirrorType.None);
+    FAnimationMask.Draw(fX, fY, TMirrorType.None);
     e_Colors.R := 255;
     e_Colors.G := 255;
     e_Colors.B := 255;
@@ -6609,6 +6654,9 @@ var
 begin
   if FState = CORPSE_STATE_REMOVEME then
     Exit;
+
+  FObj.oldX := FObj.X;
+  FObj.oldY := FObj.Y;
 
   if gTime mod (GAME_TICK*2) <> 0 then
   begin

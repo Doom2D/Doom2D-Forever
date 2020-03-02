@@ -31,6 +31,9 @@ type
     // this is purely visual change, it won't affect anything else
     slopeUpLeft: Integer; // left to go
     slopeFramesLeft: Integer; // frames left to go
+    // for frame interpolation
+    oldX, oldY: Integer;
+    procedure lerp(t: Single; out fX, fY: Integer);
   end;
 
 const
@@ -82,6 +85,11 @@ uses
 const
   SmoothSlopeFrames = 4;
 
+procedure TObj.lerp(t: Single; out fX, fY: Integer);
+begin
+  fX := nlerp(oldX, X, t);
+  fY := nlerp(oldY, Y, t);
+end;
 
 function g_Obj_StayOnStep(Obj: PObj): Boolean; inline;
 begin

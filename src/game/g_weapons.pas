@@ -72,6 +72,7 @@ procedure g_Weapon_dshotgun(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Boo
 
 function g_Weapon_Explode(X, Y: Integer; rad: Integer; SpawnerUID: Word): Boolean;
 procedure g_Weapon_BFG9000(X, Y: Integer; SpawnerUID: Word);
+procedure g_Weapon_PreUpdate();
 procedure g_Weapon_Update();
 procedure g_Weapon_Draw();
 function g_Weapon_Danger(UID: Word; X, Y: Integer; Width, Height: Word; Time: Byte): Boolean;
@@ -737,6 +738,8 @@ begin
     end;
   end;
 
+  Shots[find_id].Obj.oldX := X;
+  Shots[find_id].Obj.oldY := Y;
   Shots[find_id].Obj.X := X;
   Shots[find_id].Obj.Y := Y;
   Shots[find_id].Obj.Vel.X := XV;
@@ -762,6 +765,8 @@ begin
   if a = 0 then
     a := 1;
 
+  Shots[i].Obj.oldX := x;
+  Shots[i].Obj.oldY := y;
   Shots[i].Obj.X := x;
   Shots[i].Obj.Y := y;
   Shots[i].Obj.Vel.X := (xd*s) div a;
@@ -2093,6 +2098,19 @@ begin
   end;
 end;
 
+procedure g_Weapon_PreUpdate();
+var
+  i: Integer;
+begin
+  if Shots = nil then Exit;
+  for i := 0 to High(Shots) do
+    if Shots[i].ShotType <> 0 then
+    begin
+      Shots[i].Obj.oldX := Shots[i].Obj.X;
+      Shots[i].Obj.oldY := Shots[i].Obj.Y;
+    end;
+end;
+
 procedure g_Weapon_Update();
 var
   i, a, h, cx, cy, oldvx, oldvy, tf: Integer;
@@ -2501,7 +2519,7 @@ end;
 
 procedure g_Weapon_Draw();
 var
-  i: Integer;
+  i, fX, fY: Integer;
   a: SmallInt;
   p: TDFPoint;
 begin
@@ -2520,6 +2538,7 @@ begin
         else
           a := 0;
 
+        Obj.lerp(gLerpFactor, fX, fY);
         p.X := Obj.Rect.Width div 2;
         p.Y := Obj.Rect.Height div 2;
 
@@ -2528,16 +2547,16 @@ begin
             if (Shots[i].ShotType = WEAPON_BARON_FIRE) or
                (Shots[i].ShotType = WEAPON_MANCUB_FIRE) or
                (Shots[i].ShotType = WEAPON_SKEL_FIRE) then
-              Animation.DrawEx(Obj.X, Obj.Y, TMirrorType.None, p, a)
+              Animation.DrawEx(fX, fY, TMirrorType.None, p, a)
             else
-              Animation.Draw(Obj.X, Obj.Y, TMirrorType.None);
+              Animation.Draw(fX, fY, TMirrorType.None);
           end
         else if TextureID <> 0 then
           begin
             if (Shots[i].ShotType = WEAPON_ROCKETLAUNCHER) then
-              e_DrawAdv(TextureID, Obj.X, Obj.Y, 0, True, False, a, @p, TMirrorType.None)
+              e_DrawAdv(TextureID, fX, fY, 0, True, False, a, @p, TMirrorType.None)
             else if (Shots[i].ShotType <> WEAPON_FLAMETHROWER) then
-              e_Draw(TextureID, Obj.X, Obj.Y, 0, True, False);
+              e_Draw(TextureID, fX, fY, 0, True, False);
           end;
 
           if g_debug_Frames then

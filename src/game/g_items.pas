@@ -54,6 +54,7 @@ procedure g_Items_Free();
 function g_Items_Create(X, Y: Integer; ItemType: Byte;
            Fall, Respawnable: Boolean; AdjCoord: Boolean = False; ForcedID: Integer = -1): DWORD;
 procedure g_Items_SetDrop (ID: DWORD);
+procedure g_Items_PreUpdate();
 procedure g_Items_Update();
 procedure g_Items_Draw();
 procedure g_Items_DrawDrop();
@@ -462,6 +463,8 @@ begin
   it.dropped := false;
 
   g_Obj_Init(@it.Obj);
+  it.Obj.oldX := X;
+  it.Obj.oldY := Y;
   it.Obj.X := X;
   it.Obj.Y := Y;
   it.Obj.Rect.Width := ITEMSIZE[ItemType][0];
@@ -500,6 +503,18 @@ begin
   result := find_id;
 end;
 
+procedure g_Items_PreUpdate ();
+var
+  i: Integer;
+begin
+  if (ggItems = nil) then Exit;
+  for i := 0 to High(ggItems) do
+    if (ggItems[i].ItemType <> ITEM_NONE) and ggItems[i].slotIsUsed then
+    begin
+      ggItems[i].Obj.oldX := ggItems[i].Obj.X;
+      ggItems[i].Obj.oldY := ggItems[i].Obj.Y;
+    end;
+end;
 
 procedure g_Items_Update ();
 var
@@ -607,6 +622,8 @@ begin
             Anim.Free();
           end;
 
+          Obj.oldX := InitX;
+          Obj.oldY := InitY;
           Obj.X := InitX;
           Obj.Y := InitY;
           Obj.Vel.X := 0;
@@ -630,7 +647,7 @@ end;
 
 procedure itemsDrawInternal (dropflag: Boolean);
 var
-  i: Integer;
+  i, fX, fY: Integer;
   it: PItem;
 begin
   if (ggItems = nil) then exit;
@@ -646,13 +663,14 @@ begin
     begin
       if g_Collide(Obj.X, Obj.Y, Obj.Rect.Width, Obj.Rect.Height, sX, sY, sWidth, sHeight) then
       begin
+        Obj.lerp(gLerpFactor, fX, fY);
         if (Animation = nil) then
         begin
-          e_Draw(gItemsTexturesID[ItemType], Obj.X, Obj.Y, 0, true, false);
+          e_Draw(gItemsTexturesID[ItemType], fX, fY, 0, true, false);
         end
         else
         begin
-          Animation.Draw(Obj.X, Obj.Y, TMirrorType.None);
+          Animation.Draw(fX, fY, TMirrorType.None);
         end;
 
         if g_debug_Frames then
@@ -693,6 +711,8 @@ procedure g_Items_Pick (ID: DWORD);
 begin
   if (ID < Length(ggItems)) then
   begin
+    ggItems[ID].Obj.oldX := ggItems[ID].Obj.X;
+    ggItems[ID].Obj.oldY := ggItems[ID].Obj.Y;
     ggItems[ID].alive := false;
     ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.ItemRespawnTime, 15) * 36;
   end;
@@ -714,6 +734,8 @@ begin
   it := @ggItems[ID];
   if (it.arrIdx <> Integer(ID)) then raise Exception.Create('g_Items_Remove: arrIdx desync');
 
+  it.Obj.oldX := it.Obj.X;
+  it.Obj.oldY := it.Obj.Y;
   trig := it.SpawnTrigger;
 
   releaseItem(ID);
@@ -817,6 +839,8 @@ begin
   for i := 0 to High(ggItems) do
   begin
     it := @ggItems[i];
+    it.Obj.oldX := it.Obj.X;
+    it.Obj.oldY := it.Obj.Y;
     if not it.slotIsUsed then continue;
     if it.Respawnable and (it.ItemType <> ITEM_NONE) then
     begin

@@ -2282,7 +2282,8 @@ begin
     GameVelY := M.ReadLongInt();
     GameAccelX := M.ReadLongInt();
     GameAccelY := M.ReadLongInt();
-    SetLerp(TmpX, TmpY);
+    GameX := TmpX;
+    GameY := TmpY;
     if NetForcePlayerUpdate then Update();
   end;
 end;

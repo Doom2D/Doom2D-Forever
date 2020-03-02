@@ -103,6 +103,7 @@ type
   PParticle = ^TParticle;
   TParticle = record
     x, y: Integer;
+    oldX, oldY: Integer;
     velX, velY: Single;
     accelX, accelY: Single;
     state: TPartState;
@@ -139,6 +140,7 @@ type
   TOnceAnim = record
     AnimType:   Byte;
     x, y:       Integer;
+    oldX, oldY: Integer;
     Animation:  TAnimation;
   end;
 
@@ -500,6 +502,8 @@ procedure TParticle.think (); inline;
   end;
 
 begin
+  oldx := x;
+  oldy := y;
   // awake sleeping particle, if necessary
   if awakeDirty then
   begin
@@ -979,6 +983,8 @@ begin
     begin
       x := fX-devX1+Random(devX2);
       y := fY-devY1+Random(devY2);
+      oldx := x;
+      oldy := y;
 
       // check for level bounds
       if (x < g_Map_MinX) or (y < g_Map_MinY) or (x > g_Map_MaxX) or (y > g_Map_MaxY) then continue;
@@ -1076,6 +1082,9 @@ begin
         accelX := 0.0;
         accelY := 0.8;
       end;
+
+      oldx := x;
+      oldy := y;
 
       // check for level bounds
       if (x < g_Map_MinX) or (y < g_Map_MinY) or (x > g_Map_MaxX) or (y > g_Map_MaxY) then continue;
@@ -1219,6 +1228,8 @@ begin
     begin
       x := fX-devX1+Random(devX2);
       y := fY-devY1+Random(devY2);
+      oldx := x;
+      oldy := y;
 
       // check for level bounds
       if (x < g_Map_MinX) or (y < g_Map_MinY) or (x > g_Map_MaxX) or (y > g_Map_MaxY) then continue;
@@ -1388,6 +1399,8 @@ begin
     begin
       x := fX-devX1+Random(devX2);
       y := fY-devY1+Random(devY2);
+      oldx := x;
+      oldy := y;
 
       // check for level bounds
       if (x < g_Map_MinX) or (y < g_Map_MinY) or (x > g_Map_MaxX) or (y > g_Map_MaxY) then continue;
@@ -1470,6 +1483,8 @@ begin
     begin
       x := fX-devX1+Random(devX2);
       y := fY-devY1+Random(devY2);
+      oldx := x;
+      oldy := y;
 
       // check for level bounds
       if (x < g_Map_MinX) or (y < g_Map_MinY) or (x > g_Map_MaxX) or (y > g_Map_MaxY) then continue;
@@ -1649,6 +1664,9 @@ begin
     for a := 0 to High(OnceAnims) do
       if OnceAnims[a].Animation <> nil then
       begin
+        OnceAnims[a].oldx := OnceAnims[a].x;
+        OnceAnims[a].oldy := OnceAnims[a].y;
+
         case OnceAnims[a].AnimType of
           ONCEANIM_SMOKE:
             begin
@@ -1673,7 +1691,7 @@ end;
 
 procedure g_GFX_Draw ();
   var
-    a, len: Integer;
+    a, len, fx, fy: Integer;
 begin
   if not gpart_dbg_enabled then exit;
 
@@ -1698,8 +1716,10 @@ begin
         if not alive then continue;
         if (x >= sX) and (y >= sY) and (x <= sX+sWidth) and (sY <= sY+sHeight) then
         begin
+          fx := nlerp(oldx, x, gLerpFactor);
+          fy := nlerp(oldy, y, gLerpFactor);
           glColor4ub(red, green, blue, alpha);
-          glVertex2f(x+0.37, y+0.37);
+          glVertex2f(fx+0.37, fy+0.37);
         end;
       end;
     end;
@@ -1716,7 +1736,12 @@ begin
     begin
       if (OnceAnims[a].Animation <> nil) then
       begin
-        with OnceAnims[a] do Animation.Draw(x, y, TMirrorType.None);
+        with OnceAnims[a] do
+        begin
+          fx := nlerp(oldx, x, gLerpFactor);
+          fy := nlerp(oldy, y, gLerpFactor);
+          Animation.Draw(x, y, TMirrorType.None);
+        end;
       end;
     end;
   end;

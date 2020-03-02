@@ -38,6 +38,7 @@ var
   glLegacyNPOT: Boolean;
   glRenderToFBO: Boolean = True;
   gTextureFilter: Boolean;
+  gLerpActors: Boolean = True;
   gNoSound: Boolean;
   gSoundLevel: Integer;
   gMusicLevel: Integer;
@@ -327,6 +328,7 @@ initialization
   conRegVar('r_vsync', @gVSync, '', '');
   conRegVar('r_texfilter', @gTextureFilter, '', '');
   conRegVar('r_npot', @glNPOTOverride, '', '');
+  conRegVar('r_interp', @gLerpActors, '', 'interpolate actors');
 
   (* Sound *)
   conRegVar('s_nosound', @gNoSound, '', '');

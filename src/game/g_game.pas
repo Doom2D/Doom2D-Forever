@@ -240,6 +240,7 @@ var
   gPlayer2: TPlayer = nil;
   gPlayerDrawn: TPlayer = nil;
   gTime: LongWord;
+  gLerpFactor: Single = 1.0;
   gSwitchGameMode: Byte = GM_DM;
   gHearPoint1, gHearPoint2: THearPoint;
   gSoundEffectsDF: Boolean = False;
@@ -2161,6 +2162,13 @@ begin
       end;
     end;
 
+  // these are in separate PreUpdate functions because they can interact during Update()
+  // we don't care that much about corpses and gibs
+    g_Player_PreUpdate();
+    g_Monsters_PreUpdate();
+    g_Items_PreUpdate();
+    g_Weapon_PreUpdate();
+
   // Обновляем все остальное:
     g_Map_Update();
     g_Items_Update();
@@ -3621,7 +3629,7 @@ end;
 
 procedure DrawPlayer(p: TPlayer);
 var
-  px, py, a, b, c, d, i: Integer;
+  px, py, a, b, c, d, i, fX, fY: Integer;
   //R: TRect;
 begin
   if (p = nil) or (p.FDummy) then
@@ -3639,8 +3647,9 @@ begin
 
   glPushMatrix();
 
-  px := p.GameX + PLAYER_RECT_CX;
-  py := p.GameY + PLAYER_RECT_CY+p.Obj.slopeUpLeft;
+  p.Obj.lerp(gLerpFactor, fX, fY);
+  px := fX + PLAYER_RECT_CX;
+  py := fY + PLAYER_RECT_CY+p.Obj.slopeUpLeft;
 
   if (g_dbg_scale = 1.0) and (not g_dbg_ignore_bounds) then
   begin
@@ -3697,7 +3706,7 @@ begin
       p.IncCam := nclamp(p.IncCam, min(0, -120 - i), 0);
   end;
 
-  sY := sY - p.IncCam;
+  sY := sY - nlerp(p.IncCamOld, p.IncCam, gLerpFactor);
 
   if (not g_dbg_ignore_bounds) then
   begin
@@ -7225,7 +7234,6 @@ begin
       end;
     'r_reset':
       begin
-        sys_EnableVSync(gVSync);
         gRC_Width := Max(1, gRC_Width);
         gRC_Height := Max(1, gRC_Height);
         gBPP := Max(1, gBPP);
@@ -7233,6 +7241,7 @@ begin
           e_LogWriteln('resolution changed')
         else
           e_LogWriteln('resolution not changed');
+        sys_EnableVSync(gVSync);
       end;
     'g_language':
       begin

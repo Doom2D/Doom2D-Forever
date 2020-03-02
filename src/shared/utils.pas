@@ -189,6 +189,7 @@ function readLongIntBE (st: TStream): LongInt;
 function readInt64BE (st: TStream): Int64;
 function readUInt64BE (st: TStream): UInt64;
 
+function nlerp (a, b: Integer; t: Single): Integer; inline;
 
 function nmin (a, b: Byte): Byte; inline; overload;
 function nmin (a, b: ShortInt): ShortInt; inline; overload;
@@ -1528,6 +1529,8 @@ function readUInt64BE (st: TStream): UInt64; begin readIntegerBE(st, @result, 8)
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+function nlerp (a, b: Integer; t: Single): Integer; inline; begin result := round((1.0 - t) * a + t * b); end;
+
 function nmin (a, b: Byte): Byte; inline; overload; begin if (a < b) then result := a else result := b; end;
 function nmin (a, b: ShortInt): ShortInt; inline; overload; begin if (a < b) then result := a else result := b; end;
 function nmin (a, b: Word): Word; inline; overload; begin if (a < b) then result := a else result := b; end;
