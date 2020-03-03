@@ -7224,7 +7224,6 @@ end;
 procedure SystemCommands(P: SSArray);
 var
   cmd: string;
-  a: Integer;
 begin
   cmd := LowerCase(P[0]);
   case cmd of

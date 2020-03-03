@@ -124,6 +124,7 @@ begin
 
   gTextureFilter := TGUISwitch(menu.GetControl('swTextureFilter')).ItemIndex = 0;
   glNPOTOverride := not (TGUISwitch(menu.GetControl('swLegacyNPOT')).ItemIndex = 0);
+  gLerpActors := TGUISwitch(menu.GetControl('swInterp')).ItemIndex = 0;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
 
@@ -399,6 +400,9 @@ begin
 
   with TGUISwitch(menu.GetControl('swLegacyNPOT')) do
     if not glNPOTOverride then ItemIndex := 0 else ItemIndex := 1;
+
+  with TGUISwitch(menu.GetControl('swInterp')) do
+    if gLerpActors then ItemIndex := 0 else ItemIndex := 1;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
 
@@ -2639,6 +2643,12 @@ begin
     with AddSwitch(_lc[I_MENU_VIDEO_FILTER_SKY]) do
     begin
       Name := 'swTextureFilter';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+    end;
+    with AddSwitch(_lc[I_MENU_VIDEO_INTERPOLATION]) do
+    begin
+      Name := 'swInterp';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
     end;
