@@ -2130,6 +2130,7 @@ begin
     end
   end;
 
+  WriteLn(f, 'r_maxfps ', gMaxFPS);
   WriteLn(f, 'r_reset');
   CloseFile(f)
 end;
