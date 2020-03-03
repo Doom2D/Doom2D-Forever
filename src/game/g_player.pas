@@ -171,7 +171,6 @@ type
     FLastSpawnerUID: Word;
     FLastHit:   Byte;
     FObj:       TObj;
-    FXTo, FYTo: Integer;
     FSpectatePlayer: Integer;
     FFirePainTime:   Integer;
     FFireAttacker:   Word;
@@ -335,8 +334,6 @@ type
     procedure   LoadState (st: TStream); virtual;
     procedure   PauseSounds(Enable: Boolean);
     procedure   NetFire(Wpn: Byte; X, Y, AX, AY: Integer; WID: Integer = -1);
-    procedure   DoLerp(Level: Integer = 2);
-    procedure   SetLerp(XTo, YTo: Integer);
     procedure   QueueWeaponSwitch(Weapon: Byte);
     procedure   RealizeCurrentWeapon();
     procedure   FlamerOn;
@@ -4784,8 +4781,6 @@ begin
     GameX := gMapInfo.Width div 2;
     GameY := gMapInfo.Height div 2;
   end;
-  FXTo := GameX;
-  FYTo := GameY;
 
   FAlive := False;
   FSpectator := True;
@@ -4818,11 +4813,7 @@ begin
     Exit;
   FGhost := not FGhost;
   FPhysics := not FGhost;
-  if FGhost then
-  begin
-    FXTo := FObj.X;
-    FYTo := FObj.Y;
-  end else
+  if not FGhost then
   begin
     FObj.Accel.X := 0;
     FObj.Accel.Y := 0;
@@ -4967,11 +4958,6 @@ begin
   FObj.Y := Y-PLAYER_RECT.Y;
   FObj.oldX := FObj.X; // don't interpolate after respawn
   FObj.oldY := FObj.Y;
-  if FAlive and FGhost then
-  begin
-    FXTo := FObj.X;
-    FYTo := FObj.Y;
-  end;
 
   if not g_Game_IsNet then
   begin
@@ -5068,9 +5054,6 @@ var
 begin
   NetServer := g_Game_IsNet and g_Game_IsServer;
   AnyServer := g_Game_IsServer;
-
-  if FGhost then
-    DoLerp(4);
 
   if NetServer then
     if FClientID >= 0 then
@@ -5234,33 +5217,33 @@ begin
   begin
     if FKeys[KEY_UP].Pressed or FKeys[KEY_JUMP].Pressed then
     begin
-      FYTo := FObj.Y - 32;
+      FObj.Y := FObj.Y - 32;
       FSpectatePlayer := -1;
     end;
     if FKeys[KEY_DOWN].Pressed then
     begin
-      FYTo := FObj.Y + 32;
+      FObj.Y := FObj.Y + 32;
       FSpectatePlayer := -1;
     end;
     if FKeys[KEY_LEFT].Pressed then
     begin
-      FXTo := FObj.X - 32;
+      FObj.X := FObj.X - 32;
       FSpectatePlayer := -1;
     end;
     if FKeys[KEY_RIGHT].Pressed then
     begin
-      FXTo := FObj.X + 32;
+      FObj.X := FObj.X + 32;
       FSpectatePlayer := -1;
     end;
 
-    if (FXTo < -64) then
-      FXTo := -64
-    else if (FXTo > gMapInfo.Width + 32) then
-      FXTo := gMapInfo.Width + 32;
-    if (FYTo < -72) then
-      FYTo := -72
-    else if (FYTo > gMapInfo.Height + 32) then
-      FYTo := gMapInfo.Height + 32;
+    if (FObj.X < -64) then
+      FObj.X := -64
+    else if (FObj.X > gMapInfo.Width + 32) then
+      FObj.X := gMapInfo.Width + 32;
+    if (FObj.Y < -72) then
+      FObj.Y := -72
+    else if (FObj.Y > gMapInfo.Height + 32) then
+      FObj.Y := gMapInfo.Height + 32;
   end;
 
   if FPhysics then
@@ -5278,8 +5261,8 @@ begin
         if gPlayers[FSpectatePlayer] <> nil then
           if gPlayers[FSpectatePlayer].alive then
           begin
-            FXTo := gPlayers[FSpectatePlayer].GameX;
-            FYTo := gPlayers[FSpectatePlayer].GameY;
+            FObj.X := gPlayers[FSpectatePlayer].GameX;
+            FObj.Y := gPlayers[FSpectatePlayer].GameY;
           end;
   end;
 
@@ -5736,35 +5719,6 @@ begin
   if (FAngle = 0) or (FAngle = 180) then SetAction(A_ATTACK)
     else if (FAngle = ANGLE_LEFTDOWN) or (FAngle = ANGLE_RIGHTDOWN) then SetAction(A_ATTACKDOWN)
       else if (FAngle = ANGLE_LEFTUP) or (FAngle = ANGLE_RIGHTUP) then SetAction(A_ATTACKUP);
-end;
-
-procedure TPlayer.DoLerp(Level: Integer = 2);
-begin
-  if FObj.X <> FXTo then FObj.X := Lerp(FObj.X, FXTo, Level);
-  if FObj.Y <> FYTo then FObj.Y := Lerp(FObj.Y, FYTo, Level);
-end;
-
-procedure TPlayer.SetLerp(XTo, YTo: Integer);
-var
-  AX, AY: Integer;
-begin
-  if NetInterpLevel < 1 then
-  begin
-    FObj.X := XTo;
-    FObj.Y := YTo;
-  end
-  else
-  begin
-    FXTo := XTo;
-    FYTo := YTo;
-
-    AX := Abs(FXTo - FObj.X);
-    AY := Abs(FYTo - FObj.Y);
-    if (AX > 32) or (AX <= NetInterpLevel) then
-      FObj.X := FXTo;
-    if (AY > 32) or (AY <= NetInterpLevel) then
-      FObj.Y := FYTo;
-  end;
 end;
 
 function TPlayer.FullInLift(XInc, YInc: Integer): Integer;
