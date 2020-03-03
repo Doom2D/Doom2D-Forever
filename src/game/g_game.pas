@@ -3649,7 +3649,7 @@ begin
 
   p.Obj.lerp(gLerpFactor, fX, fY);
   px := fX + PLAYER_RECT_CX;
-  py := fY + PLAYER_RECT_CY+p.Obj.slopeUpLeft;
+  py := fY + PLAYER_RECT_CY+nlerp(p.SlopeOld, p.Obj.slopeUpLeft, gLerpFactor);
 
   if (g_dbg_scale = 1.0) and (not g_dbg_ignore_bounds) then
   begin
@@ -7224,6 +7224,7 @@ end;
 procedure SystemCommands(P: SSArray);
 var
   cmd: string;
+  a: Integer;
 begin
   cmd := LowerCase(P[0]);
   case cmd of
@@ -7242,6 +7243,18 @@ begin
         else
           e_LogWriteln('resolution not changed');
         sys_EnableVSync(gVSync);
+      end;
+    'r_maxfps':
+      begin
+        if Length(p) = 2 then
+        begin
+          gMaxFPS := StrToIntDef(p[1], gMaxFPS);
+          if gMaxFPS > 0 then
+            gFrameTime := 1000 div gMaxFPS
+          else
+            gFrameTime := 0;
+        end;
+        e_LogWritefln('r_maxfps %d', [gMaxFPS]);
       end;
     'g_language':
       begin

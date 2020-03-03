@@ -171,7 +171,11 @@ begin
   if flag then
     Time_Old := Time - (Time_Delta mod 28);
 
-  if (Time - Frame > 4) then
+  // don't wait if VSync is on, GL already probably waits enough
+  if gLerpActors then
+    flag := (Time - Frame >= gFrameTime) or gVSync;
+
+  if flag then
   begin
     if (not wMinimized) then
     begin

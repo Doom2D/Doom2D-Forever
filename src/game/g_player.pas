@@ -188,6 +188,7 @@ type
     FFireAngle: SmallInt;
     FIncCamOld:      Integer;
     FIncCam:         Integer;
+    FSlopeOld:       Integer;
     FShellTimer:     Integer;
     FShellType:      Byte;
     FSawSound:       TPlayableSound;
@@ -382,6 +383,7 @@ type
     property    GameAccelY: Integer read FObj.Accel.Y write FObj.Accel.Y;
     property    IncCam: Integer read FIncCam write FIncCam;
     property    IncCamOld: Integer read FIncCamOld write FIncCamOld;
+    property    SlopeOld: Integer read FSlopeOld write FSlopeOld;
     property    UID: Word read FUID write FUID;
     property    JustTeleported: Boolean read FJustTeleported write FJustTeleported;
     property    NetTime: LongWord read FNetTime write FNetTime;
@@ -2362,7 +2364,7 @@ end;
 
 procedure TPlayer.DrawIndicator(Color: TRGB);
 var
-  indX, indY, fX, fY: Integer;
+  indX, indY, fX, fY, fSlope: Integer;
   indW, indH: Word;
   indA: Single;
   a: TDFPoint;
@@ -2373,6 +2375,8 @@ begin
   if FAlive then
   begin
     FObj.lerp(gLerpFactor, fX, fY);
+    fSlope := nlerp(FSlopeOld, FObj.slopeUpLeft, gLerpFactor);
+
     case gPlayerIndicatorStyle of
       0:
         begin
@@ -2410,6 +2414,7 @@ begin
               indY := fY - indH;
             end;
 
+            indY := indY + fSlope;
             indX := EnsureRange(indX, 0, Max(gMapInfo.Width, gPlayerScreenSize.X) - indW);
             indY := EnsureRange(indY, 0, Max(gMapInfo.Height, gPlayerScreenSize.Y) - indH);
 
@@ -2424,7 +2429,7 @@ begin
         begin
           e_TextureFontGetSize(gStdFont, nW, nH);
           indX := fX + FObj.Rect.X + (FObj.Rect.Width - Length(FName) * nW) div 2;
-          indY := fY - nH;
+          indY := fY - nH + fSlope;
           e_TextureFontPrintEx(indX, indY, FName, gStdFont, Color.R, Color.G, Color.B, 1.0, True);
         end;
     end;
@@ -2519,9 +2524,10 @@ var
   w, h: Word;
   dr: Boolean;
   Mirror: TMirrorType;
-  fX, fY: Integer;
+  fX, fY, fSlope: Integer;
 begin
   FObj.lerp(gLerpFactor, fX, fY);
+  fSlope := nlerp(FSlopeOld, FObj.slopeUpLeft, gLerpFactor);
 
   if FAlive then
   begin
@@ -2533,7 +2539,7 @@ begin
     if FPunchAnim <> nil then
     begin
       FPunchAnim.Draw(fX+IfThen(Direction = TDirection.D_LEFT, 15-FObj.Rect.X, FObj.Rect.X-15),
-                      fY+FObj.Rect.Y-11, Mirror);
+                      fY+fSlope+FObj.Rect.Y-11, Mirror);
       if FPunchAnim.played then
       begin
         FPunchAnim.Free;
@@ -2547,10 +2553,10 @@ begin
         e_GetTextureSize(ID, @w, @h);
         if FDirection = TDirection.D_LEFT then
           e_Draw(ID, fX+FObj.Rect.X+(FObj.Rect.Width div 2)-(w div 2)+4,
-                     fY+FObj.Rect.Y+(FObj.Rect.Height div 2)-(h div 2)-7+FObj.slopeUpLeft, 0, True, False)
+                     fY+FObj.Rect.Y+(FObj.Rect.Height div 2)-(h div 2)-7+fSlope, 0, True, False)
         else
           e_Draw(ID, fX+FObj.Rect.X+(FObj.Rect.Width div 2)-(w div 2)-2,
-                     fY+FObj.Rect.Y+(FObj.Rect.Height div 2)-(h div 2)-7+FObj.slopeUpLeft, 0, True, False);
+                     fY+FObj.Rect.Y+(FObj.Rect.Height div 2)-(h div 2)-7+fSlope, 0, True, False);
       end;
 
     if FMegaRulez[MR_INVIS] > gTime then
@@ -2563,15 +2569,15 @@ begin
         else
           dr := True;
         if dr then
-          FModel.Draw(fX, fY+FObj.slopeUpLeft, 200)
+          FModel.Draw(fX, fY+fSlope, 200)
         else
-          FModel.Draw(fX, fY+FObj.slopeUpLeft);
+          FModel.Draw(fX, fY+fSlope);
       end
       else
-        FModel.Draw(fX, fY+FObj.slopeUpLeft, 254);
+        FModel.Draw(fX, fY+fSlope, 254);
     end
     else
-      FModel.Draw(fX, fY+FObj.slopeUpLeft);
+      FModel.Draw(fX, fY+fSlope);
   end;
 
   if g_debug_Frames then
@@ -4427,6 +4433,7 @@ begin
   ReleaseKeys();
 
   FDamageBuffer := 0;
+  FSlopeOld := 0;
   FIncCamOld := 0;
   FIncCam := 0;
   FBFGFireCounter := -1;
@@ -4596,6 +4603,7 @@ var
   Anim: TAnimation;
   ID: DWORD;
 begin
+  FSlopeOld := 0;
   FIncCamOld := 0;
   FIncCam := 0;
   FBFGFireCounter := -1;
@@ -5043,6 +5051,7 @@ end;
 
 procedure TPlayer.PreUpdate();
 begin
+  FSlopeOld := FObj.slopeUpLeft;
   FIncCamOld := FIncCam;
   FObj.oldX := FObj.X;
   FObj.oldY := FObj.Y;

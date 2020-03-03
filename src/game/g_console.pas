@@ -953,6 +953,7 @@ begin
   AddCommand('quit', SystemCommands);
   AddCommand('exit', SystemCommands);
   AddCommand('r_reset', SystemCommands);
+  AddCommand('r_maxfps', SystemCommands);
   AddCommand('g_language', SystemCommands);
 
   AddCommand('bind', BindCommands);

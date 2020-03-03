@@ -39,6 +39,8 @@ var
   glRenderToFBO: Boolean = True;
   gTextureFilter: Boolean;
   gLerpActors: Boolean = True;
+  gFrameTime: Integer = 5;
+  gMaxFPS: Integer = 200;
   gNoSound: Boolean;
   gSoundLevel: Integer;
   gMusicLevel: Integer;
