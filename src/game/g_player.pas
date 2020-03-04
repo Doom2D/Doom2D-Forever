@@ -5069,8 +5069,11 @@ begin
   NetServer := g_Game_IsNet and g_Game_IsServer;
   AnyServer := g_Game_IsServer;
 
-  if FGhost then
-    DoLerp(4);
+  if g_Game_IsClient and (NetInterpLevel > 0) then
+    DoLerp(NetInterpLevel + 1)
+  else
+    if FGhost then
+      DoLerp(4);
 
   if NetServer then
     if FClientID >= 0 then
