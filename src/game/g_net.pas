@@ -166,6 +166,7 @@ var
   NetPlrUID1:    Integer = -1;
   NetPlrUID2:    Integer = -1;
 
+  NetInterpLevel: Integer = 1;
   NetUpdateRate:  Cardinal = 0;  // as soon as possible
   NetRelupdRate:  Cardinal = 18; // around two times a second
   NetMasterRate:  Cardinal = 60000;
@@ -2438,6 +2439,7 @@ initialization
   conRegVar('cl_downloadtimeout', @g_Net_DownloadTimeout, 0.0, 1000000.0, '', 'timeout in seconds, 0 to disable it');
   conRegVar('cl_predictself', @NetPredictSelf, '', 'predict local player');
   conRegVar('cl_forceplayerupdate', @NetForcePlayerUpdate, '', 'update net players on NET_MSG_PLRPOS');
+  conRegVar('cl_interp', @NetInterpLevel, '', 'net player interpolation steps');
   conRegVar('cl_last_ip', @NetClientIP, '', 'address of the last you have connected to');
   conRegVar('cl_last_port', @NetClientPort, '', 'port of the last server you have connected to');
 

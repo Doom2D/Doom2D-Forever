@@ -291,6 +291,7 @@ begin
   NetForwardPorts := False;
 
   (* section Client *)
+  NetInterpLevel := 2;
   NetForcePlayerUpdate := False;
   NetPredictSelf := True;
   NetClientIP := '127.0.0.1';
