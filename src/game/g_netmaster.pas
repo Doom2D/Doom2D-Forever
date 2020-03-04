@@ -1366,6 +1366,7 @@ var
   aliveCount: Integer;
   hasUnanswered: Boolean;
   stt, ct: Int64;
+  tmpsv: TNetServer;
 begin
   result := false;
   SL := nil;
@@ -1552,32 +1553,43 @@ begin
       if InMsg.ReadChar() <> 'D' then continue;
       if InMsg.ReadChar() <> 'F' then continue;
 
+      with tmpsv do
+      begin
+        Port := InMsg.ReadWord();
+        Ping := InMsg.ReadInt64();
+        Ping := GetTimerMS() - Ping;
+        Name := InMsg.ReadString();
+        Map := InMsg.ReadString();
+        GameMode := InMsg.ReadByte();
+        Players := InMsg.ReadByte();
+        MaxPlayers := InMsg.ReadByte();
+        Protocol := InMsg.ReadByte();
+        Password := InMsg.ReadByte() = 1;
+        LocalPl := InMsg.ReadByte();
+        Bots := InMsg.ReadWord();
+        PingAddr := SvAddr;
+      end;
+
       FromSL := False;
       for I := Low(SL) to High(SL) do
         if (SL[I].PingAddr.host = SvAddr.host) and
-           (SL[I].PingAddr.port = SvAddr.port) then
+           (SL[I].PingAddr.port = SvAddr.port) and
+           (SL[I].Port = tmpsv.Port) then
         begin
-          with SL[I] do
-          begin
-            Port := InMsg.ReadWord();
-            Ping := InMsg.ReadInt64();
-            Ping := GetTimerMS() - Ping;
-            Name := InMsg.ReadString();
-            Map := InMsg.ReadString();
-            GameMode := InMsg.ReadByte();
-            Players := InMsg.ReadByte();
-            MaxPlayers := InMsg.ReadByte();
-            Protocol := InMsg.ReadByte();
-            Password := InMsg.ReadByte() = 1;
-            LocalPl := InMsg.ReadByte();
-            Bots := InMsg.ReadWord();
-          end;
+          tmpsv.IP := SL[I].IP;
+          SL[I] := tmpsv;
           FromSL := True;
           Inc(Cnt);
           break;
         end;
+
       if not FromSL then
-        ProcessLocal();
+      begin
+        I := Length(SL);
+        SetLength(SL, I + 1);
+        tmpsv.IP := DecodeIPV4(SvAddr.host);
+        SL[I] := tmpsv;
+      end;
     end;
 
     InMsg.Free();
@@ -1778,7 +1790,7 @@ procedure g_Serverlist_GenerateTable (SL: TNetServerList; var ST: TNetServerTabl
 var
   i, j: Integer;
 
-  function FindServerInTable(Name: AnsiString): Integer;
+  function FindServerInTable(Name: AnsiString; Port: Word): Integer;
   var
     i: Integer;
   begin
@@ -1789,7 +1801,7 @@ var
     begin
       if Length(ST[i].Indices) = 0 then
         continue;
-      if SL[ST[i].Indices[0]].Name = Name then
+      if (SL[ST[i].Indices[0]].Name = Name) and (SL[ST[i].Indices[0]].Port = Port) then
       begin
         Result := i;
         Exit;
@@ -1838,9 +1850,10 @@ begin
   ST := nil;
   if SL = nil then
     Exit;
+
   for i := Low(SL) to High(SL) do
   begin
-    j := FindServerInTable(SL[i].Name);
+    j := FindServerInTable(SL[i].Name, SL[i].Port);
     if j = -1 then
     begin
       j := Length(ST);
