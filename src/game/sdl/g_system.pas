@@ -173,8 +173,6 @@ implementation
 
   procedure sys_Repaint;
   begin
-    if glRenderToFBO then
-      e_BlitFramebuffer(gWinSizeX, gWinSizeY);
     SDL_GL_SwapBuffers
   end;
 

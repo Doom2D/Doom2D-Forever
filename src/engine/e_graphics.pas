@@ -64,6 +64,7 @@ procedure e_SetViewPort(X, Y, Width, Height: Word);
 procedure e_ResizeWindow(Width, Height: Integer);
 function e_ResizeFramebuffer(Width, Height: Integer): Boolean;
 procedure e_BlitFramebuffer(WinWidth, WinHeight: Integer);
+procedure e_SetRenderTarget(Framebuffer: Boolean);
 
 procedure e_Draw(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
                  Blending: Boolean; Mirror: TMirrorType = TMirrorType.None);
@@ -490,15 +491,22 @@ begin
   glTexCoord2f(u, v); glVertex2i(x1, y0);
 end;
 
+procedure e_SetRenderTarget(Framebuffer: Boolean);
+begin
+  if (e_FBO = 0) or e_NoGraphics then exit;
+  if Framebuffer then
+    glBindFramebuffer(GL_FRAMEBUFFER, e_FBO)
+  else
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+end;
+
 procedure e_BlitFramebuffer(WinWidth, WinHeight: Integer);
 begin
   if (e_FBO = 0) or (e_Frame = 0) or e_NoGraphics then exit;
 
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glBindTexture(GL_TEXTURE_2D, e_Frame);
-  e_SetViewPort(0, 0, WinWidth, WinHeight);
   glColor4ub(255, 255, 255, 255);
 
   glBegin(GL_QUADS);
@@ -507,9 +515,6 @@ begin
     glTexCoord2f(1, 0); glVertex2i(WinWidth, WinHeight);
     glTexCoord2f(1, 1); glVertex2i(WinWidth,         0);
   glEnd();
-
-  glBindFramebuffer(GL_FRAMEBUFFER, e_FBO);
-  e_SetViewPort(0, 0, e_FrameW, e_FrameH);
 end;
 
 procedure e_Draw(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;

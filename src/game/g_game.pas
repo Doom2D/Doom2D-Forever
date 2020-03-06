@@ -3838,6 +3838,9 @@ begin
     FPSTime := Time;
   end;
 
+  e_SetRendertarget(True);
+  e_SetViewPort(0, 0, gScreenWidth, gScreenHeight);
+
   if gGameOn or (gState = STATE_FOLD) then
   begin
     if (gPlayer1 <> nil) and (gPlayer2 <> nil) then
@@ -4168,9 +4171,19 @@ begin
 
   if gGameOn then drawProfilers();
 
+  // TODO: draw this after the FBO and remap mouse click coordinates
+
 {$IFDEF ENABLE_HOLMES}
   g_Holmes_DrawUI();
 {$ENDIF}
+
+  // blit framebuffer to screen
+
+  e_SetRendertarget(False);
+  e_SetViewPort(0, 0, gWinSizeX, gWinSizeY);
+  e_BlitFramebuffer(gWinSizeX, gWinSizeY);
+
+  // draw the overlay stuff on top of it
 
   g_Touch_Draw;
 end;

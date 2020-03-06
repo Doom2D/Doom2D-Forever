@@ -88,11 +88,18 @@ begin
 
     if forceUpdate then
     begin
+      e_SetRendertarget(True);
+      e_SetViewPort(0, 0, gScreenWidth, gScreenHeight);
+
       DrawMenuBackground('INTER');
       e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
-
       DrawLoadingStat();
       g_Console_Draw(True);
+
+      e_SetRendertarget(False);
+      e_SetViewPort(0, 0, gWinSizeX, gWinSizeY);
+      e_BlitFramebuffer(gWinSizeX, gWinSizeY);
+
       sys_Repaint;
       prevLoadingUpdateTime := getTimeMilli();
     end;
