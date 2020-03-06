@@ -1437,6 +1437,8 @@ begin
   e_TextureFontPrint(0, fH * 3, 'Vel Y: ' + IntToStr(p.FObj.Vel.Y), gStdFont);
   e_TextureFontPrint(0, fH * 4, 'Acc X: ' + IntToStr(p.FObj.Accel.X), gStdFont);
   e_TextureFontPrint(0, fH * 5, 'Acc Y: ' + IntToStr(p.FObj.Accel.Y), gStdFont);
+  e_TextureFontPrint(0, fH * 6, 'Old X: ' + IntToStr(p.FObj.oldX), gStdFont);
+  e_TextureFontPrint(0, fH * 7, 'Old Y: ' + IntToStr(p.FObj.oldY), gStdFont);
 end;
 
 procedure g_Player_DrawHealth();
@@ -3421,6 +3423,9 @@ begin
     FAlive := False;
   end;
   FShellTimer := -1;
+
+  // have to do this to avoid death tremors
+  PreUpdate();
 
   if (gGameSettings.MaxLives > 0) and Srv and (gLMSRespawn = LMS_RESPAWN_NONE) then
   begin
@@ -5751,6 +5756,8 @@ procedure TPlayer.SetLerp(XTo, YTo: Integer);
 var
   AX, AY: Integer;
 begin
+  FXTo := XTo;
+  FYTo := YTo;
   if NetInterpLevel < 1 then
   begin
     FObj.X := XTo;
@@ -5758,9 +5765,6 @@ begin
   end
   else
   begin
-    FXTo := XTo;
-    FYTo := YTo;
-
     AX := Abs(FXTo - FObj.X);
     AY := Abs(FYTo - FObj.Y);
     if (AX > 32) or (AX <= NetInterpLevel) then

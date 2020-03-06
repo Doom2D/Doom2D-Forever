@@ -143,11 +143,6 @@ begin
       else if (NetMode = NET_CLIENT) then g_Net_Client_Update();
       Update();
     end;
-  end
-  else
-  begin
-         if (NetMode = NET_SERVER) then g_Net_Host_Update()
-    else if (NetMode = NET_CLIENT) then g_Net_Client_Update();
   end;
 
   if NetMode = NET_SERVER then g_Net_Flush();
