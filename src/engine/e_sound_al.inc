@@ -265,12 +265,70 @@ begin
   alGetSourcei(S, AL_SOURCE_STATE, Result);
 end;
 
+function LoadEntireSound(var Snd: TSoundRec; Loader: TSoundLoader): Boolean;
+var
+  Frame: Pointer;
+  Data: Pointer;
+  Rx: LongWord;
+  DataLen, OldLen: LongWord;
+const
+  CHUNK_SIZE = 65536 * 2 * 2;
+begin
+  Result := False;
+
+  Frame := GetMem(CHUNK_SIZE);
+  if Frame = nil then exit;
+
+  Data := nil;
+  DataLen := 0;
+
+  repeat
+    Rx := Loader.FillBuffer(Frame, CHUNK_SIZE);
+    if Rx = 0 then break;
+
+    OldLen := DataLen;
+    DataLen := DataLen + Rx;
+    Data := ReAllocMem(Data, DataLen);
+    if Data = nil then begin FreeMem(Frame); exit; end;
+
+    Move(Frame^, (Data + OldLen)^, Rx);
+  until Loader.Finished();
+
+  FreeMem(Frame);
+
+  alGenBuffers(1, Addr(Snd.alBuffer));
+  if CheckALError() then
+  begin
+    e_LogWritefln('AL: Could not create AL buffer: %s', [GetALError()]);
+    FreeMem(Data);
+    exit;
+  end;
+
+  alBufferData(
+    Snd.alBuffer,
+    GetALSoundFormat(Loader.Format),
+    Data,
+    DataLen,
+    Loader.Format.SampleRate
+  );
+
+  FreeMem(Data);
+
+  if CheckALError() then
+  begin
+    e_LogWriteln('AL: Could not fill AL buffer: ' + GetALError());
+    alDeleteBuffers(1, Addr(Snd.alBuffer));
+    Snd.alBuffer := 0;
+    exit;
+  end;
+
+  Result := True;
+end;
+
 function e_LoadSound(FileName: String; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
 var
   find_id: DWORD;
   Loader: TSoundLoader;
-  OutData: Pointer;
-  OutLen: LongWord;
 begin
   ID := NO_SOUND_ID;
   Result := False;
@@ -289,9 +347,7 @@ begin
     exit;
   end;
 
-  Loader.Looping := e_SoundsArray[find_id].Loops;
-
-  if not Loader.Load(FileName, e_SoundsArray[find_id].isMusic) then
+  if not Loader.Load(FileName, e_SoundsArray[find_id].Loops) then
   begin
     e_LogWritefln('Could not load sound `%s`', [FileName]);
     exit;
@@ -299,36 +355,13 @@ begin
 
   alGetError(); // reset error state, god damn it
 
-  if not Loader.Streaming then
+  if not isMusic then
   begin
-    alGenBuffers(1, Addr(e_SoundsArray[find_id].alBuffer));
-    if CheckALError() then
-    begin
-      e_LogWritefln('Could not create AL buffer for `%s`: %s', [FileName, GetALError()]);
-      Loader.Free();
-      exit;
-    end;
-
-    OutLen := Loader.GetAll(OutData);
-    alBufferData(
-      e_SoundsArray[find_id].alBuffer,
-      GetALSoundFormat(Loader.Format),
-      OutData,
-      OutLen,
-      Loader.Format.SampleRate
-    );
-
+    if not LoadEntireSound(e_SoundsArray[find_id], Loader) then
+      e_LogWritefln('AL: Could not buffer sound effect `%s`', [FileName]);
     // don't need this anymore
     Loader.Free();
     Loader := nil;
-
-    if CheckALError() then
-    begin
-      e_LogWriteln('AL: what the fuck: ' + GetALError());
-      alDeleteBuffers(1, Addr(e_SoundsArray[find_id].alBuffer));
-      e_SoundsArray[find_id].alBuffer := 0;
-      exit;
-    end;
   end
   else
   begin
@@ -344,8 +377,6 @@ function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic:
 var
   find_id: DWORD;
   Loader: TSoundLoader;
-  OutData: Pointer;
-  OutLen: LongWord;
 begin
   ID := NO_SOUND_ID;
   Result := False;
@@ -364,9 +395,7 @@ begin
     exit;
   end;
 
-  Loader.Looping := e_SoundsArray[find_id].Loops;
-
-  if not Loader.Load(pData, LongWord(Length), e_SoundsArray[find_id].isMusic) then
+  if not Loader.Load(pData, LongWord(Length), e_SoundsArray[find_id].Loops) then
   begin
     e_LogWritefln('Could not load sound `%p`', [pData]);
     exit;
@@ -374,36 +403,13 @@ begin
 
   alGetError(); // reset error state, god damn it
 
-  if not Loader.Streaming then
+  if not isMusic then
   begin
-    alGenBuffers(1, Addr(e_SoundsArray[find_id].alBuffer));
-    if CheckALError() then
-    begin
-      e_LogWritefln('Could not create AL buffer for `%p`: %s', [pData, GetALError()]);
-      Loader.Free();
-      exit;
-    end;
-
-    OutLen := Loader.GetAll(OutData);
-    alBufferData(
-      e_SoundsArray[find_id].alBuffer,
-      GetALSoundFormat(Loader.Format),
-      OutData,
-      OutLen,
-      Loader.Format.SampleRate
-    );
-
+    if not LoadEntireSound(e_SoundsArray[find_id], Loader) then
+      e_LogWritefln('AL: Could not buffer sound effect `%p`', [pData]);
     // don't need this anymore
     Loader.Free();
     Loader := nil;
-
-    if CheckALError() then
-    begin
-      e_LogWriteln('AL: what the fuck: ' + GetALError());
-      alDeleteBuffers(1, Addr(e_SoundsArray[find_id].alBuffer));
-      e_SoundsArray[find_id].alBuffer := 0;
-      exit;
-    end;
   end
   else
   begin
@@ -463,7 +469,7 @@ begin
   begin
     // this is a stream
     // reset position
-    e_SoundsArray[ID].Loader.SetPosition(0);
+    e_SoundsArray[ID].Loader.Restart();
     if CurStream <> ID then // changing streams
     begin
       alSourceStop(Src); // this should mark all buffers as processed

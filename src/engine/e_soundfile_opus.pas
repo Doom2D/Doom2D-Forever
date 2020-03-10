@@ -24,15 +24,17 @@ type
 
   TOpusLoader = class (TSoundLoader)
   public
-    function Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean; override; overload;
-    function Load(FName: string; SStreaming: Boolean): Boolean; override; overload;
-    function SetPosition(Pos: LongWord): Boolean; override;
+    function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; override; overload;
+    function Load(FName: string; Loop: Boolean): Boolean; override; overload;
+    function Finished(): Boolean; override;
+    function Restart(): Boolean; override;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
-    function GetAll(var OutPtr: Pointer): LongWord; override;
     procedure Free(); override;
   private
     FOpus: POggOpusFile;
     FBuf: Pointer;
+    FFinished: Boolean;
+    FLooping: Boolean;
   end;
 
   TOpusLoaderFactory = class (TSoundLoaderFactory)
@@ -78,7 +80,7 @@ end;
 
 (* TOpusLoader *)
 
-function TOpusLoader.Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean;
+function TOpusLoader.Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean;
 begin
   Result := False;
 
@@ -102,11 +104,13 @@ begin
   FFormat.SampleBits := 16;
   FFormat.SampleRate := 48000; // is this even correct?
   FStreaming := True; // opus is always streaming
+  FFinished := False;
+  FLooping := Loop;
 
   Result := True;
 end;
 
-function TOpusLoader.Load(FName: string; SStreaming: Boolean): Boolean;
+function TOpusLoader.Load(FName: string; Loop: Boolean): Boolean;
 begin
   Result := False;
 
@@ -121,15 +125,23 @@ begin
   FFormat.SampleBits := 16;
   FFormat.SampleRate := 48000; // is this even correct?
   FStreaming := True; // opus is always streaming
+  FFinished := False;
+  FLooping := Loop;
 
   Result := True;
 end;
 
-function TOpusLoader.SetPosition(Pos: LongWord): Boolean;
+function TOpusLoader.Finished(): Boolean;
+begin
+  Result := FFinished;
+end;
+
+function TOpusLoader.Restart(): Boolean;
 begin
   Result := False;
   if (FOpus = nil) or (op_seekable(FOpus) = 0) then Exit;
-  Result := op_pcm_seek(FOpus, Pos) = 0;
+  Result := op_pcm_seek(FOpus, 0) = 0;
+  FFinished := False;
 end;
 
 function TOpusLoader.FillBuffer(Buf: Pointer; Len: LongWord): LongWord;
@@ -147,16 +159,20 @@ begin
     Ret := op_read_stereo(FOpus, Buf + Rx, (Len - Rx) div 2);
     if Ret = OP_HOLE then continue;
     if Ret < 0 then break;
-    if FLooping and (Ret = 0) then op_pcm_seek(FOpus, 0); // loop
+    if Ret = 0 then
+    begin
+      if FLooping then
+        op_pcm_seek(FOpus, 0)
+      else
+      begin
+        FFinished := True;
+        break;
+      end;
+    end;
     Rx := Rx + Ret * 4;
   end;
 
   Result := Rx;
-end;
-
-function TOpusLoader.GetAll(var OutPtr: Pointer): LongWord;
-begin
-  Result := 0; // always streaming
 end;
 
 procedure TOpusLoader.Free();
@@ -168,6 +184,8 @@ begin
   FOpus := nil;
   FBuf := nil;
   FStreaming := False;
+  FFinished := False;
+  FLooping := False;
 end;
 
 initialization

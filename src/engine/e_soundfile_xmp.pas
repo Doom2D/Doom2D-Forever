@@ -24,15 +24,17 @@ type
 
   TXMPLoader = class (TSoundLoader)
   public
-    function Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean; override; overload;
-    function Load(FName: string; SStreaming: Boolean): Boolean; override; overload;
-    function SetPosition(Pos: LongWord): Boolean; override;
+    function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; override; overload;
+    function Load(FName: string; Loop: Boolean): Boolean; override; overload;
+    function Finished(): Boolean; override;
+    function Restart(): Boolean; override;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
-    function GetAll(var OutPtr: Pointer): LongWord; override;
     procedure Free(); override;
   private
     FXMP: xmp_context;
     FLoaded: Boolean;
+    FLooping: Boolean;
+    FFinished: Boolean;
   end;
 
   TXMPLoaderFactory = class (TSoundLoaderFactory)
@@ -44,7 +46,7 @@ type
 
 implementation
 
-uses sysutils, utils, e_sound, e_log;
+uses sysutils, utils, math, e_sound, e_log;
 
 (* TXMPLoaderFactory *)
 
@@ -85,7 +87,7 @@ end;
 
 (* TXMPLoader *)
 
-function TXMPLoader.Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean;
+function TXMPLoader.Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean;
 var
   Err: LongInt;
   Interp: LongInt;
@@ -114,6 +116,8 @@ begin
 
     FStreaming := True; // modules are always streaming
     FLoaded := True;
+    FLooping := Loop;
+    FFinished := False;
     Result := True;
   except
     on E: Exception do
@@ -126,7 +130,7 @@ begin
   end;
 end;
 
-function TXMPLoader.Load(FName: string; SStreaming: Boolean): Boolean;
+function TXMPLoader.Load(FName: string; Loop: Boolean): Boolean;
 var
   Err: LongInt;
   Interp: LongInt;
@@ -154,7 +158,9 @@ begin
     FFormat.Channels := 2;
 
     FStreaming := True; // modules are always streaming
+    FLooping := Loop;
     FLoaded := True;
+    FFinished := False;
     Result := True;
   except
     on E: Exception do
@@ -167,30 +173,33 @@ begin
   end;
 end;
 
-function TXMPLoader.SetPosition(Pos: LongWord): Boolean;
+function TXMPLoader.Finished(): Boolean;
+begin
+  Result := FFinished;
+end;
+
+function TXMPLoader.Restart(): Boolean;
 begin
   Result := False;
   if FXMP = nil then Exit;
-  Result := xmp_set_position(FXMP, Pos) = 0;
+  Result := True;
+  FFinished := False;
+  xmp_restart_module(FXMP);
 end;
 
 function TXMPLoader.FillBuffer(Buf: Pointer; Len: LongWord): LongWord;
 var
-  LoopN: LongInt;
+  Ret: LongInt;
 begin
   Result := 0;
   if FXMP = nil then Exit;
-  if FLooping then
-    LoopN := 0
-  else
-    LoopN := 1;
-  if xmp_play_buffer(FXMP, Buf, Len, LoopN) = 0 then
-    Result := Len;
-end;
 
-function TXMPLoader.GetAll(var OutPtr: Pointer): LongWord;
-begin
-  Result := 0; // modules are always streaming, so this don't make sense
+  Ret := xmp_play_buffer(FXMP, Buf, Len, IfThen(FLooping, 0, 1));
+
+  if Ret = 0 then
+    Result := Len
+  else if (Ret = -XMP_END) and not FLooping then
+    FFinished := True;
 end;
 
 procedure TXMPLoader.Free();
@@ -206,6 +215,8 @@ begin
     FXMP := nil;
   end;
   FLoaded := False;
+  FLooping := False;
+  FFinished := False;
 end;
 
 initialization

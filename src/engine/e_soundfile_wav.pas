@@ -24,15 +24,17 @@ type
 
   TWAVLoader = class (TSoundLoader)
   public
-    function Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean; override; overload;
-    function Load(FName: string; SStreaming: Boolean): Boolean; override; overload;
-    function SetPosition(Pos: LongWord): Boolean; override;
+    function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; override; overload;
+    function Load(FName: string; Loop: Boolean): Boolean; override; overload;
+    function Finished(): Boolean; override;
+    function Restart(): Boolean; override;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
-    function GetAll(var OutPtr: Pointer): LongWord; override;
     procedure Free(); override;
   private
     FData: Pointer;
     FDataLen: LongWord;
+    FDataPos: LongWord;
+    FLooping: Boolean;
   end;
 
   TWAVLoaderFactory = class (TSoundLoaderFactory)
@@ -131,7 +133,7 @@ begin
           FFormat.SampleBits := Spec.format and $FF;
         {$ENDIF}
         FFormat.Channels := Spec.channels;
-        FStreaming := False; // never stream wavs
+        FDataPos := 0;
         FDataLen := Len;
         FData := Buf;
       end
@@ -143,7 +145,7 @@ begin
   end
 end;
 
-function TWAVLoader.Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean;
+function TWAVLoader.Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean;
   var
     RW: PSDL_RWops;
 begin
@@ -152,9 +154,11 @@ begin
   if Result = False then
     e_LogWriteln('Could not load WAV: ' + SDL_GetError());
   SDL_RWclose(RW);
+  FStreaming := False;
+  FLooping := Loop;
 end;
 
-function TWAVLoader.Load(FName: string; SStreaming: Boolean): Boolean;
+function TWAVLoader.Load(FName: string; Loop: Boolean): Boolean;
   var
     RW: PSDL_RWops;
 begin
@@ -171,36 +175,50 @@ begin
     Result := False
   end;
   SDL_RWclose(RW);
+  FStreaming := False;
+  FLooping := Loop;
 end;
 
-function TWAVLoader.SetPosition(Pos: LongWord): Boolean;
+function TWAVLoader.Finished(): Boolean;
 begin
-  Result := False; // makes no sense when not streaming
+  Result := FDataPos >= FDataLen;
+end;
+
+function TWAVLoader.Restart(): Boolean;
+begin
+  Result := True;
+  FDataPos := 0;
 end;
 
 function TWAVLoader.FillBuffer(Buf: Pointer; Len: LongWord): LongWord;
+var
+  OutPos: LongWord;
+  Tx: LongWord;
 begin
-  if FDataLen < Len then
-    Len := FDataLen;
-  if FData <> nil then
-  begin
-    Move(FData^, Buf^, Len);
-    Result := Len;
-  end
-  else
-    Result := 0;
-end;
+  OutPos := 0;
+  Result := 0;
 
-function TWAVLoader.GetAll(var OutPtr: Pointer): LongWord;
-begin
-  OutPtr := FData;
-  Result := FDataLen;
+  while (FDataPos < FDataLen) and (OutPos < Len) do
+  begin
+    Tx := nmin(FDataLen - FDataPos, Len - OutPos);
+    Move((FData + FDataPos)^, (Buf + OutPos)^, Tx);
+
+    FDataPos := FDataPos + Tx;
+    OutPos := OutPos + Tx;
+    Result := Result + Tx;
+
+    if (FDataPos >= FDataLen) and FLooping then
+      FDataPos := 0;
+  end;
 end;
 
 procedure TWAVLoader.Free();
 begin
   if FData <> nil then
     SDL_FreeWAV(FData); // SDL allocates inside the DLL, so we need this
+  FDataPos := 0;
+  FData := nil;
+  FDataLen := 0;
 end;
 
 initialization

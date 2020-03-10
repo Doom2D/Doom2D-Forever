@@ -24,22 +24,22 @@ type
 
   TVorbisLoader = class (TSoundLoader)
   public
-    function Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean; override; overload;
-    function Load(FName: string; SStreaming: Boolean): Boolean; override; overload;
-    function SetPosition(Pos: LongWord): Boolean; override;
+    function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; override; overload;
+    function Load(FName: string; Loop: Boolean): Boolean; override; overload;
+    function Finished(): Boolean; override;
+    function Restart(): Boolean; override;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
-    function GetAll(var OutPtr: Pointer): LongWord; override;
     procedure Free(); override;
 
   private
     FOgg: OggVorbis_File;
     FData: TStream;
     FBuf: Pointer;
-    FTotal: LongWord;
     FOpen: Boolean;
+    FFinished: Boolean;
+    FLooping: Boolean;
 
-    function LoadStream(Stream: TStream; SStreaming: Boolean): Boolean;
-    function LoadEntireStream(): Pointer;
+    function LoadStream(Stream: TStream): Boolean;
   end;
 
   TVorbisLoaderFactory = class (TSoundLoaderFactory)
@@ -142,35 +142,10 @@ end;
 
 (* TVorbisLoader *)
 
-function TVorbisLoader.LoadEntireStream(): Pointer;
-var
-  Samples: ogg_int64_t;
-  Ret: clong;
-begin
-  Result := nil;
-
-  Samples := ov_pcm_total(FOgg, -1);
-  if Samples < 0 then Exit;
-
-  FTotal := Samples * 2 * FFormat.Channels;
-  Result := GetMem(FTotal);
-  if Result = nil then Exit;
-
-  Ret := ov_read_ext(FOgg, Result, FTotal, False, 2, True);
-  if Ret < 0 then
-  begin
-    FreeMem(Result);
-    Result := nil;
-  end
-  else
-    FTotal := Ret;
-end;
-
-function TVorbisLoader.LoadStream(Stream: TStream; SStreaming: Boolean): Boolean;
+function TVorbisLoader.LoadStream(Stream: TStream): Boolean;
 var
   Ret: clong;
   Info: pvorbis_info;
-  FullBuf: Pointer;
 begin
   Result := False;
 
@@ -192,37 +167,15 @@ begin
   FFormat.SampleRate := Info^.rate;
   FFormat.Channels := Info^.channels;
   FFormat.SampleBits := 16;
+  FOpen := True;
+  FData := Stream;
 
-  if not SStreaming then
-  begin
-    FullBuf := LoadEntireStream();
-
-    if FullBuf = nil then
-    begin
-      e_LogWriteln('OGG: Load(Data) failed: couldn''t allocate for non-streaming chunk');
-      ov_clear(FOgg);
-      FTotal := 0;
-      Exit;
-    end;
-
-    ov_clear(FOgg);
-    Stream.Free();
-
-    FreeMem(FBuf);
-    FBuf := FullBuf;
-  end
-  else
-  begin
-    FTotal := 0;
-    FOpen := True;
-    FData := Stream;
-  end;
-
-  FStreaming := SStreaming;
+  FStreaming := True;
+  FFinished := False;
   Result := True;
 end;
 
-function TVorbisLoader.Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean;
+function TVorbisLoader.Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean;
 var
   S: TStream;
 begin
@@ -235,7 +188,8 @@ begin
   Move(Data^, FBuf^, Len);
 
   S := TSFSMemoryStreamRO.Create(FBuf, Len{, True});
-  Result := LoadStream(S, SStreaming);
+  Result := LoadStream(S);
+  FLooping := Loop;
 
   if not Result and (S <> nil) then
   begin
@@ -245,7 +199,7 @@ begin
   end;
 end;
 
-function TVorbisLoader.Load(FName: string; SStreaming: Boolean): Boolean;
+function TVorbisLoader.Load(FName: string; Loop: Boolean): Boolean;
 var
   S: TStream = nil;
 begin
@@ -253,7 +207,8 @@ begin
 
   try
     S := openDiskFileRO(FName);
-    Result := LoadStream(S, SStreaming);
+    Result := LoadStream(S);
+    FLooping := Loop;
   except
     on E: Exception do
       e_LogWritefln('OGG: ERROR: could not read file `%s`: %s', [FName, E.Message]);
@@ -263,11 +218,17 @@ begin
     S.Free();
 end;
 
-function TVorbisLoader.SetPosition(Pos: LongWord): Boolean;
+function TVorbisLoader.Finished(): Boolean;
+begin
+  Result := FFinished;
+end;
+
+function TVorbisLoader.Restart(): Boolean;
 begin
   Result := False;
   if not FOpen or (ov_seekable(FOgg) = 0) then Exit;
-  Result := ov_pcm_seek(FOgg, Pos) = 0;
+  FFinished := False;
+  Result := ov_pcm_seek(FOgg, 0) = 0;
 end;
 
 function TVorbisLoader.FillBuffer(Buf: Pointer; Len: LongWord): LongWord;
@@ -275,20 +236,17 @@ var
   Ret: clong;
 begin
   Result := 0;
-  if not FOpen or not FStreaming then Exit;
+  if not FOpen then Exit;
   Ret := ov_read_ext(FOgg, Buf, Len, False, 2, True);
   if Ret < 0 then Exit;
-  if FLooping and (Ret = 0) then
-    ov_pcm_seek(FOgg, 0);
+  if Ret = 0 then
+  begin
+    if FLooping then
+      ov_pcm_seek(FOgg, 0)
+    else
+      FFinished := True;
+  end;
   Result := Ret; 
-end;
-
-function TVorbisLoader.GetAll(var OutPtr: Pointer): LongWord;
-begin
-  Result := 0;
-  if FStreaming or (FTotal = 0) then Exit;
-  Result := FTotal;
-  OutPtr := FBuf;
 end;
 
 procedure TVorbisLoader.Free();
@@ -297,13 +255,10 @@ begin
     ov_clear(FOgg);
   if FData <> nil then
     FData.Free();
-  if FBuf <> nil then
-    FreeMem(FBuf);
   FData := nil;
-  FBuf := nil;
   FOpen := False;
-  FTotal := 0;
   FStreaming := False;
+  FFinished := False;
 end;
 
 initialization

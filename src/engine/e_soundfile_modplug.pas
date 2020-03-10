@@ -24,14 +24,16 @@ type
 
   TModPlugLoader = class (TSoundLoader)
   public
-    function Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean; override; overload;
-    function Load(FName: string; SStreaming: Boolean): Boolean; override; overload;
-    function SetPosition(Pos: LongWord): Boolean; override;
+    function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; override; overload;
+    function Load(FName: string; Loop: Boolean): Boolean; override; overload;
+    function Finished(): Boolean; override;
+    function Restart(): Boolean; override;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
-    function GetAll(var OutPtr: Pointer): LongWord; override;
     procedure Free(); override;
   private
     FFile: PModPlugFile;
+    FFinished: Boolean;
+    FLooping: Boolean;
   end;
 
   TModPlugLoaderFactory = class (TSoundLoaderFactory)
@@ -100,7 +102,7 @@ end;
 
 (* TModPlugLoader *)
 
-function TModPlugLoader.Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean;
+function TModPlugLoader.Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean;
 begin
   Result := False;
 
@@ -115,11 +117,13 @@ begin
   FFormat.SampleBits := 16;
   FFormat.Channels := 2;
   FStreaming := True; // modules are always streaming
+  FFinished := False;
+  FLooping := Loop;
 
   Result := True;
 end;
 
-function TModPlugLoader.Load(FName: string; SStreaming: Boolean): Boolean;
+function TModPlugLoader.Load(FName: string; Loop: Boolean): Boolean;
 var
   S: TStream = nil;
   Data: Pointer;
@@ -136,7 +140,7 @@ begin
     Len := S.Read(Data^, S.Size);
     if Len < 0 then
       raise Exception.Create('what the fuck');
-    Result := Load(Data, Len, SStreaming)
+    Result := Load(Data, Len, Loop);
   except
     on E: Exception do
       e_LogWritefln('ModPlug: ERROR: could not read file `%s`: %s', [FName, E.Message]);
@@ -146,11 +150,17 @@ begin
   if S <> nil then S.Free();
 end;
 
-function TModPlugLoader.SetPosition(Pos: LongWord): Boolean;
+function TModPlugLoader.Finished(): Boolean;
+begin
+  Result := FFinished;
+end;
+
+function TModPlugLoader.Restart(): Boolean;
 begin
   Result := False;
   if FFile = nil then Exit;
-  ModPlug_Seek(FFile, Pos);
+  ModPlug_Seek(FFile, 0);
+  FFinished := False;
   Result := True;
 end;
 
@@ -164,22 +174,22 @@ begin
   Cnt := ModPlug_Read(FFile, Buf, Len);
   if Cnt < 0 then Exit;
 
-  if FLooping and (Cnt < Len) then
-  begin
-    // assume it just ended and restart, because modplug only loops if the
-    // module tells it to
-    ModPlug_Seek(FFile, 0);
-    // this used to be Result := Cnt + Read(FFile, Buf + Cnt, Len - Cnt)
-    // but the difference appears to be negligible
-    Result := ModPlug_Read(FFile, Buf, Len);
-  end
-  else
-    Result := Len;
-end;
+  Result := Cnt;
 
-function TModPlugLoader.GetAll(var OutPtr: Pointer): LongWord;
-begin
-  Result := 0; // modules are always streaming, so this don't make sense
+  if Cnt < Len then
+  begin
+    if FLooping then
+    begin
+      // assume it just ended and restart, because modplug only loops if the
+      // module tells it to
+      ModPlug_Seek(FFile, 0);
+      // this used to be Result := Cnt + Read(FFile, Buf + Cnt, Len - Cnt)
+      // but the difference appears to be negligible
+      Result := ModPlug_Read(FFile, Buf, Len);
+    end
+    else
+      FFinished := True;
+  end;
 end;
 
 procedure TModPlugLoader.Free();
@@ -188,6 +198,8 @@ begin
   begin
     ModPlug_Unload(FFile);
     FFile := nil;
+    FFinished := False;
+    FLooping := False;
   end;
 end;
 

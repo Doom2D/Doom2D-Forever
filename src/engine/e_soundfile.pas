@@ -33,22 +33,19 @@ type
   protected
     FFormat: TSoundFormat;
     FStreaming: Boolean;
-    FLooping: Boolean;
 
   public
-    function Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean; virtual; abstract; overload;
-    function Load(FName: string; SStreaming: Boolean): Boolean; virtual; abstract; overload;
+    function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; virtual; abstract; overload;
+    function Load(FName: string; Loop: Boolean): Boolean; virtual; abstract; overload;
 
-    function SetPosition(Pos: LongWord): Boolean; virtual; abstract;
+    function Finished(): Boolean; virtual; abstract;
+    function Restart(): Boolean; virtual; abstract;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; virtual; abstract;
-
-    function GetAll(var OutPtr: Pointer): LongWord; virtual; abstract;
 
     procedure Free(); virtual; abstract;
 
     property Format: TSoundFormat read FFormat;
     property Streaming: Boolean read FStreaming;
-    property Looping: Boolean read FLooping write FLooping;
   end;
 
   TSoundLoaderFactory = class

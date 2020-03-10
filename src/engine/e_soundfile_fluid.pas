@@ -24,11 +24,11 @@ type
 
   TFluidLoader = class (TSoundLoader)
   public
-    function Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean; override; overload;
-    function Load(FName: string; SStreaming: Boolean): Boolean; override; overload;
-    function SetPosition(Pos: LongWord): Boolean; override;
+    function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; override; overload;
+    function Load(FName: string; Loop: Boolean): Boolean; override; overload;
+    function Finished(): Boolean; override;
+    function Restart(): Boolean; override;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
-    function GetAll(var OutPtr: Pointer): LongWord; override;
     procedure Free(); override;
 
   private
@@ -114,7 +114,7 @@ end;
 
 (* TFluidLoader *)
 
-function TFluidLoader.Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean;
+function TFluidLoader.Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean;
 var
   Ret: cint;
 begin
@@ -146,8 +146,9 @@ begin
     end;
   end;
 
-  if FLooping then
+  if Loop then
     fluid_player_set_loop(FPlayer, -1);
+
   FFormat.SampleRate := 44100;
   FFormat.SampleBits := 16;
   FFormat.Channels := 2;
@@ -156,7 +157,7 @@ begin
   Result := True;
 end;
 
-function TFluidLoader.Load(FName: string; SStreaming: Boolean): Boolean;
+function TFluidLoader.Load(FName: string; Loop: Boolean): Boolean;
 var
   Ret: cint;
 begin
@@ -188,8 +189,9 @@ begin
     end;
   end;
 
-  if FLooping then
+  if Loop then
     fluid_player_set_loop(FPlayer, -1);
+
   FFormat.SampleRate := 44100;
   FFormat.SampleBits := 16;
   FFormat.Channels := 2;
@@ -198,9 +200,22 @@ begin
   Result := True;
 end;
 
-function TFluidLoader.SetPosition(Pos: LongWord): Boolean;
+function TFluidLoader.Finished(): Boolean;
 begin
-  Result := False; // unsupported?
+  Result := fluid_player_get_status(FPlayer) = FLUID_PLAYER_DONE;
+end;
+
+function TFluidLoader.Restart(): Boolean;
+begin
+  Result := False;
+  // fluid_player_seek() is only supported in full 2.x.x, and I ain't compiling that shit
+  // if (FSynth <> nil) and (FPlayer <> nil) then
+  // begin
+  //   fluid_synth_system_reset(FSynth);
+  //   fluid_player_seek(FPlayer, 0);
+  //   fluid_player_play(FPlayer);
+  //   Result := True;
+  // end;
 end;
 
 function TFluidLoader.FillBuffer(Buf: Pointer; Len: LongWord): LongWord;
@@ -211,11 +226,6 @@ begin
   if (FSynth = nil) or (FPlayer = nil) then Exit;
   Ret := fluid_synth_write_s16(FSynth, Len div 4, Buf, 0, 2, Buf, 1, 2);
   if Ret = FLUID_OK then Result := Len;
-end;
-
-function TFluidLoader.GetAll(var OutPtr: Pointer): LongWord;
-begin
-  Result := 0; // midis are always streaming, so this don't make sense
 end;
 
 procedure TFluidLoader.Free();

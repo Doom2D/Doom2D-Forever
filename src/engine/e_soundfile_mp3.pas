@@ -24,21 +24,22 @@ type
 
   TMP3Loader = class (TSoundLoader)
   public
-    function Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean; override; overload;
-    function Load(FName: string; SStreaming: Boolean): Boolean; override; overload;
-    function SetPosition(Pos: LongWord): Boolean; override;
+    function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; override; overload;
+    function Load(FName: string; Loop: Boolean): Boolean; override; overload;
+    function Finished(): Boolean; override;
+    function Restart(): Boolean; override;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
-    function GetAll(var OutPtr: Pointer): LongWord; override;
     procedure Free(); override;
 
   private
     FMPG: pmpg123_handle;
     FData: TStream;
     FBuf: Pointer;
-    FAllSamples: Pointer;
     FOpen: Boolean;
+    FFinished: Boolean;
+    FLooping: Boolean;
 
-    function LoadStream(Stream: TStream; SStreaming: Boolean): Boolean;
+    function LoadStream(Stream: TStream): Boolean;
   end;
 
   TMP3LoaderFactory = class (TSoundLoaderFactory)
@@ -138,7 +139,7 @@ end;
 
 (* TMP3Loader *)
 
-function TMP3Loader.LoadStream(Stream: TStream; SStreaming: Boolean): Boolean;
+function TMP3Loader.LoadStream(Stream: TStream): Boolean;
 var
   SRate: clong;
   SEnc, SChans: LongInt;
@@ -182,12 +183,13 @@ begin
   FFormat.SampleRate := SRate;
   FFormat.SampleBits := 16;
   FFormat.Channels := SChans;
-  FStreaming := SStreaming;
+  FStreaming := True;
+  FFinished := False;
 
   Result := True;
 end;
 
-function TMP3Loader.Load(Data: Pointer; Len: LongWord; SStreaming: Boolean): Boolean;
+function TMP3Loader.Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean;
 var
   S: TStream;
 begin
@@ -200,7 +202,8 @@ begin
   Move(Data^, FBuf^, Len);
 
   S := TSFSMemoryStreamRO.Create(FBuf, Len{, True});
-  Result := LoadStream(S, SStreaming);
+  Result := LoadStream(S);
+  FLooping := Loop;
 
   if not Result and (S <> nil) then
   begin
@@ -210,7 +213,7 @@ begin
   end;
 end;
 
-function TMP3Loader.Load(FName: string; SStreaming: Boolean): Boolean;
+function TMP3Loader.Load(FName: string; Loop: Boolean): Boolean;
 var
   S: TStream = nil;
 begin
@@ -218,7 +221,8 @@ begin
 
   try
     S := openDiskFileRO(FName);
-    Result := LoadStream(S, SStreaming);
+    Result := LoadStream(S);
+    FLooping := Loop;
   except
     on E: Exception do
       e_LogWritefln('MPG123: ERROR: could not read file `%s`: %s', [FName, E.Message]);
@@ -228,11 +232,17 @@ begin
     S.Destroy();
 end;
 
-function TMP3Loader.SetPosition(Pos: LongWord): Boolean;
+function TMP3Loader.Finished(): Boolean;
+begin
+  Result := FFinished;
+end;
+
+function TMP3Loader.Restart(): Boolean;
 begin
   Result := False;
   if FMPG = nil then Exit;
-  Result := mpg123_seek(FMPG, Pos, 0) = MPG123_OK;
+  FFinished := False;
+  Result := mpg123_seek(FMPG, 0, 0) = MPG123_OK;
 end;
 
 function TMP3Loader.FillBuffer(Buf: Pointer; Len: LongWord): LongWord;
@@ -243,19 +253,19 @@ begin
   Result := 0;
   Got := 0;
   if FMPG = nil then Exit;
-  Ret := mpg123_read(FMPG, Buf, Len, @Got);
-  if FLooping and ((Ret = MPG123_DONE) or (Got = 0)) then
-    Ret := mpg123_seek(FMPG, 0, 0); // loop
-  if Ret = MPG123_OK then
-    Result := Got;
-end;
 
-function TMP3Loader.GetAll(var OutPtr: Pointer): LongWord;
-begin
-  Result := 0;
-  if FMPG = nil then Exit;
-  if FStreaming then Exit;
-  // TODO
+  Ret := mpg123_read(FMPG, Buf, Len, @Got);
+
+  if (Ret = MPG123_DONE) or (Got = 0) then
+  begin
+    if FLooping then
+      Ret := mpg123_seek(FMPG, 0, 0) // loop
+    else
+      FFinished := True;
+  end;
+
+  if (Ret = MPG123_OK) or FFinished then
+    Result := Got;
 end;
 
 procedure TMP3Loader.Free();
@@ -264,12 +274,12 @@ begin
   if FMPG <> nil then mpg123_delete(FMPG);
   if FData <> nil then FData.Destroy();
   if FBuf <> nil then FreeMem(FBuf);
-  if FAllSamples <> nil then FreeMem(FAllSamples);
   FOpen := False;
+  FFinished := False;
+  FLooping := False;
   FMPG := nil;
   FData := nil;
   FBuf := nil;
-  FAllSamples := nil;
 end;
 
 initialization

@@ -28,6 +28,7 @@ uses
 const
   FLUID_OK = 0;
   FLUID_FAILED = -1;
+  FLUID_PLAYER_DONE = 2;
 
 type
   pfluid_settings_t = pointer;
@@ -53,6 +54,7 @@ function new_fluid_synth(settings: pfluid_settings_t): pfluid_synth_t; cdecl; ex
 function delete_fluid_synth(synth: pfluid_synth_t): cint; cdecl; external {$IFDEF FS_DYNAMIC}fluidlib{$ENDIF};
 function fluid_synth_get_settings(synth: pfluid_synth_t): pfluid_settings_t; cdecl; external {$IFDEF FS_DYNAMIC}fluidlib{$ENDIF};
 function fluid_synth_sfload(synth: pfluid_synth_t; fname: pchar; reset: cint): cint; cdecl; external {$IFDEF FS_DYNAMIC}fluidlib{$ENDIF};
+function fluid_synth_system_reset(synth: pfluid_synth_t): cint; cdecl; external {$IFDEF FS_DYNAMIC}fluidlib{$ENDIF};
 
 function fluid_synth_write_s16(synth: pfluid_synth_t; len: cint; lout: pointer; loff, linc: cint; rout: pointer; roff, rinc: cint): cint; cdecl; external {$IFDEF FS_DYNAMIC}fluidlib{$ENDIF};
 
