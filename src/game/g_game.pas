@@ -386,7 +386,7 @@ uses
   e_input, e_log, g_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
-  g_language, g_net, g_main,
+  g_language, g_net, g_main, g_phys,
   ENet, e_msg, g_netmsg, g_netmaster,
   sfs, wadreader, g_system;
 
@@ -3630,6 +3630,7 @@ end;
 procedure DrawPlayer(p: TPlayer);
 var
   px, py, a, b, c, d, i, fX, fY: Integer;
+  camObj: TObj;
   //R: TRect;
 begin
   if (p = nil) or (p.FDummy) then
@@ -3647,9 +3648,10 @@ begin
 
   glPushMatrix();
 
-  p.Obj.lerp(gLerpFactor, fX, fY);
+  camObj := p.getCameraObj();
+  camObj.lerp(gLerpFactor, fX, fY);
   px := fX + PLAYER_RECT_CX;
-  py := fY + PLAYER_RECT_CY+nlerp(p.SlopeOld, p.Obj.slopeUpLeft, gLerpFactor);
+  py := fY + PLAYER_RECT_CY+nlerp(p.SlopeOld, camObj.slopeUpLeft, gLerpFactor);
 
   if (g_dbg_scale = 1.0) and (not g_dbg_ignore_bounds) then
   begin

@@ -239,7 +239,7 @@ type
 
     procedure doDamage (v: Integer);
 
-    function followCorpse(): Boolean;
+    function refreshCorpse(): Boolean;
 
   public
     FDamageBuffer:   Integer;
@@ -272,6 +272,7 @@ type
     FSpawnInvul: Integer;
     FHandicap:  Integer;
     FWaitForFirstSpawn: Boolean; // set to `true` in server, used to spawn a player on first full state request
+    FCorpse:    Integer;
 
     // debug: viewport offset
     viewPortX, viewPortY, viewPortW, viewPortH: Integer;
@@ -350,6 +351,8 @@ type
 
     procedure getMapBox (out x, y, w, h: Integer); inline;
     procedure moveBy (dx, dy: Integer); inline;
+
+    function getCameraObj(): TObj;
 
   public
     property    Vel: TPoint2i read FObj.Vel;
@@ -597,7 +600,7 @@ function  g_Player_Get(UID: Word): TPlayer;
 function  g_Player_GetCount(): Byte;
 function  g_Player_GetStats(): TPlayerStatArray;
 function  g_Player_ValidName(Name: String): Boolean;
-procedure g_Player_CreateCorpse(Player: TPlayer);
+function  g_Player_CreateCorpse(Player: TPlayer): Integer;
 procedure g_Player_CreateGibs(fX, fY: Integer; ModelName: String; fColor: TRGB);
 procedure g_Player_CreateShell(fX, fY, dX, dY: Integer; T: Byte);
 procedure g_Player_UpdatePhysicalObjects();
@@ -1572,21 +1575,24 @@ begin
       end;
 end;
 
-procedure g_Player_CreateCorpse(Player: TPlayer);
+function  g_Player_CreateCorpse(Player: TPlayer): Integer;
 var
   i: Integer;
   find_id: DWORD;
   ok: Boolean;
 begin
+  Result := -1;
+
   if Player.alive then
     Exit;
 
 // Разрываем связь с прежним трупом:
-  if gCorpses <> nil then
-    for i := 0 to High(gCorpses) do
-      if gCorpses[i] <> nil then
-        if gCorpses[i].FPlayerUID = Player.FUID then
-          gCorpses[i].FPlayerUID := 0;
+  i := Player.FCorpse;
+  if (i >= 0) and (i < Length(gCorpses)) then
+  begin
+    if (gCorpses[i] <> nil) and (gCorpses[i].FPlayerUID = Player.FUID) then
+      gCorpses[i].FPlayerUID := 0;
+  end;
 
   if Player.FObj.Y >= gMapInfo.Height+128 then
     Exit;
@@ -1614,6 +1620,8 @@ begin
         gCorpses[find_id].FObj.Vel := FObj.Vel;
         gCorpses[find_id].FObj.Accel := FObj.Accel;
         gCorpses[find_id].FPlayerUID := FUID;
+
+        Result := find_id;
       end
     else
       g_Player_CreateGibs(FObj.X + PLAYER_RECT_CX,
@@ -2201,6 +2209,7 @@ begin
   FFirePainTime := 0;
   FFireAttacker := 0;
   FHandicap := 100;
+  FCorpse := -1;
 
   FActualModelName := 'doomer';
 
@@ -3605,7 +3614,7 @@ begin
     DropFlag(KillType = K_FALLKILL);
   end;
 
-  g_Player_CreateCorpse(Self);
+  FCorpse := g_Player_CreateCorpse(Self);
 
   if Srv and (gGameSettings.MaxLives > 0) and FNoRespawn and
      (gLMSRespawn = LMS_RESPAWN_NONE) then
@@ -4416,6 +4425,7 @@ begin
   FDeath := 0;
   FSecrets := 0;
   FSpawnInvul := 0;
+  FCorpse := -1;
   FReady := False;
   if FNoRespawn then
   begin
@@ -4613,6 +4623,7 @@ begin
   FPain := 0;
   FLastHit := 0;
   FSpawnInvul := 0;
+  FCorpse := -1;
 
   if not g_Game_IsServer then
     Exit;
@@ -4795,6 +4806,7 @@ begin
   FPhysics := False;
   FWantsInGame := False;
   FSpawned := False;
+  FCorpse := -1;
 
   if FNoRespawn then
   begin
@@ -5027,11 +5039,12 @@ begin
     Result := 1;
 end;
 
-function TPlayer.followCorpse(): Boolean;
+function TPlayer.refreshCorpse(): Boolean;
 var
   i: Integer;
 begin
   Result := False;
+  FCorpse := -1;
   if FAlive or FSpectator then
     Exit;
   if (gCorpses = nil) or (Length(gCorpses) = 0) then
@@ -5041,14 +5054,24 @@ begin
       if gCorpses[i].FPlayerUID = FUID then
       begin
         Result := True;
-        FObj.X := gCorpses[i].FObj.X;
-        FObj.Y := gCorpses[i].FObj.Y;
-        FObj.Vel.X := gCorpses[i].FObj.Vel.X;
-        FObj.Vel.Y := gCorpses[i].FObj.Vel.Y;
-        FObj.Accel.X := gCorpses[i].FObj.Accel.X;
-        FObj.Accel.Y := gCorpses[i].FObj.Accel.Y;
+        FCorpse := i;
         break;
       end;
+end;
+
+function TPlayer.getCameraObj(): TObj;
+begin
+  if (not FAlive) and (not FSpectator) and
+     (FCorpse >= 0) and (FCorpse < Length(gCorpses)) and
+     (gCorpses[FCorpse] <> nil) and (gCorpses[FCorpse].FPlayerUID = FUID) then
+  begin
+    gCorpses[FCorpse].FObj.slopeUpLeft := FObj.slopeUpLeft;
+    Result := gCorpses[FCorpse].FObj;
+  end
+  else
+  begin
+    Result := FObj;
+  end;
 end;
 
 procedure TPlayer.PreUpdate();
@@ -5135,8 +5158,7 @@ begin
 
     if FPhysics then
     begin
-      if not followCorpse() then
-        g_Obj_Move(@FObj, True, True, True);
+      g_Obj_Move(@FObj, True, True, True);
       positionChanged(); // this updates spatial accelerators
     end;
 
@@ -5270,8 +5292,7 @@ begin
 
   if FPhysics then
   begin
-    if not followCorpse() then
-      g_Obj_Move(@FObj, True, True, True);
+    g_Obj_Move(@FObj, True, True, True);
     positionChanged(); // this updates spatial accelerators
   end
   else
