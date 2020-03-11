@@ -72,12 +72,6 @@ const
   BANLIST_FILENAME = 'banlist.txt';
   NETDUMP_FILENAME = 'netdump';
 
-  {$IF DEFINED(FREEBSD) OR DEFINED(DARWIN)}
-    NilThreadId = nil;
-  {$ELSE}
-    NilThreadId = 0;
-  {$ENDIF}
-
 type
   TNetMapResourceInfo = record
     wadName: AnsiString; // wad file name, without a path

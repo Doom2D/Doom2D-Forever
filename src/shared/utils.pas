@@ -36,6 +36,12 @@ const wadExtensions: array [0..6] of AnsiString = (
   '.dfzip'
 );
 
+{$IF DEFINED(FREEBSD) OR DEFINED(DARWIN)}
+const NilThreadId = nil;
+{$ELSE}
+const NilThreadId = 0;
+{$ENDIF}
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
