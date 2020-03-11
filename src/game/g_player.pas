@@ -3424,9 +3424,6 @@ begin
   end;
   FShellTimer := -1;
 
-  // have to do this to avoid death tremors
-  PreUpdate();
-
   if (gGameSettings.MaxLives > 0) and Srv and (gLMSRespawn = LMS_RESPAWN_NONE) then
   begin
     if FLives > 0 then FLives := FLives - 1;
