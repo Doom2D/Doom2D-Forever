@@ -181,7 +181,7 @@ begin
   begin
     if (not wMinimized) then
     begin
-      if gPause or not gLerpActors then
+      if gPause or (not gLerpActors) or (gState = STATE_FOLD) then
         gLerpFactor := 1.0
       else
         gLerpFactor := nmin(1.0, (Time - Time_Old) / 28.0);
