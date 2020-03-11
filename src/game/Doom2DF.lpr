@@ -81,6 +81,10 @@ uses
     xmp in '../lib/xmp/xmp.pas',
     e_soundfile_xmp in '../engine/e_soundfile_xmp.pas',
   {$ENDIF}
+  {$IFDEF USE_GME}
+    gme in '../lib/gme/gme.pas',
+    e_soundfile_gme in '../engine/e_soundfile_gme.pas',
+  {$ENDIF}
   {$IFDEF USE_MPG123}
     mpg123 in '../lib/mpg123/mpg123.pas',
     e_soundfile_mp3 in '../engine/e_soundfile_mp3.pas',
