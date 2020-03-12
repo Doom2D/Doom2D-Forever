@@ -2454,8 +2454,11 @@ var
   Rb, Gb, Bb,
   Rw, Gw, Bw: SmallInt;
   Dot: Byte;
+  CObj: TObj;
 begin
-  FObj.lerp(gLerpFactor, fX, fY);
+  CObj := getCameraObj();
+  CObj.lerp(gLerpFactor, fX, fY);
+  // NB: _F_Obj.Rect is used to keep the bubble higher; this is not a mistake
   bubX := fX+FObj.Rect.X + IfThen(FDirection = TDirection.D_LEFT, -4, 18);
   bubY := fY+FObj.Rect.Y - 18;
   Rb := 64;
