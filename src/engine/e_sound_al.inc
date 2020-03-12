@@ -125,7 +125,7 @@ var
   StreamThread: TThreadID = NilThreadId;
   StreamThreadRunning: Boolean = False;
   StreamLock: TRTLCriticalSection;
-  StreamBufTime: Integer = 100; // time to sleep between buffer checks
+  StreamBufTime: Integer = 10; // time to sleep between buffer checks
 
 procedure UpdateStreamSource(Src: Integer); forward;
 
@@ -505,7 +505,6 @@ begin
       (STREAM_BUFSIZE div (2 * e_SoundsArray[ID].Loader.Format.SampleBits div 8)) div
       (e_SoundsArray[ID].Loader.Format.SampleRate div 1000) - 1;
     if StreamBufTime < 1 then StreamBufTime := 1;
-    e_LogWritefln('sleep time = %d', [StreamBufTime]);
     {$ENDIF}
     // reset position
     e_SoundsArray[ID].Loader.Restart();
