@@ -120,6 +120,28 @@ var
   alStreamData: array [0..STREAM_BUFSIZE-1] of Byte;
   alStreamAvail: Integer = NUM_STREAM_BUFFERS;
 
+{$IFNDEF OPENAL_SINGLETHREADED}
+var
+  StreamThread: TThreadID = NilThreadId;
+  StreamThreadRunning: Boolean = False;
+  StreamLock: TRTLCriticalSection;
+  StreamBufTime: Integer = 100; // time to sleep between buffer checks
+
+procedure UpdateStreamSource(Src: Integer); forward;
+
+function StreamThreadProc(Param: Pointer): PtrInt;
+begin
+  while StreamThreadRunning do
+  begin
+    EnterCriticalSection(StreamLock);
+    UpdateStreamSource(MUSIC_SOURCE);
+    LeaveCriticalSection(StreamLock);
+    Sleep(StreamBufTime);
+  end;
+  Result := 0;
+end;
+{$ENDIF}
+
 function CheckALError(): Boolean;
 begin
   e_ALError := alGetError();
@@ -213,6 +235,12 @@ begin
     e_LogWriteln('AL: ERROR: alGenSources() for music failed: ' + GetALError())
   else
     alStreamAvail := NUM_STREAM_BUFFERS;
+
+  {$IFNDEF OPENAL_SINGLETHREADED}
+  InitCriticalSection(StreamLock);
+  StreamThreadRunning := True;
+  StreamThread := BeginThread(Addr(StreamThreadProc));
+  {$ENDIF}
 
   Result := True;
 end;
@@ -468,6 +496,17 @@ begin
   if e_SoundsArray[ID].Loader <> nil then
   begin
     // this is a stream
+    {$IFNDEF OPENAL_SINGLETHREADED}
+    // lock the stream so the stream thread doesn't shit itself
+    EnterCriticalSection(StreamLock);
+    // number of stereo samples / samplerate =
+    // time until buffer runs out
+    StreamBufTime :=
+      (STREAM_BUFSIZE div (2 * e_SoundsArray[ID].Loader.Format.SampleBits div 8)) div
+      (e_SoundsArray[ID].Loader.Format.SampleRate div 1000) - 1;
+    if StreamBufTime < 1 then StreamBufTime := 1;
+    e_LogWritefln('sleep time = %d', [StreamBufTime]);
+    {$ENDIF}
     // reset position
     e_SoundsArray[ID].Loader.Restart();
     if CurStream <> ID then // changing streams
@@ -483,6 +522,10 @@ begin
     end;
     // this shit is playing now
     CurStream := ID;
+    {$IFNDEF OPENAL_SINGLETHREADED}
+    // unlock the stream
+    LeaveCriticalSection(StreamLock);
+    {$ENDIF}
   end
   else
   begin
@@ -634,6 +677,16 @@ end;
 
 procedure e_ReleaseSoundSystem();
 begin
+  {$IFNDEF OPENAL_SINGLETHREADED}
+  if StreamThread <> NilThreadId then
+  begin
+    StreamThreadRunning := False;
+    WaitForThreadTerminate(StreamThread, 66666);
+    StreamThread := NilThreadId;
+    DoneCriticalSection(StreamLock);
+  end;
+  {$ENDIF}
+
   e_RemoveAllSounds();
 
   alcMakeContextCurrent(nil);
@@ -703,8 +756,10 @@ begin
       alOwners[S] := nil;
     end;
 
+  {$IFDEF OPENAL_SINGLETHREADED}
   // update the stream sources
   UpdateStreamSource(MUSIC_SOURCE);
+  {$ENDIF}
 end;
 
 { TBasicSound: }
