@@ -1574,7 +1574,8 @@ begin
       for I := Low(SL) to High(SL) do
         if (SL[I].PingAddr.host = SvAddr.host) and
            (SL[I].PingAddr.port = SvAddr.port) and
-           (SL[I].Port = tmpsv.Port) then
+           (SL[I].Port = tmpsv.Port) and
+           (SL[I].Name = tmpsv.Name) then
         begin
           tmpsv.IP := SL[I].IP;
           SL[I] := tmpsv;
