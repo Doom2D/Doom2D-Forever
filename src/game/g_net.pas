@@ -1492,8 +1492,6 @@ begin
   NetAddr.host := IPAddr;
   NetAddr.port := Port;
 
-  if NetForwardPorts then NetPortThread := BeginThread(ForwardThread);
-
   NetHost := enet_host_create(@NetAddr, NET_MAXCLIENTS, NET_CHANS, 0, 0);
 
   if (NetHost = nil) then
@@ -1503,6 +1501,8 @@ begin
     g_Net_Cleanup;
     Exit;
   end;
+
+  if NetForwardPorts then NetPortThread := BeginThread(ForwardThread);
 
   NetPongSock := enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
   if NetPongSock <> ENET_SOCKET_NULL then
@@ -1606,7 +1606,7 @@ var
   Ping: array [0..9] of Byte;
   NPl: Byte;
 begin
-  if NetPongSock = ENET_SOCKET_NULL then Exit;
+  if (NetPongSock = ENET_SOCKET_NULL) or (NetHost = nil) then Exit;
 
   Buf.data := Addr(Ping[0]);
   Buf.dataLength := 2+8;
@@ -2237,6 +2237,9 @@ var
   Err, I: Integer;
 begin
   Result := False;
+
+  if NetHost = nil then
+    exit;
 
   if NetPortForwarded = NetHost.address.port then
   begin
