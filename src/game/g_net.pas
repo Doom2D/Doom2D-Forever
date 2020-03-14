@@ -1623,7 +1623,7 @@ begin
     NetOut.Clear();
     NetOut.Write(Byte(Ord('D')));
     NetOut.Write(Byte(Ord('F')));
-    NetOut.Write(NetPort);
+    NetOut.Write(NetHost.address.port);
     NetOut.Write(ClTime);
     TMasterHost.writeInfo(NetOut);
     NPl := 0;
@@ -2238,7 +2238,7 @@ var
 begin
   Result := False;
 
-  if NetPortForwarded = NetPort then
+  if NetPortForwarded = NetHost.address.port then
   begin
     Result := True;
     exit;
@@ -2264,7 +2264,7 @@ begin
     exit;
   end;
 
-  StrPort := IntToStr(NetPort);
+  StrPort := IntToStr(NetHost.address.port);
   I := UPNP_AddPortMapping(
     Urls.controlURL, Addr(data.first.servicetype[1]),
     PChar(StrPort), PChar(StrPort), Addr(LanAddr[0]), PChar('D2DF'),
@@ -2273,7 +2273,7 @@ begin
 
   if I <> 0 then
   begin
-    conwritefln('forwarding port %d failed: error %d', [NetPort, I]);
+    conwritefln('forwarding port %d failed: error %d', [NetHost.address.port, I]);
     FreeUPNPDevList(DevList);
     FreeUPNPUrls(@Urls);
     exit;
@@ -2300,10 +2300,10 @@ begin
     end;
   end;
 
-  conwritefln('forwarded port %d successfully', [NetPort]);
+  conwritefln('forwarded port %d successfully', [NetHost.address.port]);
   NetIGDControl := AnsiString(Urls.controlURL);
   NetIGDService := data.first.servicetype;
-  NetPortForwarded := NetPort;
+  NetPortForwarded := NetHost.address.port;
 
   FreeUPNPDevList(DevList);
   FreeUPNPUrls(@Urls);
