@@ -647,7 +647,16 @@ end;
 
 procedure Update ();
 begin
+  // remember old mobj positions, prepare for update
+  g_Game_PreUpdate();
+  // server: receive client commands for new frame
+  // client: receive game state changes from server
+       if (NetMode = NET_SERVER) then g_Net_Host_Update()
+  else if (NetMode = NET_CLIENT) then g_Net_Client_Update();
+  // think
   g_Game_Update();
+  // server: send any accumulated outgoing data to clients
+  if NetMode = NET_SERVER then g_Net_Flush();
 end;
 
 

@@ -145,14 +145,8 @@ begin
   begin
     flag := true;
     for i := 1 to t do
-    begin
-           if (NetMode = NET_SERVER) then g_Net_Host_Update()
-      else if (NetMode = NET_CLIENT) then g_Net_Client_Update();
       Update();
-    end;
   end;
-
-  if NetMode = NET_SERVER then g_Net_Flush();
 
   g_Map_ProfilersEnd();
   g_Mons_ProfilersEnd();

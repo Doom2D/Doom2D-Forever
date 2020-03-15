@@ -84,6 +84,7 @@ procedure g_Game_Free (freeTextures: Boolean=true);
 procedure g_Game_LoadData();
 procedure g_Game_FreeData();
 procedure g_Game_Update();
+procedure g_Game_PreUpdate();
 procedure g_Game_Draw();
 procedure g_Game_Quit();
 procedure g_Game_SetupScreenSize();
@@ -1716,6 +1717,17 @@ begin
   MC_SEND_CheatRequest(NET_CHEAT_READY);
 end;
 
+procedure g_Game_PreUpdate();
+begin
+  // these are in separate PreUpdate functions because they can interact during Update()
+  // and are synced over the net
+  // we don't care that much about corpses and gibs
+  g_Player_PreUpdate();
+  g_Monsters_PreUpdate();
+  g_Items_PreUpdate();
+  g_Weapon_PreUpdate();
+end;
+
 procedure g_Game_Update();
 var
   Msg: g_gui.TMessage;
@@ -2161,13 +2173,6 @@ begin
         end;
       end;
     end;
-
-  // these are in separate PreUpdate functions because they can interact during Update()
-  // we don't care that much about corpses and gibs
-    g_Player_PreUpdate();
-    g_Monsters_PreUpdate();
-    g_Items_PreUpdate();
-    g_Weapon_PreUpdate();
 
   // Обновляем все остальное:
     g_Map_Update();
