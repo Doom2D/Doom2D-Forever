@@ -39,6 +39,7 @@ Additionally you can add following options:
     * -dUSE_XMP         Build with linxmp
     * -dUSE_MPG123      Build with libmpg123
     * -dUSE_OPUS        Build with libopus
+    * -dUSE_GME         Build with libgme
   Other:
     * -dSDL2_NODPI      Build for old libSDL2
     * -dUSE_MINIUPNPC   Build with libminiupnpc for automatic server port
@@ -66,6 +67,8 @@ Then, you can use:
   -dLIBJIT_WINDOZE_STATIC       -- static LibJIT
   -dLIBENET_WINDOZE_STATIC      -- static ENet
   -dLIBMINIUPNPC_WINDOZE_STATIC -- static MiniUPNPC
+  -dVORBIS_WINDOZE_STATIC       -- static libogg/libvorbis (only in AL builds)
+  -dOPUS_WINDOZE_STATIC         -- static libogg/libopus (only in AL builds)
 
 Don't forget to specify lib*.a location with -Fi<...>
 
