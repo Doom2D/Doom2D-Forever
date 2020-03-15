@@ -527,7 +527,7 @@ begin
               g_TraceVector(X, Y, Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
                             Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)) then
           begin
-            Damage(50, 0, 0);
+            Damage(50, SpawnerUID, 0, 0);
             g_Weapon_BFGHit(Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
                             Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2));
           end;
@@ -876,8 +876,8 @@ begin
            g_Obj_Collide(obj, @gCorpses[i].Obj) then
         begin
           // Распиливаем труп:
-          gCorpses[i].Damage(d, (obj^.Vel.X+obj^.Accel.X) div 4,
-                                (obj^.Vel.Y+obj^.Accel.Y) div 4);
+          gCorpses[i].Damage(d, SpawnerUID, (obj^.Vel.X+obj^.Accel.X) div 4,
+                                            (obj^.Vel.Y+obj^.Accel.Y) div 4);
           Result := 1;
         end;
   end;
@@ -1050,7 +1050,7 @@ begin
             mm := Max(abs(dx), abs(dy));
             if mm = 0 then mm := 1;
 
-            Damage(Round(100*(rad-m)/rad), (dx*10) div mm, (dy*10) div mm);
+            Damage(Round(100*(rad-m)/rad), SpawnerUID, (dx*10) div mm, (dy*10) div mm);
           end;
         end;
 

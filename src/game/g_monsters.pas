@@ -2938,9 +2938,9 @@ begin
                                    FObj.Rect.Width, 8, @co) and (Random(3) = 0) then
                     // Пинаем трупы
                     if FObj.Vel.X < 0 then
-                      gCorpses[a].Damage(b*2, -b, Random(7)) // налево
+                      gCorpses[a].Damage(b*2, FUID, -b, Random(7)) // налево
                     else
-                      gCorpses[a].Damage(b*2, b, Random(7)); // направо
+                      gCorpses[a].Damage(b*2, FUID, b, Random(7)); // направо
                 end;
             end;
           // Если цель высоко, то, возможно, прыгаем:
@@ -3788,9 +3788,9 @@ begin
                                    FObj.Rect.Width, 8, @co) and (Random(3) = 0) then
                     // Пинаем трупы
                     if FObj.Vel.X < 0 then
-                      gCorpses[a].Damage(b*2, -b, Random(7)) // налево
+                      gCorpses[a].Damage(b*2, FUID, -b, Random(7)) // налево
                     else
-                      gCorpses[a].Damage(b*2, b, Random(7)); // направо
+                      gCorpses[a].Damage(b*2, FUID, b, Random(7)); // направо
                 end;
             end;
           end;

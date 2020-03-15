@@ -7662,8 +7662,7 @@ begin
   case gAnnouncer of
     ANNOUNCE_NONE:
       Exit;
-    ANNOUNCE_ME,
-    ANNOUNCE_MEPLUS:
+    ANNOUNCE_ME:
       if not g_Game_IsWatchedPlayer(SpawnerUID) then
         Exit;
   end;

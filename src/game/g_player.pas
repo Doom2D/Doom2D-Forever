@@ -533,7 +533,7 @@ type
   public
     constructor Create(X, Y: Integer; ModelName: String; aMess: Boolean);
     destructor  Destroy(); override;
-    procedure   Damage(Value: Word; vx, vy: Integer);
+    procedure   Damage(Value: Word; SpawnerUID: Word; vx, vy: Integer);
     procedure   Update();
     procedure   Draw();
     procedure   SaveState (st: TStream);
@@ -6617,7 +6617,7 @@ begin
 end;
 
 
-procedure TCorpse.Damage(Value: Word; vx, vy: Integer);
+procedure TCorpse.Damage(Value: Word; SpawnerUID: Word; vx, vy: Integer);
 var
   pm: TPlayerModel;
   Blood: TModelBlood;
@@ -6648,7 +6648,7 @@ begin
         if (gBodyKillEvent <> -1)
         and gDelayedEvents[gBodyKillEvent].Pending then
           gDelayedEvents[gBodyKillEvent].Pending := False;
-        gBodyKillEvent := g_Game_DelayEvent(DE_BODYKILL, 1050, 0);
+        gBodyKillEvent := g_Game_DelayEvent(DE_BODYKILL, 1050, SpawnerUID);
       end;
     end
   else
