@@ -5779,10 +5779,15 @@ var
 begin
   FXTo := XTo;
   FYTo := YTo;
-  if NetInterpLevel < 1 then
+  if FJustTeleported or (NetInterpLevel < 1) then
   begin
     FObj.X := XTo;
     FObj.Y := YTo;
+    if FJustTeleported then
+    begin
+      FObj.oldX := FObj.X;
+      FObj.oldY := FObj.Y;
+    end;
   end
   else
   begin

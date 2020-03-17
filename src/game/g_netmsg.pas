@@ -1110,8 +1110,9 @@ begin
       if IsKeyPressed(KEY_UP) then kByte := kByte or NET_KEY_UP;
       if IsKeyPressed(KEY_DOWN) then kByte := kByte or NET_KEY_DOWN;
       if IsKeyPressed(KEY_JUMP) then kByte := kByte or NET_KEY_JUMP;
-      if JustTeleported then kByte := kByte or NET_KEY_FORCEDIR;
     end;
+
+    if JustTeleported then kByte := kByte or NET_KEY_FORCEDIR;
 
     NetOut.Write(kByte);
     if Direction = TDirection.D_LEFT then NetOut.Write(Byte(0)) else NetOut.Write(Byte(1));
@@ -2264,7 +2265,7 @@ begin
 
     ReleaseKeys;
 
-    if (kByte = NET_KEY_CHAT) then
+    if LongBool(kByte and NET_KEY_CHAT) then
       PressKey(KEY_CHAT, 10000)
     else
     begin
@@ -2275,7 +2276,9 @@ begin
       if LongBool(kByte and NET_KEY_JUMP) then PressKey(KEY_JUMP, 10000);
     end;
 
-    if ((Pl <> gPlayer1) and (Pl <> gPlayer2)) or LongBool(kByte and NET_KEY_FORCEDIR) then
+    JustTeleported := LongBool(kByte and NET_KEY_FORCEDIR);
+
+    if ((Pl <> gPlayer1) and (Pl <> gPlayer2)) or JustTeleported then
       SetDirection(TDirection(Dir));
 
     GameVelX := M.ReadLongInt();
