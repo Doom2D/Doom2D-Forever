@@ -1854,7 +1854,8 @@ begin
       ItemIndex := 1;
 
   TempResScale := Round(r_pixel_scale - 1);
-  TGUIScroll(menu.GetControl('scResFactor')).Value := TempResScale;
+  with TGUISwitch(menu.GetControl('swResFactor')) do
+    ItemIndex := Min(TempResScale, gRC_Width div 640 - 1);
 end;
 
 procedure ProcApplyVideoOptions();
@@ -1874,14 +1875,15 @@ begin
   begin
     SWidth := gWinSizeX;
     SHeight := gWinSizeY;
+    TempResScale := Min(TempResScale, SWidth div 640 - 1);
   end;
 
   Fullscreen := TGUISwitch(menu.GetControl('swFullScreen')).ItemIndex = 0;
 
   ScaleChanged := False;
-  if TGUIScroll(menu.GetControl('scResFactor')).Value <> TempResScale then
+  if TGUISwitch(menu.GetControl('swResFactor')).ItemIndex <> TempResScale then
   begin
-    TempResScale := TGUIScroll(menu.GetControl('scResFactor')).Value;
+    TempResScale := Min(TGUISwitch(menu.GetControl('swResFactor')).ItemIndex, SWidth div 640 - 1);
     r_pixel_scale := TempResScale + 1;
     ScaleChanged := True;
   end;
@@ -2686,10 +2688,12 @@ begin
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
     end;
-    with AddScroll(_lc[I_MENU_GAME_SCALE_FACTOR]) do
+    with AddSwitch(_lc[I_MENU_GAME_SCALE_FACTOR]) do
     begin
-      Name := 'scResFactor';
-      Max := 10;
+      Name := 'swResFactor';
+      AddItem('1x');
+      for i := 2 to gRC_Width div 640 do
+        AddItem(IntToStr(i) + 'x');
     end;
     AddSpace();
     AddButton(@ProcApplyVideoOptions, _lc[I_MENU_RESOLUTION_APPLY]);
