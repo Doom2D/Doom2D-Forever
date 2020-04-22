@@ -6610,6 +6610,7 @@ begin
         g_Game_Free();
         with gGameSettings do
         begin
+          Options := gsGameFlags;
           GameMode := g_Game_TextToMode(gsGameMode);
           if gSwitchGameMode <> GM_NONE then
             GameMode := gSwitchGameMode;
@@ -6664,6 +6665,7 @@ begin
         g_Game_Free();
         with gGameSettings do
         begin
+          Options := gsGameFlags;
           GameMode := g_Game_TextToMode(gsGameMode);
           if gSwitchGameMode <> GM_NONE then GameMode := gSwitchGameMode;
           if GameMode = GM_NONE then GameMode := GM_DM;
@@ -7997,8 +7999,7 @@ begin
   // Options:
     s := Find_Param_Value(pars, '-opt');
     if (s = '') then
-      Opt := GAME_OPTION_ALLOWEXIT or GAME_OPTION_BOTVSPLAYER or
-        GAME_OPTION_BOTVSMONSTER or GAME_OPTION_DMKEYS
+      Opt := gsGameFlags
     else
       Opt := StrToIntDef(s, 0);
 
