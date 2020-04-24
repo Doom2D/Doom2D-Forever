@@ -4223,6 +4223,7 @@ begin
   e_WriteLog(Format(_lc[I_FATAL_ERROR], [Text]), TMsgType.Warning);
 
   gExit := EXIT_SIMPLE;
+  if gGameOn then EndGame;
 end;
 
 procedure g_SimpleError(Text: String);
