@@ -89,6 +89,7 @@ function  g_Map_IsSpecialTexture(Texture: String): Boolean;
 
 function  g_Map_GetPoint(PointType: Byte; var RespawnPoint: TRespawnPoint): Boolean;
 function  g_Map_GetPointCount(PointType: Byte): Word;
+function  g_Map_GetRandomPointType(): Byte;
 
 function  g_Map_HaveFlagPoints(): Boolean;
 
@@ -3120,6 +3121,14 @@ begin
   for a := 0 to High(RespawnPoints) do
     if RespawnPoints[a].PointType = PointType then
       Result := Result + 1;
+end;
+
+function g_Map_GetRandomPointType(): Byte;
+begin
+  if RespawnPoints = nil then
+    Result := 255
+  else
+    Result := RespawnPoints[Random(Length(RespawnPoints))].PointType;
 end;
 
 function g_Map_HaveFlagPoints(): Boolean;

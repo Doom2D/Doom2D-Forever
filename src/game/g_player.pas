@@ -4472,143 +4472,58 @@ begin
   // Одиночная игра/кооператив
   if gGameSettings.GameMode in [GM_COOP, GM_SINGLE] then
   begin
-    if (Self = gPlayer1) or (Self = gPlayer2) then
+    if Self = gPlayer1 then
     begin
-      // Точка появления своего игрока
-      if Self = gPlayer1 then
-        c := RESPAWNPOINT_PLAYER1
-      else
-        c := RESPAWNPOINT_PLAYER2;
-      if g_Map_GetPointCount(c) > 0 then
-      begin
-        Result := c;
-        Exit;
-      end;
-
-      // Точка появления другого игрока
-      if Self = gPlayer1 then
-        c := RESPAWNPOINT_PLAYER2
-      else
-        c := RESPAWNPOINT_PLAYER1;
-      if g_Map_GetPointCount(c) > 0 then
-      begin
-        Result := c;
-        Exit;
-      end;
-    end else
+      // player 1 should try to spawn on the player 1 point
+      if g_Map_GetPointCount(RESPAWNPOINT_PLAYER1) > 0 then
+        Exit(RESPAWNPOINT_PLAYER1)
+      else if g_Map_GetPointCount(RESPAWNPOINT_PLAYER2) > 0 then
+        Exit(RESPAWNPOINT_PLAYER2);
+    end
+    else if Self = gPlayer2 then
     begin
-      // Точка появления любого игрока (бота)
-      if Random(2) = 0 then
-        c := RESPAWNPOINT_PLAYER1
-      else
-        c := RESPAWNPOINT_PLAYER2;
-      if g_Map_GetPointCount(c) > 0 then
-      begin
-        Result := c;
-        Exit;
-      end;
-    end;
-
-    // Точка любой из команд
-    if Random(2) = 0 then
-      c := RESPAWNPOINT_RED
+      // player 2 should try to spawn on the player 2 point
+      if g_Map_GetPointCount(RESPAWNPOINT_PLAYER2) > 0 then
+        Exit(RESPAWNPOINT_PLAYER2)
+      else if g_Map_GetPointCount(RESPAWNPOINT_PLAYER1) > 0 then
+        Exit(RESPAWNPOINT_PLAYER1);
+    end
     else
-      c := RESPAWNPOINT_BLUE;
-    if g_Map_GetPointCount(c) > 0 then
     begin
-      Result := c;
-      Exit;
-    end;
-
-    // Точка DM
-    c := RESPAWNPOINT_DM;
-    if g_Map_GetPointCount(c) > 0 then
-    begin
-      Result := c;
-      Exit;
+      // other players randomly pick either the first or the second point
+      c := IfThen((Random(2) = 0), RESPAWNPOINT_PLAYER1, RESPAWNPOINT_PLAYER2);
+      if g_Map_GetPointCount(c) > 0 then
+        Exit(c);
+        // try the other one
+      c := IfThen((c = RESPAWNPOINT_PLAYER1), RESPAWNPOINT_PLAYER2, RESPAWNPOINT_PLAYER1);
+      if g_Map_GetPointCount(c) > 0 then
+        Exit(c);
     end;
   end;
 
   // Мясоповал
   if gGameSettings.GameMode = GM_DM then
   begin
-    // Точка DM
-    c := RESPAWNPOINT_DM;
-    if g_Map_GetPointCount(c) > 0 then
-    begin
-      Result := c;
-      Exit;
-    end;
-
-    // Точка появления любого игрока
-    if Random(2) = 0 then
-      c := RESPAWNPOINT_PLAYER1
-    else
-      c := RESPAWNPOINT_PLAYER2;
-    if g_Map_GetPointCount(c) > 0 then
-    begin
-      Result := c;
-      Exit;
-    end;
-
-    // Точка любой из команд
-    if Random(2) = 0 then
-      c := RESPAWNPOINT_RED
-    else
-      c := RESPAWNPOINT_BLUE;
-    if g_Map_GetPointCount(c) > 0 then
-    begin
-      Result := c;
-      Exit;
-    end;
+    // try DM points first
+    if g_Map_GetPointCount(RESPAWNPOINT_DM) > 0 then
+      Exit(RESPAWNPOINT_DM);
   end;
 
   // Командные
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
   begin
-    // Точка своей команды
+    // try team points first
     c := RESPAWNPOINT_DM;
     if FTeam = TEAM_RED then
-      c := RESPAWNPOINT_RED;
-    if FTeam = TEAM_BLUE then
+      c := RESPAWNPOINT_RED
+    else if FTeam = TEAM_BLUE then
       c := RESPAWNPOINT_BLUE;
     if g_Map_GetPointCount(c) > 0 then
-    begin
-      Result := c;
-      Exit;
-    end;
-
-    // Точка DM
-    c := RESPAWNPOINT_DM;
-    if g_Map_GetPointCount(c) > 0 then
-    begin
-      Result := c;
-      Exit;
-    end;
-
-    // Точка появления любого игрока
-    if Random(2) = 0 then
-      c := RESPAWNPOINT_PLAYER1
-    else
-      c := RESPAWNPOINT_PLAYER2;
-    if g_Map_GetPointCount(c) > 0 then
-    begin
-      Result := c;
-      Exit;
-    end;
-
-    // Точка другой команды
-    c := RESPAWNPOINT_DM;
-    if FTeam = TEAM_RED then
-      c := RESPAWNPOINT_BLUE;
-    if FTeam = TEAM_BLUE then
-      c := RESPAWNPOINT_RED;
-    if g_Map_GetPointCount(c) > 0 then
-    begin
-      Result := c;
-      Exit;
-    end;
+      Exit(c);
   end;
+
+  // still haven't found a spawnpoint, try random shit
+  Result := g_Map_GetRandomPointType();
 end;
 
 procedure TPlayer.Respawn(Silent: Boolean; Force: Boolean = False);
