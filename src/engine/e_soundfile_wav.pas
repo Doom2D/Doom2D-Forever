@@ -48,7 +48,7 @@ implementation
 
 uses
   {$IFDEF USE_SDL}
-    SDL,
+    SDL, cmem,
   {$ELSE}
     SDL2,
   {$ENDIF}
@@ -89,8 +89,10 @@ begin
     AUDIO_U8,     AUDIO_S8    : tformat := AUDIO_U8; (* yes, unsigned *)
     AUDIO_U16LSB, AUDIO_U16MSB: tformat := AUDIO_S16SYS; (* and yes, signed *)
     AUDIO_S16LSB, AUDIO_S16MSB: tformat := AUDIO_S16SYS;
+    {$IFDEF USE_SDL2}
     AUDIO_S32LSB, AUDIO_S32MSB: tformat := AUDIO_S16SYS; (* 32bit not supported in al core *)
     AUDIO_F32LSB, AUDIO_F32MSB: tformat := AUDIO_S16SYS; (* float not supported in al core *)
+    {$ENDIF}
   else result := false (* unsupported format *)
   end;
   if (result = true) and (format <> tformat) then
@@ -98,7 +100,11 @@ begin
     Result := False;
     if SDL_BuildAudioCVT(@cvt, format, chan, rate, tformat, chan, rate) <> -1 then
     begin
-      buf := SDL_realloc(buf, len * cvt.len_mult);
+      {$IFDEF USE_SDL2}
+        buf := SDL_realloc(buf, len * cvt.len_mult);
+      {$ELSE}
+        buf := realloc(buf, len * cvt.len_mult);
+      {$ENDIF}
       cvt.len := len;
       cvt.buf := buf;
       result := SDL_ConvertAudio(@cvt) = 0;
