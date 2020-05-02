@@ -1118,13 +1118,16 @@ begin
   WhitelistCommand('g_friendlyfire');
   WhitelistCommand('g_weaponstay');
   WhitelistCommand('g_allow_exit');
+  WhitelistCommand('g_dm_keys');
   WhitelistCommand('g_allow_monsters');
+  WhitelistCommand('g_bot_vsmonsters');
+  WhitelistCommand('g_bot_vsplayers');
   WhitelistCommand('g_scorelimit');
   WhitelistCommand('g_timelimit');
-  WhitelistCommand('g_dm_keys');
+  WhitelistCommand('g_maxlives');
+  WhitelistCommand('g_warmup_time');
   WhitelistCommand('g_spawn_invul');
   WhitelistCommand('g_item_respawn_time');
-  WhitelistCommand('g_warmup_time');
 
   g_Console_ResetBinds;
   g_Console_ReadConfig(gConfigScript);
