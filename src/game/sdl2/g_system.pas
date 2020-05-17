@@ -124,7 +124,7 @@ implementation
     e_ResizeWindow(w, h);
     e_InitGL;
     g_Game_SetupScreenSize;
-    {$IFNDEF ANDOIRD}
+    {$IFNDEF ANDROID}
       (* This will fix menu reset on keyboard showing *)
       g_Menu_Reset;
     {$ENDIF}
