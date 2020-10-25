@@ -1516,22 +1516,25 @@ begin
 
   if Mode <> NET_CHAT_SYSTEM then
   begin
-    if Mode = NET_CHAT_PLAYER then
+    if NetDeafLevel = 0 then
     begin
-      g_Console_Add(Txt, True);
-      e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
-      g_Game_ChatSound(b_Text_Unformat(Txt));
-    end else
-    if (Mode = NET_CHAT_TEAM) and (gPlayer1 <> nil) then
-    begin
-      if gPlayer1.Team = TEAM_RED then
-        g_Console_Add(b_Text_Format('\r[Team] ') + Txt, True);
-      if gPlayer1.Team = TEAM_BLUE then
-        g_Console_Add(b_Text_Format('\b[Team] ') + Txt, True);
-      e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
-      g_Game_ChatSound(b_Text_Unformat(Txt));
+      if Mode = NET_CHAT_PLAYER then
+      begin
+        g_Console_Add(Txt, True);
+        e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
+        g_Game_ChatSound(b_Text_Unformat(Txt));
+      end else
+      if (Mode = NET_CHAT_TEAM) and (gPlayer1 <> nil) then
+      begin
+        if gPlayer1.Team = TEAM_RED then
+          g_Console_Add(b_Text_Format('\r[Team] ') + Txt, True);
+        if gPlayer1.Team = TEAM_BLUE then
+          g_Console_Add(b_Text_Format('\b[Team] ') + Txt, True);
+        e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
+        g_Game_ChatSound(b_Text_Unformat(Txt));
+      end;
     end;
-  end else
+  end else if (NetDeafLevel < 2) then
     g_Console_Add(Txt, True);
 end;
 
@@ -1842,10 +1845,13 @@ begin
 
     NET_EV_CHANGE_TEAM:
     begin
-      if EvNum = TEAM_RED then
-        g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_RED], [EvStr]), True);
-      if EvNum = TEAM_BLUE then
-        g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_BLUE], [EvStr]), True);
+      if NetDeafLevel < 2 then
+      begin
+        if EvNum = TEAM_RED then
+          g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_RED], [EvStr]), True);
+        if EvNum = TEAM_BLUE then
+          g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_BLUE], [EvStr]), True);
+      end;
     end;
 
     NET_EV_PLAYER_KICK:
@@ -1878,7 +1884,7 @@ begin
       g_Console_Add('*** ' + _lc[I_MESSAGE_LMS_SURVIVOR] + ' ***', True);
 
     NET_EV_BIGTEXT:
-      g_Game_Message(AnsiUpperCase(EvStr), Word(EvNum));
+      if NetDeafLevel < 2 then g_Game_Message(AnsiUpperCase(EvStr), Word(EvNum));
 
     NET_EV_SCORE:
     begin
@@ -2222,7 +2228,8 @@ begin
     end;
   end;
 
-  g_Console_Add(Format(_lc[I_PLAYER_JOIN], [PName]), True);
+  if NetDeafLevel < 3 then 
+    g_Console_Add(Format(_lc[I_PLAYER_JOIN], [PName]), True);
   e_WriteLog('NET: Player ' + PName + ' [' + IntToStr(PID) + '] added.', TMsgType.Notify);
   Result := PID;
 end;
@@ -2455,7 +2462,8 @@ begin
   Result := 0;
   if Pl = nil then Exit;
 
-  g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [Pl.Name]), True);
+  if NetDeafLevel < 3 then 
+    g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [Pl.Name]), True);
   e_WriteLog('NET: Player ' + Pl.Name + ' [' + IntToStr(PID) + '] removed.', TMsgType.Notify);
 
   g_Player_Remove(PID);
@@ -2520,7 +2528,8 @@ begin
 
   if Pl.Name <> TmpName then
   begin
-    g_Console_Add(Format(_lc[I_PLAYER_NAME], [Pl.Name, TmpName]), True);
+    if NetDeafLevel < 3 then 
+      g_Console_Add(Format(_lc[I_PLAYER_NAME], [Pl.Name, TmpName]), True);
     Pl.Name := TmpName;
   end;
 
@@ -2914,18 +2923,19 @@ begin
   Str1 := M.ReadString();
   Str2 := M.ReadString();
 
-  case EvID of
-    NET_VE_STARTED:
-      g_Console_Add(Format(_lc[I_MESSAGE_VOTE_STARTED], [Str1, Str2, Int1]), True);
-    NET_VE_PASSED:
-      g_Console_Add(Format(_lc[I_MESSAGE_VOTE_PASSED], [Str1]), True);
-    NET_VE_FAILED:
-      g_Console_Add(_lc[I_MESSAGE_VOTE_FAILED], True);
-    NET_VE_VOTE:
-      g_Console_Add(Format(_lc[I_MESSAGE_VOTE_VOTE], [Str1, Int1, Int2]), True);
-    NET_VE_INPROGRESS:
-      g_Console_Add(Format(_lc[I_MESSAGE_VOTE_INPROGRESS], [Str1]), True);
-  end;
+  if NetDeafLevel < 2 then 
+    case EvID of
+      NET_VE_STARTED:
+        g_Console_Add(Format(_lc[I_MESSAGE_VOTE_STARTED], [Str1, Str2, Int1]), True);
+      NET_VE_PASSED:
+        g_Console_Add(Format(_lc[I_MESSAGE_VOTE_PASSED], [Str1]), True);
+      NET_VE_FAILED:
+        g_Console_Add(_lc[I_MESSAGE_VOTE_FAILED], True);
+      NET_VE_VOTE:
+        g_Console_Add(Format(_lc[I_MESSAGE_VOTE_VOTE], [Str1, Int1, Int2]), True);
+      NET_VE_INPROGRESS:
+        g_Console_Add(Format(_lc[I_MESSAGE_VOTE_INPROGRESS], [Str1]), True);
+    end;
 end;
 
 // CLIENT SEND

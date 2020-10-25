@@ -114,6 +114,7 @@ type
     Kills: Word;
     Color: TRGB;
     Spectator: Boolean;
+    UID: Word;
   end;
 
   TPlayerStatArray = Array of TPlayerStat;
@@ -1521,6 +1522,7 @@ begin
         Color := gPlayers[a].FModel.Color;
         Lives := gPlayers[a].FLives;
         Spectator := gPlayers[a].FSpectator;
+        UID := gPlayers[a].FUID;
       end;
     end;
 end;

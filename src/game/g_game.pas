@@ -267,6 +267,7 @@ var
   gShowFPS: Boolean = False;
   gShowGoals: Boolean = True;
   gShowStat: Boolean = True;
+  gShowPIDs: Boolean = False;
   gShowKillMsg: Boolean = True;
   gShowLives: Boolean = True;
   gShowPing: Boolean = False;
@@ -1162,6 +1163,7 @@ var
   stat: TPlayerStatArray;
   wad, map: string;
   mapstr: string;
+  namestr: string;
 begin
   s1 := '';
   s2 := '';
@@ -1303,8 +1305,12 @@ begin
               gg := g;
               bb := b;
             end;
+            if gShowPIDs then
+              namestr := Format('[%5d] %s', [UID, Name])
+            else
+              namestr := Name;
             // Имя
-            e_TextureFontPrintEx(x+16, _y, Name, gStdFont, rr, gg, bb, 1);
+            e_TextureFontPrintEx(x+16, _y, namestr, gStdFont, rr, gg, bb, 1);
             // Пинг/потери
             e_TextureFontPrintEx(x+w1+16, _y, Format(_lc[I_GAME_PING_MS], [Ping, Loss]), gStdFont, rr, gg, bb, 1);
             // Фраги
@@ -1339,11 +1345,15 @@ begin
           r := 255;
           g := 127;
         end;
+        if gShowPIDs then
+          namestr := Format('[%5d] %s', [UID, Name])
+        else
+          namestr := Name;
         // Цвет игрока
         e_DrawFillQuad(x+16, _y+4, x+32-1, _y+16+4-1, Color.R, Color.G, Color.B, 0);
         e_DrawQuad(x+16, _y+4, x+32-1, _y+16+4-1, 192, 192, 192);
         // Имя
-        e_TextureFontPrintEx(x+16+16+8, _y+4, Name, gStdFont, r, g, 0, 1);
+        e_TextureFontPrintEx(x+16+16+8, _y+4, namestr, gStdFont, r, g, 0, 1);
         // Пинг/потери
         e_TextureFontPrintEx(x+w1+16, _y+4, Format(_lc[I_GAME_PING_MS], [Ping, Loss]), gStdFont, r, g, 0, 1);
         // Фраги
@@ -6285,6 +6295,34 @@ begin
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);
   end
+  else if cmd = 'kick_pid' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('kick_pid <player ID>');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('kick_pid <player ID>');
+        Exit;
+      end;
+
+      a := StrToIntDef(P[1], 0);
+      pl := g_Net_Client_ByPlayer(a);
+      if (pl <> nil) and pl^.Used and (pl^.Peer <> nil) then
+      begin
+        s := g_Net_ClientName_ByID(pl^.ID);
+        enet_peer_disconnect(pl^.Peer, NET_DISC_KICK);
+        g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
+        MH_SEND_GameEvent(NET_EV_PLAYER_KICK, 0, s);
+        g_Net_Slist_ServerPlayerLeaves();
+      end;
+    end else
+      g_Console_Add(_lc[I_MSG_SERVERONLY]);
+  end
   else if cmd = 'ban' then
   begin
     if g_Game_IsServer and g_Game_IsNet then
@@ -6340,6 +6378,35 @@ begin
           MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
           g_Net_Slist_ServerPlayerLeaves();
         end;
+    end else
+      g_Console_Add(_lc[I_MSG_SERVERONLY]);
+  end
+  else if cmd = 'ban_pid' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('ban_pid <player ID>');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('ban_pid <player ID>');
+        Exit;
+      end;
+
+      a := StrToIntDef(P[1], 0);
+      pl := g_Net_Client_ByPlayer(a);
+      if (pl <> nil) and pl^.Used and (pl^.Peer <> nil) then
+      begin
+        s := g_Net_ClientName_ByID(pl^.ID);
+        g_Net_BanHost(pl^.Peer^.address.host, False);
+        enet_peer_disconnect(pl^.Peer, NET_DISC_TEMPBAN);
+        g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
+        MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
+        g_Net_Slist_ServerPlayerLeaves();
+      end;
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);
   end
@@ -6400,6 +6467,57 @@ begin
           MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
           g_Net_Slist_ServerPlayerLeaves();
         end;
+    end else
+      g_Console_Add(_lc[I_MSG_SERVERONLY]);
+  end
+  else if cmd = 'permban_pid' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('permban_pid <player ID>');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('permban_pid <player ID>');
+        Exit;
+      end;
+
+      a := StrToIntDef(P[1], 0);
+      pl := g_Net_Client_ByPlayer(a);
+      if (pl <> nil) and pl^.Used and (pl^.Peer <> nil) then
+      begin
+        s := g_Net_ClientName_ByID(pl^.ID);
+        g_Net_BanHost(pl^.Peer^.address.host);
+        enet_peer_disconnect(pl^.Peer, NET_DISC_BAN);
+        g_Net_SaveBanList();
+        g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
+        MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
+        g_Net_Slist_ServerPlayerLeaves();
+      end;
+    end else
+      g_Console_Add(_lc[I_MSG_SERVERONLY]);
+  end
+  else if cmd = 'permban_ip' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('permban_ip <IP address>');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('permban_ip <IP address>');
+        Exit;
+      end;
+
+      g_Net_BanHost(P[1]);
+      g_Net_SaveBanList();
+      g_Console_Add(Format(_lc[I_PLAYER_BAN], [P[1]]));
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);
   end
@@ -8131,4 +8249,5 @@ begin
   conRegVar('r_showlives', @gShowLives, 'show lives', 'show lives');
   conRegVar('r_showspect', @gSpectHUD, 'show spectator hud', 'show spectator hud');
   conRegVar('r_showstat', @gShowStat, 'show stats', 'show stats');
+  conRegVar('r_showpids', @gShowPIDs, 'show PIDs', 'show PIDs');
 end.

@@ -1049,10 +1049,14 @@ begin
   AddCommand('ready', GameCommands);
   AddCommand('kick', GameCommands);
   AddCommand('kick_id', GameCommands);
+  AddCommand('kick_pid', GameCommands);
   AddCommand('ban', GameCommands);
-  AddCommand('permban', GameCommands);
   AddCommand('ban_id', GameCommands);
+  AddCommand('ban_pid', GameCommands);
+  AddCommand('permban', GameCommands);
   AddCommand('permban_id', GameCommands);
+  AddCommand('permban_pid', GameCommands);
+  AddCommand('permban_ip', GameCommands);
   AddCommand('unban', GameCommands);
   AddCommand('connect', GameCommands);
   AddCommand('disconnect', GameCommands);
@@ -1105,7 +1109,9 @@ begin
   WhitelistCommand('endmap');
   WhitelistCommand('restart');
   WhitelistCommand('kick');
+  WhitelistCommand('kick_pid');
   WhitelistCommand('ban');
+  WhitelistCommand('ban_pid');
   WhitelistCommand('centerprint');
 
   WhitelistCommand('addbot');

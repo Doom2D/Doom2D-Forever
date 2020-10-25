@@ -172,6 +172,8 @@ var
   NetGotEverything: Boolean = False;
   NetGotKeys:       Boolean = False;
 
+  NetDeafLevel: Integer = 0;
+
 {$IFDEF USE_MINIUPNPC}
   NetPortForwarded: Word = 0;
   NetPongForwarded: Boolean = False;
@@ -2439,6 +2441,7 @@ initialization
   conRegVar('cl_interp', @NetInterpLevel, '', 'net player interpolation steps');
   conRegVar('cl_last_ip', @NetClientIP, '', 'address of the last you have connected to');
   conRegVar('cl_last_port', @NetClientPort, '', 'port of the last server you have connected to');
+  conRegVar('cl_deafen', @NetDeafLevel, '', 'filter server messages (0-3)');
 
   conRegVar('sv_forwardports', @NetForwardPorts, '', 'forward server port using miniupnpc (requires server restart)');
   conRegVar('sv_rcon', @NetAllowRCON, '', 'enable remote console');
