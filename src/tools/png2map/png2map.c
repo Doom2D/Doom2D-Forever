@@ -218,17 +218,21 @@ int map_save(const char *fname) {
   fwrite(&blk, sizeof(blk), 1, fout);
   fwrite(&hdr, sizeof(hdr), 1, fout);
 
-  blk.type = MBLK_TEXTURES;
-  blk.size = sizeof(map_texture_t) * map_numtex;
-  fwrite(&blk, sizeof(blk), 1, fout);
-  for (int i = 0; i < map_numtex; ++i)
-    fwrite(map_tex + i, sizeof(map_texture_t), 1, fout);
+  if (map_numtex > 0) {
+    blk.type = MBLK_TEXTURES;
+    blk.size = sizeof(map_texture_t) * map_numtex;
+    fwrite(&blk, sizeof(blk), 1, fout);
+    for (int i = 0; i < map_numtex; ++i)
+      fwrite(map_tex + i, sizeof(map_texture_t), 1, fout);
+  }
 
-  blk.type = MBLK_PANELS;
-  blk.size = sizeof(map_panel_t) * map_numpan;
-  fwrite(&blk, sizeof(blk), 1, fout);
-  for (int i = 0; i < map_numpan; ++i)
-    fwrite(map_pan + i, sizeof(map_panel_t), 1, fout);
+  if (map_numpan > 0) {
+    blk.type = MBLK_PANELS;
+    blk.size = sizeof(map_panel_t) * map_numpan;
+    fwrite(&blk, sizeof(blk), 1, fout);
+    for (int i = 0; i < map_numpan; ++i)
+      fwrite(map_pan + i, sizeof(map_panel_t), 1, fout);
+  }
 
   blk.type = MBLK_NONE;
   blk.size = 0;
