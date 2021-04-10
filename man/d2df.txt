@@ -1,0 +1,59 @@
+@title Doom2DF 1 04.08.2021 1 1
+
+@h1 NAME
+Doom2DF - Doom 2D Forever game.
+
+@h1 SYNOPSIS
+Doom2DF [*ARGUMENTS*]... [*OPTION*]...@br
+Doom2DF_H [*ARGUMENTS*]... [*OPTION*]...
+
+
+@h1 DESCRIPTION
+Doom 2D Forever is Doom-themed platformer game with network multiplayer support. This is the modern port of 1996 Doom 2D game by Prikol Software. Doom2DF_H is the dedicated server binary.@br
+Note: documentation is not finished yet.
+
+
+@h2 ARGUMENTS
+-map WADFILE:\\MAP##
+	Run the game with the map from the specified wad for the current game session.@br
+	All maps in the Doom 2D Forever must be packed to a .wad (incompatible with doom wads) or .dfz (renamed zip) archive.@br
+	These wads can have a lot of maps inside, usually named as MAP##.
+
+-gm NAME [`DM`|`TDM`|`CTF`|`COOP`	]
+	Use a specific gamemode for the current game session. Default is DM.
+
+-port PORTNUMBER [`25667`]
+	Use a specific port for the server. Default is 25667.
+
+-exec FILENAME.txt
+	You can also set a custom config for the game session. Good for maplists, etc.
+
+-connect IP:PORT
+	Connect to server, when game loads.
+
+-lims ###
+	Set the goal limit for current game session.
+
+-lives ###
+	Set the number of lives for the Survival mode.
+
+-limt ##:##
+	Set the time limit for current game session.
+
+
+@h1 OPTIONS
+--log-file FILENAME.log
+	Set custom name for the log file.
+
+
+@h1 EXAMPLES
+Run the dedicated server in DeathMatch mode, with custom maplist and custom log file.
+
+	@pre
+	$ Doom2DF_H -map PrikolSoft.wad:\\MAP01 -gm DM -port 25667 -exec maplist_dm.txt --log-file dfserver_dm.log
+	@endpre
+
+
+@h1 AUTHOR
+
+Written by Dmitry Lyashuk <lyashuk.voxx\@gmail.com>, Doom 2D: Forever Developers.
