@@ -463,8 +463,6 @@ begin
   it.dropped := false;
 
   g_Obj_Init(@it.Obj);
-  it.Obj.oldX := X;
-  it.Obj.oldY := Y;
   it.Obj.X := X;
   it.Obj.Y := Y;
   it.Obj.Rect.Width := ITEMSIZE[ItemType][0];
@@ -484,6 +482,9 @@ begin
       InitY := Obj.Y;
     end;
   end;
+
+  it.Obj.oldX := it.Obj.X;
+  it.Obj.oldY := it.Obj.Y;
 
   // Установка анимации
   case it.ItemType of
