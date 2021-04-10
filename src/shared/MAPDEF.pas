@@ -144,7 +144,7 @@ type
     //function Direction (): Byte; inline; // direction, ubyte
 
     // trigger
-    function trigRec (): TDynRecord; inline;
+    function trigRec (): TDynRecord; {inline;}
     function Enabled (): Boolean; inline; // enabled, bool
     function TriggerType (): Byte; inline; // type, ubyte
     function ActivateType (): Byte; inline; // activatetype, ubyte
@@ -350,7 +350,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 // trigger
-function TDynRecordHelper.trigRec (): TDynRecord; inline;
+function TDynRecordHelper.trigRec (): TDynRecord; {inline;}
 var
   fld: TDynField;
 begin
