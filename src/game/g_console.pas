@@ -56,6 +56,7 @@ function  g_Console_MatchBind (key: Integer; down: AnsiString; up: AnsiString = 
 function  g_Console_FindBind (n: Integer; down: AnsiString; up: AnsiString = ''): Integer;
 procedure g_Console_BindKey (key: Integer; down: AnsiString; up: AnsiString = '');
 procedure g_Console_ProcessBind (key: Integer; down: Boolean);
+procedure g_Console_ProcessBindRepeat (key: Integer);
 procedure g_Console_ResetBinds;
 
 procedure conwriteln (const s: AnsiString; show: Boolean=false);
@@ -152,6 +153,7 @@ var
                             end;
 
   gInputBinds: Array [0..e_MaxInputKeys - 1] of record
+    rep: Boolean;
     down, up: SSArray;
   end;
   menu_toggled: BOOLEAN; (* hack for menu controls *)
@@ -830,6 +832,34 @@ begin
     begin
       g_Console_Add('bind <key> <down action> [up action]')
     end;
+  'bindrep':
+    // bindrep <key>
+    if Length(p) = 2 then
+    begin
+      key := LowerCase(p[1]);
+      i := 0;
+      while (i < e_MaxInputKeys) and (key <> LowerCase(e_KeyNames[i])) do inc(i);
+      if i < e_MaxInputKeys then
+        gInputBinds[i].rep := True
+      else
+        g_Console_Add('bindrep: "' + p[1] + '" is not a key')
+    end
+    else
+      g_Console_Add('bindrep <key>');
+  'bindunrep':
+    // bindunrep <key>
+    if Length(p) = 2 then
+    begin
+      key := LowerCase(p[1]);
+      i := 0;
+      while (i < e_MaxInputKeys) and (key <> LowerCase(e_KeyNames[i])) do inc(i);
+      if i < e_MaxInputKeys then
+        gInputBinds[i].rep := False
+      else
+        g_Console_Add('bindunrep: "' + p[1] + '" is not a key')
+    end
+    else
+      g_Console_Add('bindunrep <key>');
   'bindlist':
     for i := 0 to e_MaxInputKeys - 1 do
       if (gInputBinds[i].down <> nil) or (gInputBinds[i].up <> nil) then
@@ -957,6 +987,8 @@ begin
   AddCommand('g_language', SystemCommands);
 
   AddCommand('bind', BindCommands);
+  AddCommand('bindrep', BindCommands);
+  AddCommand('bindunrep', BindCommands);
   AddCommand('bindlist', BindCommands);
   AddCommand('unbind', BindCommands);
   AddCommand('unbindall', BindCommands);
@@ -1819,6 +1851,7 @@ begin
   ASSERT(key < e_MaxInputKeys);
   if key > 0 then
   begin
+    gInputBinds[key].rep := False;
     gInputBinds[key].down := ParseAlias(down);
     gInputBinds[key].up := ParseAlias(up);
   end;
@@ -1912,6 +1945,21 @@ begin
   if down and not menu_toggled then
     KeyPress(key);
   menu_toggled := False
+end;
+
+procedure g_Console_ProcessBindRepeat (key: Integer);
+  var i: Integer;
+begin
+  if gConsoleShow or gChatShow or (g_ActiveWindow <> nil) then
+  begin
+    KeyPress(key); // key repeat in menus and shit
+    Exit;
+  end;
+  if BindsAllowed(key) and gInputBinds[key].rep then
+  begin
+    for i := 0 to High(gInputBinds[key].down) do
+      g_Console_Process(gInputBinds[key].down[i], True);
+  end;
 end;
 
 procedure g_Console_ResetBinds;
@@ -2050,6 +2098,8 @@ begin
       if Length(gInputBinds[i].up) > 0 then
         Write(f, ' ', QuoteStr(GetCommandString(gInputBinds[i].up)));
       WriteLn(f, '');
+      if gInputBinds[i].rep then
+        WriteLn(f, 'bindrep ', e_KeyNames[i]);
     end;
 
   // lang

@@ -449,9 +449,9 @@ implementation
       e_KeyUpDown(key, down);
       g_Console_ProcessBind(key, down);
     end
-    else if gConsoleShow or gChatShow or (g_ActiveWindow <> nil) then
+    else
     begin
-      KeyPress(key) // key repeat in menus and shit
+      g_Console_ProcessBindRepeat(key)
     end;
     if down and IsValid1251(ev.keysym.unicode) and IsPrintable1251(ch) then
       CharPress(ch)

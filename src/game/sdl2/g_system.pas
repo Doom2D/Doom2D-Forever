@@ -507,9 +507,11 @@ implementation
       e_KeyUpDown(key, down);
       g_Console_ProcessBind(key, down);
     end
-    else if gConsoleShow or gChatShow or (g_ActiveWindow <> nil) then
+    else
     begin
-      KeyPress(key) // key repeat in menus and shit
+      if g_dbg_input then
+        e_LogWritefln('Input Debug: keyrep, scancode=%s', [key]);
+      g_Console_ProcessBindRepeat(key);
     end
   end;
 
