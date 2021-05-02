@@ -3998,7 +3998,8 @@ begin
                   Round(gScreenHeight / 2.75)-(h div 2), MessageText);
     end;
 
-    if IsDrawStat or (gSpectMode = 1) then DrawStat();
+    if IsDrawStat or (gSpectMode = SPECT_STATS) then
+      DrawStat();
 
     if gSpectHUD and (not gChatShow) and (gSpectMode <> SPECT_NONE) and (not gSpectAuto) then
     begin
