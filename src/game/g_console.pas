@@ -1032,6 +1032,8 @@ begin
   AddCommand('p2_color', PlayerSettingsCVars);
   AddCommand('p1_model', PlayerSettingsCVars);
   AddCommand('p2_model', PlayerSettingsCVars);
+  AddCommand('p1_team', PlayerSettingsCVars);
+  AddCommand('p2_team', PlayerSettingsCVars);
 
   AddCommand('g_max_particles', GameCVars);
   AddCommand('g_max_shells', GameCVars);
@@ -2086,6 +2088,14 @@ procedure g_Console_WriteConfig (filename: String);
     WriteLn(f, name, IfThen(LongBool(gsGameFlags and flag), 1, 0));
   end;
 
+  function FormatTeam(team: Byte): string;
+  begin
+    if team = TEAM_BLUE then
+      result := 'blue'
+    else
+      result := 'red';
+  end;
+
 begin
   AssignFile(f, filename);
   Rewrite(f);
@@ -2151,12 +2161,14 @@ begin
     WriteLn(f, 'p1_name ', QuoteStr(Name));
     WriteLn(f, 'p1_color ', Color.R, ' ', Color.G, ' ', Color.B);
     WriteLn(f, 'p1_model ', QuoteStr(Model));
+    WriteLn(f, 'p1_team ', FormatTeam(Team));
   end;
   with gPlayer2Settings do
   begin
     WriteLn(f, 'p2_name ', QuoteStr(Name));
     WriteLn(f, 'p2_color ', Color.R, ' ', Color.G, ' ', Color.B);
     WriteLn(f, 'p2_model ', QuoteStr(Model));
+    WriteLn(f, 'p2_team ', FormatTeam(Team));
   end;
 
   // all cvars

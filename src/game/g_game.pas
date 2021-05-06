@@ -5744,6 +5744,17 @@ end;
 procedure PlayerSettingsCVars(P: SSArray);
 var
   cmd: string;
+  team: Byte;
+
+  function ParseTeam(s: string): Byte;
+  begin
+    result := 0;
+    case s of
+      'red', '1':  result := TEAM_RED;
+      'blue', '2': result := TEAM_BLUE;
+      else         result := TEAM_NONE;
+    end;
+  end;
 begin
   cmd := LowerCase(P[0]);
   case cmd of
@@ -5835,6 +5846,34 @@ begin
             gPlayer2.SetModel(gPlayer2Settings.Model);
             if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer2.UID);
           end;
+        end;
+      end;
+    'p1_team':
+      begin
+        // TODO: switch teams if in game or store this separately
+        if (Length(P) > 1) then
+        begin
+          team := ParseTeam(P[1]);
+          if team = TEAM_NONE then
+            g_Console_Add('expected ''red'', ''blue'', 1 or 2')
+          else if not gGameOn and not g_Game_IsNet then
+            gPlayer1Settings.Team := team
+          else
+            g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+        end;
+      end;
+    'p2_team':
+      begin
+        // TODO: switch teams if in game or store this separately
+        if (Length(P) > 1) then
+        begin
+          team := ParseTeam(P[1]);
+          if team = TEAM_NONE then
+            g_Console_Add('expected ''red'', ''blue'', 1 or 2')
+          else if not gGameOn and not g_Game_IsNet then
+            gPlayer2Settings.Team := team
+          else
+            g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
         end;
       end;
   end;
