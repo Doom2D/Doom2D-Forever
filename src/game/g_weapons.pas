@@ -893,10 +893,15 @@ begin
         Exit;
       end;
 
-      if PlayerHit() then
+      // » в конце игроков, но только если положено
+      // (или friendlyfire, или friendly_hit_projectile)
+      if LongBool(gGameSettings.Options and (GAME_OPTION_TEAMDAMAGE or GAME_OPTION_TEAMHITPROJECTILE)) then
       begin
-        Result := 1;
-        Exit;
+        if PlayerHit() then
+        begin
+          Result := 1;
+          Exit;
+        end;
       end;
     end;
 
@@ -934,11 +939,15 @@ begin
         Exit;
       end;
 
-      // » в конце своих игроков
-      if PlayerHit(1) then
+      // » в конце своих игроков, но только если положено
+      // (или friendlyfire, или friendly_hit_projectile)
+      if LongBool(gGameSettings.Options and (GAME_OPTION_TEAMDAMAGE or GAME_OPTION_TEAMHITPROJECTILE)) then
       begin
-        Result := 1;
-        Exit;
+        if PlayerHit(1) then
+        begin
+          Result := 1;
+          Exit;
+        end;
       end;
     end;
 
@@ -1394,12 +1403,19 @@ var
   x2, y2: Integer;
   xi, yi: Integer;
   wallDistSq: Integer = $3fffffff;
+  spawnerPlr: TPlayer = nil;
 
   function doPlayerHit (idx: Integer; hx, hy: Integer): Boolean;
   begin
     result := false;
     if (idx < 0) or (idx > High(gPlayers)) then exit;
     if (gPlayers[idx] = nil) or not gPlayers[idx].alive then exit;
+    if (spawnerPlr <> nil) then
+    begin
+      if ((gGameSettings.Options and (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMDAMAGE)) = 0) and
+         (spawnerPlr.Team <> TEAM_NONE) and (spawnerPlr.Team = gPlayers[idx].Team) then
+        exit;
+    end;
     result := HitPlayer(gPlayers[idx], dmg, (xi*v)*10, (yi*v)*10-3, SpawnerUID, HIT_SOME);
     if result and (v <> 0) then gPlayers[idx].Push((xi*v), (yi*v));
     {$IF DEFINED(D2F_DEBUG)}
@@ -1491,6 +1507,9 @@ begin
   *)
 
   if (xd = 0) and (yd = 0) then exit;
+
+  if (g_GetUIDType(SpawnerUID) = UID_PLAYER) then
+    spawnerPlr := g_Player_Get(SpawnerUID);
 
   //wgunMonHash.reset(); //FIXME: clear hash on level change
   wgunHitHeap.clear();

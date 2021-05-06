@@ -1039,6 +1039,8 @@ begin
   AddCommand('g_max_corpses', GameCVars);
   AddCommand('g_gamemode', GameCVars);
   AddCommand('g_friendlyfire', GameCVars);
+  AddCommand('g_friendly_hit_trace', GameCVars);
+  AddCommand('g_friendly_hit_projectile', GameCVars);
   AddCommand('g_weaponstay', GameCVars);
   AddCommand('g_allow_exit', GameCVars);
   AddCommand('g_dm_keys', GameCVars);
@@ -1154,6 +1156,8 @@ begin
 
   WhitelistCommand('g_gamemode');
   WhitelistCommand('g_friendlyfire');
+  WhitelistCommand('g_friendly_hit_trace');
+  WhitelistCommand('g_friendly_hit_projectile');
   WhitelistCommand('g_weaponstay');
   WhitelistCommand('g_allow_exit');
   WhitelistCommand('g_dm_keys');
@@ -2132,6 +2136,8 @@ begin
   WriteLn(f, 'g_warmup_time ', gsWarmupTime);
 
   WriteFlag('g_friendlyfire ', GAME_OPTION_TEAMDAMAGE);
+  WriteFlag('g_friendly_hit_trace ', GAME_OPTION_TEAMHITTRACE);
+  WriteFlag('g_friendly_hit_projectile ', GAME_OPTION_TEAMHITPROJECTILE);
   WriteFlag('g_allow_exit ', GAME_OPTION_ALLOWEXIT);
   WriteFlag('g_allow_monsters ', GAME_OPTION_MONSTERS);
   WriteFlag('g_dm_keys ', GAME_OPTION_DMKEYS);

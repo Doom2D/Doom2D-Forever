@@ -176,14 +176,16 @@ const
   EXIT_ENDLEVELSINGLE  = 4;
   EXIT_ENDLEVELCUSTOM  = 5;
 
-  GAME_OPTION_RESERVED     = 1;
-  GAME_OPTION_TEAMDAMAGE   = 2;
-  GAME_OPTION_ALLOWEXIT    = 4;
-  GAME_OPTION_WEAPONSTAY   = 8;
-  GAME_OPTION_MONSTERS     = 16;
-  GAME_OPTION_BOTVSPLAYER  = 32;
-  GAME_OPTION_BOTVSMONSTER = 64;
-  GAME_OPTION_DMKEYS       = 128;
+  GAME_OPTION_RESERVED          = 1;
+  GAME_OPTION_TEAMDAMAGE        = 2;
+  GAME_OPTION_ALLOWEXIT         = 4;
+  GAME_OPTION_WEAPONSTAY        = 8;
+  GAME_OPTION_MONSTERS          = 16;
+  GAME_OPTION_BOTVSPLAYER       = 32;
+  GAME_OPTION_BOTVSMONSTER      = 64;
+  GAME_OPTION_DMKEYS            = 128;
+  GAME_OPTION_TEAMHITTRACE      = 256;
+  GAME_OPTION_TEAMHITPROJECTILE = 512;
 
   STATE_NONE        = 0;
   STATE_MENU        = 1;
@@ -5509,6 +5511,14 @@ begin
   else if cmd = 'g_friendlyfire' then
   begin
     ParseGameFlag(GAME_OPTION_TEAMDAMAGE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);
+  end
+  else if cmd = 'g_friendly_hit_trace' then
+  begin
+    ParseGameFlag(GAME_OPTION_TEAMHITTRACE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);
+  end
+  else if cmd = 'g_friendly_hit_projectile' then
+  begin
+    ParseGameFlag(GAME_OPTION_TEAMHITPROJECTILE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);
   end
   else if cmd = 'g_weaponstay' then
   begin

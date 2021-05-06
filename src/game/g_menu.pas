@@ -681,6 +681,12 @@ begin
     if TGUISwitch(GetControl('swMonsters')).ItemIndex = 0 then
       gsGameFlags := gsGameFlags or GAME_OPTION_MONSTERS;
 
+    case TGUISwitch(GetControl('swTeamHit')).ItemIndex of
+      1: gsGameFlags := gsGameFlags or GAME_OPTION_TEAMHITTRACE;
+      2: gsGameFlags := gsGameFlags or GAME_OPTION_TEAMHITPROJECTILE;
+      0: gsGameFlags := gsGameFlags or GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE;
+    end;
+
     case TGUISwitch(GetControl('swBotsVS')).ItemIndex of
       1: gsGameFlags := gsGameFlags or GAME_OPTION_BOTVSMONSTER;
       2: gsGameFlags := gsGameFlags or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
@@ -1635,6 +1641,15 @@ begin
         ItemIndex := 0
       else
         ItemIndex := 1;
+    with TGUISwitch(menu.GetControl('swTeamHit')) do
+      if (Options and (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE)) = (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE) then
+        ItemIndex := 0
+      else if LongBool(Options and GAME_OPTION_TEAMHITTRACE) then
+        ItemIndex := 1
+      else if LongBool(Options and GAME_OPTION_TEAMHITPROJECTILE) then
+        ItemIndex := 2
+      else
+        ItemIndex := 3;
     with TGUISwitch(menu.GetControl('swDeathmatchKeys')) do
       if LongBool(Options and GAME_OPTION_DMKEYS) then
         ItemIndex := 0
@@ -1658,6 +1673,7 @@ begin
     if GameType in [GT_CUSTOM, GT_SERVER] then
       begin
         TGUISwitch(menu.GetControl('swTeamDamage')).Enabled := True;
+        TGUISwitch(menu.GetControl('swTeamHit')).Enabled := True;
         if (GameMode in [GM_DM, GM_TDM, GM_CTF]) then
         begin
           TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled := True;
@@ -1679,6 +1695,7 @@ begin
     else
       begin
         TGUISwitch(menu.GetControl('swTeamDamage')).Enabled := True;
+        TGUISwitch(menu.GetControl('swTeamHit')).Enabled := True;
         TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled := False;
         TGUILabel(menu.GetControlsText('swDeathmatchKeys')).Color := MENU_UNACTIVEITEMS_COLOR;
         with TGUIEdit(menu.GetControl('edTimeLimit')) do
@@ -1722,6 +1739,16 @@ begin
         Options := Options or GAME_OPTION_TEAMDAMAGE
       else
         Options := Options and (not GAME_OPTION_TEAMDAMAGE);
+    end;
+
+    if TGUISwitch(menu.GetControl('swTeamHit')).Enabled then
+    begin
+      Options := Options and not (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE);
+      case TGUISwitch(menu.GetControl('swTeamHit')).ItemIndex of
+        1: Options := Options or GAME_OPTION_TEAMHITTRACE;
+        2: Options := Options or GAME_OPTION_TEAMHITPROJECTILE;
+        0: Options := Options or GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE;
+      end;
     end;
 
     if TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled then
@@ -2193,6 +2220,22 @@ begin
       else
         ItemIndex := 1;
     end;
+    with AddSwitch(_lc[I_MENU_TEAM_HIT]) do
+    begin
+      Name := 'swTeamHit';
+      AddItem(_lc[I_MENU_TEAM_HIT_BOTH]);
+      AddItem(_lc[I_MENU_TEAM_HIT_TRACE]);
+      AddItem(_lc[I_MENU_TEAM_HIT_PROJECTILE]);
+      AddItem(_lc[I_MENU_TEAM_HIT_NOTHING]);
+      if (gsGameFlags and (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE)) = (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE) then
+        ItemIndex := 0
+      else if LongBool(gsGameFlags and GAME_OPTION_TEAMHITTRACE) then
+        ItemIndex := 1
+      else if LongBool(gsGameFlags and GAME_OPTION_TEAMHITPROJECTILE) then
+        ItemIndex := 2
+      else
+        ItemIndex := 3;
+    end;
     with AddSwitch(_lc[I_MENU_DEATHMATCH_KEYS]) do
     begin
       Name := 'swDeathmatchKeys';
@@ -2411,6 +2454,22 @@ begin
         ItemIndex := 0
       else
         ItemIndex := 1;
+    end;
+    with AddSwitch(_lc[I_MENU_TEAM_HIT]) do
+    begin
+      Name := 'swTeamHit';
+      AddItem(_lc[I_MENU_TEAM_HIT_BOTH]);
+      AddItem(_lc[I_MENU_TEAM_HIT_TRACE]);
+      AddItem(_lc[I_MENU_TEAM_HIT_PROJECTILE]);
+      AddItem(_lc[I_MENU_TEAM_HIT_NOTHING]);
+      if (gsGameFlags and (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE)) = (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE) then
+        ItemIndex := 0
+      else if LongBool(gsGameFlags and GAME_OPTION_TEAMHITTRACE) then
+        ItemIndex := 1
+      else if LongBool(gsGameFlags and GAME_OPTION_TEAMHITPROJECTILE) then
+        ItemIndex := 2
+      else
+        ItemIndex := 3;
     end;
     with AddSwitch(_lc[I_MENU_DEATHMATCH_KEYS]) do
     begin
@@ -3294,6 +3353,15 @@ begin
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
       ItemIndex := 1;
+    end;
+    with AddSwitch(_lc[I_MENU_TEAM_HIT]) do
+    begin
+      Name := 'swTeamHit';
+      AddItem(_lc[I_MENU_TEAM_HIT_BOTH]);
+      AddItem(_lc[I_MENU_TEAM_HIT_TRACE]);
+      AddItem(_lc[I_MENU_TEAM_HIT_PROJECTILE]);
+      AddItem(_lc[I_MENU_TEAM_HIT_NOTHING]);
+      ItemIndex := 0
     end;
     with AddSwitch(_lc[I_MENU_DEATHMATCH_KEYS]) do
     begin
