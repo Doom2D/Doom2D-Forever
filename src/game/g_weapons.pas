@@ -894,8 +894,9 @@ begin
       end;
 
       // И в конце игроков, но только если положено
-      // (или friendlyfire, или friendly_hit_projectile)
-      if LongBool(gGameSettings.Options and (GAME_OPTION_TEAMDAMAGE or GAME_OPTION_TEAMHITPROJECTILE)) then
+      // (или снаряд от монстра, или friendlyfire, или friendly_hit_projectile)
+      if (g_GetUIDType(SpawnerUID) <> UID_PLAYER) or
+         LongBool(gGameSettings.Options and (GAME_OPTION_TEAMDAMAGE or GAME_OPTION_TEAMHITPROJECTILE)) then
       begin
         if PlayerHit() then
         begin
