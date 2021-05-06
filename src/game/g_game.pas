@@ -4439,6 +4439,8 @@ begin
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ALLOWEXIT;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_MONSTERS;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_BOTVSMONSTER;
+  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_TEAMHITPROJECTILE;
+  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_TEAMHITTRACE;
   gSwitchGameMode := GM_SINGLE;
 
   gLMSRespawn := LMS_RESPAWN_NONE;
