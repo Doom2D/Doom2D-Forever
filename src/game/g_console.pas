@@ -34,10 +34,18 @@ uses
     FIRST_ACTION = ACTION_JUMP;
     LAST_ACTION = ACTION_STRAFE;
 
+  var (* private state *)
+    Line: AnsiString;
+    CPos: Word;
+    conSkipLines: Integer;
+    MsgArray: Array [0..4] of record
+      Msg: AnsiString;
+      Time: Word;
+    end;
+
 procedure g_Console_Init;
 procedure g_Console_SysInit;
 procedure g_Console_Update;
-procedure g_Console_Draw (MessagesOnly: Boolean = False);
 procedure g_Console_Char (C: AnsiChar);
 procedure g_Console_Control (K: Word);
 procedure g_Console_Process (L: AnsiString; quiet: Boolean=false);
@@ -93,7 +101,7 @@ var
 implementation
 
 uses
-  g_textures, g_main, e_graphics, e_input, g_game, g_gfx, g_player, g_items,
+  g_textures, g_main, e_input, g_game, g_gfx, g_player, g_items,
   SysUtils, g_basic, g_options, Math, g_touch, e_res,
   g_menu, g_gui, g_language, g_net, g_netmsg, e_log, conbuf, g_weapons,
   Keyboard;
@@ -131,49 +139,28 @@ const
   MsgTime = 144;
   MaxScriptRecursion = 16;
 
-  DEBUG_STRING = 'DEBUG MODE';
-
 var
-  ID: DWORD;
   RecursionDepth: Word = 0;
   RecursionLimitHit: Boolean = False;
-  Cons_Y: SmallInt;
-  ConsoleHeight: Single;
-  Cons_Shown: Boolean; // draw console
   InputReady: Boolean; // allow text input in console/chat
-  Line: AnsiString;
-  CPos: Word;
   //ConsoleHistory: SSArray;
   CommandHistory: SSArray;
   Whitelist: SSArray;
   commands: Array of TCommand = nil;
   Aliases: Array of TAlias = nil;
   CmdIndex: Word;
-  conSkipLines: Integer = 0;
-  MsgArray: Array [0..4] of record
-                              Msg: AnsiString;
-                              Time: Word;
-                            end;
 
   gInputBinds: Array [0..e_MaxInputKeys - 1] of record
     rep: Boolean;
     down, up: SSArray;
   end;
   menu_toggled: BOOLEAN; (* hack for menu controls *)
-  ChatTop: BOOLEAN;
-  ConsoleStep: Single;
-  ConsoleTrans: Single;
   ConsoleStdIn: Boolean;
-
 
 procedure g_Console_Switch;
 begin
-  Cons_Y := Min(0, Max(Cons_Y, -Floor(gScreenHeight * ConsoleHeight)));
-  if Cons_Shown = False then
-    Cons_Y := -Floor(gScreenHeight * ConsoleHeight);
   gChatShow := False;
   gConsoleShow := not gConsoleShow;
-  Cons_Shown := True;
   InputReady := False;
   g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
 end;
@@ -181,13 +168,9 @@ end;
 procedure g_Console_Chat_Switch (Team: Boolean = False);
 begin
   if not g_Game_IsNet then Exit;
-  Cons_Y := Min(0, Max(Cons_Y, -Floor(gScreenHeight * ConsoleHeight)));
-  if Cons_Shown = False then
-    Cons_Y := -Floor(gScreenHeight * ConsoleHeight);
   gConsoleShow := False;
   gChatShow := not gChatShow;
   gChatTeam := Team;
-  Cons_Shown := True;
   InputReady := False;
   Line := '';
   CPos := 1;
@@ -990,10 +973,8 @@ end;
 procedure g_Console_SysInit;
   var a: Integer;
 begin
-  Cons_Y := -Floor(gScreenHeight * ConsoleHeight);
   gConsoleShow := False;
   gChatShow := False;
-  Cons_Shown := False;
   InputReady := False;
   CPos := 1;
 
@@ -1255,7 +1236,6 @@ end;
 
 procedure g_Console_Init;
 begin
-  g_Texture_CreateWAD(ID, GameWAD+':TEXTURES\CONSOLE');
   g_Console_Add(Format(_lc[I_CONSOLE_WELCOME], [GAME_VERSION]));
   g_Console_Add('');
 {$IFDEF HEADLESS}
@@ -1269,33 +1249,13 @@ end;
 
 procedure g_Console_Update;
 var
-  a, b, Step: Integer;
+  a, b: Integer;
 begin
 {$IFDEF HEADLESS}
   if ConsoleStdIn then
     ReadStdIn();
 {$ENDIF}
-
-  if Cons_Shown then
-  begin
-    Step := Max(1, Round(Floor(gScreenHeight * ConsoleHeight) * ConsoleStep));
-    if gConsoleShow then
-    begin
-      (* Open animation *)
-      Cons_Y := Min(Cons_Y + Step, 0);
-      InputReady := True
-    end
-    else
-    begin
-      (* Close animation *)
-      Cons_Y := Max(Cons_Y - Step, -Floor(gScreenHeight * ConsoleHeight));
-      Cons_Shown := Cons_Y > -Floor(gScreenHeight * ConsoleHeight);
-      InputReady := False
-    end;
-
-    if gChatShow then
-      InputReady := True
-  end;
+  InputReady := gConsoleShow or gChatShow;
 
   a := 0;
   while a <= High(MsgArray) do
@@ -1320,138 +1280,6 @@ begin
 
     a := a + 1;
   end;
-end;
-
-
-procedure drawConsoleText ();
-var
-  CWidth, CHeight: Byte;
-  ty: Integer;
-  sp, ep: LongWord;
-  skip: Integer;
-
-  procedure putLine (sp, ep: LongWord);
-  var
-    p: LongWord;
-    wdt, cw: Integer;
-  begin
-    p := sp;
-    wdt := 0;
-    while p <> ep do
-    begin
-      cw := e_TextureFontCharWidth(cbufAt(p), gStdFont);
-      if wdt+cw > gScreenWidth-8 then break;
-      //e_TextureFontPrintChar(X, Y: Integer; Ch: Char; FontID: DWORD; Shadow: Boolean = False);
-      Inc(wdt, cw);
-      cbufNext(p);
-    end;
-    if p <> ep then putLine(p, ep); // do rest of the line first
-    // now print our part
-    if skip = 0 then
-    begin
-      ep := p;
-      p := sp;
-      wdt := 2;
-      while p <> ep do
-      begin
-        cw := e_TextureFontCharWidth(cbufAt(p), gStdFont);
-        e_TextureFontPrintCharEx(wdt, ty, cbufAt(p), gStdFont);
-        Inc(wdt, cw);
-        cbufNext(p);
-      end;
-      Dec(ty, CHeight);
-    end
-    else
-    begin
-      Dec(skip);
-    end;
-  end;
-
-begin
-  e_TextureFontGetSize(gStdFont, CWidth, CHeight);
-  ty := Floor(gScreenHeight * ConsoleHeight) - 4 - 2 * CHeight - Abs(Cons_Y);
-  skip := conSkipLines;
-  cbufLastLine(sp, ep);
-  repeat
-    putLine(sp, ep);
-    if ty+CHeight <= 0 then break;
-  until not cbufLineUp(sp, ep);
-end;
-
-procedure g_Console_Draw(MessagesOnly: Boolean = False);
-var
-  CWidth, CHeight: Byte;
-  mfW, mfH: Word;
-  a, b, offset_y: Integer;
-begin
-  e_TextureFontGetSize(gStdFont, CWidth, CHeight);
-
-  if ChatTop and gChatShow then
-    offset_y := CHeight
-  else
-    offset_y := 0;
-
-  for a := 0 to High(MsgArray) do
-    if MsgArray[a].Time > 0 then
-      e_TextureFontPrintFmt(0, offset_y + CHeight * a, MsgArray[a].Msg, gStdFont, True);
-
-  if MessagesOnly then Exit;
-
-  if gChatShow then
-  begin
-    if ChatTop then
-      offset_y := 0
-    else
-      offset_y := gScreenHeight - CHeight - 1;
-    if gChatTeam then
-    begin
-      e_TextureFontPrintEx(0, offset_y, 'say team> ' + Line, gStdFont, 255, 255, 255, 1, True);
-      e_TextureFontPrintEx((CPos + 9) * CWidth, offset_y, '_', gStdFont, 255, 255, 255, 1, True);
-    end
-    else
-    begin
-      e_TextureFontPrintEx(0, offset_y, 'say> ' + Line, gStdFont, 255, 255, 255, 1, True);
-      e_TextureFontPrintEx((CPos + 4) * CWidth, offset_y, '_', gStdFont, 255, 255, 255, 1, True);
-    end
-  end;
-
-  if not Cons_Shown then
-    Exit;
-
-  if gDebugMode then
-  begin
-    e_CharFont_GetSize(gMenuFont, DEBUG_STRING, mfW, mfH);
-    a := (gScreenWidth - 2*mfW) div 2;
-    b := Cons_Y + (Floor(gScreenHeight * ConsoleHeight) - 2 * mfH) div 2;
-    e_CharFont_PrintEx(gMenuFont, a div 2, b div 2, DEBUG_STRING,
-                       _RGB(128, 0, 0), 2.0);
-  end;
-
-  e_DrawSize(ID, 0, Cons_Y, Round(ConsoleTrans * 255), False, False, gScreenWidth, Floor(gScreenHeight * ConsoleHeight));
-  e_TextureFontPrint(0, Cons_Y + Floor(gScreenHeight * ConsoleHeight) - CHeight - 4, '> ' + Line, gStdFont);
-
-  drawConsoleText();
-  (*
-  if ConsoleHistory <> nil then
-  begin
-    b := 0;
-    if CHeight > 0 then
-      if Length(ConsoleHistory) > (Floor(gScreenHeight * ConsoleHeight) div CHeight) - 1 then
-        b := Length(ConsoleHistory) - (Floor(gScreenHeight * ConsoleHeight) div CHeight) + 1;
-
-    b := Max(b-Offset, 0);
-    d := Max(High(ConsoleHistory)-Offset, 0);
-
-    c := 2;
-    for a := d downto b do
-    begin
-      e_TextureFontPrintFmt(0, Floor(gScreenHeight * ConsoleHeight) - 4 - c * CHeight - Abs(Cons_Y), ConsoleHistory[a], gStdFont, True);
-      c := c + 1;
-    end;
-  end;
-  *)
-
-  e_TextureFontPrint((CPos + 1) * CWidth, Cons_Y + Floor(gScreenHeight * ConsoleHeight) - 21, '_', gStdFont);
 end;
 
 procedure g_Console_Char(C: AnsiChar);
@@ -2348,20 +2176,7 @@ end;
 procedure Init;
   var i: Integer;
 begin
-  conRegVar('chat_at_top', @ChatTop, 'draw chat at top border', 'draw chat at top border');
-  conRegVar('console_height', @ConsoleHeight, 0.0, 1.0, 'set console size', 'set console size');
-  conRegVar('console_trans', @ConsoleTrans, 0.0, 1.0, 'set console transparency', 'set console transparency');
-  conRegVar('console_step', @ConsoleStep, 0.0, 1.0, 'set console animation speed', 'set console animation speed');
   conRegVar('console_stdin', @ConsoleStdIn, 'enable reading commands from stdin', 'enable reading commands from stdin');
-{$IFDEF ANDROID}
-  ChatTop := True;
-  ConsoleHeight := 0.35;
-{$ELSE}
-  ChatTop := False;
-  ConsoleHeight := 0.5;
-{$ENDIF}
-  ConsoleTrans := 0.1;
-  ConsoleStep := 0.07;
 {$IFDEF HEADLESS}
   ConsoleStdIn := True;
 {$ELSE}

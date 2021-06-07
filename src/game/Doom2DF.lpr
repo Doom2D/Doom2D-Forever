@@ -153,6 +153,8 @@ uses
   g_touch in 'sdl2/g_touch.pas',
 {$ENDIF}
 
+  r_console in 'opengl/r_console.pas',
+
 {$IFDEF USE_FMOD}
   fmod in '../lib/FMOD/fmod.pas',
   fmoderrors in '../lib/FMOD/fmoderrors.pas',

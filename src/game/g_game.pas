@@ -397,7 +397,7 @@ uses
   g_holmes,
 {$ENDIF}
   e_texture, e_res, g_textures, g_window, g_menu,
-  e_input, e_log, g_console, g_items, g_map, g_panel,
+  e_input, e_log, g_console, r_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
   g_language, g_net, g_main, g_phys,
@@ -1420,6 +1420,7 @@ begin
     g_Game_SetLoadingText('', 0, False);
 
     g_Game_SetLoadingText(_lc[I_LOAD_CONSOLE], 0, False);
+    r_Console_Init;
     g_Console_Init();
 
     g_Game_SetLoadingText(_lc[I_LOAD_MODELS], 0, False);
@@ -1830,6 +1831,7 @@ begin
   // no need to, as we'll do it in event handler
 
 // Обновляем консоль (движение и сообщения):
+  r_Console_Update;
   g_Console_Update();
 
   if (NetMode = NET_NONE) and (g_Game_IsNet) and (gGameOn or (gState in [STATE_FOLD, STATE_INTERCUSTOM])) then
@@ -4215,7 +4217,7 @@ begin
   end;
 
 {$IFNDEF HEADLESS}
-  g_Console_Draw();
+  r_Console_Draw();
 {$ENDIF}
 
   if g_debug_Sounds and gGameOn then

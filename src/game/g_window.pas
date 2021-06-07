@@ -40,7 +40,7 @@ uses
 {$INCLUDE ../nogl/noGLuses.inc}
   SysUtils, Classes, MAPDEF, Math,
   e_graphics, e_log, e_texture, g_main,
-  g_console, e_input, g_options, g_game,
+  g_console, r_console, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
   g_map, g_gfx, g_monsters, xprofiler,
   g_touch, g_gui, g_system, g_netmaster;
@@ -93,7 +93,7 @@ begin
       DrawMenuBackground('INTER');
       e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
       DrawLoadingStat();
-      g_Console_Draw(True);
+      r_Console_Draw(True);
 
       e_SetRendertarget(False);
       e_SetViewPort(0, 0, gWinSizeX, gWinSizeY);
