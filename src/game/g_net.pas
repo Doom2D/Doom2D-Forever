@@ -273,7 +273,10 @@ begin
 end;
 
 procedure g_Net_InitLowLevel ();
+  var v: ENetVersion;
 begin
+  v := enet_linked_version();
+  e_LogWritefln('ENet Version: %s.%s.%s', [ENET_VERSION_GET_MAJOR(v), ENET_VERSION_GET_MINOR(v), ENET_VERSION_GET_PATCH(v)]);
   if enet_init_success then raise Exception.Create('wuta?!');
   enet_init_success := (enet_initialize() = 0);
 end;
