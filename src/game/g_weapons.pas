@@ -51,7 +51,7 @@ function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte; HitCorps
 function g_Weapon_HitUID(UID: Word; d: Integer; SpawnerUID: Word; t: Byte): Boolean;
 function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, TargetUID: Word; X, Y, XV, YV: Integer): LongWord;
 
-procedure g_Weapon_gun(const x, y, xd, yd, v, dmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
+procedure g_Weapon_gun(const x, y, xd, yd, v, indmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
 procedure g_Weapon_punch(x, y: Integer; d, SpawnerUID: Word);
 function g_Weapon_chainsaw(x, y: Integer; d, SpawnerUID: Word): Integer;
 procedure g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
@@ -1398,13 +1398,14 @@ end;
 
 
 //!!!FIXME!!!
-procedure g_Weapon_gun (const x, y, xd, yd, v, dmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
+procedure g_Weapon_gun (const x, y, xd, yd, v, indmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
 var
   x0, y0: Integer;
   x2, y2: Integer;
   xi, yi: Integer;
   wallDistSq: Integer = $3fffffff;
   spawnerPlr: TPlayer = nil;
+  dmg: Integer;
 
   function doPlayerHit (idx: Integer; hx, hy: Integer): Boolean;
   begin
@@ -1415,7 +1416,11 @@ var
     begin
       if ((gGameSettings.Options and (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMDAMAGE)) = 0) and
          (spawnerPlr.Team <> TEAM_NONE) and (spawnerPlr.Team = gPlayers[idx].Team) then
-        exit;
+          begin
+            if (spawnerPlr <> gPlayers[idx]) and ((gGameSettings.Options and GAME_OPTION_TEAMABSORBDAMAGE) = 0) then
+              dmg := Max(1, dmg div 2);
+            exit;
+        end;
     end;
     result := HitPlayer(gPlayers[idx], dmg, (xi*v)*10, (yi*v)*10-3, SpawnerUID, HIT_SOME);
     if result and (v <> 0) then gPlayers[idx].Push((xi*v), (yi*v));
@@ -1511,6 +1516,8 @@ begin
 
   if (g_GetUIDType(SpawnerUID) = UID_PLAYER) then
     spawnerPlr := g_Player_Get(SpawnerUID);
+
+  dmg := indmg;
 
   //wgunMonHash.reset(); //FIXME: clear hash on level change
   wgunHitHeap.clear();

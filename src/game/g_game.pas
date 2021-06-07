@@ -186,6 +186,7 @@ const
   GAME_OPTION_DMKEYS            = 128;
   GAME_OPTION_TEAMHITTRACE      = 256;
   GAME_OPTION_TEAMHITPROJECTILE = 512;
+  GAME_OPTION_TEAMABSORBDAMAGE = 1024;
 
   STATE_NONE        = 0;
   STATE_MENU        = 1;
@@ -5514,6 +5515,10 @@ begin
   begin
     ParseGameFlag(GAME_OPTION_TEAMDAMAGE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);
   end
+  else if cmd = 'g_friendly_absorb_damage' then
+ begin
+   ParseGameFlag(GAME_OPTION_TEAMABSORBDAMAGE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);
+ end
   else if cmd = 'g_friendly_hit_trace' then
   begin
     ParseGameFlag(GAME_OPTION_TEAMHITTRACE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);

@@ -1043,6 +1043,7 @@ begin
   AddCommand('g_friendlyfire', GameCVars);
   AddCommand('g_friendly_hit_trace', GameCVars);
   AddCommand('g_friendly_hit_projectile', GameCVars);
+  AddCommand('g_friendly_absorb_damage', GameCVars);
   AddCommand('g_weaponstay', GameCVars);
   AddCommand('g_allow_exit', GameCVars);
   AddCommand('g_dm_keys', GameCVars);
@@ -1160,6 +1161,7 @@ begin
   WhitelistCommand('g_friendlyfire');
   WhitelistCommand('g_friendly_hit_trace');
   WhitelistCommand('g_friendly_hit_projectile');
+  WhitelistCommand('g_friendly_absorb_damage');
   WhitelistCommand('g_weaponstay');
   WhitelistCommand('g_allow_exit');
   WhitelistCommand('g_dm_keys');
