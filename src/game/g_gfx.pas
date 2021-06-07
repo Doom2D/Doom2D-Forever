@@ -106,7 +106,7 @@ function awmIsSetHolmes (x, y: Integer): Boolean; inline;
       //k8: sorry, i have to emulate virtual methods this way, 'cause i haet `Object`
       procedure thinkerBloodAndWater ();
       procedure thinkerSpark ();
-     procedure thinkerBubble ();
+      procedure thinkerBubble ();
 
       procedure findFloor (force: Boolean=false); // this updates `floorY` if forced or Unknown
       procedure findCeiling (force: Boolean=false); // this updates `ceilingY` if forced or Unknown
@@ -135,8 +135,7 @@ function awmIsSetHolmes (x, y: Integer): Boolean; inline;
 implementation
 
 uses
-  {$INCLUDE ../nogl/noGLuses.inc}
-  g_map, g_panel, g_basic, Math, e_graphics,
+  g_map, g_panel, g_basic, Math,
   g_options, g_console, SysUtils, g_triggers, MAPDEF,
   g_game, g_language, g_net, utils, xprofiler;
 
