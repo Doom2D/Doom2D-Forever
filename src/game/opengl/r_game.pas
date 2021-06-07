@@ -32,7 +32,7 @@ implementation
     g_textures, e_input, e_sound,
     g_language, g_console, g_menu, g_triggers, g_player, g_options, g_monsters, g_map, g_panel, g_window,
     g_items, g_weapons, g_gfx, g_phys, g_net, g_gui, g_netmaster,
-    g_game, r_console, r_gfx
+    g_game, r_console, r_gfx, r_items
   ;
 
   var
@@ -1238,14 +1238,14 @@ begin
 
   drawPanelType('*back', PANEL_BACK, g_rlayer_back);
   drawPanelType('*step', PANEL_STEP, g_rlayer_step);
-  drawOther('items', @g_Items_Draw);
+  drawOther('items', @r_Items_Draw);
   drawOther('weapons', @g_Weapon_Draw);
   drawOther('shells', @g_Player_DrawShells);
   drawOther('drawall', @g_Player_DrawAll);
   drawOther('corpses', @g_Player_DrawCorpses);
   drawPanelType('*wall', PANEL_WALL, g_rlayer_wall);
   drawOther('monsters', @g_Monsters_Draw);
-  drawOther('itemdrop', @g_Items_DrawDrop);
+  drawOther('itemdrop', @r_Items_DrawDrop);
   drawPanelType('*door', PANEL_CLOSEDOOR, g_rlayer_door);
   drawOther('gfx', @r_GFX_Draw);
   drawOther('flags', @g_Map_DrawFlags);

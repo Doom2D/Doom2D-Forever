@@ -156,6 +156,7 @@ uses
   r_console in 'opengl/r_console.pas',
   r_game in 'opengl/r_game.pas',
   r_gfx in 'opengl/r_gfx.pas',
+  r_items in 'opengl/r_items.pas',
 
 {$IFDEF USE_FMOD}
   fmod in '../lib/FMOD/fmod.pas',

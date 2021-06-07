@@ -47,6 +47,7 @@ Type
     procedure getMapBox (out x, y, w, h: Integer); inline;
     procedure moveBy (dx, dy: Integer); inline;
 
+    property used: Boolean read slotIsUsed;
     property myid: Integer read arrIdx;
   end;
 
@@ -59,8 +60,6 @@ function g_Items_Create(X, Y: Integer; ItemType: Byte;
 procedure g_Items_SetDrop (ID: DWORD);
 procedure g_Items_PreUpdate();
 procedure g_Items_Update();
-procedure g_Items_Draw();
-procedure g_Items_DrawDrop();
 procedure g_Items_Pick(ID: DWORD);
 procedure g_Items_Remove(ID: DWORD);
 procedure g_Items_SaveState (st: TStream);
@@ -88,19 +87,17 @@ var
   gItemsTexturesID: Array [1..ITEM_MAX] of DWORD;
   gMaxDist: Integer = 1; // for sounds
 
+  var (* private state *)
+    ggItems: Array of TItem = nil;
+
 implementation
 
 uses
   Math,
-  g_basic, e_graphics, g_sound, g_main, g_gfx, g_map,
+  g_basic, g_sound, g_main, g_gfx, g_map,
   g_game, g_triggers, g_console, g_player, g_net, g_netmsg,
   e_log,
   g_grid, binheap, idpool, utils, xstreams;
-
-
-var
-  ggItems: Array of TItem = nil;
-
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
@@ -668,60 +665,6 @@ begin
     end;
   end;
 end;
-
-
-procedure itemsDrawInternal (dropflag: Boolean);
-var
-  i, fX, fY: Integer;
-  it: PItem;
-begin
-  if (ggItems = nil) then exit;
-
-  for i := 0 to High(ggItems) do
-  begin
-    it := @ggItems[i];
-    if (not it.slotIsUsed) or (it.ItemType = ITEM_NONE) then continue; // just in case
-    if not it.alive then continue;
-    if (it.dropped <> dropflag) then continue;
-
-    with it^ do
-    begin
-      if g_Collide(Obj.X, Obj.Y, Obj.Rect.Width, Obj.Rect.Height, sX, sY, sWidth, sHeight) then
-      begin
-        Obj.lerp(gLerpFactor, fX, fY);
-        if (Animation = nil) then
-        begin
-          e_Draw(gItemsTexturesID[ItemType], fX, fY, 0, true, false);
-        end
-        else
-        begin
-          Animation.Draw(fX, fY, TMirrorType.None);
-        end;
-
-        if g_debug_Frames then
-        begin
-          e_DrawQuad(Obj.X+Obj.Rect.X,
-                     Obj.Y+Obj.Rect.Y,
-                     Obj.X+Obj.Rect.X+Obj.Rect.Width-1,
-                     Obj.Y+Obj.Rect.Y+Obj.Rect.Height-1,
-                     0, 255, 0);
-        end;
-      end;
-    end;
-  end;
-end;
-
-
-procedure g_Items_Draw ();
-begin
-  itemsDrawInternal(false);
-end;
-
-procedure g_Items_DrawDrop ();
-begin
-  itemsDrawInternal(true);
-end;
-
 
 procedure g_Items_SetDrop (ID: DWORD);
 begin
