@@ -29,6 +29,12 @@ type
       Anim: Boolean;
     end;
 
+  ATextureID = array of record
+    case Anim: Boolean of
+      False: (Tex: Cardinal);
+      True:  (AnTex: TAnimation);
+  end;
+
   PPanel = ^TPanel;
   TPanel = Class (TObject)
   private
@@ -39,13 +45,7 @@ type
     FTextureHeight:   Word;
     FAlpha:           Byte;
     FBlending:        Boolean;
-    FTextureIDs:      Array of
-                        record
-                          case Anim: Boolean of
-                            False: (Tex: Cardinal);
-                            True:  (AnTex: TAnimation);
-                        end;
-
+    FTextureIDs:      ATextureID;
     mMovingSpeed: TDFPoint;
     mMovingStart: TDFPoint;
     mMovingEnd: TDFPoint;
@@ -119,8 +119,6 @@ type
                        var Textures: TLevelTextureArray; aguid: Integer);
     destructor  Destroy(); override;
 
-    procedure   Draw (hasAmbient: Boolean; constref ambColor: TDFColor);
-    procedure   DrawShadowVolume(lightX: Integer; lightY: Integer; radius: Integer);
     procedure   Update();
     procedure   SetFrame(Frame: Integer; Count: Byte);
     procedure   NextTexture(AnimLoop: Byte = 0);
@@ -148,8 +146,6 @@ type
     function gncNeedSend (): Boolean; inline;
     procedure setDirty (); inline; // why `dirty`? 'cause i may introduce property `needSend` later
 
-    procedure lerp (t: Single; out tX, tY, tW, tH: Integer);
-
   public
     property visvalid: Boolean read getvisvalid; // panel is "visvalid" when it's width and height are positive
 
@@ -163,6 +159,10 @@ type
     property y: Integer read FY write FY;
     property width: Word read FWidth write FWidth;
     property height: Word read FHeight write FHeight;
+    property oldX: Integer read FOldX;
+    property oldY: Integer read FOldY;
+    property oldWidth: Word read FOldW;
+    property oldHeight: Word read FOldH;
     property panelType: Word read FPanelType write FPanelType;
     property enabled: Boolean read FEnabled write FEnabled;
     property door: Boolean read FDoor write FDoor;
@@ -193,6 +193,13 @@ type
     property isGLift: Boolean read getIsGLift;
     property isGBlockMon: Boolean read getIsGBlockMon;
 
+    (* private state *)
+    property Alpha: Byte read FAlpha;
+    property TextureWidth: Word read FTextureWidth;
+    property TextureHeight: Word read FTextureHeight;
+    property Blending: Boolean read FBlending;
+    property TextureIDs: ATextureID read FTextureIDs;
+
   public
     property movingSpeed: TDFPoint read mMovingSpeed write mMovingSpeed;
     property movingStart: TDFPoint read mMovingStart write mMovingStart;
@@ -222,7 +229,7 @@ implementation
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
-  e_texture, g_basic, g_map, g_game, g_gfx, e_graphics, g_weapons, g_triggers, g_items,
+  e_texture, g_basic, g_map, g_game, g_gfx, g_weapons, g_triggers, g_items,
   g_console, g_language, g_monsters, g_player, g_grid, e_log, geom, utils, xstreams;
 
 const
@@ -389,24 +396,6 @@ begin
   Inherited;
 end;
 
-procedure TPanel.lerp (t: Single; out tX, tY, tW, tH: Integer);
-begin
-  if mMovingActive then
-  begin
-    tX := nlerp(FOldX, FX, t);
-    tY := nlerp(FOldY, FY, t);
-    tW := nlerp(FOldW, FWidth, t);
-    tH := nlerp(FOldH, FHeight, t);
-  end
-  else
-  begin
-    tX := FX;
-    tY := FY;
-    tW := FWidth;
-    tH := FHeight;
-  end;
-end;
-
 function TPanel.getx1 (): Integer; inline; begin result := X+Width-1; end;
 function TPanel.gety1 (): Integer; inline; begin result := Y+Height-1; end;
 function TPanel.getvisvalid (): Boolean; inline; begin result := (Width > 0) and (Height > 0); end;
@@ -448,117 +437,6 @@ function TPanel.getIsGBlockMon (): Boolean; inline; begin result := ((tag and Gr
 
 function TPanel.gncNeedSend (): Boolean; inline; begin result := mNeedSend; mNeedSend := false; end;
 procedure TPanel.setDirty (); inline; begin mNeedSend := true; end;
-
-
-procedure TPanel.Draw (hasAmbient: Boolean; constref ambColor: TDFColor);
-var
-  tx, ty, tw, th: Integer;
-  xx, yy: Integer;
-  NoTextureID: DWORD;
-  NW, NH: Word;
-begin
-  if {Enabled and} (FCurTexture >= 0) and
-     (Width > 0) and (Height > 0) and (FAlpha < 255) {and
-     g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
-  begin
-    lerp(gLerpFactor, tx, ty, tw, th);
-    if FTextureIDs[FCurTexture].Anim then
-      begin // Анимированная текстура
-        if FTextureIDs[FCurTexture].AnTex = nil then
-          Exit;
-
-        for xx := 0 to (tw div FTextureWidth)-1 do
-          for yy := 0 to (th div FTextureHeight)-1 do
-            FTextureIDs[FCurTexture].AnTex.Draw(
-              tx + xx*FTextureWidth,
-              ty + yy*FTextureHeight, TMirrorType.None);
-      end
-    else
-      begin // Обычная текстура
-        case FTextureIDs[FCurTexture].Tex of
-          LongWord(TEXTURE_SPECIAL_WATER): e_DrawFillQuad(tx, ty, tx+tw-1, ty+th-1, 0, 0, 255, 0, TBlending.Filter);
-          LongWord(TEXTURE_SPECIAL_ACID1): e_DrawFillQuad(tx, ty, tx+tw-1, ty+th-1, 0, 230, 0, 0, TBlending.Filter);
-          LongWord(TEXTURE_SPECIAL_ACID2): e_DrawFillQuad(tx, ty, tx+tw-1, ty+th-1, 230, 0, 0, 0, TBlending.Filter);
-          LongWord(TEXTURE_NONE):
-            if g_Texture_Get('NOTEXTURE', NoTextureID) then
-            begin
-              e_GetTextureSize(NoTextureID, @NW, @NH);
-              e_DrawFill(NoTextureID, tx, ty, tw div NW, th div NH, 0, False, False);
-            end
-            else
-            begin
-              xx := tx + (tw div 2);
-              yy := ty + (th div 2);
-              e_DrawFillQuad(tx, ty, xx, yy, 255, 0, 255, 0);
-              e_DrawFillQuad(xx, ty, tx+tw-1, yy, 255, 255, 0, 0);
-              e_DrawFillQuad(tx, yy, xx, ty+th-1, 255, 255, 0, 0);
-              e_DrawFillQuad(xx, yy, tx+tw-1, ty+th-1, 255, 0, 255, 0);
-            end;
-          else
-          begin
-            if not mMovingActive then
-              e_DrawFill(FTextureIDs[FCurTexture].Tex, tx, ty, tw div FTextureWidth, th div FTextureHeight, FAlpha, True, FBlending, hasAmbient)
-            else
-              e_DrawFillX(FTextureIDs[FCurTexture].Tex, tx, ty, tw, th, FAlpha, True, FBlending, g_dbg_scale, hasAmbient);
-            if hasAmbient then e_AmbientQuad(tx, ty, tw, th, ambColor.r, ambColor.g, ambColor.b, ambColor.a);
-          end;
-        end;
-      end;
-  end;
-end;
-
-procedure TPanel.DrawShadowVolume(lightX: Integer; lightY: Integer; radius: Integer);
-var
-  tx, ty, tw, th: Integer;
-
-  procedure extrude (x: Integer; y: Integer);
-  begin
-    glVertex2i(x+(x-lightX)*500, y+(y-lightY)*500);
-    //e_WriteLog(Format('  : (%d,%d)', [x+(x-lightX)*300, y+(y-lightY)*300]), MSG_WARNING);
-  end;
-
-  procedure drawLine (x0: Integer; y0: Integer; x1: Integer; y1: Integer);
-  begin
-    // does this side facing the light?
-    if ((x1-x0)*(lightY-y0)-(lightX-x0)*(y1-y0) >= 0) then exit;
-    //e_WriteLog(Format('lightpan: (%d,%d)-(%d,%d)', [x0, y0, x1, y1]), MSG_WARNING);
-    // this edge is facing the light, extrude and draw it
-    glVertex2i(x0, y0);
-    glVertex2i(x1, y1);
-    extrude(x1, y1);
-    extrude(x0, y0);
-  end;
-
-begin
-  if radius < 4 then exit;
-  if Enabled and (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (FAlpha < 255) {and
-     g_Collide(X, Y, tw, th, sX, sY, sWidth, sHeight)} then
-  begin
-    lerp(gLerpFactor, tx, ty, tw, th);
-    if not FTextureIDs[FCurTexture].Anim then
-    begin
-      case FTextureIDs[FCurTexture].Tex of
-        LongWord(TEXTURE_SPECIAL_WATER): exit;
-        LongWord(TEXTURE_SPECIAL_ACID1): exit;
-        LongWord(TEXTURE_SPECIAL_ACID2): exit;
-        LongWord(TEXTURE_NONE): exit;
-      end;
-    end;
-    if (tx+tw < lightX-radius) then exit;
-    if (ty+th < lightY-radius) then exit;
-    if (tx > lightX+radius) then exit;
-    if (ty > lightY+radius) then exit;
-    //e_DrawFill(FTextureIDs[FCurTexture].Tex, X, Y, tw div FTextureWidth, th div FTextureHeight, FAlpha, True, FBlending);
-
-    glBegin(GL_QUADS);
-      drawLine(tx,    ty,    tx+tw, ty); // top
-      drawLine(tx+tw, ty,    tx+tw, ty+th); // right
-      drawLine(tx+tw, ty+th, tx,    ty+th); // bottom
-      drawLine(tx,    ty+th, tx,    ty); // left
-    glEnd();
-  end;
-end;
-
 
 procedure TPanel.positionChanged (); inline;
 var

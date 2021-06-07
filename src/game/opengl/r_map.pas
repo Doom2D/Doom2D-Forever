@@ -32,7 +32,8 @@ implementation
     SysUtils, Classes, Math,
     e_graphics,
     g_basic, g_game, g_options,
-    g_panel, g_map
+    g_panel, g_map,
+    r_panel
   ;
 
 procedure dplClear ();
@@ -52,7 +53,8 @@ procedure r_Map_DrawPanels (PanelType: Word; hasAmbient: Boolean; constref ambCo
       // alas, no visible set
       for idx := 0 to High(panels) do
       begin
-        if not (drawDoors xor panels[idx].Door) then panels[idx].Draw(hasAmbient, ambColor);
+        if not (drawDoors xor panels[idx].Door) then
+          r_Panel_Draw(panels[idx], hasAmbient, ambColor);
       end;
     end;
   end;
@@ -89,7 +91,7 @@ var
   it: TPanelGrid.Iter;
 begin
   it := mapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, (GridTagWall or GridTagDoor));
-  for mwit in it do mwit^.DrawShadowVolume(lightX, lightY, radius);
+  for mwit in it do r_Panel_DrawShadowVolume(mwit^, lightX, lightY, radius);
   it.release();
 end;
 
