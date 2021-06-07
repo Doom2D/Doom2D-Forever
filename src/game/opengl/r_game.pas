@@ -18,8 +18,8 @@ unit r_game;
 interface
 
   procedure r_Game_Draw;
-  procedure DrawLoadingStat;
-  procedure DrawMenuBackground (tex: AnsiString);
+  procedure r_Game_DrawLoadingStat;
+  procedure r_Game_DrawMenuBackground (tex: AnsiString);
 
 implementation
 
@@ -660,7 +660,7 @@ begin
     end;
 end;
 
-procedure DrawLoadingStat();
+procedure r_Game_DrawLoadingStat;
   procedure drawRect (x, y, w, h: Integer);
   begin
     if (w < 1) or (h < 1) then exit;
@@ -801,7 +801,7 @@ begin
   end;
 end;
 
-procedure DrawMenuBackground(tex: AnsiString);
+procedure r_Game_DrawMenuBackground (tex: AnsiString);
 var
   w, h: Word;
   ID: DWord;
@@ -1716,7 +1716,7 @@ begin
   begin
     if (gState = STATE_MENU) then
     begin
-      if (g_ActiveWindow = nil) or (g_ActiveWindow.BackTexture = '') then DrawMenuBackground('MENU_BACKGROUND');
+      if (g_ActiveWindow = nil) or (g_ActiveWindow.BackTexture = '') then r_Game_DrawMenuBackground('MENU_BACKGROUND');
       // F3 at menu will show game loading dialog
       if e_KeyPressed(IK_F3) then g_Menu_Show_LoadMenu(true);
       if (g_ActiveWindow <> nil) then
@@ -1751,7 +1751,7 @@ begin
       else
         back := 'INTER';
 
-      DrawMenuBackground(back);
+      r_Game_DrawMenuBackground(back);
 
       DrawCustomStat();
 
@@ -1772,7 +1772,7 @@ begin
       begin
         back := 'INTER';
 
-        DrawMenuBackground(back);
+        r_Game_DrawMenuBackground(back);
 
         DrawSingleStat();
 
@@ -1787,8 +1787,8 @@ begin
     if gState = STATE_ENDPIC then
     begin
       ID := DWORD(-1);
-      if g_Texture_Get('TEXTURE_endpic', ID) then DrawMenuBackground('TEXTURE_endpic')
-      else DrawMenuBackground(_lc[I_TEXTURE_ENDPIC]);
+      if g_Texture_Get('TEXTURE_endpic', ID) then r_Game_DrawMenuBackground('TEXTURE_endpic')
+      else r_Game_DrawMenuBackground(_lc[I_TEXTURE_ENDPIC]);
 
       if g_ActiveWindow <> nil then
       begin
@@ -1804,7 +1804,7 @@ begin
 //        e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight);
 //        //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
 //      end;
-      DrawMenuBackground('MENU_BACKGROUND');
+      r_Game_DrawMenuBackground('MENU_BACKGROUND');
       e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
       g_Serverlist_Draw(slCurrent, slTable);
     end;

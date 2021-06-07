@@ -90,9 +90,9 @@ begin
       e_SetRendertarget(True);
       e_SetViewPort(0, 0, gScreenWidth, gScreenHeight);
 
-      DrawMenuBackground('INTER');
+      r_Game_DrawMenuBackground('INTER');
       e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
-      DrawLoadingStat();
+      r_Game_DrawLoadingStat();
       r_Console_Draw(True);
 
       e_SetRendertarget(False);
