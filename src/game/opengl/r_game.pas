@@ -32,7 +32,7 @@ implementation
     g_textures, e_input, e_sound,
     g_language, g_console, g_menu, g_triggers, g_player, g_options, g_monsters, g_map, g_panel, g_window,
     g_items, g_weapons, g_gfx, g_phys, g_net, g_gui, g_netmaster,
-    g_game, r_console, r_gfx, r_items
+    g_game, r_console, r_gfx, r_items, r_map
   ;
 
   var
@@ -1106,7 +1106,7 @@ begin
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_BLEND);
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // no need to modify color buffer
-    if (lrad > 4) then g_Map_DrawPanelShadowVolumes(lx, ly, lrad);
+    if (lrad > 4) then r_Map_DrawPanelShadowVolumes(lx, ly, lrad);
     // render light texture
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // modify color buffer
     glStencilOp(GL_ZERO, GL_ZERO, GL_ZERO); // draw light, and clear stencil buffer
@@ -1186,7 +1186,7 @@ var
     end
     else
     begin
-      if doDraw then g_Map_DrawPanels(panType, hasAmbient, ambColor);
+      if doDraw then r_Map_DrawPanels(panType, hasAmbient, ambColor);
     end;
     if (profileFrameDraw <> nil) then profileFrameDraw.sectionEnd();
   end;
@@ -1206,12 +1206,12 @@ begin
   if (profileFrameDraw <> nil) then profileFrameDraw.sectionBegin('collect');
   if gdbg_map_use_accel_render then
   begin
-    g_Map_CollectDrawPanels(sX, sY, sWidth, sHeight);
+    r_Map_CollectDrawPanels(sX, sY, sWidth, sHeight);
   end;
   if (profileFrameDraw <> nil) then profileFrameDraw.sectionEnd();
 
   if (profileFrameDraw <> nil) then profileFrameDraw.sectionBegin('skyback');
-  g_Map_DrawBack(backXOfs, backYOfs);
+  r_Map_DrawBack(backXOfs, backYOfs);
   if (profileFrameDraw <> nil) then profileFrameDraw.sectionEnd();
 
   if setTransMatrix then
@@ -1248,7 +1248,7 @@ begin
   drawOther('itemdrop', @r_Items_DrawDrop);
   drawPanelType('*door', PANEL_CLOSEDOOR, g_rlayer_door);
   drawOther('gfx', @r_GFX_Draw);
-  drawOther('flags', @g_Map_DrawFlags);
+  drawOther('flags', @r_Map_DrawFlags);
   drawPanelType('*acid1', PANEL_ACID1, g_rlayer_acid1);
   drawPanelType('*acid2', PANEL_ACID2, g_rlayer_acid2);
   drawPanelType('*water', PANEL_WATER, g_rlayer_water);
@@ -1304,7 +1304,7 @@ begin
   if (p = nil) or (p.FDummy) then
   begin
     glPushMatrix();
-    g_Map_DrawBack(0, 0);
+    r_Map_DrawBack(0, 0);
     glPopMatrix();
     Exit;
   end;

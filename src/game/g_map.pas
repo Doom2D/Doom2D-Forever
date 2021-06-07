@@ -66,10 +66,6 @@ procedure g_Map_Update();
 
 function g_Map_PanelByGUID (aguid: Integer): TPanel; inline;
 
-procedure g_Map_DrawPanels (PanelType: Word; hasAmbient: Boolean; constref ambColor: TDFColor); // unaccelerated
-procedure g_Map_CollectDrawPanels (x0, y0, wdt, hgt: Integer);
-
-procedure g_Map_DrawBack(dx, dy: Integer);
 function  g_Map_CollidePanel(X, Y: Integer; Width, Height: Word;
                              PanelType: Word; b1x3: Boolean=false): Boolean;
 function  g_Map_CollideLiquid_Texture(X, Y: Integer; Width, Height: Word): DWORD;
@@ -95,12 +91,9 @@ function  g_Map_GetRandomPointType(): Byte;
 function  g_Map_HaveFlagPoints(): Boolean;
 
 procedure g_Map_ResetFlag(Flag: Byte);
-procedure g_Map_DrawFlags();
 
 procedure g_Map_SaveState (st: TStream);
 procedure g_Map_LoadState (st: TStream);
-
-procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
 
 // returns panel or nil
 // sets `ex` and `ey` to `x1` and `y1` when no hit was detected
@@ -530,12 +523,6 @@ begin
   if (a.tag > b.tag) then begin result := false; exit; end;
   result := (a.arrIdx < b.arrIdx);
 end;
-
-procedure dplClear ();
-begin
-  if (gDrawPanelList = nil) then gDrawPanelList := TBinHeapPanelDraw.Create() else gDrawPanelList.clear();
-end;
-
 
 var
   Textures: TLevelTextureArray = nil;
@@ -2630,71 +2617,6 @@ begin
   end;
 end;
 
-
-// old algo
-procedure g_Map_DrawPanels (PanelType: Word; hasAmbient: Boolean; constref ambColor: TDFColor);
-
-  procedure DrawPanels (constref panels: TPanelArray; drawDoors: Boolean=False);
-  var
-    idx: Integer;
-  begin
-    if (panels <> nil) then
-    begin
-      // alas, no visible set
-      for idx := 0 to High(panels) do
-      begin
-        if not (drawDoors xor panels[idx].Door) then panels[idx].Draw(hasAmbient, ambColor);
-      end;
-    end;
-  end;
-
-begin
-  case PanelType of
-    PANEL_WALL:       DrawPanels(gWalls);
-    PANEL_CLOSEDOOR:  DrawPanels(gWalls, True);
-    PANEL_BACK:       DrawPanels(gRenderBackgrounds);
-    PANEL_FORE:       DrawPanels(gRenderForegrounds);
-    PANEL_WATER:      DrawPanels(gWater);
-    PANEL_ACID1:      DrawPanels(gAcid1);
-    PANEL_ACID2:      DrawPanels(gAcid2);
-    PANEL_STEP:       DrawPanels(gSteps);
-  end;
-end;
-
-
-// new algo
-procedure g_Map_CollectDrawPanels (x0, y0, wdt, hgt: Integer);
-var
-  mwit: PPanel;
-  it: TPanelGrid.Iter;
-begin
-  dplClear();
-  it := mapGrid.forEachInAABB(x0, y0, wdt, hgt, GridDrawableMask);
-  for mwit in it do if (((mwit^.tag and GridTagDoor) <> 0) = mwit^.Door) then gDrawPanelList.insert(mwit^);
-  it.release();
-  // list will be rendered in `g_game.DrawPlayer()`
-end;
-
-
-procedure g_Map_DrawPanelShadowVolumes (lightX: Integer; lightY: Integer; radius: Integer);
-var
-  mwit: PPanel;
-  it: TPanelGrid.Iter;
-begin
-  it := mapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, (GridTagWall or GridTagDoor));
-  for mwit in it do mwit^.DrawShadowVolume(lightX, lightY, radius);
-  it.release();
-end;
-
-
-procedure g_Map_DrawBack(dx, dy: Integer);
-begin
-  if gDrawBackGround and (BackID <> DWORD(-1)) then
-    e_DrawSize(BackID, dx, dy, 0, False, False, gBackSize.X, gBackSize.Y)
-  else
-    e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
-end;
-
 function g_Map_CollidePanelOld(X, Y: Integer; Width, Height: Word;
                             PanelType: Word; b1x3: Boolean=false): Boolean;
 var
@@ -3165,49 +3087,6 @@ begin
     Count := -1;
   end;
 end;
-
-procedure g_Map_DrawFlags();
-var
-  i, dx: Integer;
-  tx, ty: Integer;
-  Mirror: TMirrorType;
-begin
-  if gGameSettings.GameMode <> GM_CTF then
-    Exit;
-
-  for i := FLAG_RED to FLAG_BLUE do
-    with gFlags[i] do
-      if State <> FLAG_STATE_CAPTURED then
-      begin
-        if State = FLAG_STATE_NONE then
-          continue;
-
-        Obj.lerp(gLerpFactor, tx, ty);
-
-        if Direction = TDirection.D_LEFT then
-          begin
-            Mirror := TMirrorType.Horizontal;
-            dx := -1;
-          end
-        else
-          begin
-            Mirror := TMirrorType.None;
-            dx := 1;
-          end;
-
-        Animation.Draw(tx+dx, ty+1, Mirror);
-
-        if g_debug_Frames then
-        begin
-          e_DrawQuad(Obj.X+Obj.Rect.X,
-                     Obj.Y+Obj.Rect.Y,
-                     Obj.X+Obj.Rect.X+Obj.Rect.Width-1,
-                     Obj.Y+Obj.Rect.Y+Obj.Rect.Height-1,
-                     0, 255, 0);
-        end;
-      end;
-end;
-
 
 procedure g_Map_SaveState (st: TStream);
 var
