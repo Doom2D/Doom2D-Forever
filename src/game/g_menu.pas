@@ -50,7 +50,7 @@ uses
   MAPDEF, Math, g_saveload,
   e_texture, g_language, e_res,
   g_net, g_netmsg, g_netmaster, g_items, e_input, g_touch,
-  utils, wadreader, g_system;
+  utils, wadreader, g_system, r_game;
 
 
 type TYNCallback = procedure (yes:Boolean);
@@ -861,7 +861,7 @@ begin
 
   slWaitStr := _lc[I_NET_SLIST_WAIT];
 
-  g_Game_Draw;
+  r_Game_Draw;
   sys_Repaint;
 
   slReturnPressed := True;

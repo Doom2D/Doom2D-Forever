@@ -71,7 +71,7 @@ uses
   e_sound, g_options, g_sound, g_player, g_basic,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map, e_res,
   g_menu, g_language, g_net, g_touch, g_system, g_res_downloader,
-  conbuf, envvars,
+  conbuf, envvars, r_game,
   xparser;
 
 
@@ -689,7 +689,7 @@ end;
 
 procedure Draw ();
 begin
-  g_Game_Draw();
+  r_Game_Draw();
 end;
 
 

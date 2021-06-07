@@ -173,7 +173,7 @@ implementation
 
 uses
   e_input, e_graphics, e_log, g_window, g_net, g_console,
-  g_map, g_game, g_sound, g_gui, g_menu, g_options, g_language, g_basic,
+  g_map, g_game, g_sound, g_gui, g_menu, g_options, g_language, g_basic, r_game,
   wadreader, g_system, utils, hashtable;
 
 
@@ -1925,7 +1925,7 @@ begin
     begin
       slWaitStr := _lc[I_NET_SLIST_WAIT];
 
-      g_Game_Draw;
+      r_Game_Draw;
       sys_Repaint;
 
       if g_Net_Slist_Fetch(SL) then

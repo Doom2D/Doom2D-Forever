@@ -154,6 +154,7 @@ uses
 {$ENDIF}
 
   r_console in 'opengl/r_console.pas',
+  r_game in 'opengl/r_game.pas',
 
 {$IFDEF USE_FMOD}
   fmod in '../lib/FMOD/fmod.pas',
