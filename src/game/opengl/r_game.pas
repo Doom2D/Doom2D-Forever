@@ -32,7 +32,7 @@ implementation
     g_textures, e_input, e_sound,
     g_language, g_console, g_menu, g_triggers, g_player, g_options, g_monsters, g_map, g_panel, g_window,
     g_items, g_weapons, g_gfx, g_phys, g_net, g_gui, g_netmaster,
-    g_game, r_console, r_gfx, r_items, r_map, r_panel
+    g_game, r_console, r_gfx, r_items, r_map, r_panel, r_monsters
   ;
 
   var
@@ -1244,7 +1244,7 @@ begin
   drawOther('drawall', @g_Player_DrawAll);
   drawOther('corpses', @g_Player_DrawCorpses);
   drawPanelType('*wall', PANEL_WALL, g_rlayer_wall);
-  drawOther('monsters', @g_Monsters_Draw);
+  drawOther('monsters', @r_Monsters_Draw);
   drawOther('itemdrop', @r_Items_DrawDrop);
   drawPanelType('*door', PANEL_CLOSEDOOR, g_rlayer_door);
   drawOther('gfx', @r_GFX_Draw);
@@ -1265,7 +1265,7 @@ begin
 
   if g_debug_HealthBar then
   begin
-    g_Monsters_DrawHealth();
+    r_Monsters_DrawHealth();
     g_Player_DrawHealth();
   end;
 

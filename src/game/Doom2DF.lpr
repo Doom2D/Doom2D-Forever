@@ -158,6 +158,7 @@ uses
   r_gfx in 'opengl/r_gfx.pas',
   r_items in 'opengl/r_items.pas',
   r_map in 'opengl/r_map.pas',
+  r_monsters in 'opengl/r_monsters.pas',
   r_panel in 'opengl/r_panel.pas',
 
 {$IFDEF USE_FMOD}

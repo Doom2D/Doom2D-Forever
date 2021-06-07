@@ -22,6 +22,7 @@ interface
 uses
   SysUtils, Classes,
   mempool,
+  MAPDEF,
   g_basic, e_graphics, g_phys, g_textures, g_grid,
   g_saveload, g_panel, xprofiler;
 
@@ -51,6 +52,8 @@ const
 }
 
 type
+  ADirectedAnim = Array of Array [TDirection.D_LEFT..TDirection.D_RIGHT] of TAnimation;
+
   PMonster = ^TMonster;
   TMonster = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
@@ -64,7 +67,7 @@ type
     FMaxHealth: Integer;
     FState: Byte;
     FCurAnim: Byte;
-    FAnim: Array of Array [TDirection.D_LEFT..TDirection.D_RIGHT] of TAnimation;
+    FAnim: ADirectedAnim;
     FTargetUID: Word;
     FTargetTime: Integer;
     FBehaviour: Byte;
@@ -129,7 +132,6 @@ type
     procedure ClientUpdate();
     procedure ClientAttack(wx, wy, atx, aty: Integer);
     procedure SetDeadAnim;
-    procedure Draw();
     procedure WakeUp();
     procedure WakeUpSound();
     procedure DieSound();
@@ -192,6 +194,9 @@ type
 
     property StartID: Integer read FStartID;
 
+    property VileFireAnim: TAnimation read vilefire;
+    property DirAnim: ADirectedAnim read FAnim;
+
   published
     property eMonsterType: Byte read FMonsterType;
     property eMonsterHealth: Integer read FHealth write FHealth;
@@ -235,8 +240,6 @@ function g_Monsters_Create (MonsterType: Byte; X, Y: Integer; Direction: TDirect
   AdjCoord: Boolean = False; ForcedUID: Integer = -1): TMonster;
 procedure g_Monsters_PreUpdate ();
 procedure g_Monsters_Update ();
-procedure g_Monsters_Draw ();
-procedure g_Monsters_DrawHealth ();
 function  g_Monsters_ByUID (UID: Word): TMonster;
 procedure g_Monsters_killedp ();
 procedure g_Monsters_SaveState (st: TStream);
@@ -310,12 +313,183 @@ var
   gmon_debug_think: Boolean = true;
   gmon_debug_one_think_step: Boolean = false;
 
+  var (* private state *)
+    gMonsters: array of TMonster;
+
+  const
+    ANIM_SLEEP   = 0;
+    ANIM_GO      = 1;
+    ANIM_DIE     = 2;
+    ANIM_MESS    = 3;
+    ANIM_ATTACK  = 4;
+    ANIM_ATTACK2 = 5;
+    ANIM_PAIN    = 6;
+
+// РўР°Р±Р»РёС†Р° С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРє РјРѕРЅСЃС‚СЂРѕРІ:
+  MONSTERTABLE: Array [MONSTER_DEMON..MONSTER_MAN] of
+                  record
+                    Name: String;
+                    Rect: TRectWH;
+                    Health: Word;
+                    RunVel: Byte;
+                    MinPain: Byte;
+                    Pain: Byte;
+                    Jump: Byte;
+                  end =
+   ((Name:'DEMON'; Rect:(X:7; Y:8; Width:50; Height:52); Health:60;
+     RunVel: 7; MinPain: 10; Pain: 20; Jump: 10),
+
+    (Name:'IMP'; Rect:(X:15; Y:10; Width:34; Height:50); Health:25;
+     RunVel: 3; MinPain: 0; Pain: 15; Jump: 10),
+
+    (Name:'ZOMBY'; Rect:(X:15; Y:8; Width:34; Height:52); Health:15;
+     RunVel: 3; MinPain: 0; Pain: 10; Jump: 10),
+
+    (Name:'SERG'; Rect:(X:15; Y:8; Width:34; Height:52); Health:20;
+     RunVel: 3; MinPain: 0; Pain: 10; Jump: 10),
+
+    (Name:'CYBER'; Rect:(X:24; Y:9; Width:80; Height:110); Health:500;
+     RunVel: 5; MinPain: 50; Pain: 70; Jump: 10),
+
+    (Name:'CGUN'; Rect:(X:15; Y:4; Width:34; Height:56); Health:60;
+     RunVel: 3; MinPain: 10; Pain: 20; Jump: 10),
+
+    (Name:'BARON'; Rect:(X:39; Y:32; Width:50; Height:64); Health:150;
+     RunVel: 3; MinPain: 30; Pain: 40; Jump: 10),
+
+    (Name:'KNIGHT'; Rect:(X:39; Y:32; Width:50; Height:64); Health:75;
+     RunVel: 3; MinPain: 30; Pain: 40; Jump: 10),
+
+    (Name:'CACO'; Rect:(X:34; Y:36; Width:60; Height:56); Health:100;
+     RunVel: 4; MinPain: 0; Pain: 10; Jump: 4),
+
+    (Name:'SOUL'; Rect:(X:16; Y:14; Width:32; Height:36); Health:60;
+     RunVel: 4; MinPain: 0; Pain: 10; Jump: 4),
+
+    (Name:'PAIN'; Rect:(X:34; Y:36; Width:60; Height:56); Health:100;
+     RunVel: 4; MinPain: 0; Pain: 10; Jump: 4),
+
+    (Name:'SPIDER'; Rect:(X:23; Y:14; Width:210; Height:100); Health:500;
+     RunVel: 4; MinPain: 50; Pain: 70; Jump: 10),
+
+    (Name:'BSP'; Rect:(X:14; Y:17; Width:100; Height:42); Health:150;
+     RunVel: 4; MinPain: 0; Pain: 20; Jump: 10),
+
+    (Name:'MANCUB'; Rect:(X:28; Y:34; Width:72; Height:60); Health:200;
+     RunVel: 3; MinPain: 20; Pain: 40; Jump: 7),
+
+    (Name:'SKEL'; Rect:(X:30; Y:28; Width:68; Height:72); Health:200;
+     RunVel: 6; MinPain: 20; Pain: 40; Jump: 11),
+
+    (Name:'VILE'; Rect:(X:30; Y:28; Width:68; Height:72); Health:150;
+     RunVel: 7; MinPain: 10; Pain: 30; Jump: 12),
+
+    (Name:'FISH'; Rect:(X:6; Y:11; Width:20; Height:10); Health:35;
+     RunVel: 14; MinPain: 10; Pain: 20; Jump: 6),
+
+    (Name:'BARREL'; Rect:(X:20; Y:13; Width:24; Height:36); Health:20;
+     RunVel: 0; MinPain: 0; Pain: 0; Jump: 0),
+
+    (Name:'ROBO'; Rect:(X:30; Y:26; Width:68; Height:76); Health:20;
+     RunVel: 3; MinPain: 20; Pain: 40; Jump: 6),
+
+    (Name:'MAN'; Rect:(X:15; Y:6; Width:34; Height:52); Health:400;
+     RunVel: 8; MinPain: 50; Pain: 70; Jump: 10));
+
+// РўР°Р±Р»РёС†Р° РїР°СЂР°РјРµС‚СЂРѕРІ Р°РЅРёРјР°С†РёРё РјРѕРЅСЃС‚СЂРѕРІ:
+  MONSTER_ANIMTABLE: Array [MONSTER_DEMON..MONSTER_MAN] of
+     record
+       LeftAnim: Boolean;
+       wX, wY: Integer; // РћС‚РєСѓРґР° РІС‹Р»РµС‚РёС‚ РїСѓР»СЏ
+       AnimSpeed: Array [ANIM_SLEEP..ANIM_PAIN] of Byte;
+       AnimDeltaRight: Array [ANIM_SLEEP..ANIM_PAIN] of TDFPoint;
+       AnimDeltaLeft: Array [ANIM_SLEEP..ANIM_PAIN] of TDFPoint;
+     end =          // SLEEP           GO              DIE             MESS            ATTACK          ATTACK2         PAIN
+   ((LeftAnim: False; wX: 54; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //DEMON
+     AnimDeltaRight: ((X:  1; Y:  4), (X:  1; Y:  4), (X:  0; Y:  4), (X:  0; Y:  4), (X:  2; Y:  6), (X:  2; Y:  6), (X:  2; Y:  5));
+     AnimDeltaLeft:  ((X:  1; Y:  4), (X:  1; Y:  4), (X:  0; Y:  4), (X:  0; Y:  4), (X:  2; Y:  6), (X:  2; Y:  6), (X:  2; Y:  5))),
+
+    (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //IMP
+     AnimDeltaRight: ((X:  8; Y: -4), (X:  8; Y: -4), (X: -2; Y: -1), (X:  3; Y: -2), (X: 14; Y: -4), (X: 14; Y: -4), (X: -5; Y: -4));
+     AnimDeltaLeft:  ((X:  8; Y: -4), (X:  8; Y: -4), (X: -2; Y: -1), (X:  3; Y: -2), (X: 14; Y: -4), (X: 14; Y: -4), (X: -5; Y: -4))),
+
+    (LeftAnim: True; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //ZOMBY
+     AnimDeltaRight: ((X:  1; Y: -4), (X:  1; Y: -4), (X:  3; Y: -1), (X:  2; Y: -1), (X:  2; Y: -4), (X:  2; Y: -4), (X:  1; Y: -4));
+     AnimDeltaLeft:  ((X:  1; Y: -4), (X:  1; Y: -4), (X:  3; Y: -1), (X:  2; Y: -1), (X:  2; Y: -4), (X:  2; Y: -4), (X:  1; Y: -4))),
+
+    (LeftAnim: True; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //SERG
+     AnimDeltaRight: ((X:  0; Y: -4), (X:  0; Y: -4), (X: -3; Y: -1), (X: -4; Y: -1), (X:  1; Y: -4), (X:  1; Y: -4), (X:  0; Y: -4));
+     AnimDeltaLeft:  ((X:  0; Y: -4), (X:  0; Y: -4), (X: -3; Y: -1), (X: -4; Y: -1), (X:  1; Y: -4), (X:  1; Y: -4), (X:  0; Y: -4))),
+
+    (LeftAnim: True; wX: 70; wY: 73; AnimSpeed:(3, 3, 3, 3, 3, 4, 3);  //CYBER
+     AnimDeltaRight: ((X:  2; Y: -6), (X:  2; Y: -6), (X: -3; Y: -4), (X: -3; Y: -4), (X: 25; Y: -6), (X: 0; Y: -6), (X: -2; Y: -6));
+     AnimDeltaLeft:  ((X:  3; Y: -3), (X:  3; Y: -3), (X: -3; Y: -4), (X: -3; Y: -4), (X:-26; Y: -3), (X:-1; Y: -3), (X:  1; Y: -3))),
+
+    (LeftAnim: True; wX: 32; wY: 32; AnimSpeed:(3, 2, 2, 2, 1, 0, 4);  //CGUN
+     AnimDeltaRight: ((X: -1; Y: -2), (X: -1; Y: -2), (X: -2; Y:  0), (X: -2; Y:  0), (X:  0; Y: -3), (X:  0; Y: -3), (X: -1; Y: -2));
+     AnimDeltaLeft:  ((X: -1; Y: -2), (X: -1; Y: -2), (X: -2; Y:  0), (X: -2; Y:  0), (X: -1; Y: -4), (X: -1; Y: -4), (X:  2; Y: -4))),
+
+    (LeftAnim: True; wX: 64; wY: 64; AnimSpeed:(3, 2, 3, 4, 2, 0, 4);  //BARON
+     AnimDeltaRight: ((X:  4; Y:  0), (X:  2; Y:  0), (X: -1; Y: -1), (X: -1; Y: -1), (X:  1; Y:  0), (X:  1; Y:  0), (X: -1; Y:  0));
+     AnimDeltaLeft:  ((X:  0; Y:  0), (X:  2; Y:  0), (X: -1; Y: -1), (X: -1; Y: -1), (X: -2; Y:  0), (X: -2; Y:  0), (X:  1; Y:  0))),
+
+    (LeftAnim: True; wX: 64; wY: 64; AnimSpeed:(3, 2, 3, 4, 2, 0, 4);  //KNIGHT
+     AnimDeltaRight: ((X:  4; Y:  0), (X:  2; Y:  0), (X: -1; Y: -1), (X: -1; Y: -1), (X:  1; Y:  0), (X:  1; Y:  0), (X: -1; Y:  0));
+     AnimDeltaLeft:  ((X:  0; Y:  0), (X:  2; Y:  0), (X: -1; Y: -1), (X: -1; Y: -1), (X: -2; Y:  0), (X: -2; Y:  0), (X:  1; Y:  0))),
+
+    (LeftAnim: False; wX: 88; wY: 69; AnimSpeed:(3, 2, 3, 4, 2, 0, 4); //CACO
+     AnimDeltaRight: ((X:  0; Y: -4), (X:  0; Y: -4), (X:  0; Y: -5), (X:  0; Y: -5), (X:  0; Y: -4), (X:  0; Y: -4), (X:  0; Y: -4));
+     AnimDeltaLeft:  ((X:  0; Y: -4), (X:  0; Y: -4), (X:  0; Y: -5), (X:  0; Y: -5), (X:  0; Y: -4), (X:  0; Y: -4), (X:  0; Y: -4))),
+
+    (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 4, 1, 0, 4); //SOUL
+     AnimDeltaRight: ((X:  1; Y:-10), (X:  1; Y:-10), (X:-33; Y:-34), (X:-33; Y:-34), (X:-16; Y:-10), (X:-16; Y:-10), (X: -1; Y: -7));
+     AnimDeltaLeft:  ((X:  1; Y:-10), (X:  1; Y:-10), (X:-33; Y:-34), (X:-33; Y:-34), (X:-16; Y:-10), (X:-16; Y:-10), (X: -1; Y: -7))),
+
+    (LeftAnim: False; wX: 64; wY: 64; AnimSpeed:(3, 2, 3, 4, 2, 0, 4); //PAIN
+     AnimDeltaRight: ((X: -1; Y: -3), (X: -1; Y: -3), (X: -3; Y:  0), (X: -3; Y:  0), (X: -1; Y: -3), (X: -1; Y: -3), (X: -1; Y: -4));
+     AnimDeltaLeft:  ((X: -1; Y: -3), (X: -1; Y: -3), (X: -3; Y:  0), (X: -3; Y:  0), (X: -1; Y: -3), (X: -1; Y: -3), (X: -1; Y: -4))),
+
+    (LeftAnim: True; wX: 128; wY: 64; AnimSpeed:(3, 2, 4, 4, 1, 0, 4); //SPIDER
+     AnimDeltaRight: ((X: -4; Y: -4), (X: -4; Y: -4), (X: -2; Y:  8), (X: -2; Y:  8), (X: -3; Y: -3), (X: -3; Y: -3), (X: -3; Y: -4));
+     AnimDeltaLeft:  ((X: -4; Y: -4), (X: -4; Y: -4), (X: -2; Y:  8), (X: -2; Y:  8), (X: -3; Y: -3), (X: -3; Y: -3), (X: 18; Y: -5))),
+
+    (LeftAnim: True; wX: 64; wY: 32; AnimSpeed:(3, 2, 3, 4, 1, 0, 4);  //BSP
+     AnimDeltaRight: ((X:  0; Y: -1), (X:  0; Y: -1), (X: -3; Y:  5), (X: -3; Y:  5), (X:  7; Y: -1), (X:  7; Y: -1), (X:  1; Y: -3));
+     AnimDeltaLeft:  ((X:  0; Y: -1), (X:  0; Y: -1), (X: -3; Y:  5), (X: -3; Y:  5), (X:  7; Y: -1), (X:  7; Y: -1), (X:  6; Y: -3))),
+
+    (LeftAnim: False; wX: 64; wY: 64; AnimSpeed:(3, 2, 2, 4, 2, 0, 4); //MANCUB
+     AnimDeltaRight: ((X: -2; Y: -7), (X: -2; Y: -7), (X: -4; Y: -2), (X: -4; Y: -2), (X: -4; Y: -7), (X: -4; Y: -7), (X:-14; Y: -7));
+     AnimDeltaLeft:  ((X: -2; Y: -7), (X: -2; Y: -7), (X: -4; Y: -2), (X: -4; Y: -2), (X: -4; Y: -7), (X: -4; Y: -7), (X:-14; Y: -7))),
+
+    (LeftAnim: True; wX: 64; wY: 32; AnimSpeed:(3, 3, 3, 3, 3, 3, 3);  //SKEL
+     AnimDeltaRight: ((X: -1; Y:  4), (X: -1; Y:  4), (X: -2; Y:  4), (X: -2; Y:  4), (X: -1; Y:  4), (X:  6; Y:  2), (X:-24; Y:  4));
+     AnimDeltaLeft:  ((X:  1; Y:  4), (X: -1; Y:  4), (X: -2; Y:  4), (X: -2; Y:  4), (X: -2; Y:  2), (X: -5; Y:  4), (X: 26; Y:  4))),
+
+    (LeftAnim: True; wX: 64; wY: 32; AnimSpeed:(3, 3, 3, 3, 3, 3, 3);  //VILE
+     AnimDeltaRight: ((X:  5; Y:-21), (X:  5; Y:-21), (X:  1; Y:-21), (X:  1; Y:-21), (X:  8; Y:-23), (X: -1; Y:-23), (X:  4; Y:-20));
+     AnimDeltaLeft:  ((X: -8; Y:-21), (X:  5; Y:-21), (X:  1; Y:-21), (X:  1; Y:-21), (X:-10; Y:-24), (X:  3; Y:-23), (X: -4; Y:-22))),
+
+    (LeftAnim: False; wX: 8; wY: 8; AnimSpeed:(2, 2, 2, 2, 3, 0, 1);   //FISH
+     AnimDeltaRight: ((X: -1; Y:  0), (X: -1; Y:  0), (X: -2; Y: -1), (X: -2; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1));
+     AnimDeltaLeft:  ((X: -1; Y:  0), (X: -1; Y:  0), (X: -2; Y: -1), (X: -2; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1 ))),
+
+    (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 0, 3, 0, 0, 0, 5); //BARREL
+     AnimDeltaRight: ((X:  0; Y:-15), (X:  0; Y:-15), (X: -1; Y:-15), (X: -1; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15));
+     AnimDeltaLeft:  ((X:  0; Y:-15), (X:  0; Y:-15), (X: -1; Y:-15), (X: -1; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15))),
+
+    (LeftAnim: False; wX: 95; wY: 57; AnimSpeed:(1, 2, 1, 0, 1, 1, 0); //ROBO
+     AnimDeltaRight: ((X: -2; Y:-26), (X: -2; Y:-26), (X:  0; Y:-26), (X:  0; Y:-26), (X:  2; Y:-26), (X: 15; Y:-26), (X: -2; Y:-26));
+     AnimDeltaLeft:  ((X: -2; Y:-26), (X: -2; Y:-26), (X:  0; Y:-26), (X:  0; Y:-26), (X:  2; Y:-26), (X: 15; Y:-26), (X: -2; Y:-26))),
+
+    (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 2, 2, 2, 2, 0, 5); //MAN
+     AnimDeltaRight: ((X:  0; Y: -6), (X:  0; Y: -6), (X: -2; Y:  0), (X:  2; Y:  0), (X:  1; Y: -6), (X:  1; Y: -6), (X:  0; Y: -6));
+     AnimDeltaLeft:  ((X:  0; Y: -6), (X:  0; Y: -6), (X: -2; Y:  0), (X:  2; Y:  0), (X:  1; Y: -6), (X:  1; Y: -6), (X:  0; Y: -6))) );
 
 implementation
 
 uses
   e_log, e_texture, g_main, g_sound, g_gfx, g_player, g_game,
-  g_weapons, g_triggers, MAPDEF, g_items, g_options,
+  g_weapons, g_triggers, g_items, g_options,
   g_console, g_map, Math, g_menu, wadreader,
   g_language, g_netmsg, idpool, utils, xstreams;
 
@@ -431,17 +605,9 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 const
-  ANIM_SLEEP   = 0;
-  ANIM_GO      = 1;
-  ANIM_DIE     = 2;
-  ANIM_MESS    = 3;
-  ANIM_ATTACK  = 4;
-  ANIM_ATTACK2 = 5;
-  ANIM_PAIN    = 6;
-
   MONSTER_SIGNATURE = $534E4F4D; // 'MONS'
 
-// Таблица типов анимации монстров:
+// РўР°Р±Р»РёС†Р° С‚РёРїРѕРІ Р°РЅРёРјР°С†РёРё РјРѕРЅСЃС‚СЂРѕРІ:
   ANIMTABLE: Array [ANIM_SLEEP..ANIM_PAIN] of
                record
                  name: String;
@@ -454,173 +620,12 @@ const
                       (name: 'ATTACK2'; loop: False),
                       (name: 'PAIN'; loop: False));
 
-// Таблица характеристик монстров:
-  MONSTERTABLE: Array [MONSTER_DEMON..MONSTER_MAN] of
-                  record
-                    Name: String;
-                    Rect: TRectWH;
-                    Health: Word;
-                    RunVel: Byte;
-                    MinPain: Byte;
-                    Pain: Byte;
-                    Jump: Byte;
-                  end =
-   ((Name:'DEMON'; Rect:(X:7; Y:8; Width:50; Height:52); Health:60;
-     RunVel: 7; MinPain: 10; Pain: 20; Jump: 10),
-
-    (Name:'IMP'; Rect:(X:15; Y:10; Width:34; Height:50); Health:25;
-     RunVel: 3; MinPain: 0; Pain: 15; Jump: 10),
-
-    (Name:'ZOMBY'; Rect:(X:15; Y:8; Width:34; Height:52); Health:15;
-     RunVel: 3; MinPain: 0; Pain: 10; Jump: 10),
-
-    (Name:'SERG'; Rect:(X:15; Y:8; Width:34; Height:52); Health:20;
-     RunVel: 3; MinPain: 0; Pain: 10; Jump: 10),
-
-    (Name:'CYBER'; Rect:(X:24; Y:9; Width:80; Height:110); Health:500;
-     RunVel: 5; MinPain: 50; Pain: 70; Jump: 10),
-
-    (Name:'CGUN'; Rect:(X:15; Y:4; Width:34; Height:56); Health:60;
-     RunVel: 3; MinPain: 10; Pain: 20; Jump: 10),
-
-    (Name:'BARON'; Rect:(X:39; Y:32; Width:50; Height:64); Health:150;
-     RunVel: 3; MinPain: 30; Pain: 40; Jump: 10),
-
-    (Name:'KNIGHT'; Rect:(X:39; Y:32; Width:50; Height:64); Health:75;
-     RunVel: 3; MinPain: 30; Pain: 40; Jump: 10),
-
-    (Name:'CACO'; Rect:(X:34; Y:36; Width:60; Height:56); Health:100;
-     RunVel: 4; MinPain: 0; Pain: 10; Jump: 4),
-
-    (Name:'SOUL'; Rect:(X:16; Y:14; Width:32; Height:36); Health:60;
-     RunVel: 4; MinPain: 0; Pain: 10; Jump: 4),
-
-    (Name:'PAIN'; Rect:(X:34; Y:36; Width:60; Height:56); Health:100;
-     RunVel: 4; MinPain: 0; Pain: 10; Jump: 4),
-
-    (Name:'SPIDER'; Rect:(X:23; Y:14; Width:210; Height:100); Health:500;
-     RunVel: 4; MinPain: 50; Pain: 70; Jump: 10),
-
-    (Name:'BSP'; Rect:(X:14; Y:17; Width:100; Height:42); Health:150;
-     RunVel: 4; MinPain: 0; Pain: 20; Jump: 10),
-
-    (Name:'MANCUB'; Rect:(X:28; Y:34; Width:72; Height:60); Health:200;
-     RunVel: 3; MinPain: 20; Pain: 40; Jump: 7),
-
-    (Name:'SKEL'; Rect:(X:30; Y:28; Width:68; Height:72); Health:200;
-     RunVel: 6; MinPain: 20; Pain: 40; Jump: 11),
-
-    (Name:'VILE'; Rect:(X:30; Y:28; Width:68; Height:72); Health:150;
-     RunVel: 7; MinPain: 10; Pain: 30; Jump: 12),
-
-    (Name:'FISH'; Rect:(X:6; Y:11; Width:20; Height:10); Health:35;
-     RunVel: 14; MinPain: 10; Pain: 20; Jump: 6),
-
-    (Name:'BARREL'; Rect:(X:20; Y:13; Width:24; Height:36); Health:20;
-     RunVel: 0; MinPain: 0; Pain: 0; Jump: 0),
-
-    (Name:'ROBO'; Rect:(X:30; Y:26; Width:68; Height:76); Health:20;
-     RunVel: 3; MinPain: 20; Pain: 40; Jump: 6),
-
-    (Name:'MAN'; Rect:(X:15; Y:6; Width:34; Height:52); Health:400;
-     RunVel: 8; MinPain: 50; Pain: 70; Jump: 10));
-
-// Таблица параметров анимации монстров:
-  MONSTER_ANIMTABLE: Array [MONSTER_DEMON..MONSTER_MAN] of
-     record
-       LeftAnim: Boolean;
-       wX, wY: Integer; // Откуда вылетит пуля
-       AnimSpeed: Array [ANIM_SLEEP..ANIM_PAIN] of Byte;
-       AnimDeltaRight: Array [ANIM_SLEEP..ANIM_PAIN] of TDFPoint;
-       AnimDeltaLeft: Array [ANIM_SLEEP..ANIM_PAIN] of TDFPoint;
-     end =          // SLEEP           GO              DIE             MESS            ATTACK          ATTACK2         PAIN
-   ((LeftAnim: False; wX: 54; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //DEMON
-     AnimDeltaRight: ((X:  1; Y:  4), (X:  1; Y:  4), (X:  0; Y:  4), (X:  0; Y:  4), (X:  2; Y:  6), (X:  2; Y:  6), (X:  2; Y:  5));
-     AnimDeltaLeft:  ((X:  1; Y:  4), (X:  1; Y:  4), (X:  0; Y:  4), (X:  0; Y:  4), (X:  2; Y:  6), (X:  2; Y:  6), (X:  2; Y:  5))),
-
-    (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //IMP
-     AnimDeltaRight: ((X:  8; Y: -4), (X:  8; Y: -4), (X: -2; Y: -1), (X:  3; Y: -2), (X: 14; Y: -4), (X: 14; Y: -4), (X: -5; Y: -4));
-     AnimDeltaLeft:  ((X:  8; Y: -4), (X:  8; Y: -4), (X: -2; Y: -1), (X:  3; Y: -2), (X: 14; Y: -4), (X: 14; Y: -4), (X: -5; Y: -4))),
-
-    (LeftAnim: True; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //ZOMBY
-     AnimDeltaRight: ((X:  1; Y: -4), (X:  1; Y: -4), (X:  3; Y: -1), (X:  2; Y: -1), (X:  2; Y: -4), (X:  2; Y: -4), (X:  1; Y: -4));
-     AnimDeltaLeft:  ((X:  1; Y: -4), (X:  1; Y: -4), (X:  3; Y: -1), (X:  2; Y: -1), (X:  2; Y: -4), (X:  2; Y: -4), (X:  1; Y: -4))),
-
-    (LeftAnim: True; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //SERG
-     AnimDeltaRight: ((X:  0; Y: -4), (X:  0; Y: -4), (X: -3; Y: -1), (X: -4; Y: -1), (X:  1; Y: -4), (X:  1; Y: -4), (X:  0; Y: -4));
-     AnimDeltaLeft:  ((X:  0; Y: -4), (X:  0; Y: -4), (X: -3; Y: -1), (X: -4; Y: -1), (X:  1; Y: -4), (X:  1; Y: -4), (X:  0; Y: -4))),
-
-    (LeftAnim: True; wX: 70; wY: 73; AnimSpeed:(3, 3, 3, 3, 3, 4, 3);  //CYBER
-     AnimDeltaRight: ((X:  2; Y: -6), (X:  2; Y: -6), (X: -3; Y: -4), (X: -3; Y: -4), (X: 25; Y: -6), (X: 0; Y: -6), (X: -2; Y: -6));
-     AnimDeltaLeft:  ((X:  3; Y: -3), (X:  3; Y: -3), (X: -3; Y: -4), (X: -3; Y: -4), (X:-26; Y: -3), (X:-1; Y: -3), (X:  1; Y: -3))),
-
-    (LeftAnim: True; wX: 32; wY: 32; AnimSpeed:(3, 2, 2, 2, 1, 0, 4);  //CGUN
-     AnimDeltaRight: ((X: -1; Y: -2), (X: -1; Y: -2), (X: -2; Y:  0), (X: -2; Y:  0), (X:  0; Y: -3), (X:  0; Y: -3), (X: -1; Y: -2));
-     AnimDeltaLeft:  ((X: -1; Y: -2), (X: -1; Y: -2), (X: -2; Y:  0), (X: -2; Y:  0), (X: -1; Y: -4), (X: -1; Y: -4), (X:  2; Y: -4))),
-
-    (LeftAnim: True; wX: 64; wY: 64; AnimSpeed:(3, 2, 3, 4, 2, 0, 4);  //BARON
-     AnimDeltaRight: ((X:  4; Y:  0), (X:  2; Y:  0), (X: -1; Y: -1), (X: -1; Y: -1), (X:  1; Y:  0), (X:  1; Y:  0), (X: -1; Y:  0));
-     AnimDeltaLeft:  ((X:  0; Y:  0), (X:  2; Y:  0), (X: -1; Y: -1), (X: -1; Y: -1), (X: -2; Y:  0), (X: -2; Y:  0), (X:  1; Y:  0))),
-
-    (LeftAnim: True; wX: 64; wY: 64; AnimSpeed:(3, 2, 3, 4, 2, 0, 4);  //KNIGHT
-     AnimDeltaRight: ((X:  4; Y:  0), (X:  2; Y:  0), (X: -1; Y: -1), (X: -1; Y: -1), (X:  1; Y:  0), (X:  1; Y:  0), (X: -1; Y:  0));
-     AnimDeltaLeft:  ((X:  0; Y:  0), (X:  2; Y:  0), (X: -1; Y: -1), (X: -1; Y: -1), (X: -2; Y:  0), (X: -2; Y:  0), (X:  1; Y:  0))),
-
-    (LeftAnim: False; wX: 88; wY: 69; AnimSpeed:(3, 2, 3, 4, 2, 0, 4); //CACO
-     AnimDeltaRight: ((X:  0; Y: -4), (X:  0; Y: -4), (X:  0; Y: -5), (X:  0; Y: -5), (X:  0; Y: -4), (X:  0; Y: -4), (X:  0; Y: -4));
-     AnimDeltaLeft:  ((X:  0; Y: -4), (X:  0; Y: -4), (X:  0; Y: -5), (X:  0; Y: -5), (X:  0; Y: -4), (X:  0; Y: -4), (X:  0; Y: -4))),
-
-    (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 4, 1, 0, 4); //SOUL
-     AnimDeltaRight: ((X:  1; Y:-10), (X:  1; Y:-10), (X:-33; Y:-34), (X:-33; Y:-34), (X:-16; Y:-10), (X:-16; Y:-10), (X: -1; Y: -7));
-     AnimDeltaLeft:  ((X:  1; Y:-10), (X:  1; Y:-10), (X:-33; Y:-34), (X:-33; Y:-34), (X:-16; Y:-10), (X:-16; Y:-10), (X: -1; Y: -7))),
-
-    (LeftAnim: False; wX: 64; wY: 64; AnimSpeed:(3, 2, 3, 4, 2, 0, 4); //PAIN
-     AnimDeltaRight: ((X: -1; Y: -3), (X: -1; Y: -3), (X: -3; Y:  0), (X: -3; Y:  0), (X: -1; Y: -3), (X: -1; Y: -3), (X: -1; Y: -4));
-     AnimDeltaLeft:  ((X: -1; Y: -3), (X: -1; Y: -3), (X: -3; Y:  0), (X: -3; Y:  0), (X: -1; Y: -3), (X: -1; Y: -3), (X: -1; Y: -4))),
-
-    (LeftAnim: True; wX: 128; wY: 64; AnimSpeed:(3, 2, 4, 4, 1, 0, 4); //SPIDER
-     AnimDeltaRight: ((X: -4; Y: -4), (X: -4; Y: -4), (X: -2; Y:  8), (X: -2; Y:  8), (X: -3; Y: -3), (X: -3; Y: -3), (X: -3; Y: -4));
-     AnimDeltaLeft:  ((X: -4; Y: -4), (X: -4; Y: -4), (X: -2; Y:  8), (X: -2; Y:  8), (X: -3; Y: -3), (X: -3; Y: -3), (X: 18; Y: -5))),
-
-    (LeftAnim: True; wX: 64; wY: 32; AnimSpeed:(3, 2, 3, 4, 1, 0, 4);  //BSP
-     AnimDeltaRight: ((X:  0; Y: -1), (X:  0; Y: -1), (X: -3; Y:  5), (X: -3; Y:  5), (X:  7; Y: -1), (X:  7; Y: -1), (X:  1; Y: -3));
-     AnimDeltaLeft:  ((X:  0; Y: -1), (X:  0; Y: -1), (X: -3; Y:  5), (X: -3; Y:  5), (X:  7; Y: -1), (X:  7; Y: -1), (X:  6; Y: -3))),
-
-    (LeftAnim: False; wX: 64; wY: 64; AnimSpeed:(3, 2, 2, 4, 2, 0, 4); //MANCUB
-     AnimDeltaRight: ((X: -2; Y: -7), (X: -2; Y: -7), (X: -4; Y: -2), (X: -4; Y: -2), (X: -4; Y: -7), (X: -4; Y: -7), (X:-14; Y: -7));
-     AnimDeltaLeft:  ((X: -2; Y: -7), (X: -2; Y: -7), (X: -4; Y: -2), (X: -4; Y: -2), (X: -4; Y: -7), (X: -4; Y: -7), (X:-14; Y: -7))),
-
-    (LeftAnim: True; wX: 64; wY: 32; AnimSpeed:(3, 3, 3, 3, 3, 3, 3);  //SKEL
-     AnimDeltaRight: ((X: -1; Y:  4), (X: -1; Y:  4), (X: -2; Y:  4), (X: -2; Y:  4), (X: -1; Y:  4), (X:  6; Y:  2), (X:-24; Y:  4));
-     AnimDeltaLeft:  ((X:  1; Y:  4), (X: -1; Y:  4), (X: -2; Y:  4), (X: -2; Y:  4), (X: -2; Y:  2), (X: -5; Y:  4), (X: 26; Y:  4))),
-
-    (LeftAnim: True; wX: 64; wY: 32; AnimSpeed:(3, 3, 3, 3, 3, 3, 3);  //VILE
-     AnimDeltaRight: ((X:  5; Y:-21), (X:  5; Y:-21), (X:  1; Y:-21), (X:  1; Y:-21), (X:  8; Y:-23), (X: -1; Y:-23), (X:  4; Y:-20));
-     AnimDeltaLeft:  ((X: -8; Y:-21), (X:  5; Y:-21), (X:  1; Y:-21), (X:  1; Y:-21), (X:-10; Y:-24), (X:  3; Y:-23), (X: -4; Y:-22))),
-
-    (LeftAnim: False; wX: 8; wY: 8; AnimSpeed:(2, 2, 2, 2, 3, 0, 1);   //FISH
-     AnimDeltaRight: ((X: -1; Y:  0), (X: -1; Y:  0), (X: -2; Y: -1), (X: -2; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1));
-     AnimDeltaLeft:  ((X: -1; Y:  0), (X: -1; Y:  0), (X: -2; Y: -1), (X: -2; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1 ))),
-
-    (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 0, 3, 0, 0, 0, 5); //BARREL
-     AnimDeltaRight: ((X:  0; Y:-15), (X:  0; Y:-15), (X: -1; Y:-15), (X: -1; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15));
-     AnimDeltaLeft:  ((X:  0; Y:-15), (X:  0; Y:-15), (X: -1; Y:-15), (X: -1; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15))),
-
-    (LeftAnim: False; wX: 95; wY: 57; AnimSpeed:(1, 2, 1, 0, 1, 1, 0); //ROBO
-     AnimDeltaRight: ((X: -2; Y:-26), (X: -2; Y:-26), (X:  0; Y:-26), (X:  0; Y:-26), (X:  2; Y:-26), (X: 15; Y:-26), (X: -2; Y:-26));
-     AnimDeltaLeft:  ((X: -2; Y:-26), (X: -2; Y:-26), (X:  0; Y:-26), (X:  0; Y:-26), (X:  2; Y:-26), (X: 15; Y:-26), (X: -2; Y:-26))),
-
-    (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 2, 2, 2, 2, 0, 5); //MAN
-     AnimDeltaRight: ((X:  0; Y: -6), (X:  0; Y: -6), (X: -2; Y:  0), (X:  2; Y:  0), (X:  1; Y: -6), (X:  1; Y: -6), (X:  0; Y: -6));
-     AnimDeltaLeft:  ((X:  0; Y: -6), (X:  0; Y: -6), (X: -2; Y:  0), (X:  2; Y:  0), (X:  1; Y: -6), (X:  1; Y: -6), (X:  0; Y: -6))) );
-
-  MAX_ATM = 89; // Время ожидания после потери цели
-  MAX_SOUL = 512; // Ограничение Lost_Soul'ов
+  MAX_ATM = 89; // Р’СЂРµРјСЏ РѕР¶РёРґР°РЅРёСЏ РїРѕСЃР»Рµ РїРѕС‚РµСЂРё С†РµР»Рё
+  MAX_SOUL = 512; // РћРіСЂР°РЅРёС‡РµРЅРёРµ Lost_Soul'РѕРІ
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  gMonsters: array of TMonster;
   uidMap: array [0..65535] of TMonster; // monster knows it's index
   freeInds: TIdPool = nil;
 
@@ -696,26 +701,26 @@ function IsFriend(a, b: Byte): Boolean;
 begin
   Result := True;
 
-// Бочка - всем друг:
+// Р‘РѕС‡РєР° - РІСЃРµРј РґСЂСѓРі:
   if (a = MONSTER_BARREL) or (b = MONSTER_BARREL) then
     Exit;
 
-// Монстры одного вида:
+// РњРѕРЅСЃС‚СЂС‹ РѕРґРЅРѕРіРѕ РІРёРґР°:
   if a = b then
     case a of
       MONSTER_IMP, MONSTER_DEMON, MONSTER_BARON, MONSTER_KNIGHT, MONSTER_CACO,
       MONSTER_SOUL, MONSTER_PAIN, MONSTER_MANCUB, MONSTER_SKEL, MONSTER_FISH:
-        Exit; // Эти не бьют своих
+        Exit; // Р­С‚Рё РЅРµ Р±СЊСЋС‚ СЃРІРѕРёС…
     end;
 
-// Lost_Soul не может ранить Pain_Elemental'а:
+// Lost_Soul РЅРµ РјРѕР¶РµС‚ СЂР°РЅРёС‚СЊ Pain_Elemental'Р°:
   if (a = MONSTER_SOUL) and (b = MONSTER_PAIN) then
     Exit;
-// Pain_Elemental не может ранить Lost_Soul'а:
+// Pain_Elemental РЅРµ РјРѕР¶РµС‚ СЂР°РЅРёС‚СЊ Lost_Soul'Р°:
   if (b = MONSTER_SOUL) and (a = MONSTER_PAIN) then
     Exit;
 
-// В остальных случаях - будут бить друг друга:
+// Р’ РѕСЃС‚Р°Р»СЊРЅС‹С… СЃР»СѓС‡Р°СЏС… - Р±СѓРґСѓС‚ Р±РёС‚СЊ РґСЂСѓРі РґСЂСѓРіР°:
   Result := False;
 end;
 
@@ -772,11 +777,11 @@ function isCorpse (o: PObj; immediately: Boolean): Integer;
     result := false; // don't stop
     if (mon.FState = MONSTATE_DEAD) and g_Obj_Collide(o, @mon.FObj) then
     begin
-      case mon.FMonsterType of // Не воскресить:
+      case mon.FMonsterType of // РќРµ РІРѕСЃРєСЂРµСЃРёС‚СЊ:
         MONSTER_SOUL, MONSTER_PAIN, MONSTER_CYBER, MONSTER_SPIDER,
         MONSTER_VILE, MONSTER_BARREL, MONSTER_ROBO: exit;
       end;
-      // Остальных можно воскресить
+      // РћСЃС‚Р°Р»СЊРЅС‹С… РјРѕР¶РЅРѕ РІРѕСЃРєСЂРµСЃРёС‚СЊ
       result := true;
     end;
   end;
@@ -790,10 +795,10 @@ var
 begin
   result := -1;
 
-  // Если нужна вероятность
+  // Р•СЃР»Рё РЅСѓР¶РЅР° РІРµСЂРѕСЏС‚РЅРѕСЃС‚СЊ
   if not immediately and (Random(8) <> 0) then exit;
 
-  // Ищем мертвых монстров поблизости
+  // РС‰РµРј РјРµСЂС‚РІС‹С… РјРѕРЅСЃС‚СЂРѕРІ РїРѕР±Р»РёР·РѕСЃС‚Рё
   if gmon_debug_use_sqaccel then
   begin
     //mon := monsGrid.forEachInAABB(o.X+o.Rect.X, o.Y+o.Rect.Y, o.Rect.Width, o.Rect.Height, monsCollCheck);
@@ -801,10 +806,10 @@ begin
     it := monsGrid.forEachInAABB(o.X+o.Rect.X, o.Y+o.Rect.Y, o.Rect.Width, o.Rect.Height);
     for mon in it do
     begin
-      case mon.FMonsterType of // Не воскресить:
+      case mon.FMonsterType of // РќРµ РІРѕСЃРєСЂРµСЃРёС‚СЊ:
         MONSTER_SOUL, MONSTER_PAIN, MONSTER_CYBER, MONSTER_SPIDER,
         MONSTER_VILE, MONSTER_BARREL, MONSTER_ROBO: begin end;
-        // Остальных можно воскресить
+        // РћСЃС‚Р°Р»СЊРЅС‹С… РјРѕР¶РЅРѕ РІРѕСЃРєСЂРµСЃРёС‚СЊ
         else mres := mon^;
       end;
       if (mres <> nil) then break;
@@ -818,10 +823,10 @@ begin
     begin
       if (gMonsters[a] <> nil) and (gMonsters[a].FState = MONSTATE_DEAD) and g_Obj_Collide(o, @gMonsters[a].FObj) then
       begin
-        case gMonsters[a].FMonsterType of // Не воскресить:
+        case gMonsters[a].FMonsterType of // РќРµ РІРѕСЃРєСЂРµСЃРёС‚СЊ:
           MONSTER_SOUL, MONSTER_PAIN, MONSTER_CYBER, MONSTER_SPIDER,
           MONSTER_VILE, MONSTER_BARREL, MONSTER_ROBO: Continue;
-          else // Остальных можно воскресить
+          else // РћСЃС‚Р°Р»СЊРЅС‹С… РјРѕР¶РЅРѕ РІРѕСЃРєСЂРµСЃРёС‚СЊ
             begin
               Result := a;
               Exit;
@@ -1342,10 +1347,10 @@ var
 begin
   result := nil;
 
-  // Нет такого монстра
+  // РќРµС‚ С‚Р°РєРѕРіРѕ РјРѕРЅСЃС‚СЂР°
   if (MonsterType > MONSTER_MAN) or (MonsterType = 0) then exit;
 
-  // Соблюдаем ограничение Lost_Soul'ов
+  // РЎРѕР±Р»СЋРґР°РµРј РѕРіСЂР°РЅРёС‡РµРЅРёРµ Lost_Soul'РѕРІ
   if MonsterType = MONSTER_SOUL then
   begin
     if soulcount > MAX_SOUL then exit;
@@ -1361,7 +1366,7 @@ begin
 
   uidMap[mon.FUID] := mon;
 
-  // Настраиваем положение
+  // РќР°СЃС‚СЂР°РёРІР°РµРј РїРѕР»РѕР¶РµРЅРёРµ
   with mon do
   begin
     if AdjCoord then
@@ -1395,7 +1400,7 @@ begin
   if gMonsters = nil then
     Exit;
 
-  // Приколист смеется над смертью игрока:
+  // РџСЂРёРєРѕР»РёСЃС‚ СЃРјРµРµС‚СЃСЏ РЅР°Рґ СЃРјРµСЂС‚СЊСЋ РёРіСЂРѕРєР°:
   h := High(gMonsters);
   for a := 0 to h do
   begin
@@ -1430,7 +1435,7 @@ procedure g_Monsters_Update();
 var
   a: Integer;
 begin
-  // Целеуказатель
+  // Р¦РµР»РµСѓРєР°Р·Р°С‚РµР»СЊ
   if gTime mod (GAME_TICK*2) = 0 then
   begin
     pt_x := pt_x+pt_xs;
@@ -1439,7 +1444,7 @@ begin
     if abs(pt_y) > 100 then pt_ys := -pt_ys;
   end;
 
-  gMon := True; // Для работы BlockMon'а
+  gMon := True; // Р”Р»СЏ СЂР°Р±РѕС‚С‹ BlockMon'Р°
 
   if gmon_debug_think or gmon_debug_one_think_step then
   begin
@@ -1465,38 +1470,6 @@ begin
   gMon := False;
 end;
 
-procedure g_Monsters_Draw();
-var
-  a: Integer;
-begin
-  if gMonsters <> nil then
-  begin
-    for a := 0 to High(gMonsters) do
-    begin
-      if (gMonsters[a] <> nil) then gMonsters[a].Draw();
-    end;
-  end;
-end;
-
-procedure g_Monsters_DrawHealth();
-var
-  a: Integer;
-  fW, fH: Byte;
-begin
-  if gMonsters = nil then Exit;
-  e_TextureFontGetSize(gStdFont, fW, fH);
-
-  for a := 0 to High(gMonsters) do
-  begin
-    if gMonsters[a] <> nil then
-    begin
-      e_TextureFontPrint(gMonsters[a].FObj.X + gMonsters[a].FObj.Rect.X,
-      gMonsters[a].FObj.Y + gMonsters[a].FObj.Rect.Y + gMonsters[a].FObj.Rect.Height - fH,
-      IntToStr(gMonsters[a].FHealth), gStdFont);
-    end;
-  end;
-end;
-
 function g_Monsters_ByUID (UID: Word): TMonster;
 begin
   result := uidMap[UID];
@@ -1506,32 +1479,32 @@ procedure g_Monsters_SaveState (st: TStream);
 var
   count, i: Integer;
 begin
-  // Считаем количество существующих монстров
+  // РЎС‡РёС‚Р°РµРј РєРѕР»РёС‡РµСЃС‚РІРѕ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёС… РјРѕРЅСЃС‚СЂРѕРІ
   count := 0;
   for i := 0 to High(gMonsters) do
   begin
     if (gMonsters[i] <> nil) and (gMonsters[i].FMonsterType <> MONSTER_NONE) then count += 1;
   end;
 
-  // Сохраняем информацию целеуказателя
+  // РЎРѕС…СЂР°РЅСЏРµРј РёРЅС„РѕСЂРјР°С†РёСЋ С†РµР»РµСѓРєР°Р·Р°С‚РµР»СЏ
   utils.writeInt(st, LongInt(pt_x));
   utils.writeInt(st, LongInt(pt_xs));
   utils.writeInt(st, LongInt(pt_y));
   utils.writeInt(st, LongInt(pt_ys));
 
-  // Количество монстров
+  // РљРѕР»РёС‡РµСЃС‚РІРѕ РјРѕРЅСЃС‚СЂРѕРІ
   utils.writeInt(st, LongInt(count));
 
   if (count = 0) then exit;
 
-  // Сохраняем монстров
+  // РЎРѕС…СЂР°РЅСЏРµРј РјРѕРЅСЃС‚СЂРѕРІ
   for i := 0 to High(gMonsters) do
   begin
     if (gMonsters[i] <> nil) and (gMonsters[i].FMonsterType <> MONSTER_NONE) then
     begin
-      // Тип монстра
+      // РўРёРї РјРѕРЅСЃС‚СЂР°
       utils.writeInt(st, Byte(gMonsters[i].MonsterType));
-      // Сохраняем данные монстра:
+      // РЎРѕС…СЂР°РЅСЏРµРј РґР°РЅРЅС‹Рµ РјРѕРЅСЃС‚СЂР°:
       gMonsters[i].SaveState(st);
     end;
   end;
@@ -1548,27 +1521,27 @@ begin
 
   g_Monsters_Free(false);
 
-  // Загружаем информацию целеуказателя
+  // Р—Р°РіСЂСѓР¶Р°РµРј РёРЅС„РѕСЂРјР°С†РёСЋ С†РµР»РµСѓРєР°Р·Р°С‚РµР»СЏ
   pt_x := utils.readLongInt(st);
   pt_xs := utils.readLongInt(st);
   pt_y := utils.readLongInt(st);
   pt_ys := utils.readLongInt(st);
 
-  // Количество монстров
+  // РљРѕР»РёС‡РµСЃС‚РІРѕ РјРѕРЅСЃС‚СЂРѕРІ
   count := utils.readLongInt(st);
 
   if (count = 0) then exit;
   if (count < 0) or (count > 1024*1024) then raise XStreamError.Create('invalid monster count');
 
-  // Загружаем монстров
+  // Р—Р°РіСЂСѓР¶Р°РµРј РјРѕРЅСЃС‚СЂРѕРІ
   for a := 0 to count-1 do
   begin
-    // Тип монстра
+    // РўРёРї РјРѕРЅСЃС‚СЂР°
     b := utils.readByte(st);
-    // Создаем монстра
+    // РЎРѕР·РґР°РµРј РјРѕРЅСЃС‚СЂР°
     mon := g_Monsters_Create(b, 0, 0, TDirection.D_LEFT);
     if (mon = nil) then raise XStreamError.Create('g_Monsters_LoadState: ID = -1 (can''t create)');
-    // Загружаем данные монстра
+    // Р—Р°РіСЂСѓР¶Р°РµРј РґР°РЅРЅС‹Рµ РјРѕРЅСЃС‚СЂР°
     mon.LoadState(st);
   end;
 end;
@@ -1956,10 +1929,10 @@ begin
       if res then
         res := g_Frames_Get(FramesID, s);
 
-    // Если нет такой анимации, то пробуем заменить ее на анимацию смерти:
+    // Р•СЃР»Рё РЅРµС‚ С‚Р°РєРѕР№ Р°РЅРёРјР°С†РёРё, С‚Рѕ РїСЂРѕР±СѓРµРј Р·Р°РјРµРЅРёС‚СЊ РµРµ РЅР° Р°РЅРёРјР°С†РёСЋ СЃРјРµСЂС‚Рё:
       if (not res) then
       begin
-      // Заменяем только ANIM_MESS на ANIM_DIE:
+      // Р—Р°РјРµРЅСЏРµРј С‚РѕР»СЊРєРѕ ANIM_MESS РЅР° ANIM_DIE:
         if a <> ANIM_MESS then
           Continue;
 
@@ -1977,7 +1950,7 @@ begin
       FAnim[a, TDirection.D_RIGHT] := TAnimation.Create(FramesID, ANIMTABLE[a].loop,
                                              MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a]);
 
-    // Если есть отдельная левая анимация - загружаем:
+    // Р•СЃР»Рё РµСЃС‚СЊ РѕС‚РґРµР»СЊРЅР°СЏ Р»РµРІР°СЏ Р°РЅРёРјР°С†РёСЏ - Р·Р°РіСЂСѓР¶Р°РµРј:
       if MONSTER_ANIMTABLE[MonsterType].LeftAnim then
       begin
         s := 'FRAMES_MONSTER_'+MONSTERTABLE[MonsterType].Name+
@@ -1990,7 +1963,7 @@ begin
                                             MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a]);
     end;
 
-// Для колдуна загружаем также анимацию огня:
+// Р”Р»СЏ РєРѕР»РґСѓРЅР° Р·Р°РіСЂСѓР¶Р°РµРј С‚Р°РєР¶Рµ Р°РЅРёРјР°С†РёСЋ РѕРіРЅСЏ:
   if MonsterType = MONSTER_VILE then
     begin
       g_Frames_Get(FramesID, 'FRAMES_FIRE');
@@ -2007,14 +1980,14 @@ var
 begin
   Result := False;
 
-// Монстр статичен пока идет warmup
+// РњРѕРЅСЃС‚СЂ СЃС‚Р°С‚РёС‡РµРЅ РїРѕРєР° РёРґРµС‚ warmup
   if (gLMSRespawn > LMS_RESPAWN_NONE) then exit;
 
-// Умирает, умер или воскрешается => урон делать некому:
+// РЈРјРёСЂР°РµС‚, СѓРјРµСЂ РёР»Рё РІРѕСЃРєСЂРµС€Р°РµС‚СЃСЏ => СѓСЂРѕРЅ РґРµР»Р°С‚СЊ РЅРµРєРѕРјСѓ:
   if (FState = MONSTATE_DEAD) or (FState = MONSTATE_DIE) or (FState = MONSTATE_REVIVE) then
     Exit;
 
-// Рыбу в воде бьет током => паника без урона:
+// Р С‹Р±Сѓ РІ РІРѕРґРµ Р±СЊРµС‚ С‚РѕРєРѕРј => РїР°РЅРёРєР° Р±РµР· СѓСЂРѕРЅР°:
   if (t = HIT_ELECTRO) and (FMonsterType = MONSTER_FISH) and g_Game_IsServer then
   begin
     FSleep := 20;
@@ -2024,38 +1997,38 @@ begin
     Exit;
   end;
 
-// Арчи не горят, черепа уже горят
+// РђСЂС‡Рё РЅРµ РіРѕСЂСЏС‚, С‡РµСЂРµРїР° СѓР¶Рµ РіРѕСЂСЏС‚
   if (t = HIT_FLAME) and (FMonsterType in [MONSTER_VILE, MONSTER_SOUL]) then
   begin
-  // Проснуться все-таки стоит
+  // РџСЂРѕСЃРЅСѓС‚СЊСЃСЏ РІСЃРµ-С‚Р°РєРё СЃС‚РѕРёС‚
     if FState = MONSTATE_SLEEP then
       SetState(MONSTATE_GO);
     Exit;
   end;
 
-// Ловушка убивает сразу:
+// Р›РѕРІСѓС€РєР° СѓР±РёРІР°РµС‚ СЃСЂР°Р·Сѓ:
   if t = HIT_TRAP then
     FHealth := -100;
 
-// Роботу урона нет:
+// Р РѕР±РѕС‚Сѓ СѓСЂРѕРЅР° РЅРµС‚:
   if FMonsterType = MONSTER_ROBO then
     aDamage := 0;
 
-// Наносим урон:
+// РќР°РЅРѕСЃРёРј СѓСЂРѕРЅ:
   if g_Game_IsServer then Dec(FHealth, aDamage);
 
-// Усиливаем боль монстра от урона:
+// РЈСЃРёР»РёРІР°РµРј Р±РѕР»СЊ РјРѕРЅСЃС‚СЂР° РѕС‚ СѓСЂРѕРЅР°:
   if FPain = 0 then
     FPain := 3;
   FPain := FPain+aDamage;
 
-// Если боль существенная, то меняем состояние на болевое:
+// Р•СЃР»Рё Р±РѕР»СЊ СЃСѓС‰РµСЃС‚РІРµРЅРЅР°СЏ, С‚Рѕ РјРµРЅСЏРµРј СЃРѕСЃС‚РѕСЏРЅРёРµ РЅР° Р±РѕР»РµРІРѕРµ:
   if FState <> MONSTATE_PAIN then
     if (FPain >= MONSTERTABLE[FMonsterType].MinPain) and
        (FMonsterType <> MONSTER_BARREL) then
          SetState(MONSTATE_PAIN);
 
-// Если разрешена кровь - создаем брызги крови:
+// Р•СЃР»Рё СЂР°Р·СЂРµС€РµРЅР° РєСЂРѕРІСЊ - СЃРѕР·РґР°РµРј Р±СЂС‹Р·РіРё РєСЂРѕРІРё:
   if (gBloodCount > 0) then
   begin
     c := Min(aDamage, 200);
@@ -2070,17 +2043,17 @@ begin
       end;
   end;
 
-// Теперь цель - ударивший, если только не сам себя:
+// РўРµРїРµСЂСЊ С†РµР»СЊ - СѓРґР°СЂРёРІС€РёР№, РµСЃР»Рё С‚РѕР»СЊРєРѕ РЅРµ СЃР°Рј СЃРµР±СЏ:
   if (SpawnerUID <> FUID) and (BehaviourDamage(SpawnerUID, FBehaviour, FMonsterType)) then
   begin
     FTargetUID := SpawnerUID;
     FTargetTime := 0;
   end;
 
-// Здоровье закончилось:
+// Р—РґРѕСЂРѕРІСЊРµ Р·Р°РєРѕРЅС‡РёР»РѕСЃСЊ:
   if FHealth <= 0 then
     begin
-    // Если это не бочка и убил игрок, то ему +1:
+    // Р•СЃР»Рё СЌС‚Рѕ РЅРµ Р±РѕС‡РєР° Рё СѓР±РёР» РёРіСЂРѕРє, С‚Рѕ РµРјСѓ +1:
       if (FMonsterType <> MONSTER_BARREL) then
       begin
         if (g_GetUIDType(SpawnerUID) = UID_PLAYER) then
@@ -2103,7 +2076,7 @@ begin
         end;
       end;
 
-    // Выбираем лут:
+    // Р’С‹Р±РёСЂР°РµРј Р»СѓС‚:
       case FMonsterType of
         MONSTER_ZOMBY: c := ITEM_AMMO_BULLETS;
         MONSTER_SERG: c := ITEM_WEAPON_SHOTGUN1;
@@ -2112,7 +2085,7 @@ begin
         else c := 0;
       end;
 
-    // Бросаем лут:
+    // Р‘СЂРѕСЃР°РµРј Р»СѓС‚:
       if c <> 0 then
       begin
         it := g_Items_Create(FObj.X + (FObj.Rect.Width div 2),
@@ -2126,10 +2099,10 @@ begin
           MH_SEND_ItemSpawn(True, it);
       end;
 
-    // Труп дальше не идет:
+    // РўСЂСѓРї РґР°Р»СЊС€Рµ РЅРµ РёРґРµС‚:
       FObj.Vel.X := 0;
 
-    // У трупа размеры меньше:
+    // РЈ С‚СЂСѓРїР° СЂР°Р·РјРµСЂС‹ РјРµРЅСЊС€Рµ:
       if (FMonsterType <> MONSTER_FISH) and (FMonsterType <> MONSTER_PAIN) then
       begin
         FObj.Rect.Y := FObj.Rect.Y + FObj.Rect.Height-12;
@@ -2137,7 +2110,7 @@ begin
         positionChanged();
       end;
 
-    // Урон был сильным => слабые - в кашу:
+    // РЈСЂРѕРЅ Р±С‹Р» СЃРёР»СЊРЅС‹Рј => СЃР»Р°Р±С‹Рµ - РІ РєР°С€Сѓ:
       if (FHealth <= -30) and
          ((FMonsterType = MONSTER_IMP) or (FMonsterType = MONSTER_ZOMBY) or
           (FMonsterType = MONSTER_SERG) or (FMonsterType = MONSTER_CGUN) or
@@ -2152,14 +2125,14 @@ begin
           SetState(MONSTATE_DIE);
         end;
 
-    // Активировать триггеры, ждущие смерти этого монстра:
+    // РђРєС‚РёРІРёСЂРѕРІР°С‚СЊ С‚СЂРёРіРіРµСЂС‹, Р¶РґСѓС‰РёРµ СЃРјРµСЂС‚Рё СЌС‚РѕРіРѕ РјРѕРЅСЃС‚СЂР°:
       if g_Game_IsServer then ActivateTriggers();
 
       FHealth := 0;
     end
   else
     if FState = MONSTATE_SLEEP then
-    begin // Спал, разбудили несмертельным ударом:
+    begin // РЎРїР°Р», СЂР°Р·Р±СѓРґРёР»Рё РЅРµСЃРјРµСЂС‚РµР»СЊРЅС‹Рј СѓРґР°СЂРѕРј:
       FPain := MONSTERTABLE[FMonsterType].Pain;
       SetState(MONSTATE_GO);
     end;
@@ -2220,89 +2193,6 @@ begin
   inherited Destroy();
 end;
 
-procedure TMonster.Draw();
-var
-  m: TMirrorType;
-  dx, dy, c, fX, fY: Integer;
-  o: TObj;
-begin
-  //e_CharFont_Print(gMenuSmallFont, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y, 'TYPE: '+IntToStr(FMonsterType));
-  //e_CharFont_Print(gMenuSmallFont, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y+16, 'STATE: '+IntToStr(FState));
-
-  FObj.lerp(gLerpFactor, fX, fY);
-
-// Если колдун стреляет, то рисуем огонь:
-  if FMonsterType = MONSTER_VILE then
-    if FState = MONSTATE_SHOOT then
-      if GetPos(FTargetUID, @o) then
-        vilefire.Draw(o.X+o.Rect.X+(o.Rect.Width div 2)-32,
-                      o.Y+o.Rect.Y+o.Rect.Height-128, TMirrorType.None);
-
-// Не в области рисования не ресуем:
-//FIXME!
-  if (g_dbg_scale = 1.0) then
-  begin
-    if not g_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height,
-                     sX-128, sY-128, sWidth+256, sHeight+256) then
-      Exit;
-  end;
-
-// Эти монстры, умирая, не оставляют трупов:
-  if FState = MONSTATE_DEAD then
-    case FMonsterType of
-      MONSTER_BARREL, MONSTER_SOUL, MONSTER_PAIN: Exit;
-    end;
-
-// Есть что рисовать при текущем поведении:
-  if FAnim[FCurAnim, FDirection] <> nil then
-  begin
-  // Если нет левой анимации или она совпадает с правой => отражаем правую:
-    if (FDirection = TDirection.D_LEFT) and
-       ((not MONSTER_ANIMTABLE[FMonsterType].LeftAnim) or
-        (FAnim[FCurAnim, TDirection.D_LEFT].FramesID = FAnim[FCurAnim, TDirection.D_RIGHT].FramesID)) and
-        (FMonsterType <> MONSTER_BARREL) then
-      m := TMirrorType.Horizontal
-    else
-      m := TMirrorType.None;
-
-  // Левая анимация => меняем смещение относительно центра:
-    if (FDirection = TDirection.D_LEFT) and
-       (FMonsterType <> MONSTER_BARREL) then
-      begin
-        dx := MONSTER_ANIMTABLE[FMonsterType].AnimDeltaLeft[FCurAnim].X;
-        dy := MONSTER_ANIMTABLE[FMonsterType].AnimDeltaLeft[FCurAnim].Y;
-
-        if m = TMirrorType.Horizontal then
-        begin // Нет отдельной левой анимации
-        // Расстояние от края текстуры до края визуального положения объекта на текстуре:
-          c := (MONSTERTABLE[FMonsterType].Rect.X - dx) + MONSTERTABLE[FMonsterType].Rect.Width;
-        // Расстояние от края хит бокса до края визуального положения объекта на текстуре:
-          dx := FAnim[FCurAnim, FDirection].Width - c - MONSTERTABLE[FMonsterType].Rect.X;
-        // Т.к. двигать текстуру нужно будет в противоположном направлении:
-          dx := -dx;
-        // Это значит: dX := -frameWidth - animDeltaX + hitX + hitWidth + hitX
-        end;
-      end
-    else // Правая анимация
-      begin
-        dx := MONSTER_ANIMTABLE[FMonsterType].AnimDeltaRight[FCurAnim].X;
-        dy := MONSTER_ANIMTABLE[FMonsterType].AnimDeltaRight[FCurAnim].Y;
-      end;
-
-  // Рисуем:
-    FAnim[FCurAnim, FDirection].Draw(fX+dx, fY+dy, m);
-  end;
-
-  if g_debug_Frames then
-  begin
-    e_DrawQuad(FObj.X+FObj.Rect.X,
-               FObj.Y+FObj.Rect.Y,
-               FObj.X+FObj.Rect.X+FObj.Rect.Width-1,
-               FObj.Y+FObj.Rect.Y+FObj.Rect.Height-1,
-               0, 255, 0);
-  end;
-end;
-
 procedure TMonster.MakeBloodSimple(Count: Word);
 begin
   g_GFX_Blood(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)+8,
@@ -2334,12 +2224,12 @@ procedure TMonster.SetState(State: Byte; ForceAnim: Byte = 255);
 var
   Anim: Byte;
 begin
-// Если состояние = начали умирать, а этот монстр = Lost_Soul,
-// то соблюдаем ограничение количества Lost_Soul'ов:
+// Р•СЃР»Рё СЃРѕСЃС‚РѕСЏРЅРёРµ = РЅР°С‡Р°Р»Рё СѓРјРёСЂР°С‚СЊ, Р° СЌС‚РѕС‚ РјРѕРЅСЃС‚СЂ = Lost_Soul,
+// С‚Рѕ СЃРѕР±Р»СЋРґР°РµРј РѕРіСЂР°РЅРёС‡РµРЅРёРµ РєРѕР»РёС‡РµСЃС‚РІР° Lost_Soul'РѕРІ:
   if (State = MONSTATE_DIE) and (MonsterType = MONSTER_SOUL) then
     soulcount := soulcount-1;
 
-// Присмерти - нельзя сразу начинать атаковать или бегать:
+// РџСЂРёСЃРјРµСЂС‚Рё - РЅРµР»СЊР·СЏ СЃСЂР°Р·Сѓ РЅР°С‡РёРЅР°С‚СЊ Р°С‚Р°РєРѕРІР°С‚СЊ РёР»Рё Р±РµРіР°С‚СЊ:
   case FState of
     MONSTATE_DIE, MONSTATE_DEAD, MONSTATE_REVIVE:
       if (State <> MONSTATE_DEAD) and (State <> MONSTATE_REVIVE) and
@@ -2347,12 +2237,12 @@ begin
         Exit;
   end;
 
-// Смена состояния:
+// РЎРјРµРЅР° СЃРѕСЃС‚РѕСЏРЅРёСЏ:
   FState := State;
 
   if g_Game_IsServer and g_Game_IsNet then MH_SEND_MonsterState(FUID, ForceAnim);
 
-// Новая анимация при новом состоянии:
+// РќРѕРІР°СЏ Р°РЅРёРјР°С†РёСЏ РїСЂРё РЅРѕРІРѕРј СЃРѕСЃС‚РѕСЏРЅРёРё:
   case FState of
     MONSTATE_SLEEP: Anim := ANIM_SLEEP;
     MONSTATE_PAIN: Anim := ANIM_PAIN;
@@ -2362,7 +2252,7 @@ begin
     MONSTATE_ATTACK: Anim := ANIM_ATTACK;
     MONSTATE_DIE: Anim := ANIM_DIE;
     MONSTATE_REVIVE:
-      begin // начали восрешаться
+      begin // РЅР°С‡Р°Р»Рё РІРѕСЃСЂРµС€Р°С‚СЊСЃСЏ
         Anim := FCurAnim;
         FAnim[Anim, FDirection].Revert(True);
 
@@ -2374,11 +2264,11 @@ begin
     else Exit;
   end;
 
-// Надо сменить анимацию на нестандартную:
+// РќР°РґРѕ СЃРјРµРЅРёС‚СЊ Р°РЅРёРјР°С†РёСЋ РЅР° РЅРµСЃС‚Р°РЅРґР°СЂС‚РЅСѓСЋ:
   if ForceAnim <> 255 then
     Anim := ForceAnim;
 
-// Если анимация новая - перезапускаем её:
+// Р•СЃР»Рё Р°РЅРёРјР°С†РёСЏ РЅРѕРІР°СЏ - РїРµСЂРµР·Р°РїСѓСЃРєР°РµРј РµС‘:
   if FCurAnim <> Anim then
     if FAnim[Anim, FDirection] <> nil then
     begin
@@ -2394,7 +2284,7 @@ var
 begin
   Result := False;
 
-// В точке назначения стена:
+// Р’ С‚РѕС‡РєРµ РЅР°Р·РЅР°С‡РµРЅРёСЏ СЃС‚РµРЅР°:
   if g_CollideLevel(X, Y, FObj.Rect.Width, FObj.Rect.Height) then
   begin
     g_Sound_PlayExAt('SOUND_GAME_NOTELEPORT', FObj.X, FObj.Y);
@@ -2405,7 +2295,7 @@ begin
 
   TA := nil;
 
-// Эффект телепорта в позиции монстра:
+// Р­С„С„РµРєС‚ С‚РµР»РµРїРѕСЂС‚Р° РІ РїРѕР·РёС†РёРё РјРѕРЅСЃС‚СЂР°:
   if not silent then
   begin
     if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
@@ -2433,14 +2323,14 @@ begin
       FDirection := TDirection.D_RIGHT
     else
       if dir = 3 then
-      begin // обратное
+      begin // РѕР±СЂР°С‚РЅРѕРµ
         if FDirection = TDirection.D_RIGHT then
           FDirection := TDirection.D_LEFT
         else
           FDirection := TDirection.D_RIGHT;
       end;
 
-// Эффект телепорта в точке назначения:
+// Р­С„С„РµРєС‚ С‚РµР»РµРїРѕСЂС‚Р° РІ С‚РѕС‡РєРµ РЅР°Р·РЅР°С‡РµРЅРёСЏ:
   if not silent and (TA <> nil) then
   begin
     g_GFX_OnceAnim(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
@@ -2478,16 +2368,16 @@ begin
   fall := True;
   bubbles := True;
 
-// Монстр статичен пока идет warmup
+// РњРѕРЅСЃС‚СЂ СЃС‚Р°С‚РёС‡РµРЅ РїРѕРєР° РёРґРµС‚ warmup
   if (gLMSRespawn > LMS_RESPAWN_NONE) then exit;
 
-// Рыбы "летают" только в воде:
+// Р С‹Р±С‹ "Р»РµС‚Р°СЋС‚" С‚РѕР»СЊРєРѕ РІ РІРѕРґРµ:
   if FMonsterType = MONSTER_FISH then
     if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_WATER or PANEL_ACID1 or PANEL_ACID2) then
       if (FState <> MONSTATE_DIE) and (FState <> MONSTATE_DEAD) then
         fall := False;
 
-// Летающие монтсры:
+// Р›РµС‚Р°СЋС‰РёРµ РјРѕРЅС‚СЃСЂС‹:
   if ((FMonsterType = MONSTER_SOUL) or
       (FMonsterType = MONSTER_PAIN) or
       (FMonsterType = MONSTER_CACO)) and
@@ -2495,7 +2385,7 @@ begin
      (FState <> MONSTATE_DEAD) then
     fall := False;
 
-// Меняем скорость только по четным кадрам:
+// РњРµРЅСЏРµРј СЃРєРѕСЂРѕСЃС‚СЊ С‚РѕР»СЊРєРѕ РїРѕ С‡РµС‚РЅС‹Рј РєР°РґСЂР°Рј:
   if gTime mod (GAME_TICK*2) <> 0 then
   begin
     g_Obj_Move(@FObj, fall, True, True);
@@ -2508,11 +2398,11 @@ begin
   else
     FPainSound := False;
 
-// Двигаемся:
+// Р”РІРёРіР°РµРјСЃСЏ:
   st := g_Obj_Move(@FObj, fall, True, True);
   positionChanged(); // this updates spatial accelerators
 
-// Если горим - поджигаем других монстров, но не на 100 тиков каждый раз:
+// Р•СЃР»Рё РіРѕСЂРёРј - РїРѕРґР¶РёРіР°РµРј РґСЂСѓРіРёС… РјРѕРЅСЃС‚СЂРѕРІ, РЅРѕ РЅРµ РЅР° 100 С‚РёРєРѕРІ РєР°Р¶РґС‹Р№ СЂР°Р·:
   if FFireTime > 0 then
   begin
     it := monsGrid.forEachInAABB(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height);
@@ -2521,7 +2411,7 @@ begin
         mit.CatchFire(FFireAttacker, FFireTime);
   end;
 
-// Вылетел за карту - удаляем и запускаем триггеры:
+// Р’С‹Р»РµС‚РµР» Р·Р° РєР°СЂС‚Сѓ - СѓРґР°Р»СЏРµРј Рё Р·Р°РїСѓСЃРєР°РµРј С‚СЂРёРіРіРµСЂС‹:
   if WordBool(st and MOVE_FALLOUT) or (FObj.X < -1000) or
      (FObj.X > gMapInfo.Width+1000) or (FObj.Y < -1000) then
   begin
@@ -2538,7 +2428,7 @@ begin
 
   oldvelx := FObj.Vel.X;
 
-// Сопротивление воздуха для трупа:
+// РЎРѕРїСЂРѕС‚РёРІР»РµРЅРёРµ РІРѕР·РґСѓС…Р° РґР»СЏ С‚СЂСѓРїР°:
   if (FState = MONSTATE_DIE) or (FState = MONSTATE_DEAD) then
     FObj.Vel.X := z_dec(FObj.Vel.X, 1);
 
@@ -2561,11 +2451,11 @@ begin
     end;
   end;
 
-// Мертвый ничего не делает:
+// РњРµСЂС‚РІС‹Р№ РЅРёС‡РµРіРѕ РЅРµ РґРµР»Р°РµС‚:
   if (FState = MONSTATE_DEAD) then
     goto _end;
 
-// AI монстров выключен:
+// AI РјРѕРЅСЃС‚СЂРѕРІ РІС‹РєР»СЋС‡РµРЅ:
   if g_debug_MonsterOff then
   begin
     FSleep := 1;
@@ -2573,7 +2463,7 @@ begin
       SetState(MONSTATE_SLEEP);
   end;
 
-// Возможно, создаем пузырьки в воде:
+// Р’РѕР·РјРѕР¶РЅРѕ, СЃРѕР·РґР°РµРј РїСѓР·С‹СЂСЊРєРё РІ РІРѕРґРµ:
   if WordBool(st and MOVE_INWATER) and (Random(32) = 0) then
   begin
     case FMonsterType of
@@ -2593,7 +2483,7 @@ begin
       else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
   end;
 
-// Если прошел первый кадр анимации взрыва бочки, то взрыв:
+// Р•СЃР»Рё РїСЂРѕС€РµР» РїРµСЂРІС‹Р№ РєР°РґСЂ Р°РЅРёРјР°С†РёРё РІР·СЂС‹РІР° Р±РѕС‡РєРё, С‚Рѕ РІР·СЂС‹РІ:
   if FMonsterType = MONSTER_BARREL then
   begin
     if (FState = MONSTATE_DIE) and (FAnim[FCurAnim, FDirection].CurrentFrame = 1) and
@@ -2603,7 +2493,7 @@ begin
                        60, FUID);
   end;
 
-// Lost_Soul вылетел из воды => ускоряется:
+// Lost_Soul РІС‹Р»РµС‚РµР» РёР· РІРѕРґС‹ => СѓСЃРєРѕСЂСЏРµС‚СЃСЏ:
   if FMonsterType = MONSTER_SOUL then
     if WordBool(st and MOVE_HITAIR) then
       g_Obj_SetSpeed(@FObj, 16);
@@ -2611,15 +2501,15 @@ begin
   if FAmmo < 0 then
     FAmmo := FAmmo + 1;
 
-// Если начали всплывать, то продолжаем:
+// Р•СЃР»Рё РЅР°С‡Р°Р»Рё РІСЃРїР»С‹РІР°С‚СЊ, С‚Рѕ РїСЂРѕРґРѕР»Р¶Р°РµРј:
   if FObj.Vel.Y < 0 then
     if WordBool(st and MOVE_INWATER) then
       FObj.Vel.Y := -4;
 
-// Таймер - ждем после потери цели:
+// РўР°Р№РјРµСЂ - Р¶РґРµРј РїРѕСЃР»Рµ РїРѕС‚РµСЂРё С†РµР»Рё:
   FTargetTime := FTargetTime + 1;
 
-// Гильзы
+// Р“РёР»СЊР·С‹
   if FShellTimer > -1 then
     if FShellTimer = 0 then
     begin
@@ -2639,7 +2529,7 @@ begin
       FShellTimer := -1;
     end else Dec(FShellTimer);
 
-// Пробуем увернуться от летящей пули:
+// РџСЂРѕР±СѓРµРј СѓРІРµСЂРЅСѓС‚СЊСЃСЏ РѕС‚ Р»РµС‚СЏС‰РµР№ РїСѓР»Рё:
   if fall then
     if (FState in [MONSTATE_GO, MONSTATE_RUN, MONSTATE_RUNOUT,
                    MONSTATE_ATTACK, MONSTATE_SHOOT]) then
@@ -2650,9 +2540,9 @@ begin
           FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
 
   case FState of
-    MONSTATE_PAIN: // Состояние - Боль
+    MONSTATE_PAIN: // РЎРѕСЃС‚РѕСЏРЅРёРµ - Р‘РѕР»СЊ
       begin
-      // Боль сильная => монстр кричит:
+      // Р‘РѕР»СЊ СЃРёР»СЊРЅР°СЏ => РјРѕРЅСЃС‚СЂ РєСЂРёС‡РёС‚:
         if FPain >= MONSTERTABLE[FMonsterType].Pain then
         begin
           FPain := MONSTERTABLE[FMonsterType].Pain;
@@ -2661,10 +2551,10 @@ begin
         if (not gSoundEffectsDF) and (FPain >= MONSTERTABLE[FMonsterType].MinPain) then
           PainSound();
 
-      // Снижаем боль со временем:
+      // РЎРЅРёР¶Р°РµРј Р±РѕР»СЊ СЃРѕ РІСЂРµРјРµРЅРµРј:
         FPain := FPain - 5;
 
-      // Боль уже не ошутимая => идем дальше:
+      // Р‘РѕР»СЊ СѓР¶Рµ РЅРµ РѕС€СѓС‚РёРјР°СЏ => РёРґРµРј РґР°Р»СЊС€Рµ:
         if FPain <= MONSTERTABLE[FMonsterType].MinPain then
         begin
           FPain := 0;
@@ -2673,20 +2563,20 @@ begin
         end;
       end;
 
-    MONSTATE_SLEEP: // Состояние - Сон
+    MONSTATE_SLEEP: // РЎРѕСЃС‚РѕСЏРЅРёРµ - РЎРѕРЅ
       begin
-      // Спим:
+      // РЎРїРёРј:
         FSleep := FSleep + 1;
 
-      // Проспали достаточно:
+      // РџСЂРѕСЃРїР°Р»Рё РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ:
         if FSleep >= 18 then
           FSleep := 0
-        else // еще спим
+        else // РµС‰Рµ СЃРїРёРј
           goto _end;
 
-      // На игроков идут только обычные монстры, киллеры и маньяки
+      // РќР° РёРіСЂРѕРєРѕРІ РёРґСѓС‚ С‚РѕР»СЊРєРѕ РѕР±С‹С‡РЅС‹Рµ РјРѕРЅСЃС‚СЂС‹, РєРёР»Р»РµСЂС‹ Рё РјР°РЅСЊСЏРєРё
         if (FBehaviour = BH_NORMAL) or (FBehaviour = BH_KILLER) or (FBehaviour = BH_MANIAC) then
-        // Если есть игрок рядом, просыпаемся и идем к нему:
+        // Р•СЃР»Рё РµСЃС‚СЊ РёРіСЂРѕРє СЂСЏРґРѕРј, РїСЂРѕСЃС‹РїР°РµРјСЃСЏ Рё РёРґРµРј Рє РЅРµРјСѓ:
           if (gPlayers <> nil) then
             for a := 0 to High(gPlayers) do
               if (gPlayers[a] <> nil) and (gPlayers[a].alive)
@@ -2701,24 +2591,24 @@ begin
                     Break;
                   end;
 
-      // На монстров тянет маньяков, поехавших и каннибалов
+      // РќР° РјРѕРЅСЃС‚СЂРѕРІ С‚СЏРЅРµС‚ РјР°РЅСЊСЏРєРѕРІ, РїРѕРµС…Р°РІС€РёС… Рё РєР°РЅРЅРёР±Р°Р»РѕРІ
         if (FTargetUID = 0) and ((FBehaviour = BH_MANIAC)
         or (FBehaviour = BH_INSANE) or (FBehaviour = BH_CANNIBAL)) then
-        // Если есть подходящий монстр рядом:
+        // Р•СЃР»Рё РµСЃС‚СЊ РїРѕРґС…РѕРґСЏС‰РёР№ РјРѕРЅСЃС‚СЂ СЂСЏРґРѕРј:
           if gMonsters <> nil then
             for a := 0 to High(gMonsters) do
               if (gMonsters[a] <> nil) and (gMonsters[a].alive) and
                  (gMonsters[a].FUID <> FUID) then
               begin
-                // Маньяки нападают на всех монстров, кроме друзей
+                // РњР°РЅСЊСЏРєРё РЅР°РїР°РґР°СЋС‚ РЅР° РІСЃРµС… РјРѕРЅСЃС‚СЂРѕРІ, РєСЂРѕРјРµ РґСЂСѓР·РµР№
                 if (FBehaviour = BH_MANIAC) and
                 (IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
                   Continue;
-                // Поехавшие также, но могут обозлиться на бочку
+                // РџРѕРµС…Р°РІС€РёРµ С‚Р°РєР¶Рµ, РЅРѕ РјРѕРіСѓС‚ РѕР±РѕР·Р»РёС‚СЊСЃСЏ РЅР° Р±РѕС‡РєСѓ
                 if (FBehaviour = BH_INSANE) and (gMonsters[a].FMonsterType <> MONSTER_BARREL) and
                 (IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
                   Continue;
-                // Каннибалы нападают на себе подобных
+                // РљР°РЅРЅРёР±Р°Р»С‹ РЅР°РїР°РґР°СЋС‚ РЅР° СЃРµР±Рµ РїРѕРґРѕР±РЅС‹С…
                 if (FBehaviour = BH_CANNIBAL) and (gMonsters[a].FMonsterType <> FMonsterType) then
                   Continue;
                 if g_Look(@FObj, @gMonsters[a].Obj, FDirection) then
@@ -2732,19 +2622,19 @@ begin
               end;
       end;
 
-    MONSTATE_WAIT: // Состояние - Ожидание
+    MONSTATE_WAIT: // РЎРѕСЃС‚РѕСЏРЅРёРµ - РћР¶РёРґР°РЅРёРµ
       begin
-      // Ждем:
+      // Р–РґРµРј:
         FSleep := FSleep - 1;
 
-      // Выждали достаточно - идем:
+      // Р’С‹Р¶РґР°Р»Рё РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ - РёРґРµРј:
         if FSleep < 0 then
           SetState(MONSTATE_GO);
       end;
 
-    MONSTATE_GO: // Состояние - Движение (с осмотром ситуации)
+    MONSTATE_GO: // РЎРѕСЃС‚РѕСЏРЅРёРµ - Р”РІРёР¶РµРЅРёРµ (СЃ РѕСЃРјРѕС‚СЂРѕРј СЃРёС‚СѓР°С†РёРё)
       begin
-      // Если наткнулись на БлокМон - убегаем от него:
+      // Р•СЃР»Рё РЅР°С‚РєРЅСѓР»РёСЃСЊ РЅР° Р‘Р»РѕРєРњРѕРЅ - СѓР±РµРіР°РµРј РѕС‚ РЅРµРіРѕ:
         if WordBool(st and MOVE_BLOCK) then
         begin
           Turn();
@@ -2754,7 +2644,7 @@ begin
           goto _end;
         end;
 
-      // Если монстр - колдун, то пробуем воскресить кого-нибудь:
+      // Р•СЃР»Рё РјРѕРЅСЃС‚СЂ - РєРѕР»РґСѓРЅ, С‚Рѕ РїСЂРѕР±СѓРµРј РІРѕСЃРєСЂРµСЃРёС‚СЊ РєРѕРіРѕ-РЅРёР±СѓРґСЊ:
         if (FMonsterType = MONSTER_VILE) then
           if isCorpse(@FObj, False) <> -1 then
           begin
@@ -2764,10 +2654,10 @@ begin
             goto _end;
           end;
 
-      // Цель погибла или давно ждем:
+      // Р¦РµР»СЊ РїРѕРіРёР±Р»Р° РёР»Рё РґР°РІРЅРѕ Р¶РґРµРј:
          if (not GetPos(FTargetUID, @o)) or (FTargetTime > MAX_ATM) then
            if not findNewPrey() then
-             begin // Новых целей нет
+             begin // РќРѕРІС‹С… С†РµР»РµР№ РЅРµС‚
               FTargetUID := 0;
               o.X := FObj.X+pt_x;
               o.Y := FObj.Y+pt_y;
@@ -2777,10 +2667,10 @@ begin
               o.Accel.Y := 0;
               o.Rect := _Rect(0, 0, 0, 1);
              end
-           else // Новая цель есть - берем ее координаты
+           else // РќРѕРІР°СЏ С†РµР»СЊ РµСЃС‚СЊ - Р±РµСЂРµРј РµРµ РєРѕРѕСЂРґРёРЅР°С‚С‹
             GetPos(FTargetUID, @o);
 
-      // Цель очень близко - пинаем:
+      // Р¦РµР»СЊ РѕС‡РµРЅСЊ Р±Р»РёР·РєРѕ - РїРёРЅР°РµРј:
         if g_Obj_Collide(@FObj, @o) and (FTargetUID <> 0) then
         begin
           FTargetTime := 0;
@@ -2791,23 +2681,23 @@ begin
           end;
         end;
 
-      // Расстояние до цели:
+      // Р Р°СЃСЃС‚РѕСЏРЅРёРµ РґРѕ С†РµР»Рё:
         sx := o.X+o.Rect.X+(o.Rect.Width div 2)-(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2));
         sy := o.Y+o.Rect.Y+(o.Rect.Height div 2)-(FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2));
 
-      // Поворачиваемся в сторону цели:
+      // РџРѕРІРѕСЂР°С‡РёРІР°РµРјСЃСЏ РІ СЃС‚РѕСЂРѕРЅСѓ С†РµР»Рё:
         if sx > 0 then
           FDirection := TDirection.D_RIGHT
         else
           FDirection := TDirection.D_LEFT;
 
-      // Если монстр умеет стрелять и есть по кому - стреляем:
+      // Р•СЃР»Рё РјРѕРЅСЃС‚СЂ СѓРјРµРµС‚ СЃС‚СЂРµР»СЏС‚СЊ Рё РµСЃС‚СЊ РїРѕ РєРѕРјСѓ - СЃС‚СЂРµР»СЏРµРј:
         if canShoot(FMonsterType) and (FTargetUID <> 0) then
-          if Abs(sx) > Abs(sy) then // угол выстрела удобный
+          if Abs(sx) > Abs(sy) then // СѓРіРѕР» РІС‹СЃС‚СЂРµР»Р° СѓРґРѕР±РЅС‹Р№
             if shoot(@o, False) then
               goto _end;
 
-      // Если цель почти на одной вертикали - бегаем туда-сюда:
+      // Р•СЃР»Рё С†РµР»СЊ РїРѕС‡С‚Рё РЅР° РѕРґРЅРѕР№ РІРµСЂС‚РёРєР°Р»Рё - Р±РµРіР°РµРј С‚СѓРґР°-СЃСЋРґР°:
         if Abs(sx) < 40 then
           if FMonsterType <> MONSTER_FISH then
           begin
@@ -2821,12 +2711,12 @@ begin
             goto _end;
           end;
 
-      // Уперлись в стену:
+      // РЈРїРµСЂР»РёСЃСЊ РІ СЃС‚РµРЅСѓ:
         if WordBool(st and MOVE_HITWALL) then
         begin
           if g_Triggers_PressR(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width,
                                FObj.Rect.Height, FUID, ACTIVATE_MONSTERPRESS) <> nil then
-          begin // Смогли нажать кнопку - небольшое ожидание
+          begin // РЎРјРѕРіР»Рё РЅР°Р¶Р°С‚СЊ РєРЅРѕРїРєСѓ - РЅРµР±РѕР»СЊС€РѕРµ РѕР¶РёРґР°РЅРёРµ
             FSleep := 4;
             SetState(MONSTATE_WAIT);
 
@@ -2835,11 +2725,11 @@ begin
 
           case FMonsterType of
             MONSTER_CACO, MONSTER_SOUL, MONSTER_PAIN, MONSTER_FISH: ;
-            else // Не летают:
+            else // РќРµ Р»РµС‚Р°СЋС‚:
               if (g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj)) and
                  (FObj.Accel.Y = 0) then
-              begin // Стоим на твердом полу или ступени
-              // Прыжок через стену:
+              begin // РЎС‚РѕРёРј РЅР° С‚РІРµСЂРґРѕРј РїРѕР»Сѓ РёР»Рё СЃС‚СѓРїРµРЅРё
+              // РџСЂС‹Р¶РѕРє С‡РµСЂРµР· СЃС‚РµРЅСѓ:
                 FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
                 SetState(MONSTATE_CLIMB);
               end;
@@ -2848,40 +2738,40 @@ begin
           goto _end;
         end;
 
-      // Монстры, не подверженные гравитации:
+      // РњРѕРЅСЃС‚СЂС‹, РЅРµ РїРѕРґРІРµСЂР¶РµРЅРЅС‹Рµ РіСЂР°РІРёС‚Р°С†РёРё:
         if (FMonsterType = MONSTER_CACO) or (FMonsterType = MONSTER_SOUL) or
            (FMonsterType = MONSTER_PAIN) or (FMonsterType = MONSTER_FISH) then
           begin
             if FMonsterType = MONSTER_FISH then
-              begin // Рыба
+              begin // Р С‹Р±Р°
                 if not WordBool(st and MOVE_INWATER) then
-                  begin // Рыба вне воды:
+                  begin // Р С‹Р±Р° РІРЅРµ РІРѕРґС‹:
                     if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
-                    begin // "Стоит" твердо
-                    // Рыба трепыхается на поверхности:
+                    begin // "РЎС‚РѕРёС‚" С‚РІРµСЂРґРѕ
+                    // Р С‹Р±Р° С‚СЂРµРїС‹С…Р°РµС‚СЃСЏ РЅР° РїРѕРІРµСЂС…РЅРѕСЃС‚Рё:
                       if FObj.Accel.Y = 0 then FObj.Vel.Y := -6;
                       FObj.Accel.X := FObj.Accel.X - 8 + Random(17);
                     end;
 
-                  // Рыбе больно:
+                  // Р С‹Р±Рµ Р±РѕР»СЊРЅРѕ:
                     SetState(MONSTATE_PAIN);
                     FPain := FPain + 50;
                   end
-                else // Рыба в воде
+                else // Р С‹Р±Р° РІ РІРѕРґРµ
                   begin
-                  // Плывем в сторону цели по-вертикали:
+                  // РџР»С‹РІРµРј РІ СЃС‚РѕСЂРѕРЅСѓ С†РµР»Рё РїРѕ-РІРµСЂС‚РёРєР°Р»Рё:
                     if Abs(sy) > 8 then
                       FObj.Vel.Y := g_basic.Sign(sy)*4
                     else
                       FObj.Vel.Y := 0;
 
-                  // Рыба плывет вверх:
+                  // Р С‹Р±Р° РїР»С‹РІРµС‚ РІРІРµСЂС…:
                     if FObj.Vel.Y < 0 then
                       if not g_Obj_CollideLiquid(@FObj, 0, -16) then
                       begin
-                      // Всплыли до поверхности - стоп:
+                      // Р’СЃРїР»С‹Р»Рё РґРѕ РїРѕРІРµСЂС…РЅРѕСЃС‚Рё - СЃС‚РѕРї:
                         FObj.Vel.Y := 0;
-                      // Плаваем туда-сюда:
+                      // РџР»Р°РІР°РµРј С‚СѓРґР°-СЃСЋРґР°:
                         if Random(2) = 0 then
                           FDirection := TDirection.D_LEFT
                         else
@@ -2891,18 +2781,18 @@ begin
                       end;
                    end;
               end
-            else // Летающие монстры
+            else // Р›РµС‚Р°СЋС‰РёРµ РјРѕРЅСЃС‚СЂС‹
               begin
-              // Летим в сторону цели по-вертикали:
+              // Р›РµС‚РёРј РІ СЃС‚РѕСЂРѕРЅСѓ С†РµР»Рё РїРѕ-РІРµСЂС‚РёРєР°Р»Рё:
                 if Abs(sy) > 8 then
                   FObj.Vel.Y := g_basic.Sign(sy)*4
                 else
                   FObj.Vel.Y := 0;
               end;
           end
-        else // "Наземные" монстры
+        else // "РќР°Р·РµРјРЅС‹Рµ" РјРѕРЅСЃС‚СЂС‹
           begin
-          // Возможно, пинаем куски:
+          // Р’РѕР·РјРѕР¶РЅРѕ, РїРёРЅР°РµРј РєСѓСЃРєРё:
             if (FObj.Vel.X <> 0) and (gGibs <> nil) then
             begin
               b := Abs(FObj.Vel.X);
@@ -2913,19 +2803,19 @@ begin
                    g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
                                  FObj.Rect.Width, 8, @gGibs[a].Obj) and (Random(3) = 0) then
                 begin
-                  // Пинаем куски
+                  // РџРёРЅР°РµРј РєСѓСЃРєРё
                   if FObj.Vel.X < 0 then
                   begin
-                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61)+120); // налево
+                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61)+120); // РЅР°Р»РµРІРѕ
                   end
                   else
                   begin
-                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61));    // направо
+                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61));    // РЅР°РїСЂР°РІРѕ
                   end;
                 end;
               end;
             end;
-          // Боссы могут пинать трупы:
+          // Р‘РѕСЃСЃС‹ РјРѕРіСѓС‚ РїРёРЅР°С‚СЊ С‚СЂСѓРїС‹:
             if (FMonsterType in [MONSTER_CYBER, MONSTER_SPIDER, MONSTER_ROBO]) and
                (FObj.Vel.X <> 0) and (gCorpses <> nil) then
             begin
@@ -2937,24 +2827,24 @@ begin
                   co := gCorpses[a].Obj;
                   if g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
                                    FObj.Rect.Width, 8, @co) and (Random(3) = 0) then
-                    // Пинаем трупы
+                    // РџРёРЅР°РµРј С‚СЂСѓРїС‹
                     if FObj.Vel.X < 0 then
-                      gCorpses[a].Damage(b*2, FUID, -b, Random(7)) // налево
+                      gCorpses[a].Damage(b*2, FUID, -b, Random(7)) // РЅР°Р»РµРІРѕ
                     else
-                      gCorpses[a].Damage(b*2, FUID, b, Random(7)); // направо
+                      gCorpses[a].Damage(b*2, FUID, b, Random(7)); // РЅР°РїСЂР°РІРѕ
                 end;
             end;
-          // Если цель высоко, то, возможно, прыгаем:
+          // Р•СЃР»Рё С†РµР»СЊ РІС‹СЃРѕРєРѕ, С‚Рѕ, РІРѕР·РјРѕР¶РЅРѕ, РїСЂС‹РіР°РµРј:
             if sy < -40 then
               if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
-              // стоит твердо
+              // СЃС‚РѕРёС‚ С‚РІРµСЂРґРѕ
                 if (Random(4) = 0) and (FObj.Accel.Y = 0) then
                   FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
           end;
 
         FSleep := FSleep + 1;
 
-      // Иногда рычим:
+      // РРЅРѕРіРґР° СЂС‹С‡РёРј:
         if FSleep >= 8 then
         begin
           FSleep := 0;
@@ -2962,23 +2852,23 @@ begin
             ActionSound();
         end;
 
-      // Бежим в выбранную сторону:
+      // Р‘РµР¶РёРј РІ РІС‹Р±СЂР°РЅРЅСѓСЋ СЃС‚РѕСЂРѕРЅСѓ:
         if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
 
-      // Если в воде, то замедляемся:
+      // Р•СЃР»Рё РІ РІРѕРґРµ, С‚Рѕ Р·Р°РјРµРґР»СЏРµРјСЃСЏ:
         if WordBool(st and MOVE_INWATER) then
           FObj.Vel.X := FObj.Vel.X div 2
-        else // Рыбам не нужно замедляться
+        else // Р С‹Р±Р°Рј РЅРµ РЅСѓР¶РЅРѕ Р·Р°РјРµРґР»СЏС‚СЊСЃСЏ
           if FMonsterType = MONSTER_FISH then
             FObj.Vel.X := 0;
       end;
 
-    MONSTATE_RUN: // Состояние - Бег
+    MONSTATE_RUN: // РЎРѕСЃС‚РѕСЏРЅРёРµ - Р‘РµРі
       begin
-      // Если наткнулись на БлокМон - убегаем от него:
+      // Р•СЃР»Рё РЅР°С‚РєРЅСѓР»РёСЃСЊ РЅР° Р‘Р»РѕРєРњРѕРЅ - СѓР±РµРіР°РµРј РѕС‚ РЅРµРіРѕ:
         if WordBool(st and MOVE_BLOCK) then
         begin
           Turn();
@@ -2990,78 +2880,78 @@ begin
 
         FSleep := FSleep - 1;
 
-      // Пробежали достаточно или врезались в стену => переходим на шаг:
+      // РџСЂРѕР±РµР¶Р°Р»Рё РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РёР»Рё РІСЂРµР·Р°Р»РёСЃСЊ РІ СЃС‚РµРЅСѓ => РїРµСЂРµС…РѕРґРёРј РЅР° С€Р°Рі:
         if (FSleep <= 0) or (WordBool(st and MOVE_HITWALL) and ((FObj.Vel.Y+FObj.Accel.Y) = 0)) then
         begin
           FSleep := 0;
           SetState(MONSTATE_GO);
-        // Стена - идем обратно:
+        // РЎС‚РµРЅР° - РёРґРµРј РѕР±СЂР°С‚РЅРѕ:
           if WordBool(st and (MOVE_HITWALL or MOVE_BLOCK)) then
             Turn();
-        // Иногда рычим:
+        // РРЅРѕРіРґР° СЂС‹С‡РёРј:
           if Random(8) = 0 then
             ActionSound();
         end;
 
-      // Бежим в выбранную сторону:
+      // Р‘РµР¶РёРј РІ РІС‹Р±СЂР°РЅРЅСѓСЋ СЃС‚РѕСЂРѕРЅСѓ:
         if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
 
-      // Если в воде, то замедляемся:
+      // Р•СЃР»Рё РІ РІРѕРґРµ, С‚Рѕ Р·Р°РјРµРґР»СЏРµРјСЃСЏ:
         if WordBool(st and MOVE_INWATER) then
           FObj.Vel.X := FObj.Vel.X div 2
-        else // Рыбам не нужно замедляться
+        else // Р С‹Р±Р°Рј РЅРµ РЅСѓР¶РЅРѕ Р·Р°РјРµРґР»СЏС‚СЊСЃСЏ
           if FMonsterType = MONSTER_FISH then
             FObj.Vel.X := 0;
       end;
 
-    MONSTATE_RUNOUT: // Состояние - Убегает от чего-то
+    MONSTATE_RUNOUT: // РЎРѕСЃС‚РѕСЏРЅРёРµ - РЈР±РµРіР°РµС‚ РѕС‚ С‡РµРіРѕ-С‚Рѕ
       begin
-      // Вышли из БлокМона:
+      // Р’С‹С€Р»Рё РёР· Р‘Р»РѕРєРњРѕРЅР°:
         if (not WordBool(st and MOVE_BLOCK)) and (FSleep > 0) then
           FSleep := 0;
 
         FSleep := FSleep - 1;
 
-      // Убажели достаточно далеко => переходим на шаг:
+      // РЈР±Р°Р¶РµР»Рё РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РґР°Р»РµРєРѕ => РїРµСЂРµС…РѕРґРёРј РЅР° С€Р°Рі:
         if FSleep <= -18 then
         begin
           FSleep := 0;
           SetState(MONSTATE_GO);
-        // Стена/БлокМон - идем обратно:
+        // РЎС‚РµРЅР°/Р‘Р»РѕРєРњРѕРЅ - РёРґРµРј РѕР±СЂР°С‚РЅРѕ:
           if WordBool(st and (MOVE_HITWALL or MOVE_BLOCK)) then
             Turn();
-        // Иногда рычим:
+        // РРЅРѕРіРґР° СЂС‹С‡РёРј:
           if Random(8) = 0 then
             ActionSound();
         end;
 
-      // Бежим в выбранную сторону:
+      // Р‘РµР¶РёРј РІ РІС‹Р±СЂР°РЅРЅСѓСЋ СЃС‚РѕСЂРѕРЅСѓ:
         if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
 
-      // Если в воде, то замедляемся:
+      // Р•СЃР»Рё РІ РІРѕРґРµ, С‚Рѕ Р·Р°РјРµРґР»СЏРµРјСЃСЏ:
         if WordBool(st and MOVE_INWATER) then
           FObj.Vel.X := FObj.Vel.X div 2
-        else // Рыбам не нужно замедляться
+        else // Р С‹Р±Р°Рј РЅРµ РЅСѓР¶РЅРѕ Р·Р°РјРµРґР»СЏС‚СЊСЃСЏ
           if FMonsterType = MONSTER_FISH then
             FObj.Vel.X := 0;
       end;
 
-    MONSTATE_CLIMB: // Состояние - Прыжок (чтобы обойти стену)
+    MONSTATE_CLIMB: // РЎРѕСЃС‚РѕСЏРЅРёРµ - РџСЂС‹Р¶РѕРє (С‡С‚РѕР±С‹ РѕР±РѕР№С‚Рё СЃС‚РµРЅСѓ)
       begin
-      // Достигли высшей точки прыжка или стена кончилась => переходим на шаг:
+      // Р”РѕСЃС‚РёРіР»Рё РІС‹СЃС€РµР№ С‚РѕС‡РєРё РїСЂС‹Р¶РєР° РёР»Рё СЃС‚РµРЅР° РєРѕРЅС‡РёР»Р°СЃСЊ => РїРµСЂРµС…РѕРґРёРј РЅР° С€Р°Рі:
         if ((FObj.Vel.Y+FObj.Accel.Y) >= 0) or
            (not WordBool(st and MOVE_HITWALL)) then
         begin
           FSleep := 0;
           SetState(MONSTATE_GO);
 
-        // Стена не кончилась => бежим от нее:
+        // РЎС‚РµРЅР° РЅРµ РєРѕРЅС‡РёР»Р°СЃСЊ => Р±РµР¶РёРј РѕС‚ РЅРµРµ:
           if WordBool(st and (MOVE_HITWALL or MOVE_BLOCK)) then
           begin
             Turn();
@@ -3070,24 +2960,24 @@ begin
           end;
         end;
 
-      // Бежим в выбранную сторону:
+      // Р‘РµР¶РёРј РІ РІС‹Р±СЂР°РЅРЅСѓСЋ СЃС‚РѕСЂРѕРЅСѓ:
         if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
 
-      // Если в воде, то замедляемся:
+      // Р•СЃР»Рё РІ РІРѕРґРµ, С‚Рѕ Р·Р°РјРµРґР»СЏРµРјСЃСЏ:
         if WordBool(st and MOVE_INWATER) then
           FObj.Vel.X := FObj.Vel.X div 2
-        else // Рыбам не нужно замедляться
+        else // Р С‹Р±Р°Рј РЅРµ РЅСѓР¶РЅРѕ Р·Р°РјРµРґР»СЏС‚СЊСЃСЏ
           if FMonsterType = MONSTER_FISH then
             FObj.Vel.X := 0;
       end;
 
-    MONSTATE_ATTACK, // Состояние - Атака
-    MONSTATE_SHOOT:  // Состояние - Стрельба
+    MONSTATE_ATTACK, // РЎРѕСЃС‚РѕСЏРЅРёРµ - РђС‚Р°РєР°
+    MONSTATE_SHOOT:  // РЎРѕСЃС‚РѕСЏРЅРёРµ - РЎС‚СЂРµР»СЊР±Р°
       begin
-      // Lost_Soul врезался в стену при атаке => переходит на шаг:
+      // Lost_Soul РІСЂРµР·Р°Р»СЃСЏ РІ СЃС‚РµРЅСѓ РїСЂРё Р°С‚Р°РєРµ => РїРµСЂРµС…РѕРґРёС‚ РЅР° С€Р°Рі:
         if FMonsterType = MONSTER_SOUL then
         begin
           if WordBool(st and (MOVE_HITWALL or MOVE_HITCEIL or MOVE_HITLAND)) then
@@ -3096,14 +2986,14 @@ begin
           goto _end;
         end;
 
-      // Замедляемся при атаке:
+      // Р—Р°РјРµРґР»СЏРµРјСЃСЏ РїСЂРё Р°С‚Р°РєРµ:
         if FMonsterType <> MONSTER_FISH then
           FObj.Vel.X := z_dec(FObj.Vel.X, 1);
 
-      // Нужно стрелять, а монстр - колдун:
+      // РќСѓР¶РЅРѕ СЃС‚СЂРµР»СЏС‚СЊ, Р° РјРѕРЅСЃС‚СЂ - РєРѕР»РґСѓРЅ:
         if (FMonsterType = MONSTER_VILE) and (FState = MONSTATE_SHOOT) then
         begin
-        // Цель погибла => идем дальше:
+        // Р¦РµР»СЊ РїРѕРіРёР±Р»Р° => РёРґРµРј РґР°Р»СЊС€Рµ:
           if not GetPos(FTargetUID, @o) then
           begin
             SetState(MONSTATE_GO);
@@ -3111,7 +3001,7 @@ begin
             goto _end;
           end;
 
-        // Цель не видно => идем дальше:
+        // Р¦РµР»СЊ РЅРµ РІРёРґРЅРѕ => РёРґРµРј РґР°Р»СЊС€Рµ:
           if not g_Look(@FObj, @o, FDirection) then
           begin
             SetState(MONSTATE_GO);
@@ -3119,7 +3009,7 @@ begin
             goto _end;
           end;
 
-        // Цель в воде - не загорится => идем дальше:
+        // Р¦РµР»СЊ РІ РІРѕРґРµ - РЅРµ Р·Р°РіРѕСЂРёС‚СЃСЏ => РёРґРµРј РґР°Р»СЊС€Рµ:
           if g_Obj_CollideWater(@o, 0, 0) then
           begin
             SetState(MONSTATE_GO);
@@ -3127,7 +3017,7 @@ begin
             goto _end;
           end;
 
-        // Жарим цель:
+        // Р–Р°СЂРёРј С†РµР»СЊ:
           tx := o.X+o.Rect.X+(o.Rect.Width div 2);
           ty := o.Y+o.Rect.Y+(o.Rect.Height div 2);
           g_Weapon_HitUID(FTargetUID, 2, FUID, HIT_SOME);
@@ -3137,27 +3027,27 @@ begin
 
 _end:
 
-// Состояние - Воскрешение:
+// РЎРѕСЃС‚РѕСЏРЅРёРµ - Р’РѕСЃРєСЂРµС€РµРЅРёРµ:
   if FState = MONSTATE_REVIVE then
     if FAnim[FCurAnim, FDirection].Played then
-    begin // Обратная анимация умирания закончилась - идем дальше:
+    begin // РћР±СЂР°С‚РЅР°СЏ Р°РЅРёРјР°С†РёСЏ СѓРјРёСЂР°РЅРёСЏ Р·Р°РєРѕРЅС‡РёР»Р°СЃСЊ - РёРґРµРј РґР°Р»СЊС€Рµ:
       FAnim[FCurAnim, FDirection].Revert(False);
       SetState(MONSTATE_GO);
     end;
 
-// Если есть анимация огня колдуна - пусть она идет:
+// Р•СЃР»Рё РµСЃС‚СЊ Р°РЅРёРјР°С†РёСЏ РѕРіРЅСЏ РєРѕР»РґСѓРЅР° - РїСѓСЃС‚СЊ РѕРЅР° РёРґРµС‚:
   if vilefire <> nil then
     vilefire.Update();
 
-// Состояние - Умирает и текущая анимация проиграна:
+// РЎРѕСЃС‚РѕСЏРЅРёРµ - РЈРјРёСЂР°РµС‚ Рё С‚РµРєСѓС‰Р°СЏ Р°РЅРёРјР°С†РёСЏ РїСЂРѕРёРіСЂР°РЅР°:
   if (FState = MONSTATE_DIE) and
      (FAnim[FCurAnim, FDirection] <> nil) and
      (FAnim[FCurAnim, FDirection].Played) then
     begin
-    // Умер:
+    // РЈРјРµСЂ:
       SetState(MONSTATE_DEAD);
 
-    // Pain_Elemental при смерти выпускает 3 Lost_Soul'а:
+    // Pain_Elemental РїСЂРё СЃРјРµСЂС‚Рё РІС‹РїСѓСЃРєР°РµС‚ 3 Lost_Soul'Р°:
       if (FMonsterType = MONSTER_PAIN) then
       begin
         mon := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-30,
@@ -3193,35 +3083,35 @@ _end:
         if g_Game_IsNet then MH_SEND_CoopStats();
       end;
 
-    // У этих монстров нет трупов:
+    // РЈ СЌС‚РёС… РјРѕРЅСЃС‚СЂРѕРІ РЅРµС‚ С‚СЂСѓРїРѕРІ:
       if (FMonsterType = MONSTER_PAIN) or
          (FMonsterType = MONSTER_SOUL) or
          (FMonsterType = MONSTER_BARREL) then
         FRemoved := True;
     end;
 
-// Совершение атаки и стрельбы:
+// РЎРѕРІРµСЂС€РµРЅРёРµ Р°С‚Р°РєРё Рё СЃС‚СЂРµР»СЊР±С‹:
   if (FState = MONSTATE_ATTACK) or (FState = MONSTATE_SHOOT) then
     if (FAnim[FCurAnim, FDirection] <> nil) then
-    // Анимация атаки есть - можно атаковать
+    // РђРЅРёРјР°С†РёСЏ Р°С‚Р°РєРё РµСЃС‚СЊ - РјРѕР¶РЅРѕ Р°С‚Р°РєРѕРІР°С‚СЊ
       if (FAnim[FCurAnim, FDirection].Played) then
-        begin // Анимация атаки закончилась => переходим на шаг
+        begin // РђРЅРёРјР°С†РёСЏ Р°С‚Р°РєРё Р·Р°РєРѕРЅС‡РёР»Р°СЃСЊ => РїРµСЂРµС…РѕРґРёРј РЅР° С€Р°Рі
           if FState = MONSTATE_ATTACK then
-            begin // Состояние - Атака
-            // Если монстр не Lost_Soul, то после атаки переходим на шаг:
+            begin // РЎРѕСЃС‚РѕСЏРЅРёРµ - РђС‚Р°РєР°
+            // Р•СЃР»Рё РјРѕРЅСЃС‚СЂ РЅРµ Lost_Soul, С‚Рѕ РїРѕСЃР»Рµ Р°С‚Р°РєРё РїРµСЂРµС…РѕРґРёРј РЅР° С€Р°Рі:
               if FMonsterType <> MONSTER_SOUL then
                 SetState(MONSTATE_GO);
             end
-          else // Состояние - Стрельба
+          else // РЎРѕСЃС‚РѕСЏРЅРёРµ - РЎС‚СЂРµР»СЊР±Р°
             begin
-            // Переходим на шаг, если не надо стрелять еще раз:
+            // РџРµСЂРµС…РѕРґРёРј РЅР° С€Р°Рі, РµСЃР»Рё РЅРµ РЅР°РґРѕ СЃС‚СЂРµР»СЏС‚СЊ РµС‰Рµ СЂР°Р·:
               if not FChainFire then
                 SetState(MONSTATE_GO)
               else
-                begin // Надо стрелять еще
+                begin // РќР°РґРѕ СЃС‚СЂРµР»СЏС‚СЊ РµС‰Рµ
                   FChainFire := False;
-                // Т.к. состояние не изменилось, и нужен
-                // новый цикл ожидания завершения анимации:
+                // Рў.Рє. СЃРѕСЃС‚РѕСЏРЅРёРµ РЅРµ РёР·РјРµРЅРёР»РѕСЃСЊ, Рё РЅСѓР¶РµРЅ
+                // РЅРѕРІС‹Р№ С†РёРєР» РѕР¶РёРґР°РЅРёСЏ Р·Р°РІРµСЂС€РµРЅРёСЏ Р°РЅРёРјР°С†РёРё:
                   FAnim[FCurAnim, FDirection].Reset();
                 end;
             end;
@@ -3229,34 +3119,34 @@ _end:
           FWaitAttackAnim := False;
         end
 
-      else // Анимация атаки еще идет (исключение - Lost_Soul):
+      else // РђРЅРёРјР°С†РёСЏ Р°С‚Р°РєРё РµС‰Рµ РёРґРµС‚ (РёСЃРєР»СЋС‡РµРЅРёРµ - Lost_Soul):
         if (FMonsterType = MONSTER_SOUL) or
            ( (not FWaitAttackAnim) and
              (FAnim[FCurAnim, FDirection].CurrentFrame =
               (FAnim[FCurAnim, FDirection].TotalFrames div 2))
            ) then
-        begin // Атаки еще не было и это середина анимации атаки
+        begin // РђС‚Р°РєРё РµС‰Рµ РЅРµ Р±С‹Р»Рѕ Рё СЌС‚Рѕ СЃРµСЂРµРґРёРЅР° Р°РЅРёРјР°С†РёРё Р°С‚Р°РєРё
           if FState = MONSTATE_ATTACK then
-            begin // Состояние - Атака
-            // Если это Lost_Soul, то сбрасываем анимацию атаки:
+            begin // РЎРѕСЃС‚РѕСЏРЅРёРµ - РђС‚Р°РєР°
+            // Р•СЃР»Рё СЌС‚Рѕ Lost_Soul, С‚Рѕ СЃР±СЂР°СЃС‹РІР°РµРј Р°РЅРёРјР°С†РёСЋ Р°С‚Р°РєРё:
               if FMonsterType = MONSTER_SOUL then
                 FAnim[FCurAnim, FDirection].Reset();
 
               case FMonsterType of
                 MONSTER_SOUL, MONSTER_IMP, MONSTER_DEMON:
-                // Грызем первого попавшегося:
+                // Р“СЂС‹Р·РµРј РїРµСЂРІРѕРіРѕ РїРѕРїР°РІС€РµРіРѕСЃСЏ:
                   if g_Weapon_Hit(@FObj, 15, FUID, HIT_SOME) <> 0 then
-                  // Lost_Soul укусил кого-то => переходит на шаг:
+                  // Lost_Soul СѓРєСѓСЃРёР» РєРѕРіРѕ-С‚Рѕ => РїРµСЂРµС…РѕРґРёС‚ РЅР° С€Р°Рі:
                     if FMonsterType = MONSTER_SOUL then
                       SetState(MONSTATE_GO);
 
                 MONSTER_FISH:
-                // Рыба кусает первого попавшегося со звуком:
+                // Р С‹Р±Р° РєСѓСЃР°РµС‚ РїРµСЂРІРѕРіРѕ РїРѕРїР°РІС€РµРіРѕСЃСЏ СЃРѕ Р·РІСѓРєРѕРј:
                   if g_Weapon_Hit(@FObj, 10, FUID, HIT_SOME) <> 0 then
                     g_Sound_PlayExAt('SOUND_MONSTER_FISH_ATTACK', FObj.X, FObj.Y);
 
                 MONSTER_SKEL, MONSTER_ROBO, MONSTER_CYBER:
-                // Робот, кибер или скелет сильно пинаются:
+                // Р РѕР±РѕС‚, РєРёР±РµСЂ РёР»Рё СЃРєРµР»РµС‚ СЃРёР»СЊРЅРѕ РїРёРЅР°СЋС‚СЃСЏ:
                   if FCurAnim = ANIM_ATTACK2 then
                   begin
                     o := FObj;
@@ -3266,49 +3156,49 @@ _end:
                   end;
 
                 MONSTER_VILE:
-                // Колдун пытается воскрешать:
+                // РљРѕР»РґСѓРЅ РїС‹С‚Р°РµС‚СЃСЏ РІРѕСЃРєСЂРµС€Р°С‚СЊ:
                   if FCurAnim = ANIM_ATTACK2 then
                   begin
                     sx := isCorpse(@FObj, True);
                     if sx <> -1 then
-                    begin // Нашли, кого воскресить
+                    begin // РќР°С€Р»Рё, РєРѕРіРѕ РІРѕСЃРєСЂРµСЃРёС‚СЊ
                       gMonsters[sx].SetState(MONSTATE_REVIVE);
                       g_Sound_PlayExAt('SOUND_MONSTER_SLOP', FObj.X, FObj.Y);
-                    // Воскрешать - себе вредить:
+                    // Р’РѕСЃРєСЂРµС€Р°С‚СЊ - СЃРµР±Рµ РІСЂРµРґРёС‚СЊ:
                       {g_Weapon_HitUID(FUID, 5, 0, HIT_SOME);}
                     end;
                   end;
               end;
             end
 
-          else // Состояние - Стрельба
+          else // РЎРѕСЃС‚РѕСЏРЅРёРµ - РЎС‚СЂРµР»СЊР±Р°
             begin
-            // Вычисляем координаты, откуда вылетит пуля:
+            // Р’С‹С‡РёСЃР»СЏРµРј РєРѕРѕСЂРґРёРЅР°С‚С‹, РѕС‚РєСѓРґР° РІС‹Р»РµС‚РёС‚ РїСѓР»СЏ:
               wx := MONSTER_ANIMTABLE[FMonsterType].wX;
 
               if FDirection = TDirection.D_LEFT then
               begin
                 wx := MONSTER_ANIMTABLE[FMonsterType].wX-(MONSTERTABLE[FMonsterType].Rect.X+(MONSTERTABLE[FMonsterType].Rect.Width div 2));
                 wx := MONSTERTABLE[FMonsterType].Rect.X+(MONSTERTABLE[FMonsterType].Rect.Width div 2)-wx;
-              end; // Это значит: wx := hitX + (hitWidth / 2) - (wx - (hitX + (hitWidth / 2)))
+              end; // Р­С‚Рѕ Р·РЅР°С‡РёС‚: wx := hitX + (hitWidth / 2) - (wx - (hitX + (hitWidth / 2)))
 
               wx := FObj.X + wx;
               wy := FObj.Y + MONSTER_ANIMTABLE[FMonsterType].wY;
 
-            // Монстр не может целиться в объект за спиной, стреляя влево:
+            // РњРѕРЅСЃС‚СЂ РЅРµ РјРѕР¶РµС‚ С†РµР»РёС‚СЊСЃСЏ РІ РѕР±СЉРµРєС‚ Р·Р° СЃРїРёРЅРѕР№, СЃС‚СЂРµР»СЏСЏ РІР»РµРІРѕ:
               if (FDirection = TDirection.D_LEFT) and (tx > wx) then
               begin
                 tx := wx - 32;
                 ty := wy + Random(11) - 5;
               end;
-            // И аналогично, стреляя вправо:
+            // Р Р°РЅР°Р»РѕРіРёС‡РЅРѕ, СЃС‚СЂРµР»СЏСЏ РІРїСЂР°РІРѕ:
               if (FDirection = TDirection.D_RIGHT) and (tx < wx) then
               begin
                 tx := wx + 32;
                 ty := wy + Random(11) - 5;
               end;
 
-            // Делаем выстрел нужным оружием:
+            // Р”РµР»Р°РµРј РІС‹СЃС‚СЂРµР» РЅСѓР¶РЅС‹Рј РѕСЂСѓР¶РёРµРј:
               case FMonsterType of
                 MONSTER_IMP:
                   g_Weapon_ball1(wx, wy, tx, ty, FUID);
@@ -3362,12 +3252,12 @@ _end:
                 MONSTER_CACO:
                   g_Weapon_ball2(wx, wy, tx, ty, FUID);
                 MONSTER_PAIN:
-                  begin // Создаем Lost_Soul:
+                  begin // РЎРѕР·РґР°РµРј Lost_Soul:
                     mon := g_Monsters_Create(MONSTER_SOUL, FObj.X+(FObj.Rect.Width div 2),
                                              FObj.Y+FObj.Rect.Y, FDirection);
 
                     if mon <> nil then
-                    begin // Цель - цель Pain_Elemental'а. Летим к ней:
+                    begin // Р¦РµР»СЊ - С†РµР»СЊ Pain_Elemental'Р°. Р›РµС‚РёРј Рє РЅРµР№:
                       mon.FTargetUID := FTargetUID;
                       GetPos(FTargetUID, @o);
                       mon.FTargetTime := 0;
@@ -3385,29 +3275,29 @@ _end:
                 if g_Game_IsNet then
                   MH_SEND_MonsterShot(FUID, wx, wy, tx, ty);
 
-            // Скорострельные монстры:
+            // РЎРєРѕСЂРѕСЃС‚СЂРµР»СЊРЅС‹Рµ РјРѕРЅСЃС‚СЂС‹:
               if (FMonsterType = MONSTER_CGUN) or
                  (FMonsterType = MONSTER_SPIDER) or
                  (FMonsterType = MONSTER_BSP) or
                  (FMonsterType = MONSTER_MANCUB) or
                  (FMonsterType = MONSTER_ROBO) then
                 if not GetPos(FTargetUID, @o) then
-                // Цель мертва - ищем новую:
+                // Р¦РµР»СЊ РјРµСЂС‚РІР° - РёС‰РµРј РЅРѕРІСѓСЋ:
                   findNewPrey()
-                else // Цель жива - продолжаем стрелять:
+                else // Р¦РµР»СЊ Р¶РёРІР° - РїСЂРѕРґРѕР»Р¶Р°РµРј СЃС‚СЂРµР»СЏС‚СЊ:
                   if shoot(@o, False) then
                     FChainFire := True;
             end;
 
-        // Атака только 1 раз за анимацию атаки:
+        // РђС‚Р°РєР° С‚РѕР»СЊРєРѕ 1 СЂР°Р· Р·Р° Р°РЅРёРјР°С†РёСЋ Р°С‚Р°РєРё:
           FWaitAttackAnim := True;
         end;
 
-// Последний кадр текущей анимации:
+// РџРѕСЃР»РµРґРЅРёР№ РєР°РґСЂ С‚РµРєСѓС‰РµР№ Р°РЅРёРјР°С†РёРё:
   if FAnim[FCurAnim, FDirection].Counter = FAnim[FCurAnim, FDirection].Speed-1 then
     case FState of
       MONSTATE_GO, MONSTATE_RUN, MONSTATE_CLIMB, MONSTATE_RUNOUT:
-      // Звуки при передвижении:
+      // Р—РІСѓРєРё РїСЂРё РїРµСЂРµРґРІРёР¶РµРЅРёРё:
         case FMonsterType of
           MONSTER_CYBER:
             if (FAnim[FCurAnim, FDirection].CurrentFrame = 0) or
@@ -3432,7 +3322,7 @@ _end:
      not ((FState = MONSTATE_DEAD) or (FState = MONSTATE_DIE))  then
     FObj.Vel.X := oldvelx;
 
-// Если есть анимация, то пусть она идет:
+// Р•СЃР»Рё РµСЃС‚СЊ Р°РЅРёРјР°С†РёСЏ, С‚Рѕ РїСѓСЃС‚СЊ РѕРЅР° РёРґРµС‚:
   if FAnim[FCurAnim, FDirection] <> nil then
     FAnim[FCurAnim, FDirection].Update();
 end;
@@ -3472,16 +3362,16 @@ begin
   fall := True;
   bubbles := True;
 
-// Монстр статичен пока идет warmup
+// РњРѕРЅСЃС‚СЂ СЃС‚Р°С‚РёС‡РµРЅ РїРѕРєР° РёРґРµС‚ warmup
   if (gLMSRespawn > LMS_RESPAWN_NONE) then exit;
 
-// Рыбы "летают" только в воде:
+// Р С‹Р±С‹ "Р»РµС‚Р°СЋС‚" С‚РѕР»СЊРєРѕ РІ РІРѕРґРµ:
   if FMonsterType = MONSTER_FISH then
     if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_WATER or PANEL_ACID1 or PANEL_ACID2) then
       if (FState <> MONSTATE_DIE) and (FState <> MONSTATE_DEAD) then
         fall := False;
 
-// Летающие монтсры:
+// Р›РµС‚Р°СЋС‰РёРµ РјРѕРЅС‚СЃСЂС‹:
   if ((FMonsterType = MONSTER_SOUL) or
       (FMonsterType = MONSTER_PAIN) or
       (FMonsterType = MONSTER_CACO)) and
@@ -3489,7 +3379,7 @@ begin
      (FState <> MONSTATE_DEAD) then
     fall := False;
 
-// Меняем скорость только по четным кадрам:
+// РњРµРЅСЏРµРј СЃРєРѕСЂРѕСЃС‚СЊ С‚РѕР»СЊРєРѕ РїРѕ С‡РµС‚РЅС‹Рј РєР°РґСЂР°Рј:
   if gTime mod (GAME_TICK*2) <> 0 then
   begin
     g_Obj_Move(@FObj, fall, True, True);
@@ -3502,11 +3392,11 @@ begin
   else
     FPainSound := False;
 
-// Двигаемся:
+// Р”РІРёРіР°РµРјСЃСЏ:
   st := g_Obj_Move(@FObj, fall, True, True);
   positionChanged(); // this updates spatial accelerators
 
-// Вылетел за карту - удаляем и запускаем триггеры:
+// Р’С‹Р»РµС‚РµР» Р·Р° РєР°СЂС‚Сѓ - СѓРґР°Р»СЏРµРј Рё Р·Р°РїСѓСЃРєР°РµРј С‚СЂРёРіРіРµСЂС‹:
   if WordBool(st and MOVE_FALLOUT) or (FObj.X < -1000) or
      (FObj.X > gMapInfo.Width+1000) or (FObj.Y < -1000) then
   begin
@@ -3516,7 +3406,7 @@ begin
 
   oldvelx := FObj.Vel.X;
 
-// Сопротивление воздуха для трупа:
+// РЎРѕРїСЂРѕС‚РёРІР»РµРЅРёРµ РІРѕР·РґСѓС…Р° РґР»СЏ С‚СЂСѓРїР°:
   if (FState = MONSTATE_DIE) or (FState = MONSTATE_DEAD) then
     FObj.Vel.X := z_dec(FObj.Vel.X, 1);
 
@@ -3531,11 +3421,11 @@ begin
     end;
   end;
 
-// Мертвый ничего не делает:
+// РњРµСЂС‚РІС‹Р№ РЅРёС‡РµРіРѕ РЅРµ РґРµР»Р°РµС‚:
   if (FState = MONSTATE_DEAD) then
     goto _end;
 
-// Возможно, создаем пузырьки в воде:
+// Р’РѕР·РјРѕР¶РЅРѕ, СЃРѕР·РґР°РµРј РїСѓР·С‹СЂСЊРєРё РІ РІРѕРґРµ:
   if WordBool(st and MOVE_INWATER) and (Random(32) = 0) then
   begin
     case FMonsterType of
@@ -3555,7 +3445,7 @@ begin
       else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
   end;
 
-// Если прошел первый кадр анимации взрыва бочки, то взрыв:
+// Р•СЃР»Рё РїСЂРѕС€РµР» РїРµСЂРІС‹Р№ РєР°РґСЂ Р°РЅРёРјР°С†РёРё РІР·СЂС‹РІР° Р±РѕС‡РєРё, С‚Рѕ РІР·СЂС‹РІ:
   if FMonsterType = MONSTER_BARREL then
   begin
     if (FState = MONSTATE_DIE) and (FAnim[FCurAnim, FDirection].CurrentFrame = 1) and
@@ -3565,7 +3455,7 @@ begin
                        60, FUID);
   end;
 
-// Lost_Soul вылетел из воды => ускоряется:
+// Lost_Soul РІС‹Р»РµС‚РµР» РёР· РІРѕРґС‹ => СѓСЃРєРѕСЂСЏРµС‚СЃСЏ:
   if FMonsterType = MONSTER_SOUL then
     if WordBool(st and MOVE_HITAIR) then
       g_Obj_SetSpeed(@FObj, 16);
@@ -3573,12 +3463,12 @@ begin
   if FAmmo < 0 then
     FAmmo := FAmmo + 1;
 
-// Если начали всплывать, то продолжаем:
+// Р•СЃР»Рё РЅР°С‡Р°Р»Рё РІСЃРїР»С‹РІР°С‚СЊ, С‚Рѕ РїСЂРѕРґРѕР»Р¶Р°РµРј:
   if FObj.Vel.Y < 0 then
     if WordBool(st and MOVE_INWATER) then
       FObj.Vel.Y := -4;
 
-// Таймер - ждем после потери цели:
+// РўР°Р№РјРµСЂ - Р¶РґРµРј РїРѕСЃР»Рµ РїРѕС‚РµСЂРё С†РµР»Рё:
   FTargetTime := FTargetTime + 1;
 
   if FShellTimer > -1 then
@@ -3600,7 +3490,7 @@ begin
       FShellTimer := -1;
     end else Dec(FShellTimer);
 
-// Пробуем увернуться от летящей пули:
+// РџСЂРѕР±СѓРµРј СѓРІРµСЂРЅСѓС‚СЊСЃСЏ РѕС‚ Р»РµС‚СЏС‰РµР№ РїСѓР»Рё:
   if fall then
     if (FState in [MONSTATE_GO, MONSTATE_RUN, MONSTATE_RUNOUT,
                    MONSTATE_ATTACK, MONSTATE_SHOOT]) then
@@ -3611,9 +3501,9 @@ begin
           FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
 
   case FState of
-    MONSTATE_PAIN: // Состояние - Боль
+    MONSTATE_PAIN: // РЎРѕСЃС‚РѕСЏРЅРёРµ - Р‘РѕР»СЊ
       begin
-      // Боль сильная => монстр кричит:
+      // Р‘РѕР»СЊ СЃРёР»СЊРЅР°СЏ => РјРѕРЅСЃС‚СЂ РєСЂРёС‡РёС‚:
         if FPain >= MONSTERTABLE[FMonsterType].Pain then
         begin
           FPain := MONSTERTABLE[FMonsterType].Pain;
@@ -3622,10 +3512,10 @@ begin
         if (not gSoundEffectsDF) and (FPain >= MONSTERTABLE[FMonsterType].MinPain) then
           PainSound();
 
-      // Снижаем боль со временем:
+      // РЎРЅРёР¶Р°РµРј Р±РѕР»СЊ СЃРѕ РІСЂРµРјРµРЅРµРј:
         FPain := FPain - 5;
 
-      // Боль уже не ошутимая => идем дальше:
+      // Р‘РѕР»СЊ СѓР¶Рµ РЅРµ РѕС€СѓС‚РёРјР°СЏ => РёРґРµРј РґР°Р»СЊС€Рµ:
         if FPain <= MONSTERTABLE[FMonsterType].MinPain then
         begin
           SetState(MONSTATE_GO);
@@ -3633,27 +3523,27 @@ begin
         end;
       end;
 
-    MONSTATE_SLEEP: // Состояние - Сон
+    MONSTATE_SLEEP: // РЎРѕСЃС‚РѕСЏРЅРёРµ - РЎРѕРЅ
       begin
-      // Спим:
+      // РЎРїРёРј:
         FSleep := FSleep + 1;
 
-      // Проспали достаточно:
+      // РџСЂРѕСЃРїР°Р»Рё РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ:
         if FSleep >= 18 then
           FSleep := 0
-        else // еще спим
+        else // РµС‰Рµ СЃРїРёРј
           goto _end;
       end;
 
-    MONSTATE_WAIT: // Состояние - Ожидание
+    MONSTATE_WAIT: // РЎРѕСЃС‚РѕСЏРЅРёРµ - РћР¶РёРґР°РЅРёРµ
       begin
-      // Ждем:
+      // Р–РґРµРј:
         FSleep := FSleep - 1;
       end;
 
-    MONSTATE_GO: // Состояние - Движение (с осмотром ситуации)
+    MONSTATE_GO: // РЎРѕСЃС‚РѕСЏРЅРёРµ - Р”РІРёР¶РµРЅРёРµ (СЃ РѕСЃРјРѕС‚СЂРѕРј СЃРёС‚СѓР°С†РёРё)
       begin
-      // Если наткнулись на БлокМон - убегаем от него:
+      // Р•СЃР»Рё РЅР°С‚РєРЅСѓР»РёСЃСЊ РЅР° Р‘Р»РѕРєРњРѕРЅ - СѓР±РµРіР°РµРј РѕС‚ РЅРµРіРѕ:
         if WordBool(st and MOVE_BLOCK) then
         begin
           Turn();
@@ -3663,7 +3553,7 @@ begin
           goto _end;
         end;
 
-      // Если монстр - колдун, то пробуем воскресить кого-нибудь:
+      // Р•СЃР»Рё РјРѕРЅСЃС‚СЂ - РєРѕР»РґСѓРЅ, С‚Рѕ РїСЂРѕР±СѓРµРј РІРѕСЃРєСЂРµСЃРёС‚СЊ РєРѕРіРѕ-РЅРёР±СѓРґСЊ:
         if (FMonsterType = MONSTER_VILE) then
           if isCorpse(@FObj, False) <> -1 then
           begin
@@ -3673,7 +3563,7 @@ begin
             goto _end;
           end;
 
-      // Если цель почти на одной вертикали - бегаем туда-сюда:
+      // Р•СЃР»Рё С†РµР»СЊ РїРѕС‡С‚Рё РЅР° РѕРґРЅРѕР№ РІРµСЂС‚РёРєР°Р»Рё - Р±РµРіР°РµРј С‚СѓРґР°-СЃСЋРґР°:
         if Abs(sx) < 40 then
           if FMonsterType <> MONSTER_FISH then
           begin
@@ -3683,16 +3573,16 @@ begin
             goto _end;
           end;
 
-      // Уперлись в стену:
+      // РЈРїРµСЂР»РёСЃСЊ РІ СЃС‚РµРЅСѓ:
         if WordBool(st and MOVE_HITWALL) then
         begin
           case FMonsterType of
             MONSTER_CACO, MONSTER_SOUL, MONSTER_PAIN, MONSTER_FISH: ;
-            else // Не летают:
+            else // РќРµ Р»РµС‚Р°СЋС‚:
               if (g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj)) and
                  (FObj.Accel.Y = 0) then
-              begin // Стоим на твердом полу или ступени
-              // Прыжок через стену:
+              begin // РЎС‚РѕРёРј РЅР° С‚РІРµСЂРґРѕРј РїРѕР»Сѓ РёР»Рё СЃС‚СѓРїРµРЅРё
+              // РџСЂС‹Р¶РѕРє С‡РµСЂРµР· СЃС‚РµРЅСѓ:
                 FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
                 SetState(MONSTATE_CLIMB);
               end;
@@ -3701,58 +3591,58 @@ begin
           goto _end;
         end;
 
-      // Монстры, не подверженные гравитации:
+      // РњРѕРЅСЃС‚СЂС‹, РЅРµ РїРѕРґРІРµСЂР¶РµРЅРЅС‹Рµ РіСЂР°РІРёС‚Р°С†РёРё:
         if (FMonsterType = MONSTER_CACO) or (FMonsterType = MONSTER_SOUL) or
            (FMonsterType = MONSTER_PAIN) or (FMonsterType = MONSTER_FISH) then
           begin
             if FMonsterType = MONSTER_FISH then
-              begin // Рыба
+              begin // Р С‹Р±Р°
                 if not WordBool(st and MOVE_INWATER) then
-                  begin // Рыба вне воды:
+                  begin // Р С‹Р±Р° РІРЅРµ РІРѕРґС‹:
                     if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
-                    begin // "Стоит" твердо
-                    // Рыба трепыхается на поверхности:
+                    begin // "РЎС‚РѕРёС‚" С‚РІРµСЂРґРѕ
+                    // Р С‹Р±Р° С‚СЂРµРїС‹С…Р°РµС‚СЃСЏ РЅР° РїРѕРІРµСЂС…РЅРѕСЃС‚Рё:
                       if FObj.Accel.Y = 0 then
                         FObj.Vel.Y := -6;
                       FObj.Accel.X := FObj.Accel.X - 8 + Random(17);
                     end;
 
-                  // Рыбе больно:
+                  // Р С‹Р±Рµ Р±РѕР»СЊРЅРѕ:
                     SetState(MONSTATE_PAIN);
                     FPain := FPain + 50;
                   end
-                else // Рыба в воде
+                else // Р С‹Р±Р° РІ РІРѕРґРµ
                   begin
-                  // Плывем в сторону цели по-вертикали:
+                  // РџР»С‹РІРµРј РІ СЃС‚РѕСЂРѕРЅСѓ С†РµР»Рё РїРѕ-РІРµСЂС‚РёРєР°Р»Рё:
                     if Abs(sy) > 8 then
                       FObj.Vel.Y := g_basic.Sign(sy)*4
                     else
                       FObj.Vel.Y := 0;
 
-                  // Рыба плывет вверх:
+                  // Р С‹Р±Р° РїР»С‹РІРµС‚ РІРІРµСЂС…:
                     if FObj.Vel.Y < 0 then
                       if not g_Obj_CollideLiquid(@FObj, 0, -16) then
                       begin
-                      // Всплыли до поверхности - стоп:
+                      // Р’СЃРїР»С‹Р»Рё РґРѕ РїРѕРІРµСЂС…РЅРѕСЃС‚Рё - СЃС‚РѕРї:
                         FObj.Vel.Y := 0;
-                      // Плаваем туда-сюда:
+                      // РџР»Р°РІР°РµРј С‚СѓРґР°-СЃСЋРґР°:
                         SetState(MONSTATE_RUN);
                         FSleep := 20;
                       end;
                    end;
               end
-            else // Летающие монстры
+            else // Р›РµС‚Р°СЋС‰РёРµ РјРѕРЅСЃС‚СЂС‹
               begin
-              // Летим в сторону цели по-вертикали:
+              // Р›РµС‚РёРј РІ СЃС‚РѕСЂРѕРЅСѓ С†РµР»Рё РїРѕ-РІРµСЂС‚РёРєР°Р»Рё:
                 if Abs(sy) > 8 then
                   FObj.Vel.Y := g_basic.Sign(sy)*4
                 else
                   FObj.Vel.Y := 0;
               end;
           end
-        else // "Наземные" монстры
+        else // "РќР°Р·РµРјРЅС‹Рµ" РјРѕРЅСЃС‚СЂС‹
           begin
-          // Возможно, пинаем куски:
+          // Р’РѕР·РјРѕР¶РЅРѕ, РїРёРЅР°РµРј РєСѓСЃРєРё:
             if (FObj.Vel.X <> 0) and (gGibs <> nil) then
             begin
               b := Abs(FObj.Vel.X);
@@ -3763,20 +3653,20 @@ begin
                    g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
                                  FObj.Rect.Width, 8, @gGibs[a].Obj) and (Random(3) = 0) then
                 begin
-                  // Пинаем куски
+                  // РџРёРЅР°РµРј РєСѓСЃРєРё
                   if FObj.Vel.X < 0 then
                   begin
-                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61)+120); // налево
+                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61)+120); // РЅР°Р»РµРІРѕ
                   end
                   else
                   begin
-                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61));    // направо
+                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61));    // РЅР°РїСЂР°РІРѕ
                   end;
                   positionChanged(); // this updates spatial accelerators
                 end;
               end;
             end;
-          // Боссы могут пинать трупы:
+          // Р‘РѕСЃСЃС‹ РјРѕРіСѓС‚ РїРёРЅР°С‚СЊ С‚СЂСѓРїС‹:
             if (FMonsterType in [MONSTER_CYBER, MONSTER_SPIDER, MONSTER_ROBO]) and
                (FObj.Vel.X <> 0) and (gCorpses <> nil) then
             begin
@@ -3788,18 +3678,18 @@ begin
                   co := gCorpses[a].Obj;
                   if g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
                                    FObj.Rect.Width, 8, @co) and (Random(3) = 0) then
-                    // Пинаем трупы
+                    // РџРёРЅР°РµРј С‚СЂСѓРїС‹
                     if FObj.Vel.X < 0 then
-                      gCorpses[a].Damage(b*2, FUID, -b, Random(7)) // налево
+                      gCorpses[a].Damage(b*2, FUID, -b, Random(7)) // РЅР°Р»РµРІРѕ
                     else
-                      gCorpses[a].Damage(b*2, FUID, b, Random(7)); // направо
+                      gCorpses[a].Damage(b*2, FUID, b, Random(7)); // РЅР°РїСЂР°РІРѕ
                 end;
             end;
           end;
 
         FSleep := FSleep + 1;
 
-      // Иногда рычим:
+      // РРЅРѕРіРґР° СЂС‹С‡РёРј:
         if FSleep >= 8 then
         begin
           FSleep := 0;
@@ -3807,23 +3697,23 @@ begin
             ActionSound();
         end;
 
-      // Бежим в выбранную сторону:
+      // Р‘РµР¶РёРј РІ РІС‹Р±СЂР°РЅРЅСѓСЋ СЃС‚РѕСЂРѕРЅСѓ:
         if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
 
-      // Если в воде, то замедляемся:
+      // Р•СЃР»Рё РІ РІРѕРґРµ, С‚Рѕ Р·Р°РјРµРґР»СЏРµРјСЃСЏ:
         if WordBool(st and MOVE_INWATER) then
           FObj.Vel.X := FObj.Vel.X div 2
-        else // Рыбам не нужно замедляться
+        else // Р С‹Р±Р°Рј РЅРµ РЅСѓР¶РЅРѕ Р·Р°РјРµРґР»СЏС‚СЊСЃСЏ
           if FMonsterType = MONSTER_FISH then
             FObj.Vel.X := 0;
       end;
 
-    MONSTATE_RUN: // Состояние - Бег
+    MONSTATE_RUN: // РЎРѕСЃС‚РѕСЏРЅРёРµ - Р‘РµРі
       begin
-      // Если наткнулись на БлокМон - убегаем от него:
+      // Р•СЃР»Рё РЅР°С‚РєРЅСѓР»РёСЃСЊ РЅР° Р‘Р»РѕРєРњРѕРЅ - СѓР±РµРіР°РµРј РѕС‚ РЅРµРіРѕ:
         if WordBool(st and MOVE_BLOCK) then
         begin
           SetState(MONSTATE_RUNOUT);
@@ -3834,74 +3724,74 @@ begin
 
         FSleep := FSleep - 1;
 
-      // Пробежали достаточно или врезались в стену => переходим на шаг:
+      // РџСЂРѕР±РµР¶Р°Р»Рё РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РёР»Рё РІСЂРµР·Р°Р»РёСЃСЊ РІ СЃС‚РµРЅСѓ => РїРµСЂРµС…РѕРґРёРј РЅР° С€Р°Рі:
         if (FSleep <= 0) or (WordBool(st and MOVE_HITWALL) and ((FObj.Vel.Y+FObj.Accel.Y) = 0)) then
         begin
           SetState(MONSTATE_GO);
           FSleep := 0;
 
-        // Иногда рычим:
+        // РРЅРѕРіРґР° СЂС‹С‡РёРј:
           if Random(8) = 0 then
             ActionSound();
         end;
 
-      // Бежим в выбранную сторону:
+      // Р‘РµР¶РёРј РІ РІС‹Р±СЂР°РЅРЅСѓСЋ СЃС‚РѕСЂРѕРЅСѓ:
         if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
 
-      // Если в воде, то замедляемся:
+      // Р•СЃР»Рё РІ РІРѕРґРµ, С‚Рѕ Р·Р°РјРµРґР»СЏРµРјСЃСЏ:
         if WordBool(st and MOVE_INWATER) then
           FObj.Vel.X := FObj.Vel.X div 2
-        else // Рыбам не нужно замедляться
+        else // Р С‹Р±Р°Рј РЅРµ РЅСѓР¶РЅРѕ Р·Р°РјРµРґР»СЏС‚СЊСЃСЏ
           if FMonsterType = MONSTER_FISH then
             FObj.Vel.X := 0;
       end;
 
-    MONSTATE_RUNOUT: // Состояние - Убегает от чего-то
+    MONSTATE_RUNOUT: // РЎРѕСЃС‚РѕСЏРЅРёРµ - РЈР±РµРіР°РµС‚ РѕС‚ С‡РµРіРѕ-С‚Рѕ
       begin
-      // Вышли из БлокМона:
+      // Р’С‹С€Р»Рё РёР· Р‘Р»РѕРєРњРѕРЅР°:
         if (not WordBool(st and MOVE_BLOCK)) and (FSleep > 0) then
           FSleep := 0;
 
         FSleep := FSleep - 1;
 
-      // Убажели достаточно далеко => переходим на шаг:
+      // РЈР±Р°Р¶РµР»Рё РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РґР°Р»РµРєРѕ => РїРµСЂРµС…РѕРґРёРј РЅР° С€Р°Рі:
         if FSleep <= -18 then
         begin
           SetState(MONSTATE_GO);
           FSleep := 0;
 
-        // Иногда рычим:
+        // РРЅРѕРіРґР° СЂС‹С‡РёРј:
           if Random(8) = 0 then
             ActionSound();
         end;
 
-      // Бежим в выбранную сторону:
+      // Р‘РµР¶РёРј РІ РІС‹Р±СЂР°РЅРЅСѓСЋ СЃС‚РѕСЂРѕРЅСѓ:
         if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
 
-      // Если в воде, то замедляемся:
+      // Р•СЃР»Рё РІ РІРѕРґРµ, С‚Рѕ Р·Р°РјРµРґР»СЏРµРјСЃСЏ:
         if WordBool(st and MOVE_INWATER) then
           FObj.Vel.X := FObj.Vel.X div 2
-        else // Рыбам не нужно замедляться
+        else // Р С‹Р±Р°Рј РЅРµ РЅСѓР¶РЅРѕ Р·Р°РјРµРґР»СЏС‚СЊСЃСЏ
           if FMonsterType = MONSTER_FISH then
             FObj.Vel.X := 0;
       end;
 
-    MONSTATE_CLIMB: // Состояние - Прыжок (чтобы обойти стену)
+    MONSTATE_CLIMB: // РЎРѕСЃС‚РѕСЏРЅРёРµ - РџСЂС‹Р¶РѕРє (С‡С‚РѕР±С‹ РѕР±РѕР№С‚Рё СЃС‚РµРЅСѓ)
       begin
-      // Достигли высшей точки прыжка или стена кончилась => переходим на шаг:
+      // Р”РѕСЃС‚РёРіР»Рё РІС‹СЃС€РµР№ С‚РѕС‡РєРё РїСЂС‹Р¶РєР° РёР»Рё СЃС‚РµРЅР° РєРѕРЅС‡РёР»Р°СЃСЊ => РїРµСЂРµС…РѕРґРёРј РЅР° С€Р°Рі:
         if ((FObj.Vel.Y+FObj.Accel.Y) >= 0) or
            (not WordBool(st and MOVE_HITWALL)) then
         begin
           SetState(MONSTATE_GO);
           FSleep := 0;
 
-        // Стена не кончилась => бежим от нее:
+        // РЎС‚РµРЅР° РЅРµ РєРѕРЅС‡РёР»Р°СЃСЊ => Р±РµР¶РёРј РѕС‚ РЅРµРµ:
           if WordBool(st and (MOVE_HITWALL or MOVE_BLOCK)) then
           begin
             SetState(MONSTATE_RUN);
@@ -3909,24 +3799,24 @@ begin
           end;
         end;
 
-      // Бежим в выбранную сторону:
+      // Р‘РµР¶РёРј РІ РІС‹Р±СЂР°РЅРЅСѓСЋ СЃС‚РѕСЂРѕРЅСѓ:
         if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
 
-      // Если в воде, то замедляемся:
+      // Р•СЃР»Рё РІ РІРѕРґРµ, С‚Рѕ Р·Р°РјРµРґР»СЏРµРјСЃСЏ:
         if WordBool(st and MOVE_INWATER) then
           FObj.Vel.X := FObj.Vel.X div 2
-        else // Рыбам не нужно замедляться
+        else // Р С‹Р±Р°Рј РЅРµ РЅСѓР¶РЅРѕ Р·Р°РјРµРґР»СЏС‚СЊСЃСЏ
           if FMonsterType = MONSTER_FISH then
             FObj.Vel.X := 0;
       end;
 
-    MONSTATE_ATTACK, // Состояние - Атака
-    MONSTATE_SHOOT:  // Состояние - Стрельба
+    MONSTATE_ATTACK, // РЎРѕСЃС‚РѕСЏРЅРёРµ - РђС‚Р°РєР°
+    MONSTATE_SHOOT:  // РЎРѕСЃС‚РѕСЏРЅРёРµ - РЎС‚СЂРµР»СЊР±Р°
       begin
-      // Lost_Soul врезался в стену при атаке => переходит на шаг:
+      // Lost_Soul РІСЂРµР·Р°Р»СЃСЏ РІ СЃС‚РµРЅСѓ РїСЂРё Р°С‚Р°РєРµ => РїРµСЂРµС…РѕРґРёС‚ РЅР° С€Р°Рі:
         if FMonsterType = MONSTER_SOUL then
         begin
           if WordBool(st and (MOVE_HITWALL or MOVE_HITCEIL or MOVE_HITLAND)) then
@@ -3935,14 +3825,14 @@ begin
           goto _end;
         end;
 
-      // Замедляемся при атаке:
+      // Р—Р°РјРµРґР»СЏРµРјСЃСЏ РїСЂРё Р°С‚Р°РєРµ:
         if FMonsterType <> MONSTER_FISH then
           FObj.Vel.X := z_dec(FObj.Vel.X, 1);
 
-      // Нужно стрелять, а монстр - колдун:
+      // РќСѓР¶РЅРѕ СЃС‚СЂРµР»СЏС‚СЊ, Р° РјРѕРЅСЃС‚СЂ - РєРѕР»РґСѓРЅ:
         if (FMonsterType = MONSTER_VILE) and (FState = MONSTATE_SHOOT) then
         begin
-        // Цель погибла => идем дальше:
+        // Р¦РµР»СЊ РїРѕРіРёР±Р»Р° => РёРґРµРј РґР°Р»СЊС€Рµ:
           if not GetPos(FTargetUID, @o) then
           begin
             SetState(MONSTATE_GO);
@@ -3950,7 +3840,7 @@ begin
             goto _end;
           end;
 
-        // Цель не видно => идем дальше:
+        // Р¦РµР»СЊ РЅРµ РІРёРґРЅРѕ => РёРґРµРј РґР°Р»СЊС€Рµ:
           if not g_Look(@FObj, @o, FDirection) then
           begin
             SetState(MONSTATE_GO);
@@ -3958,7 +3848,7 @@ begin
             goto _end;
           end;
 
-        // Цель в воде - не загорится => идем дальше:
+        // Р¦РµР»СЊ РІ РІРѕРґРµ - РЅРµ Р·Р°РіРѕСЂРёС‚СЃСЏ => РёРґРµРј РґР°Р»СЊС€Рµ:
           if g_Obj_CollideWater(@o, 0, 0) then
           begin
             SetState(MONSTATE_GO);
@@ -3971,27 +3861,27 @@ begin
 
 _end:
 
-// Состояние - Воскрешение:
+// РЎРѕСЃС‚РѕСЏРЅРёРµ - Р’РѕСЃРєСЂРµС€РµРЅРёРµ:
   if FState = MONSTATE_REVIVE then
     if FAnim[FCurAnim, FDirection].Played then
-    begin // Обратная анимация умирания закончилась - идем дальше:
+    begin // РћР±СЂР°С‚РЅР°СЏ Р°РЅРёРјР°С†РёСЏ СѓРјРёСЂР°РЅРёСЏ Р·Р°РєРѕРЅС‡РёР»Р°СЃСЊ - РёРґРµРј РґР°Р»СЊС€Рµ:
       FAnim[FCurAnim, FDirection].Revert(False);
       SetState(MONSTATE_GO);
     end;
 
-// Если есть анимация огня колдуна - пусть она идет:
+// Р•СЃР»Рё РµСЃС‚СЊ Р°РЅРёРјР°С†РёСЏ РѕРіРЅСЏ РєРѕР»РґСѓРЅР° - РїСѓСЃС‚СЊ РѕРЅР° РёРґРµС‚:
   if vilefire <> nil then
     vilefire.Update();
 
-// Состояние - Умирает и текущая анимация проиграна:
+// РЎРѕСЃС‚РѕСЏРЅРёРµ - РЈРјРёСЂР°РµС‚ Рё С‚РµРєСѓС‰Р°СЏ Р°РЅРёРјР°С†РёСЏ РїСЂРѕРёРіСЂР°РЅР°:
   if (FState = MONSTATE_DIE) and
      (FAnim[FCurAnim, FDirection] <> nil) and
      (FAnim[FCurAnim, FDirection].Played) then
     begin
-    // Умер:
+    // РЈРјРµСЂ:
       SetState(MONSTATE_DEAD);
 
-    // У этих монстров нет трупов:
+    // РЈ СЌС‚РёС… РјРѕРЅСЃС‚СЂРѕРІ РЅРµС‚ С‚СЂСѓРїРѕРІ:
       if (FMonsterType = MONSTER_PAIN) or
          (FMonsterType = MONSTER_SOUL) or
          (FMonsterType = MONSTER_BARREL) then
@@ -4000,28 +3890,28 @@ _end:
         FAnim[FCurAnim, FDirection].CurrentFrame := FAnim[FCurAnim, FDirection].TotalFrames - 1;
     end;
 
-// Совершение атаки и стрельбы:
+// РЎРѕРІРµСЂС€РµРЅРёРµ Р°С‚Р°РєРё Рё СЃС‚СЂРµР»СЊР±С‹:
   if (FState = MONSTATE_ATTACK) or (FState = MONSTATE_SHOOT) then
     if (FAnim[FCurAnim, FDirection] <> nil) then
-    // Анимация атаки есть - можно атаковать
+    // РђРЅРёРјР°С†РёСЏ Р°С‚Р°РєРё РµСЃС‚СЊ - РјРѕР¶РЅРѕ Р°С‚Р°РєРѕРІР°С‚СЊ
       if (FAnim[FCurAnim, FDirection].Played) then
-        begin // Анимация атаки закончилась => переходим на шаг
+        begin // РђРЅРёРјР°С†РёСЏ Р°С‚Р°РєРё Р·Р°РєРѕРЅС‡РёР»Р°СЃСЊ => РїРµСЂРµС…РѕРґРёРј РЅР° С€Р°Рі
           if FState = MONSTATE_ATTACK then
-            begin // Состояние - Атака
-            // Если монстр не Lost_Soul, то после атаки переходим на шаг:
+            begin // РЎРѕСЃС‚РѕСЏРЅРёРµ - РђС‚Р°РєР°
+            // Р•СЃР»Рё РјРѕРЅСЃС‚СЂ РЅРµ Lost_Soul, С‚Рѕ РїРѕСЃР»Рµ Р°С‚Р°РєРё РїРµСЂРµС…РѕРґРёРј РЅР° С€Р°Рі:
               if FMonsterType <> MONSTER_SOUL then
                 SetState(MONSTATE_GO);
             end
-          else // Состояние - Стрельба
+          else // РЎРѕСЃС‚РѕСЏРЅРёРµ - РЎС‚СЂРµР»СЊР±Р°
             begin
-            // Переходим на шаг, если не надо стрелять еще раз:
+            // РџРµСЂРµС…РѕРґРёРј РЅР° С€Р°Рі, РµСЃР»Рё РЅРµ РЅР°РґРѕ СЃС‚СЂРµР»СЏС‚СЊ РµС‰Рµ СЂР°Р·:
               if not FChainFire then
                 SetState(MONSTATE_GO)
               else
-                begin // Надо стрелять еще
+                begin // РќР°РґРѕ СЃС‚СЂРµР»СЏС‚СЊ РµС‰Рµ
                   FChainFire := False;
-                // Т.к. состояние не изменилось, и нужен
-                // новый цикл ожидания завершения анимации:
+                // Рў.Рє. СЃРѕСЃС‚РѕСЏРЅРёРµ РЅРµ РёР·РјРµРЅРёР»РѕСЃСЊ, Рё РЅСѓР¶РµРЅ
+                // РЅРѕРІС‹Р№ С†РёРєР» РѕР¶РёРґР°РЅРёСЏ Р·Р°РІРµСЂС€РµРЅРёСЏ Р°РЅРёРјР°С†РёРё:
                   FAnim[FCurAnim, FDirection].Reset();
                 end;
             end;
@@ -4029,24 +3919,24 @@ _end:
           FWaitAttackAnim := False;
         end
 
-      else // Анимация атаки еще идет (исключение - Lost_Soul):
+      else // РђРЅРёРјР°С†РёСЏ Р°С‚Р°РєРё РµС‰Рµ РёРґРµС‚ (РёСЃРєР»СЋС‡РµРЅРёРµ - Lost_Soul):
         if (FMonsterType = MONSTER_SOUL) or
            ( (not FWaitAttackAnim) and
              (FAnim[FCurAnim, FDirection].CurrentFrame =
               (FAnim[FCurAnim, FDirection].TotalFrames div 2))
            ) then
-        begin // Атаки еще не было и это середина анимации атаки
+        begin // РђС‚Р°РєРё РµС‰Рµ РЅРµ Р±С‹Р»Рѕ Рё СЌС‚Рѕ СЃРµСЂРµРґРёРЅР° Р°РЅРёРјР°С†РёРё Р°С‚Р°РєРё
           if FState = MONSTATE_ATTACK then
-            begin // Состояние - Атака
-            // Если это Lost_Soul, то сбрасываем анимацию атаки:
+            begin // РЎРѕСЃС‚РѕСЏРЅРёРµ - РђС‚Р°РєР°
+            // Р•СЃР»Рё СЌС‚Рѕ Lost_Soul, С‚Рѕ СЃР±СЂР°СЃС‹РІР°РµРј Р°РЅРёРјР°С†РёСЋ Р°С‚Р°РєРё:
               if FMonsterType = MONSTER_SOUL then
                 FAnim[FCurAnim, FDirection].Reset();
 
               case FMonsterType of
                 MONSTER_SOUL, MONSTER_IMP, MONSTER_DEMON:
-                // Грызем первого попавшегося:
+                // Р“СЂС‹Р·РµРј РїРµСЂРІРѕРіРѕ РїРѕРїР°РІС€РµРіРѕСЃСЏ:
                   if g_Weapon_Hit(@FObj, 15, FUID, HIT_SOME) <> 0 then
-                  // Lost_Soul укусил кого-то => переходит на шаг:
+                  // Lost_Soul СѓРєСѓСЃРёР» РєРѕРіРѕ-С‚Рѕ => РїРµСЂРµС…РѕРґРёС‚ РЅР° С€Р°Рі:
                     if FMonsterType = MONSTER_SOUL then
                       SetState(MONSTATE_GO);
 
@@ -4054,7 +3944,7 @@ _end:
                   g_Weapon_Hit(@FObj, 10, FUID, HIT_SOME);
 
                 MONSTER_SKEL, MONSTER_ROBO, MONSTER_CYBER:
-                // Робот, кибер или скелет сильно пинаются:
+                // Р РѕР±РѕС‚, РєРёР±РµСЂ РёР»Рё СЃРєРµР»РµС‚ СЃРёР»СЊРЅРѕ РїРёРЅР°СЋС‚СЃСЏ:
                   if FCurAnim = ANIM_ATTACK2 then
                   begin
                     o := FObj;
@@ -4063,45 +3953,45 @@ _end:
                   end;
 
                 MONSTER_VILE:
-                // Колдун пытается воскрешать:
+                // РљРѕР»РґСѓРЅ РїС‹С‚Р°РµС‚СЃСЏ РІРѕСЃРєСЂРµС€Р°С‚СЊ:
                   if FCurAnim = ANIM_ATTACK2 then
                   begin
                     sx := isCorpse(@FObj, True);
                     if sx <> -1 then
-                    begin // Нашли, кого воскресить
+                    begin // РќР°С€Р»Рё, РєРѕРіРѕ РІРѕСЃРєСЂРµСЃРёС‚СЊ
                       g_Sound_PlayExAt('SOUND_MONSTER_SLOP', FObj.X, FObj.Y);
-                    // Воскрешать - себе вредить:
+                    // Р’РѕСЃРєСЂРµС€Р°С‚СЊ - СЃРµР±Рµ РІСЂРµРґРёС‚СЊ:
                       {g_Weapon_HitUID(FUID, 5, 0, HIT_SOME);}
                     end;
                   end;
               end;
             end
 
-          else // Состояние - Стрельба
+          else // РЎРѕСЃС‚РѕСЏРЅРёРµ - РЎС‚СЂРµР»СЊР±Р°
             begin
-            // Скорострельные монстры:
+            // РЎРєРѕСЂРѕСЃС‚СЂРµР»СЊРЅС‹Рµ РјРѕРЅСЃС‚СЂС‹:
               if (FMonsterType = MONSTER_CGUN) or
                  (FMonsterType = MONSTER_SPIDER) or
                  (FMonsterType = MONSTER_BSP) or
                  (FMonsterType = MONSTER_MANCUB) or
                  (FMonsterType = MONSTER_ROBO) then
                 if not GetPos(FTargetUID, @o) then
-                // Цель мертва - ищем новую:
+                // Р¦РµР»СЊ РјРµСЂС‚РІР° - РёС‰РµРј РЅРѕРІСѓСЋ:
                   findNewPrey()
-                else // Цель жива - продолжаем стрелять:
+                else // Р¦РµР»СЊ Р¶РёРІР° - РїСЂРѕРґРѕР»Р¶Р°РµРј СЃС‚СЂРµР»СЏС‚СЊ:
                   if shoot(@o, False) then
                     FChainFire := True;
             end;
 
-        // Атака только 1 раз за анимацию атаки:
+        // РђС‚Р°РєР° С‚РѕР»СЊРєРѕ 1 СЂР°Р· Р·Р° Р°РЅРёРјР°С†РёСЋ Р°С‚Р°РєРё:
           FWaitAttackAnim := True;
         end;
 
-// Последний кадр текущей анимации:
+// РџРѕСЃР»РµРґРЅРёР№ РєР°РґСЂ С‚РµРєСѓС‰РµР№ Р°РЅРёРјР°С†РёРё:
   if FAnim[FCurAnim, FDirection].Counter = FAnim[FCurAnim, FDirection].Speed-1 then
     case FState of
       MONSTATE_GO, MONSTATE_RUN, MONSTATE_CLIMB, MONSTATE_RUNOUT:
-      // Звуки при передвижении:
+      // Р—РІСѓРєРё РїСЂРё РїРµСЂРµРґРІРёР¶РµРЅРёРё:
         case FMonsterType of
           MONSTER_CYBER:
             if (FAnim[FCurAnim, FDirection].CurrentFrame = 0) or
@@ -4122,12 +4012,12 @@ _end:
         end;
     end;
 
-// Костыль для потоков
+// РљРѕСЃС‚С‹Р»СЊ РґР»СЏ РїРѕС‚РѕРєРѕРІ
   if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_LIFTLEFT or PANEL_LIFTRIGHT) and
      not ((FState = MONSTATE_DEAD) or (FState = MONSTATE_DIE))  then
     FObj.Vel.X := oldvelx;
 
-// Если есть анимация, то пусть она идет:
+// Р•СЃР»Рё РµСЃС‚СЊ Р°РЅРёРјР°С†РёСЏ, С‚Рѕ РїСѓСЃС‚СЊ РѕРЅР° РёРґРµС‚:
   if FAnim[FCurAnim, FDirection] <> nil then
     FAnim[FCurAnim, FDirection].Update();
 end;
@@ -4178,10 +4068,10 @@ end;
 
 procedure TMonster.Turn();
 begin
-// Разворачиваемся:
+// Р Р°Р·РІРѕСЂР°С‡РёРІР°РµРјСЃСЏ:
   if FDirection = TDirection.D_LEFT then FDirection := TDirection.D_RIGHT else FDirection := TDirection.D_LEFT;
 
-// Бежим в выбранную сторону:
+// Р‘РµР¶РёРј РІ РІС‹Р±СЂР°РЅРЅСѓСЋ СЃС‚РѕСЂРѕРЅСѓ:
   if FDirection = TDirection.D_RIGHT then
     FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
   else
@@ -4204,7 +4094,7 @@ begin
   PlayerNear := -1;
   MonsterNear := -1;
 
-  // Поехавшие, каннибалы, и добрые игроков не трогают
+  // РџРѕРµС…Р°РІС€РёРµ, РєР°РЅРЅРёР±Р°Р»С‹, Рё РґРѕР±СЂС‹Рµ РёРіСЂРѕРєРѕРІ РЅРµ С‚СЂРѕРіР°СЋС‚
   if (gPlayers <> nil) and (FBehaviour <> BH_INSANE) and
   (FBehaviour <> BH_CANNIBAL) and (FBehaviour <> BH_GOOD) then
     for a := 0 to High(gPlayers) do
@@ -4225,20 +4115,20 @@ begin
         end;
       end;
 
-  // Киллеры и добрые не трогают монстров
+  // РљРёР»Р»РµСЂС‹ Рё РґРѕР±СЂС‹Рµ РЅРµ С‚СЂРѕРіР°СЋС‚ РјРѕРЅСЃС‚СЂРѕРІ
   if (gMonsters <> nil) and (FBehaviour <> BH_KILLER) and (FBehaviour <> BH_GOOD) then
     for a := 0 to High(gMonsters) do
       if (gMonsters[a] <> nil) and (gMonsters[a].alive) and
          (gMonsters[a].FUID <> FUID) then
       begin
         if (FBehaviour = BH_CANNIBAL) and (gMonsters[a].FMonsterType <> FMonsterType) then
-          Continue; // Каннибалы атакуют только сородичей
+          Continue; // РљР°РЅРЅРёР±Р°Р»С‹ Р°С‚Р°РєСѓСЋС‚ С‚РѕР»СЊРєРѕ СЃРѕСЂРѕРґРёС‡РµР№
         if (FBehaviour = BH_INSANE) and (gMonsters[a].FMonsterType <> MONSTER_BARREL)
         and (IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
-          Continue; // Поехавшие не трогают друзей, но им не нравятся бочки
+          Continue; // РџРѕРµС…Р°РІС€РёРµ РЅРµ С‚СЂРѕРіР°СЋС‚ РґСЂСѓР·РµР№, РЅРѕ РёРј РЅРµ РЅСЂР°РІСЏС‚СЃСЏ Р±РѕС‡РєРё
         if ((FBehaviour = BH_NORMAL) or (FBehaviour = BH_MANIAC))
         and (IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
-          Continue; // Оставшиеся типы, кроме каннибалов, не трогают своих друзей
+          Continue; // РћСЃС‚Р°РІС€РёРµСЃСЏ С‚РёРїС‹, РєСЂРѕРјРµ РєР°РЅРЅРёР±Р°Р»РѕРІ, РЅРµ С‚СЂРѕРіР°СЋС‚ СЃРІРѕРёС… РґСЂСѓР·РµР№
 
         if g_Look(@FObj, @gMonsters[a].Obj, FDirection) then
         begin
@@ -4257,25 +4147,25 @@ begin
   case FBehaviour of
     BH_NORMAL, BH_KILLER:
     begin
-      // Обычный и киллер сначала ищут игроков в поле зрения
+      // РћР±С‹С‡РЅС‹Р№ Рё РєРёР»Р»РµСЂ СЃРЅР°С‡Р°Р»Р° РёС‰СѓС‚ РёРіСЂРѕРєРѕРІ РІ РїРѕР»Рµ Р·СЂРµРЅРёСЏ
       if (FTargetUID = 0) and (Length(PlayersSee) > 0) then
       begin
         a := PlayersSee[Random(Length(PlayersSee))];
         FTargetUID := gPlayers[a].UID;
       end;
-      // Затем поблизости
+      // Р—Р°С‚РµРј РїРѕР±Р»РёР·РѕСЃС‚Рё
       if (FTargetUID = 0) and (PlayerNear > -1) then
       begin
         a := PlayerNear;
         FTargetUID := gPlayers[a].UID;
       end;
-      // Потом обычные ищут монстров в поле зрения
+      // РџРѕС‚РѕРј РѕР±С‹С‡РЅС‹Рµ РёС‰СѓС‚ РјРѕРЅСЃС‚СЂРѕРІ РІ РїРѕР»Рµ Р·СЂРµРЅРёСЏ
       if (FTargetUID = 0) and (Length(MonstersSee) > 0) then
       begin
         a := MonstersSee[Random(Length(MonstersSee))];
         FTargetUID := gMonsters[a].UID;
       end;
-      // Затем поблизости
+      // Р—Р°С‚РµРј РїРѕР±Р»РёР·РѕСЃС‚Рё
       if (FTargetUID = 0) and (MonsterNear > -1) then
       begin
         a := MonsterNear;
@@ -4284,7 +4174,7 @@ begin
     end;
     BH_MANIAC, BH_INSANE, BH_CANNIBAL:
     begin
-      // Маньяки, поехавшие и каннибалы сначала истребляют всё в поле зрения
+      // РњР°РЅСЊСЏРєРё, РїРѕРµС…Р°РІС€РёРµ Рё РєР°РЅРЅРёР±Р°Р»С‹ СЃРЅР°С‡Р°Р»Р° РёСЃС‚СЂРµР±Р»СЏСЋС‚ РІСЃС‘ РІ РїРѕР»Рµ Р·СЂРµРЅРёСЏ
       if (FTargetUID = 0) and (Length(PlayersSee) > 0) then
       begin
         a := PlayersSee[Random(Length(PlayersSee))];
@@ -4295,7 +4185,7 @@ begin
         a := MonstersSee[Random(Length(MonstersSee))];
         FTargetUID := gMonsters[a].UID;
       end;
-      // Затем ищут кого-то поблизости
+      // Р—Р°С‚РµРј РёС‰СѓС‚ РєРѕРіРѕ-С‚Рѕ РїРѕР±Р»РёР·РѕСЃС‚Рё
       if (FTargetUID = 0) and (PlayerNear > -1) then
       begin
         a := PlayerNear;
@@ -4309,17 +4199,17 @@ begin
     end;
   end;
 
-// Если и монстров нет - начинаем ждать цель:
+// Р•СЃР»Рё Рё РјРѕРЅСЃС‚СЂРѕРІ РЅРµС‚ - РЅР°С‡РёРЅР°РµРј Р¶РґР°С‚СЊ С†РµР»СЊ:
   if FTargetUID = 0 then
     begin
-      // Поехавший пытается самоубиться
+      // РџРѕРµС…Р°РІС€РёР№ РїС‹С‚Р°РµС‚СЃСЏ СЃР°РјРѕСѓР±РёС‚СЊСЃСЏ
       if FBehaviour = BH_INSANE then
         FTargetUID := FUID
       else
         FTargetTime := MAX_ATM;
     end
   else
-    begin // Цель нашли
+    begin // Р¦РµР»СЊ РЅР°С€Р»Рё
       FTargetTime := 0;
       Result := True;
     end;
@@ -4355,7 +4245,7 @@ begin
       end;
     MONSTER_BARON, MONSTER_KNIGHT,
     MONSTER_CACO, MONSTER_MANCUB:
-    // Эти монстры не пинают - они стреляют в упор:
+    // Р­С‚Рё РјРѕРЅСЃС‚СЂС‹ РЅРµ РїРёРЅР°СЋС‚ - РѕРЅРё СЃС‚СЂРµР»СЏСЋС‚ РІ СѓРїРѕСЂ:
       if not g_Game_IsClient then Result := shoot(o, True);
   end;
 end;
@@ -4366,19 +4256,19 @@ var
 begin
   Result := False;
 
-// Стрелять рано:
+// РЎС‚СЂРµР»СЏС‚СЊ СЂР°РЅРѕ:
   if FAmmo < 0 then
     Exit;
 
-// Ждать времени готовности к выстрелу:
+// Р–РґР°С‚СЊ РІСЂРµРјРµРЅРё РіРѕС‚РѕРІРЅРѕСЃС‚Рё Рє РІС‹СЃС‚СЂРµР»Сѓ:
   if not immediately then
     case FMonsterType of
       MONSTER_FISH, MONSTER_BARREL, MONSTER_DEMON:
-        Exit; // не стреляют
+        Exit; // РЅРµ СЃС‚СЂРµР»СЏСЋС‚
       MONSTER_CGUN, MONSTER_BSP, MONSTER_ROBO:
         begin
           FAmmo := FAmmo + 1;
-        // Время выстрела упущено:
+        // Р’СЂРµРјСЏ РІС‹СЃС‚СЂРµР»Р° СѓРїСѓС‰РµРЅРѕ:
           if FAmmo >= 50 then
             FAmmo := IfThen(FMonsterType = MONSTER_ROBO, -200, -50);
         end;
@@ -4386,24 +4276,24 @@ begin
       MONSTER_MANCUB:
         begin
           FAmmo := FAmmo + 1;
-        // Время выстрела упущено:
+        // Р’СЂРµРјСЏ РІС‹СЃС‚СЂРµР»Р° СѓРїСѓС‰РµРЅРѕ:
           if FAmmo >= 5 then
             FAmmo := -50;
         end;
       MONSTER_SPIDER:
         begin
           FAmmo := FAmmo + 1;
-        // Время выстрела упущено:
+        // Р’СЂРµРјСЏ РІС‹СЃС‚СЂРµР»Р° СѓРїСѓС‰РµРЅРѕ:
           if FAmmo >= 100 then
             FAmmo := -50;
         end;
       MONSTER_CYBER:
         begin
-        // Стреляет не всегда:
+        // РЎС‚СЂРµР»СЏРµС‚ РЅРµ РІСЃРµРіРґР°:
           if Random(2) = 0 then
             Exit;
           FAmmo := FAmmo + 1;
-        // Время выстрела упущено:
+        // Р’СЂРµРјСЏ РІС‹СЃС‚СЂРµР»Р° СѓРїСѓС‰РµРЅРѕ:
           if FAmmo >= 10 then
             FAmmo := -50;
         end;
@@ -4414,7 +4304,7 @@ begin
       else if Random(16) <> 0 then Exit;
     end;
 
-// Цели не видно:
+// Р¦РµР»Рё РЅРµ РІРёРґРЅРѕ:
   if not g_Look(@FObj, o, FDirection) then
     Exit;
 
@@ -4423,8 +4313,8 @@ begin
   tx := o^.X+o^.Rect.X+(o^.Rect.Width div 2)+((o^.Vel.X{+o^.Accel.X})*12);
   ty := o^.Y+o^.Rect.Y+(o^.Rect.Height div 2)+((o^.Vel.Y{+o^.Accel.Y})*12);
 
-// Разница по высоте больше разницы по горизонтали
-// (не может стрелять под таким большим углом):
+// Р Р°Р·РЅРёС†Р° РїРѕ РІС‹СЃРѕС‚Рµ Р±РѕР»СЊС€Рµ СЂР°Р·РЅРёС†С‹ РїРѕ РіРѕСЂРёР·РѕРЅС‚Р°Р»Рё
+// (РЅРµ РјРѕР¶РµС‚ СЃС‚СЂРµР»СЏС‚СЊ РїРѕРґ С‚Р°РєРёРј Р±РѕР»СЊС€РёРј СѓРіР»РѕРј):
   if Abs(tx-(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2))) <
      Abs(ty-(FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2))) then
     Exit;
@@ -4441,7 +4331,7 @@ begin
         {nn}
       end;
     MONSTER_VILE:
-      begin // Зажигаем огонь
+      begin // Р—Р°Р¶РёРіР°РµРј РѕРіРѕРЅСЊ
         tx := o^.X+o^.Rect.X+(o^.Rect.Width div 2);
         ty := o^.Y+o^.Rect.Y;
         SetState(MONSTATE_SHOOT);
@@ -4452,7 +4342,7 @@ begin
         g_Sound_PlayExAt('SOUND_FIRE', o^.X, o^.Y);
       end;
     MONSTER_SOUL:
-      begin // Летит в сторону цели:
+      begin // Р›РµС‚РёС‚ РІ СЃС‚РѕСЂРѕРЅСѓ С†РµР»Рё:
         SetState(MONSTATE_ATTACK);
         g_Sound_PlayExAt('SOUND_MONSTER_SOUL_ATTACK', FObj.X, FObj.Y);
 
@@ -4468,7 +4358,7 @@ begin
     MONSTER_MANCUB, MONSTER_ZOMBY, MONSTER_SERG, MONSTER_BSP, MONSTER_ROBO,
     MONSTER_CYBER, MONSTER_CGUN, MONSTER_SPIDER, MONSTER_PAIN, MONSTER_MAN:
       begin
-      // Манкубус рявкает перед первой атакой:
+      // РњР°РЅРєСѓР±СѓСЃ СЂСЏРІРєР°РµС‚ РїРµСЂРµРґ РїРµСЂРІРѕР№ Р°С‚Р°РєРѕР№:
         if FMonsterType = MONSTER_MANCUB then
           if FAmmo = 1 then
             g_Sound_PlayExAt('SOUND_MONSTER_MANCUB_ATTACK', FObj.X, FObj.Y);
@@ -4512,68 +4402,68 @@ var
 begin
   assert(st <> nil);
 
-  // Сигнатура монстра:
+  // РЎРёРіРЅР°С‚СѓСЂР° РјРѕРЅСЃС‚СЂР°:
   utils.writeSign(st, 'MONS');
   utils.writeInt(st, Byte(0)); // version
-  // UID монстра:
+  // UID РјРѕРЅСЃС‚СЂР°:
   utils.writeInt(st, Word(FUID));
-  // Направление
+  // РќР°РїСЂР°РІР»РµРЅРёРµ
   if FDirection = TDirection.D_LEFT then b := 1 else b := 2; // D_RIGHT
   utils.writeInt(st, Byte(b));
-  // Надо ли удалить его
+  // РќР°РґРѕ Р»Рё СѓРґР°Р»РёС‚СЊ РµРіРѕ
   utils.writeBool(st, FRemoved);
-  // Осталось здоровья
+  // РћСЃС‚Р°Р»РѕСЃСЊ Р·РґРѕСЂРѕРІСЊСЏ
   utils.writeInt(st, LongInt(FHealth));
-  // Состояние
+  // РЎРѕСЃС‚РѕСЏРЅРёРµ
   utils.writeInt(st, Byte(FState));
-  // Текущая анимация
+  // РўРµРєСѓС‰Р°СЏ Р°РЅРёРјР°С†РёСЏ
   utils.writeInt(st, Byte(FCurAnim));
-  // UID цели
+  // UID С†РµР»Рё
   utils.writeInt(st, Word(FTargetUID));
-  // Время после потери цели
+  // Р’СЂРµРјСЏ РїРѕСЃР»Рµ РїРѕС‚РµСЂРё С†РµР»Рё
   utils.writeInt(st, LongInt(FTargetTime));
-  // Поведение монстра
+  // РџРѕРІРµРґРµРЅРёРµ РјРѕРЅСЃС‚СЂР°
   utils.writeInt(st, Byte(FBehaviour));
-  // Готовность к выстрелу
+  // Р“РѕС‚РѕРІРЅРѕСЃС‚СЊ Рє РІС‹СЃС‚СЂРµР»Сѓ
   utils.writeInt(st, LongInt(FAmmo));
-  // Боль
+  // Р‘РѕР»СЊ
   utils.writeInt(st, LongInt(FPain));
-  // Время ожидания
+  // Р’СЂРµРјСЏ РѕР¶РёРґР°РЅРёСЏ
   utils.writeInt(st, LongInt(FSleep));
-  // Озвучивать ли боль
+  // РћР·РІСѓС‡РёРІР°С‚СЊ Р»Рё Р±РѕР»СЊ
   utils.writeBool(st, FPainSound);
-  // Была ли атака во время анимации атаки
+  // Р‘С‹Р»Р° Р»Рё Р°С‚Р°РєР° РІРѕ РІСЂРµРјСЏ Р°РЅРёРјР°С†РёРё Р°С‚Р°РєРё
   utils.writeBool(st, FWaitAttackAnim);
-  // Надо ли стрелять на следующем шаге
+  // РќР°РґРѕ Р»Рё СЃС‚СЂРµР»СЏС‚СЊ РЅР° СЃР»РµРґСѓСЋС‰РµРј С€Р°РіРµ
   utils.writeBool(st, FChainFire);
-  // Подлежит ли респавну
+  // РџРѕРґР»РµР¶РёС‚ Р»Рё СЂРµСЃРїР°РІРЅСѓ
   utils.writeBool(st, FNoRespawn);
-  // Координаты цели
+  // РљРѕРѕСЂРґРёРЅР°С‚С‹ С†РµР»Рё
   utils.writeInt(st, LongInt(tx));
   utils.writeInt(st, LongInt(ty));
-  // ID монстра при старте карты
+  // ID РјРѕРЅСЃС‚СЂР° РїСЂРё СЃС‚Р°СЂС‚Рµ РєР°СЂС‚С‹
   utils.writeInt(st, LongInt(FStartID));
-  // Индекс триггера, создавшего монстра
+  // РРЅРґРµРєСЃ С‚СЂРёРіРіРµСЂР°, СЃРѕР·РґР°РІС€РµРіРѕ РјРѕРЅСЃС‚СЂР°
   utils.writeInt(st, LongInt(FSpawnTrigger));
-  // Объект монстра
+  // РћР±СЉРµРєС‚ РјРѕРЅСЃС‚СЂР°
   Obj_SaveState(st, @FObj);
-  // Есть ли анимация огня колдуна
+  // Р•СЃС‚СЊ Р»Рё Р°РЅРёРјР°С†РёСЏ РѕРіРЅСЏ РєРѕР»РґСѓРЅР°
   anim := (vilefire <> nil);
   utils.writeBool(st, anim);
-  // Если есть - сохраняем:
+  // Р•СЃР»Рё РµСЃС‚СЊ - СЃРѕС…СЂР°РЅСЏРµРј:
   if anim then vilefire.SaveState(st);
-  // Анимации
+  // РђРЅРёРјР°С†РёРё
   for i := ANIM_SLEEP to ANIM_PAIN do
   begin
-    // Есть ли левая анимация
+    // Р•СЃС‚СЊ Р»Рё Р»РµРІР°СЏ Р°РЅРёРјР°С†РёСЏ
     anim := (FAnim[i, TDirection.D_LEFT] <> nil);
     utils.writeBool(st, anim);
-    // Если есть - сохраняем
+    // Р•СЃР»Рё РµСЃС‚СЊ - СЃРѕС…СЂР°РЅСЏРµРј
     if anim then FAnim[i, TDirection.D_LEFT].SaveState(st);
-    // Есть ли правая анимация
+    // Р•СЃС‚СЊ Р»Рё РїСЂР°РІР°СЏ Р°РЅРёРјР°С†РёСЏ
     anim := (FAnim[i, TDirection.D_RIGHT] <> nil);
     utils.writeBool(st, anim);
-    // Если есть - сохраняем
+    // Р•СЃР»Рё РµСЃС‚СЊ - СЃРѕС…СЂР°РЅСЏРµРј
     if anim then FAnim[i, TDirection.D_RIGHT].SaveState(st);
   end;
 end;
@@ -4587,78 +4477,78 @@ var
 begin
   assert(st <> nil);
 
-  // Сигнатура монстра:
+  // РЎРёРіРЅР°С‚СѓСЂР° РјРѕРЅСЃС‚СЂР°:
   if not utils.checkSign(st, 'MONS') then raise XStreamError.Create('invalid monster signature');
   if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid monster version');
   if (uidMap[FUID] <> nil) and (uidMap[FUID] <> self) then raise Exception.Create('internal error in monster loader (0)');
   uidMap[FUID] := nil;
-  // UID монстра:
+  // UID РјРѕРЅСЃС‚СЂР°:
   FUID := utils.readWord(st);
   //if (arrIdx = -1) then raise Exception.Create('internal error in monster loader');
   if (uidMap[FUID] <> nil) then raise Exception.Create('internal error in monster loader (1)');
   uidMap[FUID] := self;
-  // Направление
+  // РќР°РїСЂР°РІР»РµРЅРёРµ
   b := utils.readByte(st);
   if b = 1 then FDirection := TDirection.D_LEFT else FDirection := TDirection.D_RIGHT; // b = 2
-  // Надо ли удалить его
+  // РќР°РґРѕ Р»Рё СѓРґР°Р»РёС‚СЊ РµРіРѕ
   FRemoved := utils.readBool(st);
-  // Осталось здоровья
+  // РћСЃС‚Р°Р»РѕСЃСЊ Р·РґРѕСЂРѕРІСЊСЏ
   FHealth := utils.readLongInt(st);
-  // Состояние
+  // РЎРѕСЃС‚РѕСЏРЅРёРµ
   FState := utils.readByte(st);
-  // Текущая анимация
+  // РўРµРєСѓС‰Р°СЏ Р°РЅРёРјР°С†РёСЏ
   FCurAnim := utils.readByte(st);
-  // UID цели
+  // UID С†РµР»Рё
   FTargetUID := utils.readWord(st);
-  // Время после потери цели
+  // Р’СЂРµРјСЏ РїРѕСЃР»Рµ РїРѕС‚РµСЂРё С†РµР»Рё
   FTargetTime := utils.readLongInt(st);
-  // Поведение монстра
+  // РџРѕРІРµРґРµРЅРёРµ РјРѕРЅСЃС‚СЂР°
   FBehaviour := utils.readByte(st);
-  // Готовность к выстрелу
+  // Р“РѕС‚РѕРІРЅРѕСЃС‚СЊ Рє РІС‹СЃС‚СЂРµР»Сѓ
   FAmmo := utils.readLongInt(st);
-  // Боль
+  // Р‘РѕР»СЊ
   FPain := utils.readLongInt(st);
-  // Время ожидания
+  // Р’СЂРµРјСЏ РѕР¶РёРґР°РЅРёСЏ
   FSleep := utils.readLongInt(st);
-  // Озвучивать ли боль
+  // РћР·РІСѓС‡РёРІР°С‚СЊ Р»Рё Р±РѕР»СЊ
   FPainSound := utils.readBool(st);
-  // Была ли атака во время анимации атаки
+  // Р‘С‹Р»Р° Р»Рё Р°С‚Р°РєР° РІРѕ РІСЂРµРјСЏ Р°РЅРёРјР°С†РёРё Р°С‚Р°РєРё
   FWaitAttackAnim := utils.readBool(st);
-  // Надо ли стрелять на следующем шаге
+  // РќР°РґРѕ Р»Рё СЃС‚СЂРµР»СЏС‚СЊ РЅР° СЃР»РµРґСѓСЋС‰РµРј С€Р°РіРµ
   FChainFire := utils.readBool(st);
-  // Подлежит ли респавну
+  // РџРѕРґР»РµР¶РёС‚ Р»Рё СЂРµСЃРїР°РІРЅСѓ
   FNoRespawn := utils.readBool(st);
-  // Координаты цели
+  // РљРѕРѕСЂРґРёРЅР°С‚С‹ С†РµР»Рё
   tx := utils.readLongInt(st);
   ty := utils.readLongInt(st);
-  // ID монстра при старте карты
+  // ID РјРѕРЅСЃС‚СЂР° РїСЂРё СЃС‚Р°СЂС‚Рµ РєР°СЂС‚С‹
   FStartID := utils.readLongInt(st);
-  // Индекс триггера, создавшего монстра
+  // РРЅРґРµРєСЃ С‚СЂРёРіРіРµСЂР°, СЃРѕР·РґР°РІС€РµРіРѕ РјРѕРЅСЃС‚СЂР°
   FSpawnTrigger := utils.readLongInt(st);
-  // Объект монстра
+  // РћР±СЉРµРєС‚ РјРѕРЅСЃС‚СЂР°
   Obj_LoadState(@FObj, st);
-  // Есть ли анимация огня колдуна
+  // Р•СЃС‚СЊ Р»Рё Р°РЅРёРјР°С†РёСЏ РѕРіРЅСЏ РєРѕР»РґСѓРЅР°
   anim := utils.readBool(st);
-  // Если есть - загружаем:
+  // Р•СЃР»Рё РµСЃС‚СЊ - Р·Р°РіСЂСѓР¶Р°РµРј:
   if anim then
   begin
     Assert(vilefire <> nil, 'TMonster.LoadState: no vilefire anim');
     vilefire.LoadState(st);
   end;
-  // Анимации
+  // РђРЅРёРјР°С†РёРё
   for i := ANIM_SLEEP to ANIM_PAIN do
   begin
-    // Есть ли левая анимация
+    // Р•СЃС‚СЊ Р»Рё Р»РµРІР°СЏ Р°РЅРёРјР°С†РёСЏ
     anim := utils.readBool(st);
-    // Если есть - загружаем
+    // Р•СЃР»Рё РµСЃС‚СЊ - Р·Р°РіСЂСѓР¶Р°РµРј
     if anim then
     begin
       Assert(FAnim[i, TDirection.D_LEFT] <> nil, 'TMonster.LoadState: no '+IntToStr(i)+'_left anim');
       FAnim[i, TDirection.D_LEFT].LoadState(st);
     end;
-    // Есть ли правая анимация
+    // Р•СЃС‚СЊ Р»Рё РїСЂР°РІР°СЏ Р°РЅРёРјР°С†РёСЏ
      anim := utils.readBool(st);
-    // Если есть - загружаем
+    // Р•СЃР»Рё РµСЃС‚СЊ - Р·Р°РіСЂСѓР¶Р°РµРј
     if anim then
     begin
       Assert(FAnim[i, TDirection.D_RIGHT] <> nil, 'TMonster.LoadState: no '+IntToStr(i)+'_right anim');
@@ -4698,10 +4588,10 @@ end;
 procedure TMonster.CatchFire(Attacker: Word; Timeout: Integer = MON_BURN_TIME);
 begin
   if FMonsterType in [MONSTER_SOUL, MONSTER_VILE] then
-    exit; // арчи не горят, черепа уже горят
+    exit; // Р°СЂС‡Рё РЅРµ РіРѕСЂСЏС‚, С‡РµСЂРµРїР° СѓР¶Рµ РіРѕСЂСЏС‚
   if Timeout <= 0 then exit;
   if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_WATER or PANEL_ACID1 or PANEL_ACID2) then
-    exit; // не подгораем в воде на всякий случай
+    exit; // РЅРµ РїРѕРґРіРѕСЂР°РµРј РІ РІРѕРґРµ РЅР° РІСЃСЏРєРёР№ СЃР»СѓС‡Р°Р№
   if FFireTime <= 0 then
     g_Sound_PlayExAt('SOUND_IGNITE', FObj.X, FObj.Y);
   FFireTime := Timeout;
