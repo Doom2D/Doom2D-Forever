@@ -64,8 +64,6 @@ procedure g_GFX_OnceAnim (X, Y: Integer; Anim: TAnimation; AnimType: Byte = 0);
 procedure g_Mark (x, y, Width, Height: Integer; t: Byte; st: Boolean=true);
 
 procedure g_GFX_Update ();
-procedure g_GFX_Draw ();
-
 
 var
   gpart_dbg_enabled: Boolean = true;
@@ -75,6 +73,64 @@ var
 //WARNING: only for Holmes!
 function awmIsSetHolmes (x, y: Integer): Boolean; inline;
 
+  type (* private state *)
+    TPartType = (Blood, Spark, Bubbles, Water);
+    TPartState = (Free, Normal, Stuck, Sleeping);
+    TFloorType = (Wall, LiquidIn, LiquidOut);
+      // Wall: floorY is just before floor
+      // LiquidIn: floorY is liquid *start* (i.e. just in a liquid)
+      // LiquidOut: floorY is liquid *end* (i.e. just out of a liquid)
+    TEnvType = (EAir, ELiquid, EWall); // where particle is now
+
+    // note: this MUST be record, so we can keep it in
+    // dynamic array and has sequential memory access pattern
+    PParticle = ^TParticle;
+    TParticle = record
+      x, y: Integer;
+      oldX, oldY: Integer;
+      velX, velY: Single;
+      accelX, accelY: Single;
+      state: TPartState;
+      particleType: TPartType;
+      red, green, blue: Byte;
+      alpha: Byte;
+      time, liveTime, waitTime: Word;
+      stickDX: Integer; // STATE_STICK: -1,1: stuck to a wall; 0: stuck to ceiling
+      justSticked: Boolean; // not used
+      floorY: Integer; // actually, floor-1; `Unknown`: unknown
+      floorType: TFloorType;
+      env: TEnvType; // where particle is now
+      ceilingY: Integer; // actually, ceiling+1; `Unknown`: unknown
+      wallEndY: Integer; // if we stuck to a wall, this is where wall ends
+
+      //k8: sorry, i have to emulate virtual methods this way, 'cause i haet `Object`
+      procedure thinkerBloodAndWater ();
+      procedure thinkerSpark ();
+     procedure thinkerBubble ();
+
+      procedure findFloor (force: Boolean=false); // this updates `floorY` if forced or Unknown
+      procedure findCeiling (force: Boolean=false); // this updates `ceilingY` if forced or Unknown
+
+      procedure freeze (); inline; // remove velocities and acceleration
+      procedure sleep (); inline; // switch to sleep mode
+
+      function checkAirStreams (): Boolean; // `true`: affected by air stream
+
+      function alive (): Boolean; inline;
+      procedure die (); inline;
+      procedure think (); inline;
+    end;
+
+    TOnceAnim = record
+      AnimType:   Byte;
+      x, y:       Integer;
+      oldX, oldY: Integer;
+      Animation:  TAnimation;
+    end;
+
+  var (* private state *)
+    Particles: array of TParticle = nil;
+    OnceAnims: array of TOnceAnim = nil;
 
 implementation
 
@@ -88,66 +144,7 @@ uses
 const
   Unknown = Integer($7fffffff);
 
-
-type
-  TPartType = (Blood, Spark, Bubbles, Water);
-  TPartState = (Free, Normal, Stuck, Sleeping);
-  TFloorType = (Wall, LiquidIn, LiquidOut);
-    // Wall: floorY is just before floor
-    // LiquidIn: floorY is liquid *start* (i.e. just in a liquid)
-    // LiquidOut: floorY is liquid *end* (i.e. just out of a liquid)
-  TEnvType = (EAir, ELiquid, EWall); // where particle is now
-
-  // note: this MUST be record, so we can keep it in
-  // dynamic array and has sequential memory access pattern
-  PParticle = ^TParticle;
-  TParticle = record
-    x, y: Integer;
-    oldX, oldY: Integer;
-    velX, velY: Single;
-    accelX, accelY: Single;
-    state: TPartState;
-    particleType: TPartType;
-    red, green, blue: Byte;
-    alpha: Byte;
-    time, liveTime, waitTime: Word;
-    stickDX: Integer; // STATE_STICK: -1,1: stuck to a wall; 0: stuck to ceiling
-    justSticked: Boolean; // not used
-    floorY: Integer; // actually, floor-1; `Unknown`: unknown
-    floorType: TFloorType;
-    env: TEnvType; // where particle is now
-    ceilingY: Integer; // actually, ceiling+1; `Unknown`: unknown
-    wallEndY: Integer; // if we stuck to a wall, this is where wall ends
-
-    //k8: sorry, i have to emulate virtual methods this way, 'cause i haet `Object`
-    procedure thinkerBloodAndWater ();
-    procedure thinkerSpark ();
-    procedure thinkerBubble ();
-
-    procedure findFloor (force: Boolean=false); // this updates `floorY` if forced or Unknown
-    procedure findCeiling (force: Boolean=false); // this updates `ceilingY` if forced or Unknown
-
-    procedure freeze (); inline; // remove velocities and acceleration
-    procedure sleep (); inline; // switch to sleep mode
-
-    function checkAirStreams (): Boolean; // `true`: affected by air stream
-
-    function alive (): Boolean; inline;
-    procedure die (); inline;
-    procedure think (); inline;
-  end;
-
-  TOnceAnim = record
-    AnimType:   Byte;
-    x, y:       Integer;
-    oldX, oldY: Integer;
-    Animation:  TAnimation;
-  end;
-
-
 var
-  Particles: array of TParticle = nil;
-  OnceAnims: array of TOnceAnim = nil;
   MaxParticles: Integer = 0;
   CurrentParticle: Integer = 0;
   // awakeMap has one bit for each map grid cell; on g_Mark,
@@ -1687,65 +1684,5 @@ begin
       end;
   end;
 end;
-
-
-procedure g_GFX_Draw ();
-  var
-    a, len, fx, fy: Integer;
-begin
-  if not gpart_dbg_enabled then exit;
-
-  if (Particles <> nil) then
-  begin
-    glDisable(GL_TEXTURE_2D);
-         if (g_dbg_scale < 0.6) then glPointSize(1)
-    else if (g_dbg_scale > 1.3) then glPointSize(g_dbg_scale+1)
-    else glPointSize(2);
-    glDisable(GL_POINT_SMOOTH);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    glBegin(GL_POINTS);
-
-    len := High(Particles);
-    for a := 0 to len do
-    begin
-      with Particles[a] do
-      begin
-        if not alive then continue;
-        if (x >= sX) and (y >= sY) and (x <= sX+sWidth) and (sY <= sY+sHeight) then
-        begin
-          fx := nlerp(oldx, x, gLerpFactor);
-          fy := nlerp(oldy, y, gLerpFactor);
-          glColor4ub(red, green, blue, alpha);
-          glVertex2f(fx+0.37, fy+0.37);
-        end;
-      end;
-    end;
-
-    glEnd();
-
-    glDisable(GL_BLEND);
-  end;
-
-  if (OnceAnims <> nil) then
-  begin
-    len := High(OnceAnims);
-    for a := 0 to len do
-    begin
-      if (OnceAnims[a].Animation <> nil) then
-      begin
-        with OnceAnims[a] do
-        begin
-          fx := nlerp(oldx, x, gLerpFactor);
-          fy := nlerp(oldy, y, gLerpFactor);
-          Animation.Draw(x, y, TMirrorType.None);
-        end;
-      end;
-    end;
-  end;
-end;
-
 
 end.
