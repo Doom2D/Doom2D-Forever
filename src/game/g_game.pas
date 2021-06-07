@@ -5516,9 +5516,9 @@ begin
     ParseGameFlag(GAME_OPTION_TEAMDAMAGE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);
   end
   else if cmd = 'g_friendly_absorb_damage' then
- begin
-   ParseGameFlag(GAME_OPTION_TEAMABSORBDAMAGE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);
- end
+  begin
+    ParseGameFlag(GAME_OPTION_TEAMABSORBDAMAGE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);
+  end
   else if cmd = 'g_friendly_hit_trace' then
   begin
     ParseGameFlag(GAME_OPTION_TEAMHITTRACE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);

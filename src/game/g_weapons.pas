@@ -1416,11 +1416,11 @@ var
     begin
       if ((gGameSettings.Options and (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMDAMAGE)) = 0) and
          (spawnerPlr.Team <> TEAM_NONE) and (spawnerPlr.Team = gPlayers[idx].Team) then
-          begin
-            if (spawnerPlr <> gPlayers[idx]) and ((gGameSettings.Options and GAME_OPTION_TEAMABSORBDAMAGE) = 0) then
-              dmg := Max(1, dmg div 2);
-            exit;
-        end;
+      begin
+        if (spawnerPlr <> gPlayers[idx]) and ((gGameSettings.Options and GAME_OPTION_TEAMABSORBDAMAGE) = 0) then
+          dmg := Max(1, dmg div 2);
+        exit;
+      end;
     end;
     result := HitPlayer(gPlayers[idx], dmg, (xi*v)*10, (yi*v)*10-3, SpawnerUID, HIT_SOME);
     if result and (v <> 0) then gPlayers[idx].Push((xi*v), (yi*v));
