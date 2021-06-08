@@ -74,7 +74,6 @@ function g_Weapon_Explode(X, Y: Integer; rad: Integer; SpawnerUID: Word): Boolea
 procedure g_Weapon_BFG9000(X, Y: Integer; SpawnerUID: Word);
 procedure g_Weapon_PreUpdate();
 procedure g_Weapon_Update();
-procedure g_Weapon_Draw();
 function g_Weapon_Danger(UID: Word; X, Y: Integer; Width, Height: Word; Time: Byte): Boolean;
 procedure g_Weapon_DestroyShot(I: Integer; X, Y: Integer; Loud: Boolean = True);
 
@@ -2593,65 +2592,6 @@ begin
           MH_SEND_UpdateShot(i);
     end;
   end;
-end;
-
-procedure g_Weapon_Draw();
-var
-  i, fX, fY: Integer;
-  a: SmallInt;
-  p: TDFPoint;
-begin
-  if Shots = nil then
-    Exit;
-
-  for i := 0 to High(Shots) do
-    if Shots[i].ShotType <> 0 then
-      with Shots[i] do
-      begin
-        if (Shots[i].ShotType = WEAPON_ROCKETLAUNCHER) or
-           (Shots[i].ShotType = WEAPON_BARON_FIRE) or
-           (Shots[i].ShotType = WEAPON_MANCUB_FIRE) or
-           (Shots[i].ShotType = WEAPON_SKEL_FIRE) then
-          a := -GetAngle2(Obj.Vel.X, Obj.Vel.Y)
-        else
-          a := 0;
-
-        Obj.lerp(gLerpFactor, fX, fY);
-        p.X := Obj.Rect.Width div 2;
-        p.Y := Obj.Rect.Height div 2;
-
-        if Shots[i].ShotType = WEAPON_BFG then
-        begin
-          DEC(fX, 6);
-          DEC(fY, 7);
-        end;
-
-        if Animation <> nil then
-          begin
-            if (Shots[i].ShotType = WEAPON_BARON_FIRE) or
-               (Shots[i].ShotType = WEAPON_MANCUB_FIRE) or
-               (Shots[i].ShotType = WEAPON_SKEL_FIRE) then
-              Animation.DrawEx(fX, fY, TMirrorType.None, p, a)
-            else
-              Animation.Draw(fX, fY, TMirrorType.None);
-          end
-        else if TextureID <> 0 then
-          begin
-            if (Shots[i].ShotType = WEAPON_ROCKETLAUNCHER) then
-              e_DrawAdv(TextureID, fX, fY, 0, True, False, a, @p, TMirrorType.None)
-            else if (Shots[i].ShotType <> WEAPON_FLAMETHROWER) then
-              e_Draw(TextureID, fX, fY, 0, True, False);
-          end;
-
-          if g_debug_Frames then
-          begin
-            e_DrawQuad(Obj.X+Obj.Rect.X,
-                       Obj.Y+Obj.Rect.Y,
-                       Obj.X+Obj.Rect.X+Obj.Rect.Width-1,
-                       Obj.Y+Obj.Rect.Y+Obj.Rect.Height-1,
-                       0, 255, 0);
-          end;
-      end;
 end;
 
 function g_Weapon_Danger(UID: Word; X, Y: Integer; Width, Height: Word; Time: Byte): Boolean;

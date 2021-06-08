@@ -160,6 +160,7 @@ uses
   r_map in 'opengl/r_map.pas',
   r_monsters in 'opengl/r_monsters.pas',
   r_panel in 'opengl/r_panel.pas',
+  r_weapons in 'opengl/r_weapons.pas',
 
 {$IFDEF USE_FMOD}
   fmod in '../lib/FMOD/fmod.pas',
