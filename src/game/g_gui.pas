@@ -552,7 +552,7 @@ implementation
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
   g_textures, g_sound, SysUtils, e_res,
-  g_game, Math, StrUtils, g_player, g_options, g_console,
+  g_game, Math, StrUtils, g_player, g_options, g_console, r_playermodel,
   g_map, g_weapons, xdynrec, wadreader;
 
 
@@ -2656,7 +2656,8 @@ begin
 
   DrawBox(FX, FY, 4, 4);
 
-  if FModel <> nil then FModel.Draw(FX+4, FY+4);
+  if FModel <> nil then
+    r_PlayerModel_Draw(FModel, FX+4, FY+4);
 end;
 
 procedure TGUIModelView.NextAnim();

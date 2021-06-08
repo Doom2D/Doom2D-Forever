@@ -42,7 +42,8 @@ implementation
   uses
     SysUtils, Classes, Math,
     MAPDEF, utils,
-    g_basic, g_game, g_phys, g_map, g_textures, g_menu, g_language, g_weapons, g_items, g_net, g_options
+    g_basic, g_game, g_phys, g_map, g_textures, g_menu, g_language, g_weapons, g_items, g_net, g_options,
+    r_playermodel
   ;
 
   procedure r_Player_DrawAll;
@@ -357,15 +358,15 @@ begin
         else
           dr := True;
         if dr then
-          p.Model.Draw(fX, fY + fSlope, 200)
+          r_PlayerModel_Draw(p.Model, fX, fY + fSlope, 200)
         else
-          p.Model.Draw(fX, fY + fSlope);
+          r_PlayerModel_Draw(p.Model, fX, fY + fSlope);
       end
       else
-        p.Model.Draw(fX, fY + fSlope, 254);
+        r_PlayerModel_Draw(p.Model, fX, fY + fSlope, 254);
     end
     else
-      p.Model.Draw(fX, fY + fSlope);
+      r_PlayerModel_Draw(p.Model, fX, fY + fSlope);
   end;
 
   if g_debug_Frames then

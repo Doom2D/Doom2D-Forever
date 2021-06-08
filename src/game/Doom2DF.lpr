@@ -162,6 +162,7 @@ uses
   r_netmaster in 'opengl/r_netmaster.pas',
   r_panel in 'opengl/r_panel.pas',
   r_player in 'opengl/r_player.pas',
+  r_playermodel in 'opengl/r_playermodel.pas',
   r_weapons in 'opengl/r_weapons.pas',
 
 {$IFDEF USE_FMOD}

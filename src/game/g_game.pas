@@ -452,7 +452,7 @@ uses
   g_triggers, g_monsters, e_sound, CONFIG,
   g_language, g_net, g_main, g_phys,
   ENet, e_msg, g_netmsg, g_netmaster,
-  sfs, wadreader, g_system;
+  sfs, wadreader, g_system, r_playermodel;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1149,7 +1149,7 @@ begin
     g_Console_Init();
 
     g_Game_SetLoadingText(_lc[I_LOAD_MODELS], 0, False);
-    g_PlayerModel_LoadData();
+    r_PlayerModel_Initialize;
 
     // load models from all possible wad types, in all known directories
     // this does a loosy job (linear search, ooph!), but meh
@@ -2329,6 +2329,7 @@ begin
   g_Game_StopAllSounds(True);
   gMusic.Free();
   g_Game_FreeData();
+  r_PlayerModel_Finalize;
   g_PlayerModel_FreeData();
   g_Texture_DeleteAll();
   g_Frames_DeleteAll();
