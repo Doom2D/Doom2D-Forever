@@ -32,7 +32,7 @@ implementation
     g_textures, e_input, e_sound,
     g_language, g_console, g_menu, g_triggers, g_player, g_options, g_monsters, g_map, g_panel, g_window,
     g_items, g_weapons, g_gfx, g_phys, g_net, g_gui, g_netmaster,
-    g_game, r_console, r_gfx, r_items, r_map, r_panel, r_monsters, r_weapons, r_netmaster
+    g_game, r_console, r_gfx, r_items, r_map, r_panel, r_monsters, r_weapons, r_netmaster, r_player
   ;
 
   var
@@ -1240,9 +1240,9 @@ begin
   drawPanelType('*step', PANEL_STEP, g_rlayer_step);
   drawOther('items', @r_Items_Draw);
   drawOther('weapons', @r_Weapon_Draw);
-  drawOther('shells', @g_Player_DrawShells);
-  drawOther('drawall', @g_Player_DrawAll);
-  drawOther('corpses', @g_Player_DrawCorpses);
+  drawOther('shells', @r_Player_DrawShells);
+  drawOther('drawall', @r_Player_DrawAll);
+  drawOther('corpses', @r_Player_DrawCorpses);
   drawPanelType('*wall', PANEL_WALL, g_rlayer_wall);
   drawOther('monsters', @r_Monsters_Draw);
   drawOther('itemdrop', @r_Items_DrawDrop);
@@ -1266,7 +1266,7 @@ begin
   if g_debug_HealthBar then
   begin
     r_Monsters_DrawHealth();
-    g_Player_DrawHealth();
+    r_Player_DrawHealth();
   end;
 
   if (profileFrameDraw <> nil) then profileFrameDraw.mainEnd(); // map rendering
@@ -1436,16 +1436,18 @@ begin
   if (gGameSettings.GameMode <> GM_SINGLE) and (gPlayerIndicator > 0) then
     case gPlayerIndicator of
       1:
-        p.DrawIndicator(_RGB(255, 255, 255));
+        r_Player_DrawIndicator(p, _RGB(255, 255, 255));
 
       2:
         for i := 0 to High(gPlayers) do
           if gPlayers[i] <> nil then
-            if gPlayers[i] = p then p.DrawIndicator(_RGB(255, 255, 255))
+            if gPlayers[i] = p then
+              r_Player_DrawIndicator(p, _RGB(255, 255, 255))
             else if (gPlayers[i].Team = p.Team) and (gPlayers[i].Team <> TEAM_NONE) then
               if gPlayerIndicatorStyle = 1 then
-                gPlayers[i].DrawIndicator(_RGB(192, 192, 192))
-              else gPlayers[i].DrawIndicator(gPlayers[i].GetColor);
+                r_Player_DrawIndicator(gPlayers[i], _RGB(192, 192, 192))
+              else
+                r_Player_DrawIndicator(gPlayers[i], gPlayers[i].GetColor);
     end;
 
   {
@@ -1468,13 +1470,13 @@ begin
 
   glPopMatrix();
 
-  p.DrawPain();
-  p.DrawPickup();
-  p.DrawRulez();
+  r_Player_DrawPain(p);
+  r_Player_DrawPickup(p);
+  r_Player_DrawRulez(p);
   if gShowMap then DrawMinimap(p, _TRect(0, 0, 128, 128));
   if g_Debug_Player then
-    g_Player_DrawDebug(p);
-  p.DrawGUI();
+    r_Player_DrawDebug(p);
+  r_Player_DrawGUI(p);
 end;
 
 procedure drawProfilers ();
