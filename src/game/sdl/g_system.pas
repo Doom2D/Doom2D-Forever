@@ -48,7 +48,7 @@ implementation
     {$ENDIF}
     SysUtils, SDL, Math,
     {$INCLUDE ../nogl/noGLuses.inc}
-    e_log, e_graphics, e_input, e_sound,
+    e_log, r_graphics, e_input, e_sound,
     g_options, g_window, g_console, g_game, g_menu, g_gui, g_main, g_basic;
 
   const

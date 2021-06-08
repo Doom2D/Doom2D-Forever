@@ -20,7 +20,7 @@ interface
 uses
   SysUtils, Classes,
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-  e_graphics, MAPDEF, ImagingTypes, Imaging, ImagingUtility;
+  r_graphics, MAPDEF, ImagingTypes, Imaging, ImagingUtility;
 
 type
   TLevelTexture = record

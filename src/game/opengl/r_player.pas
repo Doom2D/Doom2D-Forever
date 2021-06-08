@@ -17,7 +17,7 @@ unit r_player;
 
 interface
 
-  uses g_player, e_graphics; // TPlayer, TRGB
+  uses g_player, r_graphics; // TPlayer, TRGB
 
   procedure r_Player_DrawAll;
   procedure r_Player_DrawDebug (p: TPlayer);

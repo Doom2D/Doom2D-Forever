@@ -18,7 +18,7 @@ unit g_phys;
 interface
 
 uses
-  e_graphics;
+  r_graphics;
 
 type
   PObj = ^TObj;

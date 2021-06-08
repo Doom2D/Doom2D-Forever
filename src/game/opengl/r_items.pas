@@ -12,7 +12,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
-{$INCLUDE ../shared/a_modes.inc}
+{$INCLUDE ../../shared/a_modes.inc}
 unit r_items;
 
 interface
@@ -24,7 +24,7 @@ implementation
 
   uses
     SysUtils, Classes, Math,
-    e_graphics,
+    r_graphics,
     MAPDEF,
     g_basic, g_game,
     g_items

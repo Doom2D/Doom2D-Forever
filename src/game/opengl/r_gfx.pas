@@ -25,7 +25,7 @@ implementation
     {$INCLUDE ../nogl/noGLuses.inc}
     SysUtils, Classes, Math,
     utils,
-    e_graphics,
+    r_graphics,
     g_game,
     g_gfx
   ;

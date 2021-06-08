@@ -23,7 +23,7 @@ uses
   SysUtils, Classes,
   mempool,
   MAPDEF,
-  g_basic, e_graphics, g_phys, g_textures, g_grid,
+  g_basic, r_graphics, g_phys, g_textures, g_grid,
   g_saveload, g_panel, xprofiler;
 
 const

@@ -67,7 +67,7 @@ uses
   SDL2,
 {$ENDIF}
   wadreader, e_log, g_window,
-  e_graphics, e_input, g_game, g_console, g_gui,
+  r_graphics, e_input, g_game, g_console, g_gui,
   e_sound, g_options, g_sound, g_player, g_basic,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map, e_res,
   g_menu, g_language, g_net, g_touch, g_system, g_res_downloader,

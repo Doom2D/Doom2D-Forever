@@ -28,7 +28,7 @@ implementation
   uses
     SysUtils, Classes, Math,
     MAPDEF,
-    e_graphics,
+    r_graphics,
     g_basic, g_map, g_weapons, g_textures, g_main
   ;
 

@@ -41,7 +41,7 @@ implementation
 
   uses
     SysUtils, SDL2, Math, ctypes,
-    e_log, e_graphics, e_input, e_sound,
+    e_log, r_graphics, e_input, e_sound,
     {$INCLUDE ../nogl/noGLuses.inc}
     {$IFDEF ENABLE_HOLMES}
       g_holmes, sdlcarcass, fui_ctls,

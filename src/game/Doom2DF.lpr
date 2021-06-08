@@ -99,7 +99,6 @@ uses
 {$ENDIF}
 
   ENet in '../lib/enet/enet.pp',
-  e_graphics in '../engine/e_graphics.pas',
   e_input in '../engine/e_input.pas',
   e_log in '../engine/e_log.pas',
   e_sound in '../engine/e_sound.pas',
@@ -156,6 +155,7 @@ uses
   r_console in 'opengl/r_console.pas',
   r_game in 'opengl/r_game.pas',
   r_gfx in 'opengl/r_gfx.pas',
+  r_graphics in 'opengl/r_graphics.pas',
   r_items in 'opengl/r_items.pas',
   r_map in 'opengl/r_map.pas',
   r_monsters in 'opengl/r_monsters.pas',

@@ -29,7 +29,7 @@ implementation
     g_holmes,
 {$ENDIF}
     SysUtils, Classes, Math,
-    e_graphics,
+    r_graphics,
     g_system, g_touch,
     MAPDEF, xprofiler, utils, wadreader,
     g_textures, e_input, e_sound,
@@ -823,7 +823,7 @@ begin
   else e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
 end;
 
-procedure DrawMinimap(p: TPlayer; RenderRect: e_graphics.TRect);
+procedure DrawMinimap(p: TPlayer; RenderRect: TRect);
 var
   a, aX, aY, aX2, aY2, Scale, ScaleSz: Integer;
 
