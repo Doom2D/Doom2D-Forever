@@ -25,6 +25,9 @@ implementation
 
   uses
     {$INCLUDE ../nogl/noGLuses.inc}
+{$IFDEF ENABLE_HOLMES}
+    g_holmes,
+{$ENDIF}
     SysUtils, Classes, Math,
     e_graphics,
     g_system, g_touch,

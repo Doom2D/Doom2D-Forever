@@ -43,6 +43,9 @@ implementation
     SysUtils, Classes, Math,
     MAPDEF, utils,
     g_basic, g_game, g_phys, g_map, g_textures, g_menu, g_language, g_weapons, g_items, g_net, g_options,
+{$IFDEF ENABLE_HOLMES}
+    g_holmes,
+{$ENDIF}
     r_playermodel
   ;
 
@@ -396,7 +399,7 @@ procedure r_Player_DrawAim (p: TPlayer);
   begin
 
 {$IFDEF ENABLE_HOLMES}
-    if isValidViewPort and (self = gPlayer1) then
+    if p.isValidViewPort() and (p = gPlayer1) then
     begin
       g_Holmes_plrLaser(ax0, ay0, ax1, ay1);
     end;
