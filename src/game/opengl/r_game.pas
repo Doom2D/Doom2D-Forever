@@ -32,7 +32,7 @@ implementation
     g_textures, e_input, e_sound,
     g_language, g_console, g_menu, g_triggers, g_player, g_options, g_monsters, g_map, g_panel, g_window,
     g_items, g_weapons, g_gfx, g_phys, g_net, g_gui, g_netmaster,
-    g_game, r_console, r_gfx, r_items, r_map, r_panel, r_monsters, r_weapons
+    g_game, r_console, r_gfx, r_items, r_map, r_panel, r_monsters, r_weapons, r_netmaster
   ;
 
   var
@@ -1806,7 +1806,7 @@ begin
 //      end;
       r_Game_DrawMenuBackground('MENU_BACKGROUND');
       e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
-      g_Serverlist_Draw(slCurrent, slTable);
+      r_Serverlist_Draw(slCurrent, slTable);
     end;
   end;
 

@@ -159,6 +159,7 @@ uses
   r_items in 'opengl/r_items.pas',
   r_map in 'opengl/r_map.pas',
   r_monsters in 'opengl/r_monsters.pas',
+  r_netmaster in 'opengl/r_netmaster.pas',
   r_panel in 'opengl/r_panel.pas',
   r_weapons in 'opengl/r_weapons.pas',
 
