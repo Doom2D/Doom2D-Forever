@@ -44,7 +44,7 @@ implementation
 
 uses
   g_gui, g_textures, r_graphics, g_main, g_window, g_game, g_map,
-  g_basic, g_console, g_sound, g_gfx, g_player, g_options, g_weapons,
+  g_base, g_basic, g_console, g_sound, g_gfx, g_player, g_options, g_weapons,
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
   MAPDEF, Math, g_saveload,
   e_texture, g_language, e_res,

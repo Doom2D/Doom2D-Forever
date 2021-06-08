@@ -29,7 +29,7 @@ implementation
     SysUtils, Classes, Math,
     MAPDEF,
     r_graphics,
-    g_basic, g_map, g_weapons, g_textures, g_main
+    g_base, g_basic, g_map, g_weapons, g_textures, g_main
   ;
 
   const

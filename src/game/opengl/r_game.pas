@@ -29,7 +29,7 @@ implementation
     g_holmes,
 {$ENDIF}
     SysUtils, Classes, Math,
-    r_graphics,
+    g_base, r_graphics,
     g_system, g_touch,
     MAPDEF, xprofiler, utils, wadreader,
     g_textures, e_input, e_sound,

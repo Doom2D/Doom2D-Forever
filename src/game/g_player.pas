@@ -21,7 +21,7 @@ interface
 uses
   SysUtils, Classes,
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-  r_graphics, g_playermodel, g_basic, g_textures,
+  g_base, g_playermodel, g_basic, g_textures,
   g_weapons, g_phys, g_sound, g_saveload, MAPDEF,
   g_panel;
 

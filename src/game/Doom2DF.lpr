@@ -113,6 +113,7 @@ uses
   wadreader in '../shared/wadreader.pas',
   MAPDEF in '../shared/MAPDEF.pas',
   CONFIG in '../shared/CONFIG.pas',
+  g_base in 'g_base.pas',
   g_basic in 'g_basic.pas',
   g_console in 'g_console.pas',
   g_net in 'g_net.pas',

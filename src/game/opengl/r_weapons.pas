@@ -25,7 +25,7 @@ implementation
     SysUtils, Classes, Math,
     MAPDEF,
     r_graphics,
-    g_basic, g_game,
+    g_base, g_basic, g_game,
     g_weapons
   ;
 

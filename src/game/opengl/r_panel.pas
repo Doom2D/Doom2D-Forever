@@ -28,7 +28,7 @@ implementation
     {$INCLUDE ../nogl/noGLuses.inc}
     SysUtils, Classes, Math, utils,
     r_graphics,
-    g_basic, g_textures, g_game
+    g_base, g_basic, g_textures, g_game
   ;
 
   procedure Panel_Lerp (p: TPanel; t: Single; out tX, tY, tW, tH: Integer);

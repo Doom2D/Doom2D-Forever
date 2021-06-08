@@ -17,7 +17,7 @@ unit r_player;
 
 interface
 
-  uses g_player, r_graphics; // TPlayer, TRGB
+  uses g_player, g_base; // TPlayer, TRGB
 
   procedure r_Player_DrawAll;
   procedure r_Player_DrawDebug (p: TPlayer);
@@ -46,7 +46,7 @@ implementation
 {$IFDEF ENABLE_HOLMES}
     g_holmes,
 {$ENDIF}
-    r_playermodel
+    r_playermodel, r_graphics
   ;
 
   procedure r_Player_DrawAll;

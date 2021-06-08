@@ -22,39 +22,11 @@ uses
   {$IFDEF USE_SDL2}
     SDL2,
   {$ENDIF}
-  SysUtils, Classes, Math, e_log, e_texture,
+  SysUtils, Classes, Math, e_log, e_texture, g_base,
   MAPDEF, ImagingTypes, Imaging, ImagingUtility;
 
 type
-  TMirrorType=(None, Horizontal, Vertical);
-  TBlending=(None, Blend, Filter, Invert);
-
-  TPoint2i = record
-    X, Y: Integer;
-  end;
-
-  TPoint2f = record
-    X, Y: Double;
-  end;
-
-  TRect = record
-    Left, Top, Right, Bottom: Integer;
-  end;
-
-  TRectWH = record
-   X, Y: Integer;
-   Width, Height: Word;
-  end;
-
-  TRGB = packed record
-   R, G, B: Byte;
-  end;
-
   PDFPoint = ^TDFPoint;
-  PPoint2f = ^TPoint2f;
-  PRect = ^TRect;
-  PRectWH = ^TRectWH;
-
 
 //------------------------------------------------------------------
 // прототипы функций
@@ -142,11 +114,6 @@ procedure e_SetGamma(win: PSDL_Window;Gamma: Byte);
 {$ENDIF}
 
 procedure e_MakeScreenshot(st: TStream; Width, Height: Word);
-
-function _RGB(Red, Green, Blue: Byte): TRGB;
-function _Point(X, Y: Integer): TPoint2i;
-function _Rect(X, Y: Integer; Width, Height: Word): TRectWH;
-function _TRect(L, T, R, B: LongInt): TRect;
 
 //function e_getTextGLId (ID: DWORD): GLuint;
 
@@ -1942,36 +1909,6 @@ begin
 
  e_TextureFonts := nil;
 end;
-
-function _RGB(Red, Green, Blue: Byte): TRGB;
-begin
- Result.R := Red;
- Result.G := Green;
- Result.B := Blue;
-end;
-
-function _Point(X, Y: Integer): TPoint2i;
-begin
- Result.X := X;
- Result.Y := Y;
-end;
-
-function _Rect(X, Y: Integer; Width, Height: Word): TRectWH;
-begin
- Result.X := X;
- Result.Y := Y;
- Result.Width := Width;
- Result.Height := Height;
-end;
-
-function _TRect(L, T, R, B: LongInt): TRect;
-begin
- Result.Top := T;
- Result.Left := L;
- Result.Right := R;
- Result.Bottom := B;
-end;
-
 
 procedure e_MakeScreenshot (st: TStream; Width, Height: Word);
 var

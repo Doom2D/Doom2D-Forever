@@ -20,7 +20,7 @@ interface
 uses
   SysUtils, Classes,
   MAPDEF,
-  g_basic, g_player, r_graphics, g_res_downloader,
+  g_base, g_basic, g_player, r_graphics, g_res_downloader,
   g_sound, g_gui, utils, md5, mempool, xprofiler,
   g_touch, g_weapons;
 

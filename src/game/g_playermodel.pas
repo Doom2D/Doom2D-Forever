@@ -19,7 +19,7 @@ unit g_playermodel;
 interface
 
 uses
-  MAPDEF, g_textures, g_basic, g_weapons, r_graphics, utils, g_gfx,
+  MAPDEF, g_textures, g_base, g_basic, g_weapons, r_graphics, utils, g_gfx,
   ImagingTypes, Imaging, ImagingUtility;
 
 const

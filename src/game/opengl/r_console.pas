@@ -27,7 +27,7 @@ implementation
     SysUtils, Classes, Math,
     e_log, r_graphics,
     conbuf,
-    g_main, g_console, g_game, g_menu, g_textures
+    g_base, g_main, g_console, g_game, g_menu, g_textures
   ;
 
 (* ====== Console ====== *)
