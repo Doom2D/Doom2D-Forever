@@ -550,7 +550,6 @@ procedure g_GUI_LoadMenuPos();
 implementation
 
 uses
-  {$INCLUDE ../nogl/noGLuses.inc}
   g_textures, g_sound, SysUtils, e_res,
   g_game, Math, StrUtils, g_player, g_options, g_console, r_playermodel,
   g_map, g_weapons, xdynrec, wadreader;
@@ -560,6 +559,81 @@ var
   Box: Array [0..8] of DWORD;
   Saved_Windows: SSArray;
 
+function GetLines (text: string; FontID: DWORD; MaxWidth: Word): SSArray;
+  var
+    k: Integer = 1;
+    lines: Integer = 0;
+    i, len, lastsep: Integer;
+
+  function PrepareStep (): Boolean; inline;
+  begin
+    // Skip leading spaces.
+    while PChar(text)[k-1] = ' ' do k += 1;
+    Result := k <= len;
+    i := k;
+  end;
+
+  function GetLine (j: Integer; Strip: Boolean): String; inline;
+  begin
+    // Exclude trailing spaces from the line.
+    if Strip then
+      while text[j] = ' ' do j -= 1;
+
+    Result := Copy(text, k, j-k+1);
+  end;
+
+  function LineWidth (): Integer; inline;
+    var w, h: Word;
+  begin
+    e_CharFont_GetSize(FontID, GetLine(i, False), w, h);
+    Result := w;
+  end;
+
+begin
+  Result := nil;
+  len := Length(text);
+  //e_LogWritefln('GetLines @%s len=%s [%s]', [MaxWidth, len, text]);
+
+  while PrepareStep() do
+  begin
+    // Get longest possible sequence (this is not constant because fonts are not monospaced).
+    lastsep := 0;
+    repeat
+      if text[i] in [' ', '.', ',', ':', ';']
+        then lastsep := i;
+      i += 1;
+    until (i > len) or (LineWidth() > MaxWidth);
+
+    // Do not include part of a word if possible.
+    if (lastsep-k > 3) and (i <= len) and (text[i] <> ' ')
+      then i := lastsep + 1;
+
+    // Add line.
+    SetLength(Result, lines + 1);
+    Result[lines] := GetLine(i-1, True);
+    //e_LogWritefln('  -> (%s:%s::%s) [%s]', [k, i, LineWidth(), Result[lines]]);
+    lines += 1;
+
+    k := i;
+  end;
+end;
+
+procedure Sort(var a: SSArray);
+var
+  i, j: Integer;
+  s: string;
+begin
+  if a = nil then Exit;
+
+  for i := High(a) downto Low(a) do
+    for j := Low(a) to High(a)-1 do
+      if LowerCase(a[j]) > LowerCase(a[j+1]) then
+      begin
+        s := a[j];
+        a[j] := a[j+1];
+        a[j+1] := s;
+      end;
+end;
 
 procedure g_GUI_Init();
 begin
@@ -819,7 +893,7 @@ begin
   if FBackTexture <> '' then  // Here goes code duplication from g_game.pas:DrawMenuBackground()
     if g_Texture_Get(FBackTexture, ID) then
     begin
-      e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+      e_Clear(0, 0, 0);
       e_GetTextureSize(ID, @tw, @th);
       if tw = th then
         tw := round(tw * 1.333 * (gScreenHeight / th))
@@ -828,7 +902,7 @@ begin
       e_DrawSize(ID, (gScreenWidth - tw) div 2, 0, 0, False, False, tw, gScreenHeight);
     end
     else
-      e_Clear(GL_COLOR_BUFFER_BIT, 0.5, 0.5, 0.5);
+      e_Clear(0.5, 0.5, 0.5);
 
   // small hack here
   if FName = 'AuthorsMenu' then
@@ -2947,7 +3021,7 @@ begin
   SetLength(FItems, Length(FItems)+1);
   FItems[High(FItems)] := Item;
 
-  if FSort then g_Basic.Sort(FItems);
+  if FSort then g_gui.Sort(FItems);
 end;
 
 function TGUIListBox.ItemExists (item: String): Boolean;
@@ -3102,7 +3176,7 @@ begin
   FStartLine := 0;
   FIndex := -1;
 
-  if FSort then g_Basic.Sort(FItems);
+  if FSort then g_gui.Sort(FItems);
 end;
 
 procedure TGUIListBox.SelectItem(Item: String);

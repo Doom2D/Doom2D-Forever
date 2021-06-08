@@ -79,7 +79,6 @@ var
 implementation
 
 uses
-  {$INCLUDE ../nogl/noGLuses.inc}
   {$IFDEF USE_SDL2}
     SDL2,
   {$ENDIF}

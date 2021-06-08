@@ -132,6 +132,7 @@ procedure e_TextureFontPrintCharEx (X, Y: Integer; Ch: Char; FontID: DWORD; Shad
 procedure e_ReleaseEngine();
 procedure e_BeginRender();
 procedure e_Clear(Mask: TGLbitfield; Red, Green, Blue: Single); overload;
+procedure e_Clear(Red, Green, Blue: Single); overload;
 procedure e_Clear(); overload;
 procedure e_EndRender();
 
@@ -1167,6 +1168,13 @@ begin
   if e_NoGraphics then Exit;
   glClearColor(Red, Green, Blue, 0);
   glClear(Mask);
+end;
+
+procedure e_Clear(Red, Green, Blue: Single); overload;
+begin
+  if e_NoGraphics then Exit;
+  glClearColor(Red, Green, Blue, 0);
+  glClear(GL_COLOR_BUFFER_BIT);
 end;
 
 procedure e_Clear(); overload;

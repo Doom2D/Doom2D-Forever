@@ -19,7 +19,7 @@ interface
 
 uses
   SysUtils, Variants, Classes,
-  MAPDEF, e_graphics, g_basic, g_sound,
+  MAPDEF, g_basic, g_sound,
   xdynrec, hashtable, exoma;
 
 type

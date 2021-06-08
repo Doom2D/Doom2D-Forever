@@ -77,8 +77,6 @@ function Sign(A: Single): ShortInt; overload;
 function PointToRect(X, Y, X1, Y1: Integer; Width, Height: Word): Integer;
 function GetAngle(baseX, baseY, pointX, PointY: Integer): SmallInt;
 function GetAngle2(vx, vy: Integer): SmallInt;
-function GetLines(Text: string; FontID: DWORD; MaxWidth: Word): SSArray;
-procedure Sort(var a: SSArray);
 function Sscanf(const s: string; const fmt: string;
                 const Pointers: array of Pointer): Integer;
 function InDWArray(a: DWORD; arr: DWArray): Boolean;
@@ -102,7 +100,7 @@ implementation
 
 uses
   Math, geom, e_log, g_map, g_gfx, g_player, SysUtils, MAPDEF,
-  StrUtils, e_graphics, g_monsters, g_items, g_game;
+  StrUtils, g_monsters, g_items, g_game;
 
 {$PUSH}
 {$WARN 2054 OFF} // unknwon env var
@@ -741,82 +739,6 @@ begin
       Str := Trim(Str);
       Exit;
     end;
-end;
-
-function GetLines (text: string; FontID: DWORD; MaxWidth: Word): SSArray;
-  var
-    k: Integer = 1;
-    lines: Integer = 0;
-    i, len, lastsep: Integer;
-
-  function PrepareStep (): Boolean; inline;
-  begin
-    // Skip leading spaces.
-    while PChar(text)[k-1] = ' ' do k += 1;
-    Result := k <= len;
-    i := k;
-  end;
-
-  function GetLine (j: Integer; Strip: Boolean): String; inline;
-  begin
-    // Exclude trailing spaces from the line.
-    if Strip then
-      while text[j] = ' ' do j -= 1; 
-
-    Result := Copy(text, k, j-k+1);
-  end;
-
-  function LineWidth (): Integer; inline;
-    var w, h: Word;
-  begin
-    e_CharFont_GetSize(FontID, GetLine(i, False), w, h);
-    Result := w;
-  end;
-
-begin
-  Result := nil;
-  len := Length(text);
-  //e_LogWritefln('GetLines @%s len=%s [%s]', [MaxWidth, len, text]);
-
-  while PrepareStep() do
-  begin
-    // Get longest possible sequence (this is not constant because fonts are not monospaced).
-    lastsep := 0;
-    repeat
-      if text[i] in [' ', '.', ',', ':', ';']
-        then lastsep := i;
-      i += 1;
-    until (i > len) or (LineWidth() > MaxWidth);
-
-    // Do not include part of a word if possible.
-    if (lastsep-k > 3) and (i <= len) and (text[i] <> ' ')
-      then i := lastsep + 1;
-
-    // Add line.
-    SetLength(Result, lines + 1);
-    Result[lines] := GetLine(i-1, True);
-    //e_LogWritefln('  -> (%s:%s::%s) [%s]', [k, i, LineWidth(), Result[lines]]);
-    lines += 1;
-
-    k := i;
-  end;
-end;
-
-procedure Sort(var a: SSArray);
-var
-  i, j: Integer;
-  s: string;
-begin
-  if a = nil then Exit;
-
-  for i := High(a) downto Low(a) do
-    for j := Low(a) to High(a)-1 do
-      if LowerCase(a[j]) > LowerCase(a[j+1]) then
-      begin
-        s := a[j];
-        a[j] := a[j+1];
-        a[j+1] := s;
-      end;
 end;
 
 function Sscanf(const s: String; const fmt: String;
