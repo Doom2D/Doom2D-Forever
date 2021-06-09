@@ -166,8 +166,6 @@ var
   e_RBO: GLuint = 0;
   e_RBOSupported: Boolean = True;
   e_Frame: GLuint = 0;
-  e_FrameW: Integer = -1;
-  e_FrameH: Integer = -1;
 
 //function e_getTextGLId (ID: DWORD): GLuint; begin result := e_Textures[ID].tx.id; end;
 
@@ -375,9 +373,6 @@ begin
   if e_NoGraphics then Exit;
 
   DestroyFramebuffer;
-
-  e_FrameW := Width;
-  e_FrameH := Height;
 
   glGetError();
 
