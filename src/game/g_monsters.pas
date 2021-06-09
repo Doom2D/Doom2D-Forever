@@ -494,6 +494,22 @@ uses
   g_language, g_netmsg, idpool, utils, xstreams;
 
 
+function g_Look(a, b: PObj; d: TDirection): Boolean;
+begin
+  if not gmon_dbg_los_enabled then begin result := false; exit; end; // always "wall hit"
+
+  if ((b^.X > a^.X) and (d = TDirection.D_LEFT)) or
+     ((b^.X < a^.X) and (d = TDirection.D_RIGHT)) then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  Result := g_TraceVector(a^.X+a^.Rect.X+(a^.Rect.Width div 2),
+                          a^.Y+a^.Rect.Y+(a^.Rect.Height div 2),
+                          b^.X+b^.Rect.X+(b^.Rect.Width div 2),
+                          b^.Y+b^.Rect.Y+(b^.Rect.Height div 2));
+end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure g_Mons_ProfilersBegin ();
