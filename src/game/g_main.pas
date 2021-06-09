@@ -53,7 +53,6 @@ var
 implementation
 
 uses
-{$INCLUDE ../nogl/noGLuses.inc}
 {$IFDEF ENABLE_HOLMES}
   g_holmes, sdlcarcass, fui_ctls, fui_wadread, fui_style, fui_gfx_gl,
 {$ENDIF}

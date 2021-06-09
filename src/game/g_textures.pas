@@ -85,9 +85,9 @@ type
   end;
 
 
-function g_Texture_CreateWAD (var ID: LongWord; const Resource: AnsiString): Boolean;
+function g_Texture_CreateWAD (var ID: LongWord; const Resource: AnsiString; filterHint: Boolean = False): Boolean;
 function g_Texture_CreateFile (var ID: LongWord; const FileName: AnsiString): Boolean;
-function g_Texture_CreateWADEx (const textureName, Resource: AnsiString): Boolean;
+function g_Texture_CreateWADEx (const textureName, Resource: AnsiString; filterHint: Boolean = False): Boolean;
 function g_Texture_CreateFileEx (const textureName, FileName: AnsiString): Boolean;
 function g_Texture_Get (const textureName: AnsiString; var ID: LongWord): Boolean;
 function g_Texture_GetSize (const textureName: AnsiString; var w, h: Integer): Boolean; overload;
@@ -112,13 +112,10 @@ procedure g_Frames_DeleteAll ();
 
 procedure DumpTextureNames ();
 
-function g_Texture_Light (): Integer;
-
 
 implementation
 
 uses
-  {$INCLUDE ../nogl/noGLuses.inc}
   g_game, e_log, g_basic, g_console, wadreader,
   g_language, utils, xstreams;
 
@@ -205,7 +202,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function g_Texture_CreateWAD (var ID: LongWord; const Resource: AnsiString): Boolean;
+function g_Texture_CreateWAD (var ID: LongWord; const Resource: AnsiString; filterHint: Boolean = False): Boolean;
 var
   WAD: TWADFile;
   FileName: AnsiString;
@@ -220,7 +217,7 @@ begin
 
   if WAD.GetResource(g_ExtractFilePathName(Resource), TextureData, ResourceLength) then
   begin
-    if e_CreateTextureMem(TextureData, ResourceLength, ID) then
+    if e_CreateTextureMem(TextureData, ResourceLength, ID, filterHint) then
       result := true;
     FreeMem(TextureData)
   end
@@ -244,7 +241,7 @@ begin
 end;
 
 
-function g_Texture_CreateWADEx (const textureName, Resource: AnsiString): Boolean;
+function g_Texture_CreateWADEx (const textureName, Resource: AnsiString; filterHint: Boolean = False): Boolean;
 var
   WAD: TWADFile;
   FileName: AnsiString;
@@ -261,7 +258,7 @@ begin
 
   if WAD.GetResource(g_ExtractFilePathName(Resource), TextureData, ResourceLength) then
   begin
-    result := e_CreateTextureMem(TextureData, ResourceLength, texturesArray[find_id].ID);
+    result := e_CreateTextureMem(TextureData, ResourceLength, texturesArray[find_id].ID, filterHint);
     if result then
     begin
       e_GetTextureSize(texturesArray[find_id].ID, @texturesArray[find_id].width, @texturesArray[find_id].height);
@@ -909,67 +906,5 @@ begin
   // Обратный ли порядок кадров
   mRevert := utils.readBool(st);
 end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-var
-  ltexid: GLuint = 0;
-
-function g_Texture_Light (): Integer;
-const
-  Radius: Integer = 128;
-var
-  tex, tpp: PByte;
-  x, y, a: Integer;
-  dist: Double;
-begin
-  if ltexid = 0 then
-  begin
-    GetMem(tex, (Radius*2)*(Radius*2)*4);
-    tpp := tex;
-    for y := 0 to Radius*2-1 do
-    begin
-      for x := 0 to Radius*2-1 do
-      begin
-        dist := 1.0-sqrt((x-Radius)*(x-Radius)+(y-Radius)*(y-Radius))/Radius;
-        if (dist < 0) then
-        begin
-          tpp^ := 0; Inc(tpp);
-          tpp^ := 0; Inc(tpp);
-          tpp^ := 0; Inc(tpp);
-          tpp^ := 0; Inc(tpp);
-        end
-        else
-        begin
-          //tc.setPixel(x, y, Color(cast(int)(dist*255), cast(int)(dist*255), cast(int)(dist*255)));
-          if (dist > 0.5) then dist := 0.5;
-          a := round(dist*255);
-          if (a < 0) then a := 0 else if (a > 255) then a := 255;
-          tpp^ := 255; Inc(tpp);
-          tpp^ := 255; Inc(tpp);
-          tpp^ := 255; Inc(tpp);
-          tpp^ := Byte(a); Inc(tpp);
-        end;
-      end;
-    end;
-
-    glGenTextures(1, @ltexid);
-    //if (tid == 0) assert(0, "VGL: can't create screen texture");
-
-    glBindTexture(GL_TEXTURE_2D, ltexid);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    //GLfloat[4] bclr = 0.0;
-    //glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, bclr.ptr);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Radius*2, Radius*2, 0, GL_RGBA{gltt}, GL_UNSIGNED_BYTE, tex);
-  end;
-
-  result := ltexid;
-end;
-
 
 end.

@@ -36,18 +36,17 @@ type
 
 var
   e_DummyTextures: Boolean = False;
-  TEXTUREFILTER: Integer = GL_NEAREST;
 
-function CreateTexture (var tex: GLTexture; Width, Height, aFormat: Word; pData: Pointer): Boolean;
+function CreateTexture (var tex: GLTexture; Width, Height, aFormat: Word; pData: Pointer; filter: Boolean = False): Boolean;
 
 // Standard set of images loading functions
-function LoadTexture (Filename: String; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
-function LoadTextureEx (Filename: String; var Texture: GLTexture; fX, fY, fWidth, fHeight: Word; Fmt: PWord=nil): Boolean;
-function LoadTextureMem (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
-function LoadTextureMemEx (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; fX, fY, fWidth, fHeight: Word; Fmt: PWord=nil): Boolean;
+function LoadTexture (Filename: String; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil; filter: Boolean = False): Boolean;
+function LoadTextureEx (Filename: String; var Texture: GLTexture; fX, fY, fWidth, fHeight: Word; Fmt: PWord=nil; filter: Boolean = False): Boolean;
+function LoadTextureMem (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil; filter: Boolean = False): Boolean;
+function LoadTextureMemEx (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; fX, fY, fWidth, fHeight: Word; Fmt: PWord=nil; filter: Boolean = False): Boolean;
 
 // `img` must be valid!
-function LoadTextureImg (var img: TImageData; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
+function LoadTextureImg (var img: TImageData; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil; filter: Boolean = False): Boolean;
 
 
 implementation
@@ -70,12 +69,13 @@ end;
 
 
 // This is auxiliary function that creates OpenGL texture from raw image data
-function CreateTexture (var tex: GLTexture; Width, Height, aFormat: Word; pData: Pointer): Boolean;
+function CreateTexture (var tex: GLTexture; Width, Height, aFormat: Word; pData: Pointer; filter: Boolean = False): Boolean;
 var
   Texture: GLuint;
   fmt: GLenum;
   //buf: PByte;
   //f, c: Integer;
+  TEXTUREFILTER: Integer;
 begin
   tex.width := Width;
   tex.height := Height;
@@ -125,6 +125,8 @@ begin
     GL_LINEAR_MIPMAP_LINEAR  - BiLinear Mipmapped texture
   }
 
+  if filter then TEXTUREFILTER := GL_LINEAR else TEXTUREFILTER := GL_NEAREST;
+
   // for GL_TEXTURE_MAG_FILTER only first two can be used
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, TEXTUREFILTER);
   // for GL_TEXTURE_MIN_FILTER all of the above can be used
@@ -170,7 +172,7 @@ begin
 end;
 
 // `img` must be valid!
-function LoadTextureImg (var img: TImageData; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
+function LoadTextureImg (var img: TImageData; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil; filter: Boolean = False): Boolean;
 var
   image, ii: PByte;
   width, height: Integer;
@@ -209,7 +211,7 @@ begin
         ii^ := clr.a; Inc(ii);
       end;
     end;
-    CreateTexture(Texture, width, height, GL_RGBA, image);
+    CreateTexture(Texture, width, height, GL_RGBA, image, filter);
     result := true;
   finally
     FreeMem(image);
@@ -217,7 +219,7 @@ begin
 end;
 
 
-function LoadTextureMem (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
+function LoadTextureMem (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil; filter: Boolean = False): Boolean;
 var
   //image, ii: PByte;
   //width, height: Integer;
@@ -238,14 +240,14 @@ begin
     exit;
   end;
   try
-    result := LoadTextureImg(img, Texture, pWidth, pHeight, Fmt);
+    result := LoadTextureImg(img, Texture, pWidth, pHeight, Fmt, filter);
   finally
     FreeImage(img);
   end;
 end;
 
 
-function LoadTextureMemEx (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; fX, fY, fWidth, fHeight: Word; Fmt: PWord=nil): Boolean;
+function LoadTextureMemEx (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; fX, fY, fWidth, fHeight: Word; Fmt: PWord=nil; filter: Boolean = False): Boolean;
 var
   image, ii: PByte;
   //width, height: Integer;
@@ -291,7 +293,7 @@ begin
           ii^ := clr.a; Inc(ii);
         end;
       end;
-      CreateTexture(Texture, fWidth, fHeight, GL_RGBA, image);
+      CreateTexture(Texture, fWidth, fHeight, GL_RGBA, image, filter);
       result := true;
     finally
       FreeMem(image);
@@ -302,7 +304,7 @@ begin
 end;
 
 
-function LoadTexture (filename: AnsiString; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
+function LoadTexture (filename: AnsiString; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil; filter: Boolean = False): Boolean;
 var
   fs: TStream;
   img: Pointer;
@@ -330,7 +332,7 @@ begin
     GetMem(img, imageSize);
     try
       fs.readBuffer(img^, imageSize);
-      result := LoadTextureMem(img, imageSize, Texture, pWidth, pHeight, Fmt);
+      result := LoadTextureMem(img, imageSize, Texture, pWidth, pHeight, Fmt, filter);
     finally
       FreeMem(img);
     end;
@@ -340,7 +342,7 @@ begin
 end;
 
 
-function LoadTextureEx (filename: AnsiString; var Texture: GLTexture; fX, fY, fWidth, fHeight: Word; Fmt: PWord=nil): Boolean;
+function LoadTextureEx (filename: AnsiString; var Texture: GLTexture; fX, fY, fWidth, fHeight: Word; Fmt: PWord=nil; filter: Boolean = False): Boolean;
 var
   fs: TStream;
   img: Pointer;
@@ -366,7 +368,7 @@ begin
     GetMem(img, imageSize);
     try
       fs.readBuffer(img^, imageSize);
-      result := LoadTextureMemEx(img, imageSize, Texture, fX, fY, fWidth, fHeight, Fmt);
+      result := LoadTextureMemEx(img, imageSize, Texture, fX, fY, fWidth, fHeight, Fmt, filter);
     finally
       FreeMem(img);
     end;

@@ -442,7 +442,6 @@ function gPause (): Boolean; inline;
 implementation
 
 uses
-{$INCLUDE ../nogl/noGLuses.inc}
 {$IFDEF ENABLE_HOLMES}
   g_holmes,
 {$ENDIF}
@@ -856,10 +855,8 @@ begin
   MegaWAD.endpic := cfg.ReadStr('megawad', 'endpic', '');
   if MegaWAD.endpic <> '' then
   begin
-    TEXTUREFILTER := GL_LINEAR;
     s := e_GetResourcePath(WadDirs, MegaWAD.endpic, WAD);
-    g_Texture_CreateWADEx('TEXTURE_endpic', s);
-    TEXTUREFILTER := GL_NEAREST;
+    g_Texture_CreateWADEx('TEXTURE_endpic', s, gTextureFilter);
   end;
   MegaWAD.endmus := cfg.ReadStr('megawad', 'endmus', 'Standart.wad:D2DMUS\КОНЕЦ');
   if MegaWAD.endmus <> '' then
@@ -1129,12 +1126,10 @@ begin
   sfsGCDisable(); // temporary disable removing of temporary volumes
 
   try
-    TEXTUREFILTER := GL_LINEAR;
-    g_Texture_CreateWADEx('MENU_BACKGROUND', GameWAD+':TEXTURES\TITLE');
-    g_Texture_CreateWADEx('INTER', GameWAD+':TEXTURES\INTER');
-    g_Texture_CreateWADEx('ENDGAME_EN', GameWAD+':TEXTURES\ENDGAME_EN');
-    g_Texture_CreateWADEx('ENDGAME_RU', GameWAD+':TEXTURES\ENDGAME_RU');
-    TEXTUREFILTER := GL_NEAREST;
+    g_Texture_CreateWADEx('MENU_BACKGROUND', GameWAD+':TEXTURES\TITLE', gTextureFilter);
+    g_Texture_CreateWADEx('INTER', GameWAD+':TEXTURES\INTER', gTextureFilter);
+    g_Texture_CreateWADEx('ENDGAME_EN', GameWAD+':TEXTURES\ENDGAME_EN', gTextureFilter);
+    g_Texture_CreateWADEx('ENDGAME_RU', GameWAD+':TEXTURES\ENDGAME_RU', gTextureFilter);
 
     LoadStdFont('STDTXT', 'STDFONT', gStdFont);
     LoadFont('MENUTXT', 'MENUFONT', gMenuFont);

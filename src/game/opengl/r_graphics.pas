@@ -66,8 +66,8 @@ procedure e_DarkenQuadWH (x, y, w, h: Integer; a: Integer);
 function e_CreateTextureImg (var img: TImageData; var ID: DWORD): Boolean;
 function e_CreateTexture(FileName: string; var ID: DWORD): Boolean;
 function e_CreateTextureEx(FileName: string; var ID: DWORD; fX, fY, fWidth, fHeight: Word): Boolean;
-function e_CreateTextureMem(pData: Pointer; dataSize: LongInt; var ID: DWORD): Boolean;
-function e_CreateTextureMemEx(pData: Pointer; dataSize: LongInt; var ID: DWORD; fX, fY, fWidth, fHeight: Word): Boolean;
+function e_CreateTextureMem(pData: Pointer; dataSize: LongInt; var ID: DWORD; filter: Boolean = False): Boolean;
+function e_CreateTextureMemEx(pData: Pointer; dataSize: LongInt; var ID: DWORD; fX, fY, fWidth, fHeight: Word; filter: Boolean = False): Boolean;
 procedure e_GetTextureSize(ID: DWORD; Width, Height: PWord);
 procedure e_DeleteTexture(ID: DWORD);
 procedure e_RemoveAllTextures();
@@ -293,7 +293,7 @@ begin
  Result := True;
 end;
 
-function e_CreateTextureMem(pData: Pointer; dataSize: LongInt; var ID: DWORD): Boolean;
+function e_CreateTextureMem(pData: Pointer; dataSize: LongInt; var ID: DWORD; filter: Boolean = False): Boolean;
 var
   find_id: DWORD;
   fmt:     Word;
@@ -302,14 +302,14 @@ begin
 
  find_id := FindTexture;
 
- if not LoadTextureMem(pData, dataSize, e_Textures[find_id].tx, e_Textures[find_id].tx.Width, e_Textures[find_id].tx.Height, @fmt) then exit;
+ if not LoadTextureMem(pData, dataSize, e_Textures[find_id].tx, e_Textures[find_id].tx.Width, e_Textures[find_id].tx.Height, @fmt, filter) then exit;
 
  id := find_id;
 
  Result := True;
 end;
 
-function e_CreateTextureMemEx(pData: Pointer; dataSize: LongInt; var ID: DWORD; fX, fY, fWidth, fHeight: Word): Boolean;
+function e_CreateTextureMemEx(pData: Pointer; dataSize: LongInt; var ID: DWORD; fX, fY, fWidth, fHeight: Word; filter: Boolean = False): Boolean;
 var
   find_id: DWORD;
   fmt:     Word;
@@ -318,7 +318,7 @@ begin
 
  find_id := FindTexture();
 
- if not LoadTextureMemEx(pData, dataSize, e_Textures[find_id].tx, fX, fY, fWidth, fHeight, @fmt) then exit;
+ if not LoadTextureMemEx(pData, dataSize, e_Textures[find_id].tx, fX, fY, fWidth, fHeight, @fmt, filter) then exit;
 
  ID := find_id;
 

@@ -247,7 +247,6 @@ var
 implementation
 
 uses
-  {$INCLUDE ../nogl/noGLuses.inc}
   e_input, g_main, e_log, e_texture, e_res, g_items, g_gfx, g_console,
   g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, g_triggers, g_player,
@@ -2204,16 +2203,11 @@ begin
     begin
       e_WriteLog('  Loading sky: ' + gMapInfo.SkyName, TMsgType.Notify);
       g_Game_SetLoadingText(_lc[I_LOAD_SKY], 0, False);
-      if gTextureFilter then TEXTUREFILTER := GL_LINEAR else TEXTUREFILTER := GL_NEAREST;
-      try
-        s := e_GetResourcePath(WadDirs, gMapInfo.SkyName, g_ExtractWadName(Res));
-        if g_Texture_CreateWAD(BackID, s) then
-          g_Game_SetupScreenSize
-        else
-          g_FatalError(Format(_lc[I_GAME_ERROR_SKY], [s]))
-      finally
-        TEXTUREFILTER := GL_NEAREST;
-      end;
+      s := e_GetResourcePath(WadDirs, gMapInfo.SkyName, g_ExtractWadName(Res));
+      if g_Texture_CreateWAD(BackID, s, gTextureFilter) then
+        g_Game_SetupScreenSize
+      else
+        g_FatalError(Format(_lc[I_GAME_ERROR_SKY], [s]))
     end;
 
     // Загрузка музыки

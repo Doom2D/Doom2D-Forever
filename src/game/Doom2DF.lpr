@@ -34,8 +34,6 @@ uses
   geom in '../shared/geom.pas',
   math,
 
-{$INCLUDE ../nogl/noGLuses.inc}
-
 {$IFDEF USE_MINIUPNPC}
   miniupnpc in '../lib/miniupnpc/miniupnpc.pas',
 {$ENDIF}
