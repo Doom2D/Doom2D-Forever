@@ -228,7 +228,7 @@ var
 implementation
 
 uses
-  e_texture, g_basic, g_map, g_game, g_gfx, g_weapons, g_triggers, g_items,
+  g_basic, g_map, g_game, g_gfx, g_weapons, g_triggers, g_items,
   g_console, g_language, g_monsters, g_player, g_grid, e_log, geom, utils, xstreams;
 
 const

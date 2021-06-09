@@ -92,7 +92,7 @@ uses
     SDL2,
   {$ENDIF}
   e_log, e_input, g_console, g_window, g_sound, g_gfx, g_player, Math,
-  g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_texture,
+  g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main,
   g_items, wadreader, g_touch, envvars, g_system;
 
   var

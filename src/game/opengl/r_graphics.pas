@@ -22,7 +22,7 @@ uses
   {$IFDEF USE_SDL2}
     SDL2,
   {$ENDIF}
-  SysUtils, Classes, Math, e_log, e_texture, g_base,
+  SysUtils, Classes, Math, e_log, r_texture, g_base,
   MAPDEF, ImagingTypes, Imaging, ImagingUtility;
 
 type

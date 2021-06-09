@@ -48,7 +48,7 @@ implementation
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
-  {rttiobj,} typinfo, e_texture, e_res,
+  {rttiobj,} typinfo, e_res,
   SysUtils, Classes, SDL2,
   MAPDEF, g_main, g_options,
   utils, hashtable, xparser;

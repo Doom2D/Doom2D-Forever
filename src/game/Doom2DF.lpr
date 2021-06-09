@@ -100,7 +100,6 @@ uses
   e_input in '../engine/e_input.pas',
   e_log in '../engine/e_log.pas',
   e_sound in '../engine/e_sound.pas',
-  e_texture in '../engine/e_texture.pas',
   e_msg in '../engine/e_msg.pas',
   e_res in '../engine/e_res.pas',
   utils in '../shared/utils.pas',
@@ -162,6 +161,7 @@ uses
   r_panel in 'opengl/r_panel.pas',
   r_player in 'opengl/r_player.pas',
   r_playermodel in 'opengl/r_playermodel.pas',
+  r_texture in 'opengl/r_texture.pas',
   r_weapons in 'opengl/r_weapons.pas',
   r_window in 'opengl/r_window.pas',
 
