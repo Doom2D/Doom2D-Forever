@@ -76,6 +76,15 @@ var
   gsItemRespawnTime: Word = 60;
   gsWarmupTime: Word = 30;
 
+{$IFDEF HEADLESS}
+  e_NoGraphics: Boolean = True;
+{$ELSE}
+  e_NoGraphics: Boolean = False;
+{$ENDIF}
+  e_FastScreenshots: Boolean = true; // it's REALLY SLOW with `false`
+  g_dbg_scale: Single = 1.0;
+  r_pixel_scale: Single = 1.0;
+
 implementation
 
 uses
@@ -84,7 +93,7 @@ uses
   {$ENDIF}
   e_log, e_input, g_console, g_window, g_sound, g_gfx, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_texture,
-  g_items, wadreader, r_graphics, g_touch, envvars, g_system;
+  g_items, wadreader, g_touch, envvars, g_system;
 
   var
     machine: Integer;
@@ -333,6 +342,8 @@ initialization
   conRegVar('r_texfilter', @gTextureFilter, '', '');
   conRegVar('r_npot', @glNPOTOverride, '', '');
   conRegVar('r_interp', @gLerpActors, '', 'interpolate actors');
+  conRegVar('r_scale', @g_dbg_scale, 0.01, 100.0, 'render scale', '',  false);
+  conRegVar('r_resolution_scale', @r_pixel_scale, 0.01, 100.0, 'upscale factor', '', false);
 
   (* Sound *)
   conRegVar('s_nosound', @gNoSound, '', '');

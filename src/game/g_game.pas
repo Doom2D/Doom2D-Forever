@@ -6833,9 +6833,6 @@ begin
 
   conRegVar('dbg_ignore_level_bounds', @g_dbg_ignore_bounds, 'ignore level bounds', '',  false);
 
-  conRegVar('r_scale', @g_dbg_scale, 0.01, 100.0, 'render scale', '',  false);
-  conRegVar('r_resolution_scale', @r_pixel_scale, 0.01, 100.0, 'upscale factor', '', false);
-
   conRegVar('light_enabled', @gwin_k8_enable_light_experiments, 'enable/disable dynamic lighting', 'lighting');
   conRegVar('light_player_halo', @g_playerLight, 'enable/disable player halo', 'player light halo');
 

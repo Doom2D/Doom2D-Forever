@@ -119,17 +119,11 @@ procedure e_MakeScreenshot(st: TStream; Width, Height: Word);
 
 var
   e_Colors: TRGB;
-  e_NoGraphics: Boolean = False;
-  e_FastScreenshots: Boolean = true; // it's REALLY SLOW with `false`
-  g_dbg_scale: Single = 1.0;
-  r_pixel_scale: Single = 1.0;
-
 
 implementation
 
 uses
-  paszlib, crc, utils;
-
+  paszlib, crc, utils, g_options;
 
 type
   TTexture = record
