@@ -165,6 +165,7 @@ uses
   r_player in 'opengl/r_player.pas',
   r_playermodel in 'opengl/r_playermodel.pas',
   r_weapons in 'opengl/r_weapons.pas',
+  r_window in 'opengl/r_window.pas',
 
 {$IFDEF USE_FMOD}
   fmod in '../lib/FMOD/fmod.pas',
