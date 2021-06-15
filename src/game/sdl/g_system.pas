@@ -52,7 +52,7 @@ implementation
     SysUtils, SDL, Math,
     {$INCLUDE ../nogl/noGLuses.inc}
     e_log, r_graphics, e_input, e_sound,
-    g_options, g_window, g_console, g_game, g_menu, g_gui, g_basic;
+    g_options, g_console, g_game, g_menu, g_gui, g_basic;
 
   const
     GameTitle = 'Doom 2D: Forever (SDL 1.2, %s, %s)';

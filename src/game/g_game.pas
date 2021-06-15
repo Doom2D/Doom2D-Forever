@@ -384,6 +384,7 @@ var
   g_rlayer_water: Boolean = true;
   g_rlayer_fore: Boolean = true;
 
+  wNeedTimeReset: Boolean = false;
 
 procedure g_ResetDynlights ();
 procedure g_AddDynLight (x, y, radius: Integer; r, g, b, a: Single);
@@ -3619,7 +3620,7 @@ begin
       gGameOn := True;
 
       DisableCheats();
-      ResetTimer();
+      wNeedTimeReset := True;
 
       if gGameSettings.GameMode = GM_CTF then
       begin

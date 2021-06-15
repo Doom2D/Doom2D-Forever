@@ -85,6 +85,11 @@ var
   g_dbg_scale: Single = 1.0;
   r_pixel_scale: Single = 1.0;
 
+  gwin_has_stencil: Boolean = false;
+  gwin_k8_enable_light_experiments: Boolean = false;
+  g_dbg_aimline_on: Boolean = false;
+  g_dbg_input: Boolean = False;
+
   {--- Read-only dirs ---}
   GameWAD: string;
   DataDirs: SSArray;
@@ -113,7 +118,7 @@ uses
   {$IFDEF USE_SDL2}
     SDL2,
   {$ENDIF}
-  e_log, e_input, g_console, g_window, g_sound, g_gfx, g_player, Math,
+  e_log, e_input, g_console, g_sound, g_gfx, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game,
   g_items, wadreader, g_touch, envvars, g_system;
 
@@ -399,4 +404,6 @@ initialization
   conRegVar('g_save_stats', @gSaveStats, '', '');
   conRegVar('g_screenshot_stats', @gScreenshotStats, '', '');
   conRegVar('g_lastmap', @gsMap, '', '');
+
+  conRegVar('d_input', @g_dbg_input, '', '')
 end.
