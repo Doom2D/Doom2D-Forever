@@ -153,6 +153,9 @@ function IsActivePlayer(p: TPlayer): Boolean;
 function GetActivePlayerID_Next(Skip: Integer = -1): Integer;
 procedure SortGameStat(var stat: TPlayerStatArray);
 
+procedure KeyPress (K: Word);
+procedure CharPress (C: AnsiChar);
+
 { procedure SetWinPause(Enable: Boolean); }
 
 const
@@ -449,9 +452,354 @@ uses
   e_input, e_log, g_console, r_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
-  g_language, g_net, g_main, g_phys,
+  g_language, g_net, g_phys,
   ENet, e_msg, g_netmsg, g_netmaster,
   sfs, wadreader, g_system, r_playermodel;
+
+  var
+    charbuff: packed array [0..15] of AnsiChar = (
+      ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '
+    );
+
+function Translit (const S: AnsiString): AnsiString;
+var
+  i: Integer;
+begin
+  Result := S;
+  for i := 1 to Length(Result) do
+  begin
+    case Result[i] of
+      #$C9: Result[i] := 'Q';
+      #$D6: Result[i] := 'W';
+      #$D3: Result[i] := 'E';
+      #$CA: Result[i] := 'R';
+      #$C5: Result[i] := 'T';
+      #$CD: Result[i] := 'Y';
+      #$C3: Result[i] := 'U';
+      #$D8: Result[i] := 'I';
+      #$D9: Result[i] := 'O';
+      #$C7: Result[i] := 'P';
+      #$D5: Result[i] := '['; //Chr(219);
+      #$DA: Result[i] := ']'; //Chr(221);
+      #$D4: Result[i] := 'A';
+      #$DB: Result[i] := 'S';
+      #$C2: Result[i] := 'D';
+      #$C0: Result[i] := 'F';
+      #$CF: Result[i] := 'G';
+      #$D0: Result[i] := 'H';
+      #$CE: Result[i] := 'J';
+      #$CB: Result[i] := 'K';
+      #$C4: Result[i] := 'L';
+      #$C6: Result[i] := ';'; //Chr(186);
+      #$DD: Result[i] := #39; //Chr(222);
+      #$DF: Result[i] := 'Z';
+      #$D7: Result[i] := 'X';
+      #$D1: Result[i] := 'C';
+      #$CC: Result[i] := 'V';
+      #$C8: Result[i] := 'B';
+      #$D2: Result[i] := 'N';
+      #$DC: Result[i] := 'M';
+      #$C1: Result[i] := ','; //Chr(188);
+      #$DE: Result[i] := '.'; //Chr(190);
+    end;
+  end;
+end;
+
+
+function CheckCheat (ct: TStrings_Locale; eofs: Integer=0): Boolean;
+var
+  ls1, ls2: string;
+begin
+  ls1 :=          CheatEng[ct];
+  ls2 := Translit(CheatRus[ct]);
+  if length(ls1) = 0 then ls1 := '~';
+  if length(ls2) = 0 then ls2 := '~';
+  result :=
+    (Copy(charbuff, 17-Length(ls1)-eofs, Length(ls1)) = ls1) or
+    (Translit(Copy(charbuff, 17-Length(ls1)-eofs, Length(ls1))) = ls1) or
+    (Copy(charbuff, 17-Length(ls2)-eofs, Length(ls2)) = ls2) or
+    (Translit(Copy(charbuff, 17-Length(ls2)-eofs, Length(ls2))) = ls2);
+  {
+  if ct = I_GAME_CHEAT_JETPACK then
+  begin
+    e_WriteLog('ls1: ['+ls1+']', MSG_NOTIFY);
+    e_WriteLog('ls2: ['+ls2+']', MSG_NOTIFY);
+    e_WriteLog('bf0: ['+Copy(charbuff, 17-Length(ls1)-eofs, Length(ls1))+']', MSG_NOTIFY);
+    e_WriteLog('bf1: ['+Translit(Copy(charbuff, 17-Length(ls1)-eofs, Length(ls1)))+']', MSG_NOTIFY);
+    e_WriteLog('bf2: ['+Copy(charbuff, 17-Length(ls2)-eofs, Length(ls2))+']', MSG_NOTIFY);
+    e_WriteLog('bf3: ['+Translit(Copy(charbuff, 17-Length(ls2)-eofs, Length(ls2)))+']', MSG_NOTIFY);
+  end;
+  }
+end;
+
+procedure Cheat ();
+const
+  CHEAT_DAMAGE = 500;
+label
+  Cheated;
+var
+  s, s2: string;
+  c: ShortString;
+  a: Integer;
+begin
+  {
+  if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and
+    (gGameSettings.GameMode <> GM_COOP) and (not gDebugMode))
+    or g_Game_IsNet then Exit;
+  }
+  if not gGameOn then exit;
+  if not conIsCheatsEnabled then exit;
+
+  s := 'SOUND_GAME_RADIO';
+
+  //
+  if CheckCheat(I_GAME_CHEAT_GODMODE) then
+  begin
+    if gPlayer1 <> nil then gPlayer1.GodMode := not gPlayer1.GodMode;
+    if gPlayer2 <> nil then gPlayer2.GodMode := not gPlayer2.GodMode;
+    goto Cheated;
+  end;
+  // RAMBO
+  if CheckCheat(I_GAME_CHEAT_WEAPONS) then
+  begin
+    if gPlayer1 <> nil then gPlayer1.AllRulez(False);
+    if gPlayer2 <> nil then gPlayer2.AllRulez(False);
+    goto Cheated;
+  end;
+  // TANK
+  if CheckCheat(I_GAME_CHEAT_HEALTH) then
+  begin
+    if gPlayer1 <> nil then gPlayer1.AllRulez(True);
+    if gPlayer2 <> nil then gPlayer2.AllRulez(True);
+    goto Cheated;
+  end;
+  // IDDQD
+  if CheckCheat(I_GAME_CHEAT_DEATH) then
+  begin
+    if gPlayer1 <> nil then gPlayer1.Damage(CHEAT_DAMAGE, 0, 0, 0, HIT_TRAP);
+    if gPlayer2 <> nil then gPlayer2.Damage(CHEAT_DAMAGE, 0, 0, 0, HIT_TRAP);
+    s := 'SOUND_MONSTER_HAHA';
+    goto Cheated;
+  end;
+  //
+  if CheckCheat(I_GAME_CHEAT_DOORS) then
+  begin
+    g_Triggers_OpenAll();
+    goto Cheated;
+  end;
+  // GOODBYE
+  if CheckCheat(I_GAME_CHEAT_NEXTMAP) then
+  begin
+    if gTriggers <> nil then
+      for a := 0 to High(gTriggers) do
+        if gTriggers[a].TriggerType = TRIGGER_EXIT then
+        begin
+          gExitByTrigger := True;
+          //g_Game_ExitLevel(gTriggers[a].Data.MapName);
+          g_Game_ExitLevel(gTriggers[a].tgcMap);
+          Break;
+        end;
+    goto Cheated;
+  end;
+  //
+  s2 := Copy(charbuff, 15, 2);
+  if CheckCheat(I_GAME_CHEAT_CHANGEMAP, 2) and (s2[1] >= '0') and (s2[1] <= '9') and (s2[2] >= '0') and (s2[2] <= '9') then
+  begin
+    if g_Map_Exist(gGameSettings.WAD + ':\MAP' + s2) then
+    begin
+      c := 'MAP' + s2;
+      g_Game_ExitLevel(c);
+    end;
+    goto Cheated;
+  end;
+  //
+  if CheckCheat(I_GAME_CHEAT_FLY) then
+  begin
+    gFly := not gFly;
+    goto Cheated;
+  end;
+  // BULLFROG
+  if CheckCheat(I_GAME_CHEAT_JUMPS) then
+  begin
+    VEL_JUMP := 30-VEL_JUMP;
+    goto Cheated;
+  end;
+  // FORMULA1
+  if CheckCheat(I_GAME_CHEAT_SPEED) then
+  begin
+    MAX_RUNVEL := 32-MAX_RUNVEL;
+    goto Cheated;
+  end;
+  // CONDOM
+  if CheckCheat(I_GAME_CHEAT_SUIT) then
+  begin
+    if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_SUIT);
+    if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_SUIT);
+    goto Cheated;
+  end;
+  //
+  if CheckCheat(I_GAME_CHEAT_AIR) then
+  begin
+    if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_OXYGEN);
+    if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_OXYGEN);
+    goto Cheated;
+  end;
+  // PURELOVE
+  if CheckCheat(I_GAME_CHEAT_BERSERK) then
+  begin
+    if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_MEDKIT_BLACK);
+    if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_MEDKIT_BLACK);
+    goto Cheated;
+  end;
+  //
+  if CheckCheat(I_GAME_CHEAT_JETPACK) then
+  begin
+    if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_JETPACK);
+    if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_JETPACK);
+    goto Cheated;
+  end;
+  // CASPER
+  if CheckCheat(I_GAME_CHEAT_NOCLIP) then
+  begin
+    if gPlayer1 <> nil then gPlayer1.SwitchNoClip;
+    if gPlayer2 <> nil then gPlayer2.SwitchNoClip;
+    goto Cheated;
+  end;
+  //
+  if CheckCheat(I_GAME_CHEAT_NOTARGET) then
+  begin
+    if gPlayer1 <> nil then gPlayer1.NoTarget := not gPlayer1.NoTarget;
+    if gPlayer2 <> nil then gPlayer2.NoTarget := not gPlayer2.NoTarget;
+    goto Cheated;
+  end;
+  // INFERNO
+  if CheckCheat(I_GAME_CHEAT_NORELOAD) then
+  begin
+    if gPlayer1 <> nil then gPlayer1.NoReload := not gPlayer1.NoReload;
+    if gPlayer2 <> nil then gPlayer2.NoReload := not gPlayer2.NoReload;
+    goto Cheated;
+  end;
+  if CheckCheat(I_GAME_CHEAT_AIMLINE) then
+  begin
+    gAimLine := not gAimLine;
+    goto Cheated;
+  end;
+  if CheckCheat(I_GAME_CHEAT_AUTOMAP) then
+  begin
+    gShowMap := not gShowMap;
+    goto Cheated;
+  end;
+  Exit;
+
+Cheated:
+  g_Sound_PlayEx(s);
+end;
+
+
+procedure KeyPress (K: Word);
+{$IFNDEF HEADLESS}
+var
+  Msg: g_gui.TMessage;
+{$ENDIF}
+begin
+{$IFNDEF HEADLESS}
+  case K of
+    VK_ESCAPE: // <Esc>:
+      begin
+        if (g_ActiveWindow <> nil) then
+        begin
+          Msg.Msg := WM_KEYDOWN;
+          Msg.WParam := VK_ESCAPE;
+          g_ActiveWindow.OnMessage(Msg);
+          if (not g_Game_IsNet) and (g_ActiveWindow = nil) then g_Game_Pause(false); //Fn loves to do this
+        end
+        else if (gState <> STATE_FOLD) then
+        begin
+          if gGameOn or (gState = STATE_INTERSINGLE) or (gState = STATE_INTERCUSTOM) then
+          begin
+            g_Game_InGameMenu(True);
+          end
+          else if (gExit = 0) and (gState <> STATE_SLIST) then
+          begin
+            if (gState <> STATE_MENU) then
+            begin
+              if (NetMode <> NET_NONE) then
+              begin
+                g_Game_StopAllSounds(True);
+                g_Game_Free;
+                gState := STATE_MENU;
+                Exit;
+              end;
+            end;
+            g_GUI_ShowWindow('MainMenu');
+            g_Sound_PlayEx('MENU_OPEN');
+          end;
+        end;
+      end;
+
+    IK_F2, IK_F3, IK_F4, IK_F5, IK_F6, IK_F7, IK_F10:
+      begin // <F2> .. <F6> � <F12>
+        if gGameOn and (not gConsoleShow) and (not gChatShow) then
+        begin
+          while (g_ActiveWindow <> nil) do g_GUI_HideWindow(False);
+          if (not g_Game_IsNet) then g_Game_Pause(True);
+          case K of
+            IK_F2: g_Menu_Show_SaveMenu();
+            IK_F3: g_Menu_Show_LoadMenu();
+            IK_F4: g_Menu_Show_GameSetGame();
+            IK_F5: g_Menu_Show_OptionsVideo();
+            IK_F6: g_Menu_Show_OptionsSound();
+            IK_F7: g_Menu_Show_EndGameMenu();
+            IK_F10: g_Menu_Show_QuitGameMenu();
+          end;
+        end;
+      end;
+
+    else
+      begin
+        gJustChatted := False;
+        if gConsoleShow or gChatShow then
+        begin
+          g_Console_Control(K);
+        end
+        else if (g_ActiveWindow <> nil) then
+        begin
+          Msg.Msg := WM_KEYDOWN;
+          Msg.WParam := K;
+          g_ActiveWindow.OnMessage(Msg);
+        end
+        else if (gState = STATE_MENU) then
+        begin
+          g_GUI_ShowWindow('MainMenu');
+          g_Sound_PlayEx('MENU_OPEN');
+        end;
+      end;
+  end;
+{$ENDIF}
+end;
+
+procedure CharPress (C: AnsiChar);
+var
+  Msg: g_gui.TMessage;
+  a: Integer;
+begin
+  if gConsoleShow or gChatShow then
+  begin
+    g_Console_Char(C)
+  end
+  else if (g_ActiveWindow <> nil) then
+  begin
+    Msg.Msg := WM_CHAR;
+    Msg.WParam := Ord(C);
+    g_ActiveWindow.OnMessage(Msg);
+  end
+  else
+  begin
+    for a := 0 to 14 do charbuff[a] := charbuff[a+1];
+    charbuff[15] := upcase1251(C);
+    Cheat();
+  end;
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //

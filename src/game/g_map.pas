@@ -247,7 +247,7 @@ var
 implementation
 
 uses
-  e_input, g_main, e_log, e_res, g_items, g_gfx, g_console,
+  e_input, e_log, e_res, g_items, g_gfx, g_console,
   g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, g_triggers, g_player,
   Math, g_monsters, g_saveload, g_language, g_netmsg,

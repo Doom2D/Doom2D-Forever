@@ -25,9 +25,9 @@ implementation
 
   uses
     SysUtils, Classes, Math,
-    e_log, r_graphics,
+    e_log, r_graphics, g_options,
     conbuf,
-    g_base, g_main, g_console, g_game, g_menu, g_textures
+    g_base, g_console, g_game, g_menu, g_textures
   ;
 
 (* ====== Console ====== *)

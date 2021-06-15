@@ -28,8 +28,8 @@ implementation
   uses
     SysUtils, Classes, Math,
     MAPDEF,
-    r_graphics,
-    g_base, g_basic, g_map, g_weapons, g_textures, g_main
+    r_graphics, g_options,
+    g_base, g_basic, g_map, g_weapons, g_textures
   ;
 
   const

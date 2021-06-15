@@ -94,9 +94,9 @@ implementation
 
 uses
   Math,
-  g_basic, g_sound, g_main, g_gfx, g_map,
+  g_basic, g_sound, g_gfx, g_map,
   g_game, g_triggers, g_console, g_player, g_net, g_netmsg,
-  e_log,
+  e_log, g_options,
   g_grid, binheap, idpool, utils, xstreams;
 
 // ////////////////////////////////////////////////////////////////////////// //

@@ -37,8 +37,8 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes, sdlcarcass, fui_ctls,
 {$ENDIF}
-  SysUtils, Classes, MAPDEF, Math,
-  r_window, e_log, g_main,
+  SysUtils, Classes, MAPDEF, Math, r_graphics,
+  r_window, e_log, e_res, envvars, r_game,
   g_console, r_console, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
   g_map, g_gfx, g_monsters, xprofiler,
@@ -50,6 +50,119 @@ var
   flag: Boolean;
   wNeedTimeReset: Boolean = false;
   wLoadingQuit: Boolean = false;
+
+  {$IFDEF USE_SDLMIXER}
+    UseNativeMusic: Boolean;
+  {$ENDIF}
+
+procedure Update ();
+begin
+  // remember old mobj positions, prepare for update
+  g_Game_PreUpdate();
+  // server: receive client commands for new frame
+  // client: receive game state changes from server
+       if (NetMode = NET_SERVER) then g_Net_Host_Update()
+  else if (NetMode = NET_CLIENT) then g_Net_Client_Update();
+  // think
+  g_Game_Update();
+  // server: send any accumulated outgoing data to clients
+  if NetMode = NET_SERVER then g_Net_Flush();
+end;
+
+
+procedure Draw ();
+begin
+  r_Game_Draw();
+end;
+
+
+procedure Init();
+  {$IFDEF USE_SDLMIXER}
+    var timiditycfg: AnsiString;
+    var oldcwd, newcwd: RawByteString;
+  {$ENDIF}
+  var NoSound: Boolean;
+begin
+  Randomize;
+
+{$IFDEF HEADLESS}
+ {$IFDEF USE_SDLMIXER}
+  NoSound := False; // hope env has set SDL_AUDIODRIVER to dummy
+ {$ELSE}
+  NoSound := True; // FMOD backend will sort it out
+ {$ENDIF}
+{$ELSE}
+  NoSound := False;
+{$ENDIF}
+
+  g_Touch_Init;
+
+(*
+  if (e_JoysticksAvailable > 0) then
+    e_WriteLog('Input: Joysticks available.', TMsgType.Notify)
+  else
+    e_WriteLog('Input: No Joysticks.', TMsgType.Notify);
+*)
+
+  if gNoSound = false then
+  begin
+    e_WriteLog('Initializing sound system', TMsgType.Notify);
+    {$IFDEF USE_SDLMIXER}
+      newcwd := '';
+      if UseNativeMusic then
+        SetEnvVar('SDL_NATIVE_MUSIC', '1');
+      timiditycfg := GetEnvironmentVariable('TIMIDITY_CFG');
+      if timiditycfg = '' then
+      begin
+        timiditycfg := 'timidity.cfg';
+        if e_FindResource(ConfigDirs, timiditycfg) OR e_FindResource(DataDirs, timiditycfg) then
+        begin
+          timiditycfg := ExpandFileName(timiditycfg);
+          newcwd := ExtractFileDir(timiditycfg);
+          SetEnvVar('TIMIDITY_CFG', timiditycfg);
+        end
+        else
+          timiditycfg := '';
+      end;
+      e_LogWritefln('TIMIDITY_CFG = "%s"', [timiditycfg]);
+      e_LogWritefln('SDL_NATIVE_MUSIC = "%s"', [GetEnvironmentVariable('SDL_NATIVE_MUSIC')]);
+    {$ENDIF}
+    e_InitSoundSystem(NoSound);
+    {$IFDEF USE_SDLMIXER}
+      if e_TimidityDecoder and (newcwd <> '') then
+      begin
+        (* HACK: Set CWD to load GUS patches relatively to cfg file. *)
+        (*       CWD not restored after sound init because timidity  *)
+        (*       store relative pathes internally and load patches   *)
+        (*       later. I hope game never relies on CWD.             *)
+        oldcwd := '';
+        GetDir(0, oldcwd);
+        ChDir(newcwd);
+        e_logwritefln('WARNING: USED TIMIDITY CONFIG HACK, CWD SWITCHED "%s" -> "%s"', [oldcwd, newcwd]);
+      end;
+    {$ENDIF}
+  end;
+
+  e_WriteLog('Init game', TMsgType.Notify);
+  g_Game_Init();
+
+//  FillChar(charbuff, sizeof(charbuff), ' ');
+end;
+
+procedure Release();
+begin
+  e_WriteLog('Releasing engine', TMsgType.Notify);
+  e_ReleaseEngine();
+
+  e_WriteLog('Releasing input', TMsgType.Notify);
+  e_ReleaseInput();
+
+  if not gNoSound then
+  begin
+    e_WriteLog('Releasing sound', TMsgType.Notify);
+    e_ReleaseSoundSystem();
+  end;
+end;
 
 procedure ResetTimer ();
 begin
@@ -276,5 +389,13 @@ end;
 
 
 initialization
+{$IFDEF USE_SDLMIXER}
+  conRegVar('sdl_native_music', @UseNativeMusic, 'use native midi music output when possible', 'use native midi');
+  {$IFDEF DARWIN}
+    UseNativeMusic := true; (* OSX have a good midi support, so why not? *)
+  {$ELSE}
+    UseNativeMusic := false;
+  {$ENDIF}
+{$ENDIF}
   conRegVar('d_input', @g_dbg_input, '', '')
 end.

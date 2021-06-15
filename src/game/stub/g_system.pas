@@ -37,6 +37,9 @@ interface
   procedure sys_Init;
   procedure sys_Final;
 
+  var (* hooks *)
+    sys_CharPress: procedure (ch: AnsiChar) = nil;
+
 implementation
 
   uses SysUtils;

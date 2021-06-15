@@ -85,6 +85,28 @@ var
   g_dbg_scale: Single = 1.0;
   r_pixel_scale: Single = 1.0;
 
+  {--- Read-only dirs ---}
+  GameWAD: string;
+  DataDirs: SSArray;
+  ModelDirs: SSArray;
+  MegawadDirs: SSArray;
+  MapDirs: SSArray;
+  WadDirs: SSArray;
+  AllMapDirs: SSArray; // Maps + Megawads
+
+  {--- Read-Write dirs ---}
+  LogFileName: string;
+  LogDirs: SSArray;
+  SaveDirs: SSArray;
+  CacheDirs: SSArray;
+  ConfigDirs: SSArray;
+  ScreenshotDirs: SSArray;
+  StatsDirs: SSArray;
+  MapDownloadDirs: SSArray;
+  WadDownloadDirs: SSArray;
+
+  GameWADName: string = 'GAME';
+
 implementation
 
 uses
@@ -92,7 +114,7 @@ uses
     SDL2,
   {$ENDIF}
   e_log, e_input, g_console, g_window, g_sound, g_gfx, g_player, Math,
-  g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main,
+  g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game,
   g_items, wadreader, g_touch, envvars, g_system;
 
   var

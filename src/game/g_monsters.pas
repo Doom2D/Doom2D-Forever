@@ -488,7 +488,7 @@ var
 implementation
 
 uses
-  e_log, g_main, g_sound, g_gfx, g_player, g_game,
+  e_log, g_sound, g_gfx, g_player, g_game,
   g_weapons, g_triggers, g_items, g_options,
   g_console, g_map, Math, g_menu, wadreader,
   g_language, g_netmsg, idpool, utils, xstreams;

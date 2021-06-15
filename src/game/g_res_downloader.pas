@@ -17,7 +17,7 @@ unit g_res_downloader;
 
 interface
 
-uses sysutils, Classes, md5, g_net, g_netmsg, g_console, g_main, e_log;
+uses sysutils, Classes, md5, g_net, g_netmsg, g_console, e_log;
 
 
 // download map wad from server (if necessary)
@@ -35,7 +35,7 @@ procedure g_Res_CreateDatabases (allowRescan: Boolean=false);
 
 implementation
 
-uses g_language, sfs, utils, wadreader, g_game, hashtable, fhashdb, e_res;
+uses g_language, sfs, utils, wadreader, g_game, hashtable, fhashdb, e_res, g_options;
 
 var
   // cvars

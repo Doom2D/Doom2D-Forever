@@ -50,7 +50,7 @@ uses
   {$INCLUDE ../nogl/noGLuses.inc}
   {rttiobj,} typinfo, e_res,
   SysUtils, Classes, SDL2,
-  MAPDEF, g_main, g_options,
+  MAPDEF, g_options,
   utils, hashtable, xparser;
 
 

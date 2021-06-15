@@ -37,6 +37,9 @@ interface
   procedure sys_Init;
   procedure sys_Final;
 
+  var (* hooks *)
+    sys_CharPress: procedure (ch: AnsiChar) = nil;
+
 implementation
 
   uses
@@ -46,7 +49,7 @@ implementation
     {$IFDEF ENABLE_HOLMES}
       g_holmes, sdlcarcass, fui_ctls,
     {$ENDIF}
-    g_touch, g_options, g_window, g_console, g_game, g_menu, g_gui, g_main, g_basic;
+    g_touch, g_options, g_window, g_console, g_game, g_menu, g_gui, g_basic;
 
   const
     GameTitle = 'Doom 2D: Forever (SDL 2, %s)';
@@ -533,8 +536,9 @@ implementation
     sch := AnsiChar(wchar2win(ch));
     if g_dbg_input then
       e_LogWritefln('Input Debug: text, text="%s", ch = %s, sch = %s', [ev.text, Ord(ch), Ord(sch)]);
-    if IsValid1251(Word(ch)) and IsPrintable1251(ch) then
-      CharPress(sch);
+    if @sys_CharPress <> nil then
+      if IsValid1251(Word(ch)) and IsPrintable1251(ch) then
+        sys_CharPress(sch)
   end;
 
   function sys_HandleInput (): Boolean;

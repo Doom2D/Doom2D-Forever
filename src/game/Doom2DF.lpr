@@ -27,7 +27,10 @@ uses
   ctypes,
 {$ENDIF}
 {$IFDEF UNIX}
-  cthreads,
+  cthreads, BaseUnix,
+{$ENDIF}
+{$IFDEF DARWIN}
+  MacOSAll, CocoaAll,
 {$ENDIF}
   mempool in '../shared/mempool.pas',
   conbuf in '../shared/conbuf.pas',
@@ -123,7 +126,6 @@ uses
   g_gfx in 'g_gfx.pas',
   g_gui in 'g_gui.pas',
   g_items in 'g_items.pas',
-  g_main in 'g_main.pas',
   g_map in 'g_map.pas',
   g_menu in 'g_menu.pas',
   g_monsters in 'g_monsters.pas',
@@ -204,25 +206,514 @@ uses
   {$R *.res}
 {$ENDIF}
 
-{$IFDEF ANDROID}
-function SDL_main(argc: CInt; argv: PPChar): CInt; cdecl;
-{$ENDIF ANDROID}
+  var
+    noct: Boolean = False;
+    binPath: AnsiString = '';
+    forceBinDir: Boolean = False;
 
-var
-  f: Integer;
-  noct: Boolean = false;
-{$IFDEF ANDROID}
-  storage: String;
-{$ENDIF}
-  //tfo: Text;
+function GetBinaryPath (): AnsiString;
+  {$IFDEF LINUX}
+    var sl: AnsiString;
+  {$ENDIF}
 begin
-{$IFDEF ANDROID}
-  System.argc := argc;
-  System.argv := argv;
+  result := ExtractFilePath(ParamStr(0));
+  {$IFDEF LINUX}
+  // it may be a symlink; do some guesswork here
+  sl := fpReadLink(ExtractFileName(ParamStr(0)));
+  if (sl = ParamStr(0)) then
+  begin
+    // use current directory, as we don't have anything better
+    //result := '.';
+    GetDir(0, result);
+  end;
+  {$ENDIF}
+  result := fixSlashes(result);
+  if (length(result) > 0) and (result[length(result)] <> '/') then
+    result := result + '/';
+end;
+
+procedure PrintDirs (msg: AnsiString; dirs: SSArray);
+  var dir: AnsiString;
+begin
+  e_LogWriteln(msg + ':');
+  for dir in dirs do
+    e_LogWriteln('  ' + dir);
+end;
+
+{$IFDEF DARWIN}
+  function NSStringToAnsiString (s: NSString): AnsiString;
+    var i: Integer;
+  begin
+    result := '';
+    for i := 0 to s.length - 1 do
+      result := result + AnsiChar(s.characterAtIndex(i));
+  end;
+
+  function GetBundlePath (): AnsiString;
+    var pathRef: CFURLRef; pathCFStr: CFStringRef; pathStr: ShortString;
+  begin
+    pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+    pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+    CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+    CFRelease(pathRef);
+    CFRelease(pathCFStr);
+    Result := pathStr;
+  end;
 {$ENDIF}
 
-  SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]); //k8: fuck off, that's why
+procedure InitPath;
+  var i: Integer; rwdir, rodir: AnsiString; rwdirs, rodirs: SSArray;
 
+  procedure AddDir (var dirs: SSArray; append: AnsiString);
+  begin
+    SetLength(dirs, Length(dirs) + 1);
+    dirs[High(dirs)] := ExpandFileName(append)
+  end;
+
+  function IsSep (ch: Char): Boolean;
+  begin
+    {$IFDEF WINDOWS}
+    result := (ch = '/') or (ch = '\');
+    {$ELSE}
+    result := (ch = '/');
+    {$ENDIF}
+  end;
+
+  function OptimizePath (dir: AnsiString): AnsiString;
+    var i, len: Integer; s: AnsiString;
+  begin
+    i := 1; len := Length(dir); s := '';
+    while i <= len do
+    begin
+      if IsSep(dir[i]) then
+      begin
+        s := s + DirectorySeparator;
+        Inc(i);
+        while (i <= len) and IsSep(dir[i]) do Inc(i);
+        if (i <= len) and (dir[i] = '.') then
+        begin
+          if (i = len) or IsSep(dir[i + 1]) then
+          begin
+            Inc(i)
+          end
+          else if (i + 1 <= len) and (dir[i + 1] = '.') then
+          begin
+            if (i + 1 = len) or IsSep(dir[i + 2]) then
+            begin
+              s := e_UpperDir(s);
+              Inc(i, 2)
+            end
+          end
+        end
+      end
+      else
+      begin
+        s := s + dir[i];
+        Inc(i)
+      end
+    end;
+    result := s
+  end;
+
+  procedure OptimizeDirs (var dirs: SSArray);
+    var i, j, k: Integer;
+  begin
+    for i := 0 to High(dirs) do
+      dirs[i] := OptimizePath(dirs[i]);
+    // deduplicate
+    i := High(dirs);
+    while i >= 0 do
+    begin
+      j := 0;
+      while j < i do
+      begin
+        if dirs[j] = dirs[i] then
+        begin
+          for k := j + 1 to High(dirs) do
+            dirs[k - 1] := dirs[k];
+          Dec(i);
+          SetLength(dirs, High(dirs))
+        end
+        else
+        begin
+          Inc(j)
+        end
+      end;
+      Dec(i)
+    end
+  end;
+
+  procedure AddDef (var dirs: SSArray; base: SSArray; append: AnsiString);
+    var s: AnsiString;
+  begin
+    if Length(dirs) = 0 then
+      for s in base do
+        AddDir(dirs, e_CatPath(s, append));
+    OptimizeDirs(dirs)
+  end;
+
+  function GetDefaultRODirs (): SSArray;
+    {$IF DEFINED(UNIX) AND NOT DEFINED(DARWIN) AND NOT DEFINED(ANDROID)}
+      var home: AnsiString;
+    {$ENDIF}
+    {$IFDEF WINDOWS}
+      var appdata: AnsiString;
+    {$ENDIF}
+    {$IFDEF DARWIN}
+      var bundle, s: AnsiString; dirArr: NSArray; i: Integer;
+    {$ENDIF}
+  begin
+    result := nil;
+    {$IFDEF DARWIN}
+      bundle := GetBundlePath();
+      if ExtractFileExt(bundle) <> '.app' then
+        AddDir(result, binpath);
+    {$ELSE}
+      AddDir(result, binPath);
+    {$ENDIF}
+    if forceBinDir = false then
+    begin
+      {$IFDEF USE_SDL2}
+        AddDir(result, SDL_GetBasePath());
+        AddDir(result, SDL_GetPrefPath('', 'doom2df'));
+      {$ENDIF}
+      {$IFDEF WINDOWS}
+        appdata := GetEnvironmentVariable('APPDATA') + '\doom2df';
+        if appdata <> '' then
+          AddDir(result, appdata);
+      {$ENDIF}
+      {$IF DEFINED(UNIX) AND NOT DEFINED(DARWIN) AND NOT DEFINED(ANDROID)}
+        AddDir(result, '/usr/share/doom2df');
+        AddDir(result, '/usr/local/share/doom2df');
+        home := GetEnvironmentVariable('HOME');
+        if home <> '' then
+          AddDir(result, e_CatPath(home, '.doom2df'));
+      {$ENDIF}
+      {$IFDEF DARWIN}
+        bundle := GetBundlePath();
+        if bundle <> '' then
+          AddDir(result, e_CatPath(bundle, 'Contents/Resources'));
+        dirArr := NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true);
+        for i := 0 to dirArr.count - 1 do
+        begin
+          s := NSStringToAnsiString(dirArr.objectAtIndex(i));
+          AddDir(result, e_CatPath(s, 'Doom 2D Forever'))
+        end;
+      {$ENDIF}
+      {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
+        AddDir(result, SDL_AndroidGetInternalStoragePath());
+        if SDL_AndroidGetExternalStorageState() <> 0 then
+          AddDir(result, SDL_AndroidGetExternalStoragePath());
+      {$ENDIF}
+    end
+  end;
+
+  function GetDefaultRWDirs (): SSArray;
+    {$IF DEFINED(UNIX) AND NOT DEFINED(DARWIN) AND NOT DEFINED(ANDROID)}
+      var home: AnsiString;
+    {$ENDIF}
+    {$IFDEF WINDOWS}
+      var appdata: AnsiString;
+    {$ENDIF}
+    {$IFDEF DARWIN}
+      var bundle, s: AnsiString; dirArr: NSArray; i: Integer;
+    {$ENDIF}
+  begin
+    result := nil;
+    {$IFDEF DARWIN}
+      bundle := GetBundlePath();
+      if ExtractFileExt(bundle) <> '.app' then
+        AddDir(result, binPath);
+    {$ELSE}
+      AddDir(result, binPath);
+    {$ENDIF}
+    if forceBinDir = false then
+    begin
+      {$IFDEF USE_SDL2}
+        AddDir(result, SDL_GetPrefPath('', 'doom2df'));
+      {$ENDIF}
+      {$IFDEF WINDOWS}
+        appdata := GetEnvironmentVariable('APPDATA') + '\doom2df';
+        if appdata <> '' then
+          AddDir(result, appdata);
+      {$ENDIF}
+      {$IF DEFINED(UNIX) AND NOT DEFINED(DARWIN) AND NOT DEFINED(ANDROID)}
+        home := GetEnvironmentVariable('HOME');
+        if home <> '' then
+          AddDir(result, e_CatPath(home, '.doom2df'));
+      {$ENDIF}
+      {$IFDEF DARWIN}
+        dirArr := NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true);
+        for i := 0 to dirArr.count - 1 do
+        begin
+          s := NSStringToAnsiString(dirArr.objectAtIndex(i));
+          AddDir(result, e_CatPath(s, 'Doom 2D Forever'))
+        end;
+      {$ENDIF}
+      {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
+        if SDL_AndroidGetExternalStorageState() <> 0 then
+          AddDir(result, SDL_AndroidGetExternalStoragePath());
+      {$ENDIF}
+    end
+  end;
+
+begin
+  forceBinDir := false;
+  binPath := GetBinaryPath();
+
+  i := 1;
+  while i < ParamCount do
+  begin
+    case ParamStr(i) of
+    '--like-windoze': forceBinDir := true;
+    '--rw-dir':
+      begin
+        Inc(i);
+        rwdir := ParamStr(i);
+        (* RW *)
+        AddDir(LogDirs, e_CatPath(rwdir, ''));
+        AddDir(SaveDirs, e_CatPath(rwdir, 'data'));
+        AddDir(CacheDirs, e_CatPath(rwdir, 'data/cache'));
+        AddDir(ConfigDirs, e_CatPath(rwdir, ''));
+        AddDir(MapDownloadDirs, e_CatPath(rwdir, 'maps/downloads'));
+        AddDir(WadDownloadDirs, e_CatPath(rwdir, 'wads/downloads'));
+        AddDir(ScreenshotDirs, e_CatPath(rwdir, 'screenshots'));
+        AddDir(StatsDirs, e_CatPath(rwdir, 'stats'));
+        (* RO *)
+        AddDir(DataDirs, e_CatPath(rwdir, 'data'));
+        AddDir(ModelDirs, e_CatPath(rwdir, 'data/models'));
+        AddDir(MegawadDirs, e_CatPath(rwdir, 'maps/megawads'));
+        AddDir(MapDirs, e_CatPath(rwdir, 'maps'));
+        AddDir(WadDirs, e_CatPath(rwdir, 'wads'));
+      end;
+    '--ro-dir':
+      begin
+        Inc(i);
+        rodir := ParamStr(i);
+        (* RO *)
+        AddDir(DataDirs, e_CatPath(rodir, 'data'));
+        AddDir(ModelDirs, e_CatPath(rodir, 'data/models'));
+        AddDir(MegawadDirs, e_CatPath(rodir, 'maps/megawads'));
+        AddDir(MapDirs, e_CatPath(rodir, 'maps'));
+        AddDir(WadDirs, e_CatPath(rodir, 'wads'));
+      end;
+    '--game-wad':
+      begin
+        Inc(i);
+        GameWADName := ParamStr(i);
+      end;
+    '--config':
+      begin
+        Inc(i);
+        gConfigScript := ParamStr(i);
+      end;
+    end;
+    Inc(i)
+  end;
+
+  // prefer bin dir if it writable and contains game.wad
+  if forceBinDir = false then
+  begin
+    if findDiskWad(binPath + 'data' + '/' + GameWADName) <> '' then
+      if e_CanCreateFilesAt(binPath) then
+        forceBinDir := true
+  end;
+
+  (* RO *)
+  rodirs := GetDefaultRODirs();
+  AddDef(DataDirs, rodirs, 'data');
+  AddDef(ModelDirs, rodirs, 'data/models');
+  AddDef(MegawadDirs, rodirs, 'maps/megawads');
+  AddDef(MapDirs, rodirs, 'maps');
+  AddDef(WadDirs, rodirs, 'wads');
+
+  (* RW *)
+  rwdirs := GetDefaultRWDirs();
+  AddDef(LogDirs, rwdirs, '');
+  AddDef(SaveDirs, rwdirs, 'data');
+  AddDef(CacheDirs, rwdirs, 'data/cache');
+  AddDef(ConfigDirs, rwdirs, '');
+  AddDef(MapDownloadDirs, rwdirs, 'maps/downloads');
+  AddDef(WadDownloadDirs, rwdirs, 'wads/downloads');
+  AddDef(ScreenshotDirs, rwdirs, 'screenshots');
+  AddDef(StatsDirs, rwdirs, 'stats');
+
+  for i := 0 to High(MapDirs) do
+    AddDir(AllMapDirs, MapDirs[i]);
+  for i := 0 to High(MegawadDirs) do
+    AddDir(AllMapDirs, MegawadDirs[i]);
+  OptimizeDirs(AllMapDirs);
+
+  if LogFileName = '' then
+  begin
+    rwdir := e_GetWriteableDir(LogDirs, false);
+    if rwdir <> '' then
+    begin
+      {$IFDEF HEADLESS}
+        LogFileName := e_CatPath(rwdir, 'Doom2DF_H.log');
+      {$ELSE}
+        LogFileName := e_CatPath(rwdir, 'Doom2DF.log');
+      {$ENDIF}
+    end
+  end;
+
+  // HACK: ensure the screenshots folder also has a stats subfolder in it
+  rwdir := e_GetWriteableDir(ScreenshotDirs, false);
+  if rwdir <> '' then CreateDir(rwdir + '/stats');
+end;
+
+procedure InitPrep;
+  var i: Integer;
+begin
+  {$IFDEF HEADLESS}
+    conbufDumpToStdOut := true;
+  {$ENDIF}
+  for i := 1 to ParamCount do
+  begin
+    case ParamStr(i) of
+      '--con-stdout': conbufDumpToStdOut := true;
+      '--no-fbo': glRenderToFBO := false;
+    end
+  end;
+
+  if LogFileName <> '' then
+    e_InitLog(LogFileName, TWriteMode.WM_NEWFILE);
+  e_InitWritelnDriver();
+  e_WriteLog('Doom 2D: Forever version ' + GAME_VERSION + ' proto ' + IntToStr(NET_PROTOCOL_VER), TMsgType.Notify);
+  e_WriteLog('Build date: ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME, TMsgType.Notify);
+  e_WriteLog('Build hash: ' + g_GetBuildHash(), TMsgType.Notify);
+  e_WriteLog('Build by: ' + g_GetBuilderName(), TMsgType.Notify);
+
+  e_LogWritefln('Force bin dir: %s', [forceBinDir], TMsgType.Notify);
+  e_LogWritefln('BINARY PATH: [%s]', [binPath], TMsgType.Notify);
+
+  PrintDirs('DataDirs', DataDirs);
+  PrintDirs('ModelDirs', ModelDirs);
+  PrintDirs('MegawadDirs', MegawadDirs);
+  PrintDirs('MapDirs', MapDirs);
+  PrintDirs('WadDirs', WadDirs);
+
+  PrintDirs('LogDirs', LogDirs);
+  PrintDirs('SaveDirs', SaveDirs);
+  PrintDirs('CacheDirs', CacheDirs);
+  PrintDirs('ConfigDirs', ConfigDirs);
+  PrintDirs('ScreenshotDirs', ScreenshotDirs);
+  PrintDirs('StatsDirs', StatsDirs);
+  PrintDirs('MapDownloadDirs', MapDownloadDirs);
+  PrintDirs('WadDownloadDirs', WadDownloadDirs);
+
+  GameWAD := e_FindWad(DataDirs, GameWADName);
+  if GameWad = '' then
+  begin
+    e_WriteLog('WAD ' + GameWADName + ' not found in data directories.', TMsgType.Fatal);
+    {$IF DEFINED(USE_SDL2) AND NOT DEFINED(HEADLESS)}
+      if forceBinDir = false then
+        SDL_ShowSimpleMessageBox(
+          SDL_MESSAGEBOX_ERROR,
+          'Doom 2D Forever',
+          PChar('WAD ' + GameWADName + ' not found in data directories.'),
+          nil
+        );
+    {$ENDIF}
+    e_DeinitLog;
+    Halt(1);
+  end;
+end;
+
+procedure Main;
+{$IFDEF ENABLE_HOLMES}
+  var flexloaded: Boolean;
+{$ENDIF}
+begin
+  InitPath;
+  InitPrep;
+  e_InitInput;
+  sys_Init;
+
+  sys_CharPress := @CharPress;
+
+  g_Options_SetDefault;
+  g_Options_SetDefaultVideo;
+  g_Console_SysInit;
+  if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized) = False then
+    raise Exception.Create('Failed to set videomode on startup.');
+
+  e_WriteLog(gLanguage, TMsgType.Notify);
+  g_Language_Set(gLanguage);
+
+{$IF not DEFINED(HEADLESS) and DEFINED(ENABLE_HOLMES)}
+  flexloaded := true;
+  if not fuiAddWad('flexui.wad') then
+  begin
+    if not fuiAddWad('./data/flexui.wad') then fuiAddWad('./flexui.wad');
+  end;
+  try
+    fuiGfxLoadFont('win8', 'flexui/fonts/win8.fuifont');
+    fuiGfxLoadFont('win14', 'flexui/fonts/win14.fuifont');
+    fuiGfxLoadFont('win16', 'flexui/fonts/win16.fuifont');
+    fuiGfxLoadFont('dos8', 'flexui/fonts/dos8.fuifont');
+    fuiGfxLoadFont('msx6', 'flexui/fonts/msx6.fuifont');
+  except on e: Exception do
+    begin
+      writeln('ERROR loading FlexUI fonts');
+      flexloaded := false;
+      //raise;
+    end;
+  else
+    begin
+      flexloaded := false;
+      //raise;
+    end;
+  end;
+  if (flexloaded) then
+  begin
+    try
+      e_LogWriteln('FlexUI: loading stylesheet...');
+      uiLoadStyles('flexui/widgets.wgs');
+    except on e: TParserException do
+      begin
+        writeln('ERROR at (', e.tokLine, ',', e.tokCol, '): ', e.message);
+        //raise;
+        flexloaded := false;
+      end;
+    else
+      begin
+        //raise;
+        flexloaded := false;
+      end;
+    end;
+  end;
+  g_holmes_imfunctional := not flexloaded;
+
+  if (not g_holmes_imfunctional) then
+  begin
+    uiInitialize();
+    uiContext.font := 'win14';
+  end;
+
+  if assigned(oglInitCB) then oglInitCB;
+{$ENDIF}
+
+  //g_Res_CreateDatabases(true); // it will be done before connecting to the server for the first time
+
+  e_WriteLog('Entering SDLMain', TMsgType.Notify);
+
+  {$WARNINGS OFF}
+    SDLMain();
+  {$WARNINGS ON}
+
+  {$IFDEF ENABLE_HOLMES}
+    if assigned(oglDeinitCB) then oglDeinitCB;
+  {$ENDIF}
+
+  g_Console_WriteGameConfig;
+  sys_Final;
+end;
+
+
+procedure EntryParams;
+  var f: Integer;
+begin
   f := 1;
   while f <= ParamCount do
   begin
@@ -235,45 +726,46 @@ begin
       begin
         Inc(f);
         LogFileName := ParamStr(f)
-      end;
+      end
     end;
     Inc(f)
+  end
+end;
+
+procedure EntryPoint;
+begin
+  SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]); //k8: fuck off, that's why
+  EntryParams;
+  if noct then
+    Main
+  else
+  try
+    Main;
+    e_WriteLog('Shutdown with no errors.', TMsgType.Notify)
+  except on e: Exception do
+    e_WriteStackTrace(e.message)
+  else
+    e_WriteStackTrace('FATAL ERROR')
   end;
 
-  if noct then
-  begin
-    Main()
-  end
-  else
-  begin
-    try
-      Main();
-      e_WriteLog('Shutdown with no errors.', TMsgType.Notify);
-    except
-      on e: Exception do
-        begin
-          e_WriteStackTrace(e.message);
-          //e_WriteLog(Format(_lc[I_SYSTEM_ERROR_MSG], [E.Message]), MSG_FATALERROR);
-          (*
-          AssignFile(tfo, GameDir+'/trace.log');
-          {$I-}
-          Append(tfo);
-          if (IOResult <> 0) then Rewrite(tfo);
-          if (IOResult = 0) then begin writeln(tfo, '====================='); DumpExceptionBackTrace(tfo); CloseFile(tfo); end;
-          *)
-        end
-      else
-        begin
-          //e_WriteLog(Format(_lc[I_SYSTEM_ERROR_UNKNOWN], [NativeUInt(ExceptAddr())]), MSG_FATALERROR);
-          e_WriteStackTrace('FATAL ERROR');
-        end;
-    end;
-  end;
-  e_DeinitLog();
+  e_DeinitLog;
+end;
 
 {$IFDEF ANDROID}
-  result := 0;
-end; // SDL_main
-exports SDL_main;
-{$ENDIF ANDROID}
+  function SDL_main (argc: CInt; argv: PPChar): CInt; cdecl;
+  begin
+    {$IFDEF ANDROID}
+      System.argc := argc;
+      System.argv := argv;
+    {$ENDIF}
+    EntryPoint;
+    result := 0
+  end;
+
+  exports SDL_main;
+{$ELSE}
+begin
+  EntryPoint
+{$ENDIF}
+
 end.

@@ -101,7 +101,7 @@ var
 implementation
 
 uses
-  g_textures, g_main, e_input, g_game, g_gfx, g_player, g_items,
+  g_textures, e_input, g_game, g_gfx, g_player, g_items,
   SysUtils, g_basic, g_options, Math, g_touch, e_res,
   g_menu, g_gui, g_language, g_net, g_netmsg, e_log, conbuf, g_weapons,
   Keyboard;

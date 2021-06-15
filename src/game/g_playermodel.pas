@@ -167,7 +167,7 @@ function  g_PlayerModel_GetGibs(ModelName: String; var Gibs: TGibsArray): Boolea
 implementation
 
 uses
-  g_main, g_sound, g_console, SysUtils, g_player, CONFIG,
+  g_sound, g_console, SysUtils, g_player, CONFIG,
   e_sound, g_options, g_map, Math, e_log, wadreader;
 
 type

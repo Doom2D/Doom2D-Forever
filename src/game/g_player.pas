@@ -661,7 +661,7 @@ uses
 {$ENDIF}
   e_log, g_map, g_items, g_console, g_gfx, Math,
   g_options, g_triggers, g_menu, g_game, g_grid, e_res,
-  wadreader, g_main, g_monsters, CONFIG, g_language,
+  wadreader, g_monsters, CONFIG, g_language,
   g_net, g_netmsg, g_window,
   utils, xstreams;
 

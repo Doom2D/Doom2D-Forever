@@ -38,9 +38,9 @@ implementation
 uses
   MAPDEF, utils, xstreams,
   g_game, g_items, g_map, g_monsters, g_triggers,
-  g_basic, g_main, Math, wadreader,
+  g_basic, Math, wadreader,
   g_weapons, g_player, g_console,
-  e_log, e_res, g_language;
+  e_log, e_res, g_language, g_options;
 
 const
   SAVE_SIGNATURE = $56534644; // 'DFSV'
