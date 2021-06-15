@@ -87,10 +87,7 @@ end;
 
 function TPCXFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
-const
-  ifMono: TImageFormat = TImageFormat(250);
-  ifIndex2: TImageFormat = TImageFormat(251);
-  ifIndex4: TImageFormat = TImageFormat(252);
+
 var
   Hdr: TPCXHeader;
   PalID, B: Byte;
