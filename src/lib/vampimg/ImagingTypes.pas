@@ -259,11 +259,11 @@ type
     ifETC2PA         = 223,
     ifDXBC6          = 224,
     ifDXBC7          = 225}
-);
     { PCX formats}
     ifMono           = 250,
     ifIndex2         = 251,
     ifIndex4         = 252
+  );
 
   { Color value for 32 bit images.}
   TColor32 = LongWord;
