@@ -24,7 +24,7 @@
 
 uses
 {$IFDEF ANDROID}
-  ctypes,
+  ctypes, jni,
 {$ENDIF}
 {$IFDEF UNIX}
   cthreads, BaseUnix,
@@ -1081,7 +1081,19 @@ end;
     result := 0
   end;
 
-  exports SDL_main;
+  function JNI_OnLoad (vm: PJavaVM; reserved: pointer): JInt; cdecl;
+  begin
+    result:= JNI_VERSION_1_6;
+  end;
+
+  procedure JNI_OnUnload(vm: PJavaVM; reserved: pointer); cdecl;
+  begin
+  end;
+
+  // DONT REMOVE JNI FUNCTIONS. SPECIAL HANDLING BY FPC.
+  exports SDL_main name 'SDL_main';
+  exports JNI_OnLoad name 'JNI_OnLoad';
+  exports JNI_OnUnload name 'JNI_Unload';
 {$ELSE}
 begin
   EntryPoint
