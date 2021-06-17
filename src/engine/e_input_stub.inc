@@ -226,8 +226,9 @@ interface
   JOY2_DOWN = JOYH_BEG + 2*e_MaxJoyHats*4 + 0*4 + HAT_DOWN;
   JOY3_DOWN = JOYH_BEG + 3*e_MaxJoyHats*4 + 0*4 + HAT_DOWN;
 
-function  e_InitInput: Boolean;
-procedure e_ReleaseInput;
+procedure e_Input_Initialize;
+procedure e_Input_Finalize;
+
 procedure e_UnpressAllKeys;
 procedure e_KeyUpDown (key: Integer; down: Boolean);
 
@@ -391,16 +392,15 @@ begin
   result := i < e_MaxJoys
 end;
 
-function e_InitInput: Boolean;
+procedure e_Input_Initialize;
   var i: Integer;
 begin
   for i := 0 to e_MaxJoys - 1 do
     e_JoystickAvailable[i] := False;
-  GenerateKeyNames;
-  result := True
+  GenerateKeyNames
 end;
 
-procedure e_ReleaseInput;
+procedure e_Input_Finalize;
   var i: Integer;
 begin
   for i := 0 to e_MaxJoys - 1 do

@@ -19,13 +19,14 @@ unit e_log;
 
 interface
 
-uses
-  SysUtils;
+  uses SysUtils;
 
-type
-  TWriteMode = (WM_NEWFILE,  WM_OLDFILE);
-  TMsgType = (Fatal, Warning, Notify);
+  type
+    TWriteMode = (WM_NEWFILE,  WM_OLDFILE);
+    TMsgType = (Fatal, Warning, Notify);
 
+  procedure e_Log_Initialize;
+  procedure e_Log_Finalize;
 
 procedure e_InitLog (fFileName: String; fWriteMode: TWriteMode);
 procedure e_DeinitLog ();
@@ -56,6 +57,16 @@ var
   FirstRecord: Boolean;
   FileName: String;
   driverInited: Boolean = false;
+
+
+  procedure e_Log_Initialize;
+  begin
+  end;
+
+  procedure e_Log_Finalize;
+  begin
+    e_DeinitLog
+  end;
 
 
 function DecodeIPV4 (ip: LongWord): string;

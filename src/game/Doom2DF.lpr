@@ -166,6 +166,7 @@ uses
   r_texture in 'opengl/r_texture.pas',
   r_weapons in 'opengl/r_weapons.pas',
   r_window in 'opengl/r_window.pas',
+  r_render in 'opengl/r_render.pas',
 
 {$IFDEF USE_FMOD}
   fmod in '../lib/FMOD/fmod.pas',
@@ -207,6 +208,9 @@ uses
   {$R *.res}
 {$ENDIF}
 
+  const
+    autoexecScript = 'autoexec.cfg';
+
   var
     noct: Boolean = False;
     binPath: AnsiString = '';
@@ -220,6 +224,8 @@ uses
     Frame: Int64;
     flag: Boolean = false;
 
+    NoSound: Boolean;
+
 procedure Update ();
 begin
   // remember old mobj positions, prepare for update
@@ -232,94 +238,6 @@ begin
   g_Game_Update();
   // server: send any accumulated outgoing data to clients
   if NetMode = NET_SERVER then g_Net_Flush();
-end;
-
-procedure Init();
-  {$IFDEF USE_SDLMIXER}
-    var timiditycfg: AnsiString;
-    var oldcwd, newcwd: RawByteString;
-  {$ENDIF}
-  var NoSound: Boolean;
-begin
-  Randomize;
-
-{$IFDEF HEADLESS}
- {$IFDEF USE_SDLMIXER}
-  NoSound := False; // hope env has set SDL_AUDIODRIVER to dummy
- {$ELSE}
-  NoSound := True; // FMOD backend will sort it out
- {$ENDIF}
-{$ELSE}
-  NoSound := False;
-{$ENDIF}
-
-  g_Touch_Init;
-
-(*
-  if (e_JoysticksAvailable > 0) then
-    e_WriteLog('Input: Joysticks available.', TMsgType.Notify)
-  else
-    e_WriteLog('Input: No Joysticks.', TMsgType.Notify);
-*)
-
-  if gNoSound = false then
-  begin
-    e_WriteLog('Initializing sound system', TMsgType.Notify);
-    {$IFDEF USE_SDLMIXER}
-      newcwd := '';
-      if UseNativeMusic then
-        SetEnvVar('SDL_NATIVE_MUSIC', '1');
-      timiditycfg := GetEnvironmentVariable('TIMIDITY_CFG');
-      if timiditycfg = '' then
-      begin
-        timiditycfg := 'timidity.cfg';
-        if e_FindResource(ConfigDirs, timiditycfg) OR e_FindResource(DataDirs, timiditycfg) then
-        begin
-          timiditycfg := ExpandFileName(timiditycfg);
-          newcwd := ExtractFileDir(timiditycfg);
-          SetEnvVar('TIMIDITY_CFG', timiditycfg);
-        end
-        else
-          timiditycfg := '';
-      end;
-      e_LogWritefln('TIMIDITY_CFG = "%s"', [timiditycfg]);
-      e_LogWritefln('SDL_NATIVE_MUSIC = "%s"', [GetEnvironmentVariable('SDL_NATIVE_MUSIC')]);
-    {$ENDIF}
-    e_InitSoundSystem(NoSound);
-    {$IFDEF USE_SDLMIXER}
-      if e_TimidityDecoder and (newcwd <> '') then
-      begin
-        (* HACK: Set CWD to load GUS patches relatively to cfg file. *)
-        (*       CWD not restored after sound init because timidity  *)
-        (*       store relative pathes internally and load patches   *)
-        (*       later. I hope game never relies on CWD.             *)
-        oldcwd := '';
-        GetDir(0, oldcwd);
-        ChDir(newcwd);
-        e_logwritefln('WARNING: USED TIMIDITY CONFIG HACK, CWD SWITCHED "%s" -> "%s"', [oldcwd, newcwd]);
-      end;
-    {$ENDIF}
-  end;
-
-  e_WriteLog('Init game', TMsgType.Notify);
-  g_Game_Init();
-
-//  FillChar(charbuff, sizeof(charbuff), ' ');
-end;
-
-procedure Release();
-begin
-  e_WriteLog('Releasing engine', TMsgType.Notify);
-  e_ReleaseEngine();
-
-  e_WriteLog('Releasing input', TMsgType.Notify);
-  e_ReleaseInput();
-
-  if not gNoSound then
-  begin
-    e_WriteLog('Releasing sound', TMsgType.Notify);
-    e_ReleaseSoundSystem();
-  end;
 end;
 
 function ProcessMessage (): Boolean;
@@ -390,8 +308,7 @@ begin
   e_SoundUpdate();
 end;
 
-
-function SDLMain (): Integer;
+procedure DebugOptions;
 var
   idx: Integer;
   arg: AnsiString;
@@ -401,7 +318,6 @@ var
   valres: Word;
   {$ENDIF}
 begin
-
   idx := 1;
   while (idx <= ParamCount) do
   begin
@@ -492,32 +408,6 @@ begin
       end;
     end;
   end;
-
-  r_Window_Initialize;
-
-  Init;
-  Time_Old := sys_GetTicks();
-
-  g_Net_InitLowLevel();
-
-  // game commad line
-  if (ParamCount > 0) then g_Game_Process_Params();
-
-{$IFNDEF HEADLESS}
-  if (not gGameOn) and gAskLanguage then g_Menu_AskLanguage();
-{$ENDIF}
-
-  e_WriteLog('Entering the main loop', TMsgType.Notify);
-
-  // main loop
-  while not ProcessMessage() do begin end;
-
-  g_Net_Slist_ShutdownAll();
-
-  Release();
-
-  g_Net_DeinitLowLevel();
-  result := 0;
 end;
 
 function GetBinaryPath (): AnsiString;
@@ -853,222 +743,303 @@ begin
     AddDir(AllMapDirs, MegawadDirs[i]);
   OptimizeDirs(AllMapDirs);
 
-  if LogFileName = '' then
-  begin
-    rwdir := e_GetWriteableDir(LogDirs, false);
-    if rwdir <> '' then
-    begin
-      {$IFDEF HEADLESS}
-        LogFileName := e_CatPath(rwdir, 'Doom2DF_H.log');
-      {$ELSE}
-        LogFileName := e_CatPath(rwdir, 'Doom2DF.log');
-      {$ENDIF}
-    end
-  end;
-
   // HACK: ensure the screenshots folder also has a stats subfolder in it
   rwdir := e_GetWriteableDir(ScreenshotDirs, false);
   if rwdir <> '' then CreateDir(rwdir + '/stats');
 end;
 
-procedure InitPrep;
-  var i: Integer;
-begin
-  {$IFDEF HEADLESS}
-    conbufDumpToStdOut := true;
-  {$ENDIF}
-  for i := 1 to ParamCount do
+  procedure EntryParams;
+    var i: Integer;
   begin
-    case ParamStr(i) of
-      '--con-stdout': conbufDumpToStdOut := true;
-      '--no-fbo': glRenderToFBO := false;
+    i := 1;
+    while i <= ParamCount do
+    begin
+      case ParamStr(i) of
+      '--gdb': noct := true;
+      '--log', '--con-stdout': conbufDumpToStdOut := true;
+      '--safe-log': e_SetSafeSlowLog(true);
+      '--log-file':
+        if i + 1 <= ParamCount then
+        begin
+          Inc(i);
+          LogFileName := ParamStr(i)
+        end;
+        '--no-fbo': glRenderToFBO := false;
+      end;
+      Inc(i)
     end
   end;
 
-  if LogFileName <> '' then
-    e_InitLog(LogFileName, TWriteMode.WM_NEWFILE);
-  e_InitWritelnDriver();
-  e_WriteLog('Doom 2D: Forever version ' + GAME_VERSION + ' proto ' + IntToStr(NET_PROTOCOL_VER), TMsgType.Notify);
-  e_WriteLog('Build arch: ' + g_GetBuildArch(), TMsgType.Notify);
-  e_WriteLog('Build date: ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME, TMsgType.Notify);
-  e_WriteLog('Build hash: ' + g_GetBuildHash(), TMsgType.Notify);
-  e_WriteLog('Build by: ' + g_GetBuilderName(), TMsgType.Notify);
-
-  e_LogWritefln('Force bin dir: %s', [forceBinDir], TMsgType.Notify);
-  e_LogWritefln('BINARY PATH: [%s]', [binPath], TMsgType.Notify);
-
-  PrintDirs('DataDirs', DataDirs);
-  PrintDirs('ModelDirs', ModelDirs);
-  PrintDirs('MegawadDirs', MegawadDirs);
-  PrintDirs('MapDirs', MapDirs);
-  PrintDirs('WadDirs', WadDirs);
-
-  PrintDirs('LogDirs', LogDirs);
-  PrintDirs('SaveDirs', SaveDirs);
-  PrintDirs('CacheDirs', CacheDirs);
-  PrintDirs('ConfigDirs', ConfigDirs);
-  PrintDirs('ScreenshotDirs', ScreenshotDirs);
-  PrintDirs('StatsDirs', StatsDirs);
-  PrintDirs('MapDownloadDirs', MapDownloadDirs);
-  PrintDirs('WadDownloadDirs', WadDownloadDirs);
-
-  GameWAD := e_FindWad(DataDirs, GameWADName);
-  if GameWad = '' then
+  procedure InitLog;
+    var rwdir: AnsiString;
   begin
-    e_WriteLog('WAD ' + GameWADName + ' not found in data directories.', TMsgType.Fatal);
-    {$IF DEFINED(USE_SDL2) AND NOT DEFINED(HEADLESS)}
-      if forceBinDir = false then
-        SDL_ShowSimpleMessageBox(
-          SDL_MESSAGEBOX_ERROR,
-          'Doom 2D Forever',
-          PChar('WAD ' + GameWADName + ' not found in data directories.'),
-          nil
-        );
-    {$ENDIF}
-    e_DeinitLog;
-    Halt(1);
-  end;
-end;
-
-procedure Main;
-{$IFDEF ENABLE_HOLMES}
-  var flexloaded: Boolean;
-{$ENDIF}
-begin
-  {$IFDEF USE_SDLMIXER}
-    conRegVar('sdl_native_music', @UseNativeMusic, 'use native midi music output when possible', 'use native midi');
-    {$IFDEF DARWIN}
-      UseNativeMusic := true; (* OSX have a good midi support, so why not? *)
-    {$ELSE}
-      UseNativeMusic := false;
-    {$ENDIF}
-  {$ENDIF}
-
-  InitPath;
-  InitPrep;
-  e_InitInput;
-  sys_Init;
-
-  sys_CharPress := @CharPress;
-
-  g_Options_SetDefault;
-  g_Options_SetDefaultVideo;
-  g_Console_SysInit;
-  if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized) = False then
-    raise Exception.Create('Failed to set videomode on startup.');
-
-  e_WriteLog(gLanguage, TMsgType.Notify);
-  g_Language_Set(gLanguage);
-
-{$IF not DEFINED(HEADLESS) and DEFINED(ENABLE_HOLMES)}
-  flexloaded := true;
-  if not fuiAddWad('flexui.wad') then
-  begin
-    if not fuiAddWad('./data/flexui.wad') then fuiAddWad('./flexui.wad');
-  end;
-  try
-    fuiGfxLoadFont('win8', 'flexui/fonts/win8.fuifont');
-    fuiGfxLoadFont('win14', 'flexui/fonts/win14.fuifont');
-    fuiGfxLoadFont('win16', 'flexui/fonts/win16.fuifont');
-    fuiGfxLoadFont('dos8', 'flexui/fonts/dos8.fuifont');
-    fuiGfxLoadFont('msx6', 'flexui/fonts/msx6.fuifont');
-  except on e: Exception do
+    if LogFileName = '' then
     begin
-      writeln('ERROR loading FlexUI fonts');
-      flexloaded := false;
-      //raise;
-    end;
-  else
-    begin
-      flexloaded := false;
-      //raise;
-    end;
-  end;
-  if (flexloaded) then
-  begin
-    try
-      e_LogWriteln('FlexUI: loading stylesheet...');
-      uiLoadStyles('flexui/widgets.wgs');
-    except on e: TParserException do
+      rwdir := e_GetWriteableDir(LogDirs, false);
+      if rwdir <> '' then
       begin
-        writeln('ERROR at (', e.tokLine, ',', e.tokCol, '): ', e.message);
-        //raise;
+        {$IFDEF HEADLESS}
+          LogFileName := e_CatPath(rwdir, 'Doom2DF_H.log');
+        {$ELSE}
+          LogFileName := e_CatPath(rwdir, 'Doom2DF.log');
+        {$ENDIF}
+      end
+    end;
+    if LogFileName <> '' then
+      e_InitLog(LogFileName, TWriteMode.WM_NEWFILE);
+    e_InitWritelnDriver
+  end;
+
+  procedure InitPrep;
+  begin
+    e_WriteLog('Doom 2D: Forever version ' + GAME_VERSION + ' proto ' + IntToStr(NET_PROTOCOL_VER), TMsgType.Notify);
+    e_WriteLog('Build arch: ' + g_GetBuildArch(), TMsgType.Notify);
+    e_WriteLog('Build date: ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME, TMsgType.Notify);
+    e_WriteLog('Build hash: ' + g_GetBuildHash(), TMsgType.Notify);
+    e_WriteLog('Build by: ' + g_GetBuilderName(), TMsgType.Notify);
+
+    e_LogWritefln('Force bin dir: %s', [forceBinDir], TMsgType.Notify);
+    e_LogWritefln('BINARY PATH: [%s]', [binPath], TMsgType.Notify);
+
+    PrintDirs('DataDirs', DataDirs);
+    PrintDirs('ModelDirs', ModelDirs);
+    PrintDirs('MegawadDirs', MegawadDirs);
+    PrintDirs('MapDirs', MapDirs);
+    PrintDirs('WadDirs', WadDirs);
+
+    PrintDirs('LogDirs', LogDirs);
+    PrintDirs('SaveDirs', SaveDirs);
+    PrintDirs('CacheDirs', CacheDirs);
+    PrintDirs('ConfigDirs', ConfigDirs);
+    PrintDirs('ScreenshotDirs', ScreenshotDirs);
+    PrintDirs('StatsDirs', StatsDirs);
+    PrintDirs('MapDownloadDirs', MapDownloadDirs);
+    PrintDirs('WadDownloadDirs', WadDownloadDirs);
+
+    {$IFDEF HEADLESS}
+      {$IFDEF USE_SDLMIXER}
+        NoSound := False; // hope env has set SDL_AUDIODRIVER to dummy
+      {$ELSE}
+        NoSound := True; // FMOD backend will sort it out
+      {$ENDIF}
+    {$ELSE}
+      NoSound := False;
+    {$ENDIF}
+
+    GameWAD := e_FindWad(DataDirs, GameWADName);
+    if GameWad = '' then
+    begin
+      e_WriteLog('WAD ' + GameWADName + ' not found in data directories.', TMsgType.Fatal);
+      {$IF DEFINED(USE_SDL2) AND NOT DEFINED(HEADLESS)}
+        if forceBinDir = false then
+          SDL_ShowSimpleMessageBox(
+            SDL_MESSAGEBOX_ERROR,
+            'Doom 2D Forever',
+            PChar('WAD ' + GameWADName + ' not found in data directories.'),
+            nil
+          );
+      {$ENDIF}
+      e_DeinitLog;
+      Halt(1);
+    end
+  end;
+
+{$IFDEF ENABLE_HOLMES}
+  procedure InitHolmes;
+    var flexloaded: Boolean;
+  begin
+    flexloaded := true;
+    if not fuiAddWad('flexui.wad') then
+    begin
+      if not fuiAddWad('./data/flexui.wad') then fuiAddWad('./flexui.wad');
+    end;
+    try
+      fuiGfxLoadFont('win8', 'flexui/fonts/win8.fuifont');
+      fuiGfxLoadFont('win14', 'flexui/fonts/win14.fuifont');
+      fuiGfxLoadFont('win16', 'flexui/fonts/win16.fuifont');
+      fuiGfxLoadFont('dos8', 'flexui/fonts/dos8.fuifont');
+      fuiGfxLoadFont('msx6', 'flexui/fonts/msx6.fuifont');
+    except on e: Exception do
+      begin
+        writeln('ERROR loading FlexUI fonts');
         flexloaded := false;
+        //raise;
       end;
     else
       begin
-        //raise;
         flexloaded := false;
+        //raise;
       end;
     end;
+    if flexloaded then
+    begin
+      try
+        e_LogWriteln('FlexUI: loading stylesheet...');
+        uiLoadStyles('flexui/widgets.wgs');
+      except on e: TParserException do
+        begin
+          writeln('ERROR at (', e.tokLine, ',', e.tokCol, '): ', e.message);
+          //raise;
+          flexloaded := false;
+        end;
+      else
+        begin
+          //raise;
+          flexloaded := false;
+        end;
+      end;
+    end;
+    g_holmes_imfunctional := not flexloaded;
+    if not g_holmes_imfunctional then
+    begin
+      uiInitialize();
+      uiContext.font := 'win14';
+    end;
+    if assigned(oglInitCB) then oglInitCB;
   end;
-  g_holmes_imfunctional := not flexloaded;
 
-  if (not g_holmes_imfunctional) then
+  procedure FreeHolmes;
   begin
-    uiInitialize();
-    uiContext.font := 'win14';
+    if assigned(oglDeinitCB) then
+      oglDeinitCB
   end;
-
-  if assigned(oglInitCB) then oglInitCB;
 {$ENDIF}
 
-  //g_Res_CreateDatabases(true); // it will be done before connecting to the server for the first time
-
-  e_WriteLog('Entering SDLMain', TMsgType.Notify);
-
-  {$WARNINGS OFF}
-    SDLMain();
-  {$WARNINGS ON}
-
-  {$IFDEF ENABLE_HOLMES}
-    if assigned(oglDeinitCB) then oglDeinitCB;
-  {$ENDIF}
-
-  g_Console_WriteGameConfig;
-  sys_Final;
-end;
-
-
-procedure EntryParams;
-  var f: Integer;
-begin
-  f := 1;
-  while f <= ParamCount do
+  procedure InitSound;
+    {$IFDEF USE_SDLMIXER}
+      var timiditycfg: AnsiString;
+      var oldcwd, newcwd: RawByteString;
+    {$ENDIF}
   begin
-    case ParamStr(f) of
-    '--gdb': noct := true;
-    '--log': conbufDumpToStdOut := true;
-    '--safe-log': e_SetSafeSlowLog(true);
-    '--log-file':
-      if f + 1 <= ParamCount then
-      begin
-        Inc(f);
-        LogFileName := ParamStr(f)
-      end
+    if NoSound = false then
+    begin
+      e_WriteLog('Initializing sound system', TMsgType.Notify);
+      {$IFDEF USE_SDLMIXER}
+        newcwd := '';
+        if UseNativeMusic then
+          SetEnvVar('SDL_NATIVE_MUSIC', '1');
+        timiditycfg := GetEnvironmentVariable('TIMIDITY_CFG');
+        if timiditycfg = '' then
+        begin
+          timiditycfg := 'timidity.cfg';
+          if e_FindResource(ConfigDirs, timiditycfg) OR e_FindResource(DataDirs, timiditycfg) then
+          begin
+            timiditycfg := ExpandFileName(timiditycfg);
+            newcwd := ExtractFileDir(timiditycfg);
+            SetEnvVar('TIMIDITY_CFG', timiditycfg);
+          end
+          else
+            timiditycfg := '';
+        end;
+        e_LogWritefln('TIMIDITY_CFG = "%s"', [timiditycfg]);
+        e_LogWritefln('SDL_NATIVE_MUSIC = "%s"', [GetEnvironmentVariable('SDL_NATIVE_MUSIC')]);
+      {$ENDIF}
+      e_InitSoundSystem(NoSound);
+      {$IFDEF USE_SDLMIXER}
+        if e_TimidityDecoder and (newcwd <> '') then
+        begin
+          (* HACK: Set CWD to load GUS patches relatively to cfg file. *)
+          (*       CWD not restored after sound init because timidity  *)
+          (*       store relative pathes internally and load patches   *)
+          (*       later. I hope game never relies on CWD.             *)
+          oldcwd := '';
+          GetDir(0, oldcwd);
+          ChDir(newcwd);
+          e_logwritefln('WARNING: USED TIMIDITY CONFIG HACK, CWD SWITCHED "%s" -> "%s"', [oldcwd, newcwd]);
+        end;
+      {$ENDIF}
     end;
-    Inc(f)
-  end
-end;
-
-procedure EntryPoint;
-begin
-  SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]); //k8: fuck off, that's why
-  EntryParams;
-  if noct then
-    Main
-  else
-  try
-    Main;
-    e_WriteLog('Shutdown with no errors.', TMsgType.Notify)
-  except on e: Exception do
-    e_WriteStackTrace(e.message)
-  else
-    e_WriteStackTrace('FATAL ERROR')
   end;
 
-  e_DeinitLog;
-end;
+  procedure Startup;
+  begin
+    Randomize;
+    InitPath;
+    InitLog;
+    InitPrep;
+    e_Input_Initialize;
+    InitSound;
+    sys_Init;
+    sys_CharPress := @CharPress; (* install hook *)
+    g_Options_SetDefault;
+    g_Options_SetDefaultVideo;
+    g_Console_Initialize;
+    // TODO move load configs here
+    g_Language_Set(gLanguage);
+    r_Render_Initialize;
+    g_Touch_Init;
+    DebugOptions;
+    g_Net_InitLowLevel;
+    // TODO init serverlist
+    {$IFDEF ENABLE_HOLMES}
+      InitHolmes;
+    {$ENDIF}
+    g_Game_Init;
+    {$IFNDEF HEADLESS}
+      g_Menu_Init;
+      g_GUI_Init;
+    {$ENDIF}
+    g_Game_Process_Params;
+    // TODO reload GAME textures
+    g_Console_Init; // welcome message
+    {$IFNDEF HEADLESS}
+      if (not gGameOn) and gAskLanguage then
+        g_Menu_AskLanguage;
+    {$ENDIF}
+    Time_Old := sys_GetTicks();
+    while not ProcessMessage() do begin end;
+    g_Console_WriteGameConfig;
+    {$IFNDEF HEADLESS}
+      g_GUI_Destroy;
+      g_Menu_Free;
+    {$ENDIF}
+    {$IFDEF ENABLE_HOLMES}
+      FreeHolmes;
+    {$ENDIF}
+    g_Net_Slist_ShutdownAll;
+    g_Net_DeinitLowLevel;
+    (* g_Touch_Finalize; *)
+    r_Render_Finalize;
+    sys_Final;
+    g_Console_Finalize;
+    e_ReleaseSoundSystem;
+    e_Input_Finalize;
+    e_WriteLog('Shutdown with no errors.', TMsgType.Notify)
+  end;
+
+  procedure InitCVars;
+  begin
+    {$IFDEF USE_SDLMIXER}
+      conRegVar('sdl_native_music', @UseNativeMusic, 'use native midi music output when possible', 'use native midi');
+      {$IFDEF DARWIN}
+        UseNativeMusic := true; (* OSX have a good midi support, so why not? *)
+      {$ELSE}
+        UseNativeMusic := false;
+      {$ENDIF}
+    {$ENDIF}
+  end;
+
+  procedure EntryPoint;
+  begin
+    SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]); //k8: fuck off, that's why
+    InitCVars;
+    EntryParams;
+    e_Log_Initialize;
+    {$IFDEF HEADLESS}
+      conbufDumpToStdOut := true;
+    {$ENDIF}
+    if noct then
+      Startup
+    else
+    try
+      Startup
+    except on e: Exception do
+      e_WriteStackTrace(e.message)
+    else
+      e_WriteStackTrace('FATAL ERROR')
+    end;
+    e_Log_Finalize
+  end;
 
 {$IFDEF ANDROID}
   function SDL_main (argc: CInt; argv: PPChar): CInt; cdecl;

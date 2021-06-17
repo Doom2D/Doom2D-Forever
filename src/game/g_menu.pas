@@ -3807,16 +3807,11 @@ end;
 procedure g_Menu_Init();
 begin
   MenuLoadData();
-  g_GUI_Init();
   CreateAllMenus();
 end;
 
 procedure g_Menu_Free();
 begin
-  g_GUI_Destroy();
-
-  e_WriteLog('Releasing menu data...', TMsgType.Notify);
-
   MenuFreeData();
 end;
 

@@ -1488,13 +1488,7 @@ begin
     g_Game_SetLoadingText(Format('Doom 2D: Forever %s', [GAME_VERSION]), 0, False);
     g_Game_SetLoadingText('', 0, False);
 
-    g_Game_SetLoadingText(_lc[I_LOAD_CONSOLE], 0, False);
-    r_Console_Init;
-    g_Console_Init();
-
     g_Game_SetLoadingText(_lc[I_LOAD_MODELS], 0, False);
-    r_PlayerModel_Initialize;
-
     // load models from all possible wad types, in all known directories
     // this does a loosy job (linear search, ooph!), but meh
     for wext in wadExtensions do
@@ -1547,11 +1541,6 @@ begin
     g_Sound_CreateWADEx('MUSIC_MENU', GameWAD+':MUSIC\MENU', True);
     g_Sound_CreateWADEx('MUSIC_ROUNDMUS', GameWAD+':MUSIC\ROUNDMUS', True, True);
     g_Sound_CreateWADEx('MUSIC_STDENDMUS', GameWAD+':MUSIC\ENDMUS', True);
-
-{$IFNDEF HEADLESS}
-    g_Game_SetLoadingText(_lc[I_LOAD_MENUS], 0, False);
-    g_Menu_Init();
-{$ENDIF}
 
     gMusic := TMusic.Create();
     gMusic.SetByName('MUSIC_MENU');
@@ -2673,7 +2662,6 @@ begin
   g_Game_StopAllSounds(True);
   gMusic.Free();
   g_Game_FreeData();
-  r_PlayerModel_Finalize;
   g_PlayerModel_FreeData();
   g_Texture_DeleteAll();
   g_Frames_DeleteAll();
