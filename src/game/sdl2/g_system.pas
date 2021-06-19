@@ -20,7 +20,6 @@ interface
   uses Utils;
 
   (* --- Utils --- *)
-  function sys_GetTicks (): Int64;
   procedure sys_Delay (ms: Integer);
 
   (* --- Graphics --- *)
@@ -65,11 +64,6 @@ implementation
     JoystickZeroAxes: array [0..e_MaxJoys - 1, 0..e_MaxJoyAxes - 1] of Integer;
 
   (* --------- Utils --------- *)
-
-  function sys_GetTicks (): Int64;
-  begin
-    result := SDL_GetTicks()
-  end;
 
   procedure sys_Delay (ms: Integer);
   begin

@@ -1283,7 +1283,7 @@ begin
   gDelayedEvents[n].DENum := Num;
   gDelayedEvents[n].DEStr := Str;
   if DEType = DE_GLOBEVENT then
-    gDelayedEvents[n].Time := (sys_GetTicks() {div 1000}) + Time
+    gDelayedEvents[n].Time := (GetTickCount64() {div 1000}) + Time
   else
     gDelayedEvents[n].Time := gTime + Time;
   Result := n;
@@ -2405,7 +2405,7 @@ begin
     KeyPress(IK_F10);
   end;
 
-  Time := sys_GetTicks() {div 1000};
+  Time := GetTickCount64() {div 1000};
 
 // Обработка отложенных событий:
   if gDelayedEvents <> nil then

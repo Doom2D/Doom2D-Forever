@@ -1563,7 +1563,7 @@ var
 begin
   if gExit = EXIT_QUIT then Exit;
 
-  Time := sys_GetTicks() {div 1000};
+  Time := GetTickCount64() {div 1000};
   FPSCounter := FPSCounter+1;
   if Time - FPSTime >= 1000 then
   begin

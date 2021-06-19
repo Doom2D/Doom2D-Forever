@@ -2028,7 +2028,7 @@ begin
   end;
 
   // предупредить что ждем слишком долго через N секунд
-  TimeoutTime := sys_GetTicks() + NET_CONNECT_TIMEOUT;
+  TimeoutTime := GetTickCount64() + NET_CONNECT_TIMEOUT;
 
   OuterLoop := True;
   while OuterLoop do
@@ -2049,7 +2049,7 @@ begin
       end;
     end;
 
-    T := sys_GetTicks();
+    T := GetTickCount64();
     if T > TimeoutTime then
     begin
       TimeoutTime := T + NET_CONNECT_TIMEOUT * 100; // одного предупреждения хватит

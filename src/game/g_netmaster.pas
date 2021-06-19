@@ -200,7 +200,7 @@ var
 //==========================================================================
 function GetTimerMS (): Int64;
 begin
-  Result := sys_GetTicks() {div 1000};
+  Result := GetTickCount64() {div 1000};
 end;
 
 

@@ -219,11 +219,7 @@ uses
       UseNativeMusic: Boolean;
     {$ENDIF}
 
-    wLoadingQuit: Boolean = false;
-    Time, Time_Delta, Time_Old: Int64;
-    Frame: Int64;
-    flag: Boolean = false;
-
+    Time_Old: Int64;
     NoSound: Boolean;
 
 procedure Update ();
@@ -243,10 +239,13 @@ end;
 function ProcessMessage (): Boolean;
 var
   i, t: Integer;
+  flag: Boolean;
+  Time, Time_Delta: Int64;
+  Frame: Int64;
 begin
   result := sys_HandleInput();
 
-  Time := sys_GetTicks();
+  Time := GetTickCount64();
   Time_Delta := Time-Time_Old;
 
   flag := false;
@@ -271,12 +270,6 @@ begin
 
   g_Map_ProfilersEnd();
   g_Mons_ProfilersEnd();
-
-  if wLoadingQuit then
-  begin
-    g_Game_Free();
-    g_Game_Quit();
-  end;
 
   if (gExit = EXIT_QUIT) then
   begin
@@ -1005,7 +998,7 @@ end;
       if (not gGameOn) and gAskLanguage then
         g_Menu_AskLanguage;
     {$ENDIF}
-    Time_Old := sys_GetTicks();
+    Time_Old := GetTickCount64();
     while not ProcessMessage() do begin end;
     g_Console_WriteGameConfig;
     {$IFNDEF HEADLESS}

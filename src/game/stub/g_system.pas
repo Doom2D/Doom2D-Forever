@@ -20,7 +20,6 @@ interface
   uses Utils;
 
   (* --- Utils --- *)
-  function sys_GetTicks (): Int64;
   procedure sys_Delay (ms: Integer);
 
   (* --- Graphics --- *)
@@ -46,11 +45,6 @@ implementation
   uses SysUtils;
 
   (* --------- Utils --------- *)
-
-  function sys_GetTicks (): Int64;
-  begin
-    Result := Round(TimeStampToMSecs(DateTimeToTimeStamp(Now())))
-  end;
 
   procedure sys_Delay (ms: Integer);
   begin
