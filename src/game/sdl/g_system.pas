@@ -19,9 +19,6 @@ interface
 
   uses Utils;
 
-  (* --- Utils --- *)
-  procedure sys_Delay (ms: Integer);
-
   (* --- Graphics --- *)
   function sys_GetDisplayModes (bpp: Integer): SSArray;
   function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
@@ -64,13 +61,6 @@ implementation
     JoystickHandle: array [0..e_MaxJoys - 1] of PSDL_Joystick;
     JoystickHatState: array [0..e_MaxJoys - 1, 0..e_MaxJoyHats - 1, HAT_LEFT..HAT_DOWN] of Boolean;
     JoystickZeroAxes: array [0..e_MaxJoys - 1, 0..e_MaxJoyAxes - 1] of Integer;
-
-  (* --------- Utils --------- *)
-
-  procedure sys_Delay (ms: Integer);
-  begin
-    SDL_Delay(ms)
-  end;
 
   (* --------- Graphics --------- *)
 

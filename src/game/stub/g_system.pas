@@ -19,9 +19,6 @@ interface
 
   uses Utils;
 
-  (* --- Utils --- *)
-  procedure sys_Delay (ms: Integer);
-
   (* --- Graphics --- *)
   function sys_GetDisplayModes (bpp: Integer): SSArray;
   function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
@@ -43,13 +40,6 @@ interface
 implementation
 
   uses SysUtils;
-
-  (* --------- Utils --------- *)
-
-  procedure sys_Delay (ms: Integer);
-  begin
-    Sleep(ms)
-  end;
 
   (* --------- Graphics --------- *)
 

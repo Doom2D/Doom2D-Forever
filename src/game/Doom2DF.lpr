@@ -296,7 +296,7 @@ begin
     Frame := Time
   end
   else
-    sys_Delay(1);
+    Sleep(1);
 
   e_SoundUpdate();
 end;
