@@ -47,9 +47,10 @@ implementation
     SysUtils, SDL2, Math, ctypes,
     e_log, e_input, e_sound,
     {$IFDEF ENABLE_HOLMES}
-      g_holmes, sdlcarcass, fui_ctls,
+      sdlcarcass,
     {$ENDIF}
-    g_touch, g_options, g_console, g_game, g_menu, g_gui, g_basic;
+    g_touch, g_options, g_console, g_game, g_basic
+  ;
 
   const
     GameTitle = 'Doom 2D: Forever (SDL 2, %s)';
