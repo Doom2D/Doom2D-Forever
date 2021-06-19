@@ -23,13 +23,54 @@ interface
 
 implementation
 
-  uses SysUtils, Classes, e_log, g_system, g_game, g_options, r_window, r_graphics, r_console, r_playermodel;
+  uses
+    {$INCLUDE ../../nogl/noGLuses.inc}
+    SysUtils, Classes,
+    e_log, g_system,
+    g_game, g_options, r_window, r_graphics, r_console, r_playermodel
+  ;
+
+  var
+    LoadedGL: Boolean = false;
+
+  procedure LoadGL;
+  begin
+    if LoadedGL = false then
+    begin
+      {$IFDEF NOGL_INIT}
+        nogl_Init;
+        if glRenderToFBO and (not nogl_ExtensionSupported('GL_OES_framebuffer_object')) then
+        begin
+          e_LogWriteln('GL: framebuffer objects not supported; disabling FBO rendering');
+          glRenderToFBO := false
+        end;
+      {$ELSE}
+        if glRenderToFBO and (not Load_GL_ARB_framebuffer_object) then
+        begin
+          e_LogWriteln('GL: framebuffer objects not supported; disabling FBO rendering');
+          glRenderToFBO := false
+        end;
+      {$ENDIF}
+      LoadedGL := true
+    end
+  end;
+
+  procedure FreeGL;
+  begin
+    if LoadedGL = true then
+    begin
+      {$IFDEF NOGL_INIT}
+        nogl_Quit;
+      {$ENDIF}
+      LoadedGL := false
+    end
+  end;
 
   procedure r_Render_Initialize;
   begin
     if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized) = False then
       raise Exception.Create('Failed to set videomode on startup.');
-    
+    LoadGL;
     r_Window_Initialize;
     r_Console_Init;
     r_PlayerModel_Initialize;
@@ -37,12 +78,14 @@ implementation
 
   procedure r_Render_Finalize;
   begin
+    FreeGL;
     r_PlayerModel_Finalize;
     e_ReleaseEngine
   end;
 
   procedure r_Render_Resize (w, h: Integer);
   begin
+    LoadGL;
     gWinSizeX := w;
     gWinSizeY := h;
     gRC_Width := w;
