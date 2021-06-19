@@ -39,6 +39,7 @@ interface
 
   var (* hooks *)
     sys_CharPress: procedure (ch: AnsiChar) = nil;
+    sys_ScreenResize: procedure (w, h: Integer) = nil;
 
 implementation
 
@@ -109,44 +110,6 @@ implementation
     {$ENDIF}
   end;
 
-  procedure UpdateSize (w, h: Integer);
-  begin
-    gWinSizeX := w;
-    gWinSizeY := h;
-    gRC_Width := w;
-    gRC_Height := h;
-    if glRenderToFBO then
-    begin
-      // store real window size in gWinSize, downscale resolution now
-      w := round(w / r_pixel_scale);
-      h := round(h / r_pixel_scale);
-      if not e_ResizeFramebuffer(w, h) then
-      begin
-        e_LogWriteln('GL: could not create framebuffer, falling back to --no-fbo');
-        glRenderToFBO := False;
-        w := gWinSizeX;
-        h := gWinSizeY;
-      end;
-    end;
-    gScreenWidth := w;
-    gScreenHeight := h;
-    {$IFDEF ENABLE_HOLMES}
-      fuiScrWdt := w;
-      fuiScrHgt := h;
-    {$ENDIF}
-    e_ResizeWindow(w, h);
-    e_InitGL;
-    g_Game_SetupScreenSize;
-    {$IFNDEF ANDROID}
-      (* This will fix menu reset on keyboard showing *)
-      g_Menu_Reset;
-    {$ENDIF}
-    g_Game_ClearLoading;
-    {$IFDEF ENABLE_HOLMES}
-      if assigned(oglInitCB) then oglInitCB;
-    {$ENDIF}
-  end;
-
   function GetTitle (): AnsiString;
     var info: AnsiString;
   begin
@@ -213,7 +176,8 @@ implementation
           gWinMaximized := maximized;
           gRC_FullScreen := fullscreen;
           gRC_Maximized := maximized;
-          UpdateSize(w, h);
+          if @sys_ScreenResize <> nil then
+            sys_ScreenResize(w, h);
           result := true
         end
         else
@@ -254,7 +218,8 @@ implementation
       gWinMaximized := maximized;
       gRC_FullScreen := fullscreen;
       gRC_Maximized := maximized;
-      UpdateSize(w, h);
+      if @sys_ScreenResize <> nil then
+        sys_ScreenResize(w, h);
       result := true
     end
   end;
@@ -462,7 +427,9 @@ implementation
     if g_dbg_input then
       e_LogWritefln('Window Event: event = %s, data1 = %s, data2 = %s', [ev.event, ev.data1, ev.data2]);
     case ev.event of
-      SDL_WINDOWEVENT_RESIZED: UpdateSize(ev.data1, ev.data2);
+      SDL_WINDOWEVENT_RESIZED:
+        if @sys_ScreenResize <> nil then
+          sys_ScreenResize(ev.data1, ev.data2);
       SDL_WINDOWEVENT_EXPOSED: sys_Repaint;
       SDL_WINDOWEVENT_CLOSE: result := true;
       SDL_WINDOWEVENT_MOVED:

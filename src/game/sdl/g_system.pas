@@ -39,6 +39,7 @@ interface
 
   var (* hooks *)
     sys_CharPress: procedure (ch: AnsiChar) = nil;
+    sys_ScreenResize: procedure (w, h: Integer) = nil;
 
 implementation
 
@@ -112,38 +113,6 @@ implementation
     {$ENDIF}
   end;
 
-  procedure UpdateSize (w, h: Integer);
-  begin
-    gWinSizeX := w;
-    gWinSizeY := h;
-    gRC_Width := w;
-    gRC_Height := h;
-    if glRenderToFBO then
-    begin
-      // store real window size in gWinSize, downscale resolution now
-      w := round(w / r_pixel_scale);
-      h := round(h / r_pixel_scale);
-      if not e_ResizeFramebuffer(w, h) then
-      begin
-        e_LogWriteln('GL: could not create framebuffer, falling back to --no-fbo');
-        glRenderToFBO := False;
-        w := gWinSizeX;
-        h := gWinSizeY;
-      end;
-    end;
-    gScreenWidth := w;
-    gScreenHeight := h;
-    {$IFDEF ENABLE_HOLMES}
-      fuiScrWdt := w;
-      fuiScrHgt := h;
-    {$ENDIF}
-    e_ResizeWindow(w, h);
-    e_InitGL;
-    g_Game_SetupScreenSize;
-    g_Menu_Reset;
-    g_Game_ClearLoading;
-  end;
-
   function GetDriver (): AnsiString;
     var buf: array [0..31] of AnsiChar;
   begin
@@ -190,7 +159,8 @@ implementation
         SDL_WM_SetCaption(PChar(title), nil);
         gFullScreen := fullscreen;
         gRC_FullScreen := fullscreen;
-        UpdateSize(w, h);
+        if @sys_ScreenResize <> nil then
+          sys_ScreenResize(w, h);
         result := True
       end
     end
@@ -658,8 +628,8 @@ implementation
   begin
     if g_dbg_input then
       e_LogWritefln('Input Debug: SDL_VIDEORESIZE %s %s', [ev.w, ev.h]);
-    if modeResize = 1 then
-      UpdateSize(ev.w, ev.h)
+    if (modeResize = 1) and (@sys_ScreenResize <> nil) then
+      sys_ScreenResize(ev.w, ev.h)
     else if modeResize > 1 then
       InitWindow(ev.w, ev.h, gBPP, gFullscreen)
   end;

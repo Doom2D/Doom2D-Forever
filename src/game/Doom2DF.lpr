@@ -951,6 +951,24 @@ end;
     end;
   end;
 
+  procedure ScreenResize (w, h: Integer);
+  begin
+    r_Render_Resize(w, h);
+    {$IFDEF ENABLE_HOLMES}
+      fuiScrWdt := w;
+      fuiScrHgt := h;
+    {$ENDIF}
+    g_Game_SetupScreenSize;
+    {$IFNDEF ANDROID}
+      (* This will fix menu reset on keyboard showing *)
+      g_Menu_Reset;
+    {$ENDIF}
+    //g_Game_ClearLoading;
+    {$IFDEF ENABLE_HOLMES}
+      if assigned(oglInitCB) then oglInitCB;
+    {$ENDIF}
+  end;
+
   procedure Startup;
   begin
     Randomize;
@@ -961,6 +979,7 @@ end;
     InitSound;
     sys_Init;
     sys_CharPress := @CharPress; (* install hook *)
+    sys_ScreenResize := @ScreenResize; (* install hook *)
     g_Options_SetDefault;
     g_Options_SetDefaultVideo;
     g_Console_Initialize;

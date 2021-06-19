@@ -39,6 +39,7 @@ interface
 
   var (* hooks *)
     sys_CharPress: procedure (ch: AnsiChar) = nil;
+    sys_ScreenResize: procedure (w, h: Integer) = nil;
 
 implementation
 

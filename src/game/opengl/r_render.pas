@@ -19,10 +19,11 @@ interface
 
   procedure r_Render_Initialize;
   procedure r_Render_Finalize;
+  procedure r_Render_Resize (w, h: Integer);
 
 implementation
 
-  uses SysUtils, Classes, g_system, g_game, g_options, r_window, r_graphics, r_console, r_playermodel;
+  uses SysUtils, Classes, e_log, g_system, g_game, g_options, r_window, r_graphics, r_console, r_playermodel;
 
   procedure r_Render_Initialize;
   begin
@@ -38,6 +39,31 @@ implementation
   begin
     r_PlayerModel_Finalize;
     e_ReleaseEngine
+  end;
+
+  procedure r_Render_Resize (w, h: Integer);
+  begin
+    gWinSizeX := w;
+    gWinSizeY := h;
+    gRC_Width := w;
+    gRC_Height := h;
+    if glRenderToFBO then
+    begin
+      // store real window size in gWinSize, downscale resolution now
+      w := round(w / r_pixel_scale);
+      h := round(h / r_pixel_scale);
+      if not e_ResizeFramebuffer(w, h) then
+      begin
+        e_LogWriteln('GL: could not create framebuffer, falling back to --no-fbo');
+        glRenderToFBO := False;
+        w := gWinSizeX;
+        h := gWinSizeY;
+      end;
+    end;
+    gScreenWidth := w;
+    gScreenHeight := h;
+    e_ResizeWindow(w, h);
+    e_InitGL
   end;
 
 end.
