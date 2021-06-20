@@ -152,6 +152,7 @@ uses
   g_touch in 'sdl2/g_touch.pas',
 {$ENDIF}
 
+  r_animations in 'opengl/r_animations.pas',
   r_console in 'opengl/r_console.pas',
   r_game in 'opengl/r_game.pas',
   r_gfx in 'opengl/r_gfx.pas',
@@ -163,10 +164,10 @@ uses
   r_panel in 'opengl/r_panel.pas',
   r_player in 'opengl/r_player.pas',
   r_playermodel in 'opengl/r_playermodel.pas',
+  r_render in 'opengl/r_render.pas',
   r_texture in 'opengl/r_texture.pas',
   r_weapons in 'opengl/r_weapons.pas',
   r_window in 'opengl/r_window.pas',
-  r_render in 'opengl/r_render.pas',
 
 {$IFDEF USE_FMOD}
   fmod in '../lib/FMOD/fmod.pas',

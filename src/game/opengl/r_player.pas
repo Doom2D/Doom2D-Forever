@@ -46,7 +46,7 @@ implementation
 {$IFDEF ENABLE_HOLMES}
     g_holmes,
 {$ENDIF}
-    r_playermodel, r_graphics
+    r_playermodel, r_graphics, r_animations
   ;
 
   procedure r_Player_DrawAll;
@@ -331,7 +331,7 @@ begin
 
     if p.PunchAnim <> nil then
     begin
-      p.PunchAnim.Draw(fX + IfThen(p.Direction = TDirection.D_LEFT, 15 - p.Obj.Rect.X, p.Obj.Rect.X - 15), fY + fSlope + p.Obj.Rect.Y - 11, Mirror);
+      r_Animation_Draw(p.PunchAnim, fX + IfThen(p.Direction = TDirection.D_LEFT, 15 - p.Obj.Rect.X, p.Obj.Rect.X - 15), fY + fSlope + p.Obj.Rect.Y - 11, Mirror);
       if p.PunchAnim.played then
       begin
         p.PunchAnim.Free;
@@ -795,12 +795,12 @@ begin
   p.Obj.lerp(gLerpFactor, fX, fY);
 
   if p.Animation <> nil then
-    p.Animation.Draw(fX, fY, TMirrorType.None);
+    r_Animation_Draw(p.Animation, fX, fY, TMirrorType.None);
 
   if p.AnimationMask <> nil then
   begin
     e_Colors := p.Color;
-    p.AnimationMask.Draw(fX, fY, TMirrorType.None);
+    r_Animation_Draw(p.AnimationMask, fX, fY, TMirrorType.None);
     e_Colors.R := 255;
     e_Colors.G := 255;
     e_Colors.B := 255;

@@ -30,7 +30,7 @@ implementation
   uses
     {$INCLUDE ../nogl/noGLuses.inc}
     SysUtils, Classes, Math,
-    r_graphics,
+    r_graphics, r_animations,
     g_base, g_basic, g_game, g_options,
     g_panel, g_map,
     r_panel
@@ -132,7 +132,7 @@ begin
             dx := 1;
           end;
 
-        Animation.Draw(tx + dx, ty + 1, Mirror);
+        r_Animation_Draw(Animation, tx + dx, ty + 1, Mirror);
 
         if g_debug_Frames then
         begin

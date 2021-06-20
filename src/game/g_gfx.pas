@@ -135,7 +135,7 @@ function awmIsSetHolmes (x, y: Integer): Boolean; inline;
 implementation
 
 uses
-  g_map, g_panel, g_basic, Math,
+  g_map, g_panel, g_basic, Math, r_animations,
   g_options, g_console, SysUtils, g_triggers, MAPDEF,
   g_game, g_language, g_net, utils, xprofiler;
 

@@ -28,7 +28,7 @@ implementation
   uses
     SysUtils, Classes, Math,
     MAPDEF,
-    r_graphics, g_options,
+    r_graphics, g_options, r_animations,
     g_base, g_basic, g_map, g_weapons, g_textures
   ;
 
@@ -79,7 +79,7 @@ begin
     p.X := IfThen(pm.Direction = TDirection.D_LEFT, FLAG_BASEPOINT.X, 64 - FLAG_BASEPOINT.X);
     p.Y := FLAG_BASEPOINT.Y;
 
-    pm.FlagAnim.DrawEx(X+IfThen(pm.Direction = TDirection.D_LEFT, pm.FlagPoint.X-1, 2*FLAG_BASEPOINT.X-pm.FlagPoint.X+1)-FLAG_BASEPOINT.X,
+    r_Animation_DrawEx(pm.FlagAnim, X+IfThen(pm.Direction = TDirection.D_LEFT, pm.FlagPoint.X-1, 2*FLAG_BASEPOINT.X-pm.FlagPoint.X+1)-FLAG_BASEPOINT.X,
                      Y+pm.FlagPoint.Y-FLAG_BASEPOINT.Y+1, Mirror, p,
                      IfThen(pm.Direction = TDirection.D_RIGHT, pm.FlagAngle, -pm.FlagAngle));
   end;
@@ -118,12 +118,12 @@ begin
   if (pm.Direction = TDirection.D_LEFT) and (pm.Anim[TDirection.D_LEFT][pm.CurrentAnimation] <> nil) then
   begin
     pm.Anim[TDirection.D_LEFT][pm.CurrentAnimation].Alpha := Alpha;
-    pm.Anim[TDirection.D_LEFT][pm.CurrentAnimation].Draw(X, Y, TMirrorType.None);
+    r_Animation_Draw(pm.Anim[TDirection.D_LEFT][pm.CurrentAnimation], X, Y, TMirrorType.None);
   end
   else
   begin
     pm.Anim[TDirection.D_RIGHT][pm.CurrentAnimation].Alpha := Alpha;
-    pm.Anim[TDirection.D_RIGHT][pm.CurrentAnimation].Draw(X, Y, Mirror);
+    r_Animation_Draw(pm.Anim[TDirection.D_RIGHT][pm.CurrentAnimation], X, Y, Mirror);
   end;
 
 // Маска модели:
@@ -132,12 +132,12 @@ begin
   if (pm.Direction = TDirection.D_LEFT) and (pm.MaskAnim[TDirection.D_LEFT][pm.CurrentAnimation] <> nil) then
   begin
     pm.MaskAnim[TDirection.D_LEFT][pm.CurrentAnimation].Alpha := Alpha;
-    pm.MaskAnim[TDirection.D_LEFT][pm.CurrentAnimation].Draw(X, Y, TMirrorType.None);
+    r_Animation_Draw(pm.MaskAnim[TDirection.D_LEFT][pm.CurrentAnimation], X, Y, TMirrorType.None);
   end
   else
   begin
     pm.MaskAnim[TDirection.D_RIGHT][pm.CurrentAnimation].Alpha := Alpha;
-    pm.MaskAnim[TDirection.D_RIGHT][pm.CurrentAnimation].Draw(X, Y, Mirror);
+    r_Animation_Draw(pm.MaskAnim[TDirection.D_RIGHT][pm.CurrentAnimation], X, Y, Mirror);
   end;
 
   e_Colors.R := 255;

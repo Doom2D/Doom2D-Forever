@@ -25,7 +25,7 @@ implementation
     {$INCLUDE ../nogl/noGLuses.inc}
     SysUtils, Classes, Math,
     utils,
-    g_base, r_graphics, g_options,
+    g_base, r_graphics, g_options, r_animations,
     g_game,
     g_gfx
   ;
@@ -81,7 +81,7 @@ begin
         begin
           fx := nlerp(oldx, x, gLerpFactor);
           fy := nlerp(oldy, y, gLerpFactor);
-          Animation.Draw(x, y, TMirrorType.None);
+          r_Animation_Draw(Animation, x, y, TMirrorType.None);
         end;
       end;
     end;

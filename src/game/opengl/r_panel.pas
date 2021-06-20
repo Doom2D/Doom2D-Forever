@@ -27,7 +27,7 @@ implementation
   uses
     {$INCLUDE ../nogl/noGLuses.inc}
     SysUtils, Classes, Math, utils,
-    r_graphics, g_options,
+    r_graphics, g_options, r_animations,
     g_base, g_basic, g_textures, g_game
   ;
 
@@ -65,7 +65,7 @@ implementation
             Exit;
           for xx := 0 to tw div TextureWidth - 1 do
             for yy := 0 to th div TextureHeight - 1 do
-              TextureIDs[FCurTexture].AnTex.Draw(tx + xx * TextureWidth, ty + yy * TextureHeight, TMirrorType.None);
+              r_Animation_Draw(TextureIDs[FCurTexture].AnTex, tx + xx * TextureWidth, ty + yy * TextureHeight, TMirrorType.None);
         end
         else
         begin

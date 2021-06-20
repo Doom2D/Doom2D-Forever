@@ -24,7 +24,7 @@ implementation
 
   uses
     SysUtils, Classes, Math,
-    r_graphics, g_options,
+    r_graphics, g_options, r_animations,
     MAPDEF,
     g_base, g_basic, g_game, g_phys,
     g_monsters
@@ -44,7 +44,7 @@ implementation
       if MonsterType = MONSTER_VILE then
         if MonsterState = MONSTATE_SHOOT then
           if GetPos(MonsterTargetUID, @o) then
-            VileFireAnim.Draw(o.X + o.Rect.X + (o.Rect.Width div 2) - 32, o.Y + o.Rect.Y + o.Rect.Height - 128, TMirrorType.None);
+            r_Animation_Draw(VileFireAnim, o.X + o.Rect.X + (o.Rect.Width div 2) - 32, o.Y + o.Rect.Y + o.Rect.Height - 128, TMirrorType.None);
 
       // Не в области рисования не ресуем:
       //FIXME!
@@ -93,8 +93,7 @@ implementation
           dy := MONSTER_ANIMTABLE[MonsterType].AnimDeltaRight[MonsterAnim].Y;
         end;
 
-        // Рисуем:
-        DirAnim[MonsterAnim, GameDirection].Draw(fX + dx, fY + dy, m);
+        r_Animation_Draw(DirAnim[MonsterAnim, GameDirection], fX + dx, fY + dy, m);
       end;
 
       if g_debug_Frames then

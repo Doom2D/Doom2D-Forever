@@ -24,7 +24,7 @@ implementation
 
   uses
     SysUtils, Classes, Math,
-    r_graphics,
+    r_graphics, r_animations,
     MAPDEF,
     g_base, g_basic, g_game,
     g_items
@@ -55,7 +55,7 @@ begin
         end
         else
         begin
-          Animation.Draw(fX, fY, TMirrorType.None);
+          r_Animation_Draw(Animation, fX, fY, TMirrorType.None);
         end;
 
         if g_debug_Frames then

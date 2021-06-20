@@ -24,7 +24,7 @@ implementation
   uses
     SysUtils, Classes, Math,
     MAPDEF,
-    r_graphics,
+    r_graphics, r_animations,
     g_base, g_basic, g_game,
     g_weapons
   ;
@@ -53,9 +53,9 @@ implementation
           if Animation <> nil then
           begin
             if Shots[i].ShotType in [WEAPON_BARON_FIRE, WEAPON_MANCUB_FIRE, WEAPON_SKEL_FIRE] then
-              Animation.DrawEx(fX, fY, TMirrorType.None, p, a)
+              r_Animation_DrawEx(Animation, fX, fY, TMirrorType.None, p, a)
             else
-              Animation.Draw(fX, fY, TMirrorType.None);
+              r_Animation_Draw(Animation, fX, fY, TMirrorType.None);
           end
           else if TextureID <> 0 then
           begin

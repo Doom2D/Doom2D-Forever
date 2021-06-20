@@ -53,9 +53,6 @@ type
     constructor Create (aframesID: LongWord; aloop: Boolean; aspeed: Byte);
     destructor  Destroy (); override;
 
-    procedure draw (x, y: Integer; mirror: TMirrorType);
-    procedure drawEx (x, y: Integer; mirror: TMirrorType; rpoint: TDFPoint; angle: SmallInt);
-
     procedure reset ();
     procedure update ();
     procedure enable ();
@@ -82,6 +79,8 @@ type
     property framesId: LongWord read mId;
     property width: Word read mWidth;
     property height: Word read mHeight;
+
+    property id: LongWord read mId;
   end;
 
 
@@ -112,6 +111,16 @@ procedure g_Frames_DeleteAll ();
 
 procedure DumpTextureNames ();
 
+  type (* private state *)
+    TFrames = record
+      texturesID: array of LongWord;
+      name: AnsiString;
+      frameWidth, frameHeight: Word;
+      used: Boolean;
+    end;
+
+  var (* private state *)
+    framesArray: array of TFrames = nil;
 
 implementation
 
@@ -127,16 +136,8 @@ type
     used: Boolean;
   end;
 
-  TFrames = record
-    texturesID: array of LongWord;
-    name: AnsiString;
-    frameWidth, frameHeight: Word;
-    used: Boolean;
-  end;
-
 var
   texturesArray: array of _TTexture = nil;
-  framesArray: array of TFrames = nil;
 
 
 const
@@ -760,14 +761,6 @@ begin
 end;
 
 
-procedure TAnimation.draw (x, y: Integer; mirror: TMirrorType);
-begin
-  if (not mEnabled) then exit;
-  e_DrawAdv(framesArray[mId].TexturesID[mCurrentFrame], x, y, mAlpha, true, mBlending, 0, nil, mirror);
-  //e_DrawQuad(X, Y, X+FramesArray[ID].FrameWidth-1, Y+FramesArray[ID].FrameHeight-1, 0, 255, 0);
-end;
-
-
 procedure TAnimation.update ();
 begin
   if (not mEnabled) then exit;
@@ -831,13 +824,6 @@ end;
 
 procedure TAnimation.disable (); begin mEnabled := false; end;
 procedure TAnimation.enable (); begin mEnabled := true; end;
-
-
-procedure TAnimation.drawEx (x, y: Integer; mirror: TMirrorType; rpoint: TDFPoint; angle: SmallInt);
-begin
-  if (not mEnabled) then exit;
-  e_DrawAdv(framesArray[mId].TexturesID[mCurrentFrame], x, y, mAlpha, true, mBlending, angle, @rpoint, mirror);
-end;
 
 
 function TAnimation.totalFrames (): Integer; inline; begin result := Length(framesArray[mId].TexturesID); end;
