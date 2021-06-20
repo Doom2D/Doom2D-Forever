@@ -107,7 +107,6 @@ procedure ProcApplyOptions();
 var
   menu: TGUIMenu;
   i: Integer;
-  ovs: Boolean;
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoMenu').GetControl('mOptionsVideoMenu'));
 
@@ -116,10 +115,7 @@ begin
   else
     gBPP := 32;
 
-  ovs := gVSync;
   gVSync := TGUISwitch(menu.GetControl('swVSync')).ItemIndex = 0;
-  if (ovs <> gVSync) then
-    sys_EnableVSync(gVSync);
 
   gTextureFilter := TGUISwitch(menu.GetControl('swTextureFilter')).ItemIndex = 0;
   glNPOTOverride := not (TGUISwitch(menu.GetControl('swLegacyNPOT')).ItemIndex = 0);

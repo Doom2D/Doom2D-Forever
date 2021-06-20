@@ -92,7 +92,6 @@ procedure g_Game_Update();
 procedure g_Game_PreUpdate();
 procedure g_Game_Quit();
 procedure g_Game_SetupScreenSize();
-procedure g_Game_ChangeResolution(newWidth, newHeight: Word; nowFull, nowMax: Boolean);
 function  g_Game_ModeToText(Mode: Byte): string;
 function  g_Game_TextToMode(Mode: string): Byte;
 procedure g_Game_ExecuteEvent(Name: String);
@@ -449,7 +448,7 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes,
 {$ENDIF}
-  e_res, g_textures, g_window, g_menu,
+  e_res, g_textures, g_window, g_menu, r_render,
   e_input, e_log, g_console, r_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
@@ -2378,7 +2377,7 @@ begin
     if gResolutionChange then
     begin
       e_WriteLog('Changing resolution', TMsgType.Notify);
-      g_Game_ChangeResolution(gRC_Width, gRC_Height, gRC_FullScreen, gRC_Maximized);
+      r_Render_Apply;
       gResolutionChange := False;
       g_ActiveWindow := nil;
     end;
@@ -2824,11 +2823,6 @@ begin
       gBackSize.Y := Round(bh*s);
     end;
   end;
-end;
-
-procedure g_Game_ChangeResolution(newWidth, newHeight: Word; nowFull, nowMax: Boolean);
-begin
-  sys_SetDisplayMode(newWidth, newHeight, gBPP, nowFull, nowMax);
 end;
 
 procedure g_Game_AddPlayer(Team: Byte = TEAM_NONE);
@@ -6307,16 +6301,7 @@ begin
         g_Game_Quit();
       end;
     'r_reset':
-      begin
-        gRC_Width := Max(1, gRC_Width);
-        gRC_Height := Max(1, gRC_Height);
-        gBPP := Max(1, gBPP);
-        if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized) = True then
-          e_LogWriteln('resolution changed')
-        else
-          e_LogWriteln('resolution not changed');
-        sys_EnableVSync(gVSync);
-      end;
+       r_Render_Apply;
     'r_maxfps':
       begin
         if Length(p) = 2 then

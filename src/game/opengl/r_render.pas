@@ -21,13 +21,16 @@ interface
   procedure r_Render_Finalize;
   procedure r_Render_Resize (w, h: Integer);
 
+  procedure r_Render_Apply;
+
 implementation
 
   uses
     {$INCLUDE ../../nogl/noGLuses.inc}
-    SysUtils, Classes,
+    SysUtils, Classes, Math,
     e_log, g_system,
-    g_game, g_options, r_window, r_graphics, r_console, r_playermodel
+    g_game, g_options, g_console,
+    r_window, r_graphics, r_console, r_playermodel
   ;
 
   var
@@ -107,6 +110,15 @@ implementation
     gScreenHeight := h;
     e_ResizeWindow(w, h);
     e_InitGL
+  end;
+
+  procedure r_Render_Apply;
+  begin
+    if sys_SetDisplayMode(Max(1, gRC_Width), Max(1, gRC_Height), Max(1, gBPP), gRC_FullScreen, gRC_Maximized) then
+      e_LogWriteln('resolution changed')
+    else
+      e_LogWriteln('resolution not changed');
+    sys_EnableVSync(gVSync)
   end;
 
 end.
