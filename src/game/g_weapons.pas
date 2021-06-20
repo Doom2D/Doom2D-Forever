@@ -114,7 +114,7 @@ implementation
 
 uses
   Math, g_map, g_player, g_gfx, g_sound, g_panel,
-  g_console, g_options, g_game,
+  g_console, g_options, g_game, r_textures, r_animations,
   g_triggers, MAPDEF, e_log, g_monsters, g_saveload,
   g_language, g_netmsg, g_grid,
   geom, binheap, hashtable, utils, xstreams;

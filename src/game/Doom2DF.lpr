@@ -166,6 +166,7 @@ uses
   r_playermodel in 'opengl/r_playermodel.pas',
   r_render in 'opengl/r_render.pas',
   r_texture in 'opengl/r_texture.pas',
+  r_textures in 'opengl/r_textures.pas',
   r_weapons in 'opengl/r_weapons.pas',
   r_window in 'opengl/r_window.pas',
 

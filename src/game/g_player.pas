@@ -659,7 +659,7 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes,
 {$ENDIF}
-  e_log, g_map, g_items, g_console, g_gfx, Math,
+  e_log, g_map, g_items, g_console, g_gfx, Math, r_textures, r_animations,
   g_options, g_triggers, g_menu, g_game, g_grid, e_res,
   wadreader, g_monsters, CONFIG, g_language,
   g_net, g_netmsg,

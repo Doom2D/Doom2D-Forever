@@ -43,7 +43,7 @@ var
 implementation
 
 uses
-  g_gui, g_textures, r_graphics, g_game, g_map,
+  g_gui, r_textures, r_graphics, g_game, g_map,
   g_base, g_basic, g_console, g_sound, g_gfx, g_player, g_options, g_weapons,
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
   MAPDEF, Math, g_saveload,

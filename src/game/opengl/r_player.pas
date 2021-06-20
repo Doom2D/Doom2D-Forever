@@ -42,11 +42,11 @@ implementation
   uses
     SysUtils, Classes, Math,
     MAPDEF, utils,
-    g_basic, g_game, g_phys, g_map, g_textures, g_menu, g_language, g_weapons, g_items, g_net, g_options,
+    g_basic, g_game, g_phys, g_map, g_menu, g_language, g_weapons, g_items, g_net, g_options,
 {$IFDEF ENABLE_HOLMES}
     g_holmes,
 {$ENDIF}
-    r_playermodel, r_graphics, r_animations
+    r_playermodel, r_graphics, r_animations, r_textures
   ;
 
   procedure r_Player_DrawAll;

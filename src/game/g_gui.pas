@@ -550,7 +550,7 @@ procedure g_GUI_LoadMenuPos();
 implementation
 
 uses
-  g_textures, g_sound, SysUtils, e_res,
+  g_sound, SysUtils, e_res, r_textures,
   g_game, Math, StrUtils, g_player, g_options, g_console, r_playermodel,
   g_map, g_weapons, xdynrec, wadreader;
 

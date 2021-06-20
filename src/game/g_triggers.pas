@@ -103,7 +103,7 @@ implementation
 
 uses
   Math,
-  g_player, g_map, g_panel, g_gfx, g_game, g_textures,
+  g_player, g_map, g_panel, g_gfx, g_game, g_textures, r_textures, r_animations,
   g_console, g_monsters, g_items, g_phys, g_weapons,
   wadreader, e_log, g_language, e_res,
   g_options, g_net, g_netmsg, utils, xparser, xstreams;

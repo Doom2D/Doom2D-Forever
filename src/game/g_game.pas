@@ -448,7 +448,7 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes,
 {$ENDIF}
-  e_res, g_textures, g_window, g_menu, r_render,
+  e_res, g_window, g_menu, r_render, r_textures, r_animations,
   e_input, e_log, g_console, r_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, Math,
   g_triggers, g_monsters, e_sound, CONFIG,

@@ -249,7 +249,7 @@ implementation
 uses
   e_input, e_log, e_res, g_items, g_gfx, g_console,
   g_weapons, g_game, g_sound, e_sound, CONFIG,
-  g_options, g_triggers, g_player,
+  g_options, g_triggers, g_player, r_textures, r_animations,
   Math, g_monsters, g_saveload, g_language, g_netmsg,
   sfs, xstreams, hashtable, wadreader,
   ImagingTypes, Imaging, ImagingUtility,
