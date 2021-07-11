@@ -160,6 +160,7 @@ const
     SDL_LibName = 'libSDL2.so.0';
   {$ELSEIF DEFINED(UNIX)}
     {$IFDEF DARWIN}
+      {$LINKLIB libSDL2}
       SDL_LibName = 'libSDL2.dylib';
     {$ELSE}
       {$IFDEF FPC}

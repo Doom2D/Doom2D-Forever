@@ -20,6 +20,7 @@ uses
   {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
   {$DEFINE FS_DYNAMIC}
+  {$LINKLIB libfluidsynth}
   const fluidlib = 'libfluidsynth.so';
 {$ELSE}
   {$ERROR fluidsynth not supported on this platform. Fix it!}

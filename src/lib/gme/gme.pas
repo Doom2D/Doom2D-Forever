@@ -19,6 +19,7 @@ uses ctypes;
   {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
   {$DEFINE GME_DYNAMIC}
+  {$LINKLIB libgme}
   const gmelib = 'libgme.so';
 {$ELSE}
   {$ERROR libgme not supported on this platform. Fix it!}

@@ -24,6 +24,7 @@ interface
   {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
   {$DEFINE XMP_DYNAMIC}
+  {$LINKLIB libxmp}
   {$IFDEF USE_XMP_LITE}
     const xmplib = 'libxmp-lite.so';
   {$ELSE}

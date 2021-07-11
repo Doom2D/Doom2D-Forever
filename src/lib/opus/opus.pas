@@ -20,6 +20,8 @@ uses
   {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
   {$DEFINE OPUS_DYNAMIC}
+  {$LINKLIB libopus}
+  {$LINKLIB libopusfile}
   const opuslib = 'libopus.so';
   const opusfilelib = 'libopusfile.so';
 {$ELSE}
