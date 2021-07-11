@@ -45,6 +45,7 @@ const
 
   {$IFDEF UNIX}
     {$IFDEF DARWIN}
+      {$LINKLIB libSDL2_mixer}
       MIX_LibName = 'libSDL2_mixer.dylib';
     {$ELSE}
       {$IFDEF FPC}
