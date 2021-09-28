@@ -7,7 +7,10 @@
 
 #define MS_VERSION "0.2"
 #define MS_MAXSRVS 128
+#define MS_MAXBANS 256
 #define MS_TIMEOUT 100
+#define MS_BANTIME (3 * 86400)
+#define MS_MAXHEUR 100
 
 #define NET_CHANS 2
 #define NET_CH_MAIN 0
@@ -30,9 +33,27 @@
 #define LC_MS_CONN "\nIncoming connection from %x:%u...\n"
 #define LC_MS_MOTD "\nMOTD: %s\n"
 #define LC_MS_URGENT "\nURGENT: %s\n"
+#define LC_MS_BANNED "\nBanned %s until %s, reason: %s (#%d)\n"
+#define LC_MS_NOBANS "\nCould not load ban list from file\n"
+#define LC_MS_BADADR "\nBad address in file: %s\n"
+#define LC_MS_BANHEUR "tripped heuristic check"
+#define LC_MS_BANLIST "address in ban list"
+#define LC_MS_OOM "\nOut of memory\n"
 
 #define MS_URGENT_FILE "urgent.txt"
 #define MS_MOTD_FILE "motd.txt"
+#define MS_BAN_FILE "master_bans.txt"
+
+struct ms_ban_s;
+
+typedef struct ms_ban_record_s {
+  ENetAddress mask;
+  char ip[18];
+  int ban_count;
+  time_t cur_ban;
+  struct ms_ban_record_s *next;
+  struct ms_ban_record_s *prev;
+} ms_ban_record;
 
 struct ms_server_s {
   enet_uint8 used;
@@ -46,6 +67,7 @@ struct ms_server_s {
   enet_uint8  s_protocol;
   enet_uint16 s_port;
   time_t      deathtime;
+  time_t      lasttime;
 };
 
 typedef struct ms_server_s ms_server;
@@ -64,8 +86,11 @@ enet_uint8 b_send[NET_BUFSIZE];
 
 ENetHost  *ms_host = NULL;
 ENetPeer  *ms_peers[NET_MAXCLIENTS];
+
 ms_server  ms_srv[MS_MAXSRVS];
 enet_uint8 ms_count = 0;
+
+ms_ban_record *ms_bans;
 
 // fake servers to show on old versions of the game
 static const ms_server ms_fake_srv[] = {
@@ -92,13 +117,13 @@ static const ms_server ms_fake_srv[] = {
 
 #define MS_FAKESRVS (sizeof(ms_fake_srv) / sizeof(ms_fake_srv[0]))
 
-void i_usage () {
+void i_usage (void) {
   printf("Usage: d2df_master -p port_number [-t timeout_seconds]\n");
   fflush(stdout);
 }
 
 
-void i_version () {
+void i_version (void) {
   printf("Doom 2D Forever master server v%s\n", MS_VERSION);
   fflush(stdout);
 }
@@ -147,7 +172,7 @@ int d_readtextfile (const char *fname, char *buf, size_t max) {
   if (f) {
     char ln[max];
     char *const lend = ln + max - 1;
-    while(p < end && fgets(ln, sizeof(ln), f)) {
+    while (p < end && fgets(ln, max, f)) {
       for (char *n = ln; n < lend && *n && *n != '\r' && *n != '\n'; ++n) {
         *(p++) = *n;
         if (p == end) break;
@@ -158,6 +183,22 @@ int d_readtextfile (const char *fname, char *buf, size_t max) {
     return 0;
   }
   return 1;
+}
+
+
+int d_strisprint (const char *str) {
+  if (!str || !*str) return 0;
+  for (const char *p = str; p && *p; ++p)
+    if (isprint(*p) || *p > 0x7f) return 1;
+  return 0;
+}
+
+
+const char *d_strtime(const time_t t) {
+  static char buf[128];
+  struct tm *ptm = localtime(&t);
+  strftime(buf, sizeof(buf), "%c", ptm);  
+  return buf;
 }
 
 
@@ -224,6 +265,180 @@ void b_write_server (enet_uint8 buf[], size_t *pos, ms_server s) {
 }
 
 
+time_t ban_get_time(const int cnt) {
+  static const time_t times[] = {
+       1 *  5 * 60,
+       1 * 30 * 60,
+       1 * 60 * 60,
+      24 * 60 * 60,
+      72 * 60 * 60,
+    8760 * 60 * 60,
+  };
+
+  static const size_t numtimes = sizeof(times) / sizeof(*times);
+
+  if (cnt >= numtimes || cnt < 0)
+    return times[numtimes - 1];
+
+  return times[cnt];
+}
+
+
+ms_ban_record *ban_check (const ENetAddress *addr) {
+  const time_t now = time(NULL);
+
+  for (ms_ban_record *b = ms_bans; b; b = b->next) {
+    if (b->mask.host == addr->host) {
+      if (b->cur_ban > now)
+        return b;
+    }
+  }
+
+  return NULL;
+}
+
+
+ms_ban_record *ban_record_check (const ENetAddress *addr) {
+  for (ms_ban_record *b = ms_bans; b; b = b->next) {
+    if (b->mask.host == addr->host)
+      return b;
+  }
+  return NULL;
+}
+
+
+ms_ban_record *ban_record_add_addr (const ENetAddress *addr, const int cnt, const time_t cur) {
+  ms_ban_record *rec = ban_record_check(addr);
+  if (rec) return rec;
+
+  rec = calloc(1, sizeof(*rec));
+  if (!rec) return NULL;
+
+  enet_address_get_host_ip(addr, rec->ip, 17);
+  rec->mask = *addr;
+  rec->ban_count = cnt;
+  rec->cur_ban = cur;
+
+  if (ms_bans) ms_bans->prev = rec;
+  rec->next = ms_bans;
+  ms_bans = rec;
+
+  return rec;
+}
+
+
+ms_ban_record *ban_record_add_ip (const char *ip, const int cnt, const time_t cur) {
+  ENetAddress addr;
+  if (enet_address_set_host_ip(&addr, ip) != 0) {
+    fprintf(stderr, LC_MS_BADADR, ip);
+    return NULL;
+  }
+  return ban_record_add_addr(&addr, cnt, cur);
+}
+
+
+void ban_load_list (const char *fname) {
+  FILE *f = fopen(fname, "r");
+  if (!f) {
+      d_error(LC_MS_NOBANS, 0);
+      return;
+  }
+
+  char ln[256] = { 0 };
+
+  while (fgets(ln, sizeof(ln), f)) {
+    for (int i = sizeof(ln) - 1; i >= 0; --i)
+      if (ln[i] == '\n' || ln[i] == '\r')
+        ln[i] = 0;
+
+    char ip[17] = { 0 };
+    time_t exp = 0;
+    int count = 0;
+
+    sscanf(ln, "%16s %ld %d", ip, &exp, &count);
+
+    if (ban_record_add_ip(ip, count, exp))
+      printf(LC_MS_BANNED, ip, d_strtime(exp), LC_MS_BANLIST, count);
+  }
+
+  fclose(f);
+}
+
+
+void ban_save_list (const char *fname) {
+  FILE *f = fopen(fname, "w");
+  if (!f) {
+    d_error(LC_MS_NOBANS, 0);
+    return;
+  }
+
+  for (ms_ban_record *rec = ms_bans; rec; rec = rec->next)
+    if (rec->ban_count)
+      fprintf(f, "%s %ld %d\n", rec->ip, rec->cur_ban, rec->ban_count);
+
+  fclose(f);
+}
+
+
+int ban_heur (const ms_server *srv, const time_t now) {
+  int score = 0;
+
+  // can't have more than 24 maxplayers; can't have more than max
+  if (srv->s_plrs > srv->s_maxplrs || srv->s_maxplrs > 24)
+    score += MS_MAXHEUR;
+
+  // name and map have to be non-garbage
+  if (!d_strisprint(srv->s_map) || !d_strisprint(srv->s_name))
+    score += MS_MAXHEUR;
+
+  // these protocols don't exist
+  if (srv->s_protocol < 100 || srv->s_protocol > 250)
+    score += MS_MAXHEUR;
+
+  // the game doesn't allow server names longer than 64 chars
+  if (strlen(srv->s_name) > 64)
+    score += MS_MAXHEUR;
+
+  // game mode has to actually exist
+  if (srv->s_mode > 5)
+    score += MS_MAXHEUR;
+
+  // password field can be either 0 or 1
+  if (srv->s_pw > 1)
+    score += MS_MAXHEUR;
+
+  // port has to be set, although the game allows you to set it to 0
+  // if (!srv->s_port)
+  //   score += MS_MAXHEUR;
+
+  // servers usually don't update more often than once every 30 seconds
+  if (now - srv->lasttime < 5)
+    score += MS_MAXHEUR / 2;
+
+  return score;
+}
+
+
+void ban_add (const ENetAddress *addr, const char *reason) {
+  const time_t now = time(NULL);
+
+  ms_ban_record *rec = ban_record_add_addr(addr, 0, 0);
+  if (!rec) d_error(LC_MS_OOM, 1);
+
+  rec->cur_ban = now + ban_get_time(rec->ban_count);
+  rec->ban_count++;
+
+  printf(LC_MS_BANNED, rec->ip, d_strtime(rec->cur_ban), reason, rec->ban_count);
+
+  ban_save_list(MS_BAN_FILE);
+}
+
+
+void d_deinit(void) {
+  ban_save_list(MS_BAN_FILE);
+}
+
+
 int main (int argc, char *argv[]) {
   d_getargs(argc, argv);
 
@@ -236,6 +451,7 @@ int main (int argc, char *argv[]) {
 
   d_readtextfile(MS_MOTD_FILE, ms_motd, sizeof(ms_motd));
   d_readtextfile(MS_URGENT_FILE, ms_urgent, sizeof(ms_urgent));
+  ban_load_list(MS_BAN_FILE);
 
   if (ms_motd[0]) printf(LC_MS_MOTD, ms_motd);
   if (ms_urgent[0]) printf(LC_MS_URGENT, ms_urgent);
@@ -260,7 +476,7 @@ int main (int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  atexit(enet_deinitialize);
+  atexit(d_deinit);
 
   ENetEvent event;
   int shutdown = 0;
@@ -280,19 +496,24 @@ int main (int argc, char *argv[]) {
   enet_uint8 pw = 0;
   while (!shutdown) {
     while (enet_host_service(ms_host, &event, 5000) > 0) {
+      if (event.peer && ban_check(&(event.peer->address)))
+        continue;
+
+      const time_t now = time(NULL);
+
       switch (event.type) {
         case ENET_EVENT_TYPE_CONNECT:
           printf(LC_MS_CONN, event.peer->address.host, event.peer->address.port);
           break;
+
         case ENET_EVENT_TYPE_RECEIVE:
           if (!event.peer) continue;
+
           b_read = 0;
           msg = b_read_uint8(event.packet->data, &b_read);
 
           switch (msg) {
             case NET_MSG_ADD:
-              if (!event.peer) continue;
-
               enet_address_get_host_ip(&(event.peer->address), ip, 17);
               port = b_read_uint16(event.packet->data, &b_read);
 
@@ -309,6 +530,11 @@ int main (int argc, char *argv[]) {
               for (int i = 0; i < MS_MAXSRVS; ++i) {
                 if (ms_srv[i].used) {
                   if ((strncmp(ip, ms_srv[i].s_ip, 16) == 0) && (ms_srv[i].s_port == port)) {
+                    if (ban_heur(ms_srv + i, now) >= MS_MAXHEUR) {
+                      ban_add(&(event.peer->address), LC_MS_BANHEUR);
+                      break;
+                    }
+
                     strncpy(ms_srv[i].s_map, map, sizeof(ms_srv[i].s_map));
                     strncpy(ms_srv[i].s_name, name, sizeof(ms_srv[i].s_name));
                     ms_srv[i].s_plrs = pl;
@@ -316,7 +542,8 @@ int main (int argc, char *argv[]) {
                     ms_srv[i].s_pw = pw;
                     ms_srv[i].s_mode = gm;
 
-                    ms_srv[i].deathtime = time(NULL) + ms_timeout;
+                    ms_srv[i].deathtime = now + ms_timeout;
+                    ms_srv[i].lasttime = now;
 
                     printf(LC_MS_UPD, i, ip, port, name, map, gm, pl, mpl, proto, pw);
                     break;
@@ -331,7 +558,13 @@ int main (int argc, char *argv[]) {
                     ms_srv[i].s_pw = pw;
                     ms_srv[i].s_mode = gm;
                     ms_srv[i].s_protocol = proto;
-                    ms_srv[i].deathtime = time(NULL) + ms_timeout;
+                    ms_srv[i].deathtime = now + ms_timeout;
+                    ms_srv[i].lasttime = now;
+
+                    if (ban_heur(ms_srv + i, now) >= MS_MAXHEUR) {
+                      ban_add(&(event.peer->address), LC_MS_BANHEUR);
+                      break;
+                    }
 
                     ms_srv[i].used = 1;
 
@@ -344,12 +577,17 @@ int main (int argc, char *argv[]) {
               free(name);
               free(map);
               break;
+
             case NET_MSG_RM:
               enet_address_get_host_ip(&(event.peer->address), ip, 17);
               port = b_read_uint16(event.packet->data, &b_read);
               for (int i = 0; i < MS_MAXSRVS; ++i) {
                 if (ms_srv[i].used) {
                   if ((strncmp(ip, ms_srv[i].s_ip, 16) == 0) && (ms_srv[i].s_port == port)) {
+                    if (ban_heur(ms_srv + i, now) >= MS_MAXHEUR) {
+                      ban_add(&(event.peer->address), LC_MS_BANHEUR);
+                      break;
+                    }
                     ms_srv[i].used = 0;
                     printf(LC_MS_RM, i, ip, port);
                     --ms_count;
@@ -357,9 +595,8 @@ int main (int argc, char *argv[]) {
                 }
               }
               break;
-            case NET_MSG_LIST:
-              if (!event.peer) continue;
 
+            case NET_MSG_LIST:
               b_write = 0;
               b_write_uint8(b_send, &b_write, NET_MSG_LIST);
 
