@@ -1474,6 +1474,7 @@ begin
       exit;
     end;
 
+    Result := True;
     slMOTD := '';
     {
     slUrgent := '';
