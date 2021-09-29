@@ -273,7 +273,9 @@ begin
     GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER or
     GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE;
   gsPlayers := 1;
-  g_Options_ApplyGameSettings;
+
+  if not gGameOn then
+    g_Options_ApplyGameSettings;
 
   (* section MasterServer *)
   NetMasterList := 'mpms.doom2d.org:25665, deadsoftware.ru:25665';
