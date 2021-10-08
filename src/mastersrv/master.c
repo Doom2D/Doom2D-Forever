@@ -1,9 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <string.h>
+#include <time.h>
+
 #include <enet/enet.h>
 #include <enet/types.h>
-#include <time.h>
 
 #define MS_VERSION "0.2"
 #define MS_MAXSRVS 128
