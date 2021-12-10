@@ -340,6 +340,7 @@ var
   gDelayedEvents: Array of TDelayedEvent;
   gUseChatSounds: Boolean = True;
   gChatSounds: Array of TChatSound;
+  gWeaponAction: Array [0..1, WP_FACT..WP_LACT] of Boolean; // [player, weapon_action]
   gSelectWeapon: Array [0..1, WP_FIRST..WP_LAST] of Boolean; // [player, weapon]
   gInterReadyCount: Integer = 0;
 
@@ -1690,12 +1691,16 @@ begin
   if gPlayerAction[p, ACTION_LOOKUP] then plr.PressKey(KEY_UP, time);
   if gPlayerAction[p, ACTION_LOOKDOWN] then plr.PressKey(KEY_DOWN, time);
   if gPlayerAction[p, ACTION_ATTACK] then plr.PressKey(KEY_FIRE);
-  if gPlayerAction[p, ACTION_WEAPNEXT] then plr.PressKey(KEY_NEXTWEAPON);
-  if gPlayerAction[p, ACTION_WEAPPREV] then plr.PressKey(KEY_PREVWEAPON);
   if gPlayerAction[p, ACTION_ACTIVATE] then plr.PressKey(KEY_OPEN);
 
-  gPlayerAction[p, ACTION_WEAPNEXT] := False; // HACK, remove after readyweaon&pendinweapon implementation
-  gPlayerAction[p, ACTION_WEAPPREV] := False; // HACK, remove after readyweaon&pendinweapon implementation
+  for i := WP_FACT to WP_LACT do
+  begin
+    if gWeaponAction[p, i] then
+    begin
+      plr.ProcessWeaponAction(i);
+      gWeaponAction[p, i] := False
+    end
+  end;
 
   for i := WP_FIRST to WP_LAST do
   begin
@@ -2056,17 +2061,17 @@ begin
             gSpectY := Max(gSpectY - gSpectStep, 0);
           if gPlayerAction[0, ACTION_LOOKDOWN] then
             gSpectY := Min(gSpectY + gSpectStep, gMapInfo.Height - gScreenHeight);
-          if gPlayerAction[0, ACTION_WEAPPREV] then
+          if gWeaponAction[0, WP_PREV] then
           begin
             // decrease step
             if gSpectStep > 4 then gSpectStep := gSpectStep shr 1;
-            gSpectKeyPress := True;
+            gWeaponAction[0, WP_PREV] := False;
           end;
-          if gPlayerAction[0, ACTION_WEAPNEXT] then
+          if gWeaponAction[0, WP_NEXT] then
           begin
             // increase step
             if gSpectStep < 64 then gSpectStep := gSpectStep shl 1;
-            gSpectKeyPress := True;
+            gWeaponAction[0, WP_NEXT] := False;
           end;
         end;
         if (gSpectMode = SPECT_PLAYERS)
@@ -2096,17 +2101,17 @@ begin
             gSpectPID1 := GetActivePlayerID_Next(gSpectPID1);
             gSpectKeyPress := True;
           end;
-          if gPlayerAction[0, ACTION_WEAPPREV] then
+          if gWeaponAction[0, WP_PREV] then
           begin
             // prev player (view 2)
             gSpectPID2 := GetActivePlayerID_Prev(gSpectPID2);
-            gSpectKeyPress := True;
+            gWeaponAction[0, WP_PREV] := False;
           end;
-          if gPlayerAction[0, ACTION_WEAPNEXT] then
+          if gWeaponAction[0, WP_NEXT] then
           begin
             // next player (view 2)
             gSpectPID2 := GetActivePlayerID_Next(gSpectPID2);
-            gSpectKeyPress := True;
+            gWeaponAction[0, WP_NEXT] := False;
           end;
         end;
         if gPlayerAction[0, ACTION_ATTACK] then
@@ -2133,9 +2138,7 @@ begin
            (not gPlayerAction[0, ACTION_MOVELEFT]) and
            (not gPlayerAction[0, ACTION_MOVERIGHT]) and
            (not gPlayerAction[0, ACTION_LOOKUP]) and
-           (not gPlayerAction[0, ACTION_LOOKDOWN]) and
-           (not gPlayerAction[0, ACTION_WEAPPREV]) and
-           (not gPlayerAction[0, ACTION_WEAPNEXT]) then
+           (not gPlayerAction[0, ACTION_LOOKDOWN]) then
           gSpectKeyPress := False;
 
       if gSpectAuto then
@@ -7195,6 +7198,14 @@ begin
   begin
     g_TakeScreenShot()
   end
+  else if (cmd = 'weapnext') or (cmd = 'weapprev') then
+  begin
+    a := 1 - (ord(cmd[5]) - ord('n'));
+    if a = -1 then
+      gWeaponAction[0, WP_PREV] := True;
+    if a = 1 then
+      gWeaponAction[0, WP_NEXT] := True;
+  end
   else if cmd = 'weapon' then
   begin
     if Length(p) = 2 then
@@ -7203,6 +7214,16 @@ begin
       if (a >= WP_FIRST) and (a <= WP_LAST) then
         gSelectWeapon[0, a] := True
     end
+  end
+  else if (cmd = 'p1_weapnext') or (cmd = 'p1_weapprev')
+       or (cmd = 'p2_weapnext') or (cmd = 'p2_weapprev') then
+  begin
+    a := 1 - (ord(cmd[8]) - ord('n'));
+    b := ord(cmd[2]) - ord('1');
+    if a = -1 then
+      gWeaponAction[b, WP_PREV] := True;
+    if a = 1 then
+      gWeaponAction[b, WP_NEXT] := True;
   end
   else if (cmd = 'p1_weapon') or (cmd = 'p2_weapon') then
   begin

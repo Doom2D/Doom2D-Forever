@@ -30,11 +30,9 @@ uses
     ACTION_SCORES = 6;
     ACTION_ACTIVATE = 7;
     ACTION_STRAFE = 8;
-    ACTION_WEAPNEXT = 9;
-    ACTION_WEAPPREV = 10;
 
     FIRST_ACTION = ACTION_JUMP;
-    LAST_ACTION = ACTION_WEAPPREV;
+    LAST_ACTION = ACTION_STRAFE;
 
 procedure g_Console_Init;
 procedure g_Console_SysInit;
@@ -54,7 +52,7 @@ function  g_Console_Interactive: Boolean;
 function  g_Console_Action (action: Integer): Boolean;
 function  g_Console_MatchBind (key: Integer; down: AnsiString; up: AnsiString = ''): Boolean;
 function  g_Console_FindBind (n: Integer; down: AnsiString; up: AnsiString = ''): Integer;
-procedure g_Console_BindKey (key: Integer; down: AnsiString; up: AnsiString = '');
+procedure g_Console_BindKey (key: Integer; down: AnsiString; up: AnsiString = ''; rep: Boolean = False);
 procedure g_Console_ProcessBind (key: Integer; down: Boolean);
 procedure g_Console_ProcessBindRepeat (key: Integer);
 procedure g_Console_ResetBinds;
@@ -1109,8 +1107,14 @@ begin
   AddCommand('clientlist', GameCommands);
   AddCommand('event', GameCommands);
   AddCommand('screenshot', GameCommands);
+  AddCommand('weapnext', GameCommands);
+  AddCommand('weapprev', GameCommands);
   AddCommand('weapon', GameCommands);
+  AddCommand('p1_weapnext', GameCommands);
+  AddCommand('p1_weapprev', GameCommands);
   AddCommand('p1_weapon', GameCommands);
+  AddCommand('p2_weapnext', GameCommands);
+  AddCommand('p2_weapprev', GameCommands);
   AddCommand('p2_weapon', GameCommands);
 
   AddCommand('god', GameCheats);
@@ -1134,8 +1138,6 @@ begin
   AddAction('scores', ACTION_SCORES);
   AddAction('activate', ACTION_ACTIVATE);
   AddAction('strafe', ACTION_STRAFE);
-  AddAction('weapnext', ACTION_WEAPNEXT);
-  AddAction('weapprev', ACTION_WEAPPREV);
 
   WhitelistCommand('say');
   WhitelistCommand('tell');
@@ -1852,14 +1854,14 @@ begin
   Result := gConsoleShow
 end;
 
-procedure g_Console_BindKey (key: Integer; down: AnsiString; up: AnsiString = '');
+procedure g_Console_BindKey (key: Integer; down: AnsiString; up: AnsiString = ''; rep: Boolean = False);
 begin
   //e_LogWritefln('bind "%s" "%s" <%s>', [LowerCase(e_KeyNames[key]), cmd, key]);
   ASSERT(key >= 0);
   ASSERT(key < e_MaxInputKeys);
   if key > 0 then
   begin
-    gInputBinds[key].rep := False;
+    gInputBinds[key].rep := rep;
     gInputBinds[key].down := ParseAlias(down);
     gInputBinds[key].up := ParseAlias(up);
   end;
@@ -1985,9 +1987,9 @@ begin
   g_Console_BindKey(IK_SPACE, '+p1_jump', '-p1_jump');
   g_Console_BindKey(IK_H, '+p1_attack', '-p1_attack');
   g_Console_BindKey(IK_J, '+p1_activate', '-p1_activate');
-  g_Console_BindKey(IK_E, '+p1_weapnext', '-p1_weapnext');
-  g_Console_BindKey(IK_Q, '+p1_weapprev', '-p1_weapprev');
   g_Console_BindKey(IK_ALT, '+p1_strafe', '-p1_strafe');
+  g_Console_BindKey(IK_E, 'p1_weapnext', '', True);
+  g_Console_BindKey(IK_Q, 'p1_weapprev', '', True);
   g_Console_BindKey(IK_1, 'p1_weapon 1');
   g_Console_BindKey(IK_2, 'p1_weapon 2');
   g_Console_BindKey(IK_3, 'p1_weapon 3');
@@ -2016,9 +2018,9 @@ begin
     g_Console_BindKey(e_JoyButtonToKey(i, 2), '+p' + IntToStr(i mod 2 + 1) + '_jump', '-p' + IntToStr(i mod 2 + 1) + '_jump');
     g_Console_BindKey(e_JoyButtonToKey(i, 0), '+p' + IntToStr(i mod 2 + 1) + '_attack', '-p' + IntToStr(i mod 2 + 1) + '_attack');
     g_Console_BindKey(e_JoyButtonToKey(i, 3), '+p' + IntToStr(i mod 2 + 1) + '_activate', '-p' + IntToStr(i mod 2 + 1) + '_activate');
-    g_Console_BindKey(e_JoyButtonToKey(i, 1), '+p' + IntToStr(i mod 2 + 1) + '_weapnext', '-p' + IntToStr(i mod 2 + 1) + '_weapnext');
-    g_Console_BindKey(e_JoyButtonToKey(i, 4), '+p' + IntToStr(i mod 2 + 1) + '_weapprev', '-p' + IntToStr(i mod 2 + 1) + '_weapprev');
     g_Console_BindKey(e_JoyButtonToKey(i, 7), '+p' + IntToStr(i mod 2 + 1) + '_strafe', '-p' + IntToStr(i mod 2 + 1) + '_strafe');
+    g_Console_BindKey(e_JoyButtonToKey(i, 1), 'p' + IntToStr(i mod 2 + 1) + '_weapnext', '', True);
+    g_Console_BindKey(e_JoyButtonToKey(i, 4), 'p' + IntToStr(i mod 2 + 1) + '_weapprev', '', True);
     g_Console_BindKey(e_JoyButtonToKey(i, 10), 'togglemenu');
   end;
 
@@ -2032,9 +2034,9 @@ begin
   g_Console_BindKey(VK_JUMP, '+jump', '-jump');
   g_Console_BindKey(VK_FIRE, '+attack', '-attack');
   g_Console_BindKey(VK_OPEN, '+activate', '-activate');
-  g_Console_BindKey(VK_NEXT, '+weapnext', '-weapnext');
-  g_Console_BindKey(VK_PREV, '+weapprev', '-weapprev');
   g_Console_BindKey(VK_STRAFE, '+strafe', '-strafe');
+  g_Console_BindKey(VK_NEXT, 'weapnext', '', True);
+  g_Console_BindKey(VK_PREV, 'weapprev', '', True);
   g_Console_BindKey(VK_0, 'weapon 1');
   g_Console_BindKey(VK_1, 'weapon 2');
   g_Console_BindKey(VK_2, 'weapon 3');

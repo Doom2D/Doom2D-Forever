@@ -282,17 +282,15 @@ uses
   g_language, g_monsters, g_netmaster, utils, wadreader, MAPDEF;
 
 const
-  NET_KEY_LEFT     = 1;
-  NET_KEY_RIGHT    = 2;
-  NET_KEY_UP       = 4;
-  NET_KEY_DOWN     = 8;
-  NET_KEY_JUMP     = 16;
-  NET_KEY_FIRE     = 32;
-  NET_KEY_OPEN     = 64;
-  NET_KEY_NW       = 256;
-  NET_KEY_PW       = 512;
-  NET_KEY_CHAT     = 2048;
-  NET_KEY_FORCEDIR = 4096;
+  NET_KEY_LEFT     = 1 shl 0;
+  NET_KEY_RIGHT    = 1 shl 1;
+  NET_KEY_UP       = 1 shl 2;
+  NET_KEY_DOWN     = 1 shl 3;
+  NET_KEY_JUMP     = 1 shl 4;
+  NET_KEY_FIRE     = 1 shl 5;
+  NET_KEY_OPEN     = 1 shl 6;
+  NET_KEY_CHAT     = 1 shl 7;
+  NET_KEY_FORCEDIR = 1 shl 8;
 
 //var
   //kBytePrev: Word = 0;
@@ -519,6 +517,7 @@ end;
 function  MH_RECV_PlayerPos(C: pTNetClient; var M: TMsg): Word;
 var
   Dir, i: Byte;
+  WeaponAct: Byte;
   WeaponSelect: Word;
   PID: Word;
   kByte: Word;
@@ -541,6 +540,7 @@ begin
     NetTime := GT;
     kByte := M.ReadWord();
     Dir := M.ReadByte();
+    WeaponAct := M.ReadByte();
     WeaponSelect := M.ReadWord();
     //e_WriteLog(Format('R:ws=%d', [WeaponSelect]), MSG_WARNING);
     if Direction <> TDirection(Dir) then
@@ -562,8 +562,15 @@ begin
     if LongBool(kByte and NET_KEY_JUMP) then PressKey(KEY_JUMP, 10000);
     if LongBool(kByte and NET_KEY_FIRE) then PressKey(KEY_FIRE, 10000);
     if LongBool(kByte and NET_KEY_OPEN) then PressKey(KEY_OPEN, 10000);
-    if LongBool(kByte and NET_KEY_NW) then PressKey(KEY_NEXTWEAPON, 10000);
-    if LongBool(kByte and NET_KEY_PW) then PressKey(KEY_PREVWEAPON, 10000);
+
+    for i := 0 to 7 do
+    begin
+      if (WeaponAct and Byte(1 shl i)) <> 0 then
+      begin
+        //e_WriteLog(Format(' R:wn=%d', [i]), MSG_WARNING);
+        ProcessWeaponAction(i);
+      end;
+    end;
 
     for i := 0 to 15 do
     begin
@@ -2971,6 +2978,7 @@ var
   kByte: Word;
   Predict: Boolean;
   strafeDir: Byte;
+  WeaponAct: Byte = 0;
   WeaponSelect: Word = 0;
   i: Integer;
 begin
@@ -3044,11 +3052,15 @@ begin
     end;
     if gPlayerAction[0, ACTION_ATTACK] then kByte := kByte or NET_KEY_FIRE;
     if gPlayerAction[0, ACTION_ACTIVATE] then kByte := kByte or NET_KEY_OPEN;
-    if gPlayerAction[0, ACTION_WEAPNEXT] then kByte := kByte or NET_KEY_NW;
-    if gPlayerAction[0, ACTION_WEAPPREV] then kByte := kByte or NET_KEY_PW;
 
-    gPlayerAction[0, ACTION_WEAPNEXT] := False; // HACK, remove after readyweaon&pendinweapon implementation
-    gPlayerAction[0, ACTION_WEAPPREV] := False; // HACK, remove after readyweaon&pendinweapon implementation
+    for i := WP_FACT to WP_LACT do
+    begin
+      if gWeaponAction[0, i] then
+      begin
+        WeaponAct := WeaponAct or Byte(1 shl i);
+        gWeaponAction[0, i] := False
+      end
+    end;
 
     for i := WP_FIRST to WP_LAST do
     begin
@@ -3069,6 +3081,7 @@ begin
   NetOut.Write(gTime);
   NetOut.Write(kByte);
   NetOut.Write(Byte(gPlayer1.Direction));
+  NetOut.Write(WeaponAct);
   NetOut.Write(WeaponSelect);
   //e_WriteLog(Format('S:ws=%d', [WeaponSelect]), MSG_WARNING);
   g_Net_Client_Send(True, NET_CHAN_PLAYERPOS);

@@ -31,11 +31,14 @@ const
   KEY_UP         = 3;
   KEY_DOWN       = 4;
   KEY_FIRE       = 5;
-  KEY_NEXTWEAPON = 6;
-  KEY_PREVWEAPON = 7;
-  KEY_OPEN       = 8;
-  KEY_JUMP       = 9;
-  KEY_CHAT       = 10;
+  KEY_OPEN       = 6;
+  KEY_JUMP       = 7;
+  KEY_CHAT       = 8;
+
+  WP_PREV        = 0;
+  WP_NEXT        = 1;
+  WP_FACT        = WP_PREV;
+  WP_LACT        = WP_NEXT;
 
   R_ITEM_BACKPACK   = 0;
   R_KEY_RED         = 1;
@@ -339,6 +342,7 @@ type
     procedure   NetFire(Wpn: Byte; X, Y, AX, AY: Integer; WID: Integer = -1);
     procedure   DoLerp(Level: Integer = 2);
     procedure   SetLerp(XTo, YTo: Integer);
+    procedure   ProcessWeaponAction(Action: Byte);
     procedure   QueueWeaponSwitch(Weapon: Byte);
     procedure   RealizeCurrentWeapon();
     procedure   FlamerOn;
@@ -3772,6 +3776,15 @@ begin
               FModel.Blood.R, FModel.Blood.G, FModel.Blood.B, FModel.Blood.Kind);
 end;
 
+procedure TPlayer.ProcessWeaponAction(Action: Byte);
+begin
+  if g_Game_IsClient then Exit;
+  case Action of
+    WP_PREV: PrevWeapon();
+    WP_NEXT: NextWeapon();
+  end;
+end;
+
 procedure TPlayer.QueueWeaponSwitch(Weapon: Byte);
 begin
   if g_Game_IsClient then Exit;
@@ -5062,10 +5075,6 @@ begin
     FIncCam := FIncCam*i;
   end;
 
-  // no need to do that each second frame, weapon queue will take care of it
-  if FAlive and FKeys[KEY_NEXTWEAPON].Pressed and AnyServer then NextWeapon();
-  if FAlive and FKeys[KEY_PREVWEAPON].Pressed and AnyServer then PrevWeapon();
-
   if gTime mod (GAME_TICK*2) <> 0 then
   begin
     if (FObj.Vel.X = 0) and FAlive then
@@ -5092,8 +5101,6 @@ begin
     // Let alive player do some actions
     if FKeys[KEY_LEFT].Pressed then Run(TDirection.D_LEFT);
     if FKeys[KEY_RIGHT].Pressed then Run(TDirection.D_RIGHT);
-    //if FKeys[KEY_NEXTWEAPON].Pressed and AnyServer then NextWeapon();
-    //if FKeys[KEY_PREVWEAPON].Pressed and AnyServer then PrevWeapon();
     if FKeys[KEY_FIRE].Pressed and AnyServer then Fire()
     else
     begin
