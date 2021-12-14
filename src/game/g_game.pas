@@ -8069,9 +8069,9 @@ begin
   while i <= ParamCount do
   begin
     s := ParamStr(i);
-    if (s[1] = '-') and (Length(s) > 1) then
+    if (Length(s) > 1) and (s[1] = '-') then
     begin
-      if (s[2] = '-') and (Length(s) > 2) then
+      if (Length(s) > 2) and (s[2] = '-') then
         begin // Одиночный параметр
           SetLength(pars, Length(pars) + 1);
           with pars[High(pars)] do
