@@ -11,6 +11,7 @@ public class Doom2DF extends SDLActivity {
 	@Override
 	protected String[] getLibraries() {
 		return new String[] {
+			"crystax",
 			"SDL2",
 			"mpg123",
 			"SDL2_mixer",
