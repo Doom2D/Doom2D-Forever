@@ -16,6 +16,7 @@ public class Doom2DF extends SDLActivity {
 			"mpg123",
 			"SDL2_mixer",
 			"enet",
+			"miniupnpc",
 			"Doom2DF"
 		};
 	}
