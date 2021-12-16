@@ -204,6 +204,11 @@ var
 {$ENDIF}
   //tfo: Text;
 begin
+{$IFDEF ANDROID}
+  System.argc := argc;
+  System.argv := argv;
+{$ENDIF}
+
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]); //k8: fuck off, that's why
 
   f := 1;
