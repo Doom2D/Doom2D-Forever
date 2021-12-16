@@ -5,16 +5,26 @@
       android:versionName="0.667-git"
       android:installLocation="auto">
 
-    <!-- Android 4.1 -->
-    <uses-sdk android:minSdkVersion="10" android:targetSdkVersion="16" />
+    <!-- min Android 4.1, target Android 4.4 -->
+    <uses-sdk android:minSdkVersion="16" android:targetSdkVersion="19" />
 
     <!-- OpenGL ES 2.0 -->
     <!-- <uses-feature android:glEsVersion="0x00020000" /> -->
+
     <!-- OpenGL ES 1.1 -->
     <uses-feature android:glEsVersion="0x00010001" />
 
+    <!-- Game controller support -->
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <uses-feature android:name="android.hardware.gamepad" android:required="false" />
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+
+    <!-- External mouse input events -->
+    <uses-feature android:name="android.hardware.type.pc" android:required="false" />
+
     <!-- Allow writing to external storage -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
     <!-- Allow access to the vibrator -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
@@ -31,24 +41,26 @@
                  android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
                  android:hardwareAccelerated="true"
                  android:debuggable="true" >
-        <activity android:name="Doom2DF"
-                  android:label="Doom2D Forever"
-                  android:screenOrientation="sensorLandscape"
-                  android:configChanges="keyboardHidden|orientation|screenSize"
-                  >
+
+        <meta-data android:name="SDL_ENV.SDL_ACCELEROMETER_AS_JOYSTICK" android:value="0"/>
+
+        <activity android:name="Launcher" android:label="Doom2D Forever" android:launchMode="singleInstance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Drop file event -->
-            <!--
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="*/*" />
-            </intent-filter>
-            -->
         </activity>
+
+        <activity android:name="Doom2DF"
+            android:label="Doom2DF Forever"
+            android:alwaysRetainTaskState="true"
+            android:launchMode="singleInstance"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+        >
+        </activity>
+
     </application>
 
 </manifest> 
