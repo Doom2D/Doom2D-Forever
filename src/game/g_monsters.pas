@@ -4663,6 +4663,8 @@ begin
       FAnim[i, TDirection.D_RIGHT].LoadState(st);
     end;
   end;
+  // update cache
+  self.positionChanged
 end;
 
 
