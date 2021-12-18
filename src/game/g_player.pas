@@ -854,148 +854,40 @@ begin
 end;
 
 function g_Player_CreateFromState (st: TStream): Word;
-var
-  a, i: Integer;
-  ok, Bot: Boolean;
-  b: Byte;
+  var a: Integer; ok, Bot: Boolean; pos: Int64;
 begin
-  result := 0;
-  if (st = nil) then exit; //???
+  assert(st <> nil);
 
-  // Сигнатура игрока
+  // check signature and entity type
+  pos := st.Position;
   if not utils.checkSign(st, 'PLYR') then raise XStreamError.Create('invalid player signature');
   if (utils.readByte(st) <> PLR_SAVE_VERSION) then raise XStreamError.Create('invalid player version');
-
-  // Бот или человек:
   Bot := utils.readBool(st);
+  st.Position := pos;
 
+  // find free player slot
   ok := false;
-  a := 0;
+  for a := 0 to High(gPlayers) do
+    if gPlayers[a] = nil then
+    begin
+      ok := true;
+      break;
+    end;
 
-  // Есть ли место в gPlayers:
-  for a := 0 to High(gPlayers) do if (gPlayers[a] = nil) then begin ok := true; break; end;
-
-  // Нет места - расширяем gPlayers
+  // allocate player slot
   if not ok then
   begin
     SetLength(gPlayers, Length(gPlayers)+1);
     a := High(gPlayers);
   end;
 
-  // Создаем объект игрока
+  // create entity and load state
   if Bot then
     gPlayers[a] := TBot.Create()
   else
     gPlayers[a] := TPlayer.Create();
-  gPlayers[a].FIamBot := Bot;
-  gPlayers[a].FPhysics := True;
-
-  // UID игрока
-  gPlayers[a].FUID := utils.readWord(st);
-  // Имя игрока
-  gPlayers[a].FName := utils.readStr(st);
-  // Команда
-  gPlayers[a].FTeam := utils.readByte(st);
-  gPlayers[a].FPreferredTeam := gPlayers[a].FTeam;
-  // Жив ли
-  gPlayers[a].FAlive := utils.readBool(st);
-  // Израсходовал ли все жизни
-  gPlayers[a].FNoRespawn := utils.readBool(st);
-  // Направление
-  b := utils.readByte(st);
-  if b = 1 then gPlayers[a].FDirection := TDirection.D_LEFT else gPlayers[a].FDirection := TDirection.D_RIGHT; // b = 2
-  // Здоровье
-  gPlayers[a].FHealth := utils.readLongInt(st);
-  // Фора
-  gPlayers[a].FHandicap := utils.readLongInt(st);
-  // Жизни
-  gPlayers[a].FLives := utils.readByte(st);
-  // Броня
-  gPlayers[a].FArmor := utils.readLongInt(st);
-  // Запас воздуха
-  gPlayers[a].FAir := utils.readLongInt(st);
-  // Запас горючего
-  gPlayers[a].FJetFuel := utils.readLongInt(st);
-  // Боль
-  gPlayers[a].FPain := utils.readLongInt(st);
-  // Убил
-  gPlayers[a].FKills := utils.readLongInt(st);
-  // Убил монстров
-  gPlayers[a].FMonsterKills := utils.readLongInt(st);
-  // Фрагов
-  gPlayers[a].FFrags := utils.readLongInt(st);
-  // Фрагов подряд
-  gPlayers[a].FFragCombo := utils.readByte(st);
-  // Время последнего фрага
-  gPlayers[a].FLastFrag := utils.readLongWord(st);
-  // Смертей
-  gPlayers[a].FDeath := utils.readLongInt(st);
-  // Какой флаг несет
-  gPlayers[a].FFlag := utils.readByte(st);
-  // Нашел секретов
-  gPlayers[a].FSecrets := utils.readLongInt(st);
-  // Текущее оружие
-  gPlayers[a].FCurrWeap := utils.readByte(st);
-  // Следующее желаемое оружие
-  gPlayers[a].FNextWeap := utils.readWord(st);
-  // ...и пауза
-  gPlayers[a].FNextWeapDelay := utils.readByte(st);
-  // Время зарядки BFG
-  gPlayers[a].FBFGFireCounter := utils.readSmallInt(st);
-  // Буфер урона
-  gPlayers[a].FDamageBuffer := utils.readLongInt(st);
-  // Последний ударивший
-  gPlayers[a].FLastSpawnerUID := utils.readWord(st);
-  // Тип последнего полученного урона
-  gPlayers[a].FLastHit := utils.readByte(st);
-  // Объект игрока:
-  Obj_LoadState(@gPlayers[a].FObj, st);
-  // Текущее количество патронов
-  for i := A_BULLETS to A_HIGH do gPlayers[a].FAmmo[i] := utils.readWord(st);
-  // Максимальное количество патронов
-  for i := A_BULLETS to A_HIGH do gPlayers[a].FMaxAmmo[i] := utils.readWord(st);
-  // Наличие оружия
-  for i := WP_FIRST to WP_LAST do gPlayers[a].FWeapon[i] := utils.readBool(st);
-  // Время перезарядки оружия
-  for i := WP_FIRST to WP_LAST do gPlayers[a].FReloading[i] := utils.readWord(st);
-  // Наличие рюкзака
-  if utils.readBool(st) then Include(gPlayers[a].FRulez, R_ITEM_BACKPACK);
-  // Наличие красного ключа
-  if utils.readBool(st) then Include(gPlayers[a].FRulez, R_KEY_RED);
-  // Наличие зеленого ключа
-  if utils.readBool(st) then Include(gPlayers[a].FRulez, R_KEY_GREEN);
-  // Наличие синего ключа
-  if utils.readBool(st) then Include(gPlayers[a].FRulez, R_KEY_BLUE);
-  // Наличие берсерка
-  if utils.readBool(st) then Include(gPlayers[a].FRulez, R_BERSERK);
-  // Время действия специальных предметов
-  for i := MR_SUIT to MR_MAX do gPlayers[a].FMegaRulez[i] := utils.readLongWord(st);
-  // Время до повторного респауна, смены оружия, исользования, захвата флага
-  for i := T_RESPAWN to T_FLAGCAP do gPlayers[a].FTime[i] := utils.readLongWord(st);
-
-  // Название модели:
-  gPlayers[a].FActualModelName := utils.readStr(st);
-  // Цвет модели
-  gPlayers[a].FColor.R := utils.readByte(st);
-  gPlayers[a].FColor.G := utils.readByte(st);
-  gPlayers[a].FColor.B := utils.readByte(st);
-  // Обновляем модель игрока
-  gPlayers[a].SetModel(gPlayers[a].FActualModelName);
-
-  // Нет модели - создание невозможно
-  if (gPlayers[a].FModel = nil) then
-  begin
-    gPlayers[a].Free();
-    gPlayers[a] := nil;
-    g_FatalError(Format(_lc[I_GAME_ERROR_MODEL], [gPlayers[a].FActualModelName]));
-    exit;
-  end;
-
-  // Если командная игра - красим модель в цвет команды
-  if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
-    gPlayers[a].FModel.Color := TEAMCOLOR[gPlayers[a].FTeam]
-  else
-    gPlayers[a].FModel.Color := gPlayers[a].FColor;
+  gPlayers[a].FPhysics := True; // ???
+  gPlayers[a].LoadState(st);
 
   result := gPlayers[a].FUID;
 end;
