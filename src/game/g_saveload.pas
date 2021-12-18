@@ -317,7 +317,9 @@ begin
 
       e_WriteLog('Loading saved game...', TMsgType.Notify);
 
-      {$IF DEFINED(D2F_DEBUG)}try{$ENDIF}
+{$IF DEFINED(D2F_DEBUG)}
+      try
+{$ENDIF}
         //g_Game_Free(false); // don't free textures for the same map
         g_Game_ClearLoading();
         g_Game_SetLoadingText(_lc[I_LOAD_SAVE_FILE], 0, False);
@@ -405,10 +407,7 @@ begin
         // Загрузка и запуск карты
         //FIXME: save/load `asMegawad`
         if not g_Game_StartMap(false{asMegawad}, WAD_Path+':\'+Map_Name, True, curmapfile) then
-        begin
-          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [WAD_Path + ':\' + Map_Name]));
-          exit;
-        end;
+          raise Exception.Create(Format(_lc[I_GAME_ERROR_MAP_LOAD], [WAD_Path + ':\' + Map_Name]));
 
         // Настройки игроков и ботов
         g_Player_Init();
@@ -488,14 +487,14 @@ begin
         // done
         gLoadGameMode := false;
         result := true;
-      {$IF DEFINED(D2F_DEBUG)}
+{$IF DEFINED(D2F_DEBUG)}
       except
         begin
           errpos := LongWord(st.position);
           raise;
         end;
       end;
-      {$ENDIF}
+{$ENDIF}
     finally
       st.Free();
     end;
