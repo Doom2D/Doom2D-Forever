@@ -60,7 +60,11 @@ var
 
 function DecodeIPV4 (ip: LongWord): string;
 begin
+{$IFDEF FPC_LITTLE_ENDIAN}
   Result := Format('%d.%d.%d.%d', [ip and $FF, (ip shr 8) and $FF, (ip shr 16) and $FF, (ip shr 24)]);
+{$ELSE}
+  Result := Format('%d.%d.%d.%d', [(ip shr 24), (ip shr 16) and $FF, (ip shr 8) and $FF, ip and $FF]);
+{$ENDIF}
 end;
 
 
