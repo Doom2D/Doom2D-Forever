@@ -39,7 +39,7 @@ Type
     QuietRespawn: Boolean;
     SpawnTrigger: Integer;
     Obj: TObj;
-    Animation: TAnimation;
+    Animation: TAnimationState;
     dropped: Boolean; // dropped from the monster? drops should be rendered after corpses, so zombie corpse will not obscure ammo container, for example
     NeedSend: Boolean;
 
@@ -84,7 +84,6 @@ function g_Items_ForEachAlive (cb: TItemEachAliveCB; backwards: Boolean=false): 
 function g_Items_NextAlive (startIdx: Integer): PItem;
 
 var
-  gItemsTexturesID: Array [1..ITEM_MAX] of DWORD;
   gMaxDist: Integer = 1; // for sounds
 
   var (* private state *)
@@ -198,39 +197,6 @@ const
      ((53), (20)), // WEAPON_FLAMETHROWER
      ((13), (20))); // AMMO_FUELCAN
 
-procedure InitTextures();
-begin
-  g_Texture_Get('ITEM_MEDKIT_SMALL',     gItemsTexturesID[ITEM_MEDKIT_SMALL]);
-  g_Texture_Get('ITEM_MEDKIT_LARGE',     gItemsTexturesID[ITEM_MEDKIT_LARGE]);
-  g_Texture_Get('ITEM_MEDKIT_BLACK',     gItemsTexturesID[ITEM_MEDKIT_BLACK]);
-  g_Texture_Get('ITEM_SUIT',             gItemsTexturesID[ITEM_SUIT]);
-  g_Texture_Get('ITEM_OXYGEN',           gItemsTexturesID[ITEM_OXYGEN]);
-  g_Texture_Get('ITEM_WEAPON_SAW',       gItemsTexturesID[ITEM_WEAPON_SAW]);
-  g_Texture_Get('ITEM_WEAPON_SHOTGUN1',  gItemsTexturesID[ITEM_WEAPON_SHOTGUN1]);
-  g_Texture_Get('ITEM_WEAPON_SHOTGUN2',  gItemsTexturesID[ITEM_WEAPON_SHOTGUN2]);
-  g_Texture_Get('ITEM_WEAPON_CHAINGUN',  gItemsTexturesID[ITEM_WEAPON_CHAINGUN]);
-  g_Texture_Get('ITEM_WEAPON_ROCKETLAUNCHER', gItemsTexturesID[ITEM_WEAPON_ROCKETLAUNCHER]);
-  g_Texture_Get('ITEM_WEAPON_PLASMA',    gItemsTexturesID[ITEM_WEAPON_PLASMA]);
-  g_Texture_Get('ITEM_WEAPON_BFG',       gItemsTexturesID[ITEM_WEAPON_BFG]);
-  g_Texture_Get('ITEM_WEAPON_SUPERPULEMET', gItemsTexturesID[ITEM_WEAPON_SUPERPULEMET]);
-  g_Texture_Get('ITEM_WEAPON_FLAMETHROWER', gItemsTexturesID[ITEM_WEAPON_FLAMETHROWER]);
-  g_Texture_Get('ITEM_AMMO_BULLETS',     gItemsTexturesID[ITEM_AMMO_BULLETS]);
-  g_Texture_Get('ITEM_AMMO_BULLETS_BOX', gItemsTexturesID[ITEM_AMMO_BULLETS_BOX]);
-  g_Texture_Get('ITEM_AMMO_SHELLS',      gItemsTexturesID[ITEM_AMMO_SHELLS]);
-  g_Texture_Get('ITEM_AMMO_SHELLS_BOX',  gItemsTexturesID[ITEM_AMMO_SHELLS_BOX]);
-  g_Texture_Get('ITEM_AMMO_ROCKET',      gItemsTexturesID[ITEM_AMMO_ROCKET]);
-  g_Texture_Get('ITEM_AMMO_ROCKET_BOX',  gItemsTexturesID[ITEM_AMMO_ROCKET_BOX]);
-  g_Texture_Get('ITEM_AMMO_CELL',        gItemsTexturesID[ITEM_AMMO_CELL]);
-  g_Texture_Get('ITEM_AMMO_CELL_BIG',    gItemsTexturesID[ITEM_AMMO_CELL_BIG]);
-  g_Texture_Get('ITEM_AMMO_FUELCAN',     gItemsTexturesID[ITEM_AMMO_FUELCAN]);
-  g_Texture_Get('ITEM_AMMO_BACKPACK',    gItemsTexturesID[ITEM_AMMO_BACKPACK]);
-  g_Texture_Get('ITEM_KEY_RED',          gItemsTexturesID[ITEM_KEY_RED]);
-  g_Texture_Get('ITEM_KEY_GREEN',        gItemsTexturesID[ITEM_KEY_GREEN]);
-  g_Texture_Get('ITEM_KEY_BLUE',         gItemsTexturesID[ITEM_KEY_BLUE]);
-  g_Texture_Get('ITEM_WEAPON_KASTET',    gItemsTexturesID[ITEM_WEAPON_KASTET]);
-  g_Texture_Get('ITEM_WEAPON_PISTOL',    gItemsTexturesID[ITEM_WEAPON_PISTOL]);
-end;
-
 procedure g_Items_LoadData();
 begin
   e_WriteLog('Loading items data...', TMsgType.Notify);
@@ -239,52 +205,6 @@ begin
   g_Sound_CreateWADEx('SOUND_ITEM_GETRULEZ', GameWAD+':SOUNDS\GETRULEZ');
   g_Sound_CreateWADEx('SOUND_ITEM_GETWEAPON', GameWAD+':SOUNDS\GETWEAPON');
   g_Sound_CreateWADEx('SOUND_ITEM_GETITEM', GameWAD+':SOUNDS\GETITEM');
-
-  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_BLUESPHERE', GameWAD+':TEXTURES\SBLUE', 32, 32, 4, True);
-  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_WHITESPHERE', GameWAD+':TEXTURES\SWHITE', 32, 32, 4, True);
-  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_ARMORGREEN', GameWAD+':TEXTURES\ARMORGREEN', 32, 16, 3, True);
-  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_ARMORBLUE', GameWAD+':TEXTURES\ARMORBLUE', 32, 16, 3, True);
-  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_JETPACK', GameWAD+':TEXTURES\JETPACK', 32, 32, 3, True);
-  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_INVUL', GameWAD+':TEXTURES\INVUL', 32, 32, 4, True);
-  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_INVIS', GameWAD+':TEXTURES\INVIS', 32, 32, 4, True);
-  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_RESPAWN', GameWAD+':TEXTURES\ITEMRESPAWN', 32, 32, 5, True);
-  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_BOTTLE', GameWAD+':TEXTURES\BOTTLE', 16, 32, 4, True);
-  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_HELMET', GameWAD+':TEXTURES\HELMET', 16, 16, 4, True);
-  g_Frames_CreateWAD(nil, 'FRAMES_FLAG_RED', GameWAD+':TEXTURES\FLAGRED', 64, 64, 5, False);
-  g_Frames_CreateWAD(nil, 'FRAMES_FLAG_BLUE', GameWAD+':TEXTURES\FLAGBLUE', 64, 64, 5, False);
-  g_Frames_CreateWAD(nil, 'FRAMES_FLAG_DOM', GameWAD+':TEXTURES\FLAGDOM', 64, 64, 5, False);
-  g_Texture_CreateWADEx('ITEM_MEDKIT_SMALL', GameWAD+':TEXTURES\MED1');
-  g_Texture_CreateWADEx('ITEM_MEDKIT_LARGE', GameWAD+':TEXTURES\MED2');
-  g_Texture_CreateWADEx('ITEM_WEAPON_SAW', GameWAD+':TEXTURES\SAW');
-  g_Texture_CreateWADEx('ITEM_WEAPON_PISTOL', GameWAD+':TEXTURES\PISTOL');
-  g_Texture_CreateWADEx('ITEM_WEAPON_KASTET', GameWAD+':TEXTURES\KASTET');
-  g_Texture_CreateWADEx('ITEM_WEAPON_SHOTGUN1', GameWAD+':TEXTURES\SHOTGUN1');
-  g_Texture_CreateWADEx('ITEM_WEAPON_SHOTGUN2', GameWAD+':TEXTURES\SHOTGUN2');
-  g_Texture_CreateWADEx('ITEM_WEAPON_CHAINGUN', GameWAD+':TEXTURES\MGUN');
-  g_Texture_CreateWADEx('ITEM_WEAPON_ROCKETLAUNCHER', GameWAD+':TEXTURES\RLAUNCHER');
-  g_Texture_CreateWADEx('ITEM_WEAPON_PLASMA', GameWAD+':TEXTURES\PGUN');
-  g_Texture_CreateWADEx('ITEM_WEAPON_BFG', GameWAD+':TEXTURES\BFG');
-  g_Texture_CreateWADEx('ITEM_WEAPON_SUPERPULEMET', GameWAD+':TEXTURES\SPULEMET');
-  g_Texture_CreateWADEx('ITEM_WEAPON_FLAMETHROWER', GameWAD+':TEXTURES\FLAMETHROWER');
-  g_Texture_CreateWADEx('ITEM_AMMO_BULLETS', GameWAD+':TEXTURES\CLIP');
-  g_Texture_CreateWADEx('ITEM_AMMO_BULLETS_BOX', GameWAD+':TEXTURES\AMMO');
-  g_Texture_CreateWADEx('ITEM_AMMO_SHELLS', GameWAD+':TEXTURES\SHELL1');
-  g_Texture_CreateWADEx('ITEM_AMMO_SHELLS_BOX', GameWAD+':TEXTURES\SHELL2');
-  g_Texture_CreateWADEx('ITEM_AMMO_ROCKET', GameWAD+':TEXTURES\ROCKET');
-  g_Texture_CreateWADEx('ITEM_AMMO_ROCKET_BOX', GameWAD+':TEXTURES\ROCKETS');
-  g_Texture_CreateWADEx('ITEM_AMMO_CELL', GameWAD+':TEXTURES\CELL');
-  g_Texture_CreateWADEx('ITEM_AMMO_CELL_BIG', GameWAD+':TEXTURES\CELL2');
-  g_Texture_CreateWADEx('ITEM_AMMO_FUELCAN', GameWAD+':TEXTURES\FUELCAN');
-  g_Texture_CreateWADEx('ITEM_AMMO_BACKPACK', GameWAD+':TEXTURES\BPACK');
-  g_Texture_CreateWADEx('ITEM_KEY_RED', GameWAD+':TEXTURES\KEYR');
-  g_Texture_CreateWADEx('ITEM_KEY_GREEN', GameWAD+':TEXTURES\KEYG');
-  g_Texture_CreateWADEx('ITEM_KEY_BLUE', GameWAD+':TEXTURES\KEYB');
-  g_Texture_CreateWADEx('ITEM_OXYGEN', GameWAD+':TEXTURES\OXYGEN');
-  g_Texture_CreateWADEx('ITEM_SUIT', GameWAD+':TEXTURES\SUIT');
-  g_Texture_CreateWADEx('ITEM_WEAPON_KASTET', GameWAD+':TEXTURES\KASTET');
-  g_Texture_CreateWADEx('ITEM_MEDKIT_BLACK', GameWAD+':TEXTURES\BMED');
-
-  InitTextures();
 
   freeIds := TIdPool.Create();
 end;
@@ -298,50 +218,6 @@ begin
   g_Sound_Delete('SOUND_ITEM_GETRULEZ');
   g_Sound_Delete('SOUND_ITEM_GETWEAPON');
   g_Sound_Delete('SOUND_ITEM_GETITEM');
-
-  g_Frames_DeleteByName('FRAMES_ITEM_BLUESPHERE');
-  g_Frames_DeleteByName('FRAMES_ITEM_WHITESPHERE');
-  g_Frames_DeleteByName('FRAMES_ITEM_ARMORGREEN');
-  g_Frames_DeleteByName('FRAMES_ITEM_ARMORBLUE');
-  g_Frames_DeleteByName('FRAMES_ITEM_JETPACK');
-  g_Frames_DeleteByName('FRAMES_ITEM_INVUL');
-  g_Frames_DeleteByName('FRAMES_ITEM_INVIS');
-  g_Frames_DeleteByName('FRAMES_ITEM_RESPAWN');
-  g_Frames_DeleteByName('FRAMES_ITEM_BOTTLE');
-  g_Frames_DeleteByName('FRAMES_ITEM_HELMET');
-  g_Frames_DeleteByName('FRAMES_FLAG_RED');
-  g_Frames_DeleteByName('FRAMES_FLAG_BLUE');
-  g_Frames_DeleteByName('FRAMES_FLAG_DOM');
-  g_Texture_Delete('ITEM_MEDKIT_SMALL');
-  g_Texture_Delete('ITEM_MEDKIT_LARGE');
-  g_Texture_Delete('ITEM_WEAPON_SAW');
-  g_Texture_Delete('ITEM_WEAPON_PISTOL');
-  g_Texture_Delete('ITEM_WEAPON_KASTET');
-  g_Texture_Delete('ITEM_WEAPON_SHOTGUN1');
-  g_Texture_Delete('ITEM_WEAPON_SHOTGUN2');
-  g_Texture_Delete('ITEM_WEAPON_CHAINGUN');
-  g_Texture_Delete('ITEM_WEAPON_ROCKETLAUNCHER');
-  g_Texture_Delete('ITEM_WEAPON_PLASMA');
-  g_Texture_Delete('ITEM_WEAPON_BFG');
-  g_Texture_Delete('ITEM_WEAPON_SUPERPULEMET');
-  g_Texture_Delete('ITEM_WEAPON_FLAMETHROWER');
-  g_Texture_Delete('ITEM_AMMO_BULLETS');
-  g_Texture_Delete('ITEM_AMMO_BULLETS_BOX');
-  g_Texture_Delete('ITEM_AMMO_SHELLS');
-  g_Texture_Delete('ITEM_AMMO_SHELLS_BOX');
-  g_Texture_Delete('ITEM_AMMO_ROCKET');
-  g_Texture_Delete('ITEM_AMMO_ROCKET_BOX');
-  g_Texture_Delete('ITEM_AMMO_CELL');
-  g_Texture_Delete('ITEM_AMMO_CELL_BIG');
-  g_Texture_Delete('ITEM_AMMO_FUELCAN');
-  g_Texture_Delete('ITEM_AMMO_BACKPACK');
-  g_Texture_Delete('ITEM_KEY_RED');
-  g_Texture_Delete('ITEM_KEY_GREEN');
-  g_Texture_Delete('ITEM_KEY_BLUE');
-  g_Texture_Delete('ITEM_OXYGEN');
-  g_Texture_Delete('ITEM_SUIT');
-  g_Texture_Delete('ITEM_WEAPON_KASTET');
-  g_Texture_Delete('ITEM_MEDKIT_BLACK');
 
   freeIds.Free();
   freeIds := nil;
@@ -459,7 +335,6 @@ function g_Items_Create (X, Y: Integer; ItemType: Byte;
            Fall, Respawnable: Boolean; AdjCoord: Boolean = False; ForcedID: Integer = -1): DWORD;
 var
   find_id: DWORD;
-  ID: DWORD;
   it: PItem;
 begin
   if ForcedID < 0 then find_id := allocItem() else find_id := wantItemSlot(ForcedID);
@@ -509,15 +384,15 @@ begin
 
   // Установка анимации
   case it.ItemType of
-    ITEM_ARMOR_GREEN: if g_Frames_Get(ID, 'FRAMES_ITEM_ARMORGREEN') then it.Animation := TAnimation.Create(ID, True, 20);
-    ITEM_ARMOR_BLUE: if g_Frames_Get(ID, 'FRAMES_ITEM_ARMORBLUE') then it.Animation := TAnimation.Create(ID, True, 20);
-    ITEM_JETPACK: if g_Frames_Get(ID, 'FRAMES_ITEM_JETPACK') then it.Animation := TAnimation.Create(ID, True, 15);
-    ITEM_SPHERE_BLUE: if g_Frames_Get(ID, 'FRAMES_ITEM_BLUESPHERE') then it.Animation := TAnimation.Create(ID, True, 15);
-    ITEM_SPHERE_WHITE: if g_Frames_Get(ID, 'FRAMES_ITEM_WHITESPHERE') then it.Animation := TAnimation.Create(ID, True, 20);
-    ITEM_INVUL: if g_Frames_Get(ID, 'FRAMES_ITEM_INVUL') then it.Animation := TAnimation.Create(ID, True, 20);
-    ITEM_INVIS: if g_Frames_Get(ID, 'FRAMES_ITEM_INVIS') then it.Animation := TAnimation.Create(ID, True, 20);
-    ITEM_BOTTLE: if g_Frames_Get(ID, 'FRAMES_ITEM_BOTTLE') then it.Animation := TAnimation.Create(ID, True, 20);
-    ITEM_HELMET: if g_Frames_Get(ID, 'FRAMES_ITEM_HELMET') then it.Animation := TAnimation.Create(ID, True, 20);
+    ITEM_ARMOR_GREEN: it.Animation := TAnimationState.Create(True, 20, 3);
+    ITEM_ARMOR_BLUE: it.Animation := TAnimationState.Create(True, 20, 3);
+    ITEM_JETPACK: it.Animation := TAnimationState.Create(True, 15, 3);
+    ITEM_SPHERE_BLUE: it.Animation := TAnimationState.Create(True, 15, 4);
+    ITEM_SPHERE_WHITE: it.Animation := TAnimationState.Create(True, 20, 4);
+    ITEM_INVUL: it.Animation := TAnimationState.Create(True, 20, 4);
+    ITEM_INVIS: it.Animation := TAnimationState.Create(True, 20, 4);
+    ITEM_BOTTLE: it.Animation := TAnimationState.Create(True, 20, 4);
+    ITEM_HELMET: it.Animation := TAnimationState.Create(True, 20, 4);
   end;
 
   it.positionChanged();

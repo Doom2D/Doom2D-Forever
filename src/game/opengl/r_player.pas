@@ -46,7 +46,7 @@ implementation
 {$IFDEF ENABLE_HOLMES}
     g_holmes,
 {$ENDIF}
-    r_playermodel, r_graphics, r_animations, r_textures
+    r_playermodel, r_graphics, r_animations, r_textures, r_items
   ;
 
   procedure r_Player_DrawAll;
