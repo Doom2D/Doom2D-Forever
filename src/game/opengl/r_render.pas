@@ -21,6 +21,9 @@ interface
   procedure r_Render_Finalize;
   procedure r_Render_Resize (w, h: Integer);
 
+  procedure r_Render_Load;
+  procedure r_Render_Free;
+
   procedure r_Render_Apply;
 
 implementation
@@ -30,7 +33,8 @@ implementation
     SysUtils, Classes, Math,
     e_log, g_system,
     g_game, g_options, g_console,
-    r_window, r_graphics, r_console, r_playermodel
+    r_window, r_graphics, r_console, r_playermodel,
+    r_weapons
   ;
 
   var
@@ -67,6 +71,16 @@ implementation
       {$ENDIF}
       LoadedGL := false
     end
+  end;
+
+  procedure r_Render_Load;
+  begin
+    r_Weapon_Load;
+  end;
+
+  procedure r_Render_Free;
+  begin
+    r_Weapon_Free;
   end;
 
   procedure r_Render_Initialize;

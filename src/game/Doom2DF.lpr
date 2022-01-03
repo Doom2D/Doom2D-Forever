@@ -988,6 +988,7 @@ end;
     {$IFDEF ENABLE_HOLMES}
       InitHolmes;
     {$ENDIF}
+    r_Render_Load;
     g_Game_Init;
     {$IFNDEF HEADLESS}
       g_Menu_Init;
@@ -1007,6 +1008,7 @@ end;
       g_GUI_Destroy;
       g_Menu_Free;
     {$ENDIF}
+    r_Render_Free;
     {$IFDEF ENABLE_HOLMES}
       FreeHolmes;
     {$ENDIF}
