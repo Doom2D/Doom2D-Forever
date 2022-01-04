@@ -59,8 +59,6 @@ procedure g_GFX_Bubbles (fX, fY: Integer; count: Word; devX, devY: Byte);
 procedure g_GFX_SetMax (count: Integer);
 function  g_GFX_GetMax (): Integer;
 
-procedure g_GFX_OnceAnim (X, Y: Integer; Anim: TAnimation; AnimType: Byte = 0);
-
 procedure g_Mark (x, y, Width, Height: Integer; t: Byte; st: Boolean=true);
 
 procedure g_GFX_Update ();
@@ -121,16 +119,8 @@ function awmIsSetHolmes (x, y: Integer): Boolean; inline;
       procedure think (); inline;
     end;
 
-    TOnceAnim = record
-      AnimType:   Byte;
-      x, y:       Integer;
-      oldX, oldY: Integer;
-      Animation:  TAnimation;
-    end;
-
   var (* private state *)
     Particles: array of TParticle = nil;
-    OnceAnims: array of TOnceAnim = nil;
 
 implementation
 
@@ -1542,51 +1532,6 @@ begin
   result := MaxParticles;
 end;
 
-
-function FindOnceAnim (): DWORD;
-var
-  i: Integer;
-begin
-  if OnceAnims <> nil then
-    for i := 0 to High(OnceAnims) do
-      if OnceAnims[i].Animation = nil then
-      begin
-        Result := i;
-        Exit;
-      end;
-
-  if OnceAnims = nil then
-    begin
-      SetLength(OnceAnims, 16);
-      Result := 0;
-    end
-  else
-    begin
-      Result := High(OnceAnims) + 1;
-      SetLength(OnceAnims, Length(OnceAnims) + 16);
-    end;
-end;
-
-
-procedure g_GFX_OnceAnim (x, y: Integer; Anim: TAnimation; AnimType: Byte = 0);
-var
-  find_id: DWORD;
-begin
-  if not gpart_dbg_enabled then exit;
-
-  if (Anim = nil) then exit;
-
-  find_id := FindOnceAnim();
-
-  OnceAnims[find_id].AnimType := AnimType;
-  OnceAnims[find_id].Animation := TAnimation.Create(Anim.FramesID, Anim.Loop, Anim.Speed);
-  OnceAnims[find_id].Animation.Blending := Anim.Blending;
-  OnceAnims[find_id].Animation.alpha := Anim.alpha;
-  OnceAnims[find_id].x := x;
-  OnceAnims[find_id].y := y;
-end;
-
-
 // ////////////////////////////////////////////////////////////////////////// //
 procedure g_GFX_Init ();
 begin
@@ -1608,12 +1553,6 @@ begin
   SetLength(Particles, MaxParticles);
   for a := 0 to High(Particles) do Particles[a].die();
   CurrentParticle := 0;
-
-  if (OnceAnims <> nil) then
-  begin
-    for a := 0 to High(OnceAnims) do OnceAnims[a].Animation.Free();
-    OnceAnims := nil;
-  end;
 
   awakeMap := nil;
   // why not?
@@ -1654,34 +1593,6 @@ begin
 
   // clear awake map
   awmClear();
-
-  if OnceAnims <> nil then
-  begin
-    for a := 0 to High(OnceAnims) do
-      if OnceAnims[a].Animation <> nil then
-      begin
-        OnceAnims[a].oldx := OnceAnims[a].x;
-        OnceAnims[a].oldy := OnceAnims[a].y;
-
-        case OnceAnims[a].AnimType of
-          ONCEANIM_SMOKE:
-            begin
-              if Random(3) = 0 then
-                OnceAnims[a].x := OnceAnims[a].x-1+Random(3);
-              if Random(2) = 0 then
-                OnceAnims[a].y := OnceAnims[a].y-Random(2);
-            end;
-        end;
-
-        if OnceAnims[a].Animation.Played then
-          begin
-            OnceAnims[a].Animation.Free();
-            OnceAnims[a].Animation := nil;
-          end
-        else
-          OnceAnims[a].Animation.Update();
-      end;
-  end;
 end;
 
 end.

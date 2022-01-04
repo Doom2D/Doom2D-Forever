@@ -112,7 +112,7 @@ implementation
 
 uses
   Math, g_map, g_player, g_gfx, g_sound, g_panel,
-  g_console, g_options, g_game, r_textures, r_animations,
+  g_console, g_options, g_game, r_textures, r_animations, r_gfx,
   g_triggers, MAPDEF, e_log, g_monsters, g_saveload,
   g_language, g_netmsg, g_grid,
   geom, binheap, hashtable, utils, xstreams;
@@ -2013,16 +2013,8 @@ begin
 end;
 
 procedure g_Weapon_bfghit(x, y: Integer);
-var
-  ID: DWORD;
-  Anim: TAnimation;
 begin
-  if g_Frames_Get(ID, 'FRAMES_BFGHIT') then
-  begin
-    Anim := TAnimation.Create(ID, False, 4);
-    g_GFX_OnceAnim(x-32, y-32, Anim);
-    Anim.Free();
-  end;
+  r_GFX_OnceAnim(R_GFX_BFG_HIT, x - 32, y - 32);
 end;
 
 procedure g_Weapon_pistol(x, y, xd, yd: Integer; SpawnerUID: Word;
@@ -2119,12 +2111,8 @@ end;
 procedure g_Weapon_Update();
 var
   i, a, h, cx, cy, oldvx, oldvy, tf: Integer;
-  _id: DWORD;
-  Anim: TAnimation;
   t: DWArray;
   st: Word;
-  TextureID: DWORD = DWORD(-1);
-  s: String;
   o: TObj;
   spl: Boolean;
   Loud: Boolean;
@@ -2202,8 +2190,6 @@ begin
       cx := Obj.X + (Obj.Rect.Width div 2);
       cy := Obj.Y + (Obj.Rect.Height div 2);
 
-      TextureID := DWORD(-1); // !!!
-
       case ShotType of
         WEAPON_ROCKETLAUNCHER, WEAPON_SKEL_FIRE: // Ракеты и снаряды Скелета
           begin
@@ -2219,13 +2205,9 @@ begin
                 then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', cx, cy)
                 else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', cx, cy);
             end
-            else if g_Frames_Get(_id, 'FRAMES_SMOKE') then
+            else
             begin
-              Anim := TAnimation.Create(_id, False, 3);
-              Anim.Alpha := 150;
-              g_GFX_OnceAnim(Obj.X-14+Random(9), cy-20+Random(9),
-                             Anim, ONCEANIM_SMOKE);
-              Anim.Free();
+              r_GFX_OnceAnim(R_GFX_SMOKE_TRANS, Obj.X-14+Random(9), cy-20+Random(9));
             end;
 
           // Попали в кого-то или в стену:
@@ -2240,25 +2222,13 @@ begin
 
               if ShotType = WEAPON_SKEL_FIRE then
                 begin // Взрыв снаряда Скелета
-                  if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_SKELFIRE') then
-                  begin
-                    Anim := TAnimation.Create(TextureID, False, 8);
-                    Anim.Blending := False;
-                    g_GFX_OnceAnim((Obj.X+32)-58, (Obj.Y+8)-36, Anim);
-                    g_DynLightExplosion((Obj.X+32), (Obj.Y+8), 64, 1, 0, 0);
-                    Anim.Free();
-                  end;
+                  r_GFX_OnceAnim(R_GFX_EXPLODE_SKELFIRE, Obj.X + 32 - 58, Obj.Y + 8 - 36);
+                  g_DynLightExplosion((Obj.X+32), (Obj.Y+8), 64, 1, 0, 0);
                 end
               else
                 begin // Взрыв Ракеты
-                  if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
-                  begin
-                    Anim := TAnimation.Create(TextureID, False, 6);
-                    Anim.Blending := False;
-                    g_GFX_OnceAnim(cx-64, cy-64, Anim);
-                    g_DynLightExplosion(cx, cy, 64, 1, 0, 0);
-                    Anim.Free();
-                  end;
+                  r_GFX_OnceAnim(R_GFX_EXPLODE_ROCKET, cx - 64, cy - 64);
+                  g_DynLightExplosion(cx, cy, 64, 1, 0, 0);
                 end;
 
               g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', Obj.X, Obj.Y);
@@ -2303,22 +2273,11 @@ begin
                (Timeout < 1) then
             begin
               if ShotType = WEAPON_PLASMA then
-                s := 'FRAMES_EXPLODE_PLASMA'
+                r_GFX_OnceAnim(R_GFX_EXPLODE_PLASMA, cx - 16, cy - 16)
               else
-                s := 'FRAMES_EXPLODE_BSPFIRE';
-
-            // Взрыв Плазмы:
-              if g_Frames_Get(TextureID, s) then
-              begin
-                Anim := TAnimation.Create(TextureID, False, 3);
-                Anim.Blending := False;
-                g_GFX_OnceAnim(cx-16, cy-16, Anim);
-                Anim.Free();
-                g_DynLightExplosion(cx, cy, 32, 0, 0.5, 0.5);
-              end;
-
+                r_GFX_OnceAnim(R_GFX_EXPLODE_BSPFIRE, cx - 16, cy - 16);
+              g_DynLightExplosion(cx, cy, 32, 0, 0.5, 0.5);
               g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEPLASMA', Obj.X, Obj.Y);
-
               ShotType := 0;
             end;
           end;
@@ -2336,17 +2295,9 @@ begin
             begin
               if WordBool(st and MOVE_HITWATER) then
               begin
-                if g_Frames_Get(_id, 'FRAMES_SMOKE') then
-                begin
-                  Anim := TAnimation.Create(_id, False, 3);
-                  Anim.Alpha := 0;
-                  tcx := Random(8);
-                  tcy := Random(8);
-                  g_GFX_OnceAnim(cx-4+tcx-(Anim.Width div 2),
-                    cy-4+tcy-(Anim.Height div 2),
-                    Anim, ONCEANIM_SMOKE);
-                  Anim.Free();
-                end;
+                tcx := Random(8);
+                tcy := Random(8);
+                r_GFX_OnceAnim(R_GFX_SMOKE, cx-4+tcx-(R_GFX_SMOKE_WIDTH div 2), cy-4+tcy-(R_GFX_SMOKE_HEIGHT div 2));
               end
               else
               begin
@@ -2394,17 +2345,13 @@ begin
 
             if (gTime mod LongWord(tf) = 0) then
             begin
-              g_Frames_Get(TextureID, 'FRAMES_FLAME');
-              Anim := TAnimation.Create(TextureID, False, 2 + Random(2));
-              Anim.Alpha := 0;
               case Stopped of
                 MOVE_HITWALL: begin tcx := cx-4+Random(8); tcy := cy-12+Random(24); end;
                 MOVE_HITLAND: begin tcx := cx-12+Random(24); tcy := cy-10+Random(8); end;
                 MOVE_HITCEIL: begin tcx := cx-12+Random(24); tcy := cy+6+Random(8); end;
                 else begin tcx := cx-4+Random(8); tcy := cy-4+Random(8); end;
               end;
-              g_GFX_OnceAnim(tcx-(Anim.Width div 2), tcy-(Anim.Height div 2), Anim, ONCEANIM_SMOKE);
-              Anim.Free();
+              r_GFX_OnceAnim(R_GFX_FLAME_RAND, tcx - (R_GFX_FLAME_WIDTH div 2), tcy - (R_GFX_FLAME_HEIGHT div 2));
               //g_DynLightExplosion(tcx, tcy, 1, 1, 0.8, 0.3);
             end;
           end;
@@ -2427,19 +2374,9 @@ begin
             begin
             // Лучи BFG:
               if g_Game_IsServer then g_Weapon_BFG9000(cx, cy, SpawnerUID);
-
-            // Взрыв BFG:
-              if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_BFG') then
-              begin
-                Anim := TAnimation.Create(TextureID, False, 6);
-                Anim.Blending := False;
-                g_GFX_OnceAnim(cx-64, cy-64, Anim);
-                Anim.Free();
-                g_DynLightExplosion(cx, cy, 96, 0, 1, 0);
-              end;
-
+              r_GFX_OnceAnim(R_GFX_EXPLODE_BFG, cx - 64, cy - 64);
+              g_DynLightExplosion(cx, cy, 96, 0, 1, 0);
               g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', Obj.X, Obj.Y);
-
               ShotType := 0;
             end;
           end;
@@ -2464,25 +2401,12 @@ begin
                (g_Weapon_Hit(@Obj, a, SpawnerUID, HIT_SOME) <> 0) or
                (Timeout < 1) then
             begin
-              if ShotType = WEAPON_IMP_FIRE then
-                s := 'FRAMES_EXPLODE_IMPFIRE'
-              else
-                if ShotType = WEAPON_CACO_FIRE then
-                  s := 'FRAMES_EXPLODE_CACOFIRE'
-                else
-                  s := 'FRAMES_EXPLODE_BARONFIRE';
-
-            // Взрыв:
-              if g_Frames_Get(TextureID, s) then
-              begin
-                Anim := TAnimation.Create(TextureID, False, 6);
-                Anim.Blending := False;
-                g_GFX_OnceAnim(cx-32, cy-32, Anim);
-                Anim.Free();
+              case ShotType of
+                WEAPON_IMP_FIRE: r_GFX_OnceAnim(R_GFX_EXPLODE_IMPFIRE, cx - 32, cy - 32);
+                WEAPON_CACO_FIRE: r_GFX_OnceAnim(R_GFX_EXPLODE_CACOFIRE, cx - 32, cy - 32);
+                WEAPON_BARON_FIRE: r_GFX_OnceAnim(R_GFX_EXPLODE_BARONFIRE, cx - 32, cy - 32);
               end;
-
               g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
-
               ShotType := 0;
             end;
           end;
@@ -2499,16 +2423,8 @@ begin
                (Timeout < 1) then
             begin
             // Взрыв:
-              if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
-              begin
-                Anim := TAnimation.Create(TextureID, False, 6);
-                Anim.Blending := False;
-                g_GFX_OnceAnim(cx-64, cy-64, Anim);
-                Anim.Free();
-              end;
-
+              r_GFX_OnceAnim(R_GFX_EXPLODE_ROCKET, cx - 64, cy - 64);
               g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
-
               ShotType := 0;
             end;
           end;
@@ -2669,11 +2585,7 @@ begin
 end;
 
 procedure g_Weapon_DestroyShot(I: Integer; X, Y: Integer; Loud: Boolean = True);
-var
-  cx, cy: Integer;
-  Anim: TAnimation;
-  s: string;
-  TextureID: DWORD = DWORD(-1);
+  var cx, cy: Integer;
 begin
   if Shots = nil then
     Exit;
@@ -2693,93 +2605,48 @@ begin
         if Loud then
         begin
           if ShotType = WEAPON_SKEL_FIRE then
-          begin // Взрыв снаряда Скелета
-            if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_SKELFIRE') then
-            begin
-              Anim := TAnimation.Create(TextureID, False, 8);
-              Anim.Blending := False;
-              g_GFX_OnceAnim((Obj.X+32)-32, (Obj.Y+8)-32, Anim);
-              Anim.Free();
-            end;
-          end
+            r_GFX_OnceAnim(R_GFX_EXPLODE_SKELFIRE, (Obj.X + 32) - 32, (Obj.Y + 8) - 32)
           else
-          begin // Взрыв Ракеты
-            if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
-            begin
-              Anim := TAnimation.Create(TextureID, False, 6);
-              Anim.Blending := False;
-              g_GFX_OnceAnim(cx-64, cy-64, Anim);
-              Anim.Free();
-            end;
-          end;
+            r_GFX_OnceAnim(R_GFX_EXPLODE_ROCKET, cx - 64, cy - 64);
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', Obj.X, Obj.Y);
         end;
       end;
 
       WEAPON_PLASMA, WEAPON_BSP_FIRE: // Плазма, плазма Арахнатрона
       begin
-        if ShotType = WEAPON_PLASMA then
-          s := 'FRAMES_EXPLODE_PLASMA'
-        else
-          s := 'FRAMES_EXPLODE_BSPFIRE';
-
-        if g_Frames_Get(TextureID, s) and loud then
+        if loud then
         begin
-          Anim := TAnimation.Create(TextureID, False, 3);
-          Anim.Blending := False;
-          g_GFX_OnceAnim(cx-16, cy-16, Anim);
-          Anim.Free();
-
+          if ShotType = WEAPON_PLASMA then
+            r_GFX_OnceAnim(R_GFX_EXPLODE_PLASMA, cx - 16, cy - 16)
+          else
+            r_GFX_OnceAnim(R_GFX_EXPLODE_BSPFIRE, cx - 16, cy - 16);
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEPLASMA', Obj.X, Obj.Y);
         end;
       end;
 
       WEAPON_BFG: // BFG
       begin
-        // Взрыв BFG:
-        if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_BFG') and Loud then
-        begin
-          Anim := TAnimation.Create(TextureID, False, 6);
-          Anim.Blending := False;
-          g_GFX_OnceAnim(cx-64, cy-64, Anim);
-          Anim.Free();
-
-          g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', Obj.X, Obj.Y);
-        end;
+        r_GFX_OnceAnim(R_GFX_EXPLODE_BFG, cx - 64, cy - 64);
+        g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', Obj.X, Obj.Y);
       end;
 
       WEAPON_IMP_FIRE, WEAPON_CACO_FIRE, WEAPON_BARON_FIRE: // Выстрелы Беса, Какодемона Рыцаря/Барона ада
       begin
-        if ShotType = WEAPON_IMP_FIRE then
-          s := 'FRAMES_EXPLODE_IMPFIRE'
-        else
-          if ShotType = WEAPON_CACO_FIRE then
-            s := 'FRAMES_EXPLODE_CACOFIRE'
-          else
-            s := 'FRAMES_EXPLODE_BARONFIRE';
-
-        if g_Frames_Get(TextureID, s) and Loud then
+        if loud then
         begin
-          Anim := TAnimation.Create(TextureID, False, 6);
-          Anim.Blending := False;
-          g_GFX_OnceAnim(cx-32, cy-32, Anim);
-          Anim.Free();
-
+          case ShotType of
+            WEAPON_IMP_FIRE: r_GFX_OnceAnim(R_GFX_EXPLODE_IMPFIRE, cx - 32, cy - 32);
+            WEAPON_CACO_FIRE: r_GFX_OnceAnim(R_GFX_EXPLODE_CACOFIRE, cx - 32, cy - 32);
+            WEAPON_BARON_FIRE: r_GFX_OnceAnim(R_GFX_EXPLODE_BARONFIRE, cx - 32, cy - 32);
+          end;
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
         end;
       end;
 
       WEAPON_MANCUB_FIRE: // Выстрел Манкубуса
       begin
-        if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') and Loud then
-        begin
-          Anim := TAnimation.Create(TextureID, False, 6);
-          Anim.Blending := False;
-          g_GFX_OnceAnim(cx-64, cy-64, Anim);
-          Anim.Free();
-
-          g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
-        end;
+        r_GFX_OnceAnim(R_GFX_EXPLODE_ROCKET, cx - 64, cy - 64);
+        g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
       end;
     end; // case ShotType of...
 

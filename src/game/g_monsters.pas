@@ -488,7 +488,7 @@ var
 implementation
 
 uses
-  e_log, g_sound, g_gfx, g_player, g_game, r_textures, r_animations,
+  e_log, g_sound, g_gfx, g_player, g_game, r_textures, r_animations, r_gfx,
   g_weapons, g_triggers, g_items, g_options,
   g_console, g_map, Math, g_menu, wadreader,
   g_language, g_netmsg, idpool, utils, xstreams;
@@ -2294,9 +2294,6 @@ begin
 end;
 
 function TMonster.TeleportTo(X, Y: Integer; silent: Boolean; dir: Byte): Boolean;
-var
-  TA: TAnimation;
-  FramesID: DWORD;
 begin
   Result := False;
 
@@ -2309,16 +2306,15 @@ begin
     Exit;
   end;
 
-  TA := nil;
-
 // Эффект телепорта в позиции монстра:
   if not silent then
   begin
-    if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
-      TA := TAnimation.Create(FramesID, False, 6);
     g_Sound_PlayExAt('SOUND_GAME_TELEPORT', Obj.X, Obj.Y);
-    g_GFX_OnceAnim(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
-                   FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32, TA);
+    r_GFX_OnceAnim(
+      R_GFX_TELEPORT,
+      FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
+      FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32
+    );
 
     if g_Game_IsServer and g_Game_IsNet then
       MH_SEND_Effect(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
@@ -2347,11 +2343,13 @@ begin
       end;
 
 // Эффект телепорта в точке назначения:
-  if not silent and (TA <> nil) then
+  if not silent then
   begin
-    g_GFX_OnceAnim(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
-                   FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32, TA);
-    TA.Free();
+    r_GFX_OnceAnim(
+      R_GFX_TELEPORT,
+      FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
+      FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32
+    );
 
     if g_Game_IsServer and g_Game_IsNet then
      MH_SEND_Effect(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
@@ -4616,23 +4614,16 @@ begin
 end;
 
 procedure TMonster.OnFireFlame(Times: DWORD = 1);
-var
-  id, i: DWORD;
-  Anim: TAnimation;
+  var i: DWORD; x, y: Integer;
 begin
   if (Random(10) = 1) and (Times = 1) then
     Exit;
 
-  if g_Frames_Get(id, 'FRAMES_FLAME') then
+  for i := 1 to Times do
   begin
-    for i := 1 to Times do
-    begin
-      Anim := TAnimation.Create(id, False, 3);
-      Anim.Alpha := 0;
-      g_GFX_OnceAnim(Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(Anim.Width div 2),
-                   Obj.Y+8+Random(8+Times*2)+IfThen(FState = MONSTATE_DEAD, 16, 0), Anim, ONCEANIM_SMOKE);
-      Anim.Free();
-    end;
+    x := Obj.X + Obj.Rect.X + Random(Obj.Rect.Width + Times * 2) - (R_GFX_FLAME_WIDTH div 2);
+    y := Obj.Y + 8 + Random(8 + Times * 2) + IfThen(FState = MONSTATE_DEAD, 16, 0);
+    r_GFX_OnceAnim(R_GFX_FLAME, x, y);
   end;
 end;
 

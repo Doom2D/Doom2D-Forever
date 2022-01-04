@@ -93,7 +93,7 @@ implementation
 
 uses
   Math,
-  g_basic, g_sound, g_gfx, g_map, r_textures, r_animations,
+  g_basic, g_sound, g_gfx, g_map, r_animations, r_gfx,
   g_game, g_triggers, g_console, g_player, g_net, g_netmsg,
   e_log, g_options,
   g_grid, binheap, idpool, utils, xstreams;
@@ -416,8 +416,6 @@ end;
 procedure g_Items_Update ();
 var
   i, j, k: Integer;
-  ID: DWord;
-  Anim: TAnimation;
   m, ItemRespawnTime: Word;
   r, nxt: Boolean;
 begin
@@ -511,14 +509,7 @@ begin
         if (RespawnTime = 0) and (not alive) then
         begin
           if not QuietRespawn then g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', InitX, InitY);
-
-          if g_Frames_Get(ID, 'FRAMES_ITEM_RESPAWN') then
-          begin
-            Anim := TAnimation.Create(ID, False, 4);
-            g_GFX_OnceAnim(InitX+(Obj.Rect.Width div 2)-16, InitY+(Obj.Rect.Height div 2)-16, Anim);
-            Anim.Free();
-          end;
-
+          r_GFX_OnceAnim(R_GFX_ITEM_RESPAWN, InitX + (Obj.Rect.Width div 2) - 16, InitY + (Obj.Rect.Height div 2) - 16);
           Obj.oldX := InitX;
           Obj.oldY := InitY;
           Obj.X := InitX;

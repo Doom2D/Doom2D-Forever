@@ -448,7 +448,7 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes,
 {$ENDIF}
-  e_res, g_window, g_menu, r_render, r_textures, r_animations,
+  e_res, g_window, g_menu, r_render, r_textures, r_animations, r_gfx,
   e_input, e_log, g_console, r_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
@@ -2266,6 +2266,7 @@ begin
     g_Weapon_Update();
     g_Monsters_Update();
     g_GFX_Update();
+    r_GFX_Update;
     g_Player_UpdateAll();
     g_Player_UpdatePhysicalObjects();
 
@@ -2557,7 +2558,6 @@ begin
     end;
   end;
 
-  g_Frames_CreateWAD(nil, 'FRAMES_TELEPORT', GameWAD+':TEXTURES\TELEPORT', 64, 64, 10, False);
   g_Frames_CreateWAD(nil, 'FRAMES_PUNCH', GameWAD+':WEAPONS\PUNCH', 64, 64, 4, False);
   g_Frames_CreateWAD(nil, 'FRAMES_PUNCH_UP', GameWAD+':WEAPONS\PUNCH_UP', 64, 64, 4, False);
   g_Frames_CreateWAD(nil, 'FRAMES_PUNCH_DN', GameWAD+':WEAPONS\PUNCH_DN', 64, 64, 4, False);
@@ -2700,7 +2700,6 @@ begin
   g_Texture_Delete('TEXTURE_PLAYER_BLUEFLAG_D');
   g_Texture_Delete('TEXTURE_PLAYER_TALKBUBBLE');
   g_Texture_Delete('TEXTURE_PLAYER_INVULPENTA');
-  g_Frames_DeleteByName('FRAMES_TELEPORT');
   g_Frames_DeleteByName('FRAMES_PUNCH');
   g_Frames_DeleteByName('FRAMES_PUNCH_UP');
   g_Frames_DeleteByName('FRAMES_PUNCH_DN');

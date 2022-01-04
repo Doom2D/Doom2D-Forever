@@ -284,7 +284,7 @@ function IsValidFilePath(const S: String): Boolean;
 implementation
 
 uses
-  Math, ENet, e_input, e_log, g_base, g_basic, r_textures, r_animations,
+  Math, ENet, e_input, e_log, g_base, g_basic, r_animations, r_gfx,
   g_textures, g_gfx, g_sound, g_console, g_options,
   g_game, g_player, g_map, g_panel, g_items, g_weapons, g_phys, g_gui,
   g_language, g_monsters, g_netmaster, utils, wadreader, MAPDEF;
@@ -1723,8 +1723,6 @@ var
   Kind: Byte;
   X, Y: Integer;
   Ang: SmallInt;
-  Anim: TAnimation;
-  ID: LongWord;
 begin
   if not gGameOn then Exit;
   Kind := M.ReadByte();
@@ -1738,72 +1736,40 @@ begin
 
     NET_GFX_TELE:
     begin
-      if g_Frames_Get(ID, 'FRAMES_TELEPORT') then
-      begin
-        Anim := TAnimation.Create(ID, False, 3);
-        g_GFX_OnceAnim(X, Y, Anim);
-        Anim.Free();
-      end;
+      r_GFX_OnceAnim(R_GFX_TELEPORT_FAST, X, Y);
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_GAME_TELEPORT', X, Y);
     end;
 
     NET_GFX_EXPLODE:
     begin
-      if g_Frames_Get(ID, 'FRAMES_EXPLODE_ROCKET') then
-      begin
-        Anim := TAnimation.Create(ID, False, 6);
-        Anim.Blending := False;
-        g_GFX_OnceAnim(X-64, Y-64, Anim);
-        Anim.Free();
-      end;
+      r_GFX_OnceAnim(R_GFX_EXPLODE_ROCKET, X - 64, Y - 64);
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', X, Y);
     end;
 
     NET_GFX_BFGEXPL:
     begin
-      if g_Frames_Get(ID, 'FRAMES_EXPLODE_BFG') then
-      begin
-        Anim := TAnimation.Create(ID, False, 6);
-        Anim.Blending := False;
-        g_GFX_OnceAnim(X-64, Y-64, Anim);
-        Anim.Free();
-      end;
+      r_GFX_OnceAnim(R_GFX_EXPLODE_BFG, X - 64, Y - 64);
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', X, Y);
     end;
 
     NET_GFX_BFGHIT:
     begin
-      if g_Frames_Get(ID, 'FRAMES_BFGHIT') then
-      begin
-        Anim := TAnimation.Create(ID, False, 4);
-        g_GFX_OnceAnim(X-32, Y-32, Anim);
-        Anim.Free();
-      end;
+      r_GFX_OnceAnim(R_GFX_BFG_HIT, X - 32, Y - 32);
     end;
 
     NET_GFX_FIRE:
     begin
-      if g_Frames_Get(ID, 'FRAMES_FIRE') then
-      begin
-        Anim := TAnimation.Create(ID, False, 4);
-        g_GFX_OnceAnim(X, Y, Anim);
-        Anim.Free();
-      end;
+      r_GFX_OnceAnim(R_GFX_FIRE, X, Y);
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_FIRE', X, Y);
     end;
 
     NET_GFX_RESPAWN:
     begin
-      if g_Frames_Get(ID, 'FRAMES_ITEM_RESPAWN') then
-      begin
-        Anim := TAnimation.Create(ID, False, 4);
-        g_GFX_OnceAnim(X, Y, Anim);
-        Anim.Free();
-      end;
+      r_GFX_OnceAnim(R_GFX_ITEM_RESPAWN, X, Y);
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', X, Y);
     end;
@@ -2740,11 +2706,9 @@ end;
 procedure MC_RECV_ItemSpawn(var M: TMsg);
 var
   ID: Word;
-  AID: DWord;
   X, Y, VX, VY: Integer;
   T: Byte;
   Quiet, Fall{, Resp}: Boolean;
-  Anim: TAnimation;
   it: PItem;
 begin
   if not gGameOn then Exit;
@@ -2768,12 +2732,7 @@ begin
   if not Quiet then
   begin
     g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', X, Y);
-    if g_Frames_Get(AID, 'FRAMES_ITEM_RESPAWN') then
-    begin
-      Anim := TAnimation.Create(AID, False, 4);
-      g_GFX_OnceAnim(X+(it.Obj.Rect.Width div 2)-16, Y+(it.Obj.Rect.Height div 2)-16, Anim);
-      Anim.Free();
-    end;
+    r_GFX_OnceAnim(R_GFX_ITEM_RESPAWN, X+(it.Obj.Rect.Width div 2)-16, Y+(it.Obj.Rect.Height div 2)-16);
   end;
 end;
 

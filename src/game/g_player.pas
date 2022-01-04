@@ -659,7 +659,7 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes,
 {$ENDIF}
-  e_log, g_map, g_items, g_console, g_gfx, Math, r_textures, r_animations,
+  e_log, g_map, g_items, g_console, g_gfx, Math, r_textures, r_animations, r_gfx,
   g_options, g_triggers, g_menu, g_game, g_grid, e_res,
   wadreader, g_monsters, CONFIG, g_language,
   g_net, g_netmsg,
@@ -3873,8 +3873,6 @@ procedure TPlayer.Respawn(Silent: Boolean; Force: Boolean = False);
 var
   RespawnPoint: TRespawnPoint;
   a, b, c: Byte;
-  Anim: TAnimation;
-  ID: DWORD;
 begin
   FSlopeOld := 0;
   FIncCamOld := 0;
@@ -4019,13 +4017,11 @@ begin
 
 // Анимация возрождения:
   if (not gLoadGameMode) and (not Silent) then
-    if g_Frames_Get(ID, 'FRAMES_TELEPORT') then
-    begin
-      Anim := TAnimation.Create(ID, False, 3);
-      g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
-                     FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
-      Anim.Free();
-    end;
+    r_GFX_OnceAnim(
+      R_GFX_TELEPORT_FAST,
+      FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
+      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32
+    );
 
   FSpectator := False;
   FGhost := False;
@@ -4205,9 +4201,6 @@ begin
 end;
 
 function TPlayer.TeleportTo(X, Y: Integer; silent: Boolean; dir: Byte): Boolean;
-var
-  Anim: TAnimation;
-  ID: DWORD;
 begin
   Result := False;
 
@@ -4221,17 +4214,14 @@ begin
 
   FJustTeleported := True;
 
-  Anim := nil;
   if not silent then
   begin
-    if g_Frames_Get(ID, 'FRAMES_TELEPORT') then
-    begin
-      Anim := TAnimation.Create(ID, False, 3);
-    end;
-
     g_Sound_PlayExAt('SOUND_GAME_TELEPORT', FObj.X, FObj.Y);
-    g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
-                   FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
+    r_GFX_OnceAnim(
+      R_GFX_TELEPORT_FAST,
+      FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
+      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32
+    );
     if g_Game_IsServer and g_Game_IsNet then
       MH_SEND_Effect(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
                      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, 1,
@@ -4277,12 +4267,13 @@ begin
         end;
   end;
 
-  if not silent and (Anim <> nil) then
+  if not silent then
   begin
-    g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
-                   FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
-    Anim.Free();
-
+    r_GFX_OnceAnim(
+      R_GFX_TELEPORT_FAST,
+      FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
+      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32
+    );
     if g_Game_IsServer and g_Game_IsNet then
       MH_SEND_Effect(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
                      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, 0,
@@ -5762,9 +5753,7 @@ begin
 end;
 
 procedure TPlayer.FlySmoke(Times: DWORD = 1);
-var
-  id, i: DWORD;
-  Anim: TAnimation;
+  var i: DWORD;
 begin
   if (Random(5) = 1) and (Times = 1) then
     Exit;
@@ -5779,37 +5768,29 @@ begin
     Exit;
   end;
 
-  if g_Frames_Get(id, 'FRAMES_SMOKE') then
+  for i := 1 to Times do
   begin
-    for i := 1 to Times do
-    begin
-      Anim := TAnimation.Create(id, False, 3);
-      Anim.Alpha := 150;
-      g_GFX_OnceAnim(Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(Anim.Width div 2),
-                   Obj.Y+Obj.Rect.Height-4+Random(8+Times*2), Anim, ONCEANIM_SMOKE);
-      Anim.Free();
-    end;
+    r_GFX_OnceAnim(
+      R_GFX_SMOKE_TRANS,
+      Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(R_GFX_SMOKE_WIDTH div 2),
+      Obj.Y+Obj.Rect.Height-4+Random(8+Times*2)
+    );
   end;
 end;
 
 procedure TPlayer.OnFireFlame(Times: DWORD = 1);
-var
-  id, i: DWORD;
-  Anim: TAnimation;
+  var i: DWORD;
 begin
   if (Random(10) = 1) and (Times = 1) then
     Exit;
 
-  if g_Frames_Get(id, 'FRAMES_FLAME') then
+  for i := 1 to Times do
   begin
-    for i := 1 to Times do
-    begin
-      Anim := TAnimation.Create(id, False, 3);
-      Anim.Alpha := 0;
-      g_GFX_OnceAnim(Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(Anim.Width div 2),
-                   Obj.Y+8+Random(8+Times*2), Anim, ONCEANIM_SMOKE);
-      Anim.Free();
-    end;
+    r_GFX_OnceAnim(
+      R_GFX_FLAME,
+      Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(R_GFX_FLAME_WIDTH div 2),
+      Obj.Y+8+Random(8+Times*2)
+    );
   end;
 end;
 

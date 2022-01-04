@@ -103,7 +103,7 @@ implementation
 
 uses
   Math,
-  g_player, g_map, g_panel, g_gfx, g_game, g_textures, r_textures, r_animations,
+  g_player, g_map, g_panel, g_gfx, g_game, r_animations, r_gfx,
   g_console, g_monsters, g_items, g_phys, g_weapons,
   wadreader, e_log, g_language, e_res,
   g_options, g_net, g_netmsg, utils, xparser, xstreams;
@@ -664,11 +664,8 @@ function tr_SpawnShot (ShotType: Integer; wx, wy, dx, dy: Integer; ShotSound: Bo
 var
   snd: string;
   Projectile: Boolean;
-  TextureID: DWORD;
-  Anim: TAnimation;
 begin
   result := -1;
-  TextureID := DWORD(-1);
   snd := 'SOUND_WEAPON_FIREROCKET';
   Projectile := true;
 
@@ -779,13 +776,7 @@ begin
 
     TRIGGER_SHOT_EXPL:
       begin
-        if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
-        begin
-          Anim := TAnimation.Create(TextureID, False, 6);
-          Anim.Blending := False;
-          g_GFX_OnceAnim(wx-64, wy-64, Anim);
-          Anim.Free();
-        end;
+        r_GFX_OnceAnim(R_GFX_EXPLODE_ROCKET, wx - 64, wy - 64);
         Projectile := False;
         g_Weapon_Explode(wx, wy, 60, 0);
         snd := 'SOUND_WEAPON_EXPLODEROCKET';
@@ -793,13 +784,7 @@ begin
 
     TRIGGER_SHOT_BFGEXPL:
       begin
-        if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_BFG') then
-        begin
-          Anim := TAnimation.Create(TextureID, False, 6);
-          Anim.Blending := False;
-          g_GFX_OnceAnim(wx-64, wy-64, Anim);
-          Anim.Free();
-        end;
+        r_GFX_OnceAnim(R_GFX_EXPLODE_BFG, wx - 64, wy - 64);
         Projectile := False;
         g_Weapon_BFG9000(wx, wy, 0);
         snd := 'SOUND_WEAPON_EXPLODEBFG';
@@ -866,9 +851,6 @@ end;
 
 
 procedure tr_MakeEffect (X, Y, VX, VY: Integer; T, ST, CR, CG, CB: Byte; Silent, Send: Boolean);
-var
-  FramesID: DWORD;
-  Anim: TAnimation;
 begin
   if T = TRIGGER_EFFECT_PARTICLE then
   begin
@@ -898,33 +880,18 @@ begin
   begin
     case ST of
       EFFECT_TELEPORT: begin
-        if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
-        begin
-          Anim := TAnimation.Create(FramesID, False, 3);
-          if not Silent then g_Sound_PlayExAt('SOUND_GAME_TELEPORT', X, Y);
-          g_GFX_OnceAnim(X-32, Y-32, Anim);
-          Anim.Free();
-        end;
+        if not Silent then g_Sound_PlayExAt('SOUND_GAME_TELEPORT', X, Y);
+        r_GFX_OnceAnim(R_GFX_TELEPORT_FAST, X - 32, Y - 32);
         if Send and g_Game_IsServer and g_Game_IsNet then MH_SEND_Effect(X, Y, Byte(not Silent), NET_GFX_TELE);
       end;
       EFFECT_RESPAWN: begin
-        if g_Frames_Get(FramesID, 'FRAMES_ITEM_RESPAWN') then
-        begin
-          Anim := TAnimation.Create(FramesID, False, 4);
-          if not Silent then g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', X, Y);
-          g_GFX_OnceAnim(X-16, Y-16, Anim);
-          Anim.Free();
-        end;
+        if not Silent then g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', X, Y);
+        r_GFX_OnceAnim(R_GFX_ITEM_RESPAWN, X - 16, Y - 16);
         if Send and g_Game_IsServer and g_Game_IsNet then MH_SEND_Effect(X-16, Y-16, Byte(not Silent), NET_GFX_RESPAWN);
       end;
       EFFECT_FIRE: begin
-        if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
-        begin
-          Anim := TAnimation.Create(FramesID, False, 4);
-          if not Silent then g_Sound_PlayExAt('SOUND_FIRE', X, Y);
-          g_GFX_OnceAnim(X-32, Y-128, Anim);
-          Anim.Free();
-        end;
+        if not Silent then g_Sound_PlayExAt('SOUND_FIRE', X, Y);
+        r_GFX_OnceAnim(R_GFX_FIRE, X - 32, Y - 128);
         if Send and g_Game_IsServer and g_Game_IsNet then MH_SEND_Effect(X-32, Y-128, Byte(not Silent), NET_GFX_FIRE);
       end;
     end;
@@ -1179,8 +1146,6 @@ var
   iid: LongWord;
   coolDown: Boolean;
   pAngle: Real;
-  FramesID: DWORD;
-  Anim: TAnimation;
   UIDType: Byte;
   TargetUID: Word;
   it: PItem;
@@ -1509,42 +1474,36 @@ begin
 
               case tgcEffect of
                 EFFECT_TELEPORT: begin
-                  if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
-                  begin
-                    Anim := TAnimation.Create(FramesID, False, 3);
-                    g_Sound_PlayExAt('SOUND_GAME_TELEPORT', tgcTX, tgcTY);
-                    g_GFX_OnceAnim(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-32,
-                                   mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2)-32, Anim);
-                    Anim.Free();
-                  end;
+                  g_Sound_PlayExAt('SOUND_GAME_TELEPORT', tgcTX, tgcTY);
+                  r_GFX_OnceAnim(
+                    R_GFX_TELEPORT_FAST,
+                    mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-32,
+                    mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2)-32
+                  );
                   if g_Game_IsServer and g_Game_IsNet then
                     MH_SEND_Effect(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-32,
                                    mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2)-32, 1,
                                    NET_GFX_TELE);
                 end;
                 EFFECT_RESPAWN: begin
-                  if g_Frames_Get(FramesID, 'FRAMES_ITEM_RESPAWN') then
-                  begin
-                    Anim := TAnimation.Create(FramesID, False, 4);
-                    g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', tgcTX, tgcTY);
-                    g_GFX_OnceAnim(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-16,
-                                   mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2)-16, Anim);
-                    Anim.Free();
-                  end;
+                  g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', tgcTX, tgcTY);
+                  r_GFX_OnceAnim(
+                    R_GFX_ITEM_RESPAWN,
+                    mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-16,
+                    mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2)-16
+                  );
                   if g_Game_IsServer and g_Game_IsNet then
                     MH_SEND_Effect(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-16,
                                    mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2)-16, 1,
                                    NET_GFX_RESPAWN);
                 end;
                 EFFECT_FIRE: begin
-                  if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
-                  begin
-                    Anim := TAnimation.Create(FramesID, False, 4);
-                    g_Sound_PlayExAt('SOUND_FIRE', tgcTX, tgcTY);
-                    g_GFX_OnceAnim(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-32,
-                                   mon.Obj.Y+mon.Obj.Rect.Y+mon.Obj.Rect.Height-128, Anim);
-                    Anim.Free();
-                  end;
+                  g_Sound_PlayExAt('SOUND_FIRE', tgcTX, tgcTY);
+                  r_GFX_OnceAnim(
+                    R_GFX_FIRE,
+                    mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-32,
+                    mon.Obj.Y+mon.Obj.Rect.Y+mon.Obj.Rect.Height-128
+                  );
                   if g_Game_IsServer and g_Game_IsNet then
                     MH_SEND_Effect(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-32,
                                    mon.Obj.Y+mon.Obj.Rect.Y+mon.Obj.Rect.Height-128, 1,
@@ -1602,14 +1561,12 @@ begin
                 case tgcEffect of
                   EFFECT_TELEPORT: begin
                     it := g_Items_ByIdx(iid);
-                    if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
-                    begin
-                      Anim := TAnimation.Create(FramesID, False, 3);
-                      g_Sound_PlayExAt('SOUND_GAME_TELEPORT', tgcTX, tgcTY);
-                      g_GFX_OnceAnim(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-32,
-                                     it.Obj.Y+it.Obj.Rect.Y+(it.Obj.Rect.Height div 2)-32, Anim);
-                      Anim.Free();
-                    end;
+                    g_Sound_PlayExAt('SOUND_GAME_TELEPORT', tgcTX, tgcTY);
+                    r_GFX_OnceAnim(
+                      R_GFX_TELEPORT_FAST,
+                      it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-32,
+                      it.Obj.Y+it.Obj.Rect.Y+(it.Obj.Rect.Height div 2)-32
+                    );
                     if g_Game_IsServer and g_Game_IsNet then
                       MH_SEND_Effect(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-32,
                                      it.Obj.Y+it.Obj.Rect.Y+(it.Obj.Rect.Height div 2)-32, 1,
@@ -1617,14 +1574,12 @@ begin
                   end;
                   EFFECT_RESPAWN: begin
                     it := g_Items_ByIdx(iid);
-                    if g_Frames_Get(FramesID, 'FRAMES_ITEM_RESPAWN') then
-                    begin
-                      Anim := TAnimation.Create(FramesID, False, 4);
-                      g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', tgcTX, tgcTY);
-                      g_GFX_OnceAnim(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-16,
-                                     it.Obj.Y+it.Obj.Rect.Y+(it.Obj.Rect.Height div 2)-16, Anim);
-                      Anim.Free();
-                    end;
+                    g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', tgcTX, tgcTY);
+                    r_GFX_OnceAnim(
+                      R_GFX_ITEM_RESPAWN,
+                      it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-16,
+                      it.Obj.Y+it.Obj.Rect.Y+(it.Obj.Rect.Height div 2)-16
+                    );
                     if g_Game_IsServer and g_Game_IsNet then
                       MH_SEND_Effect(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-16,
                                      it.Obj.Y+it.Obj.Rect.Y+(it.Obj.Rect.Height div 2)-16, 1,
@@ -1632,14 +1587,12 @@ begin
                   end;
                   EFFECT_FIRE: begin
                     it := g_Items_ByIdx(iid);
-                    if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
-                    begin
-                      Anim := TAnimation.Create(FramesID, False, 4);
-                      g_Sound_PlayExAt('SOUND_FIRE', tgcTX, tgcTY);
-                      g_GFX_OnceAnim(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-32,
-                                     it.Obj.Y+it.Obj.Rect.Y+it.Obj.Rect.Height-128, Anim);
-                      Anim.Free();
-                    end;
+                    g_Sound_PlayExAt('SOUND_FIRE', tgcTX, tgcTY);
+                    r_GFX_OnceAnim(
+                      R_GFX_FIRE,
+                      it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-32,
+                      it.Obj.Y+it.Obj.Rect.Y+it.Obj.Rect.Height-128
+                    );
                     if g_Game_IsServer and g_Game_IsNet then
                       MH_SEND_Effect(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-32,
                                      it.Obj.Y+it.Obj.Rect.Y+it.Obj.Rect.Height-128, 1,
