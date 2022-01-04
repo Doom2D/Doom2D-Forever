@@ -52,7 +52,7 @@ const
 }
 
 type
-  ADirectedAnim = Array of Array [TDirection.D_LEFT..TDirection.D_RIGHT] of TAnimation;
+  ADirectedAnim = Array of Array [TDirection.D_LEFT..TDirection.D_RIGHT] of TAnimationState;
 
   PMonster = ^TMonster;
   TMonster = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
@@ -89,7 +89,7 @@ type
     FShellType: Byte;
     FFirePainTime: Integer;
     FFireAttacker: Word;
-    vilefire: TAnimation;
+    vilefire: TAnimationState;
     mProxyId: Integer; // node in dyntree or -1
     mArrIdx: Integer; // in gMonsters
 
@@ -194,7 +194,7 @@ type
 
     property StartID: Integer read FStartID;
 
-    property VileFireAnim: TAnimation read vilefire;
+    property VileFireAnim: TAnimationState read vilefire;
     property DirAnim: ADirectedAnim read FAnim;
 
   published
@@ -402,89 +402,122 @@ var
        LeftAnim: Boolean;
        wX, wY: Integer; // Откуда вылетит пуля
        AnimSpeed: Array [ANIM_SLEEP..ANIM_PAIN] of Byte;
+       AnimCount: Array [ANIM_SLEEP..ANIM_PAIN] of Byte;
        AnimDeltaRight: Array [ANIM_SLEEP..ANIM_PAIN] of TDFPoint;
        AnimDeltaLeft: Array [ANIM_SLEEP..ANIM_PAIN] of TDFPoint;
      end =          // SLEEP           GO              DIE             MESS            ATTACK          ATTACK2         PAIN
    ((LeftAnim: False; wX: 54; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //DEMON
+     AnimCount: (2, 4, 6, 6, 3, 0, 1);
      AnimDeltaRight: ((X:  1; Y:  4), (X:  1; Y:  4), (X:  0; Y:  4), (X:  0; Y:  4), (X:  2; Y:  6), (X:  2; Y:  6), (X:  2; Y:  5));
      AnimDeltaLeft:  ((X:  1; Y:  4), (X:  1; Y:  4), (X:  0; Y:  4), (X:  0; Y:  4), (X:  2; Y:  6), (X:  2; Y:  6), (X:  2; Y:  5))),
 
     (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //IMP
+     AnimCount: (2, 4, 5, 8, 3, 0, 1);
      AnimDeltaRight: ((X:  8; Y: -4), (X:  8; Y: -4), (X: -2; Y: -1), (X:  3; Y: -2), (X: 14; Y: -4), (X: 14; Y: -4), (X: -5; Y: -4));
      AnimDeltaLeft:  ((X:  8; Y: -4), (X:  8; Y: -4), (X: -2; Y: -1), (X:  3; Y: -2), (X: 14; Y: -4), (X: 14; Y: -4), (X: -5; Y: -4))),
 
     (LeftAnim: True; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //ZOMBY
+     AnimCount: (2, 4, 6, 9, 2, 0, 1);
      AnimDeltaRight: ((X:  1; Y: -4), (X:  1; Y: -4), (X:  3; Y: -1), (X:  2; Y: -1), (X:  2; Y: -4), (X:  2; Y: -4), (X:  1; Y: -4));
      AnimDeltaLeft:  ((X:  1; Y: -4), (X:  1; Y: -4), (X:  3; Y: -1), (X:  2; Y: -1), (X:  2; Y: -4), (X:  2; Y: -4), (X:  1; Y: -4))),
 
     (LeftAnim: True; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //SERG
+     AnimCount: (2, 4, 5, 9, 2, 0, 1);
      AnimDeltaRight: ((X:  0; Y: -4), (X:  0; Y: -4), (X: -3; Y: -1), (X: -4; Y: -1), (X:  1; Y: -4), (X:  1; Y: -4), (X:  0; Y: -4));
      AnimDeltaLeft:  ((X:  0; Y: -4), (X:  0; Y: -4), (X: -3; Y: -1), (X: -4; Y: -1), (X:  1; Y: -4), (X:  1; Y: -4), (X:  0; Y: -4))),
 
     (LeftAnim: True; wX: 70; wY: 73; AnimSpeed:(3, 3, 3, 3, 3, 4, 3);  //CYBER
+     AnimCount: (2, 4, 9, 9, 2, 2, 1);
      AnimDeltaRight: ((X:  2; Y: -6), (X:  2; Y: -6), (X: -3; Y: -4), (X: -3; Y: -4), (X: 25; Y: -6), (X: 0; Y: -6), (X: -2; Y: -6));
      AnimDeltaLeft:  ((X:  3; Y: -3), (X:  3; Y: -3), (X: -3; Y: -4), (X: -3; Y: -4), (X:-26; Y: -3), (X:-1; Y: -3), (X:  1; Y: -3))),
 
     (LeftAnim: True; wX: 32; wY: 32; AnimSpeed:(3, 2, 2, 2, 1, 0, 4);  //CGUN
+     AnimCount: (2, 4, 7, 6, 2, 0, 1);
      AnimDeltaRight: ((X: -1; Y: -2), (X: -1; Y: -2), (X: -2; Y:  0), (X: -2; Y:  0), (X:  0; Y: -3), (X:  0; Y: -3), (X: -1; Y: -2));
      AnimDeltaLeft:  ((X: -1; Y: -2), (X: -1; Y: -2), (X: -2; Y:  0), (X: -2; Y:  0), (X: -1; Y: -4), (X: -1; Y: -4), (X:  2; Y: -4))),
 
     (LeftAnim: True; wX: 64; wY: 64; AnimSpeed:(3, 2, 3, 4, 2, 0, 4);  //BARON
+     AnimCount: (2, 4, 7, 7, 3, 0, 1);
      AnimDeltaRight: ((X:  4; Y:  0), (X:  2; Y:  0), (X: -1; Y: -1), (X: -1; Y: -1), (X:  1; Y:  0), (X:  1; Y:  0), (X: -1; Y:  0));
      AnimDeltaLeft:  ((X:  0; Y:  0), (X:  2; Y:  0), (X: -1; Y: -1), (X: -1; Y: -1), (X: -2; Y:  0), (X: -2; Y:  0), (X:  1; Y:  0))),
 
     (LeftAnim: True; wX: 64; wY: 64; AnimSpeed:(3, 2, 3, 4, 2, 0, 4);  //KNIGHT
+     AnimCount: (2, 4, 7, 7, 3, 0, 1);
      AnimDeltaRight: ((X:  4; Y:  0), (X:  2; Y:  0), (X: -1; Y: -1), (X: -1; Y: -1), (X:  1; Y:  0), (X:  1; Y:  0), (X: -1; Y:  0));
      AnimDeltaLeft:  ((X:  0; Y:  0), (X:  2; Y:  0), (X: -1; Y: -1), (X: -1; Y: -1), (X: -2; Y:  0), (X: -2; Y:  0), (X:  1; Y:  0))),
 
     (LeftAnim: False; wX: 88; wY: 69; AnimSpeed:(3, 2, 3, 4, 2, 0, 4); //CACO
+     AnimCount: (1, 1, 7, 7, 6, 0, 1);
      AnimDeltaRight: ((X:  0; Y: -4), (X:  0; Y: -4), (X:  0; Y: -5), (X:  0; Y: -5), (X:  0; Y: -4), (X:  0; Y: -4), (X:  0; Y: -4));
      AnimDeltaLeft:  ((X:  0; Y: -4), (X:  0; Y: -4), (X:  0; Y: -5), (X:  0; Y: -5), (X:  0; Y: -4), (X:  0; Y: -4), (X:  0; Y: -4))),
 
     (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 4, 1, 0, 4); //SOUL
+     AnimCount: (2, 2, 7, 7, 2, 0, 1); // 10
      AnimDeltaRight: ((X:  1; Y:-10), (X:  1; Y:-10), (X:-33; Y:-34), (X:-33; Y:-34), (X:-16; Y:-10), (X:-16; Y:-10), (X: -1; Y: -7));
      AnimDeltaLeft:  ((X:  1; Y:-10), (X:  1; Y:-10), (X:-33; Y:-34), (X:-33; Y:-34), (X:-16; Y:-10), (X:-16; Y:-10), (X: -1; Y: -7))),
 
     (LeftAnim: False; wX: 64; wY: 64; AnimSpeed:(3, 2, 3, 4, 2, 0, 4); //PAIN
+     AnimCount: (4, 4, 7, 7, 4, 0, 1);
      AnimDeltaRight: ((X: -1; Y: -3), (X: -1; Y: -3), (X: -3; Y:  0), (X: -3; Y:  0), (X: -1; Y: -3), (X: -1; Y: -3), (X: -1; Y: -4));
      AnimDeltaLeft:  ((X: -1; Y: -3), (X: -1; Y: -3), (X: -3; Y:  0), (X: -3; Y:  0), (X: -1; Y: -3), (X: -1; Y: -3), (X: -1; Y: -4))),
 
     (LeftAnim: True; wX: 128; wY: 64; AnimSpeed:(3, 2, 4, 4, 1, 0, 4); //SPIDER
+     AnimCount: (2, 6, 10, 10, 2, 0, 1);
      AnimDeltaRight: ((X: -4; Y: -4), (X: -4; Y: -4), (X: -2; Y:  8), (X: -2; Y:  8), (X: -3; Y: -3), (X: -3; Y: -3), (X: -3; Y: -4));
      AnimDeltaLeft:  ((X: -4; Y: -4), (X: -4; Y: -4), (X: -2; Y:  8), (X: -2; Y:  8), (X: -3; Y: -3), (X: -3; Y: -3), (X: 18; Y: -5))),
 
     (LeftAnim: True; wX: 64; wY: 32; AnimSpeed:(3, 2, 3, 4, 1, 0, 4);  //BSP
+     AnimCount: (2, 6, 7, 7, 2, 0, 1);
      AnimDeltaRight: ((X:  0; Y: -1), (X:  0; Y: -1), (X: -3; Y:  5), (X: -3; Y:  5), (X:  7; Y: -1), (X:  7; Y: -1), (X:  1; Y: -3));
      AnimDeltaLeft:  ((X:  0; Y: -1), (X:  0; Y: -1), (X: -3; Y:  5), (X: -3; Y:  5), (X:  7; Y: -1), (X:  7; Y: -1), (X:  6; Y: -3))),
 
     (LeftAnim: False; wX: 64; wY: 64; AnimSpeed:(3, 2, 2, 4, 2, 0, 4); //MANCUB
+     AnimCount: (2, 6, 10, 10, 3, 0, 1);
      AnimDeltaRight: ((X: -2; Y: -7), (X: -2; Y: -7), (X: -4; Y: -2), (X: -4; Y: -2), (X: -4; Y: -7), (X: -4; Y: -7), (X:-14; Y: -7));
      AnimDeltaLeft:  ((X: -2; Y: -7), (X: -2; Y: -7), (X: -4; Y: -2), (X: -4; Y: -2), (X: -4; Y: -7), (X: -4; Y: -7), (X:-14; Y: -7))),
 
     (LeftAnim: True; wX: 64; wY: 32; AnimSpeed:(3, 3, 3, 3, 3, 3, 3);  //SKEL
+     AnimCount: (2, 6, 5, 5, 2, 2, 1);
      AnimDeltaRight: ((X: -1; Y:  4), (X: -1; Y:  4), (X: -2; Y:  4), (X: -2; Y:  4), (X: -1; Y:  4), (X:  6; Y:  2), (X:-24; Y:  4));
      AnimDeltaLeft:  ((X:  1; Y:  4), (X: -1; Y:  4), (X: -2; Y:  4), (X: -2; Y:  4), (X: -2; Y:  2), (X: -5; Y:  4), (X: 26; Y:  4))),
 
     (LeftAnim: True; wX: 64; wY: 32; AnimSpeed:(3, 3, 3, 3, 3, 3, 3);  //VILE
+     AnimCount: (2, 6, 9, 9, 10, 3, 1);
      AnimDeltaRight: ((X:  5; Y:-21), (X:  5; Y:-21), (X:  1; Y:-21), (X:  1; Y:-21), (X:  8; Y:-23), (X: -1; Y:-23), (X:  4; Y:-20));
      AnimDeltaLeft:  ((X: -8; Y:-21), (X:  5; Y:-21), (X:  1; Y:-21), (X:  1; Y:-21), (X:-10; Y:-24), (X:  3; Y:-23), (X: -4; Y:-22))),
 
     (LeftAnim: False; wX: 8; wY: 8; AnimSpeed:(2, 2, 2, 2, 3, 0, 1);   //FISH
+     AnimCount: (2, 4, 1, 1, 2, 0, 3);
      AnimDeltaRight: ((X: -1; Y:  0), (X: -1; Y:  0), (X: -2; Y: -1), (X: -2; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1));
      AnimDeltaLeft:  ((X: -1; Y:  0), (X: -1; Y:  0), (X: -2; Y: -1), (X: -2; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1 ))),
 
     (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 0, 3, 0, 0, 0, 5); //BARREL
+     AnimCount: (3, 0, 4, 0, 0, 0, 1);
      AnimDeltaRight: ((X:  0; Y:-15), (X:  0; Y:-15), (X: -1; Y:-15), (X: -1; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15));
      AnimDeltaLeft:  ((X:  0; Y:-15), (X:  0; Y:-15), (X: -1; Y:-15), (X: -1; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15))),
 
     (LeftAnim: False; wX: 95; wY: 57; AnimSpeed:(1, 2, 1, 0, 1, 1, 0); //ROBO
+     AnimCount: (1, 12, 1, 0, 2, 4, 0);
      AnimDeltaRight: ((X: -2; Y:-26), (X: -2; Y:-26), (X:  0; Y:-26), (X:  0; Y:-26), (X:  2; Y:-26), (X: 15; Y:-26), (X: -2; Y:-26));
      AnimDeltaLeft:  ((X: -2; Y:-26), (X: -2; Y:-26), (X:  0; Y:-26), (X:  0; Y:-26), (X:  2; Y:-26), (X: 15; Y:-26), (X: -2; Y:-26))),
 
     (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 2, 2, 2, 2, 0, 5); //MAN
+     AnimCount: (2, 4, 7, 9, 2, 0, 1);
      AnimDeltaRight: ((X:  0; Y: -6), (X:  0; Y: -6), (X: -2; Y:  0), (X:  2; Y:  0), (X:  1; Y: -6), (X:  1; Y: -6), (X:  0; Y: -6));
      AnimDeltaLeft:  ((X:  0; Y: -6), (X:  0; Y: -6), (X: -2; Y:  0), (X:  2; Y:  0), (X:  1; Y: -6), (X:  1; Y: -6), (X:  0; Y: -6))) );
 
+// Таблица типов анимации монстров:
+  ANIMTABLE: Array [ANIM_SLEEP..ANIM_PAIN] of
+               record
+                 name: String;
+                 loop: Boolean;
+               end = ((name: 'SLEEP'; loop: True),
+                      (name: 'GO'; loop: True),
+                      (name: 'DIE'; loop: False),
+                      (name: 'MESS'; loop: False),
+                      (name: 'ATTACK'; loop: False),
+                      (name: 'ATTACK2'; loop: False),
+                      (name: 'PAIN'; loop: False));
 implementation
 
 uses
@@ -622,19 +655,6 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 const
   MONSTER_SIGNATURE = $534E4F4D; // 'MONS'
-
-// Таблица типов анимации монстров:
-  ANIMTABLE: Array [ANIM_SLEEP..ANIM_PAIN] of
-               record
-                 name: String;
-                 loop: Boolean;
-               end = ((name: 'SLEEP'; loop: True),
-                      (name: 'GO'; loop: True),
-                      (name: 'DIE'; loop: False),
-                      (name: 'MESS'; loop: False),
-                      (name: 'ATTACK'; loop: False),
-                      (name: 'ATTACK2'; loop: False),
-                      (name: 'PAIN'; loop: False));
 
   MAX_ATM = 89; // Время ожидания после потери цели
   MAX_SOUL = 512; // Ограничение Lost_Soul'ов
@@ -858,160 +878,6 @@ begin
   e_WriteLog('Loading monsters data...', TMsgType.Notify);
 
   g_Game_SetLoadingText(_lc[I_LOAD_MONSTER_TEXTURES], 133, False);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARREL_SLEEP', GameWAD+':MTEXTURES\BARREL_SLEEP', 64, 64, 3);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARREL_DIE', GameWAD+':MTEXTURES\BARREL_DIE', 64, 64, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARREL_PAIN', GameWAD+':MTEXTURES\BARREL_PAIN', 64, 64, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ZOMBY_SLEEP', GameWAD+':MTEXTURES\ZOMBY_SLEEP', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ZOMBY_GO', GameWAD+':MTEXTURES\ZOMBY_GO', 64, 64, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ZOMBY_DIE', GameWAD+':MTEXTURES\ZOMBY_DIE', 64, 64, 6);
-  g_Game_StepLoading(6);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ZOMBY_MESS', GameWAD+':MTEXTURES\ZOMBY_MESS', 64, 64, 9);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ZOMBY_ATTACK', GameWAD+':MTEXTURES\ZOMBY_ATTACK', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ZOMBY_ATTACK_L', GameWAD+':MTEXTURES\ZOMBY_ATTACK_L', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ZOMBY_PAIN', GameWAD+':MTEXTURES\ZOMBY_PAIN', 64, 64, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SERG_SLEEP', GameWAD+':MTEXTURES\SERG_SLEEP', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SERG_GO', GameWAD+':MTEXTURES\SERG_GO', 64, 64, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SERG_DIE', GameWAD+':MTEXTURES\SERG_DIE', 64, 64, 5);
-  g_Game_StepLoading(13);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SERG_MESS', GameWAD+':MTEXTURES\SERG_MESS', 64, 64, 9);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SERG_ATTACK', GameWAD+':MTEXTURES\SERG_ATTACK', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SERG_ATTACK_L', GameWAD+':MTEXTURES\SERG_ATTACK_L', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SERG_PAIN', GameWAD+':MTEXTURES\SERG_PAIN', 64, 64, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MAN_SLEEP', GameWAD+':MTEXTURES\MAN_SLEEP', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MAN_GO', GameWAD+':MTEXTURES\MAN_GO', 64, 64, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MAN_DIE', GameWAD+':MTEXTURES\MAN_DIE', 64, 64, 7);
-  g_Game_StepLoading(20);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MAN_MESS', GameWAD+':MTEXTURES\MAN_MESS', 64, 64, 9);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MAN_ATTACK', GameWAD+':MTEXTURES\MAN_ATTACK', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MAN_PAIN', GameWAD+':MTEXTURES\MAN_PAIN', 64, 64, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CGUN_SLEEP', GameWAD+':MTEXTURES\CGUN_SLEEP', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CGUN_SLEEP_L', GameWAD+':MTEXTURES\CGUN_SLEEP_L', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CGUN_GO', GameWAD+':MTEXTURES\CGUN_GO', 64, 64, 4);
-  g_Game_StepLoading(26);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CGUN_GO_L', GameWAD+':MTEXTURES\CGUN_GO_L', 64, 64, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CGUN_DIE', GameWAD+':MTEXTURES\CGUN_DIE', 64, 64, 7);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CGUN_MESS', GameWAD+':MTEXTURES\CGUN_MESS', 64, 64, 6);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CGUN_ATTACK', GameWAD+':MTEXTURES\CGUN_ATTACK', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CGUN_ATTACK_L', GameWAD+':MTEXTURES\CGUN_ATTACK_L', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CGUN_PAIN', GameWAD+':MTEXTURES\CGUN_PAIN', 64, 64, 1);
-  g_Game_StepLoading(32);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CGUN_PAIN_L', GameWAD+':MTEXTURES\CGUN_PAIN_L', 64, 64, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_IMP_SLEEP', GameWAD+':MTEXTURES\IMP_SLEEP', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_IMP_GO', GameWAD+':MTEXTURES\IMP_GO', 64, 64, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_IMP_DIE', GameWAD+':MTEXTURES\IMP_DIE', 64, 64, 5);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_IMP_MESS', GameWAD+':MTEXTURES\IMP_MESS', 64, 64, 8);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_IMP_ATTACK', GameWAD+':MTEXTURES\IMP_ATTACK', 64, 64, 3);
-  g_Game_StepLoading(38);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_IMP_PAIN', GameWAD+':MTEXTURES\IMP_PAIN', 64, 64, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_DEMON_SLEEP', GameWAD+':MTEXTURES\DEMON_SLEEP', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_DEMON_GO', GameWAD+':MTEXTURES\DEMON_GO', 64, 64, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_DEMON_DIE', GameWAD+':MTEXTURES\DEMON_DIE', 64, 64, 6);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_DEMON_ATTACK', GameWAD+':MTEXTURES\DEMON_ATTACK', 64, 64, 3);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_DEMON_PAIN', GameWAD+':MTEXTURES\DEMON_PAIN', 64, 64, 1);
-  g_Game_StepLoading(44);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SOUL_SLEEP', GameWAD+':MTEXTURES\SOUL_SLEEP', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SOUL_GO', GameWAD+':MTEXTURES\SOUL_GO', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SOUL_PAIN', GameWAD+':MTEXTURES\SOUL_PAIN', 64, 64, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SOUL_ATTACK', GameWAD+':MTEXTURES\SOUL_ATTACK', 64, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SOUL_DIE', GameWAD+':MTEXTURES\SOUL_DIE', 128, 128, 7);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_FISH_SLEEP', GameWAD+':MTEXTURES\FISH_SLEEP', 32, 32, 2);
-  g_Game_StepLoading(50);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_FISH_GO', GameWAD+':MTEXTURES\FISH_GO', 32, 32, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_FISH_PAIN', GameWAD+':MTEXTURES\FISH_PAIN', 32, 32, 3);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_FISH_ATTACK', GameWAD+':MTEXTURES\FISH_ATTACK', 32, 32, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_FISH_DIE', GameWAD+':MTEXTURES\FISH_DIE', 32, 32, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SPIDER_SLEEP', GameWAD+':MTEXTURES\SPIDER_SLEEP', 256, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SPIDER_GO', GameWAD+':MTEXTURES\SPIDER_GO', 256, 128, 6);
-  g_Game_StepLoading(56);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SPIDER_PAIN', GameWAD+':MTEXTURES\SPIDER_PAIN', 256, 128, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SPIDER_PAIN_L', GameWAD+':MTEXTURES\SPIDER_PAIN_L', 256, 128, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SPIDER_ATTACK', GameWAD+':MTEXTURES\SPIDER_ATTACK', 256, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SPIDER_DIE', GameWAD+':MTEXTURES\SPIDER_DIE', 256, 128, 10);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BSP_SLEEP', GameWAD+':MTEXTURES\BSP_SLEEP', 128, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BSP_GO', GameWAD+':MTEXTURES\BSP_GO', 128, 64, 6);
-  g_Game_StepLoading(62);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BSP_PAIN', GameWAD+':MTEXTURES\BSP_PAIN', 128, 64, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BSP_PAIN_L', GameWAD+':MTEXTURES\BSP_PAIN_L', 128, 64, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BSP_ATTACK', GameWAD+':MTEXTURES\BSP_ATTACK', 128, 64, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BSP_DIE', GameWAD+':MTEXTURES\BSP_DIE', 128, 64, 7);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CACO_SLEEP', GameWAD+':MTEXTURES\CACO_SLEEP', 128, 128, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CACO_GO', GameWAD+':MTEXTURES\CACO_GO', 128, 128, 1);
-  g_Game_StepLoading(68);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CACO_PAIN', GameWAD+':MTEXTURES\CACO_PAIN', 128, 128, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CACO_ATTACK', GameWAD+':MTEXTURES\CACO_ATTACK', 128, 128, 6);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CACO_DIE', GameWAD+':MTEXTURES\CACO_DIE', 128, 128, 7);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_PAIN_SLEEP', GameWAD+':MTEXTURES\PAIN_SLEEP', 128, 128, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_PAIN_GO', GameWAD+':MTEXTURES\PAIN_GO', 128, 128, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_PAIN_PAIN', GameWAD+':MTEXTURES\PAIN_PAIN', 128, 128, 1);
-  g_Game_StepLoading(74);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_PAIN_ATTACK', GameWAD+':MTEXTURES\PAIN_ATTACK', 128, 128, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_PAIN_DIE', GameWAD+':MTEXTURES\PAIN_DIE', 128, 128, 7);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARON_SLEEP', GameWAD+':MTEXTURES\BARON_SLEEP', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARON_SLEEP_L', GameWAD+':MTEXTURES\BARON_SLEEP_L', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARON_GO', GameWAD+':MTEXTURES\BARON_GO', 128, 128, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARON_PAIN', GameWAD+':MTEXTURES\BARON_PAIN', 128, 128, 1);
-  g_Game_StepLoading(80);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARON_PAIN_L', GameWAD+':MTEXTURES\BARON_PAIN_L', 128, 128, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARON_ATTACK', GameWAD+':MTEXTURES\BARON_ATTACK', 128, 128, 3);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARON_ATTACK_L', GameWAD+':MTEXTURES\BARON_ATTACK_L', 128, 128, 3);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARON_DIE', GameWAD+':MTEXTURES\BARON_DIE', 128, 128, 7);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_KNIGHT_SLEEP', GameWAD+':MTEXTURES\KNIGHT_SLEEP', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_KNIGHT_SLEEP_L', GameWAD+':MTEXTURES\KNIGHT_SLEEP_L', 128, 128, 2);
-  g_Game_StepLoading(86);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_KNIGHT_GO', GameWAD+':MTEXTURES\KNIGHT_GO', 128, 128, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_KNIGHT_PAIN', GameWAD+':MTEXTURES\KNIGHT_PAIN', 128, 128, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_KNIGHT_PAIN_L', GameWAD+':MTEXTURES\KNIGHT_PAIN_L', 128, 128, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_KNIGHT_ATTACK', GameWAD+':MTEXTURES\KNIGHT_ATTACK', 128, 128, 3);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_KNIGHT_ATTACK_L', GameWAD+':MTEXTURES\KNIGHT_ATTACK_L', 128, 128, 3);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_KNIGHT_DIE', GameWAD+':MTEXTURES\KNIGHT_DIE', 128, 128, 7);
-  g_Game_StepLoading(92);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MANCUB_SLEEP', GameWAD+':MTEXTURES\MANCUB_SLEEP', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MANCUB_GO', GameWAD+':MTEXTURES\MANCUB_GO', 128, 128, 6);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MANCUB_PAIN', GameWAD+':MTEXTURES\MANCUB_PAIN', 128, 128, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MANCUB_ATTACK', GameWAD+':MTEXTURES\MANCUB_ATTACK', 128, 128, 3);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MANCUB_DIE', GameWAD+':MTEXTURES\MANCUB_DIE', 128, 128, 10);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SKEL_SLEEP', GameWAD+':MTEXTURES\SKEL_SLEEP', 128, 128, 2);
-  g_Game_StepLoading(98);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SKEL_SLEEP_L', GameWAD+':MTEXTURES\SKEL_SLEEP_L', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SKEL_GO', GameWAD+':MTEXTURES\SKEL_GO', 128, 128, 6);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SKEL_PAIN', GameWAD+':MTEXTURES\SKEL_PAIN', 128, 128, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SKEL_PAIN_L', GameWAD+':MTEXTURES\SKEL_PAIN_L', 128, 128, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SKEL_ATTACK', GameWAD+':MTEXTURES\SKEL_ATTACK', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SKEL_ATTACK_L', GameWAD+':MTEXTURES\SKEL_ATTACK_L', 128, 128, 2);
-  g_Game_StepLoading(104);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SKEL_ATTACK2', GameWAD+':MTEXTURES\SKEL_ATTACK2', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SKEL_ATTACK2_L', GameWAD+':MTEXTURES\SKEL_ATTACK2_L', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SKEL_DIE', GameWAD+':MTEXTURES\SKEL_DIE', 128, 128, 5);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_VILE_SLEEP', GameWAD+':MTEXTURES\VILE_SLEEP', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_VILE_SLEEP_L', GameWAD+':MTEXTURES\VILE_SLEEP_L', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_VILE_GO', GameWAD+':MTEXTURES\VILE_GO', 128, 128, 6);
-  g_Game_StepLoading(110);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_VILE_PAIN', GameWAD+':MTEXTURES\VILE_PAIN', 128, 128, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_VILE_PAIN_L', GameWAD+':MTEXTURES\VILE_PAIN_L', 128, 128, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_VILE_ATTACK', GameWAD+':MTEXTURES\VILE_ATTACK', 128, 128, 10);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_VILE_ATTACK_L', GameWAD+':MTEXTURES\VILE_ATTACK_L', 128, 128, 10);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_VILE_ATTACK2', GameWAD+':MTEXTURES\VILE_ATTACK2', 128, 128, 3);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_VILE_ATTACK2_L', GameWAD+':MTEXTURES\VILE_ATTACK2_L', 128, 128, 3);
-  g_Game_StepLoading(116);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_VILE_DIE', GameWAD+':MTEXTURES\VILE_DIE', 128, 128, 9);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ROBO_SLEEP', GameWAD+':MTEXTURES\ROBO_SLEEP', 128, 128, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ROBO_GO', GameWAD+':MTEXTURES\ROBO_GO', 128, 128, 12);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ROBO_ATTACK', GameWAD+':MTEXTURES\ROBO_ATTACK', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ROBO_ATTACK2', GameWAD+':MTEXTURES\ROBO_ATTACK2', 128, 128, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ROBO_DIE', GameWAD+':MTEXTURES\ROBO_DIE', 128, 128, 1);
-  g_Game_StepLoading(122);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_SLEEP', GameWAD+':MTEXTURES\CYBER_SLEEP', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_SLEEP_L', GameWAD+':MTEXTURES\CYBER_SLEEP_L', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_GO', GameWAD+':MTEXTURES\CYBER_GO', 128, 128, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_GO_L', GameWAD+':MTEXTURES\CYBER_GO_L', 128, 128, 4);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_PAIN', GameWAD+':MTEXTURES\CYBER_PAIN', 128, 128, 1);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_PAIN_L', GameWAD+':MTEXTURES\CYBER_PAIN_L', 128, 128, 1);
-  g_Game_StepLoading(128);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK', GameWAD+':MTEXTURES\CYBER_ATTACK', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK_L', GameWAD+':MTEXTURES\CYBER_ATTACK_L', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK2', GameWAD+':MTEXTURES\CYBER_ATTACK2', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK2_L', GameWAD+':MTEXTURES\CYBER_ATTACK2_L', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_DIE', GameWAD+':MTEXTURES\CYBER_DIE', 128, 128, 9);
   g_Game_StepLoading(133);
 
   g_Game_SetLoadingText(_lc[I_LOAD_MONSTER_SOUNDS], 0, False);
@@ -1104,140 +970,6 @@ end;
 procedure g_Monsters_FreeData();
 begin
   e_WriteLog('Releasing monsters data...', TMsgType.Notify);
-
-  g_Frames_DeleteByName('FRAMES_MONSTER_BARREL_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BARREL_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BARREL_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_ZOMBY_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_ZOMBY_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_ZOMBY_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_ZOMBY_MESS');
-  g_Frames_DeleteByName('FRAMES_MONSTER_ZOMBY_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_ZOMBY_ATTACK_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_ZOMBY_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SERG_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SERG_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SERG_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SERG_MESS');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SERG_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SERG_ATTACK_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SERG_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_MAN_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_MAN_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_MAN_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_MAN_MESS');
-  g_Frames_DeleteByName('FRAMES_MONSTER_MAN_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_MAN_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CGUN_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CGUN_SLEEP_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CGUN_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CGUN_GO_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CGUN_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CGUN_MESS');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CGUN_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CGUN_ATTACK_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CGUN_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CGUN_PAIN_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_IMP_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_IMP_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_IMP_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_IMP_MESS');
-  g_Frames_DeleteByName('FRAMES_MONSTER_IMP_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_IMP_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_DEMON_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_DEMON_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_DEMON_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_DEMON_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_DEMON_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SOUL_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SOUL_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SOUL_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SOUL_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SOUL_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_FISH_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_FISH_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_FISH_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_FISH_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_FISH_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SPIDER_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SPIDER_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SPIDER_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SPIDER_PAIN_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SPIDER_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SPIDER_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BSP_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BSP_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BSP_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BSP_PAIN_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BSP_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BSP_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CACO_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CACO_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CACO_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CACO_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CACO_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_PAIN_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_PAIN_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_PAIN_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_PAIN_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_PAIN_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BARON_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BARON_SLEEP_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BARON_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BARON_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BARON_PAIN_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BARON_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BARON_ATTACK_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_BARON_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_KNIGHT_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_KNIGHT_SLEEP_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_KNIGHT_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_KNIGHT_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_KNIGHT_PAIN_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_KNIGHT_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_KNIGHT_ATTACK_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_KNIGHT_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_MANCUB_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_MANCUB_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_MANCUB_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_MANCUB_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_MANCUB_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SKEL_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SKEL_SLEEP_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SKEL_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SKEL_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SKEL_PAIN_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SKEL_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SKEL_ATTACK_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SKEL_ATTACK2');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SKEL_ATTACK2_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_SKEL_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_VILE_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_VILE_SLEEP_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_VILE_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_VILE_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_VILE_PAIN_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_VILE_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_VILE_ATTACK_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_VILE_ATTACK2');
-  g_Frames_DeleteByName('FRAMES_MONSTER_VILE_ATTACK2_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_VILE_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_ROBO_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_ROBO_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_ROBO_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_ROBO_ATTACK2');
-  g_Frames_DeleteByName('FRAMES_MONSTER_ROBO_DIE');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_SLEEP');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_SLEEP_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_GO');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_GO_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_PAIN');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_PAIN_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_ATTACK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_ATTACK_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_ATTACK2');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_ATTACK2_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_DIE');
 
   g_Sound_Delete('SOUND_MONSTER_BARREL_DIE');
 
@@ -1863,11 +1595,7 @@ begin
 end;
 
 constructor TMonster.Create(MonsterType: Byte; aID: Integer; ForcedUID: Integer = -1);
-var
-  a: Integer;
-  FramesID: DWORD = 0;
-  s: String;
-  res: Boolean;
+  var a: Integer;
 begin
   if ForcedUID < 0 then
     FUID := g_CreateUID(UID_MONSTER)
@@ -1926,67 +1654,13 @@ begin
   end;
 
   SetLength(FAnim, Length(ANIMTABLE));
-
-  for a := 0 to High(FAnim) do
-  begin
-    FAnim[a, TDirection.D_LEFT] := nil;
-    FAnim[a, TDirection.D_RIGHT] := nil;
-  end;
-
   for a := ANIM_SLEEP to ANIM_PAIN do
-    if (ANIMTABLE[a].name <> '') and
-       (MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a] <> 0) then
-    begin
-      s := 'FRAMES_MONSTER_'+MONSTERTABLE[MonsterType].Name+
-           '_'+ANIMTABLE[a].name;
-
-      res := g_Frames_Exists(s);
-
-      if res then
-        res := g_Frames_Get(FramesID, s);
-
-    // Если нет такой анимации, то пробуем заменить ее на анимацию смерти:
-      if (not res) then
-      begin
-      // Заменяем только ANIM_MESS на ANIM_DIE:
-        if a <> ANIM_MESS then
-          Continue;
-
-        if g_Frames_Get(FramesID, 'FRAMES_MONSTER_'+MONSTERTABLE[MonsterType].Name+
-                        '_'+ANIMTABLE[ANIM_DIE].name) then
-        begin
-          FAnim[a, TDirection.D_RIGHT] := TAnimation.Create(FramesID, ANIMTABLE[ANIM_DIE].loop,
-                                                 MONSTER_ANIMTABLE[MonsterType].AnimSpeed[ANIM_DIE]);
-          FAnim[a, TDirection.D_LEFT] := TAnimation.Create(FramesID, ANIMTABLE[ANIM_DIE].loop,
-                                                MONSTER_ANIMTABLE[MonsterType].AnimSpeed[ANIM_DIE]);
-          Continue;
-        end;
-      end;
-
-      FAnim[a, TDirection.D_RIGHT] := TAnimation.Create(FramesID, ANIMTABLE[a].loop,
-                                             MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a]);
-
-    // Если есть отдельная левая анимация - загружаем:
-      if MONSTER_ANIMTABLE[MonsterType].LeftAnim then
-      begin
-        s := 'FRAMES_MONSTER_'+MONSTERTABLE[MonsterType].Name+
-             '_'+ANIMTABLE[a].name+'_L';
-        if g_Frames_Exists(s) then
-          g_Frames_Get(FramesID, s);
-      end;
-
-      FAnim[a, TDirection.D_LEFT] := TAnimation.Create(FramesID, ANIMTABLE[a].loop,
-                                            MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a]);
-    end;
-
-// Для колдуна загружаем также анимацию огня:
+  begin
+    FAnim[a, TDirection.D_RIGHT] := TAnimationState.Create(ANIMTABLE[a].loop, MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a], MONSTER_ANIMTABLE[MonsterType].AnimCount[a]);
+    FAnim[a, TDirection.D_LEFT] := TAnimationState.Create(ANIMTABLE[a].loop, MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a], MONSTER_ANIMTABLE[MonsterType].AnimCount[a]);
+  end;
   if MonsterType = MONSTER_VILE then
-    begin
-      g_Frames_Get(FramesID, 'FRAMES_FIRE');
-      vilefire := TAnimation.Create(FramesID, True, 2);
-    end
-  else
-    vilefire := nil;
+    vilefire := TAnimationState.Create(True, 2, 0); // !!! len
 end;
 
 function TMonster.Damage(aDamage: Word; VelX, VelY: Integer; SpawnerUID: Word; t: Byte): Boolean;

@@ -61,7 +61,7 @@ type
     procedure saveState (st: TStream);
     procedure loadState (st: TStream);
 
-//    function totalFrames (): Integer; inline;
+    function totalFrames (): Integer; inline;
 
   public
     property played: Boolean read mPlayed;
@@ -234,6 +234,11 @@ procedure TAnimationState.revert (r: Boolean);
 begin
   mRevert := r;
   reset
+end;
+
+function TAnimationState.totalFrames (): Integer; inline;
+begin
+  result := mLength
 end;
 
 procedure TAnimationState.saveState (st: TStream);

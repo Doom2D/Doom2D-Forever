@@ -34,7 +34,7 @@ implementation
     e_log, g_system,
     g_game, g_options, g_console,
     r_window, r_graphics, r_console, r_playermodel,
-    r_weapons, r_items, r_gfx
+    r_weapons, r_items, r_gfx, r_monsters
   ;
 
   var
@@ -75,6 +75,7 @@ implementation
 
   procedure r_Render_Load;
   begin
+    r_Monsters_Load;
     r_Weapon_Load;
     r_Items_Load;
     r_GFX_Load;
@@ -85,6 +86,7 @@ implementation
     r_GFX_Free;
     r_Items_Free;
     r_Weapon_Free;
+    r_Monsters_Free;
   end;
 
   procedure r_Render_Initialize;
