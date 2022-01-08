@@ -1906,6 +1906,7 @@ begin
           // Закончился уровень в Своей игре:
             if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
               begin
+                gState := STATE_INTERCUSTOM;
                 InterReadyTime := -1;
                 if gLastMap and (gGameSettings.GameMode = GM_COOP) then
                 begin
@@ -1915,9 +1916,7 @@ begin
                 end
                 else
                   gMusic.SetByName('MUSIC_ROUNDMUS');
-
                 gMusic.Play();
-                gState := STATE_INTERCUSTOM;
                 e_UnpressAllKeys();
               end
             else // Закончилась последняя карта в Одиночной игре
