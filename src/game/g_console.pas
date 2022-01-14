@@ -1046,6 +1046,8 @@ begin
   AddCommand('g_allow_exit', GameCVars);
   AddCommand('g_dm_keys', GameCVars);
   AddCommand('g_allow_monsters', GameCVars);
+  AddCommand('g_allow_dropflag', GameCVars);
+  AddCommand('g_throw_flag', GameCVars);
   AddCommand('g_bot_vsmonsters', GameCVars);
   AddCommand('g_bot_vsplayers', GameCVars);
   AddCommand('g_scorelimit', GameCVars);
@@ -1110,12 +1112,15 @@ begin
   AddCommand('weapnext', GameCommands);
   AddCommand('weapprev', GameCommands);
   AddCommand('weapon', GameCommands);
+  AddCommand('dropflag', GameCommands);
   AddCommand('p1_weapnext', GameCommands);
   AddCommand('p1_weapprev', GameCommands);
   AddCommand('p1_weapon', GameCommands);
+  AddCommand('p1_dropflag', GameCommands);
   AddCommand('p2_weapnext', GameCommands);
   AddCommand('p2_weapprev', GameCommands);
   AddCommand('p2_weapon', GameCommands);
+  AddCommand('p2_dropflag', GameCommands);
 
   AddCommand('god', GameCheats);
   AddCommand('notarget', GameCheats);
@@ -1990,6 +1995,7 @@ begin
   g_Console_BindKey(IK_ALT, '+p1_strafe', '-p1_strafe');
   g_Console_BindKey(IK_E, 'p1_weapnext', '', True);
   g_Console_BindKey(IK_Q, 'p1_weapprev', '', True);
+  g_Console_BindKey(IK_R, 'p1_dropflag', '');
   g_Console_BindKey(IK_1, 'p1_weapon 1');
   g_Console_BindKey(IK_2, 'p1_weapon 2');
   g_Console_BindKey(IK_3, 'p1_weapon 3');
@@ -2154,6 +2160,8 @@ begin
   WriteFlag('g_friendly_hit_projectile ', GAME_OPTION_TEAMHITPROJECTILE);
   WriteFlag('g_allow_exit ', GAME_OPTION_ALLOWEXIT);
   WriteFlag('g_allow_monsters ', GAME_OPTION_MONSTERS);
+  WriteFlag('g_allow_dropflag ', GAME_OPTION_ALLOWDROPFLAG);
+  WriteFlag('g_throw_flag ', GAME_OPTION_THROWFLAG);
   WriteFlag('g_dm_keys ', GAME_OPTION_DMKEYS);
   WriteFlag('g_weaponstay ', GAME_OPTION_WEAPONSTAY);
   WriteFlag('g_bot_vsmonsters ', GAME_OPTION_BOTVSMONSTER);

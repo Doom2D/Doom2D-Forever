@@ -129,6 +129,7 @@ const
   NET_CHEAT_SUICIDE  = 1;
   NET_CHEAT_SPECTATE = 2;
   NET_CHEAT_READY    = 3;
+  NET_CHEAT_DROPFLAG = 4;
 
   NET_MAX_DIFFTIME = 5000 div 36;
 
@@ -625,6 +626,8 @@ begin
         Dec(gInterReadyCount);
       end;
     end;
+    NET_CHEAT_DROPFLAG:
+      Pl.TryDropFlag();
   end;
 end;
 

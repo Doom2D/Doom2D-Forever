@@ -186,7 +186,9 @@ const
   GAME_OPTION_DMKEYS            = 128;
   GAME_OPTION_TEAMHITTRACE      = 256;
   GAME_OPTION_TEAMHITPROJECTILE = 512;
-  GAME_OPTION_TEAMABSORBDAMAGE = 1024;
+  GAME_OPTION_TEAMABSORBDAMAGE  = 1024;
+  GAME_OPTION_ALLOWDROPFLAG     = 2048;
+  GAME_OPTION_THROWFLAG         = 4096;
 
   STATE_NONE        = 0;
   STATE_MENU        = 1;
@@ -5541,6 +5543,14 @@ begin
   begin
     ParseGameFlag(GAME_OPTION_MONSTERS, I_MSG_ALLOWMON_OFF, I_MSG_ALLOWMON_ON, True);
   end
+  else if cmd = 'g_allow_dropflag' then
+  begin
+    ParseGameFlag(GAME_OPTION_ALLOWDROPFLAG, I_MSG_ALLOWDROPFLAG_OFF, I_MSG_ALLOWDROPFLAG_ON);
+  end
+  else if cmd = 'g_throw_flag' then
+  begin
+    ParseGameFlag(GAME_OPTION_THROWFLAG, I_MSG_THROWFLAG_OFF, I_MSG_THROWFLAG_ON);
+  end
   else if cmd = 'g_bot_vsplayers' then
   begin
     ParseGameFlag(GAME_OPTION_BOTVSPLAYER, I_MSG_BOTSVSPLAYERS_OFF, I_MSG_BOTSVSPLAYERS_ON);
@@ -7233,6 +7243,27 @@ begin
       if (a >= WP_FIRST) and (a <= WP_LAST) then
         gSelectWeapon[b, a] := True
     end
+  end
+  else if (cmd = 'dropflag') then
+  begin
+    if g_Game_IsServer then
+    begin
+      if gPlayer2 <> nil then gPlayer2.TryDropFlag();
+      if gPlayer1 <> nil then gPlayer1.TryDropFlag();
+    end
+    else
+      MC_SEND_CheatRequest(NET_CHEAT_DROPFLAG);
+  end
+  else if (cmd = 'p1_dropflag') or (cmd = 'p2_dropflag') then
+  begin
+    b := ord(cmd[2]) - ord('1');
+    if g_Game_IsServer then
+    begin
+      if (b = 1) and (gPlayer2 <> nil) then gPlayer2.TryDropFlag()
+      else if (b = 0) and (gPlayer1 <> nil) then gPlayer1.TryDropFlag();
+    end
+    else
+      MC_SEND_CheatRequest(NET_CHEAT_DROPFLAG);
   end
 // Команды Своей игры:
   else if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then

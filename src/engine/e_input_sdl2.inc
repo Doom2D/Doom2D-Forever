@@ -120,6 +120,7 @@ const
   IK_S       = SDL_SCANCODE_S;
   IK_D       = SDL_SCANCODE_D;
   IK_Q       = SDL_SCANCODE_Q;
+  IK_R       = SDL_SCANCODE_R;
   IK_E       = SDL_SCANCODE_E;
   IK_H       = SDL_SCANCODE_H;
   IK_J       = SDL_SCANCODE_J;

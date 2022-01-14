@@ -196,6 +196,7 @@ begin
     g_Console_BindKey(g_Console_FindBind(1, '+p1_jump', '-p1_jump'), '');
     g_Console_BindKey(g_Console_FindBind(1, '+p1_activate', '-p1_activate'), '');
     g_Console_BindKey(g_Console_FindBind(1, '+p1_strafe', '-p1_strafe'), '');
+    g_Console_BindKey(g_Console_FindBind(1, 'p1_dropflag', ''), '');
     g_Console_BindKey(g_Console_FindBind(1, 'p1_weapnext', ''), '');
     g_Console_BindKey(g_Console_FindBind(1, 'p1_weapprev', ''), '');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key0, '+p1_moveright', '-p1_moveright');
@@ -206,6 +207,7 @@ begin
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key0, '+p1_jump', '-p1_jump');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key0, '+p1_activate', '-p1_activate');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key0, '+p1_strafe', '-p1_strafe');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DROPFLAG])).Key0, 'p1_dropflag', '');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key0, 'p1_weapnext', '', True);
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key0, 'p1_weapprev', '', True);
     // second set
@@ -217,6 +219,7 @@ begin
     g_Console_BindKey(g_Console_FindBind(2, '+p1_jump', '-p1_jump'), '');
     g_Console_BindKey(g_Console_FindBind(2, '+p1_activate', '-p1_activate'), '');
     g_Console_BindKey(g_Console_FindBind(2, '+p1_strafe', '-p1_strafe'), '');
+    g_Console_BindKey(g_Console_FindBind(2, 'p1_dropflag', ''), '');
     g_Console_BindKey(g_Console_FindBind(2, 'p1_weapnext', ''), '');
     g_Console_BindKey(g_Console_FindBind(2, 'p1_weapprev', ''), '');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key1, '+p1_moveright', '-p1_moveright');
@@ -227,6 +230,7 @@ begin
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key1, '+p1_jump', '-p1_jump');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key1, '+p1_activate', '-p1_activate');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key1, '+p1_strafe', '-p1_strafe');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DROPFLAG])).Key1, 'p1_dropflag', '');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key1, 'p1_weapnext', '', True);
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key1, 'p1_weapprev', '', True);
   end;
@@ -254,6 +258,7 @@ begin
     g_Console_BindKey(g_Console_FindBind(1, '+p2_jump', '-p2_jump'), '');
     g_Console_BindKey(g_Console_FindBind(1, '+p2_activate', '-p2_activate'), '');
     g_Console_BindKey(g_Console_FindBind(1, '+p2_strafe', '-p2_strafe'), '');
+    g_Console_BindKey(g_Console_FindBind(1, 'p2_dropflag', ''), '');
     g_Console_BindKey(g_Console_FindBind(1, 'p2_weapnext', ''), '');
     g_Console_BindKey(g_Console_FindBind(1, 'p2_weapprev', ''), '');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key0, '+p2_moveright', '-p2_moveright');
@@ -264,6 +269,7 @@ begin
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key0, '+p2_jump', '-p2_jump');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key0, '+p2_activate', '-p2_activate');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key0, '+p2_strafe', '-p2_strafe');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DROPFLAG])).Key0, 'p2_dropflag', '');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key0, 'p2_weapnext', '', True);
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key0, 'p2_weapprev', '', True);
     // second set
@@ -275,6 +281,7 @@ begin
     g_Console_BindKey(g_Console_FindBind(2, '+p2_jump', '-p2_jump'), '');
     g_Console_BindKey(g_Console_FindBind(2, '+p2_activate', '-p2_activate'), '');
     g_Console_BindKey(g_Console_FindBind(2, '+p2_strafe', '-p2_strafe'), '');
+    g_Console_BindKey(g_Console_FindBind(2, 'p2_dropflag', ''), '');
     g_Console_BindKey(g_Console_FindBind(2, 'p2_weapnext', ''), '');
     g_Console_BindKey(g_Console_FindBind(2, 'p2_weapprev', ''), '');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key1, '+p2_moveright', '-p2_moveright');
@@ -285,6 +292,7 @@ begin
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key1, '+p2_jump', '-p2_jump');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key1, '+p2_activate', '-p2_activate');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key1, '+p2_strafe', '-p2_strafe');
+    g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DROPFLAG])).Key1, 'p2_dropflag', '');
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key1, 'p2_weapnext', '', True);
     g_Console_BindKey(TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key1, 'p2_weapprev', '', True);
   end;
@@ -441,6 +449,7 @@ begin
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key0 := g_Console_FindBind(1, '+p1_jump', '-p1_jump');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key0 := g_Console_FindBind(1, '+p1_activate', '-p1_activate');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key0 := g_Console_FindBind(1, '+p1_strafe', '-p1_strafe');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DROPFLAG])).Key0 := g_Console_FindBind(1, 'p1_dropflag', '');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key0 := g_Console_FindBind(1, 'p1_weapnext', '');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key0 := g_Console_FindBind(1, 'p1_weapprev', '');
     // second set
@@ -452,6 +461,7 @@ begin
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key1 := g_Console_FindBind(2, '+p1_jump', '-p1_jump');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key1 := g_Console_FindBind(2, '+p1_activate', '-p1_activate');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key1 := g_Console_FindBind(2, '+p1_strafe', '-p1_strafe');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DROPFLAG])).Key1 := g_Console_FindBind(2, 'p1_dropflag', '');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key1 := g_Console_FindBind(2, 'p1_weapnext', '');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key1 := g_Console_FindBind(2, 'p1_weapprev', '');
   end;
@@ -477,6 +487,7 @@ begin
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key0 := g_Console_FindBind(1, '+p2_jump', '-p2_jump');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key0 := g_Console_FindBind(1, '+p2_activate', '-p2_activate');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key0 := g_Console_FindBind(1, '+p2_strafe', '-p2_strafe');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DROPFLAG])).Key0 := g_Console_FindBind(1, 'p2_dropflag', '');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key0 := g_Console_FindBind(1, 'p2_weapnext', '');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key0 := g_Console_FindBind(1, 'p2_weapprev', '');
     // second set
@@ -488,6 +499,7 @@ begin
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key1 := g_Console_FindBind(2, '+p2_jump', '-p2_jump');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key1 := g_Console_FindBind(2, '+p2_activate', '-p2_activate');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key1 := g_Console_FindBind(2, '+p2_strafe', '-p2_strafe');
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_DROPFLAG])).Key1 := g_Console_FindBind(2, 'p2_dropflag', '');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key1 := g_Console_FindBind(2, 'p2_weapnext', '');
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key1 := g_Console_FindBind(2, 'p2_weapprev', '');
   end;
@@ -691,6 +703,12 @@ begin
       1: gsGameFlags := gsGameFlags or GAME_OPTION_BOTVSMONSTER;
       2: gsGameFlags := gsGameFlags or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
       else gsGameFlags := gsGameFlags or GAME_OPTION_BOTVSPLAYER;
+    end;
+
+    case TGUISwitch(GetControl('swFlagDrop')).ItemIndex of
+      0: gsGameFlags := gsGameFlags or GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG;
+      1: gsGameFlags := gsGameFlags or GAME_OPTION_ALLOWDROPFLAG;
+      else gsGameFlags := gsGameFlags and not (GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG);
     end;
 
     // TODO: get this crap out of here
@@ -1655,6 +1673,13 @@ begin
         ItemIndex := 0
       else
         ItemIndex := 1;
+    with TGUISwitch(menu.GetControl('swFlagDrop')) do
+      if LongBool(Options and GAME_OPTION_ALLOWDROPFLAG) and LongBool(Options and GAME_OPTION_THROWFLAG) then
+        ItemIndex := 0
+      else if LongBool(Options and GAME_OPTION_ALLOWDROPFLAG) then
+        ItemIndex := 1
+      else
+        ItemIndex := 2;
 
     TGUIEdit(menu.GetControl('edTimeLimit')).Text := IntToStr(TimeLimit);
     TGUIEdit(menu.GetControl('edGoalLimit')).Text := IntToStr(GoalLimit);
@@ -1691,6 +1716,7 @@ begin
         TGUIEdit(menu.GetControl('edMaxLives')).Enabled := True;
         TGUILabel(menu.GetControlsText('edMaxLives')).Color := MENU_ITEMSTEXT_COLOR;
         TGUISwitch(menu.GetControl('swBotsVS')).Enabled := True;
+        TGUISwitch(menu.GetControl('swFlagDrop')).Enabled := True;
       end
     else
       begin
@@ -1717,6 +1743,7 @@ begin
         end;
         TGUILabel(menu.GetControlsText('edMaxLives')).Color := MENU_UNACTIVEITEMS_COLOR;
         TGUISwitch(menu.GetControl('swBotsVS')).Enabled := True;
+        TGUISwitch(menu.GetControl('swFlagDrop')).Enabled := False;
       end;
   end;
 end;
@@ -1835,6 +1862,15 @@ begin
             Options := Options or GAME_OPTION_BOTVSPLAYER;
             Options := Options and (not GAME_OPTION_BOTVSMONSTER);
           end;
+      end;
+    end;
+
+    if TGUISwitch(menu.GetControl('swFlagDrop')).Enabled then
+    begin
+      case TGUISwitch(menu.GetControl('swFlagDrop')).ItemIndex of
+        0: Options := Options or GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG;
+        1: Options := Options or GAME_OPTION_ALLOWDROPFLAG;
+        else Options := Options and not (GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG);
       end;
     end;
 
@@ -2288,6 +2324,19 @@ begin
       if not LongBool(gsGameFlags and GAME_OPTION_BOTVSPLAYER) then
         ItemIndex := 1;
     end;
+    with AddSwitch(_lc[I_MENU_FLAG_DROP]) do
+    begin
+      Name := 'swFlagDrop';
+      AddItem(_lc[I_MENU_FLAG_THROW]);
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      if (gsGameFlags and (GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG)) = (GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG) then
+        ItemIndex := 0
+      else if LongBool(gsGameFlags and GAME_OPTION_ALLOWDROPFLAG) then
+        ItemIndex := 1
+      else
+        ItemIndex := 2;
+    end;
     AddSpace();
     AddButton(@ProcStartNetGame, _lc[I_MENU_START_GAME]);
 
@@ -2522,6 +2571,19 @@ begin
         ItemIndex := 0;
       if not LongBool(gsGameFlags and GAME_OPTION_BOTVSPLAYER) then
         ItemIndex := 1;
+    end;
+    with AddSwitch(_lc[I_MENU_FLAG_DROP]) do
+    begin
+      Name := 'swFlagDrop';
+      AddItem(_lc[I_MENU_FLAG_THROW]);
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      if (gsGameFlags and (GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG)) = (GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG) then
+        ItemIndex := 0
+      else if LongBool(gsGameFlags and GAME_OPTION_ALLOWDROPFLAG) then
+        ItemIndex := 1
+      else
+        ItemIndex := 2;
     end;
     AddSpace();
     AddButton(@ProcStartCustomGame, _lc[I_MENU_START_GAME]);
@@ -2977,6 +3039,7 @@ begin
     AddKeyRead2(_lc[I_MENU_CONTROL_NEXT_WEAPON]).Name := _lc[I_MENU_CONTROL_NEXT_WEAPON];
     AddKeyRead2(_lc[I_MENU_CONTROL_PREV_WEAPON]).Name := _lc[I_MENU_CONTROL_PREV_WEAPON];
     AddKeyRead2(_lc[I_MENU_CONTROL_STRAFE]).Name := _lc[I_MENU_CONTROL_STRAFE];
+    AddKeyRead2(_lc[I_MENU_CONTROL_DROPFLAG]).Name := _lc[I_MENU_CONTROL_DROPFLAG];
   end;
   Menu.DefControl := 'mOptionsControlsP1Menu';
   g_GUI_AddWindow(Menu);
@@ -3006,6 +3069,7 @@ begin
     AddKeyRead2(_lc[I_MENU_CONTROL_NEXT_WEAPON]).Name := _lc[I_MENU_CONTROL_NEXT_WEAPON];
     AddKeyRead2(_lc[I_MENU_CONTROL_PREV_WEAPON]).Name := _lc[I_MENU_CONTROL_PREV_WEAPON];
     AddKeyRead2(_lc[I_MENU_CONTROL_STRAFE]).Name := _lc[I_MENU_CONTROL_STRAFE];
+    AddKeyRead2(_lc[I_MENU_CONTROL_DROPFLAG]).Name := _lc[I_MENU_CONTROL_DROPFLAG];
   end;
   Menu.DefControl := 'mOptionsControlsP2Menu';
   g_GUI_AddWindow(Menu);
@@ -3397,6 +3461,14 @@ begin
       AddItem(_lc[I_MENU_BOTS_VS_PLAYERS]);
       AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
       AddItem(_lc[I_MENU_BOTS_VS_ALL]);
+      ItemIndex := 2;
+    end;
+    with AddSwitch(_lc[I_MENU_FLAG_DROP]) do
+    begin
+      Name := 'swFlagDrop';
+      AddItem(_lc[I_MENU_FLAG_THROW]);
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
       ItemIndex := 2;
     end;
 

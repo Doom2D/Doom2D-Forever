@@ -310,7 +310,8 @@ type
     procedure   BFGHit();
     function    GetFlag(Flag: Byte): Boolean;
     procedure   SetFlag(Flag: Byte);
-    function    DropFlag(Silent: Boolean = True): Boolean;
+    function    DropFlag(Silent: Boolean = True; DoThrow: Boolean = False): Boolean;
+    function    TryDropFlag(): Boolean;
     procedure   AllRulez(Health: Boolean);
     procedure   RestoreHealthArmor();
     procedure   FragCombo();
@@ -5763,10 +5764,19 @@ begin
     FModel.SetFlag(FFlag);
 end;
 
-function TPlayer.DropFlag(Silent: Boolean = True): Boolean;
+function TPlayer.TryDropFlag(): Boolean;
+begin
+  if LongBool(gGameSettings.Options and GAME_OPTION_ALLOWDROPFLAG) then
+    Result := DropFlag(False, LongBool(gGameSettings.Options and GAME_OPTION_THROWFLAG))
+  else
+    Result := False;
+end;
+
+function TPlayer.DropFlag(Silent: Boolean = True; DoThrow: Boolean = False): Boolean;
 var
   s: String;
   a: Byte;
+  xv, yv: Integer;
 begin
   Result := False;
   if (not g_Game_IsServer) or (FFlag = FLAG_NONE) then
@@ -5779,8 +5789,18 @@ begin
     Direction := FDirection;
     State := FLAG_STATE_DROPPED;
     Count := FLAG_TIME;
-    g_Obj_Push(@Obj, (FObj.Vel.X div 2)-2+Random(5),
-                     (FObj.Vel.Y div 2)-2+Random(5));
+    if DoThrow then
+    begin
+      xv := FObj.Vel.X + IfThen(Direction = TDirection.D_RIGHT, 10, -10);
+      yv := FObj.Vel.Y - 2;
+    end
+    else
+    begin
+      xv := (FObj.Vel.X div 2);
+      yv := (FObj.Vel.Y div 2) - 2;
+    end;
+    g_Obj_Push(@Obj, xv, yv);
+
     positionChanged(); // this updates spatial accelerators
 
     if FFlag = FLAG_RED then
