@@ -17,10 +17,7 @@ unit r_animations;
 
 interface
 
-  uses g_base, g_textures, MAPDEF, Imaging; // TMirrorType, TAnimation, TDFPoint, TDynImageDataArray
-
-  procedure r_Animation_Draw (t: TAnimation; x, y: Integer; mirror: TMirrorType);
-  procedure r_Animation_DrawEx (t: TAnimation; x, y: Integer; mirror: TMirrorType; rpoint: TDFPoint; angle: SmallInt);
+  uses g_base, g_textures, MAPDEF, Imaging; // TMirrorType, TAnimationState, TDFPoint, TDynImageDataArray
 
   procedure r_AnimationState_Draw (TID: DWORD; t: TAnimationState; x, y: Integer; mirror: TMirrorType);
   procedure r_AnimationState_DrawEx (FID: DWORD; t: TAnimationState; x, y: Integer; mirror: TMirrorType; rpoint: TDFPoint; angle: SmallInt);
@@ -58,18 +55,6 @@ implementation
     r_graphics,
     g_language, g_game
   ;
-
-  procedure r_Animation_Draw (t: TAnimation; x, y: Integer; mirror: TMirrorType);
-  begin
-    if t.enabled then
-      e_DrawAdv(framesArray[t.id].TexturesID[t.currentFrame], x, y, t.alpha, true, t.blending, 0, nil, mirror)
-  end;
-
-  procedure r_Animation_DrawEx (t: TAnimation; x, y: Integer; mirror: TMirrorType; rpoint: TDFPoint; angle: SmallInt);
-  begin
-    if t.enabled then
-      e_DrawAdv(framesArray[t.id].TexturesID[t.currentFrame], x, y, t.alpha, true, t.blending, angle, @rpoint, mirror)
-  end;
 
   procedure r_AnimationState_Draw (TID: DWORD; t: TAnimationState; x, y: Integer; mirror: TMirrorType);
   begin
