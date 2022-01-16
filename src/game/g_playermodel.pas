@@ -113,9 +113,6 @@ type
     FSlopSound:        Byte;
     FCurrentWeapon:    Byte;
     FFlag:             Byte;
-    FFlagPoint:        TDFPoint;
-    FFlagAngle:        SmallInt;
-    FFlagAnim:         TAnimation; // !!! TAnimationState
     FFire:             Boolean;
     FFireCounter:      Byte;
     FID:               Integer;
@@ -141,17 +138,10 @@ type
 
   public
     property    Color: TRGB read FColor write FColor;
-
     property    AnimState: TAnimationState read FAnimState;
     property    CurrentAnimation: Byte read FCurrentAnimation;
-
     property    CurrentWeapon: Byte read FCurrentWeapon;
-
     property    Flag: Byte read FFlag;
-    property    FlagAnim: TAnimation read FFlagAnim;
-    property    FlagAngle: SmallInt read FFlagAngle;
-    property    FlagPoint: TDFPoint read FFlagPoint;
-
     property    ID: Integer read FID;
   end;
 
@@ -661,13 +651,8 @@ begin
         Result.FPainSounds := PainSounds;
         Result.FDieSounds := DieSounds;
         Result.FSlopSound := SlopSound;
-
-        Result.FFlagPoint := FlagPoint;
-        Result.FFlagAngle := FlagAngle;
         Result.FID := a;
-
         Result.ChangeAnimation(A_STAND, True);
-
         Break;
       end;
     end;
@@ -906,27 +891,14 @@ begin
     FFireCounter := 0
 end;
 
-procedure TPlayerModel.SetFlag(Flag: Byte);
-var
-  tid: DWORD;
-begin
-  FFlag := Flag;
-
-  FFlagAnim.Free();
-  FFlagAnim := nil;
-
-  case Flag of
-    FLAG_RED: g_Frames_Get(tid, 'FRAMES_FLAG_RED');
-    FLAG_BLUE: g_Frames_Get(tid, 'FRAMES_FLAG_BLUE');
-    else Exit;
+  procedure TPlayerModel.SetFlag (Flag: Byte);
+  begin
+    FFlag := Flag
   end;
 
-  FFlagAnim := TAnimation.Create(tid, True, 8);
-end;
-
-  procedure TPlayerModel.SetWeapon(Weapon: Byte);
+  procedure TPlayerModel.SetWeapon (Weapon: Byte);
   begin
-    FCurrentWeapon := Weapon;
+    FCurrentWeapon := Weapon
   end;
 
   function TPlayerModel.GetBlood (): TModelBlood;
@@ -943,8 +915,6 @@ end;
   begin
     if FAnimState <> nil then
       FAnimState.Update;
-    if FFlagAnim <> nil then
-      FFlagAnim.Update;
     if FFireCounter > 0 then
       Dec(FFireCounter)
     else

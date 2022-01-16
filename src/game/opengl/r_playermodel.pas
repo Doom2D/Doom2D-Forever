@@ -19,8 +19,11 @@ interface
 
   uses g_playermodel; // TPlayerModel
 
+  procedure r_PlayerModel_Initialize;
+  procedure r_PlayerModel_Finalize;
   procedure r_PlayerModel_Load;
   procedure r_PlayerModel_Free;
+  procedure r_PlayerModel_Update;
   procedure r_PlayerModel_Draw (pm: TPlayerModel; X, Y: Integer; Alpha: Byte = 0);
 
 implementation
@@ -30,7 +33,7 @@ implementation
     MAPDEF, utils,
     ImagingTypes, Imaging, ImagingUtility,
     r_graphics, g_options, r_animations, r_textures,
-    g_base, g_basic, g_map, g_weapons
+    g_base, g_basic, g_map, g_weapons, g_textures
   ;
 
   const
@@ -48,6 +51,20 @@ implementation
         mask: DWORD;
       end;
     end;
+    RedFlagFrames: DWORD;
+    BlueFlagFrames: DWORD;
+    FlagAnimState: TAnimationState;
+
+  procedure r_PlayerModel_Initialize;
+  begin
+    FlagAnimState := TAnimationState.Create(True, 8, 5);
+  end;
+
+  procedure r_PlayerModel_Finalize;
+  begin
+    FlagAnimState.Free;
+    FlagAnimState := nil;
+  end;
 
   procedure ExtAnimFromBaseAnim(MName: String; AIdx: Integer);
     const
@@ -82,6 +99,8 @@ implementation
   procedure r_PlayerModel_Load;
     var ID1, ID2: DWORD; i, a, b: Integer; prefix, aname: String;
   begin
+    g_Frames_CreateWAD(@RedFlagFrames, 'FRAMES_FLAG_RED', GameWAD + ':TEXTURES\FLAGRED', 64, 64, 5, False);
+    g_Frames_CreateWAD(@BlueFlagFrames, 'FRAMES_FLAG_BLUE', GameWAD + ':TEXTURES\FLAGBLUE', 64, 64, 5, False);
     for a := WP_FIRST + 1 to WP_LAST do
     begin
       g_Texture_CreateWAD(WeaponID[a][W_POS_NORMAL][W_ACT_NORMAL], GameWAD+':WEAPONS\'+UpperCase(WeapNames[a]));
@@ -134,6 +153,8 @@ implementation
   procedure r_PlayerModel_Free;
     var i, a, b, c: Integer;
   begin
+    e_DeleteTexture(RedFlagFrames);
+    e_DeleteTexture(BlueFlagFrames);
     if PlayerModelsArray = nil then Exit;
     for i := 0 to High(PlayerModelsArray) do
     begin
@@ -164,12 +185,18 @@ implementation
           e_DeleteTexture(WeaponID[a][b][c])
   end;
 
+  procedure r_PlayerModel_Update;
+  begin
+    FlagAnimState.Update
+  end;
+
 procedure r_PlayerModel_Draw (pm: TPlayerModel; X, Y: Integer; Alpha: Byte = 0);
 var
   Mirror: TMirrorType;
   pos, act: Byte;
-  p: TDFPoint;
+  fp, p: TDFPoint;
   FramesID: DWORD;
+  fa: Integer;
 begin
 // Флаги:
   if pm.Direction = TDirection.D_LEFT then
@@ -177,14 +204,26 @@ begin
   else
     Mirror := TMirrorType.Horizontal;
 
-  if (pm.Flag <> FLAG_NONE) and (pm.FlagAnim <> nil) and (not (pm.CurrentAnimation in [A_DIE1, A_DIE2])) then
+  FramesID := 0;
+  case pm.Flag of
+    FLAG_RED: FramesID := RedFlagFrames;
+    FLAG_BLUE: FramesID := BlueFlagFrames;
+  end;
+  if (FramesID <> 0) and (not (pm.CurrentAnimation in [A_DIE1, A_DIE2])) then
   begin
+    fp := PlayerModelsArray[pm.id].FlagPoint;
+    fa := PlayerModelsArray[pm.id].FlagAngle;
     p.X := IfThen(pm.Direction = TDirection.D_LEFT, FLAG_BASEPOINT.X, 64 - FLAG_BASEPOINT.X);
     p.Y := FLAG_BASEPOINT.Y;
-
-    r_Animation_DrawEx(pm.FlagAnim, X+IfThen(pm.Direction = TDirection.D_LEFT, pm.FlagPoint.X-1, 2*FLAG_BASEPOINT.X-pm.FlagPoint.X+1)-FLAG_BASEPOINT.X,
-                     Y+pm.FlagPoint.Y-FLAG_BASEPOINT.Y+1, Mirror, p,
-                     IfThen(pm.Direction = TDirection.D_RIGHT, pm.FlagAngle, -pm.FlagAngle));
+    r_AnimationState_DrawEx(
+      FramesID,
+      FlagAnimState,
+      X + IfThen(pm.Direction = TDirection.D_LEFT, fp.X - 1, 2 * FLAG_BASEPOINT.X - fp.X + 1) - FLAG_BASEPOINT.X,
+      Y + fp.Y - FLAG_BASEPOINT.Y + 1,
+      Mirror,
+      p,
+      IfThen(pm.Direction = TDirection.D_RIGHT, fa, -fa)
+    );
   end;
 
 // Оружие:

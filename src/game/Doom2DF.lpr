@@ -233,6 +233,7 @@ begin
        if (NetMode = NET_SERVER) then g_Net_Host_Update()
   else if (NetMode = NET_CLIENT) then g_Net_Client_Update();
   // think
+  r_Render_Update;
   g_Game_Update();
   // server: send any accumulated outgoing data to clients
   if NetMode = NET_SERVER then g_Net_Flush();

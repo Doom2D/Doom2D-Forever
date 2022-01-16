@@ -19,10 +19,13 @@ interface
 
   procedure r_Render_Initialize;
   procedure r_Render_Finalize;
+
   procedure r_Render_Resize (w, h: Integer);
 
   procedure r_Render_Load;
   procedure r_Render_Free;
+
+  procedure r_Render_Update;
 
   procedure r_Render_Apply;
 
@@ -98,12 +101,19 @@ implementation
     LoadGL;
     r_Window_Initialize;
     r_Console_Init;
+    r_PlayerModel_Initialize;
   end;
 
   procedure r_Render_Finalize;
   begin
+    r_PlayerModel_Finalize;
     FreeGL;
     e_ReleaseEngine
+  end;
+
+  procedure r_Render_Update;
+  begin
+    r_PlayerModel_Update;
   end;
 
   procedure r_Render_Resize (w, h: Integer);
