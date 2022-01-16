@@ -134,7 +134,6 @@ function  g_PlayerModel_Load(FileName: String): Boolean;
 function  g_PlayerModel_GetNames(): SSArray;
 function  g_PlayerModel_GetBlood(ModelName: String): TModelBlood;
 function  g_PlayerModel_Get(ModelName: String): TPlayerModel;
-function  g_PlayerModel_GetAnim(ModelName: String; AnimTyp: Byte; var _Anim, _Mask: TAnimation): Boolean;
 function  g_PlayerModel_GetGibs (ModelID: Integer; var Gibs: TGibsArray): Boolean;
 function  g_PlayerModel_GetIndex (ModelName: String): Integer;
 
@@ -629,40 +628,6 @@ begin
       end;
     end;
   end;
-end;
-
-function g_PlayerModel_GetAnim(ModelName: string; AnimTyp: Byte; var _Anim, _Mask: TAnimation): Boolean;
-var
-  a: Integer;
-  c: Boolean;
-  ID: DWORD;
-begin
-  Result := False;
-
-  if PlayerModelsArray = nil then Exit;
-  for a := 0 to High(PlayerModelsArray) do
-    if PlayerModelsArray[a].Name = ModelName then
-      with PlayerModelsArray[a] do
-      begin
-        if AnimTyp in [A_STAND, A_WALK] then c := True else c := False;
-
-        if not g_Frames_Get(ID, Name + '_RIGHTANIM' + IntToStr(AnimTyp)) then
-          if not g_Frames_Get(ID, Name + '_LEFTANIM' + IntToStr(AnimTyp)) then Exit;
-
-        _Anim := TAnimation.Create(ID, c, ModelSpeed[AnimTyp]);
-        _Anim.Speed := ModelSpeed[AnimTyp];
-
-        if not g_Frames_Get(ID, Name + '_RIGHTANIM' + IntToStr(AnimTyp) + '_MASK') then
-          if not g_Frames_Get(ID, Name + '_LEFTANIM' + IntToStr(AnimTyp) + '_MASK') then
-            Exit;
-
-        _Mask := TAnimation.Create(ID, c, ModelSpeed[AnimTyp]);
-        _Mask.Speed := ModelSpeed[AnimTyp];
-
-        Break;
-      end;
-
-  Result := True;
 end;
 
   function g_PlayerModel_GetGibs (ModelID: Integer; var Gibs: TGibsArray): Boolean;

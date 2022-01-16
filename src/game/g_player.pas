@@ -555,15 +555,12 @@ type
 
   TCorpse = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
-    FModelName:     String;
     FMess:          Boolean;
     FState:         Byte;
     FDamage:        Byte;
-    FColor:         TRGB;
     FObj:           TObj;
     FPlayerUID:     Word;
-    FAnimation:     TAnimation;
-    FAnimationMask: TAnimation;
+    FModel:   TPlayerModel;
 
   public
     constructor Create(X, Y: Integer; ModelName: String; aMess: Boolean);
@@ -583,11 +580,7 @@ type
     property    Obj: TObj read FObj; // copies object
     property    State: Byte read FState;
     property    Mess: Boolean read FMess;
-
-    (* internal state *)
-    property    Color: TRGB read FColor;
-    property    Animation: TAnimation read FAnimation;
-    property    AnimationMask: TAnimation read FAnimationMask;
+    property    Model: TPlayerModel read FModel;
   end;
 
   TTeamStat = Array [TEAM_RED..TEAM_BLUE] of
@@ -641,7 +634,7 @@ function  g_Player_GetCount(): Byte;
 function  g_Player_GetStats(): TPlayerStatArray;
 function  g_Player_ValidName(Name: String): Boolean;
 function  g_Player_CreateCorpse(Player: TPlayer): Integer;
-procedure g_Player_CreateGibs(fX, fY: Integer; ModelName: String; fColor: TRGB);
+procedure g_Player_CreateGibs (fX, fY, mid: Integer; fColor: TRGB);
 procedure g_Player_CreateShell(fX, fY, dX, dY: Integer; T: Byte);
 procedure g_Player_UpdatePhysicalObjects();
 procedure g_Player_RemoveAllCorpses();
@@ -1532,7 +1525,7 @@ begin
           find_id := Random(Length(gCorpses));
 
         gCorpses[find_id] := TCorpse.Create(FObj.X, FObj.Y, FModel.GetName(), FHealth < -20);
-        gCorpses[find_id].FColor := FModel.Color;
+        gCorpses[find_id].FModel.Color := FModel.Color;
         gCorpses[find_id].FObj.Vel := FObj.Vel;
         gCorpses[find_id].FObj.Accel := FObj.Accel;
         gCorpses[find_id].FPlayerUID := FUID;
@@ -1540,9 +1533,7 @@ begin
         Result := find_id;
       end
     else
-      g_Player_CreateGibs(FObj.X + PLAYER_RECT_CX,
-                          FObj.Y + PLAYER_RECT_CY,
-                          FModel.GetName(), FModel.Color);
+      g_Player_CreateGibs(FObj.X + PLAYER_RECT_CX, FObj.Y + PLAYER_RECT_CY, FModel.id, FModel.Color);
   end;
 end;
 
@@ -1593,16 +1584,15 @@ begin
   end;
 end;
 
-procedure g_Player_CreateGibs(fX, fY: Integer; ModelName: string; fColor: TRGB);
+procedure g_Player_CreateGibs (fX, fY, mid: Integer; fColor: TRGB);
 var
-  a, mid: Integer;
+  a: Integer;
   GibsArray: TGibsArray;
   Blood: TModelBlood;
 begin
-  if (gGibs = nil) or (Length(gGibs) = 0) then
-    Exit;
-  mid := g_PlayerModel_GetIndex(ModelName);
   if mid = -1 then
+    Exit;
+  if (gGibs = nil) or (Length(gGibs) = 0) then
     Exit;
   if not g_PlayerModel_GetGibs(mid, GibsArray) then
     Exit;
@@ -1838,7 +1828,7 @@ begin
     if gCorpses[i] <> nil then
     begin
       // Название модели
-      utils.writeStr(st, gCorpses[i].FModelName);
+      utils.writeStr(st, gCorpses[i].FModel.GetName());
       // Тип смерти
       utils.writeBool(st, gCorpses[i].Mess);
       // Сохраняем данные трупа:
@@ -5811,25 +5801,24 @@ begin
   FObj.X := X;
   FObj.Y := Y;
   FObj.Rect := PLAYER_CORPSERECT;
-  FModelName := ModelName;
   FMess := aMess;
+  FModel := g_PlayerModel_Get(ModelName);
 
   if FMess then
-    begin
-      FState := CORPSE_STATE_MESS;
-      g_PlayerModel_GetAnim(ModelName, A_DIE2, FAnimation, FAnimationMask);
-    end
+  begin
+    FState := CORPSE_STATE_MESS;
+    FModel.ChangeAnimation(A_DIE2);
+  end
   else
-    begin
-      FState := CORPSE_STATE_NORMAL;
-      g_PlayerModel_GetAnim(ModelName, A_DIE1, FAnimation, FAnimationMask);
-    end;
+  begin
+    FState := CORPSE_STATE_NORMAL;
+    FModel.ChangeAnimation(A_DIE1);
+  end;
 end;
 
 destructor TCorpse.Destroy();
 begin
-  FAnimation.Free();
-
+  FModel.Free;
   inherited;
 end;
 
@@ -5858,9 +5847,7 @@ end;
 
 
 procedure TCorpse.Damage(Value: Word; SpawnerUID: Word; vx, vy: Integer);
-var
-  pm: TPlayerModel;
-  Blood: TModelBlood;
+  var Blood: TModelBlood;
 begin
   if FState = CORPSE_STATE_REMOVEME then
     Exit;
@@ -5868,32 +5855,33 @@ begin
   FDamage := FDamage + Value;
 
   if FDamage > 150 then
+  begin
+    if FModel <> nil then
     begin
-      if FAnimation <> nil then
-      begin
-        FAnimation.Free();
-        FAnimation := nil;
+      FState := CORPSE_STATE_REMOVEME;
 
-        FState := CORPSE_STATE_REMOVEME;
+      g_Player_CreateGibs(
+        FObj.X + FObj.Rect.X + (FObj.Rect.Width div 2),
+        FObj.Y + FObj.Rect.Y + (FObj.Rect.Height div 2),
+        FModel.id,
+        FModel.Color
+      );
 
-        g_Player_CreateGibs(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
-                            FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
-                            FModelName, FColor);
-        // Звук мяса от трупа:
-        pm := g_PlayerModel_Get(FModelName);
-        pm.PlaySound(MODELSOUND_DIE, 5, FObj.X, FObj.Y);
-        pm.Free;
+      // Звук мяса от трупа:
+      FModel.PlaySound(MODELSOUND_DIE, 5, FObj.X, FObj.Y);
 
-        // Зловещий смех:
-        if (gBodyKillEvent <> -1)
-        and gDelayedEvents[gBodyKillEvent].Pending then
-          gDelayedEvents[gBodyKillEvent].Pending := False;
-        gBodyKillEvent := g_Game_DelayEvent(DE_BODYKILL, 1050, SpawnerUID);
-      end;
+      // Зловещий смех:
+      if (gBodyKillEvent <> -1) and gDelayedEvents[gBodyKillEvent].Pending then
+        gDelayedEvents[gBodyKillEvent].Pending := False;
+      gBodyKillEvent := g_Game_DelayEvent(DE_BODYKILL, 1050, SpawnerUID);
+
+      FModel.Free;
+      FModel := nil;
     end
+  end
   else
     begin
-      Blood := g_PlayerModel_GetBlood(FModelName);
+      Blood := FModel.GetBlood();
       FObj.Vel.X := FObj.Vel.X + vx;
       FObj.Vel.Y := FObj.Vel.Y + vy;
       g_GFX_Blood(FObj.X+PLAYER_CORPSERECT.X+(PLAYER_CORPSERECT.Width div 2),
@@ -5932,16 +5920,13 @@ begin
     Exit;
   end;
 
-  if FAnimation <> nil then
-    FAnimation.Update();
-  if FAnimationMask <> nil then
-    FAnimationMask.Update();
+  if FModel <> nil then
+    FModel.Update;
 end;
 
 
 procedure TCorpse.SaveState (st: TStream);
-var
-  anim: Boolean;
+  var anim: Boolean;
 begin
   assert(st <> nil);
 
@@ -5953,28 +5938,25 @@ begin
   // Накопленный урон
   utils.writeInt(st, Byte(FDamage));
   // Цвет
-  utils.writeInt(st, Byte(FColor.R));
-  utils.writeInt(st, Byte(FColor.G));
-  utils.writeInt(st, Byte(FColor.B));
+  utils.writeInt(st, Byte(FModel.Color.R));
+  utils.writeInt(st, Byte(FModel.Color.G));
+  utils.writeInt(st, Byte(FModel.Color.B));
   // Объект трупа
   Obj_SaveState(st, @FObj);
   utils.writeInt(st, Word(FPlayerUID));
-  // Есть ли анимация
-  anim := (FAnimation <> nil);
+  // animation
+  anim := (FModel <> nil);
   utils.writeBool(st, anim);
-  // Если есть - сохраняем
-  if anim then FAnimation.SaveState(st);
-  // Есть ли маска анимации
-  anim := (FAnimationMask <> nil);
+  if anim then FModel.AnimState.SaveState(st);
+  // animation for mask (same as animation, compat with older saves)
+  anim := (FModel <> nil);
   utils.writeBool(st, anim);
-  // Если есть - сохраняем
-  if anim then FAnimationMask.SaveState(st);
+  if anim then FModel.AnimState.SaveState(st);
 end;
 
 
 procedure TCorpse.LoadState (st: TStream);
-var
-  anim: Boolean;
+  var anim: Boolean; r, g, b: Byte; stub: TAnimationState;
 begin
   assert(st <> nil);
 
@@ -5986,28 +5968,30 @@ begin
   // Накопленный урон
   FDamage := utils.readByte(st);
   // Цвет
-  FColor.R := utils.readByte(st);
-  FColor.G := utils.readByte(st);
-  FColor.B := utils.readByte(st);
+  r := utils.readByte(st);
+  g := utils.readByte(st);
+  b := utils.readByte(st);
+  FModel.SetColor(r, g, b);
   // Объект трупа
   Obj_LoadState(@FObj, st);
   FPlayerUID := utils.readWord(st);
-  // Есть ли анимация
+  // animation
+  stub := TAnimationState.Create(False, 0, 0);
   anim := utils.readBool(st);
-  // Если есть - загружаем
   if anim then
   begin
-    Assert(FAnimation <> nil, 'TCorpse.LoadState: no FAnimation');
-    FAnimation.LoadState(st);
-  end;
-  // Есть ли маска анимации
-  anim := utils.readBool(st);
-  // Если есть - загружаем
-  if anim then
+    stub.LoadState(st);
+    FModel.AnimState.CurrentFrame := Min(stub.CurrentFrame, FModel.AnimState.Length);
+  end
+  else
   begin
-    Assert(FAnimationMask <> nil, 'TCorpse.LoadState: no FAnimationMask');
-    FAnimationMask.LoadState(st);
+    FModel.Free;
+    FModel := nil
   end;
+  // animation for mask (same as animation, compat with older saves)
+  anim := utils.readBool(st);
+  if anim then stub.LoadState(st);
+  stub.Free;
 end;
 
 { T B o t : }

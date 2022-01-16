@@ -38,8 +38,6 @@ interface
   procedure r_Player_DrawPain (p: TPlayer);
   procedure r_Player_DrawPickup (p: TPlayer);
 
-  procedure r_Player_DrawCorpse (p: TCorpse);
-
 implementation
 
   uses
@@ -122,6 +120,16 @@ begin
       IntToStr(gPlayers[i].Armor), gStdFont);
     end;
 end;
+
+  procedure r_Player_DrawCorpse (p: TCorpse);
+    var fX, fY: Integer;
+  begin
+    if (p.State <> CORPSE_STATE_REMOVEME) and (p.Model <> nil) then
+    begin
+      p.Obj.lerp(gLerpFactor, fX, fY);
+      r_PlayerModel_Draw(p.Model, fX, fY)
+    end
+  end;
 
   procedure r_Player_DrawCorpses;
     var i: Integer;
@@ -783,28 +791,6 @@ begin
   else h := 5;
 
   e_DrawFillQuad(0, 0, gPlayerScreenSize.X-1, gPlayerScreenSize.Y-1, 150, 200, 150, 255-h*50);
-end;
-
-procedure r_Player_DrawCorpse (p: TCorpse);
-var
-  fX, fY: Integer;
-begin
-  if p.State = CORPSE_STATE_REMOVEME then
-    Exit;
-
-  p.Obj.lerp(gLerpFactor, fX, fY);
-
-  if p.Animation <> nil then
-    r_Animation_Draw(p.Animation, fX, fY, TMirrorType.None);
-
-  if p.AnimationMask <> nil then
-  begin
-    e_Colors := p.Color;
-    r_Animation_Draw(p.AnimationMask, fX, fY, TMirrorType.None);
-    e_Colors.R := 255;
-    e_Colors.G := 255;
-    e_Colors.B := 255;
-  end;
 end;
 
 end.

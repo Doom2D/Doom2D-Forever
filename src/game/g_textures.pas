@@ -73,6 +73,7 @@ type
     property counter: Byte read mCounter;
     property blending: Boolean read mBlending write mBlending;
     property alpha: Byte read mAlpha write mAlpha;
+    property length: Integer read mLength;
   end;
 
   TAnimation = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
