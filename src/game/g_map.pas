@@ -52,7 +52,6 @@ type
     State:       Byte;
     Count:       Integer;
     CaptureTime: LongWord;
-    Animation:   TAnimation;
     Direction:   TDirection;
     NeedSend:    Boolean;
   end;
@@ -1079,7 +1078,6 @@ end;
 procedure CreateArea(Area: TDynRecord);
 var
   a: Integer;
-  id: DWORD = 0;
 begin
   case Area.AreaType of
     AREA_DMPOINT, AREA_PLAYERPOINT1, AREA_PLAYERPOINT2,
@@ -1119,14 +1117,7 @@ begin
 
       with gFlags[a] do
       begin
-        case a of
-          FLAG_RED: g_Frames_Get(id, 'FRAMES_FLAG_RED');
-          FLAG_BLUE: g_Frames_Get(id, 'FRAMES_FLAG_BLUE');
-        end;
-
-        Animation := TAnimation.Create(id, True, 8);
         Obj.Rect := FLAGRECT;
-
         g_Map_ResetFlag(a);
       end;
     end;
@@ -2205,8 +2196,6 @@ begin
       begin
         with gFlags[a] do
         begin
-          if gFlags[a].Animation <> nil then gFlags[a].Animation.Update();
-
           Obj.oldX := Obj.X;
           Obj.oldY := Obj.Y;
 

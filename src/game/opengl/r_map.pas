@@ -19,7 +19,16 @@ interface
 
   uses g_panel, MAPDEF; // TPanel, TDFColor
 
+  procedure r_Map_Initialize;
+  procedure r_Map_Finalize;
+
+  procedure r_Map_Load;
+  procedure r_Map_Free;
+
   procedure r_Map_LoadTextures;
+  // TODO procedure r_Map_FreeTextures
+
+  procedure r_Map_Update;
 
   procedure r_Map_DrawBack (dx, dy: Integer);
   procedure r_Map_DrawPanels (PanelType: Word; hasAmbient: Boolean; constref ambColor: TDFColor); // unaccelerated
@@ -35,7 +44,7 @@ implementation
   uses
     {$INCLUDE ../nogl/noGLuses.inc}
     SysUtils, Classes, Math, e_log, wadreader, CONFIG, utils,
-    r_graphics, r_animations, r_textures,
+    r_graphics, r_animations, r_textures, g_textures,
     g_base, g_basic, g_game, g_options,
     g_map
   ;
@@ -46,6 +55,31 @@ implementation
       Width, Height: WORD;
       Anim: Boolean;
     end;
+    FlagFrames: array [FLAG_RED..FLAG_BLUE] of DWORD;
+    FlagAnim: TAnimationState;
+
+  procedure r_Map_Initialize;
+  begin
+    FlagAnim := TAnimationState.Create(True, 8, 5);
+  end;
+
+  procedure r_Map_Finalize;
+  begin
+    FlagAnim.Free;
+    FlagAnim := nil;
+  end;
+
+  procedure r_Map_Load;
+  begin
+    g_Frames_CreateWAD(@FlagFrames[FLAG_RED], 'FRAMES_FLAG_RED', GameWAD + ':TEXTURES\FLAGRED', 64, 64, 5, False);
+    g_Frames_CreateWAD(@FlagFrames[FLAG_BLUE], 'FRAMES_FLAG_BLUE', GameWAD + ':TEXTURES\FLAGBLUE', 64, 64, 5, False);
+  end;
+
+  procedure r_Map_Free;
+  begin
+    g_Frames_DeleteByName('FRAMES_FLAG_RED');
+    g_Frames_DeleteByName('FRAMES_FLAG_BLUE');
+  end;
 
   procedure r_Map_LoadTextures;
     const
@@ -218,47 +252,29 @@ begin
     e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
 end;
 
-procedure r_Map_DrawFlags();
-var
-  i, dx: Integer;
-  tx, ty: Integer;
-  Mirror: TMirrorType;
-begin
-  if gGameSettings.GameMode <> GM_CTF then
-    Exit;
-
-  for i := FLAG_RED to FLAG_BLUE do
-    with gFlags[i] do
-      if State <> FLAG_STATE_CAPTURED then
+  procedure r_Map_DrawFlags;
+    var i, dx, tx, ty: Integer; Mirror: TMirrorType; f: PFlag;
+  begin
+    if gGameSettings.GameMode = GM_CTF then
+    begin
+      for i := FLAG_RED to FLAG_BLUE do
       begin
-        if State = FLAG_STATE_NONE then
-          continue;
-
-        Obj.lerp(gLerpFactor, tx, ty);
-
-        if Direction = TDirection.D_LEFT then
-          begin
-            Mirror := TMirrorType.Horizontal;
-            dx := -1;
-          end
-        else
-          begin
-            Mirror := TMirrorType.None;
-            dx := 1;
-          end;
-
-        r_Animation_Draw(Animation, tx + dx, ty + 1, Mirror);
-
-        if g_debug_Frames then
+        f := @gFlags[i];
+        if not (f.State in [FLAG_STATE_NONE, FLAG_STATE_CAPTURED]) then
         begin
-          e_DrawQuad(Obj.X+Obj.Rect.X,
-                     Obj.Y+Obj.Rect.Y,
-                     Obj.X+Obj.Rect.X+Obj.Rect.Width-1,
-                     Obj.Y+Obj.Rect.Y+Obj.Rect.Height-1,
-                     0, 255, 0);
-        end;
-      end;
-end;
+          f.Obj.lerp(gLerpFactor, tx, ty);
+          if f.Direction = TDirection.D_LEFT then
+            Mirror :=  TMirrorType.Horizontal
+          else
+            Mirror := TMirrorType.None;
+          dx := IfThen(f.Direction = TDirection.D_LEFT, -1, +1);
+          r_AnimationState_Draw(FlagFrames[i], FlagAnim, tx + dx, ty + 1, Mirror);
+          if g_debug_Frames then
+            e_DrawQuad(tx + f.Obj.Rect.X, ty + f.Obj.Rect.Y, tx + f.Obj.Rect.X + f.Obj.Rect.Width - 1, ty + f.Obj.Rect.Y + f.Obj.Rect.Height - 1, 0, 255, 0)
+        end
+      end
+    end
+  end;
 
   procedure Panel_Lerp (p: TPanel; t: Single; out tX, tY, tW, tH: Integer);
   begin
@@ -382,6 +398,11 @@ end;
         drawLine(tx,      ty + th, tx,      ty); // left
       glEnd;
     end
+  end;
+
+  procedure r_Map_Update;
+  begin
+    FlagAnim.Update
   end;
 
 end.
