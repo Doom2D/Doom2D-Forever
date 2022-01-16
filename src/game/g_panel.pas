@@ -23,16 +23,16 @@ uses
   MAPDEF, g_textures, xdynrec;
 
 type
-  TAddTextureArray = Array of
-    record
-      Texture: Cardinal;
-      Anim: Boolean;
-    end;
+  TAddTextureArray = array of record
+    Texture: Cardinal; // Textures[Texture]
+    Anim: Boolean;
+  end;
 
   ATextureID = array of record
+    Texture: Cardinal; // Textures[Texture]
     case Anim: Boolean of
-      False: (Tex: Cardinal);
-      True:  (AnTex: TAnimation);
+      False: ();
+      True:  (AnTex: TAnimationState);
   end;
 
   PPanel = ^TPanel;
@@ -319,6 +319,8 @@ begin
     SetLength(FTextureIDs, 1);
     FTextureIDs[0].Anim := False;
 
+{
+    // !!! set this
     case PanelRec.PanelType of
       PANEL_WATER:
         FTextureIDs[0].Tex := LongWord(TEXTURE_SPECIAL_WATER);
@@ -327,6 +329,7 @@ begin
       PANEL_ACID2:
         FTextureIDs[0].Tex := LongWord(TEXTURE_SPECIAL_ACID2);
     end;
+}
 
     FCurTexture := 0;
     Exit;
@@ -344,19 +347,14 @@ begin
 
   for i := 0 to Length(FTextureIDs)-1 do
   begin
+    FTextureIDs[i].Texture := AddTextures[i].Texture;
     FTextureIDs[i].Anim := AddTextures[i].Anim;
     if FTextureIDs[i].Anim then
-      begin // Анимированная текстура
-        FTextureIDs[i].AnTex :=
-           TAnimation.Create(Textures[AddTextures[i].Texture].FramesID,
-                             True, Textures[AddTextures[i].Texture].Speed);
-        FTextureIDs[i].AnTex.Blending := ByteBool(PanelRec.Flags and PANEL_FLAG_BLENDING);
-        FTextureIDs[i].AnTex.Alpha := PanelRec.Alpha;
-      end
-    else
-      begin // Обычная текстура
-        FTextureIDs[i].Tex := Textures[AddTextures[i].Texture].TextureID;
-      end;
+    begin // Анимированная текстура
+      FTextureIDs[i].AnTex := TAnimationState.Create(True, Textures[AddTextures[i].Texture].Speed, Textures[AddTextures[i].Texture].FramesCount);
+      FTextureIDs[i].AnTex.Blending := ByteBool(PanelRec.Flags and PANEL_FLAG_BLENDING);
+      FTextureIDs[i].AnTex.Alpha := PanelRec.Alpha;
+    end
   end;
 
 // Текстур несколько - нужно сохранять текущую:
@@ -952,14 +950,20 @@ end;
 function TPanel.GetTextureID(): DWORD;
 begin
   Result := LongWord(TEXTURE_NONE);
-
   if (FCurTexture >= 0) then
   begin
+    if FTextureIDs[FCurTexture].Anim then
+      Result := Textures[FTextureIDs[FCurTexture].Texture].FramesID
+    else
+      Result := Textures[FTextureIDs[FCurTexture].Texture].TextureID
+{
+    // !!! old behavior
     if FTextureIDs[FCurTexture].Anim then
       Result := FTextureIDs[FCurTexture].AnTex.FramesID
     else
       Result := FTextureIDs[FCurTexture].Tex;
-  end;
+}
+  end
 end;
 
 function TPanel.GetTextureCount(): Integer;

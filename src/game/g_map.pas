@@ -243,6 +243,8 @@ type
 var
   mapGrid: TPanelGrid = nil; // DO NOT USE! public for debugging only!
 
+var (* private state *)
+  Textures: TLevelTextureArray = nil;
 
 implementation
 
@@ -524,7 +526,6 @@ begin
 end;
 
 var
-  Textures: TLevelTextureArray = nil;
   TextNameHash: THashStrInt = nil; // key: texture name; value: index in `Textures`
   BadTextNameHash: THashStrInt = nil; // set; so we won't spam with non-existing texture messages
   RespawnPoints: array of TRespawnPoint;

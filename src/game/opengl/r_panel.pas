@@ -28,7 +28,7 @@ implementation
     {$INCLUDE ../nogl/noGLuses.inc}
     SysUtils, Classes, Math, utils,
     r_graphics, g_options, r_animations, r_textures,
-    g_base, g_basic, g_game
+    g_base, g_basic, g_map, g_game
   ;
 
   procedure Panel_Lerp (p: TPanel; t: Single; out tX, tY, tW, tH: Integer);
@@ -52,59 +52,59 @@ implementation
   // TODO: remove WITH operator
 
   procedure r_Panel_Draw (constref p: TPanel; hasAmbient: Boolean; constref ambColor: TDFColor);
-    var tx, ty, tw, th, xx, yy: Integer; NoTextureID: DWORD; NW, NH: Word;
+    var tx, ty, tw, th, xx, yy: Integer; NoTextureID, TextureID, FramesID: DWORD; NW, NH: Word; Texture: Cardinal; IsAnim: Boolean;
   begin
-    with p do
+    if {p.Enabled and} (p.FCurTexture >= 0) and (p.Width > 0) and (p.Height > 0) and (p.Alpha < 255) {and g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
     begin
-      if {Enabled and} (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (Alpha < 255) {and g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
+      Panel_Lerp(p, gLerpFactor, tx, ty, tw, th);
+      Texture := p.TextureIDs[p.FCurTexture].Texture;
+      IsAnim := p.TextureIDs[p.FCurTexture].Anim;
+      if IsAnim then
       begin
-        Panel_Lerp(p, gLerpFactor, tx, ty, tw, th);
-        if TextureIDs[FCurTexture].Anim then
+        if p.TextureIDs[p.FCurTexture].AnTex <> nil then
         begin
-          if TextureIDs[FCurTexture].AnTex = nil then
-            Exit;
-          for xx := 0 to tw div TextureWidth - 1 do
-            for yy := 0 to th div TextureHeight - 1 do
-              r_Animation_Draw(TextureIDs[FCurTexture].AnTex, tx + xx * TextureWidth, ty + yy * TextureHeight, TMirrorType.None);
+          FramesID := Textures[Texture].FramesID;
+          for xx := 0 to tw div p.TextureWidth - 1 do
+            for yy := 0 to th div p.TextureHeight - 1 do
+              r_AnimationState_Draw(FramesID, p.TextureIDs[p.FCurTexture].AnTex, tx + xx * p.TextureWidth, ty + yy * p.TextureHeight, TMirrorType.None);
         end
-        else
-        begin
-          case TextureIDs[FCurTexture].Tex of
-            LongWord(TEXTURE_SPECIAL_WATER): e_DrawFillQuad(tx, ty, tx + tw - 1, ty + th - 1, 0, 0, 255, 0, TBlending.Filter);
-            LongWord(TEXTURE_SPECIAL_ACID1): e_DrawFillQuad(tx, ty, tx + tw - 1, ty + th - 1, 0, 230, 0, 0, TBlending.Filter);
-            LongWord(TEXTURE_SPECIAL_ACID2): e_DrawFillQuad(tx, ty, tx + tw - 1, ty + th - 1, 230, 0, 0, 0, TBlending.Filter);
-            LongWord(TEXTURE_NONE):
-              if g_Texture_Get('NOTEXTURE', NoTextureID) then
-              begin
-                e_GetTextureSize(NoTextureID, @NW, @NH);
-                e_DrawFill(NoTextureID, tx, ty, tw div NW, th div NH, 0, False, False);
-              end
-              else
-              begin
-                xx := tx + (tw div 2);
-                yy := ty + (th div 2);
-                e_DrawFillQuad(tx, ty, xx, yy, 255, 0, 255, 0);
-                e_DrawFillQuad(xx, ty, tx + tw - 1, yy, 255, 255, 0, 0);
-                e_DrawFillQuad(X, yy, xx, ty + th - 1, 255, 255, 0, 0);
-                e_DrawFillQuad(xx, yy, tx + tw - 1, ty + th - 1, 255, 0, 255, 0);
-              end;
+      end
+      else
+      begin
+        TextureID := Textures[Texture].TextureID; // GL texture
+        case TextureID of
+          LongWord(TEXTURE_SPECIAL_WATER): e_DrawFillQuad(tx, ty, tx + tw - 1, ty + th - 1, 0, 0, 255, 0, TBlending.Filter);
+          LongWord(TEXTURE_SPECIAL_ACID1): e_DrawFillQuad(tx, ty, tx + tw - 1, ty + th - 1, 0, 230, 0, 0, TBlending.Filter);
+          LongWord(TEXTURE_SPECIAL_ACID2): e_DrawFillQuad(tx, ty, tx + tw - 1, ty + th - 1, 230, 0, 0, 0, TBlending.Filter);
+          LongWord(TEXTURE_NONE):
+            if g_Texture_Get('NOTEXTURE', NoTextureID) then
+            begin
+              e_GetTextureSize(NoTextureID, @NW, @NH);
+              e_DrawFill(NoTextureID, tx, ty, tw div NW, th div NH, 0, False, False);
+            end
             else
             begin
-              if not movingActive then
-                e_DrawFill(TextureIDs[FCurTexture].Tex, tx, ty, tw div TextureWidth, th div TextureHeight, Alpha, True, Blending, hasAmbient)
-              else
-                e_DrawFillX(TextureIDs[FCurTexture].Tex, tx, ty, tw, th, Alpha, True, Blending, g_dbg_scale, hasAmbient);
-              if hasAmbient then
-                e_AmbientQuad(tx, ty, tw, th, ambColor.r, ambColor.g, ambColor.b, ambColor.a);
-            end
-          end
+              xx := tx + (tw div 2);
+              yy := ty + (th div 2);
+              e_DrawFillQuad(tx, ty, xx, yy, 255, 0, 255, 0);
+              e_DrawFillQuad(xx, ty, tx + tw - 1, yy, 255, 255, 0, 0);
+              e_DrawFillQuad(tx, yy, xx, ty + th - 1, 255, 255, 0, 0);
+              e_DrawFillQuad(xx, yy, tx + tw - 1, ty + th - 1, 255, 0, 255, 0);
+            end;
+        else
+          if not p.movingActive then
+            e_DrawFill(TextureID, tx, ty, tw div p.TextureWidth, th div p.TextureHeight, p.Alpha, True, p.Blending, hasAmbient)
+          else
+            e_DrawFillX(TextureID, tx, ty, tw, th, p.Alpha, True, p.Blending, g_dbg_scale, hasAmbient);
+          if hasAmbient then
+            e_AmbientQuad(tx, ty, tw, th, ambColor.r, ambColor.g, ambColor.b, ambColor.a);
         end
       end
     end
   end;
 
   procedure r_Panel_DrawShadowVolume (constref p: TPanel; lightX, lightY: Integer; radius: Integer);
-    var tx, ty, tw, th: Integer;
+    var tx, ty, tw, th: Integer; Texture: Cardinal;
 
     procedure extrude (x: Integer; y: Integer);
     begin
@@ -125,33 +125,31 @@ implementation
     end;
 
   begin
-    with p do
+    if radius < 4 then exit;
+    if p.Enabled and (p.FCurTexture >= 0) and (p.Width > 0) and (p.Height > 0) and (p.Alpha < 255) {and g_Collide(X, Y, tw, th, sX, sY, sWidth, sHeight)} then
     begin
-      if radius < 4 then exit;
-      if Enabled and (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (Alpha < 255) {and g_Collide(X, Y, tw, th, sX, sY, sWidth, sHeight)} then
+      Panel_Lerp(p, gLerpFactor, tx, ty, tw, th);
+      if not p.TextureIDs[p.FCurTexture].Anim then
       begin
-        Panel_Lerp(p, gLerpFactor, tx, ty, tw, th);
-        if not TextureIDs[FCurTexture].Anim then
-        begin
-          case TextureIDs[FCurTexture].Tex of
-            LongWord(TEXTURE_SPECIAL_WATER): exit;
-            LongWord(TEXTURE_SPECIAL_ACID1): exit;
-            LongWord(TEXTURE_SPECIAL_ACID2): exit;
-            LongWord(TEXTURE_NONE): exit;
-          end;
+        Texture := p.TextureIDs[p.FCurTexture].Texture;
+        case Textures[Texture].TextureID of
+          LongWord(TEXTURE_SPECIAL_WATER): exit;
+          LongWord(TEXTURE_SPECIAL_ACID1): exit;
+          LongWord(TEXTURE_SPECIAL_ACID2): exit;
+          LongWord(TEXTURE_NONE): exit;
         end;
-        if (tx + tw < lightX - radius) then exit;
-        if (ty + th < lightY - radius) then exit;
-        if (tx > lightX + radius) then exit;
-        if (ty > lightY + radius) then exit;
-        //e_DrawFill(TextureIDs[FCurTexture].Tex, X, Y, tw div TextureWidth, th div TextureHeight, Alpha, True, Blending);
-        glBegin(GL_QUADS);
-          drawLine(tx,      ty,      tx + tw, ty); // top
-          drawLine(tx + tw, ty,      tx + tw, ty + th); // right
-          drawLine(tx + tw, ty + th, tx,      ty + th); // bottom
-          drawLine(tx,      ty + th, tx,      ty); // left
-        glEnd;
-      end
+      end;
+      if (tx + tw < lightX - radius) then exit;
+      if (ty + th < lightY - radius) then exit;
+      if (tx > lightX + radius) then exit;
+      if (ty > lightY + radius) then exit;
+      //e_DrawFill(TextureIDs[FCurTexture].Tex, X, Y, tw div TextureWidth, th div TextureHeight, Alpha, True, Blending);
+      glBegin(GL_QUADS);
+        drawLine(tx,      ty,      tx + tw, ty); // top
+        drawLine(tx + tw, ty,      tx + tw, ty + th); // right
+        drawLine(tx + tw, ty + th, tx,      ty + th); // bottom
+        drawLine(tx,      ty + th, tx,      ty); // left
+      glEnd;
     end
   end;
 
