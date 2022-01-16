@@ -108,9 +108,6 @@ type
     FColor:            TRGB;
     FCurrentAnimation: Byte;
     FAnimState:        TAnimationState;
-    FPainSounds:       TModelSoundArray;
-    FDieSounds:        TModelSoundArray;
-    FSlopSound:        Byte;
     FCurrentWeapon:    Byte;
     FFlag:             Byte;
     FFire:             Boolean;
@@ -648,9 +645,6 @@ begin
 
       with PlayerModelsArray[a] do
       begin
-        Result.FPainSounds := PainSounds;
-        Result.FDieSounds := DieSounds;
-        Result.FSlopSound := SlopSound;
         Result.FID := a;
         Result.ChangeAnimation(A_STAND, True);
         Break;
@@ -832,33 +826,33 @@ begin
 
   if SoundType = MODELSOUND_PAIN then
   begin
-    if FPainSounds = nil then Exit;
+    if PlayerModelsArray[FID].PainSounds = nil then Exit;
 
-    for a := 0 to High(FPainSounds) do
-      if FPainSounds[a].Level = Level then
+    for a := 0 to High(PlayerModelsArray[FID].PainSounds) do
+      if PlayerModelsArray[FID].PainSounds[a].Level = Level then
       begin
-        SetLength(TempArray, Length(TempArray)+1);
-        TempArray[High(TempArray)] := FPainSounds[a].ID;
+        SetLength(TempArray, Length(TempArray) + 1);
+        TempArray[High(TempArray)] := PlayerModelsArray[FID].PainSounds[a].ID;
       end;
   end
   else
   begin
-    if (Level in [2, 3, 5]) and (FSlopSound > 0) then
+    if (Level in [2, 3, 5]) and (PlayerModelsArray[FID].SlopSound > 0) then
     begin
       g_Sound_PlayExAt('SOUND_MONSTER_SLOP', X, Y);
-      if FSlopSound = 1 then
+      if PlayerModelsArray[FID].SlopSound = 1 then
       begin
         Result := True;
         Exit;
       end;
     end;
-    if FDieSounds = nil then Exit;
+    if PlayerModelsArray[FID].DieSounds = nil then Exit;
 
-    for a := 0 to High(FDieSounds) do
-      if FDieSounds[a].Level = Level then
+    for a := 0 to High(PlayerModelsArray[FID].DieSounds) do
+      if PlayerModelsArray[FID].DieSounds[a].Level = Level then
       begin
-        SetLength(TempArray, Length(TempArray)+1);
-        TempArray[High(TempArray)] := FDieSounds[a].ID;
+        SetLength(TempArray, Length(TempArray) + 1);
+        TempArray[High(TempArray)] := PlayerModelsArray[FID].DieSounds[a].ID;
       end;
     if (TempArray = nil) and (Level = 5) then
     begin
