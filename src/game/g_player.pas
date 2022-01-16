@@ -194,7 +194,7 @@ type
     FSavedStateNum:   Integer;
 
     FModel:     TPlayerModel;
-    FPunchAnim: TAnimation;
+    FPunchAnim: TAnimationState;
     FActionPrior:    Byte;
     FActionAnim:     Byte;
     FActionForce:    Boolean;
@@ -422,7 +422,7 @@ type
     property    Berserk: Integer read FBerserk;
     property    Pain: Integer read FPain;
     property    Pickup: Integer read FPickup;
-    property    PunchAnim: TAnimation read FPunchAnim write FPunchAnim;
+    property    PunchAnim: TAnimationState read FPunchAnim write FPunchAnim;
     property    SpawnInvul: Integer read FSpawnInvul;
     property    Ghost: Boolean read FGhost;
 
@@ -2145,6 +2145,8 @@ begin
   FNetTime := 0;
 
   FWaitForFirstSpawn := false;
+  FPunchAnim := TAnimationState.Create(False, 1, 4);
+  FPunchAnim.Disable;
 
   resetWeaponQueue();
 end;
@@ -2296,31 +2298,15 @@ begin
   FJetSoundOn.Free();
   FJetSoundOff.Free();
   FModel.Free();
-  if FPunchAnim <> nil then
-    FPunchAnim.Free();
+  FPunchAnim.Free();
 
   inherited;
 end;
 
 procedure TPlayer.DoPunch();
-var
-  id: DWORD;
-  st: String;
 begin
-  if FPunchAnim <> nil then begin
-    FPunchAnim.reset();
-    FPunchAnim.Free;
-    FPunchAnim := nil;
-  end;
-  st := 'FRAMES_PUNCH';
-  if R_BERSERK in FRulez then
-    st := st + '_BERSERK';
-  if FKeys[KEY_UP].Pressed then
-    st := st + '_UP'
-  else if FKeys[KEY_DOWN].Pressed then
-    st := st + '_DN';
-  g_Frames_Get(id, st);
-  FPunchAnim := TAnimation.Create(id, False, 1);
+  FPunchAnim.Reset;
+  FPunchAnim.Enable;
 end;
 
 procedure TPlayer.Fire();
@@ -4374,8 +4360,10 @@ begin
       FLoss := 0;
     end;
 
-  if FAlive and (FPunchAnim <> nil) then
-    FPunchAnim.Update();
+  if FAlive then
+    FPunchAnim.Update;
+  if FPunchAnim.played then
+    FPunchAnim.Disable;
 
   if FAlive and (gFly or FJetpack) then
     FlySmoke();

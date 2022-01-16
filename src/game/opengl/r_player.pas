@@ -19,6 +19,9 @@ interface
 
   uses g_player, g_base; // TPlayer, TRGB
 
+  procedure r_Player_Load;
+  procedure r_Player_Free;
+
   procedure r_Player_DrawAll;
   procedure r_Player_DrawDebug (p: TPlayer);
   procedure r_Player_DrawHealth;
@@ -48,6 +51,29 @@ implementation
 {$ENDIF}
     r_playermodel, r_graphics, r_animations, r_textures, r_items
   ;
+
+  var
+    PunchFrames: array [Boolean, 0..2] of DWORD;
+
+  procedure r_Player_Load;
+  begin
+    g_Frames_CreateWAD(@PunchFrames[False, 0], 'FRAMES_PUNCH', GameWAD + ':WEAPONS\PUNCH', 64, 64, 4, False);
+    g_Frames_CreateWAD(@PunchFrames[False, 1], 'FRAMES_PUNCH_UP', GameWAD + ':WEAPONS\PUNCH_UP', 64, 64, 4, False);
+    g_Frames_CreateWAD(@PunchFrames[False, 2], 'FRAMES_PUNCH_DN', GameWAD + ':WEAPONS\PUNCH_DN', 64, 64, 4, False);
+    g_Frames_CreateWAD(@PunchFrames[True, 0], 'FRAMES_PUNCH_BERSERK', GameWAD + ':WEAPONS\PUNCHB', 64, 64, 4, False);
+    g_Frames_CreateWAD(@PunchFrames[True, 1], 'FRAMES_PUNCH_BERSERK_UP', GameWAD + ':WEAPONS\PUNCHB_UP', 64, 64, 4, False);
+    g_Frames_CreateWAD(@PunchFrames[True, 2], 'FRAMES_PUNCH_BERSERK_DN', GameWAD + ':WEAPONS\PUNCHB_DN', 64, 64, 4, False);
+  end;
+
+  procedure r_Player_Free;
+  begin
+    g_Frames_DeleteByName('FRAMES_PUNCH');
+    g_Frames_DeleteByName('FRAMES_PUNCH_UP');
+    g_Frames_DeleteByName('FRAMES_PUNCH_DN');
+    g_Frames_DeleteByName('FRAMES_PUNCH_BERSERK');
+    g_Frames_DeleteByName('FRAMES_PUNCH_BERSERK_UP');
+    g_Frames_DeleteByName('FRAMES_PUNCH_BERSERK_DN');
+  end;
 
   procedure r_Player_DrawAll;
     var i: Integer;
@@ -305,14 +331,12 @@ begin
     else
       Mirror := TMirrorType.Horizontal;
 
-    if p.PunchAnim <> nil then
+    if p.PunchAnim.enabled then
     begin
-      r_Animation_Draw(p.PunchAnim, fX + IfThen(p.Direction = TDirection.D_LEFT, 15 - p.Obj.Rect.X, p.Obj.Rect.X - 15), fY + fSlope + p.Obj.Rect.Y - 11, Mirror);
-      if p.PunchAnim.played then
-      begin
-        p.PunchAnim.Free;
-        p.PunchAnim := nil;
-      end;
+      if p.FKeys[KEY_DOWN].Pressed then ID := PunchFrames[R_BERSERK in p.FRulez, 2]
+      else if p.FKeys[KEY_UP].Pressed then ID := PunchFrames[R_BERSERK in p.FRulez, 1]
+      else ID := PunchFrames[R_BERSERK in p.FRulez, 0];
+      r_AnimationState_Draw(ID, p.PunchAnim, fX + IfThen(p.Direction = TDirection.D_LEFT, 15 - p.Obj.Rect.X, p.Obj.Rect.X - 15), fY + fSlope + p.Obj.Rect.Y - 11, Mirror);
     end;
 
     if (p.FMegaRulez[MR_INVUL] > gTime) and ((gPlayerDrawn <> p) or (p.SpawnInvul >= gTime)) then

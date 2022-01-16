@@ -2516,12 +2516,6 @@ begin
     end;
   end;
 
-  g_Frames_CreateWAD(nil, 'FRAMES_PUNCH', GameWAD+':WEAPONS\PUNCH', 64, 64, 4, False);
-  g_Frames_CreateWAD(nil, 'FRAMES_PUNCH_UP', GameWAD+':WEAPONS\PUNCH_UP', 64, 64, 4, False);
-  g_Frames_CreateWAD(nil, 'FRAMES_PUNCH_DN', GameWAD+':WEAPONS\PUNCH_DN', 64, 64, 4, False);
-  g_Frames_CreateWAD(nil, 'FRAMES_PUNCH_BERSERK', GameWAD+':WEAPONS\PUNCHB', 64, 64, 4, False);
-  g_Frames_CreateWAD(nil, 'FRAMES_PUNCH_BERSERK_UP', GameWAD+':WEAPONS\PUNCHB_UP', 64, 64, 4, False);
-  g_Frames_CreateWAD(nil, 'FRAMES_PUNCH_BERSERK_DN', GameWAD+':WEAPONS\PUNCHB_DN', 64, 64, 4, False);
   g_Sound_CreateWADEx('SOUND_GAME_TELEPORT', GameWAD+':SOUNDS\TELEPORT');
   g_Sound_CreateWADEx('SOUND_GAME_NOTELEPORT', GameWAD+':SOUNDS\NOTELEPORT');
   g_Sound_CreateWADEx('SOUND_GAME_SECRET', GameWAD+':SOUNDS\SECRET');
@@ -2658,12 +2652,6 @@ begin
   g_Texture_Delete('TEXTURE_PLAYER_BLUEFLAG_D');
   g_Texture_Delete('TEXTURE_PLAYER_TALKBUBBLE');
   g_Texture_Delete('TEXTURE_PLAYER_INVULPENTA');
-  g_Frames_DeleteByName('FRAMES_PUNCH');
-  g_Frames_DeleteByName('FRAMES_PUNCH_UP');
-  g_Frames_DeleteByName('FRAMES_PUNCH_DN');
-  g_Frames_DeleteByName('FRAMES_PUNCH_BERSERK');
-  g_Frames_DeleteByName('FRAMES_PUNCH_BERSERK_UP');
-  g_Frames_DeleteByName('FRAMES_PUNCH_BERSERK_DN');
   g_Sound_Delete('SOUND_GAME_TELEPORT');
   g_Sound_Delete('SOUND_GAME_NOTELEPORT');
   g_Sound_Delete('SOUND_GAME_SECRET');
