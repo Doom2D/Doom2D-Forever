@@ -231,6 +231,23 @@ const
 
 { T P a n e l : }
 
+  function FindTextureByName (const name: String): Integer;
+    var i: Integer;
+  begin
+    Result := -1;
+    if Textures <> nil then
+    begin
+      for i := 0 to High(Textures) do
+      begin
+        if Textures[i].TextureName = name then
+        begin
+          Result := i;
+          break;
+        end
+      end
+    end
+  end;
+
 constructor TPanel.Create(PanelRec: TDynRecord;
                           AddTextures: TAddTextureArray;
                           CurTex: Integer;
@@ -313,19 +330,11 @@ begin
   begin
     SetLength(FTextureIDs, 1);
     FTextureIDs[0].Anim := False;
-
-{
-    // !!! set this
     case PanelRec.PanelType of
-      PANEL_WATER:
-        FTextureIDs[0].Tex := LongWord(TEXTURE_SPECIAL_WATER);
-      PANEL_ACID1:
-        FTextureIDs[0].Tex := LongWord(TEXTURE_SPECIAL_ACID1);
-      PANEL_ACID2:
-        FTextureIDs[0].Tex := LongWord(TEXTURE_SPECIAL_ACID2);
+      PANEL_WATER: FTextureIDs[0].Texture := FindTextureByName(TEXTURE_NAME_WATER);
+      PANEL_ACID1: FTextureIDs[0].Texture := FindTextureByName(TEXTURE_NAME_ACID1);
+      PANEL_ACID2: FTextureIDs[0].Texture := FindTextureByName(TEXTURE_NAME_ACID2);
     end;
-}
-
     FCurTexture := 0;
     Exit;
   end;
@@ -938,24 +947,20 @@ begin
   LastAnimLoop := AnimLoop;
 end;
 
-function TPanel.GetTextureID(): DWORD;
-begin
-  Result := LongWord(TEXTURE_NONE);
-//  if (FCurTexture >= 0) then
-//  begin
-//    if FTextureIDs[FCurTexture].Anim then
-//      Result := Textures[FTextureIDs[FCurTexture].Texture].FramesID
-//    else
-//      Result := Textures[FTextureIDs[FCurTexture].Texture].TextureID
-{
-    // !!! old behavior
-    if FTextureIDs[FCurTexture].Anim then
-      Result := FTextureIDs[FCurTexture].AnTex.FramesID
-    else
-      Result := FTextureIDs[FCurTexture].Tex;
-}
-//  end
-end;
+  function TPanel.GetTextureID(): DWORD;
+    var Texture: Integer;
+  begin
+    Result := LongWord(TEXTURE_NONE);
+    if (FCurTexture >= 0) then
+    begin
+      Texture := FTextureIDs[FCurTexture].Texture;
+      case Textures[Texture].TextureName of
+        TEXTURE_NAME_WATER: Result := DWORD(TEXTURE_SPECIAL_WATER);
+        TEXTURE_NAME_ACID1: Result := DWORD(TEXTURE_SPECIAL_ACID1);
+        TEXTURE_NAME_ACID2: Result := DWORD(TEXTURE_SPECIAL_ACID2);
+      end
+    end
+  end;
 
 function TPanel.GetTextureCount(): Integer;
 begin
