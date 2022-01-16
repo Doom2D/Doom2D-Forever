@@ -242,7 +242,7 @@ begin
       else
         pos := W_POS_NORMAL;
 
-    if (pm.CurrentAnimation in [A_ATTACK, A_ATTACKUP, A_ATTACKDOWN]) or pm.Fire then
+    if (pm.CurrentAnimation in [A_ATTACK, A_ATTACKUP, A_ATTACKDOWN]) or pm.GetFire() then
       act := W_ACT_FIRE
     else
       act := W_ACT_NORMAL;

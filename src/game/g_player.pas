@@ -4752,7 +4752,7 @@ begin
   if (FModel.AnimState.Played or ((not FActionChanged) and (FModel.Animation = A_WALK)))
   then SetAction(A_STAND, True);
 
-  if not ((FModel.Animation = A_WALK) and (Abs(FObj.Vel.X) < 4) and not FModel.Fire) then FModel.Update;
+  if not ((FModel.Animation = A_WALK) and (Abs(FObj.Vel.X) < 4) and not FModel.GetFire()) then FModel.Update;
 
   for b := Low(FKeys) to High(FKeys) do
     if FKeys[b].Time = 0 then FKeys[b].Pressed := False else Dec(FKeys[b].Time);

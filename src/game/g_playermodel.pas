@@ -110,7 +110,6 @@ type
     FAnimState:        TAnimationState;
     FCurrentWeapon:    Byte;
     FFlag:             Byte;
-    FFire:             Boolean;
     FFireCounter:      Byte;
     FID:               Integer;
 
@@ -120,7 +119,8 @@ type
     procedure   SetColor(Red, Green, Blue: Byte);
     procedure   SetWeapon(Weapon: Byte);
     procedure   SetFlag(Flag: Byte);
-    procedure   SetFire(Fire: Boolean);
+    procedure   SetFire (Fire: Boolean);
+    function    GetFire (): Boolean;
     function    PlaySound(SoundType, Level: Byte; X, Y: Integer): Boolean;
     procedure   Update();
 
@@ -128,7 +128,6 @@ type
     function GetName (): String;
 
   published
-    property    Fire: Boolean read FFire;
     property    Direction: TDirection read FDirection write FDirection;
     property    Animation: Byte read FCurrentAnimation;
     property    Weapon: Byte read FCurrentWeapon;
@@ -876,14 +875,18 @@ begin
   FColor.B := Blue;
 end;
 
-procedure TPlayerModel.SetFire(Fire: Boolean);
-begin
-  FFire := Fire;
-  if FFire then
-    FFireCounter := PlayerModelsArray[FID].ModelSpeed[A_ATTACK] * PlayerModelsArray[FID].Anim[TDirection.D_RIGHT, A_ATTACK].Frames
-  else
-    FFireCounter := 0
-end;
+  procedure TPlayerModel.SetFire (Fire: Boolean);
+  begin
+    if Fire then
+      FFireCounter := PlayerModelsArray[FID].ModelSpeed[A_ATTACK] * PlayerModelsArray[FID].Anim[TDirection.D_RIGHT, A_ATTACK].Frames
+    else
+      FFireCounter := 0
+  end;
+
+  function TPlayerModel.GetFire (): Boolean;
+  begin
+    Result := FFireCounter > 0
+  end;
 
   procedure TPlayerModel.SetFlag (Flag: Byte);
   begin
@@ -911,8 +914,6 @@ end;
       FAnimState.Update;
     if FFireCounter > 0 then
       Dec(FFireCounter)
-    else
-      FFire := False
   end;
 
   procedure g_PlayerModel_LoadAll;
