@@ -85,15 +85,9 @@ type
     Level: Byte;
   end;
 
-  TGibSprite = record
-    ID: DWORD;
-    MaskID: DWORD;
-    Rect: TRectWH;
-    OnlyOne: Boolean;
-  end;
-
   TModelSoundArray = Array of TModelSound;
-  TGibsArray = Array of TGibSprite;
+
+  TGibsArray = Array of Integer;
 
   TPlayerModel = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
@@ -141,9 +135,8 @@ function  g_PlayerModel_GetNames(): SSArray;
 function  g_PlayerModel_GetBlood(ModelName: String): TModelBlood;
 function  g_PlayerModel_Get(ModelName: String): TPlayerModel;
 function  g_PlayerModel_GetAnim(ModelName: String; AnimTyp: Byte; var _Anim, _Mask: TAnimation): Boolean;
-function  g_PlayerModel_GetGibs(ModelName: String; var Gibs: TGibsArray): Boolean;
-
-function g_PlayerModel_GetIndex (ModelName: String): Integer;
+function  g_PlayerModel_GetGibs (ModelID: Integer; var Gibs: TGibsArray): Boolean;
+function  g_PlayerModel_GetIndex (ModelName: String): Integer;
 
 (* --- private data --- *)
 
@@ -157,7 +150,6 @@ function g_PlayerModel_GetIndex (ModelName: String): Integer;
       FlagPoint:    TDFPoint;
       FlagAngle:    SmallInt;
       WeaponPoints: TWeaponPoints;
-      Gibs:         TGibsArray; // !!! move to render
       PainSounds:   TModelSoundArray;
       DieSounds:    TModelSoundArray;
       SlopSound:    Byte;
@@ -368,10 +360,10 @@ end;
 function g_PlayerModel_Load(FileName: string): Boolean;
 var
   ID: DWORD;
-  a, b, len, lenpd, lenpd2, aa, bb, f: Integer;
+  a, b, len, aa, bb, f: Integer;
   cc: TDirection;
   config: TConfig;
-  pData, pData2: Pointer;
+  pData: Pointer;
   WAD: TWADFile;
   s: string;
   prefix: string;
@@ -507,26 +499,6 @@ begin
     GibsResource := config.ReadStr('Gibs', 'resource', 'GIBS');
     GibsMask := config.ReadStr('Gibs', 'mask', 'GIBSMASK');
     GibsOnce := config.ReadInt('Gibs', 'once', -1);
-
-    SetLength(Gibs, GibsCount); // !!! remove load
-    if (Gibs <> nil) and
-       (WAD.GetResource('TEXTURES/' + GibsResource, pData, lenpd)) and
-       (WAD.GetResource('TEXTURES/' + GibsMask, pData2, lenpd2)) then
-    begin
-      for a := 0 to High(Gibs) do
-        if e_CreateTextureMemEx(pData, lenpd, Gibs[a].ID, a*32, 0, 32, 32) and
-          e_CreateTextureMemEx(pData2, lenpd2, Gibs[a].MaskID, a*32, 0, 32, 32) then
-        begin
-          //Gibs[a].Rect := e_GetTextureSize2(Gibs[a].ID);
-          Gibs[a].Rect := g_PlayerModel_CalcGibSize(pData, lenpd, a*32, 0, 32, 32);
-          with Gibs[a].Rect do
-            if Height > 3 then Height := Height-1-Random(2);
-          Gibs[a].OnlyOne := GibsOnce = a + 1;
-        end;
-
-      FreeMem(pData);
-      FreeMem(pData2);
-    end;
 
     ok := True;
     for aa := WP_FIRST + 1 to WP_LAST do
@@ -693,44 +665,34 @@ begin
   Result := True;
 end;
 
-function g_PlayerModel_GetGibs(ModelName: string; var Gibs: TGibsArray): Boolean;
-var
-  a, i, b: Integer;
-  c: Boolean;
-begin
-  Result := False;
+  function g_PlayerModel_GetGibs (ModelID: Integer; var Gibs: TGibsArray): Boolean;
+    var i, b: Integer; c: Boolean;
+  begin
+    Gibs := nil;
+    Result := False;
+    if (PlayerModelsArray = nil) or (gGibsCount = 0) then
+      Exit;
 
-  if PlayerModelsArray = nil then Exit;
-  if gGibsCount = 0 then Exit;
-
-  c := False;
-
-  SetLength(Gibs, gGibsCount);
-
-  for a := 0 to High(PlayerModelsArray) do
-    if PlayerModelsArray[a].Name = ModelName then
+    c := False;
+    SetLength(Gibs, gGibsCount);
+    for i := 0 to High(Gibs) do
     begin
-      for i := 0 to High(Gibs) do
+      if c and (PlayerModelsArray[ModelID].GibsCount = 1) then
       begin
-        if c and (Length(PlayerModelsArray[a].Gibs) = 1) then
-        begin
-          SetLength(Gibs, i);
-          Break;
-        end;
-
-        repeat
-          b := Random(Length(PlayerModelsArray[a].Gibs));
-        until not (PlayerModelsArray[a].Gibs[b].OnlyOne and c);
-
-        Gibs[i] := PlayerModelsArray[a].Gibs[b];
-
-        if Gibs[i].OnlyOne then c := True;
+        SetLength(Gibs, i);
+        Break;
       end;
 
-      Result := True;
-      Break;
+      repeat
+        b := Random(PlayerModelsArray[ModelID].GibsCount);
+      until not ((PlayerModelsArray[ModelID].GibsOnce = b + 1) and c);
+
+      Gibs[i] := b;
+
+      c := PlayerModelsArray[ModelID].GibsOnce = b + 1;
     end;
-end;
+    Result := True;
+  end;
 
 function g_PlayerModel_GetNames(): SSArray;
 var

@@ -35,7 +35,8 @@ implementation
     e_input, e_sound,
     g_language, g_console, g_menu, g_triggers, g_player, g_options, g_monsters, g_map, g_panel,
     g_items, g_weapons, g_gfx, g_phys, g_net, g_gui, g_netmaster,
-    g_game, r_console, r_gfx, r_items, r_map, r_panel, r_monsters, r_weapons, r_netmaster, r_player, r_textures
+    g_game, r_console, r_gfx, r_items, r_map, r_panel, r_monsters, r_weapons, r_netmaster, r_player, r_textures,
+    r_playermodel
   ;
 
   var
@@ -1304,6 +1305,7 @@ begin
   drawOther('weapons', @r_Weapon_Draw);
   drawOther('shells', @r_Player_DrawShells);
   drawOther('drawall', @r_Player_DrawAll);
+  drawOther('gibs', @r_PlayerModel_DrawGibs);
   drawOther('corpses', @r_Player_DrawCorpses);
   drawPanelType('*wall', PANEL_WALL, g_rlayer_wall);
   drawOther('monsters', @r_Monsters_Draw);

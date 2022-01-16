@@ -23,7 +23,7 @@ uses
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
   g_base, g_playermodel, g_basic, g_textures,
   g_weapons, g_phys, g_sound, g_saveload, MAPDEF,
-  g_panel;
+  g_panel, r_playermodel;
 
 const
   KEY_LEFT       = 1;
@@ -523,11 +523,12 @@ type
   PGib = ^TGib;
   TGib = record
     alive:    Boolean;
-    ID:       DWORD;
-    MaskID:   DWORD;
     RAngle:   Integer;
     Color:    TRGB;
     Obj:      TObj;
+
+    ModelID: Integer;
+    GibID: Integer;
 
     procedure getMapBox (out x, y, w, h: Integer); inline;
     procedure moveBy (dx, dy: Integer); inline;
@@ -1594,27 +1595,30 @@ end;
 
 procedure g_Player_CreateGibs(fX, fY: Integer; ModelName: string; fColor: TRGB);
 var
-  a: Integer;
+  a, mid: Integer;
   GibsArray: TGibsArray;
   Blood: TModelBlood;
 begin
   if (gGibs = nil) or (Length(gGibs) = 0) then
     Exit;
-  if not g_PlayerModel_GetGibs(ModelName, GibsArray) then
+  mid := g_PlayerModel_GetIndex(ModelName);
+  if mid = -1 then
     Exit;
-  Blood := g_PlayerModel_GetBlood(ModelName);
+  if not g_PlayerModel_GetGibs(mid, GibsArray) then
+    Exit;
+  Blood := PlayerModelsArray[mid].Blood;
 
   for a := 0 to High(GibsArray) do
     with gGibs[CurrentGib] do
     begin
+      ModelID := mid;
+      GibID := GibsArray[a];
       Color := fColor;
-      ID := GibsArray[a].ID;
-      MaskID := GibsArray[a].MaskID;
       alive := True;
       g_Obj_Init(@Obj);
-      Obj.Rect := GibsArray[a].Rect;
-      Obj.X := fX-GibsArray[a].Rect.X-(GibsArray[a].Rect.Width div 2);
-      Obj.Y := fY-GibsArray[a].Rect.Y-(GibsArray[a].Rect.Height div 2);
+      Obj.Rect := r_PlayerModel_GetGibRect(ModelID, GibID);
+      Obj.X := fX - Obj.Rect.X - (Obj.Rect.Width div 2);
+      Obj.Y := fY - Obj.Rect.Y - (Obj.Rect.Height div 2);
       g_Obj_PushA(@Obj, 25 + Random(10), Random(361));
       positionChanged(); // this updates spatial accelerators
       RAngle := Random(360);

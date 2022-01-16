@@ -17,7 +17,7 @@ unit r_playermodel;
 
 interface
 
-  uses g_playermodel; // TPlayerModel
+  uses g_playermodel, g_base; // TPlayerModel, TRectWH
 
   procedure r_PlayerModel_Initialize;
   procedure r_PlayerModel_Finalize;
@@ -25,15 +25,18 @@ interface
   procedure r_PlayerModel_Free;
   procedure r_PlayerModel_Update;
   procedure r_PlayerModel_Draw (pm: TPlayerModel; X, Y: Integer; Alpha: Byte = 0);
+  procedure r_PlayerModel_DrawGibs;
+
+  function r_PlayerModel_GetGibRect (m, id: Integer): TRectWH;
 
 implementation
 
   uses
     SysUtils, Classes, Math,
-    MAPDEF, utils,
+    MAPDEF, utils, e_log, wadreader,
     ImagingTypes, Imaging, ImagingUtility,
     r_graphics, g_options, r_animations, r_textures,
-    g_base, g_basic, g_map, g_weapons, g_textures
+    g_basic, g_map, g_weapons, g_textures, g_player, g_phys, g_game
   ;
 
   const
@@ -50,10 +53,20 @@ implementation
         base: DWORD;
         mask: DWORD;
       end;
+      Gibs: Array of record
+        base: DWORD;
+        mask: DWORD;
+        rect: TRectWH;
+      end;
     end;
     RedFlagFrames: DWORD;
     BlueFlagFrames: DWORD;
     FlagAnimState: TAnimationState;
+
+  function r_PlayerModel_GetGibRect (m, id: Integer): TRectWH;
+  begin
+    Result := Models[m].Gibs[id].rect
+  end;
 
   procedure r_PlayerModel_Initialize;
   begin
@@ -96,8 +109,83 @@ implementation
     end;
   end;
 
+  procedure r_PlayerModel_LoadResource (resource: AnsiString; var pData: Pointer; var len: Integer);
+    var WAD: TWADFile;
+  begin
+    pData := nil;
+    len := 0;
+    WAD := TWADFile.Create;
+    WAD.ReadFile(g_ExtractWadName(resource));
+    WAD.GetResource(g_ExtractFilePathName(resource), pData, len);
+    WAD.Free;
+  end;
+
+  function g_PlayerModel_CalcGibSize (pData: Pointer; dataSize, x, y, w, h: Integer): TRectWH;
+    var i, j: Integer; done: Boolean; img: TImageData;
+
+    function IsVoid (i, j: Integer): Boolean;
+    begin
+      result := Byte((PByte(img.bits) + (y+j)*img.width*4 + (x+i)*4 + 3)^) = 0
+    end;
+
+  begin
+    InitImage(img);
+    assert(LoadImageFromMemory(pData, dataSize, img));
+
+    (* trace x from right to left *)
+    done := false; i := 0;
+    while not done and (i < w) do
+    begin
+      j := 0;
+      while (j < h) and IsVoid(i, j) do inc(j);
+      done := (j < h) and (IsVoid(i, j) = false);
+      result.x := i;
+      inc(i);
+    end;
+
+    (* trace y from up to down *)
+    done := false; j := 0;
+    while not done and (j < h) do
+    begin
+      i := 0;
+      while (i < w) and IsVoid(i, j) do inc(i);
+      done := (i < w) and (IsVoid(i, j) = false);
+      result.y := j;
+      inc(j);
+    end;
+
+    (* trace x from right to left *)
+    done := false; i := w - 1;
+    while not done and (i >= 0) do
+    begin
+      j := 0;
+      while (j < h) and IsVoid(i, j) do inc(j);
+      done := (j < h) and (IsVoid(i, j) = false);
+      result.width := i - result.x + 1;
+      dec(i);
+    end;
+
+    (* trace y from down to up *)
+    done := false; j := h - 1;
+    while not done and (j >= 0) do
+    begin
+      i := 0;
+      while (i < w) and IsVoid(i, j) do inc(i);
+      done := (i < w) and (IsVoid(i, j) = false);
+      result.height := j - result.y + 1;
+      dec(j);
+    end;
+
+    FreeImage(img);
+  end;
+
   procedure r_PlayerModel_Load;
-    var ID1, ID2: DWORD; i, a, b: Integer; prefix, aname: String;
+    var
+      ID1, ID2: DWORD;
+      i, a, b: Integer;
+      prefix, aname: String;
+      base, mask: Pointer;
+      baseLen, maskLen: Integer;
   begin
     g_Frames_CreateWAD(@RedFlagFrames, 'FRAMES_FLAG_RED', GameWAD + ':TEXTURES\FLAGRED', 64, 64, 5, False);
     g_Frames_CreateWAD(@BlueFlagFrames, 'FRAMES_FLAG_BLUE', GameWAD + ':TEXTURES\FLAGBLUE', 64, 64, 5, False);
@@ -145,6 +233,28 @@ implementation
               Models[i].Frames[TDirection.D_LEFT, b].mask := ID2;
             end
           end
+        end;
+        SetLength(Models[i].Gibs, PlayerModelsArray[i].GibsCount);
+        if PlayerModelsArray[i].GibsCount > 0 then
+        begin
+          r_PlayerModel_LoadResource(prefix + PlayerModelsArray[i].GibsResource, base, baseLen);
+          r_PlayerModel_LoadResource(prefix + PlayerModelsArray[i].GibsMask, mask, maskLen);
+          if (base <> nil) and (mask <> nil) then
+          begin
+            for a := 0 to PlayerModelsArray[i].GibsCount - 1 do
+            begin
+              if e_CreateTextureMemEx(base, baseLen, Models[i].Gibs[a].base, a * 32, 0, 32, 32) and
+                 e_CreateTextureMemEx(mask, maskLen, Models[i].Gibs[a].mask, a * 32, 0, 32, 32) then
+              begin
+                Models[i].Gibs[a].rect := g_PlayerModel_CalcGibSize(base, baseLen, a * 32, 0, 32, 32);
+                with Models[i].Gibs[a].Rect do
+                  if Height > 3 then
+                    Height := Height - 1 - Random(2); // ???
+              end
+            end
+          end;
+          FreeMem(mask);
+          FreeMem(base);
         end
       end
     end
@@ -167,17 +277,8 @@ implementation
           g_Frames_DeleteByName(Name + '_RIGHTANIM' + IntToStr(a));
           g_Frames_DeleteByName(Name + '_RIGHTANIM' + IntToStr(a) + '_MASK');
         end;
-        if Gibs <> nil then
-        begin
-          for a := 0 to High(Gibs) do
-          begin
-            e_DeleteTexture(Gibs[a].ID);
-            e_DeleteTexture(Gibs[a].MaskID);
-            Gibs[a].ID := DWORD(-1);
-            Gibs[a].MaskID := DWORD(-1);
-          end
-        end
       end
+      // !!! delete gibs textures here
     end;
     for a := WP_FIRST + 1 to WP_LAST do
       for b := W_POS_NORMAL to W_POS_DOWN do
@@ -293,5 +394,33 @@ begin
   e_Colors.G := 255;
   e_Colors.B := 255;
 end;
+
+  procedure r_PlayerModel_DrawGibs;
+    var i, fX, fY, m, id: Integer; a: TDFPoint; pobj: ^TObj;
+  begin
+    if gGibs <> nil then
+    begin
+      for i := 0 to High(gGibs) do
+      begin
+        if gGibs[i].alive then
+        begin
+          pobj := @gGibs[i].Obj;
+          if not g_Obj_Collide(sX, sY, sWidth, sHeight, pobj) then
+            Continue;
+          pobj.lerp(gLerpFactor, fX, fY);
+          a.X := pobj.Rect.X + (pobj.Rect.Width div 2);
+          a.y := pobj.Rect.Y + (pobj.Rect.Height div 2);
+          m := gGibs[i].ModelID;
+          id := gGibs[i].GibID;
+          e_DrawAdv(Models[m].Gibs[id].base, fX, fY, 0, True, False, gGibs[i].RAngle, @a, TMirrorType.None);
+          e_Colors := gGibs[i].Color;
+          e_DrawAdv(Models[m].Gibs[id].mask, fX, fY, 0, True, False, gGibs[i].RAngle, @a, TMirrorType.None);
+          e_Colors.R := 255;
+          e_Colors.G := 255;
+          e_Colors.B := 255;
+        end
+      end
+    end
+  end;
 
 end.

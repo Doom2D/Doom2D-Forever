@@ -97,38 +97,14 @@ begin
     end;
 end;
 
-procedure r_Player_DrawCorpses;
-var
-  i, fX, fY: Integer;
-  a: TDFPoint;
-begin
-  if gGibs <> nil then
-    for i := 0 to High(gGibs) do
-      if gGibs[i].alive then
-        with gGibs[i] do
-        begin
-          if not g_Obj_Collide(sX, sY, sWidth, sHeight, @Obj) then
-            Continue;
-
-          Obj.lerp(gLerpFactor, fX, fY);
-
-          a.X := Obj.Rect.X+(Obj.Rect.Width div 2);
-          a.y := Obj.Rect.Y+(Obj.Rect.Height div 2);
-
-          e_DrawAdv(ID, fX, fY, 0, True, False, RAngle, @a, TMirrorType.None);
-
-          e_Colors := Color;
-          e_DrawAdv(MaskID, fX, fY, 0, True, False, RAngle, @a, TMirrorType.None);
-          e_Colors.R := 255;
-          e_Colors.G := 255;
-          e_Colors.B := 255;
-        end;
-
-  if gCorpses <> nil then
-    for i := 0 to High(gCorpses) do
-      if gCorpses[i] <> nil then
-        r_Player_DrawCorpse(gCorpses[i])
-end;
+  procedure r_Player_DrawCorpses;
+    var i: Integer;
+  begin
+    if gCorpses <> nil then
+      for i := 0 to High(gCorpses) do
+        if gCorpses[i] <> nil then
+          r_Player_DrawCorpse(gCorpses[i])
+  end;
 
 procedure r_Player_DrawShells;
 var
