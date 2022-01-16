@@ -119,7 +119,7 @@ implementation
         prefix := PlayerModelsArray[i].FileName + ':TEXTURES\';
         for b := A_STAND to A_LAST do
         begin
-          aname := PlayerModelsArray[i].Info.Name + '_RIGHTANIM' + IntToStr(b);
+          aname := PlayerModelsArray[i].Name + '_RIGHTANIM' + IntToStr(b);
           with PlayerModelsArray[i].Anim[TDirection.D_RIGHT, b] do
           begin
             if not (g_Frames_CreateWAD(@ID1, aname, prefix + Resource, 64, 64, Frames, Back) and
@@ -127,7 +127,7 @@ implementation
             begin
               if b > A_LASTBASE then
               begin
-                ExtAnimFromBaseAnim(PlayerModelsArray[i].Info.Name, b);
+                ExtAnimFromBaseAnim(PlayerModelsArray[i].Name, b);
                 continue
               end
             end;
@@ -138,7 +138,7 @@ implementation
           begin
             if (Resource <> '') and (Mask <> '') then
             begin
-              aname := PlayerModelsArray[i].Info.Name + '_LEFTANIM' + IntToStr(b);
+              aname := PlayerModelsArray[i].Name + '_LEFTANIM' + IntToStr(b);
               g_Frames_CreateWAD(@ID1, aname, prefix + Resource, 64, 64, Frames, Back);
               g_Frames_CreateWAD(@ID2, aname + '_MASK', prefix + Mask, 64, 64, Frames, Back);
               Models[i].Frames[TDirection.D_LEFT, b].base := ID1;
@@ -162,10 +162,10 @@ implementation
       begin
         for a := A_STAND to A_LAST do
         begin
-          g_Frames_DeleteByName(Info.Name+'_LEFTANIM'+IntToStr(a));
-          g_Frames_DeleteByName(Info.Name+'_LEFTANIM'+IntToStr(a)+'_MASK');
-          g_Frames_DeleteByName(Info.Name+'_RIGHTANIM'+IntToStr(a));
-          g_Frames_DeleteByName(Info.Name+'_RIGHTANIM'+IntToStr(a)+'_MASK');
+          g_Frames_DeleteByName(Name + '_LEFTANIM' + IntToStr(a));
+          g_Frames_DeleteByName(Name + '_LEFTANIM' + IntToStr(a) + '_MASK');
+          g_Frames_DeleteByName(Name + '_RIGHTANIM' + IntToStr(a));
+          g_Frames_DeleteByName(Name + '_RIGHTANIM' + IntToStr(a) + '_MASK');
         end;
         if Gibs <> nil then
         begin
@@ -232,7 +232,7 @@ begin
   else
     Mirror := TMirrorType.Horizontal;
 
-  if PlayerModelsArray[pm.id].Info.HaveWeapon and (not (pm.CurrentAnimation in [A_DIE1, A_DIE2, A_PAIN])) and  (pm.CurrentWeapon in [WP_FIRST + 1..WP_LAST]) then
+  if PlayerModelsArray[pm.id].HaveWeapon and (not (pm.CurrentAnimation in [A_DIE1, A_DIE2, A_PAIN])) and  (pm.CurrentWeapon in [WP_FIRST + 1..WP_LAST]) then
   begin
     if pm.CurrentAnimation in [A_SEEUP, A_ATTACKUP] then
       pos := W_POS_UP

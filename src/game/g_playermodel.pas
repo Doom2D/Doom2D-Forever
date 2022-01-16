@@ -80,13 +80,6 @@ type
     R, G, B, Kind: Byte;
   end;
 
-  TModelInfo = record
-    Name:        String;
-    Author:      String;
-    Description: String;
-    HaveWeapon:  Boolean;
-  end;
-
   TModelSound = record
     ID:    DWORD;
     Level: Byte;
@@ -145,17 +138,21 @@ procedure g_PlayerModel_LoadAll;
 procedure g_PlayerModel_FreeData();
 function  g_PlayerModel_Load(FileName: String): Boolean;
 function  g_PlayerModel_GetNames(): SSArray;
-function  g_PlayerModel_GetInfo(ModelName: String): TModelInfo;
 function  g_PlayerModel_GetBlood(ModelName: String): TModelBlood;
 function  g_PlayerModel_Get(ModelName: String): TPlayerModel;
 function  g_PlayerModel_GetAnim(ModelName: String; AnimTyp: Byte; var _Anim, _Mask: TAnimation): Boolean;
 function  g_PlayerModel_GetGibs(ModelName: String; var Gibs: TGibsArray): Boolean;
 
+function g_PlayerModel_GetIndex (ModelName: String): Integer;
+
 (* --- private data --- *)
 
   type
     TPlayerModelInfo = record
-      Info:         TModelInfo;
+      Name:         String;
+      Author:       String;
+      Description:  String;
+      HaveWeapon:   Boolean;
       ModelSpeed:   Array [A_STAND..A_PAIN] of Byte;
       FlagPoint:    TDFPoint;
       FlagAngle:    SmallInt;
@@ -201,6 +198,20 @@ const
               'FistAttackUpAnim', 'FistAttackDownAnim');
   WeapNames: Array [WP_FIRST + 1..WP_LAST] of String =
              ('csaw', 'hgun', 'sg', 'ssg', 'mgun', 'rkt', 'plz', 'bfg', 'spl', 'flm');
+
+  function g_PlayerModel_GetIndex (ModelName: String): Integer;
+    var i: Integer;
+  begin
+    Result := -1;
+    if PlayerModelsArray <> nil then
+    begin
+      i := 0;
+      while (i < Length(PlayerModelsArray)) and (PlayerModelsArray[i].Name <> ModelName) do
+        Inc(i);
+      if i < Length(PlayerModelsArray) then
+        Result := i
+    end
+  end;
 
 function GetPoint(var str: String; var point: TDFPoint): Boolean;
 var
@@ -401,13 +412,9 @@ begin
 
   prefix := FileName+':TEXTURES\';
 
-  with PlayerModelsArray[ID].Info do
-  begin
-    Name := s;
-    Author := config.ReadStr('Model', 'author', '');
-    Description := config.ReadStr('Model', 'description', '');
-  end;
-
+  PlayerModelsArray[ID].Name := s;
+  PlayerModelsArray[ID].Author := config.ReadStr('Model', 'author', '');
+  PlayerModelsArray[ID].Description := config.ReadStr('Model', 'description', '');
   PlayerModelsArray[ID].FileName := FileName;
   with PlayerModelsArray[ID] do
   begin
@@ -614,7 +621,7 @@ begin
         end;
     {if ok then g_Console_Add(Info.Name+' weapon points ok')
     else g_Console_Add(Info.Name+' weapon points fail');}
-    Info.HaveWeapon := ok;
+    PlayerModelsArray[ID].HaveWeapon := ok;
 
     s := config.ReadStr('Model', 'flag_point', '');
     if not GetPoint(s, FlagPoint) then
@@ -629,7 +636,7 @@ begin
   Result := True;
 end;
 
-function g_PlayerModel_Get(ModelName: String): TPlayerModel;
+function g_PlayerModel_Get (ModelName: String): TPlayerModel;
   var a: Integer;
 begin
   Result := nil;
@@ -638,7 +645,7 @@ begin
 
   for a := 0 to High(PlayerModelsArray) do
   begin
-    if AnsiLowerCase(PlayerModelsArray[a].Info.Name) = AnsiLowerCase(ModelName) then
+    if AnsiLowerCase(PlayerModelsArray[a].Name) = AnsiLowerCase(ModelName) then
     begin
       Result := TPlayerModel.Create;
 
@@ -662,19 +669,20 @@ begin
 
   if PlayerModelsArray = nil then Exit;
   for a := 0 to High(PlayerModelsArray) do
-    if PlayerModelsArray[a].Info.Name = ModelName then
+    if PlayerModelsArray[a].Name = ModelName then
       with PlayerModelsArray[a] do
       begin
         if AnimTyp in [A_STAND, A_WALK] then c := True else c := False;
 
-        if not g_Frames_Get(ID, Info.Name+'_RIGHTANIM'+IntToStr(AnimTyp)) then
-          if not g_Frames_Get(ID, Info.Name+'_LEFTANIM'+IntToStr(AnimTyp)) then Exit;
+        if not g_Frames_Get(ID, Name + '_RIGHTANIM' + IntToStr(AnimTyp)) then
+          if not g_Frames_Get(ID, Name + '_LEFTANIM' + IntToStr(AnimTyp)) then Exit;
 
         _Anim := TAnimation.Create(ID, c, ModelSpeed[AnimTyp]);
         _Anim.Speed := ModelSpeed[AnimTyp];
 
-        if not g_Frames_Get(ID, Info.Name+'_RIGHTANIM'+IntToStr(AnimTyp)+'_MASK') then
-          if not g_Frames_Get(ID, Info.Name+'_LEFTANIM'+IntToStr(AnimTyp)+'_MASK') then Exit;
+        if not g_Frames_Get(ID, Name + '_RIGHTANIM' + IntToStr(AnimTyp) + '_MASK') then
+          if not g_Frames_Get(ID, Name + '_LEFTANIM' + IntToStr(AnimTyp) + '_MASK') then
+            Exit;
 
         _Mask := TAnimation.Create(ID, c, ModelSpeed[AnimTyp]);
         _Mask.Speed := ModelSpeed[AnimTyp];
@@ -700,7 +708,7 @@ begin
   SetLength(Gibs, gGibsCount);
 
   for a := 0 to High(PlayerModelsArray) do
-    if PlayerModelsArray[a].Info.Name = ModelName then
+    if PlayerModelsArray[a].Name = ModelName then
     begin
       for i := 0 to High(Gibs) do
       begin
@@ -735,23 +743,8 @@ begin
   for i := 0 to High(PlayerModelsArray) do
   begin
     SetLength(Result, Length(Result)+1);
-    Result[High(Result)] := PlayerModelsArray[i].Info.Name;
+    Result[High(Result)] := PlayerModelsArray[i].Name;
   end;
-end;
-
-function g_PlayerModel_GetInfo(ModelName: string): TModelInfo;
-var
-  a: Integer;
-begin
-  FillChar(Result, SizeOf(Result), 0);
-  if PlayerModelsArray = nil then Exit;
-
-  for a := 0 to High(PlayerModelsArray) do
-    if PlayerModelsArray[a].Info.Name = ModelName then
-    begin
-      Result := PlayerModelsArray[a].Info;
-      Break;
-    end;
 end;
 
 function g_PlayerModel_GetBlood(ModelName: string): TModelBlood;
@@ -765,7 +758,7 @@ begin
   if PlayerModelsArray = nil then Exit;
 
   for a := 0 to High(PlayerModelsArray) do
-    if PlayerModelsArray[a].Info.Name = ModelName then
+    if PlayerModelsArray[a].Name = ModelName then
     begin
       Result := PlayerModelsArray[a].Blood;
       Break;
@@ -905,7 +898,7 @@ end;
 
   function TPlayerModel.GetName (): String;
   begin
-    Result := PlayerModelsArray[FID].Info.Name
+    Result := PlayerModelsArray[FID].Name
   end;
 
   procedure TPlayerModel.Update;

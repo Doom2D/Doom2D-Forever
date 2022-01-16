@@ -1425,7 +1425,7 @@ end;
 procedure ProcOptionsPlayersMIMenu();
 var
   s, a: string;
-  b: TModelInfo;
+  i: Integer;
 begin
   if g_ActiveWindow.Name = 'OptionsPlayersP1Menu' then s := 'P1' else s := 'P2';
 
@@ -1433,15 +1433,14 @@ begin
 
   if a = '' then Exit;
 
-  b := g_PlayerModel_GetInfo(a);
-
+  i := g_PlayerModel_GetIndex(a);
   with TGUIMenu(g_GUI_GetWindow('OptionsPlayersMIMenu').GetControl('mOptionsPlayersMIMenu')) do
   begin
-    TGUILabel(GetControl('lbName')).Text := b.Name;
-    TGUILabel(GetControl('lbAuthor')).Text := b.Author;
-    TGUIMemo(GetControl('meComment')).SetText(b.Description);
+    TGUILabel(GetControl('lbName')).Text := PlayerModelsArray[i].Name;
+    TGUILabel(GetControl('lbAuthor')).Text := PlayerModelsArray[i].Author;
+    TGUIMemo(GetControl('meComment')).SetText(PlayerModelsArray[i].Description);
 
-    if b.HaveWeapon then
+    if PlayerModelsArray[i].HaveWeapon then
       TGUILabel(GetControl('lbWeapon')).Text := _lc[I_MENU_YES]
     else
       TGUILabel(GetControl('lbWeapon')).Text := _lc[I_MENU_NO];
