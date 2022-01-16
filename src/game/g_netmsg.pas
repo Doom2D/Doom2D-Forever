@@ -766,7 +766,7 @@ begin
 
   if (g_Force_Model_Get() <> 0) then
     TmpModel := g_Forced_Model_GetName();
-  if TmpModel <> Pl.Model.Name then
+  if TmpModel <> Pl.Model.GetName() then
     Pl.SetModel(TmpModel);
 
   if (TmpWeapSwitch <> Pl.WeapSwitchMode) then
@@ -1406,7 +1406,7 @@ begin
   NetOut.Write(PID);
   NetOut.Write(Pl.Name);
   if Mdl = '' then
-    NetOut.Write(Pl.Model.Name)
+    NetOut.Write(Pl.Model.GetName())
   else
     NetOut.Write(Mdl);
   NetOut.Write(Pl.FColor.R);
@@ -2697,7 +2697,7 @@ begin
 
   if (g_Force_Model_Get() <> 0) then
     TmpModel := g_Forced_Model_GetName();
-  if TmpModel <> Pl.Model.Name then
+  if TmpModel <> Pl.Model.GetName() then
     Pl.SetModel(TmpModel);
 end;
 

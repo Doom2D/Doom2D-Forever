@@ -75,6 +75,7 @@ implementation
 
   procedure r_Render_Load;
   begin
+    r_PlayerModel_Load;
     r_Monsters_Load;
     r_Weapon_Load;
     r_Items_Load;
@@ -87,6 +88,7 @@ implementation
     r_Items_Free;
     r_Weapon_Free;
     r_Monsters_Free;
+    r_PlayerModel_Free;
   end;
 
   procedure r_Render_Initialize;
@@ -96,13 +98,11 @@ implementation
     LoadGL;
     r_Window_Initialize;
     r_Console_Init;
-    r_PlayerModel_Initialize;
   end;
 
   procedure r_Render_Finalize;
   begin
     FreeGL;
-    r_PlayerModel_Finalize;
     e_ReleaseEngine
   end;
 

@@ -1530,7 +1530,7 @@ begin
         if not ok then
           find_id := Random(Length(gCorpses));
 
-        gCorpses[find_id] := TCorpse.Create(FObj.X, FObj.Y, FModel.Name, FHealth < -20);
+        gCorpses[find_id] := TCorpse.Create(FObj.X, FObj.Y, FModel.GetName(), FHealth < -20);
         gCorpses[find_id].FColor := FModel.Color;
         gCorpses[find_id].FObj.Vel := FObj.Vel;
         gCorpses[find_id].FObj.Accel := FObj.Accel;
@@ -1541,7 +1541,7 @@ begin
     else
       g_Player_CreateGibs(FObj.X + PLAYER_RECT_CX,
                           FObj.Y + PLAYER_RECT_CY,
-                          FModel.Name, FModel.Color);
+                          FModel.GetName(), FModel.Color);
   end;
 end;
 
@@ -3047,23 +3047,27 @@ begin
 end;
 
 procedure TPlayer.MakeBloodSimple(Count: Word);
+  var Blood: TModelBlood;
 begin
+  Blood := SELF.FModel.GetBlood();
   g_GFX_Blood(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)+8,
               FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
               Count div 2, 3, -1, 16, (PLAYER_RECT.Height*2 div 3),
-              FModel.Blood.R, FModel.Blood.G, FModel.Blood.B, FModel.Blood.Kind);
+              Blood.R, Blood.G, Blood.B, Blood.Kind);
   g_GFX_Blood(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-8,
               FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
               Count div 2, -3, -1, 16, (PLAYER_RECT.Height*2) div 3,
-              FModel.Blood.R, FModel.Blood.G, FModel.Blood.B, FModel.Blood.Kind);
+              Blood.R, Blood.G, Blood.B, Blood.Kind);
 end;
 
 procedure TPlayer.MakeBloodVector(Count: Word; VelX, VelY: Integer);
+  var Blood: TModelBlood;
 begin
+  Blood := SELF.FModel.GetBlood();
   g_GFX_Blood(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
               FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
               Count, VelX, VelY, 16, (PLAYER_RECT.Height*2) div 3,
-              FModel.Blood.R, FModel.Blood.G, FModel.Blood.B, FModel.Blood.Kind);
+              Blood.R, Blood.G, Blood.B, Blood.Kind);
 end;
 
 procedure TPlayer.ProcessWeaponAction(Action: Byte);
@@ -4742,11 +4746,10 @@ begin
   if (FActionAnim = A_PAIN) and (FModel.Animation <> A_PAIN) then
   begin
     FModel.ChangeAnimation(FActionAnim, FActionForce);
-    FModel.GetCurrentAnimation.MinLength := i;
-    FModel.GetCurrentAnimationMask.MinLength := i;
+    FModel.AnimState.MinLength := i;
   end else FModel.ChangeAnimation(FActionAnim, FActionForce and (FModel.Animation <> A_STAND));
 
-  if (FModel.GetCurrentAnimation.Played or ((not FActionChanged) and (FModel.Animation = A_WALK)))
+  if (FModel.AnimState.Played or ((not FActionChanged) and (FModel.Animation = A_WALK)))
   then SetAction(A_STAND, True);
 
   if not ((FModel.Animation = A_WALK) and (Abs(FObj.Vel.X) < 4) and not FModel.Fire) then FModel.Update;
@@ -5448,7 +5451,7 @@ begin
   // Время до повторного респауна, смены оружия, исользования, захвата флага
   for i := T_RESPAWN to T_FLAGCAP do utils.writeInt(st, LongWord(FTime[i]));
   // Название модели
-  utils.writeStr(st, FModel.Name);
+  utils.writeStr(st, FModel.GetName());
   // Цвет модели
   utils.writeInt(st, Byte(FColor.R));
   utils.writeInt(st, Byte(FColor.G));
