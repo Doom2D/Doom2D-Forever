@@ -539,12 +539,10 @@ type
 
   PShell = ^TShell;
   TShell = record
-    SpriteID: DWORD;
-    alive:     Boolean;
+    alive:    Boolean;
     SType:    Byte;
     RAngle:   Integer;
     Timeout:  Cardinal;
-    CX, CY:   Integer;
     Obj:      TObj;
 
     procedure getMapBox (out x, y, w, h: Integer); inline;
@@ -1538,33 +1536,22 @@ begin
 end;
 
 procedure g_Player_CreateShell(fX, fY, dX, dY: Integer; T: Byte);
-var
-  SID: DWORD;
 begin
   if (gShells = nil) or (Length(gShells) = 0) then
     Exit;
 
   with gShells[CurrentShell] do
   begin
-    SpriteID := 0;
     g_Obj_Init(@Obj);
     Obj.Rect.X := 0;
     Obj.Rect.Y := 0;
     if T = SHELL_BULLET then
     begin
-      if g_Texture_Get('TEXTURE_SHELL_BULLET', SID) then
-        SpriteID := SID;
-      CX := 2;
-      CY := 1;
       Obj.Rect.Width := 4;
       Obj.Rect.Height := 2;
     end
     else
     begin
-      if g_Texture_Get('TEXTURE_SHELL_SHELL', SID) then
-        SpriteID := SID;
-      CX := 4;
-      CY := 2;
       Obj.Rect.Width := 7;
       Obj.Rect.Height := 3;
     end;

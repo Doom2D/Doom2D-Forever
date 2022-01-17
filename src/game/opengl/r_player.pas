@@ -52,6 +52,8 @@ implementation
 
   var
     PunchFrames: array [Boolean, 0..2] of DWORD;
+    BulletTexture: DWORD;
+    ShellTexture: DWORD;
 
   procedure r_Player_Load;
   begin
@@ -61,6 +63,10 @@ implementation
     g_Frames_CreateWAD(@PunchFrames[True, 0], 'FRAMES_PUNCH_BERSERK', GameWAD + ':WEAPONS\PUNCHB', 64, 64, 4, False);
     g_Frames_CreateWAD(@PunchFrames[True, 1], 'FRAMES_PUNCH_BERSERK_UP', GameWAD + ':WEAPONS\PUNCHB_UP', 64, 64, 4, False);
     g_Frames_CreateWAD(@PunchFrames[True, 2], 'FRAMES_PUNCH_BERSERK_DN', GameWAD + ':WEAPONS\PUNCHB_DN', 64, 64, 4, False);
+    g_Texture_CreateWADEx('TEXTURE_SHELL_BULLET', GameWAD + ':TEXTURES\EBULLET');
+    g_Texture_CreateWADEx('TEXTURE_SHELL_SHELL', GameWAD + ':TEXTURES\ESHELL');
+    g_Texture_Get('TEXTURE_SHELL_BULLET', BulletTexture);
+    g_Texture_Get('TEXTURE_SHELL_SHELL', ShellTexture);
   end;
 
   procedure r_Player_Free;
@@ -140,27 +146,37 @@ end;
           r_Player_DrawCorpse(gCorpses[i])
   end;
 
-procedure r_Player_DrawShells;
-var
-  i, fX, fY: Integer;
-  a: TDFPoint;
-begin
-  if gShells <> nil then
-    for i := 0 to High(gShells) do
-      if gShells[i].alive then
-        with gShells[i] do
+  procedure r_Player_DrawShells;
+    var i, fX, fY: Integer; a: TDFPoint; TextureID: DWORD = DWORD(-1);
+  begin
+    if gShells <> nil then
+    begin
+      for i := 0 to High(gShells) do
+      begin
+        if gShells[i].alive and g_Obj_Collide(sX, sY, sWidth, sHeight, @gShells[i].Obj) then
         begin
-          if not g_Obj_Collide(sX, sY, sWidth, sHeight, @Obj) then
-            Continue;
-
-          Obj.lerp(gLerpFactor, fX, fY);
-
-          a.X := CX;
-          a.Y := CY;
-
-          e_DrawAdv(SpriteID, fX, fY, 0, True, False, RAngle, @a, TMirrorType.None);
-        end;
-end;
+          gShells[i].Obj.lerp(gLerpFactor, fX, fY);
+          case gShells[i].SType of
+            SHELL_BULLET:
+            begin
+              TextureID := BulletTexture;
+              a.X := 2;
+              a.Y := 1;
+            end;
+            SHELL_SHELL, SHELL_DBLSHELL:
+            begin
+              TextureID := ShellTexture;
+              a.X := 4;
+              a.Y := 2;
+            end
+          else
+            Assert(false)
+          end;
+          e_DrawAdv(TextureID, fX, fY, 0, True, False, gShells[i].RAngle, @a, TMirrorType.None);
+        end
+      end
+    end
+  end;
 
 procedure r_Player_DrawIndicator (p: TPlayer; Color: TRGB);
 var

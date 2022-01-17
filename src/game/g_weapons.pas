@@ -1137,9 +1137,6 @@ begin
   g_Sound_CreateWADEx('SOUND_PLAYER_SHELL1', GameWAD+':SOUNDS\SHELL1');
   g_Sound_CreateWADEx('SOUND_PLAYER_SHELL2', GameWAD+':SOUNDS\SHELL2');
 
-  g_Texture_CreateWADEx('TEXTURE_SHELL_BULLET', GameWAD+':TEXTURES\EBULLET');
-  g_Texture_CreateWADEx('TEXTURE_SHELL_SHELL', GameWAD+':TEXTURES\ESHELL');
-
   //wgunMonHash := hashNewIntInt();
   wgunHitHeap := TBinaryHeapHitTimes.Create();
 end;
