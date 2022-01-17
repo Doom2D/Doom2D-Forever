@@ -36,7 +36,7 @@ implementation
 
   uses
     SysUtils,
-    e_log, r_graphics, e_input, g_options, g_game, g_gui, g_weapons, g_console;
+    e_log, r_graphics, r_game, e_input, g_options, g_game, g_gui, g_weapons, g_console;
 
   var
     angleFire: Boolean;

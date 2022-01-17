@@ -26,7 +26,7 @@ interface
   procedure r_Map_Free;
 
   procedure r_Map_LoadTextures;
-  // TODO procedure r_Map_FreeTextures
+  procedure r_Map_FreeTextures;
 
   procedure r_Map_Update;
 
@@ -183,6 +183,11 @@ implementation
         end
       end
     end
+  end;
+
+  procedure r_Map_FreeTextures;
+  begin
+    // TODO
   end;
 
 procedure dplClear ();

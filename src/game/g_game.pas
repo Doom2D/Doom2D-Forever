@@ -242,7 +242,6 @@ const
   STATFILE_VERSION = $03;
 
 var
-  gStdFont: DWORD;
   gGameSettings: TGameSettings;
   gPlayer1Settings: TPlayerSettings;
   gPlayer2Settings: TPlayerSettings;
@@ -432,7 +431,6 @@ function gPause (): Boolean; inline;
     StatShotDone: Boolean;
     StatFilename: string = ''; // used by stat screenshot to save with the same name as the csv
     SingleStat: TEndSingleGameStat;
-    hasPBarGfx: Boolean;
     LoadingStat: TLoadingStat;
     MessageText: String;
     IsDrawStat: Boolean;
@@ -441,6 +439,7 @@ function gPause (): Boolean; inline;
     g_playerLight: Boolean;
     g_dynLights: array of TDynLight = nil;
     g_dynLightCount: Integer = 0;
+    EndPicPath: AnsiString; // full path, used by render
 
 implementation
 
@@ -448,7 +447,7 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes,
 {$ENDIF}
-  e_res, g_window, g_menu, r_render, r_textures, r_animations, r_gfx, r_map,
+  e_res, g_window, g_menu, r_render, r_gfx,
   e_input, e_log, g_console, r_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
@@ -907,22 +906,7 @@ var
     info: TMegaWADInfo;
     endpic: String;
     endmus: String;
-    res: record
-      text: Array of ShortString;
-      anim: Array of ShortString;
-      pic: Array of ShortString;
-      mus: Array of ShortString;
-    end;
-    triggers: Array of record
-      event: ShortString;
-      actions: Array of record
-        action, p1, p2: Integer;
-      end;
-    end;
-    cur_trigger: Integer;
-    cur_action: Integer;
   end;
-  //InterPic: String;
   InterText: record
     lines: SSArray;
     img: String;
@@ -1123,37 +1107,20 @@ begin
   FreeMem(p);
 end;
 
-procedure g_Game_FreeWAD();
-var
-  a: Integer;
-begin
-  for a := 0 to High(MegaWAD.res.pic) do
-    if MegaWAD.res.pic[a] <> '' then
-      g_Texture_Delete(MegaWAD.res.pic[a]);
-
-  for a := 0 to High(MegaWAD.res.mus) do
-    if MegaWAD.res.mus[a] <> '' then
-      g_Sound_Delete(MegaWAD.res.mus[a]);
-
-  MegaWAD.res.pic := nil;
-  MegaWAD.res.text := nil;
-  MegaWAD.res.anim := nil;
-  MegaWAD.res.mus := nil;
-  MegaWAD.triggers := nil;
-
-  g_Texture_Delete('TEXTURE_endpic');
-  g_Sound_Delete('MUSIC_endmus');
-
-  ZeroMemory(@MegaWAD, SizeOf(MegaWAD));
-  gGameSettings.WAD := '';
-end;
+  procedure g_Game_FreeWAD;
+  begin
+    EndPicPath := '';
+    g_Sound_Delete('MUSIC_endmus');
+    ZeroMemory(@MegaWAD, SizeOf(MegaWAD));
+    gGameSettings.WAD := '';
+  end;
 
 procedure g_Game_LoadWAD(WAD: string);
 var
   w: TWADFile;
   cfg: TConfig;
   p: Pointer;
-  {b, }len: Integer;
+  len: Integer;
   s: AnsiString;
 begin
   g_Game_FreeWAD();
@@ -1174,38 +1141,11 @@ begin
 
   cfg := TConfig.CreateMem(p, len);
 
- {b := 1;
- while True do
- begin
-  s := cfg.ReadStr('pic', 'pic'+IntToStr(b), '');
-  if s = '' then Break;
-  b := b+1;
-
-  SetLength(MegaWAD.res.pic, Length(MegaWAD.res.pic)+1);
-  MegaWAD.res.pic[High(MegaWAD.res.pic)] := s;
-
-  g_Texture_CreateWADEx(s, s);
- end;
-
- b := 1;
- while True do
- begin
-  s := cfg.ReadStr('mus', 'mus'+IntToStr(b), '');
-  if s = '' then Break;
-  b := b+1;
-
-  SetLength(MegaWAD.res.mus, Length(MegaWAD.res.mus)+1);
-  MegaWAD.res.mus[High(MegaWAD.res.mus)] := s;
-
-  g_Music_CreateWADEx(s, s);
- end;}
-
+  EndPicPath := '';
   MegaWAD.endpic := cfg.ReadStr('megawad', 'endpic', '');
   if MegaWAD.endpic <> '' then
-  begin
-    s := e_GetResourcePath(WadDirs, MegaWAD.endpic, WAD);
-    g_Texture_CreateWADEx('TEXTURE_endpic', s, gTextureFilter);
-  end;
+    EndPicPath := e_GetResourcePath(WadDirs, MegaWAD.endpic, WAD);
+
   MegaWAD.endmus := cfg.ReadStr('megawad', 'endmus', 'Standart.wad:D2DMUS\КОНЕЦ');
   if MegaWAD.endmus <> '' then
   begin
@@ -1468,15 +1408,6 @@ begin
   sfsGCDisable(); // temporary disable removing of temporary volumes
 
   try
-    g_Texture_CreateWADEx('MENU_BACKGROUND', GameWAD+':TEXTURES\TITLE', gTextureFilter);
-    g_Texture_CreateWADEx('INTER', GameWAD+':TEXTURES\INTER', gTextureFilter);
-    g_Texture_CreateWADEx('ENDGAME_EN', GameWAD+':TEXTURES\ENDGAME_EN', gTextureFilter);
-    g_Texture_CreateWADEx('ENDGAME_RU', GameWAD+':TEXTURES\ENDGAME_RU', gTextureFilter);
-
-    LoadStdFont('STDTXT', 'STDFONT', gStdFont);
-    LoadFont('MENUTXT', 'MENUFONT', gMenuFont);
-    LoadFont('SMALLTXT', 'SMALLFONT', gMenuSmallFont);
-
     g_Game_ClearLoading();
     g_Game_SetLoadingText(Format('Doom 2D: Forever %s', [GAME_VERSION]), 0, False);
     g_Game_SetLoadingText('', 0, False);
@@ -2468,53 +2399,10 @@ begin
 end;
 
 procedure g_Game_LoadData();
-var
-  wl, hl: Integer;
-  wr, hr: Integer;
-  wb, hb: Integer;
-  wm, hm: Integer;
 begin
   if DataLoaded then Exit;
 
   e_WriteLog('Loading game data...', TMsgType.Notify);
-
-  g_Texture_CreateWADEx('NOTEXTURE', GameWAD+':TEXTURES\NOTEXTURE');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_HUD', GameWAD+':TEXTURES\HUD');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_HUDAIR', GameWAD+':TEXTURES\AIRBAR');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_HUDJET', GameWAD+':TEXTURES\JETBAR');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_HUDBG', GameWAD+':TEXTURES\HUDBG');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_ARMORHUD', GameWAD+':TEXTURES\ARMORHUD');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_REDFLAG', GameWAD+':TEXTURES\FLAGHUD_R_BASE');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_REDFLAG_S', GameWAD+':TEXTURES\FLAGHUD_R_STOLEN');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_REDFLAG_D', GameWAD+':TEXTURES\FLAGHUD_R_DROP');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_BLUEFLAG', GameWAD+':TEXTURES\FLAGHUD_B_BASE');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_BLUEFLAG_S', GameWAD+':TEXTURES\FLAGHUD_B_STOLEN');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_BLUEFLAG_D', GameWAD+':TEXTURES\FLAGHUD_B_DROP');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_TALKBUBBLE', GameWAD+':TEXTURES\TALKBUBBLE');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_INVULPENTA', GameWAD+':TEXTURES\PENTA');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_INDICATOR', GameWAD+':TEXTURES\PLRIND');
-
-  hasPBarGfx := true;
-  if not g_Texture_CreateWADEx('UI_GFX_PBAR_LEFT', GameWAD+':TEXTURES\LLEFT') then hasPBarGfx := false;
-  if not g_Texture_CreateWADEx('UI_GFX_PBAR_MARKER', GameWAD+':TEXTURES\LMARKER') then hasPBarGfx := false;
-  if not g_Texture_CreateWADEx('UI_GFX_PBAR_MIDDLE', GameWAD+':TEXTURES\LMIDDLE') then hasPBarGfx := false;
-  if not g_Texture_CreateWADEx('UI_GFX_PBAR_RIGHT', GameWAD+':TEXTURES\LRIGHT') then hasPBarGfx := false;
-
-  if hasPBarGfx then
-  begin
-    g_Texture_GetSize('UI_GFX_PBAR_LEFT', wl, hl);
-    g_Texture_GetSize('UI_GFX_PBAR_RIGHT', wr, hr);
-    g_Texture_GetSize('UI_GFX_PBAR_MIDDLE', wb, hb);
-    g_Texture_GetSize('UI_GFX_PBAR_MARKER', wm, hm);
-    if (wl > 0) and (hl > 0) and (wr > 0) and (hr = hl) and (wb > 0) and (hb = hl) and (wm > 0) and (hm > 0) and (hm <= hl) then
-    begin
-      // yay!
-    end
-    else
-    begin
-      hasPBarGfx := false;
-    end;
-  end;
 
   g_Sound_CreateWADEx('SOUND_GAME_TELEPORT', GameWAD+':SOUNDS\TELEPORT');
   g_Sound_CreateWADEx('SOUND_GAME_NOTELEPORT', GameWAD+':SOUNDS\NOTELEPORT');
@@ -2614,8 +2502,6 @@ begin
   gMusic.Free();
   g_Game_FreeData();
   g_PlayerModel_FreeData();
-  g_Texture_DeleteAll();
-  g_Frames_DeleteAll();
 {$IFNDEF HEADLESS}
   //g_Menu_Free(); //k8: this segfaults after resolution change; who cares?
 {$ENDIF}
@@ -2640,18 +2526,6 @@ begin
 
   e_WriteLog('Releasing game data...', TMsgType.Notify);
 
-  g_Texture_Delete('NOTEXTURE');
-  g_Texture_Delete('TEXTURE_PLAYER_HUD');
-  g_Texture_Delete('TEXTURE_PLAYER_HUDBG');
-  g_Texture_Delete('TEXTURE_PLAYER_ARMORHUD');
-  g_Texture_Delete('TEXTURE_PLAYER_REDFLAG');
-  g_Texture_Delete('TEXTURE_PLAYER_REDFLAG_S');
-  g_Texture_Delete('TEXTURE_PLAYER_REDFLAG_D');
-  g_Texture_Delete('TEXTURE_PLAYER_BLUEFLAG');
-  g_Texture_Delete('TEXTURE_PLAYER_BLUEFLAG_S');
-  g_Texture_Delete('TEXTURE_PLAYER_BLUEFLAG_D');
-  g_Texture_Delete('TEXTURE_PLAYER_TALKBUBBLE');
-  g_Texture_Delete('TEXTURE_PLAYER_INVULPENTA');
   g_Sound_Delete('SOUND_GAME_TELEPORT');
   g_Sound_Delete('SOUND_GAME_NOTELEPORT');
   g_Sound_Delete('SOUND_GAME_SECRET');
@@ -3537,7 +3411,7 @@ begin
   begin
     //result := g_Map_Load(gGameSettings.WAD + ':\' + ResName);
     result := g_Map_Load(NewWAD+':\'+ResName);
-    r_Map_LoadTextures;
+    r_Render_LoadTextures;
   end;
   if Result then
     begin

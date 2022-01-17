@@ -20,10 +20,13 @@ interface
   procedure r_Render_Initialize;
   procedure r_Render_Finalize;
 
-  procedure r_Render_Resize (w, h: Integer);
-
   procedure r_Render_Load;
   procedure r_Render_Free;
+
+  procedure r_Render_LoadTextures;
+  procedure r_Render_FreeTextures;
+
+  procedure r_Render_Resize (w, h: Integer);
 
   procedure r_Render_Update;
 
@@ -36,8 +39,8 @@ implementation
     SysUtils, Classes, Math,
     e_log, g_system,
     g_game, g_options, g_console,
-    r_window, r_graphics, r_console, r_playermodel,
-    r_weapons, r_items, r_gfx, r_monsters, r_map, r_player
+    r_window, r_graphics, r_console, r_playermodel, r_textures, r_animations,
+    r_weapons, r_items, r_gfx, r_monsters, r_map, r_player, r_game
   ;
 
   var
@@ -76,8 +79,21 @@ implementation
     end
   end;
 
+  procedure r_Render_LoadTextures;
+  begin
+    r_Game_LoadTextures;
+    r_Map_LoadTextures;
+  end;
+
+  procedure r_Render_FreeTextures;
+  begin
+    r_Map_FreeTextures;
+    r_Game_FreeTextures;
+  end;
+
   procedure r_Render_Load;
   begin
+    r_Game_Load; // load first!
     r_Player_Load;
     r_Map_Load;
     r_PlayerModel_Load;
@@ -96,6 +112,9 @@ implementation
     r_PlayerModel_Free;
     r_Map_Free;
     r_Player_Free;
+    r_Game_Free;
+    g_Texture_DeleteAll;
+    g_Frames_DeleteAll;
   end;
 
   procedure r_Render_Initialize;

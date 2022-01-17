@@ -26,7 +26,7 @@ implementation
 
   uses
     SysUtils, Classes, Math, e_log,
-    r_graphics, g_options, r_animations,
+    r_graphics, g_options, r_animations, r_game,
     MAPDEF,
     g_base, g_basic, g_game, g_phys,
     g_monsters

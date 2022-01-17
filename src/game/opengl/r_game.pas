@@ -17,9 +17,18 @@ unit r_game;
 
 interface
 
+  procedure r_Game_Load;
+  procedure r_Game_Free;
+
+  procedure r_Game_LoadTextures;
+  procedure r_Game_FreeTextures;
+
   procedure r_Game_Draw;
   procedure r_Game_DrawLoadingStat;
   procedure r_Game_DrawMenuBackground (tex: AnsiString);
+
+  var
+    gStdFont: DWORD;
 
 implementation
 
@@ -45,6 +54,85 @@ implementation
     FPS: Word;
     FPSCounter: Word;
     FPSTime: LongWord;
+    hasPBarGfx: Boolean;
+
+  procedure r_Game_Load;
+    var
+      wl, hl: Integer;
+      wr, hr: Integer;
+      wb, hb: Integer;
+      wm, hm: Integer;
+  begin
+    // early load
+    g_Texture_CreateWADEx('MENU_BACKGROUND', GameWAD + ':TEXTURES\TITLE', gTextureFilter);
+    g_Texture_CreateWADEx('INTER', GameWAD + ':TEXTURES\INTER', gTextureFilter);
+    g_Texture_CreateWADEx('ENDGAME_EN', GameWAD + ':TEXTURES\ENDGAME_EN', gTextureFilter);
+    g_Texture_CreateWADEx('ENDGAME_RU', GameWAD + ':TEXTURES\ENDGAME_RU', gTextureFilter);
+    LoadStdFont('STDTXT', 'STDFONT', gStdFont);
+    LoadFont('MENUTXT', 'MENUFONT', gMenuFont);
+    LoadFont('SMALLTXT', 'SMALLFONT', gMenuSmallFont);
+    // game data
+    g_Texture_CreateWADEx('NOTEXTURE', GameWAD + ':TEXTURES\NOTEXTURE');
+    g_Texture_CreateWADEx('TEXTURE_PLAYER_HUD', GameWAD + ':TEXTURES\HUD');
+    g_Texture_CreateWADEx('TEXTURE_PLAYER_HUDAIR', GameWAD + ':TEXTURES\AIRBAR');
+    g_Texture_CreateWADEx('TEXTURE_PLAYER_HUDJET', GameWAD + ':TEXTURES\JETBAR');
+    g_Texture_CreateWADEx('TEXTURE_PLAYER_HUDBG', GameWAD + ':TEXTURES\HUDBG');
+    g_Texture_CreateWADEx('TEXTURE_PLAYER_ARMORHUD', GameWAD + ':TEXTURES\ARMORHUD');
+    g_Texture_CreateWADEx('TEXTURE_PLAYER_REDFLAG', GameWAD + ':TEXTURES\FLAGHUD_R_BASE');
+    g_Texture_CreateWADEx('TEXTURE_PLAYER_REDFLAG_S', GameWAD + ':TEXTURES\FLAGHUD_R_STOLEN');
+    g_Texture_CreateWADEx('TEXTURE_PLAYER_REDFLAG_D', GameWAD + ':TEXTURES\FLAGHUD_R_DROP');
+    g_Texture_CreateWADEx('TEXTURE_PLAYER_BLUEFLAG', GameWAD + ':TEXTURES\FLAGHUD_B_BASE');
+    g_Texture_CreateWADEx('TEXTURE_PLAYER_BLUEFLAG_S', GameWAD + ':TEXTURES\FLAGHUD_B_STOLEN');
+    g_Texture_CreateWADEx('TEXTURE_PLAYER_BLUEFLAG_D', GameWAD + ':TEXTURES\FLAGHUD_B_DROP');
+    g_Texture_CreateWADEx('TEXTURE_PLAYER_TALKBUBBLE', GameWAD + ':TEXTURES\TALKBUBBLE');
+    g_Texture_CreateWADEx('TEXTURE_PLAYER_INVULPENTA', GameWAD + ':TEXTURES\PENTA');
+    g_Texture_CreateWADEx('TEXTURE_PLAYER_INDICATOR', GameWAD + ':TEXTURES\PLRIND');
+    // bar
+    hasPBarGfx := true;
+    if not g_Texture_CreateWADEx('UI_GFX_PBAR_LEFT', GameWAD+':TEXTURES\LLEFT') then hasPBarGfx := false;
+    if not g_Texture_CreateWADEx('UI_GFX_PBAR_MARKER', GameWAD+':TEXTURES\LMARKER') then hasPBarGfx := false;
+    if not g_Texture_CreateWADEx('UI_GFX_PBAR_MIDDLE', GameWAD+':TEXTURES\LMIDDLE') then hasPBarGfx := false;
+    if not g_Texture_CreateWADEx('UI_GFX_PBAR_RIGHT', GameWAD+':TEXTURES\LRIGHT') then hasPBarGfx := false;
+    if hasPBarGfx then
+    begin
+      g_Texture_GetSize('UI_GFX_PBAR_LEFT', wl, hl);
+      g_Texture_GetSize('UI_GFX_PBAR_RIGHT', wr, hr);
+      g_Texture_GetSize('UI_GFX_PBAR_MIDDLE', wb, hb);
+      g_Texture_GetSize('UI_GFX_PBAR_MARKER', wm, hm);
+      if (wl > 0) and (hl > 0) and (wr > 0) and (hr = hl) and (wb > 0) and (hb = hl) and (wm > 0) and (hm > 0) and (hm <= hl) then
+      begin
+        // yay!
+      end
+      else
+        hasPBarGfx := false;
+    end;
+  end;
+
+  procedure r_Game_Free;
+  begin
+    g_Texture_Delete('NOTEXTURE');
+    g_Texture_Delete('TEXTURE_PLAYER_HUD');
+    g_Texture_Delete('TEXTURE_PLAYER_HUDBG');
+    g_Texture_Delete('TEXTURE_PLAYER_ARMORHUD');
+    g_Texture_Delete('TEXTURE_PLAYER_REDFLAG');
+    g_Texture_Delete('TEXTURE_PLAYER_REDFLAG_S');
+    g_Texture_Delete('TEXTURE_PLAYER_REDFLAG_D');
+    g_Texture_Delete('TEXTURE_PLAYER_BLUEFLAG');
+    g_Texture_Delete('TEXTURE_PLAYER_BLUEFLAG_S');
+    g_Texture_Delete('TEXTURE_PLAYER_BLUEFLAG_D');
+    g_Texture_Delete('TEXTURE_PLAYER_TALKBUBBLE');
+    g_Texture_Delete('TEXTURE_PLAYER_INVULPENTA');
+  end;
+
+  procedure r_Game_LoadTextures;
+  begin
+    g_Texture_CreateWADEx('TEXTURE_endpic', EndPicPath, gTextureFilter);
+  end;
+
+  procedure r_Game_FreeTextures;
+  begin
+    g_Texture_Delete('TEXTURE_endpic')
+  end;
 
 function GetActivePlayer_ByID(ID: Integer): TPlayer;
 var
