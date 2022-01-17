@@ -20,7 +20,7 @@ interface
 uses
   SysUtils, Classes,
   MAPDEF,
-  g_base, g_basic, g_player, r_graphics, g_res_downloader,
+  g_base, g_basic, g_player, g_res_downloader,
   g_sound, g_gui, utils, md5, mempool, xprofiler,
   g_touch, g_weapons;
 
@@ -896,7 +896,6 @@ var
   UPSTime: LongWord;
   DataLoaded: Boolean = False;
   MessageTime: Word;
-  MessageLineLength: Integer = 80;
   MapList: SSArray = nil;
   MapIndex: Integer = -1;
   InterReadyTime: Integer = -1;
@@ -6309,12 +6308,11 @@ begin
   end;
 end;
 
-procedure g_Game_Message(Msg: string; Time: Word);
-begin
-  MessageLineLength := (gScreenWidth - 204) div e_CharFont_GetMaxWidth(gMenuFont);
-  MessageText := b_Text_Wrap(b_Text_Format(Msg), MessageLineLength);
-  MessageTime := Time;
-end;
+  procedure g_Game_Message (Msg: string; Time: Word);
+  begin
+    MessageText := Msg;
+    MessageTime := Time;
+  end;
 
 procedure g_Game_ChatSound(Text: String; Taunt: Boolean = True);
 const

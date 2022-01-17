@@ -40,7 +40,7 @@ implementation
     g_holmes,
 {$ENDIF}
     SysUtils, Classes, Math,
-    g_base, r_graphics,
+    g_base, g_basic, r_graphics,
     g_system, g_touch,
     MAPDEF, xprofiler, utils, wadreader,
     e_input, e_sound,
@@ -1712,6 +1712,8 @@ var
   back: string;
   plView1, plView2: TPlayer;
   Split: Boolean;
+  MsgLineLength: Integer;
+  MsgText: String;
 begin
   if gExit = EXIT_QUIT then Exit;
 
@@ -1859,12 +1861,14 @@ begin
       w := 0;
       h := 0;
       e_CharFont_GetSizeFmt(gMenuFont, MessageText, w, h);
+      MsgLineLength := (gScreenWidth - 204) div e_CharFont_GetMaxWidth(gMenuFont);
+      MsgText := b_Text_Wrap(b_Text_Format(MessageText), MsgLineLength);
       if Split then
         e_CharFont_PrintFmt(gMenuFont, (gScreenWidth div 2)-(w div 2),
-                        (gScreenHeight div 2)-(h div 2), MessageText)
+                        (gScreenHeight div 2)-(h div 2), MsgText)
       else
         e_CharFont_PrintFmt(gMenuFont, (gScreenWidth div 2)-(w div 2),
-                  Round(gScreenHeight / 2.75)-(h div 2), MessageText);
+                  Round(gScreenHeight / 2.75)-(h div 2), MsgText);
     end;
 
     if IsDrawStat or (gSpectMode = SPECT_STATS) then
