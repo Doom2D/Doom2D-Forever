@@ -112,7 +112,7 @@ implementation
 
 uses
   Math, g_map, g_player, g_gfx, g_sound, g_panel,
-  g_console, g_options, g_game, r_gfx,
+  g_console, g_options, g_game,
   g_triggers, MAPDEF, e_log, g_monsters, g_saveload,
   g_language, g_netmsg, g_grid,
   geom, binheap, hashtable, utils, xstreams;
@@ -2011,7 +2011,7 @@ end;
 
 procedure g_Weapon_bfghit(x, y: Integer);
 begin
-  r_GFX_OnceAnim(R_GFX_BFG_HIT, x - 32, y - 32);
+  g_GFX_QueueEffect(R_GFX_BFG_HIT, x - 32, y - 32);
 end;
 
 procedure g_Weapon_pistol(x, y, xd, yd: Integer; SpawnerUID: Word;
@@ -2204,7 +2204,7 @@ begin
             end
             else
             begin
-              r_GFX_OnceAnim(R_GFX_SMOKE_TRANS, Obj.X-14+Random(9), cy-20+Random(9));
+              g_GFX_QueueEffect(R_GFX_SMOKE_TRANS, Obj.X-14+Random(9), cy-20+Random(9));
             end;
 
           // Попали в кого-то или в стену:
@@ -2219,12 +2219,12 @@ begin
 
               if ShotType = WEAPON_SKEL_FIRE then
                 begin // Взрыв снаряда Скелета
-                  r_GFX_OnceAnim(R_GFX_EXPLODE_SKELFIRE, Obj.X + 32 - 58, Obj.Y + 8 - 36);
+                  g_GFX_QueueEffect(R_GFX_EXPLODE_SKELFIRE, Obj.X + 32 - 58, Obj.Y + 8 - 36);
                   g_DynLightExplosion((Obj.X+32), (Obj.Y+8), 64, 1, 0, 0);
                 end
               else
                 begin // Взрыв Ракеты
-                  r_GFX_OnceAnim(R_GFX_EXPLODE_ROCKET, cx - 64, cy - 64);
+                  g_GFX_QueueEffect(R_GFX_EXPLODE_ROCKET, cx - 64, cy - 64);
                   g_DynLightExplosion(cx, cy, 64, 1, 0, 0);
                 end;
 
@@ -2270,9 +2270,9 @@ begin
                (Timeout < 1) then
             begin
               if ShotType = WEAPON_PLASMA then
-                r_GFX_OnceAnim(R_GFX_EXPLODE_PLASMA, cx - 16, cy - 16)
+                g_GFX_QueueEffect(R_GFX_EXPLODE_PLASMA, cx - 16, cy - 16)
               else
-                r_GFX_OnceAnim(R_GFX_EXPLODE_BSPFIRE, cx - 16, cy - 16);
+                g_GFX_QueueEffect(R_GFX_EXPLODE_BSPFIRE, cx - 16, cy - 16);
               g_DynLightExplosion(cx, cy, 32, 0, 0.5, 0.5);
               g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEPLASMA', Obj.X, Obj.Y);
               ShotType := 0;
@@ -2294,7 +2294,7 @@ begin
               begin
                 tcx := Random(8);
                 tcy := Random(8);
-                r_GFX_OnceAnim(R_GFX_SMOKE, cx-4+tcx-(R_GFX_SMOKE_WIDTH div 2), cy-4+tcy-(R_GFX_SMOKE_HEIGHT div 2));
+                g_GFX_QueueEffect(R_GFX_SMOKE, cx-4+tcx-(R_GFX_SMOKE_WIDTH div 2), cy-4+tcy-(R_GFX_SMOKE_HEIGHT div 2));
               end
               else
               begin
@@ -2348,7 +2348,7 @@ begin
                 MOVE_HITCEIL: begin tcx := cx-12+Random(24); tcy := cy+6+Random(8); end;
                 else begin tcx := cx-4+Random(8); tcy := cy-4+Random(8); end;
               end;
-              r_GFX_OnceAnim(R_GFX_FLAME_RAND, tcx - (R_GFX_FLAME_WIDTH div 2), tcy - (R_GFX_FLAME_HEIGHT div 2));
+              g_GFX_QueueEffect(R_GFX_FLAME_RAND, tcx - (R_GFX_FLAME_WIDTH div 2), tcy - (R_GFX_FLAME_HEIGHT div 2));
               //g_DynLightExplosion(tcx, tcy, 1, 1, 0.8, 0.3);
             end;
           end;
@@ -2371,7 +2371,7 @@ begin
             begin
             // Лучи BFG:
               if g_Game_IsServer then g_Weapon_BFG9000(cx, cy, SpawnerUID);
-              r_GFX_OnceAnim(R_GFX_EXPLODE_BFG, cx - 64, cy - 64);
+              g_GFX_QueueEffect(R_GFX_EXPLODE_BFG, cx - 64, cy - 64);
               g_DynLightExplosion(cx, cy, 96, 0, 1, 0);
               g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', Obj.X, Obj.Y);
               ShotType := 0;
@@ -2399,9 +2399,9 @@ begin
                (Timeout < 1) then
             begin
               case ShotType of
-                WEAPON_IMP_FIRE: r_GFX_OnceAnim(R_GFX_EXPLODE_IMPFIRE, cx - 32, cy - 32);
-                WEAPON_CACO_FIRE: r_GFX_OnceAnim(R_GFX_EXPLODE_CACOFIRE, cx - 32, cy - 32);
-                WEAPON_BARON_FIRE: r_GFX_OnceAnim(R_GFX_EXPLODE_BARONFIRE, cx - 32, cy - 32);
+                WEAPON_IMP_FIRE: g_GFX_QueueEffect(R_GFX_EXPLODE_IMPFIRE, cx - 32, cy - 32);
+                WEAPON_CACO_FIRE: g_GFX_QueueEffect(R_GFX_EXPLODE_CACOFIRE, cx - 32, cy - 32);
+                WEAPON_BARON_FIRE: g_GFX_QueueEffect(R_GFX_EXPLODE_BARONFIRE, cx - 32, cy - 32);
               end;
               g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
               ShotType := 0;
@@ -2420,7 +2420,7 @@ begin
                (Timeout < 1) then
             begin
             // Взрыв:
-              r_GFX_OnceAnim(R_GFX_EXPLODE_ROCKET, cx - 64, cy - 64);
+              g_GFX_QueueEffect(R_GFX_EXPLODE_ROCKET, cx - 64, cy - 64);
               g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
               ShotType := 0;
             end;
@@ -2602,9 +2602,9 @@ begin
         if Loud then
         begin
           if ShotType = WEAPON_SKEL_FIRE then
-            r_GFX_OnceAnim(R_GFX_EXPLODE_SKELFIRE, (Obj.X + 32) - 32, (Obj.Y + 8) - 32)
+            g_GFX_QueueEffect(R_GFX_EXPLODE_SKELFIRE, (Obj.X + 32) - 32, (Obj.Y + 8) - 32)
           else
-            r_GFX_OnceAnim(R_GFX_EXPLODE_ROCKET, cx - 64, cy - 64);
+            g_GFX_QueueEffect(R_GFX_EXPLODE_ROCKET, cx - 64, cy - 64);
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', Obj.X, Obj.Y);
         end;
       end;
@@ -2614,16 +2614,16 @@ begin
         if loud then
         begin
           if ShotType = WEAPON_PLASMA then
-            r_GFX_OnceAnim(R_GFX_EXPLODE_PLASMA, cx - 16, cy - 16)
+            g_GFX_QueueEffect(R_GFX_EXPLODE_PLASMA, cx - 16, cy - 16)
           else
-            r_GFX_OnceAnim(R_GFX_EXPLODE_BSPFIRE, cx - 16, cy - 16);
+            g_GFX_QueueEffect(R_GFX_EXPLODE_BSPFIRE, cx - 16, cy - 16);
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEPLASMA', Obj.X, Obj.Y);
         end;
       end;
 
       WEAPON_BFG: // BFG
       begin
-        r_GFX_OnceAnim(R_GFX_EXPLODE_BFG, cx - 64, cy - 64);
+        g_GFX_QueueEffect(R_GFX_EXPLODE_BFG, cx - 64, cy - 64);
         g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', Obj.X, Obj.Y);
       end;
 
@@ -2632,9 +2632,9 @@ begin
         if loud then
         begin
           case ShotType of
-            WEAPON_IMP_FIRE: r_GFX_OnceAnim(R_GFX_EXPLODE_IMPFIRE, cx - 32, cy - 32);
-            WEAPON_CACO_FIRE: r_GFX_OnceAnim(R_GFX_EXPLODE_CACOFIRE, cx - 32, cy - 32);
-            WEAPON_BARON_FIRE: r_GFX_OnceAnim(R_GFX_EXPLODE_BARONFIRE, cx - 32, cy - 32);
+            WEAPON_IMP_FIRE: g_GFX_QueueEffect(R_GFX_EXPLODE_IMPFIRE, cx - 32, cy - 32);
+            WEAPON_CACO_FIRE: g_GFX_QueueEffect(R_GFX_EXPLODE_CACOFIRE, cx - 32, cy - 32);
+            WEAPON_BARON_FIRE: g_GFX_QueueEffect(R_GFX_EXPLODE_BARONFIRE, cx - 32, cy - 32);
           end;
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
         end;
@@ -2642,7 +2642,7 @@ begin
 
       WEAPON_MANCUB_FIRE: // Выстрел Манкубуса
       begin
-        r_GFX_OnceAnim(R_GFX_EXPLODE_ROCKET, cx - 64, cy - 64);
+        g_GFX_QueueEffect(R_GFX_EXPLODE_ROCKET, cx - 64, cy - 64);
         g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
       end;
     end; // case ShotType of...

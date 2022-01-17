@@ -93,7 +93,7 @@ implementation
 
 uses
   Math,
-  g_basic, g_sound, g_gfx, g_map, r_gfx,
+  g_basic, g_sound, g_gfx, g_map,
   g_game, g_triggers, g_console, g_player, g_net, g_netmsg,
   e_log, g_options,
   g_grid, binheap, idpool, utils, xstreams;
@@ -509,7 +509,7 @@ begin
         if (RespawnTime = 0) and (not alive) then
         begin
           if not QuietRespawn then g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', InitX, InitY);
-          r_GFX_OnceAnim(R_GFX_ITEM_RESPAWN, InitX + (Obj.Rect.Width div 2) - 16, InitY + (Obj.Rect.Height div 2) - 16);
+          g_GFX_QueueEffect(R_GFX_ITEM_RESPAWN, InitX + (Obj.Rect.Width div 2) - 16, InitY + (Obj.Rect.Height div 2) - 16);
           Obj.oldX := InitX;
           Obj.oldY := InitY;
           Obj.X := InitX;

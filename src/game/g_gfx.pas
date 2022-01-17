@@ -28,9 +28,6 @@ const
   BLOOD_CSPARKS = 2;
   BLOOD_COMBINE = 3;
 
-  ONCEANIM_NONE  = 0;
-  ONCEANIM_SMOKE = 1;
-
   MARK_FREE     = 0;
   MARK_WALL     = 1;
   MARK_WATER    = 2;
@@ -44,6 +41,30 @@ const
   MARK_LIQUID   = MARK_WATER or MARK_ACID;
   MARK_LIFT     = MARK_LIFTDOWN or MARK_LIFTUP or MARK_LIFTLEFT or MARK_LIFTRIGHT;
 
+  R_GFX_NONE = 0;
+  R_GFX_TELEPORT = 1;
+  R_GFX_FLAME = 2;
+  R_GFX_EXPLODE_ROCKET = 3;
+  R_GFX_EXPLODE_BFG = 4;
+  R_GFX_BFG_HIT = 5;
+  R_GFX_FIRE = 6;
+  R_GFX_ITEM_RESPAWN = 7;
+  R_GFX_SMOKE = 8;
+  R_GFX_EXPLODE_SKELFIRE = 9;
+  R_GFX_EXPLODE_PLASMA = 10;
+  R_GFX_EXPLODE_BSPFIRE = 11;
+  R_GFX_EXPLODE_IMPFIRE = 12;
+  R_GFX_EXPLODE_CACOFIRE = 13;
+  R_GFX_EXPLODE_BARONFIRE = 14;
+  R_GFX_TELEPORT_FAST = 15;
+  R_GFX_SMOKE_TRANS = 16;
+  R_GFX_FLAME_RAND = 17;
+  R_GFX_LAST = 17;
+
+  R_GFX_FLAME_WIDTH = 32;
+  R_GFX_FLAME_HEIGHT = 32;
+  R_GFX_SMOKE_WIDTH = 32;
+  R_GFX_SMOKE_HEIGHT = 32;
 
 procedure g_GFX_Init ();
 procedure g_GFX_Free ();
@@ -60,6 +81,8 @@ procedure g_GFX_SetMax (count: Integer);
 function  g_GFX_GetMax (): Integer;
 
 procedure g_Mark (x, y, Width, Height: Integer; t: Byte; st: Boolean=true);
+
+procedure g_GFX_QueueEffect (AnimType, X, Y: Integer);
 
 procedure g_GFX_Update ();
 
@@ -125,6 +148,9 @@ function awmIsSetHolmes (x, y: Integer): Boolean; inline;
 implementation
 
 uses
+  {$IFNDEF HEADLESS}
+    r_render,
+  {$ENDIF}
   g_map, g_panel, g_basic, Math,
   g_options, g_console, SysUtils, g_triggers, MAPDEF,
   g_game, g_language, g_net, utils, xprofiler;
@@ -148,6 +174,12 @@ var
   awakeMapHlm: packed array of LongWord = nil;
   {$ENDIF}
 
+  procedure g_GFX_QueueEffect (AnimType, X, Y: Integer);
+  begin
+    {$IFNDEF HEADLESS}
+      r_Render_QueueEffect(AnimType, X, Y)
+    {$ENDIF}
+  end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 function awmIsSetHolmes (x, y: Integer): Boolean; inline;

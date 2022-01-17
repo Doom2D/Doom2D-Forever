@@ -178,7 +178,7 @@ implementation
   end;
 
   procedure r_Monsters_Load;
-    var m, a: Integer; s, info: String; FramesID: DWORD;
+    var m, a: Integer; s: String; FramesID: DWORD;
   begin
     g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARREL_SLEEP', GameWAD+':MTEXTURES\BARREL_SLEEP', 64, 64, 3);
     g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARREL_DIE', GameWAD+':MTEXTURES\BARREL_DIE', 64, 64, 4);

@@ -21,14 +21,19 @@ interface
 
 implementation
 
-  uses e_sound, g_system, g_net, r_window;
+  uses
+    {$IFNDEF HEADLESS}
+      r_render,
+    {$ENDIF}
+    e_sound, g_system, g_net
+  ;
 
   procedure ProcessLoading (forceUpdate: Boolean = False);
   begin
     if sys_HandleInput() = False then
     begin
       {$IFNDEF HEADLESS}
-        r_Window_DrawLoading(forceUpdate);
+        r_Render_DrawLoading(forceUpdate);
       {$ENDIF}
       e_SoundUpdate();
       // TODO: At the moment, I left here only host network processing, because the client code must

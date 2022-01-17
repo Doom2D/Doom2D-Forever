@@ -17,6 +17,8 @@ unit r_render;
 
 interface
 
+  uses g_base; // TRectWH
+
   procedure r_Render_Initialize;
   procedure r_Render_Finalize;
 
@@ -32,6 +34,11 @@ interface
   procedure r_Render_Apply;
 
   function r_Render_WriteScreenShot (filename: String): Boolean;
+
+  function r_Render_GetGibRect (m, id: Integer): TRectWH;
+  procedure r_Render_QueueEffect (AnimType, X, Y: Integer);
+
+  procedure r_Render_DrawLoading (force: Boolean); // !!! remove it
 
 implementation
 
@@ -139,8 +146,10 @@ implementation
 
   procedure r_Render_Update;
   begin
+    r_GFX_Update;
     r_Map_Update;
     r_PlayerModel_Update;
+    r_Console_Update;
   end;
 
   procedure r_Render_Resize (w, h: Integer);
@@ -194,6 +203,21 @@ implementation
       s.Free;
     finally
     end
+  end;
+
+  function r_Render_GetGibRect (m, id: Integer): TRectWH;
+  begin
+    Result := r_PlayerModel_GetGibRect(m, id)
+  end;
+
+  procedure r_Render_QueueEffect (AnimType, X, Y: Integer);
+  begin
+    r_GFX_OnceAnim(AnimType, X, Y)
+  end;
+
+  procedure r_Render_DrawLoading (force: Boolean);
+  begin
+    r_Window_DrawLoading(force)
   end;
 
 end.

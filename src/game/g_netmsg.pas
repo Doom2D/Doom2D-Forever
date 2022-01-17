@@ -284,7 +284,7 @@ function IsValidFilePath(const S: String): Boolean;
 implementation
 
 uses
-  Math, ENet, e_input, e_log, g_base, g_basic, r_gfx,
+  Math, ENet, e_input, e_log, g_base, g_basic,
   g_textures, g_gfx, g_sound, g_console, g_options,
   g_game, g_player, g_map, g_panel, g_items, g_weapons, g_phys, g_gui,
   g_language, g_monsters, g_netmaster, utils, wadreader, MAPDEF;
@@ -1736,40 +1736,40 @@ begin
 
     NET_GFX_TELE:
     begin
-      r_GFX_OnceAnim(R_GFX_TELEPORT_FAST, X, Y);
+      g_GFX_QueueEffect(R_GFX_TELEPORT_FAST, X, Y);
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_GAME_TELEPORT', X, Y);
     end;
 
     NET_GFX_EXPLODE:
     begin
-      r_GFX_OnceAnim(R_GFX_EXPLODE_ROCKET, X - 64, Y - 64);
+      g_GFX_QueueEffect(R_GFX_EXPLODE_ROCKET, X - 64, Y - 64);
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', X, Y);
     end;
 
     NET_GFX_BFGEXPL:
     begin
-      r_GFX_OnceAnim(R_GFX_EXPLODE_BFG, X - 64, Y - 64);
+      g_GFX_QueueEffect(R_GFX_EXPLODE_BFG, X - 64, Y - 64);
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', X, Y);
     end;
 
     NET_GFX_BFGHIT:
     begin
-      r_GFX_OnceAnim(R_GFX_BFG_HIT, X - 32, Y - 32);
+      g_GFX_QueueEffect(R_GFX_BFG_HIT, X - 32, Y - 32);
     end;
 
     NET_GFX_FIRE:
     begin
-      r_GFX_OnceAnim(R_GFX_FIRE, X, Y);
+      g_GFX_QueueEffect(R_GFX_FIRE, X, Y);
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_FIRE', X, Y);
     end;
 
     NET_GFX_RESPAWN:
     begin
-      r_GFX_OnceAnim(R_GFX_ITEM_RESPAWN, X, Y);
+      g_GFX_QueueEffect(R_GFX_ITEM_RESPAWN, X, Y);
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', X, Y);
     end;
@@ -2732,7 +2732,7 @@ begin
   if not Quiet then
   begin
     g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', X, Y);
-    r_GFX_OnceAnim(R_GFX_ITEM_RESPAWN, X+(it.Obj.Rect.Width div 2)-16, Y+(it.Obj.Rect.Height div 2)-16);
+    g_GFX_QueueEffect(R_GFX_ITEM_RESPAWN, X+(it.Obj.Rect.Width div 2)-16, Y+(it.Obj.Rect.Height div 2)-16);
   end;
 end;
 

@@ -130,7 +130,9 @@ procedure g_Game_Announce_KillCombo(Param: Integer);
 procedure g_Game_Announce_BodyKill(SpawnerUID: Word);
 procedure g_Game_StartVote(Command, Initiator: string);
 procedure g_Game_CheckVote;
-procedure g_TakeScreenShot(Filename: string = '');
+{$IFNDEF HEADLESS}
+  procedure g_TakeScreenShot(Filename: string = '');
+{$ENDIF}
 procedure g_FatalError(Text: String);
 procedure g_SimpleError(Text: String);
 function  g_Game_IsTestMap(): Boolean;
@@ -443,11 +445,14 @@ function gPause (): Boolean; inline;
 implementation
 
 uses
-{$IFDEF ENABLE_HOLMES}
-  g_holmes,
-{$ENDIF}
-  e_res, g_window, g_menu, r_render, r_gfx,
-  e_input, e_log, g_console, r_console, g_items, g_map, g_panel,
+  {$IFDEF ENABLE_HOLMES}
+    g_holmes,
+  {$ENDIF}
+  {$IFNDEF HEADLESS}
+    r_render,
+  {$ENDIF}
+  e_res, g_window, g_menu,
+  e_input, e_log, g_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
   g_language, g_net, g_phys,
@@ -1756,7 +1761,6 @@ begin
   // no need to, as we'll do it in event handler
 
 // Обновляем консоль (движение и сообщения):
-  r_Console_Update;
   g_Console_Update();
 
   if (NetMode = NET_NONE) and (g_Game_IsNet) and (gGameOn or (gState in [STATE_FOLD, STATE_INTERCUSTOM])) then
@@ -2153,7 +2157,6 @@ begin
     g_Weapon_Update();
     g_Monsters_Update();
     g_GFX_Update();
-    r_GFX_Update;
     g_Player_UpdateAll();
     g_Player_UpdatePhysicalObjects();
 
@@ -2264,8 +2267,10 @@ begin
   // Нужно сменить разрешение:
     if gResolutionChange then
     begin
-      e_WriteLog('Changing resolution', TMsgType.Notify);
-      r_Render_Apply;
+      {$IFNDEF HEADLESS}
+        e_WriteLog('Changing resolution', TMsgType.Notify);
+        r_Render_Apply;
+      {$ENDIF}
       gResolutionChange := False;
       g_ActiveWindow := nil;
     end;
@@ -3358,7 +3363,9 @@ begin
   begin
     //result := g_Map_Load(gGameSettings.WAD + ':\' + ResName);
     result := g_Map_Load(NewWAD+':\'+ResName);
-    r_Render_LoadTextures;
+    {$IFNDEF HEADLESS}
+      r_Render_LoadTextures;
+    {$ENDIF}
   end;
   if Result then
     begin
@@ -5783,7 +5790,9 @@ begin
   end
   else if cmd = 'screenshot' then
   begin
-    g_TakeScreenShot()
+    {$IFNDEF HEADLESS}
+      g_TakeScreenShot()
+    {$ENDIF}
   end
   else if (cmd = 'weapnext') or (cmd = 'weapprev') then
   begin
@@ -6067,8 +6076,10 @@ begin
         g_Game_Free();
         g_Game_Quit();
       end;
+{$IFNDEF HEADLESS}
     'r_reset':
-       r_Render_Apply;
+         r_Render_Apply;
+{$ENDIF}
     'r_maxfps':
       begin
         if Length(p) = 2 then
@@ -6114,6 +6125,7 @@ begin
   end;
 end;
 
+{$IFNDEF HEADLESS}
 procedure g_TakeScreenShot(Filename: string = '');
   var t: TDateTime; dir, date, name: String;
 begin
@@ -6134,6 +6146,7 @@ begin
   else
     g_Console_Add(Format(_lc[I_CONSOLE_ERROR_WRITE], [name]));
 end;
+{$ENDIF}
 
 procedure g_Game_InGameMenu(Show: Boolean);
 begin

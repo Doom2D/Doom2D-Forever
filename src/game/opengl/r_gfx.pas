@@ -17,31 +17,13 @@ unit r_gfx;
 
 interface
 
+{
   const
-    R_GFX_NONE = 0;
-    R_GFX_TELEPORT = 1;
-    R_GFX_FLAME = 2;
-    R_GFX_EXPLODE_ROCKET = 3;
-    R_GFX_EXPLODE_BFG = 4;
-    R_GFX_BFG_HIT = 5;
-    R_GFX_FIRE = 6;
-    R_GFX_ITEM_RESPAWN = 7;
-    R_GFX_SMOKE = 8;
-    R_GFX_EXPLODE_SKELFIRE = 9;
-    R_GFX_EXPLODE_PLASMA = 10;
-    R_GFX_EXPLODE_BSPFIRE = 11;
-    R_GFX_EXPLODE_IMPFIRE = 12;
-    R_GFX_EXPLODE_CACOFIRE = 13;
-    R_GFX_EXPLODE_BARONFIRE = 14;
-    R_GFX_TELEPORT_FAST = 15;
-    R_GFX_SMOKE_TRANS = 16;
-    R_GFX_FLAME_RAND = 17;
-    R_GFX_LAST = 17;
-
     R_GFX_FLAME_WIDTH = 32;
     R_GFX_FLAME_HEIGHT = 32;
     R_GFX_SMOKE_WIDTH = 32;
     R_GFX_SMOKE_HEIGHT = 32;
+}
 
   procedure r_GFX_Load;
   procedure r_GFX_Free;

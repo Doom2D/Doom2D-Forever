@@ -521,7 +521,7 @@ var
 implementation
 
 uses
-  e_log, g_sound, g_gfx, g_player, g_game, r_gfx,
+  e_log, g_sound, g_gfx, g_player, g_game,
   g_weapons, g_triggers, g_items, g_options,
   g_console, g_map, Math, g_menu, wadreader,
   g_language, g_netmsg, idpool, utils, xstreams;
@@ -1984,7 +1984,7 @@ begin
   if not silent then
   begin
     g_Sound_PlayExAt('SOUND_GAME_TELEPORT', Obj.X, Obj.Y);
-    r_GFX_OnceAnim(
+    g_GFX_QueueEffect(
       R_GFX_TELEPORT,
       FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
       FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32
@@ -2019,7 +2019,7 @@ begin
 // Эффект телепорта в точке назначения:
   if not silent then
   begin
-    r_GFX_OnceAnim(
+    g_GFX_QueueEffect(
       R_GFX_TELEPORT,
       FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
       FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32
@@ -4297,7 +4297,7 @@ begin
   begin
     x := Obj.X + Obj.Rect.X + Random(Obj.Rect.Width + Times * 2) - (R_GFX_FLAME_WIDTH div 2);
     y := Obj.Y + 8 + Random(8 + Times * 2) + IfThen(FState = MONSTATE_DEAD, 16, 0);
-    r_GFX_OnceAnim(R_GFX_FLAME, x, y);
+    g_GFX_QueueEffect(R_GFX_FLAME, x, y);
   end;
 end;
 

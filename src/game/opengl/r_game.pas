@@ -711,7 +711,9 @@ begin
   // HACK: take stats screenshot immediately after the first frame of the stats showing
   if gScreenshotStats and (not StatShotDone) and (Length(CustomStat.PlayerStat) > 1) then
   begin
+{$IFNDEF HEADLESS}
     g_TakeScreenShot('stats/' + StatFilename);
+{$ENDIF}
     StatShotDone := True;
   end;
 end;
