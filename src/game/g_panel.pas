@@ -25,7 +25,6 @@ uses
 type
   TAddTextureArray = array of record
     Texture: Cardinal; // Textures[Texture]
-    Anim: Boolean;
   end;
 
   ATextureID = array of record
@@ -344,7 +343,7 @@ begin
   for i := 0 to Length(FTextureIDs)-1 do
   begin
     FTextureIDs[i].Texture := AddTextures[i].Texture;
-    FTextureIDs[i].Anim := AddTextures[i].Anim;
+    FTextureIDs[i].Anim := Textures[AddTextures[i].Texture].FramesCount > 0;
     if FTextureIDs[i].Anim then
     begin // Анимированная текстура
       FTextureIDs[i].AnTex := TAnimationState.Create(True, Textures[AddTextures[i].Texture].Speed, Textures[AddTextures[i].Texture].FramesCount);

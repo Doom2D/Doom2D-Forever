@@ -26,8 +26,7 @@ type
   TLevelTexture = record
     TextureName: AnsiString; // as stored in wad
     FullName: AnsiString; // full path to texture // !!! merge it with TextureName
-    case anim: Boolean of
-      true: (framesCount: Byte; speed: Byte);
+    framesCount, speed: Byte;
   end;
 
   TLevelTextureArray = array of TLevelTexture;

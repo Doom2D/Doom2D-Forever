@@ -874,7 +874,6 @@ begin
   SetLength(Textures, Length(Textures) + 1);
   Textures[High(Textures)].TextureName := RecName;
   Textures[High(Textures)].FullName := '';
-  Textures[High(Textures)].Anim := False;
   Result := High(Textures);
   TextNameHash.put(RecName, result);
 end;
@@ -972,154 +971,98 @@ begin
   addResToExternalResList(GetReplacementWad(g_ExtractWadName(map.SkyName)));
 end;
 
-
-function CreateTexture (RecName: AnsiString; Map: string; log: Boolean): Integer;
-var
-  WAD: TWADFile;
-  WADName, ResName: String;
-  ResData: Pointer;
-  ResLen: Integer;
-begin
-  RecName := toLowerCase1251(RecName);
-  if (TextNameHash = nil) then TextNameHash := THashStrInt.Create();
-  if TextNameHash.get(RecName, result) then
+  function CreateTexture (RecName: AnsiString; Map: String; log: Boolean): Integer;
+    var
+      HName: AnsiString;
+      WAD, WADz: TWADFile;
+      WADName, ResName: String;
+      ResData, ReszData: Pointer;
+      ResLen, ReszLen: Integer;
+      cfg: TConfig;
+      id: Integer;
   begin
-    // i found her!
-    //e_LogWritefln('texture ''%s'' already loaded (%s)', [RecName, result]);
-    exit;
-  end;
-
-  Result := -1;
-
-  if (BadTextNameHash <> nil) and BadTextNameHash.has(RecName) then
-    exit; // don't do it again and again
-
-  case RecName of
-    TEXTURE_NAME_WATER, TEXTURE_NAME_ACID1, TEXTURE_NAME_ACID2:
+    Result := -1;
+    HName := toLowerCase1251(RecName);
+    if (TextNameHash = nil) then
+      TextNameHash := THashStrInt.Create();
+    if TextNameHash.get(HName, Result) then
     begin
-      SetLength(Textures, Length(Textures) + 1);
-      Textures[High(Textures)].FullName := RecName;
-      Textures[High(Textures)].TextureName := RecName;
-      Textures[High(Textures)].Anim := False;
-      Result := High(Textures);
-      TextNameHash.put(RecName, result);
+      // e_LogWritefln('CreateTexture: found loaded %s', [Result]);
     end
-  else
-    WADName := GetReplacementWad(g_ExtractWadName(RecName));
-    if (WADName <> '') then
-      addResToExternalResList(WADName);
-    if WADName = '' then
-      WADName := Map;
-    ResName := g_ExtractFilePathName(RecName);
-
-    // !!! we have a better way to check that resource exists?
-    WAD := TWADFile.Create();
-    if WAD.ReadFile(WadName) and WAD.GetResource(ResName, ResData, ResLen, log) then
+    else
     begin
-      FreeMem(ResData);
-      SetLength(Textures, Length(Textures) + 1);
-      Textures[High(Textures)].FullName := WADName + ':' + ResName;
-      Textures[High(Textures)].TextureName := RecName;
-      Textures[High(Textures)].Anim := False;
-      Result := High(Textures);
-      TextNameHash.put(RecName, result);
-    end;
-    WAD.Free;
-  end;
-end;
-
-
-function CreateAnimTexture(RecName: String; Map: string; log: Boolean): Integer;
-var
-  WAD: TWADFile;
-  TextureWAD: PChar = nil;
-  TextData: Pointer = nil;
-  cfg: TConfig = nil;
-  WADName: String;
-  ResLength: Integer;
-  f: Integer;
-begin
-  RecName := toLowerCase1251(RecName);
-  if (TextNameHash = nil) then TextNameHash := THashStrInt.Create();
-  if TextNameHash.get(RecName, result) then
-  begin
-    // i found her!
-    //e_LogWritefln('animated texture ''%s'' already loaded (%s)', [RecName, result]);
-    exit;
-  end;
-
-  result := -1;
-
-  //e_LogWritefln('*** Loading animated texture "%s"', [RecName]);
-
-  if (BadTextNameHash = nil) then BadTextNameHash := THashStrInt.Create();
-  if BadTextNameHash.get(RecName, f) then
-  begin
-    //e_WriteLog(Format('no animation texture %s (don''t worry)', [RecName]), MSG_NOTIFY);
-    exit;
-  end;
-
-  // Читаем WAD-ресурс аним.текстуры из WAD'а в память:
-  WADName := GetReplacementWad(g_ExtractWadName(RecName));
-  if (WADName <> '') then addResToExternalResList(WADName);
-  if WADName = '' then WADName := Map; //WADName := GameDir+'/wads/'+WADName else
-
-  WAD := TWADFile.Create();
-  try
-    WAD.ReadFile(WADName);
-    if not WAD.GetResource(g_ExtractFilePathName(RecName), TextureWAD, ResLength, log) then
-    begin
-      if (BadTextNameHash = nil) then BadTextNameHash := THashStrInt.Create();
-      if log and (not BadTextNameHash.get(RecName, f)) then
+      Result := -1;
+      if (BadTextNameHash = nil) or not BadTextNameHash.has(HName) then
       begin
-        e_WriteLog(Format('Error loading animation texture %s', [RecName]), TMsgType.Warning);
-        //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+        case RecName of
+          TEXTURE_NAME_WATER, TEXTURE_NAME_ACID1, TEXTURE_NAME_ACID2:
+          begin
+            SetLength(Textures, Length(Textures) + 1);
+            Textures[High(Textures)].FullName := RecName;
+            Textures[High(Textures)].TextureName := RecName;
+            Result := High(Textures);
+            TextNameHash.put(RecName, result);
+          end
+        else
+          WADName := GetReplacementWad(g_ExtractWadName(RecName));
+          if (WADName <> '') then
+            addResToExternalResList(WADName);
+          if WADName = '' then
+            WADName := Map;
+          ResName := g_ExtractFilePathName(RecName);
+          WAD := TWADFile.Create();
+          if WAD.ReadFile(WadName) then
+          begin
+            if WAD.GetResource(ResName, ResData, ResLen, log) then
+            begin
+              if IsWadData(ResData, ResLen) then
+              begin
+                WADz := TWADFile.Create();
+                if WADz.ReadMemory(ResData, ResLen) then
+                begin
+                  if WADz.GetResource('TEXT/ANIM', ReszData, ReszLen) then
+                  begin
+                    cfg := TConfig.CreateMem(ReszData, ReszLen);
+                    if cfg <> nil then
+                    begin
+                      SetLength(Textures, Length(Textures) + 1);
+                      Textures[High(Textures)].TextureName := RecName;
+                      Textures[High(Textures)].FullName := WadName + ':' + ResName;
+                      Textures[High(Textures)].FramesCount := cfg.ReadInt('', 'framecount', 0);
+                      Textures[High(Textures)].Speed := cfg.ReadInt('', 'waitcount', 0);
+                      Result := High(Textures);
+                      TextNameHash.put(HName, result);
+                      cfg.Free;
+                    end;
+                    FreeMem(ReszData);
+                  end
+                end;
+                WADz.Free;
+              end
+              else
+              begin
+                SetLength(Textures, Length(Textures) + 1);
+                Textures[High(Textures)].FullName := WADName + ':' + ResName;
+                Textures[High(Textures)].TextureName := RecName;
+                Result := High(Textures);
+                TextNameHash.put(HName, result);
+              end;
+              FreeMem(ResData);
+            end
+          end;
+          WAD.Free;
+        end
       end;
-      BadTextNameHash.put(RecName, -1);
-      exit;
     end;
-    WAD.FreeWAD();
-
-    // нет, это супермен!
-    if not WAD.ReadMemory(TextureWAD, ResLength) then
+    if Result < 0 then
     begin
-      e_WriteLog(Format('Animated texture WAD file "%s" is invalid', [RecName]), TMsgType.Warning);
-      BadTextNameHash.put(RecName, -1);
-      exit;
-    end;
-
-    // Читаем INI-ресурс аним. текстуры и запоминаем его установки:
-    if not WAD.GetResource('TEXT/ANIM', TextData, ResLength) then
-    begin
-      e_WriteLog(Format('Animated texture file "%s" has invalid INI', [RecName]), TMsgType.Warning);
-      BadTextNameHash.put(RecName, -1);
-      exit;
-    end;
-
-    WAD.Free();
-    WAD := nil;
-
-    cfg := TConfig.CreateMem(TextData, ResLength);
-    if cfg <> nil then
-    begin
-      SetLength(Textures, Length(Textures) + 1);
-      Textures[High(Textures)].TextureName := RecName;
-      Textures[High(Textures)].FullName := WadName + ':' + g_ExtractFilePathName(RecName);
-      Textures[High(Textures)].Anim := True;
-      Textures[High(Textures)].FramesCount := cfg.ReadInt('', 'framecount', 0);
-      Textures[High(Textures)].Speed := cfg.ReadInt('', 'waitcount', 0);
-      result := High(Textures);
-      TextNameHash.put(RecName, result);
-      cfg.Free();
-      cfg := nil;
-    end;
-  finally
-    WAD.Free();
-    cfg.Free();
-    if (TextureWAD <> nil) then FreeMem(TextureWAD);
-    if (TextData <> nil) then FreeMem(TextData);
+      if (BadTextNameHash = nil) then
+        BadTextNameHash := THashStrInt.Create();
+      if log and (not BadTextNameHash.get(HName, id)) then
+        e_WriteLog(Format('Error loading texture %s', [RecName]), TMsgType.Warning);
+      BadTextNameHash.put(HName, -1);
+    end
   end;
-end;
 
 procedure CreateItem(Item: TDynRecord);
 begin
@@ -1444,7 +1387,7 @@ var
   FileName, mapResName, TexName, s: AnsiString;
   Data: Pointer;
   Len: Integer;
-  ok, isAnim: Boolean;
+  ok: Boolean;
   CurTex, ntn: Integer;
   rec, texrec: TDynRecord;
   pttit: PTRec;
@@ -1622,23 +1565,17 @@ begin
           else
           begin
             {$IF DEFINED(D2F_DEBUG_TXLOAD)}
-            e_LogWritefln('    Loading texture #%d: %s', [cnt, rec.Resource]);
+              e_LogWritefln('    Loading texture #%d: %s', [cnt, rec.Resource]);
             {$ENDIF}
-            //if g_Map_IsSpecialTexture(s) then e_WriteLog('      SPECIAL!', MSG_NOTIFY);
-            if rec.Anim then
+            ntn := CreateTexture(rec.Resource, FileName, True);
+            if ntn < 0 then
             begin
-              // Анимированная текстура
-              ntn := CreateAnimTexture(rec.Resource, FileName, True);
-              if (ntn < 0) then g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_ANIM], [rec.Resource]));
-            end
-            else
-            begin
-              // Обычная текстура
-              ntn := CreateTexture(rec.Resource, FileName, True);
-              if (ntn < 0) then g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_SIMPLE], [rec.Resource]));
+              if rec.Anim then
+                g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_ANIM], [rec.Resource]))
+              else
+                g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_SIMPLE], [rec.Resource]));
+              ntn := CreateNullTexture(rec.Resource)
             end;
-            if (ntn < 0) then ntn := CreateNullTexture(rec.Resource);
-
             rec.tagInt := ntn; // remember texture number
           end;
           g_Game_StepLoading();
@@ -1778,39 +1715,7 @@ begin
 
               if (k = NNF_NAME_BEFORE) or (k = NNF_NAME_AFTER) then
               begin
-                // Пробуем добавить новую текстуру
-                if texrec.Anim then
-                begin
-                  // Начальная - анимированная, ищем анимированную
-                  isAnim := True;
-                  //e_LogWritefln('000: pannum=%s; TexName=[%s]; FileName=[%s]', [pannum, TexName, FileName]);
-                  ok := CreateAnimTexture(TexName, FileName, False) >= 0;
-                  //e_LogWritefln('001: pannum=%s; TexName=[%s]; FileName=[%s]', [pannum, TexName, FileName]);
-                  if not ok then
-                  begin
-                    // Нет анимированной, ищем обычную
-                    isAnim := False;
-                    //e_LogWritefln('002: pannum=%s; TexName=[%s]; FileName=[%s]', [pannum, TexName, FileName]);
-                    ok := CreateTexture(TexName, FileName, False) >= 0;
-                    //e_LogWritefln('003: pannum=%s; TexName=[%s]; FileName=[%s]', [pannum, TexName, FileName]);
-                  end;
-                end
-                else
-                begin
-                  // Начальная - обычная, ищем обычную
-                  isAnim := False;
-                  //e_LogWritefln('004: pannum=%s; TexName=[%s]; FileName=[%s]', [pannum, TexName, FileName]);
-                  ok := CreateTexture(TexName, FileName, False) >= 0;
-                  //e_LogWritefln('005: pannum=%s; TexName=[%s]; FileName=[%s]', [pannum, TexName, FileName]);
-                  if not ok then
-                  begin
-                    // Нет обычной, ищем анимированную
-                    isAnim := True;
-                    //e_LogWritefln('006: pannum=%s; TexName=[%s]; FileName=[%s]', [pannum, TexName, FileName]);
-                    ok := CreateAnimTexture(TexName, FileName, False) >= 0;
-                    //e_LogWritefln('007: pannum=%s; TexName=[%s]; FileName=[%s]', [pannum, TexName, FileName]);
-                  end;
-                end;
+                ok := CreateTexture(TexName, FileName, False) >= 0;
 
                 // Она существует. Заносим ее ID в список панели
                 if ok then
@@ -1822,7 +1727,6 @@ begin
                     begin
                       SetLength(AddTextures, Length(AddTextures)+1);
                       AddTextures[High(AddTextures)].Texture := c;
-                      AddTextures[High(AddTextures)].Anim := isAnim;
                       break;
                     end;
                   end;
@@ -1831,7 +1735,6 @@ begin
                   begin
                     SetLength(AddTextures, Length(AddTextures)+1);
                     AddTextures[High(AddTextures)].Texture := c;
-                    AddTextures[High(AddTextures)].Anim := isAnim;
                   end;
                 end;
               end
@@ -1842,7 +1745,6 @@ begin
                   // Заносим текущую текстуру на свое место
                   SetLength(AddTextures, Length(AddTextures)+1);
                   AddTextures[High(AddTextures)].Texture := rec.tagInt; // internal texture number, not map index
-                  AddTextures[High(AddTextures)].Anim := texrec.Anim;
                   CurTex := High(AddTextures);
                   ok := true;
                 end
@@ -1862,8 +1764,6 @@ begin
           // Заносим только текущую текстуру
           SetLength(AddTextures, 1);
           AddTextures[0].Texture := rec.tagInt; // internal texture number, not map index
-          AddTextures[0].Anim := false;
-          if (texrec <> nil) then AddTextures[0].Anim := texrec.Anim;
           CurTex := 0;
         end;
 
