@@ -20,7 +20,7 @@ interface
 
 uses
   SysUtils, Classes, mempool,
-  g_base, r_graphics, g_basic, MAPDEF, g_textures,
+  g_base, g_basic, MAPDEF, g_textures,
   g_phys, utils, g_panel, g_grid, md5, binheap, xprofiler, xparser, xdynrec;
 
 type
@@ -249,7 +249,7 @@ implementation
 uses
   e_input, e_log, e_res, g_items, g_gfx, g_console,
   g_weapons, g_game, g_sound, e_sound, CONFIG,
-  g_options, g_triggers, g_player, r_textures, r_animations,
+  g_options, g_triggers, g_player,
   Math, g_monsters, g_saveload, g_language, g_netmsg,
   sfs, xstreams, hashtable, wadreader,
   g_res_downloader;

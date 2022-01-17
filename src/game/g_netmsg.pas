@@ -284,7 +284,7 @@ function IsValidFilePath(const S: String): Boolean;
 implementation
 
 uses
-  Math, ENet, e_input, e_log, g_base, g_basic, r_animations, r_gfx,
+  Math, ENet, e_input, e_log, g_base, g_basic, r_gfx,
   g_textures, g_gfx, g_sound, g_console, g_options,
   g_game, g_player, g_map, g_panel, g_items, g_weapons, g_phys, g_gui,
   g_language, g_monsters, g_netmaster, utils, wadreader, MAPDEF;

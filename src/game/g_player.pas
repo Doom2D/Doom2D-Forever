@@ -23,7 +23,7 @@ uses
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
   g_base, g_playermodel, g_basic, g_textures,
   g_weapons, g_phys, g_sound, g_saveload, MAPDEF,
-  g_panel, r_playermodel;
+  g_panel;
 
 const
   KEY_LEFT       = 1;
@@ -651,7 +651,7 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes,
 {$ENDIF}
-  e_log, g_map, g_items, g_console, g_gfx, Math, r_textures, r_animations, r_gfx,
+  e_log, g_map, g_items, g_console, g_gfx, Math, r_playermodel, r_gfx,
   g_options, g_triggers, g_menu, g_game, g_grid, e_res,
   wadreader, g_monsters, CONFIG, g_language,
   g_net, g_netmsg,

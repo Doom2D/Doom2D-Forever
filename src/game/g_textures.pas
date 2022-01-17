@@ -20,7 +20,7 @@ interface
 uses
   SysUtils, Classes,
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-  g_base, r_graphics, MAPDEF, ImagingTypes, Imaging, ImagingUtility;
+  g_base, MAPDEF;
 
 type
   TLevelTexture = record
@@ -79,7 +79,7 @@ type
 implementation
 
 uses
-  g_game, e_log, g_basic, g_console, wadreader, r_animations,
+  g_game, e_log, g_basic, g_console, wadreader,
   g_language, utils, xstreams;
 
 constructor TAnimationState.Create (aloop: Boolean; aspeed: Byte; len: Integer);
