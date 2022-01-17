@@ -26,18 +26,19 @@ interface
   procedure r_Render_LoadTextures;
   procedure r_Render_FreeTextures;
 
-  procedure r_Render_Resize (w, h: Integer);
-
   procedure r_Render_Update;
 
+  procedure r_Render_Resize (w, h: Integer);
   procedure r_Render_Apply;
+
+  function r_Render_WriteScreenShot (filename: String): Boolean;
 
 implementation
 
   uses
     {$INCLUDE ../../nogl/noGLuses.inc}
     SysUtils, Classes, Math,
-    e_log, g_system,
+    e_log, g_system, utils,
     g_game, g_options, g_console,
     r_window, r_graphics, r_console, r_playermodel, r_textures, r_animations,
     r_weapons, r_items, r_gfx, r_monsters, r_map, r_player, r_game
@@ -176,6 +177,23 @@ implementation
     else
       e_LogWriteln('resolution not changed');
     sys_EnableVSync(gVSync)
+  end;
+
+  function r_Render_WriteScreenShot (filename: String): Boolean;
+    var s: TStream;
+  begin
+    Result := False;
+    try
+      s := CreateDiskFile(filename);
+      try
+        e_MakeScreenshot(s, gWinSizeX, gWinSizeX);
+        Result := True;
+      except
+        DeleteFile(filename)
+      end;
+      s.Free;
+    finally
+    end
   end;
 
 end.
