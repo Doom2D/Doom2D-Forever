@@ -165,7 +165,8 @@ implementation
     gScreenWidth := w;
     gScreenHeight := h;
     e_ResizeWindow(w, h);
-    e_InitGL
+    e_InitGL;
+    r_Game_SetupScreenSize;
   end;
 
   procedure r_Render_Apply;

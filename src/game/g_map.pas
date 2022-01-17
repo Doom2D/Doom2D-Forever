@@ -31,6 +31,7 @@ type
     Author:        String;
     MusicName:     String;
     SkyName:       String;
+    SkyFullName:   String; // used by render
     Height:        Word;
     Width:         Word;
   end;
@@ -215,11 +216,9 @@ var
   gFlags: array [FLAG_RED..FLAG_BLUE] of TFlag;
   //gDOMFlags: array of TFlag;
   gMapInfo: TMapInfo;
-  gBackSize: TDFPoint;
   gDoorMap: array of array of DWORD;
   gLiftMap: array of array of DWORD;
   gWADHash: TMD5Digest;
-  BackID:  DWORD = DWORD(-1);
   gExternalResources: array of TDiskFileInfo = nil;
   gMovingWallIds: array of Integer = nil;
 
@@ -1870,15 +1869,12 @@ begin
     //mapReader := nil;
 
     // Загрузка неба
+    gMapInfo.SkyFullName := '';
     if (gMapInfo.SkyName <> '') then
     begin
       e_WriteLog('  Loading sky: ' + gMapInfo.SkyName, TMsgType.Notify);
       g_Game_SetLoadingText(_lc[I_LOAD_SKY], 0, False);
-      s := e_GetResourcePath(WadDirs, gMapInfo.SkyName, g_ExtractWadName(Res));
-      if g_Texture_CreateWAD(BackID, s, gTextureFilter) then
-        g_Game_SetupScreenSize
-      else
-        g_FatalError(Format(_lc[I_GAME_ERROR_SKY], [s]))
+      gMapInfo.SkyFullName := e_GetResourcePath(WadDirs, gMapInfo.SkyName, g_ExtractWadName(Res));
     end;
 
     // Загрузка музыки
@@ -2137,14 +2133,6 @@ begin
   FreePanelArray(gLifts);
   FreePanelArray(gBlockMon);
   gMovingWallIds := nil;
-
-  if BackID <> DWORD(-1) then
-  begin
-    gBackSize.X := 0;
-    gBackSize.Y := 0;
-    e_DeleteTexture(BackID);
-    BackID := DWORD(-1);
-  end;
 
   g_Game_StopAllSounds(False);
   gMusic.FreeSound();

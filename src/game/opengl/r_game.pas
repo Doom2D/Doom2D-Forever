@@ -27,6 +27,8 @@ interface
   procedure r_Game_DrawLoadingStat;
   procedure r_Game_DrawMenuBackground (tex: AnsiString);
 
+  procedure r_Game_SetupScreenSize;
+
   var
     gStdFont: DWORD;
 
@@ -55,6 +57,9 @@ implementation
     FPSCounter: Word;
     FPSTime: LongWord;
     hasPBarGfx: Boolean;
+
+    BackID: DWORD = DWORD(-1);
+    gBackSize: TDFPoint;
 
   procedure r_Game_Load;
     var
@@ -124,15 +129,72 @@ implementation
     g_Texture_Delete('TEXTURE_PLAYER_INVULPENTA');
   end;
 
+procedure r_Game_SetupScreenSize;
+const
+  RES_FACTOR = 4.0 / 3.0;
+var
+  s: Single;
+  rf: Single;
+  bw, bh: Word;
+begin
+// Размер экранов игроков:
+  gPlayerScreenSize.X := gScreenWidth-196;
+  if (gPlayer1 <> nil) and (gPlayer2 <> nil) then
+    gPlayerScreenSize.Y := gScreenHeight div 2
+  else
+    gPlayerScreenSize.Y := gScreenHeight;
+
+// Размер заднего плана:
+  if BackID <> DWORD(-1) then
+  begin
+    s := SKY_STRETCH;
+    if (gScreenWidth*s > gMapInfo.Width) or
+       (gScreenHeight*s > gMapInfo.Height) then
+    begin
+      gBackSize.X := gScreenWidth;
+      gBackSize.Y := gScreenHeight;
+    end
+    else
+    begin
+      e_GetTextureSize(BackID, @bw, @bh);
+      rf := Single(bw) / Single(bh);
+      if (rf > RES_FACTOR) then bw := Round(Single(bh) * RES_FACTOR)
+      else if (rf < RES_FACTOR) then bh := Round(Single(bw) / RES_FACTOR);
+      s := Max(gScreenWidth / bw, gScreenHeight / bh);
+      if (s < 1.0) then s := 1.0;
+      gBackSize.X := Round(bw*s);
+      gBackSize.Y := Round(bh*s);
+    end;
+  end;
+end;
+
   procedure r_Game_LoadTextures;
   begin
     g_Texture_CreateWADEx('TEXTURE_endpic', EndPicPath, gTextureFilter);
+    if gMapInfo.SkyFullName <> '' then
+      g_Texture_CreateWAD(BackID, gMapInfo.SkyFullName, gTextureFilter);
+    r_Game_SetupScreenSize;
   end;
 
   procedure r_Game_FreeTextures;
   begin
-    g_Texture_Delete('TEXTURE_endpic')
+    g_Texture_Delete('TEXTURE_endpic');
+    if BackID <> DWORD(-1) then
+    begin
+      gBackSize.X := 0;
+      gBackSize.Y := 0;
+      e_DeleteTexture(BackID);
+      BackID := DWORD(-1);
+    end
   end;
+
+procedure r_Map_DrawBack(dx, dy: Integer);
+begin
+  if gDrawBackGround and (BackID <> DWORD(-1)) then
+    e_DrawSize(BackID, dx, dy, 0, False, False, gBackSize.X, gBackSize.Y)
+  else
+    e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+end;
 
 function GetActivePlayer_ByID(ID: Integer): TPlayer;
 var

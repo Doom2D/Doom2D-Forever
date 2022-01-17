@@ -30,7 +30,6 @@ interface
 
   procedure r_Map_Update;
 
-  procedure r_Map_DrawBack (dx, dy: Integer);
   procedure r_Map_DrawPanels (PanelType: Word; hasAmbient: Boolean; constref ambColor: TDFColor); // unaccelerated
   procedure r_Map_CollectDrawPanels (x0, y0, wdt, hgt: Integer);
   procedure r_Map_DrawPanelShadowVolumes (lightX: Integer; lightY: Integer; radius: Integer);
@@ -43,7 +42,7 @@ implementation
 
   uses
     {$INCLUDE ../nogl/noGLuses.inc}
-    SysUtils, Classes, Math, e_log, wadreader, CONFIG, utils,
+    SysUtils, Classes, Math, e_log, wadreader, CONFIG, utils, g_language,
     r_graphics, r_animations, r_textures, g_textures,
     g_base, g_basic, g_game, g_options,
     g_map
@@ -247,14 +246,6 @@ begin
   it := mapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, (GridTagWall or GridTagDoor));
   for mwit in it do r_Panel_DrawShadowVolume(mwit^, lightX, lightY, radius);
   it.release();
-end;
-
-procedure r_Map_DrawBack(dx, dy: Integer);
-begin
-  if gDrawBackGround and (BackID <> DWORD(-1)) then
-    e_DrawSize(BackID, dx, dy, 0, False, False, gBackSize.X, gBackSize.Y)
-  else
-    e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
 end;
 
   procedure r_Map_DrawFlags;

@@ -400,9 +400,6 @@ begin
         end;
         g_Game_ExecuteEvent('ongamestart');
 
-        // Установка размеров окон игроков
-        g_Game_SetupScreenSize();
-
         // Загрузка и запуск карты
         //FIXME: save/load `asMegawad`
         if not g_Game_StartMap(false{asMegawad}, WAD_Path+':\'+Map_Name, True, curmapfile) then

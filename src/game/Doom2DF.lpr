@@ -953,7 +953,6 @@ end;
       fuiScrWdt := w;
       fuiScrHgt := h;
     {$ENDIF}
-    g_Game_SetupScreenSize;
     {$IFNDEF ANDROID}
       (* This will fix menu reset on keyboard showing *)
       g_Menu_Reset;
