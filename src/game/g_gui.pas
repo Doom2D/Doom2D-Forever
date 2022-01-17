@@ -75,6 +75,8 @@ const
   WM_CHAR    = 102;
   WM_USER    = 110;
 
+  MESSAGE_DIKEY = WM_USER + 1;
+
 type
   TMessage = record
     Msg: DWORD;

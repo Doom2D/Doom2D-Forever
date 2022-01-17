@@ -124,10 +124,8 @@ uses
   g_grid in 'g_grid.pas',
   g_game in 'g_game.pas',
   g_gfx in 'g_gfx.pas',
-  g_gui in 'g_gui.pas',
   g_items in 'g_items.pas',
   g_map in 'g_map.pas',
-  g_menu in 'g_menu.pas',
   g_monsters in 'g_monsters.pas',
   g_options in 'g_options.pas',
   g_phys in 'g_phys.pas',
@@ -139,19 +137,23 @@ uses
   g_triggers in 'g_triggers.pas',
   g_weapons in 'g_weapons.pas',
   g_window in 'g_window.pas',
-{$IFDEF USE_SYSSTUB}
-  g_system in 'stub/g_system.pas',
-  g_touch in 'stub/g_touch.pas',
-{$ENDIF}
-{$IFDEF USE_SDL}
-  g_system in 'sdl/g_system.pas',
-  g_touch in 'sdl/g_touch.pas',
-{$ENDIF}
-{$IFDEF USE_SDL2}
-  g_system in 'sdl2/g_system.pas',
-  g_touch in 'sdl2/g_touch.pas',
+{$IFNDEF HEADLESS}
+  {$IFDEF USE_SYSSTUB}
+    g_system in 'stub/g_system.pas',
+    g_touch in 'stub/g_touch.pas',
+  {$ENDIF}
+  {$IFDEF USE_SDL}
+    g_system in 'sdl/g_system.pas',
+    g_touch in 'sdl/g_touch.pas',
+  {$ENDIF}
+  {$IFDEF USE_SDL2}
+    g_system in 'sdl2/g_system.pas',
+    g_touch in 'sdl2/g_touch.pas',
+  {$ENDIF}
 {$ENDIF}
 
+{$IFNDEF HEADLESS}
+  {$I ../shared/vampimg.inc}
   r_animations in 'opengl/r_animations.pas',
   r_console in 'opengl/r_console.pas',
   r_game in 'opengl/r_game.pas',
@@ -168,6 +170,9 @@ uses
   r_textures in 'opengl/r_textures.pas',
   r_weapons in 'opengl/r_weapons.pas',
   r_window in 'opengl/r_window.pas',
+  g_gui in 'g_gui.pas',
+  g_menu in 'g_menu.pas',
+{$ENDIF}
 
 {$IFDEF USE_FMOD}
   fmod in '../lib/FMOD/fmod.pas',
@@ -201,7 +206,6 @@ uses
   fui_flexlay in '../flexui/fui_flexlay.pas',
   fui_ctls in '../flexui/fui_ctls.pas',
 {$ENDIF}
-  {$I ../shared/vampimg.inc}
 
   SysUtils, Classes;
 
@@ -232,7 +236,9 @@ begin
        if (NetMode = NET_SERVER) then g_Net_Host_Update()
   else if (NetMode = NET_CLIENT) then g_Net_Client_Update();
   // think
+{$IFNDEF HEADLESS}
   r_Render_Update;
+{$ENDIF}
   g_Game_Update();
   // server: send any accumulated outgoing data to clients
   if NetMode = NET_SERVER then g_Net_Flush();
@@ -245,7 +251,11 @@ var
   Time, Time_Delta: Int64;
   Frame: Int64;
 begin
-  result := sys_HandleInput();
+  {$IFDEF HEADLESS}
+    Result := False;
+  {$ELSE}
+    Result := sys_HandleInput();
+  {$ENDIF}
 
   Time := GetTickCount64();
   Time_Delta := Time-Time_Old;
@@ -293,8 +303,10 @@ begin
       gLerpFactor := 1.0
     else
       gLerpFactor := nmin(1.0, (Time - Time_Old) / 28.0);
+{$IFNDEF HEADLESS}
     r_Game_Draw;
     sys_Repaint;
+{$ENDIF}
     Frame := Time
   end
   else
@@ -948,18 +960,20 @@ end;
 
   procedure ScreenResize (w, h: Integer);
   begin
-    r_Render_Resize(w, h);
-    {$IFDEF ENABLE_HOLMES}
-      fuiScrWdt := w;
-      fuiScrHgt := h;
-    {$ENDIF}
-    {$IFNDEF ANDROID}
-      (* This will fix menu reset on keyboard showing *)
-      g_Menu_Reset;
-    {$ENDIF}
-    //g_Game_ClearLoading;
-    {$IFDEF ENABLE_HOLMES}
-      if assigned(oglInitCB) then oglInitCB;
+    {$IFNDEF HEADLESS}
+      r_Render_Resize(w, h);
+      {$IFDEF ENABLE_HOLMES}
+        fuiScrWdt := w;
+        fuiScrHgt := h;
+      {$ENDIF}
+      {$IFNDEF ANDROID}
+        (* This will fix menu reset on keyboard showing *)
+        g_Menu_Reset;
+      {$ENDIF}
+      //g_Game_ClearLoading;
+      {$IFDEF ENABLE_HOLMES}
+        if assigned(oglInitCB) then oglInitCB;
+      {$ENDIF}
     {$ENDIF}
   end;
 
@@ -971,24 +985,32 @@ end;
     InitPrep;
     e_Input_Initialize;
     InitSound;
-    sys_Init;
-    sys_CharPress := @CharPress; (* install hook *)
-    sys_ScreenResize := @ScreenResize; (* install hook *)
+    {$IFNDEF HEADLESS}
+      sys_Init;
+      sys_CharPress := @CharPress; (* install hook *)
+      sys_ScreenResize := @ScreenResize; (* install hook *)
+    {$ENDIF}
     g_Options_SetDefault;
     g_Options_SetDefaultVideo;
     g_Console_Initialize;
     // TODO move load configs here
     g_Language_Set(gLanguage);
-    r_Render_Initialize;
-    g_Touch_Init;
+    {$IFNDEF HEADLESS}
+      r_Render_Initialize;
+      g_Touch_Init;
+    {$ENDIF}
     DebugOptions;
     g_Net_InitLowLevel;
     // TODO init serverlist
     {$IFDEF ENABLE_HOLMES}
       InitHolmes;
     {$ENDIF}
-    g_PlayerModel_LoadAll;
-    r_Render_Load;
+    {$IFDEF HEADLESS}
+      g_PlayerModel_LoadFake('doomer', 'doomer.wad');
+    {$ELSE}
+      g_PlayerModel_LoadAll;
+      r_Render_Load;
+    {$ENDIF}
     g_Game_Init;
     {$IFNDEF HEADLESS}
       g_Menu_Init;
@@ -1007,16 +1029,18 @@ end;
     {$IFNDEF HEADLESS}
       g_GUI_Destroy;
       g_Menu_Free;
+      r_Render_Free;
     {$ENDIF}
-    r_Render_Free;
     {$IFDEF ENABLE_HOLMES}
       FreeHolmes;
     {$ENDIF}
     g_Net_Slist_ShutdownAll;
     g_Net_DeinitLowLevel;
     (* g_Touch_Finalize; *)
-    r_Render_Finalize;
-    sys_Final;
+    {$IFNDEF HEADLESS}
+      r_Render_Finalize;
+      sys_Final;
+    {$ENDIF}
     g_Console_Finalize;
     e_ReleaseSoundSystem;
     e_Input_Finalize;

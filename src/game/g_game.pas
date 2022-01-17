@@ -17,12 +17,15 @@ unit g_game;
 
 interface
 
-uses
-  SysUtils, Classes,
-  MAPDEF,
-  g_base, g_basic, g_player, g_res_downloader,
-  g_sound, g_gui, utils, md5, mempool, xprofiler,
-  g_touch, g_weapons;
+  uses
+    {$IFNDEF HEADLESS}
+      g_gui, g_touch,
+    {$ENDIF}
+    SysUtils, Classes, MAPDEF,
+    g_base, g_basic, g_player, g_res_downloader,
+    g_sound, utils, md5, mempool, xprofiler,
+    g_weapons
+  ;
 
 type
   TGameSettings = record
@@ -115,7 +118,9 @@ function  g_Game_GetNextMap(): String;
 procedure g_Game_NextLevel();
 procedure g_Game_Pause(Enable: Boolean);
 procedure g_Game_HolmesPause(Enable: Boolean);
-procedure g_Game_InGameMenu(Show: Boolean);
+{$IFNDEF HEADLESS}
+  procedure g_Game_InGameMenu(Show: Boolean);
+{$ENDIF}
 function  g_Game_IsWatchedPlayer(UID: Word): Boolean;
 function  g_Game_IsWatchedTeam(Team: Byte): Boolean;
 procedure g_Game_Message(Msg: String; Time: Word);
@@ -154,7 +159,10 @@ function GetActivePlayerID_Next(Skip: Integer = -1): Integer;
 procedure SortGameStat(var stat: TPlayerStatArray);
 
 procedure KeyPress (K: Word);
-procedure CharPress (C: AnsiChar);
+
+{$IFNDEF HEADLESS}
+  procedure CharPress (C: AnsiChar);
+{$ENDIF}
 
 { procedure SetWinPause(Enable: Boolean); }
 
@@ -176,8 +184,6 @@ const
   GM_CTF  = 3;
   GM_COOP = 4;
   GM_SINGLE = 5;
-
-  MESSAGE_DIKEY = WM_USER + 1;
 
   EXIT_QUIT            = 1;
   EXIT_SIMPLE          = 2;
@@ -449,15 +455,15 @@ uses
     g_holmes,
   {$ENDIF}
   {$IFNDEF HEADLESS}
-    r_render,
+    r_render, g_menu, r_playermodel, g_system,
   {$ENDIF}
-  e_res, g_window, g_menu,
+  e_res, g_window,
   e_input, e_log, g_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
   g_language, g_net, g_phys,
   ENet, e_msg, g_netmsg, g_netmaster,
-  sfs, wadreader, g_system, r_playermodel;
+  sfs, wadreader;
 
   var
     charbuff: packed array [0..15] of AnsiChar = (
@@ -781,6 +787,7 @@ begin
 {$ENDIF}
 end;
 
+{$IFNDEF HEADLESS}
 procedure CharPress (C: AnsiChar);
 var
   Msg: g_gui.TMessage;
@@ -803,6 +810,7 @@ begin
     Cheat();
   end;
 end;
+{$ENDIF}
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1251,7 +1259,10 @@ begin
   MessageText := '';
 
   EndingGameCounter := 0;
+
+{$IFNDEF HEADLESS}
   g_ActiveWindow := nil;
+{$ENDIF}
 
   gLMSRespawn := LMS_RESPAWN_NONE;
   gLMSRespawnTime := 0;
@@ -1260,35 +1271,37 @@ begin
     EXIT_SIMPLE: // Выход через меню или конец теста
       begin
         g_Game_Free();
-
         if gMapOnce  then
-          begin // Это был тест
-            g_Game_Quit();
-          end
+        begin // Это был тест
+          g_Game_Quit();
+        end
         else
-          begin // Выход в главное меню
-            gMusic.SetByName('MUSIC_MENU');
-            gMusic.Play();
-            if gState <> STATE_SLIST then
+        begin // Выход в главное меню
+{$IFDEF HEADLESS}
+          gState := STATE_MENU; // ???
+{$ELSE}
+          gMusic.SetByName('MUSIC_MENU');
+          gMusic.Play();
+          if gState <> STATE_SLIST then
+          begin
+            g_GUI_ShowWindow('MainMenu');
+            gState := STATE_MENU;
+          end else
+          begin
+            // Обновляем список серверов
+            slReturnPressed := True;
+            if g_Net_Slist_Fetch(slCurrent) then
             begin
-              g_GUI_ShowWindow('MainMenu');
-              gState := STATE_MENU;
-            end else
-            begin
-              // Обновляем список серверов
-              slReturnPressed := True;
-              if g_Net_Slist_Fetch(slCurrent) then
-              begin
-                if slCurrent = nil then
-                  slWaitStr := _lc[I_NET_SLIST_NOSERVERS];
-              end
-              else
-                slWaitStr := _lc[I_NET_SLIST_ERROR];
-              g_Serverlist_GenerateTable(slCurrent, slTable);
-            end;
-
-            g_Game_ExecuteEvent('ongameend');
+              if slCurrent = nil then
+                slWaitStr := _lc[I_NET_SLIST_NOSERVERS];
+            end
+            else
+              slWaitStr := _lc[I_NET_SLIST_ERROR];
+            g_Serverlist_GenerateTable(slCurrent, slTable);
           end;
+{$ENDIF}
+          g_Game_ExecuteEvent('ongameend');
+        end;
       end;
 
     EXIT_RESTART: // Начать уровень сначала
@@ -1662,6 +1675,7 @@ begin
     end
   end;
 
+{$IFNDEF HEADLESS}
   // HACK: add dynlight here
   if gwin_k8_enable_light_experiments then
   begin
@@ -1676,6 +1690,7 @@ begin
   end;
 
   if gwin_has_stencil and g_playerLight then g_AddDynLight(plr.GameX+32, plr.GameY+40, 128, 1, 1, 0, 0.6);
+{$ENDIF}
 end;
 
 // HACK: don't have a "key was pressed" function
@@ -1698,12 +1713,14 @@ begin
 end;
 
 procedure g_Game_Update();
-var
-  Msg: g_gui.TMessage;
-  Time: Int64;
-  a: Byte;
-  w: Word;
-  i, b: Integer;
+  var
+    {$IFNDEF HEADLESS}
+      Msg: g_gui.TMessage;
+      w: Word;
+    {$ENDIF}
+    Time: Int64;
+    a: Byte;
+    i, b: Integer;
 
   function sendMonsPos (mon: TMonster): Boolean;
   begin
@@ -1800,7 +1817,9 @@ begin
               e_KeyPressed(JOY2_ATTACK) or e_KeyPressed(JOY3_ATTACK)
             )
             and (not gJustChatted) and (not gConsoleShow) and (not gChatShow)
+{$IFNDEF HEADLESS}
             and (g_ActiveWindow = nil)
+{$ENDIF}
           )
           or (g_Game_IsNet and ((gInterTime > gInterEndTime) or ((gInterReadyCount >= NetClientCount) and (NetClientCount > 0))))
         )
@@ -1819,9 +1838,11 @@ begin
               begin
               // Выход в главное меню:
                 g_Game_Free;
+{$IFNDEF HEADLESS}
                 g_GUI_ShowWindow('MainMenu');
                 gMusic.SetByName('MUSIC_MENU');
                 gMusic.Play();
+{$ENDIF}
                 gState := STATE_MENU;
               end else
               begin
@@ -1847,7 +1868,9 @@ begin
             e_KeyPressed(JOY2_ATTACK) or e_KeyPressed(JOY3_ATTACK)
           )
           and (not gJustChatted) and (not gConsoleShow) and (not gChatShow)
+{$IFNDEF HEADLESS}
           and (g_ActiveWindow = nil)
+{$ENDIF}
         )
         then
         begin
@@ -1981,7 +2004,11 @@ begin
     // Обрабатываем клавиши игроков:
       if gPlayer1 <> nil then gPlayer1.ReleaseKeys();
       if gPlayer2 <> nil then gPlayer2.ReleaseKeys();
+{$IFDEF HEADLESS}
+      if (not gConsoleShow) and (not gChatShow) then
+{$ELSE}
       if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
+{$ENDIF}
       begin
         ProcessPlayerControls(gPlayer1, 0, P1MoveButton);
         ProcessPlayerControls(gPlayer2, 1, P2MoveButton);
@@ -1994,8 +2021,12 @@ begin
     end; // if server
 
   // Наблюдатель
-    if (gPlayer1 = nil) and (gPlayer2 = nil) and
-       (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
+    if (gPlayer1 = nil) and (gPlayer2 = nil)
+      and (not gConsoleShow) and (not gChatShow)
+{$IFNDEF HEADLESS}
+      and (g_ActiveWindow = nil)
+{$ENDIF}
+    then
     begin
       if not gSpectKeyPress then
       begin
@@ -2249,6 +2280,7 @@ begin
   end; // if gameOn ...
 
 // Активно окно интерфейса - передаем клавиши ему:
+{$IFNDEF HEADLESS}
   if g_ActiveWindow <> nil then
   begin
     w := e_GetFirstKeyPressed();
@@ -2281,9 +2313,7 @@ begin
       //e_WriteLog('Read language file', MSG_NOTIFY);
       //g_Language_Load(DataDir + gLanguage + '.txt');
       g_Language_Set(gLanguage);
-{$IFNDEF HEADLESS}
       g_Menu_Reset();
-{$ENDIF}
       gLanguageChange := False;
     end;
   end;
@@ -2296,6 +2326,7 @@ begin
   begin
     KeyPress(IK_F10);
   end;
+{$ENDIF} // NOT HEADLESS
 
   Time := GetTickCount64() {div 1000};
 
@@ -2516,7 +2547,10 @@ begin
     g_Game_DeleteTestMap();
 
   gExit := EXIT_QUIT;
-  sys_RequestQuit;
+
+  {$IFNDEF HEADLESS}
+    sys_RequestQuit;
+  {$ENDIF}
 end;
 
 procedure g_Game_FreeData();
@@ -3372,7 +3406,9 @@ begin
       g_Player_ResetAll(Force or gLastMap, gGameSettings.GameType = GT_SINGLE);
 
       gState := STATE_NONE;
-      g_ActiveWindow := nil;
+      {$IFNDEF HEADLESS}
+        g_ActiveWindow := nil;
+      {$ENDIF}
       gGameOn := True;
 
       DisableCheats();
@@ -4830,8 +4866,12 @@ begin
   chstr := '';
   if cmd = 'pause' then
   begin
-    if (g_ActiveWindow = nil) then
+    {$IFNDEF HEADLESS}
+      if (g_ActiveWindow = nil) then
+        g_Game_Pause(not gPauseMain);
+    {$ELSE}
       g_Game_Pause(not gPauseMain);
+    {$ENDIF}
   end
   else if cmd = 'endgame' then
     gExit := EXIT_SIMPLE
@@ -6148,6 +6188,7 @@ begin
 end;
 {$ENDIF}
 
+{$IFNDEF HEADLESS}
 procedure g_Game_InGameMenu(Show: Boolean);
 begin
   if (g_ActiveWindow = nil) and Show then
@@ -6178,6 +6219,7 @@ begin
         g_Game_Pause(False);
     end;
 end;
+{$ENDIF}
 
 procedure g_Game_Pause (Enable: Boolean);
 var
@@ -6626,8 +6668,11 @@ begin
     PBarWasHere := false;
   end;
 
-  g_ActiveWindow := nil;
-  ProcessLoading(True);
+  {$IFNDEF HEADLESS}
+    g_ActiveWindow := nil;
+  {$ENDIF}
+
+  ProcessLoading(true);
 end;
 
 procedure g_Game_StepLoading(Value: Integer = -1);

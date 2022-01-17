@@ -135,6 +135,8 @@ function  g_PlayerModel_Get(ModelName: String): TPlayerModel;
 function  g_PlayerModel_GetGibs (ModelID: Integer; var Gibs: TGibsArray): Boolean;
 function  g_PlayerModel_GetIndex (ModelName: String): Integer;
 
+procedure g_PlayerModel_LoadFake (ModelName, FileName: String);
+
 (* --- private data --- *)
 
   type
@@ -293,6 +295,16 @@ end;
         end;
       end;
     end;
+  end;
+
+  procedure g_PlayerModel_LoadFake (ModelName, FileName: String);
+    var id: Integer;
+  begin
+    SetLength(PlayerModelsArray, Length(PlayerModelsArray) + 1);
+    id := High(PlayerModelsArray);
+    PlayerModelsArray[id].Name := ModelName;
+    PlayerModelsArray[id].HaveWeapon := False;
+    PlayerModelsArray[id].FileName := FileName;
   end;
 
 function g_PlayerModel_Load(FileName: string): Boolean;

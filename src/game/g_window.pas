@@ -23,14 +23,20 @@ implementation
 
   uses
     {$IFNDEF HEADLESS}
-      r_render,
+      r_render, g_system,
     {$ENDIF}
-    e_sound, g_system, g_net
+    e_sound, g_net
   ;
 
   procedure ProcessLoading (forceUpdate: Boolean = False);
+    var update: Boolean;
   begin
-    if sys_HandleInput() = False then
+    {$IFDEF HEADLESS}
+      update := True;
+    {$ELSE}
+      update := sys_HandleInput() = False;
+    {$ENDIF}
+    if update then
     begin
       {$IFNDEF HEADLESS}
         r_Render_DrawLoading(forceUpdate);

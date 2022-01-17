@@ -176,9 +176,12 @@ function GetTimerMS (): Int64;
 implementation
 
 uses
+  {$IFNDEF HEADLESS}
+    g_gui, g_menu, r_game, g_system,
+  {$ENDIF}
   e_input, e_log, g_net, g_console,
-  g_map, g_game, g_sound, g_gui, g_menu, g_options, g_language, g_basic, r_game,
-  wadreader, g_system, utils, hashtable;
+  g_map, g_game, g_sound, g_options, g_language, g_basic,
+  wadreader, utils, hashtable;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1743,7 +1746,11 @@ begin
   if gConsoleShow or gChatShow then
     Exit;
 
-  qm := sys_HandleInput(); // this updates kbd
+  {$IFDEF HEADLESS}
+    qm := True;
+  {$ELSE}
+    qm := sys_HandleInput(); // this updates kbd
+  {$ENDIF}
 
   if qm or e_KeyPressed(IK_ESCAPE) or e_KeyPressed(VK_ESCAPE) or
      e_KeyPressed(JOY0_JUMP) or e_KeyPressed(JOY1_JUMP) or
@@ -1752,10 +1759,12 @@ begin
     SL := nil;
     ST := nil;
     gState := STATE_MENU;
+{$IFNDEF HEADLESS}
     g_GUI_ShowWindow('MainMenu');
     g_GUI_ShowWindow('NetGameMenu');
     g_GUI_ShowWindow('NetClientMenu');
     g_Sound_PlayEx(WINDOW_CLOSESOUND);
+{$ENDIF}
     Exit;
   end;
 
@@ -1775,8 +1784,10 @@ begin
     begin
       slWaitStr := _lc[I_NET_SLIST_WAIT];
 
+{$IFNDEF HEADLESS}
       r_Game_Draw;
       sys_Repaint;
+{$ENDIF}
 
       if g_Net_Slist_Fetch(SL) then
       begin
@@ -1804,10 +1815,14 @@ begin
       Srv := GetServerFromTable(slSelection, SL, ST);
       if Srv.Password then
       begin
+{$IFNDEF HEADLESS}
         PromptIP := Srv.IP;
         PromptPort := Srv.Port;
+{$ENDIF}
         gState := STATE_MENU;
+{$IFNDEF HEADLESS}
         g_GUI_ShowWindow('ClientPasswordMenu');
+{$ENDIF}
         SL := nil;
         ST := nil;
         slReturnPressed := True;

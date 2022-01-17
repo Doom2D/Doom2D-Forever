@@ -102,9 +102,12 @@ var
 implementation
 
 uses
+  {$IFNDEF HEADLESS}
+    g_gui, g_menu, g_touch,
+  {$ENDIF}
   g_textures, e_input, g_game, g_gfx, g_player, g_items,
-  SysUtils, g_basic, g_options, Math, g_touch, e_res,
-  g_menu, g_gui, g_language, g_net, g_netmsg, e_log, conbuf, g_weapons,
+  SysUtils, g_basic, g_options, Math, e_res,
+  g_language, g_net, g_netmsg, e_log, conbuf, g_weapons,
   Keyboard;
 
 const
@@ -162,7 +165,9 @@ begin
   gChatShow := False;
   gConsoleShow := not gConsoleShow;
   InputReady := False;
-  g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
+  {$IFNDEF HEADLESS}
+    g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
+  {$ENDIF}
 end;
 
 procedure g_Console_Chat_Switch (Team: Boolean = False);
@@ -174,7 +179,9 @@ begin
   InputReady := False;
   Line := '';
   CPos := 1;
-  g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
+  {$IFNDEF HEADLESS}
+    g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
+  {$ENDIF}
 end;
 
 // poor man's floating literal parser; i'm sorry, but `StrToFloat()` sux cocks
@@ -868,10 +875,12 @@ begin
   'unbindall':
     for i := 0 to e_MaxInputKeys - 1 do
       g_Console_BindKey(i, '');
+{$IFNDEF HEADLESS}
   'showkeyboard':
     g_Touch_ShowKeyboard(True);
   'hidekeyboard':
     g_Touch_ShowKeyboard(False);
+{$ENDIF}
   'togglemenu':
     begin
       if gConsoleShow then
@@ -1842,15 +1851,23 @@ begin
 end;
 
 function BindsAllowed (key: Integer): Boolean;
+  var grab, active: Boolean;
 begin
   Result := False;
-  if (not g_GUIGrabInput) and (key >= 0) and (key < e_MaxInputKeys) and ((gInputBinds[key].down <> nil) or (gInputBinds[key].up <> nil)) then
+  {$IFDEF HEADLESS}
+    grab := False;
+    active := False;
+  {$ELSE}
+    grab := g_GUIGrabInput;
+    active := g_ActiveWindow <> nil;
+  {$ENDIF}
+  if (not grab) and (key >= 0) and (key < e_MaxInputKeys) and ((gInputBinds[key].down <> nil) or (gInputBinds[key].up <> nil)) then
   begin
     if gChatShow then
       Result := g_Console_MatchBind(key, 'togglemenu') or
                 g_Console_MatchBind(key, 'showkeyboard') or
                 g_Console_MatchBind(key, 'hidekeyboard')
-    else if gConsoleShow or (g_ActiveWindow <> nil) or (gGameSettings.GameType = GT_NONE) then
+    else if gConsoleShow or active or (gGameSettings.GameType = GT_NONE) then
       Result := g_Console_MatchBind(key, 'togglemenu') or
                 g_Console_MatchBind(key, 'toggleconsole') or
                 g_Console_MatchBind(key, 'showkeyboard') or
@@ -1878,9 +1895,14 @@ begin
 end;
 
 procedure g_Console_ProcessBindRepeat (key: Integer);
-  var i: Integer;
+  var i: Integer; active: Boolean;
 begin
-  if gConsoleShow or gChatShow or (g_ActiveWindow <> nil) then
+  {$IFDEF HEADLESS}
+    active := False;
+  {$ELSE}
+    active := g_ActiveWindow <> nil;
+  {$ENDIF}
+  if gConsoleShow or gChatShow or active then
   begin
     KeyPress(key); // key repeat in menus and shit
     Exit;

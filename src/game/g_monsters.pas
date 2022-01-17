@@ -521,9 +521,12 @@ var
 implementation
 
 uses
+  {$IFNDEF HEADLESS}
+    g_menu,
+  {$ENDIF}
   e_log, g_sound, g_gfx, g_player, g_game,
   g_weapons, g_triggers, g_items, g_options,
-  g_console, g_map, Math, g_menu, wadreader,
+  g_console, g_map, Math, wadreader,
   g_language, g_netmsg, idpool, utils, xstreams;
 
 

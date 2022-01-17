@@ -681,7 +681,7 @@ procedure g_Language_Dump(fileName: String);
 implementation
 
 uses
-  SysUtils, g_gui, g_basic, e_log, e_input;
+  SysUtils, {g_gui,} g_basic, e_log, e_input;
 
 const
   g_lang_default: Array [TStrings_Locale] of Array [1..3] of String = (

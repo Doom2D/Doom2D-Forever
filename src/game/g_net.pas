@@ -270,7 +270,7 @@ uses
   SysUtils,
   e_input, e_res, g_options,
   g_nethandler, g_netmsg, g_netmaster, g_player, g_window, g_console,
-  g_game, g_language, g_weapons, ctypes, g_system, g_map;
+  g_game, g_language, g_weapons, ctypes, g_map;
 
 const
   FILE_CHUNK_SIZE = 8192;
