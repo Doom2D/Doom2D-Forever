@@ -24,11 +24,10 @@ uses
 
 type
   TLevelTexture = record
-    textureName: AnsiString;
-    width, height: Word;
+    TextureName: AnsiString; // as stored in wad
+    FullName: AnsiString; // full path to texture // !!! merge it with TextureName
     case anim: Boolean of
-      false: (textureID: LongWord);
-      true: (framesID: LongWord; framesCount: Byte; speed: Byte);
+      true: (framesCount: Byte; speed: Byte);
   end;
 
   TLevelTextureArray = array of TLevelTexture;

@@ -161,7 +161,6 @@ uses
   r_map in 'opengl/r_map.pas',
   r_monsters in 'opengl/r_monsters.pas',
   r_netmaster in 'opengl/r_netmaster.pas',
-  r_panel in 'opengl/r_panel.pas',
   r_player in 'opengl/r_player.pas',
   r_playermodel in 'opengl/r_playermodel.pas',
   r_render in 'opengl/r_render.pas',

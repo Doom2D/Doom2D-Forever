@@ -35,7 +35,7 @@ implementation
     e_input, e_sound,
     g_language, g_console, g_menu, g_triggers, g_player, g_options, g_monsters, g_map, g_panel,
     g_items, g_weapons, g_gfx, g_phys, g_net, g_gui, g_netmaster,
-    g_game, r_console, r_gfx, r_items, r_map, r_panel, r_monsters, r_weapons, r_netmaster, r_player, r_textures,
+    g_game, r_console, r_gfx, r_items, r_map, r_monsters, r_weapons, r_netmaster, r_player, r_textures,
     r_playermodel
   ;
 
