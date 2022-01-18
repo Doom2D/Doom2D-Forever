@@ -749,7 +749,7 @@ end;
   procedure TPlayerModel.SetFire (Fire: Boolean);
   begin
     if Fire then
-      FFireCounter := PlayerModelsArray[FID].ModelSpeed[A_ATTACK] * PlayerModelsArray[FID].Anim[TDirection.D_RIGHT, A_ATTACK].Frames
+      FFireCounter := PlayerModelsArray[FID].ModelSpeed[A_ATTACK] * PlayerModelsArray[FID].Anim[TDirection.D_RIGHT, A_ATTACK].Frames + 1
     else
       FFireCounter := 0
   end;
