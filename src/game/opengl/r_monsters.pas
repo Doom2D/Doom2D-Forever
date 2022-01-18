@@ -33,8 +33,7 @@ implementation
   ;
 
   type
-    TMonsterDirected = array [TDirection.D_LEFT..TDirection.D_RIGHT] of DWORD;
-    TMonsterAnims = array [ANIM_SLEEP..ANIM_PAIN] of TMonsterDirected;
+    TMonsterAnims = array [ANIM_SLEEP..ANIM_PAIN, TDirection.D_LEFT..TDirection.D_RIGHT] of DWORD;
 
   var
     VileFire: DWORD;
@@ -372,7 +371,7 @@ implementation
   end;
 
   procedure r_Monsters_Draw (constref monster: TMonster);
-    var m: TMirrorType; dx, dy, c, fX, fY: Integer; o: TObj;
+    var m: TMirrorType; dx, dy, c, fX, fY, mw, mh: Integer; o: TObj;
   begin
     with monster do
     begin
@@ -422,8 +421,8 @@ implementation
             // Расстояние от края текстуры до края визуального положения объекта на текстуре:
             c := (MONSTERTABLE[MonsterType].Rect.X - dx) + MONSTERTABLE[MonsterType].Rect.Width;
             // Расстояние от края хит бокса до края визуального положения объекта на текстуре:
-            //dx := DirAnim[MonsterAnim, GameDirection].Width - c - MONSTERTABLE[MonsterType].Rect.X;
-            dx := 64 - c - MONSTERTABLE[MonsterType].Rect.X; // !!! ^^^
+            g_Frames_GetFrameSize(monFrames[MonsterType, MonsterAnim, GameDirection], mw, mh);
+            dx := mw - c - MONSTERTABLE[MonsterType].Rect.X; // !!! ^^^
             // Т.к. двигать текстуру нужно будет в противоположном направлении:
             dx := -dx;
             // Это значит: dX := -frameWidth - animDeltaX + hitX + hitWidth + hitX

@@ -30,6 +30,7 @@ interface
   function g_Frames_Dup (const NewName, OldName: AnsiString): Boolean;
   function g_Frames_Get (out ID: LongWord; const FramesName: AnsiString): Boolean;
   function g_Frames_GetTexture (out ID: LongWord; const FramesName: AnsiString; Frame: Word): Boolean;
+  procedure g_Frames_GetFrameSize (ID: DWORD; out w, h: Integer);
   function g_Frames_Exists (const FramesName: AnsiString): Boolean;
   procedure g_Frames_DeleteByName (const FramesName: AnsiString);
   procedure g_Frames_DeleteByID (ID: LongWord);
@@ -55,6 +56,17 @@ implementation
     r_graphics,
     g_language, g_game
   ;
+
+  procedure g_Frames_GetFrameSize (ID: DWORD; out w, h: Integer);
+  begin
+    w := 0;
+    h := 0;
+    if framesArray <> nil then
+    begin
+      w := framesArray[ID].frameWidth;
+      h := framesArray[ID].frameHeight;
+    end
+  end;
 
   procedure r_AnimationState_Draw (FID: DWORD; t: TAnimationState; x, y: Integer; alpha: Byte; mirror: TMirrorType; blending: Boolean);
   begin
