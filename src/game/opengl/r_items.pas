@@ -198,7 +198,7 @@ begin
         end
         else if itemFrames[it.ItemType] <> 0 then
         begin
-          r_AnimationState_Draw(itemFrames[it.ItemType], Animation, fX, fY, TMirrorType.None)
+          r_AnimationState_Draw(itemFrames[it.ItemType], Animation, fX, fY, 0, TMirrorType.None, False)
         end;
 
         if g_debug_Frames then

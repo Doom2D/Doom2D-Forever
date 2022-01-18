@@ -4142,7 +4142,7 @@ begin
   anim := (vilefire <> nil);
   utils.writeBool(st, anim);
   // Если есть - сохраняем:
-  if anim then vilefire.SaveState(st);
+  if anim then vilefire.SaveState(st, 0, False);
   // Анимации
   for i := ANIM_SLEEP to ANIM_PAIN do
   begin
@@ -4150,12 +4150,12 @@ begin
     anim := (FAnim[i, TDirection.D_LEFT] <> nil);
     utils.writeBool(st, anim);
     // Если есть - сохраняем
-    if anim then FAnim[i, TDirection.D_LEFT].SaveState(st);
+    if anim then FAnim[i, TDirection.D_LEFT].SaveState(st, 0, False);
     // Есть ли правая анимация
     anim := (FAnim[i, TDirection.D_RIGHT] <> nil);
     utils.writeBool(st, anim);
     // Если есть - сохраняем
-    if anim then FAnim[i, TDirection.D_RIGHT].SaveState(st);
+    if anim then FAnim[i, TDirection.D_RIGHT].SaveState(st, 0, False);
   end;
 end;
 
@@ -4163,8 +4163,8 @@ end;
 procedure TMonster.LoadState (st: TStream);
 var
   i: Integer;
-  b: Byte;
-  anim: Boolean;
+  b, alpha: Byte;
+  anim, blending: Boolean;
 begin
   assert(st <> nil);
 
@@ -4224,7 +4224,7 @@ begin
   if anim then
   begin
     Assert(vilefire <> nil, 'TMonster.LoadState: no vilefire anim');
-    vilefire.LoadState(st);
+    vilefire.LoadState(st, alpha, blending);
   end;
   // Анимации
   for i := ANIM_SLEEP to ANIM_PAIN do
@@ -4235,7 +4235,7 @@ begin
     if anim then
     begin
       Assert(FAnim[i, TDirection.D_LEFT] <> nil, 'TMonster.LoadState: no '+IntToStr(i)+'_left anim');
-      FAnim[i, TDirection.D_LEFT].LoadState(st);
+      FAnim[i, TDirection.D_LEFT].LoadState(st, alpha, blending);
     end;
     // Есть ли правая анимация
      anim := utils.readBool(st);
@@ -4243,7 +4243,7 @@ begin
     if anim then
     begin
       Assert(FAnim[i, TDirection.D_RIGHT] <> nil, 'TMonster.LoadState: no '+IntToStr(i)+'_right anim');
-      FAnim[i, TDirection.D_RIGHT].LoadState(st);
+      FAnim[i, TDirection.D_RIGHT].LoadState(st, alpha, blending);
     end;
   end;
   // update cache

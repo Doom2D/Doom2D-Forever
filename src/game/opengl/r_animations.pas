@@ -19,8 +19,8 @@ interface
 
   uses g_base, g_textures, MAPDEF, Imaging; // TMirrorType, TAnimationState, TDFPoint, TDynImageDataArray
 
-  procedure r_AnimationState_Draw (TID: DWORD; t: TAnimationState; x, y: Integer; mirror: TMirrorType);
-  procedure r_AnimationState_DrawEx (FID: DWORD; t: TAnimationState; x, y: Integer; mirror: TMirrorType; rpoint: TDFPoint; angle: SmallInt);
+  procedure r_AnimationState_Draw (FID: DWORD; t: TAnimationState; x, y: Integer; alpha: Byte; mirror: TMirrorType; blending: Boolean);
+  procedure r_AnimationState_DrawEx (FID: DWORD; t: TAnimationState; x, y: Integer; alpha: Byte; mirror: TMirrorType; blending: Boolean; rpoint: TDFPoint; angle: SmallInt);
 
   function g_CreateFramesImg (ia: TDynImageDataArray; ID: PDWORD; const Name: AnsiString; BackAnimation: Boolean = false): Boolean;
 
@@ -56,16 +56,16 @@ implementation
     g_language, g_game
   ;
 
-  procedure r_AnimationState_Draw (TID: DWORD; t: TAnimationState; x, y: Integer; mirror: TMirrorType);
+  procedure r_AnimationState_Draw (FID: DWORD; t: TAnimationState; x, y: Integer; alpha: Byte; mirror: TMirrorType; blending: Boolean);
   begin
     if t.enabled then
-      e_DrawAdv(framesArray[TID].TexturesID[t.currentFrame], x, y, t.alpha, true, t.blending, 0, nil, mirror)
+      e_DrawAdv(framesArray[FID].TexturesID[t.currentFrame], x, y, alpha, true, blending, 0, nil, mirror)
   end;
 
-  procedure r_AnimationState_DrawEx (FID: DWORD; t: TAnimationState; x, y: Integer; mirror: TMirrorType; rpoint: TDFPoint; angle: SmallInt);
+  procedure r_AnimationState_DrawEx (FID: DWORD; t: TAnimationState; x, y: Integer; alpha: Byte; mirror: TMirrorType; blending: Boolean; rpoint: TDFPoint; angle: SmallInt);
   begin
     if t.enabled then
-      e_DrawAdv(framesArray[FID].TexturesID[t.currentFrame], x, y, t.alpha, true, t.blending, angle, @rpoint, mirror)
+      e_DrawAdv(framesArray[FID].TexturesID[t.currentFrame], x, y, alpha, true, blending, angle, @rpoint, mirror)
   end;
 
 function allocFrameSlot (): LongWord;

@@ -46,6 +46,7 @@ implementation
   type
     TOnceAnim = record
       AnimType:   Byte;
+      Alpha:      Byte;
       x, y:       Integer;
       oldX, oldY: Integer;
       Animation:  TAnimationState;
@@ -109,10 +110,11 @@ implementation
   end;
 
   procedure r_GFX_OnceAnim (AnimType, x, y: Integer);
-    var find_id: DWORD; a: TAnimationState;
+    var find_id: DWORD; a: TAnimationState; alpha: Byte;
   begin
     if not gpart_dbg_enabled then exit;
     find_id := FindOnceAnim();
+    alpha := 0;
     case AnimType of
       R_GFX_NONE: a := nil;
       R_GFX_TELEPORT: a := TAnimationState.Create(false, 6, 10); // !!! speed can be 3
@@ -137,7 +139,7 @@ implementation
       begin
         AnimType := R_GFX_SMOKE;
         a := TAnimationState.Create(false, 3, 10);
-        a.alpha := 150;
+        alpha := 150;
       end;
       R_GFX_EXPLODE_SKELFIRE: a := TAnimationState.Create(false, 8, 3);
       R_GFX_EXPLODE_PLASMA: a := TAnimationState.Create(false, 3, 4);
@@ -150,9 +152,8 @@ implementation
       assert(false)
     end;
     OnceAnims[find_id].AnimType := AnimType;
+    OnceAnims[find_id].Alpha := alpha;
     OnceAnims[find_id].Animation := a;
-//    OnceAnims[find_id].Animation.Blending := Anim.Blending;
-//    OnceAnims[find_id].Animation.alpha := Anim.alpha;
     OnceAnims[find_id].x := x;
     OnceAnims[find_id].y := y;
   end;
@@ -240,7 +241,7 @@ begin
         begin
           fx := nlerp(oldx, x, gLerpFactor);
           fy := nlerp(oldy, y, gLerpFactor);
-          r_AnimationState_Draw(gfxFrames[AnimType], Animation, x, y, TMirrorType.None);
+          r_AnimationState_Draw(gfxFrames[AnimType], Animation, x, y, Alpha, TMirrorType.None, False);
         end;
       end;
     end;

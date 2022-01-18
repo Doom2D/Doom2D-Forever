@@ -147,9 +147,9 @@ implementation
           if Animation <> nil then
           begin
             if Shots[i].ShotType in [WEAPON_BARON_FIRE, WEAPON_MANCUB_FIRE, WEAPON_SKEL_FIRE] then
-              r_AnimationState_DrawEx(ShotFrames[Shots[i].ShotType], Animation, fX, fY, TMirrorType.None, p, a)
+              r_AnimationState_DrawEx(ShotFrames[Shots[i].ShotType], Animation, fX, fY, 0, TMirrorType.None, False, p, a)
             else
-              r_AnimationState_Draw(ShotFrames[Shots[i].ShotType], Animation, fX, fY, TMirrorType.None);
+              r_AnimationState_Draw(ShotFrames[Shots[i].ShotType], Animation, fX, fY, 0, TMirrorType.None, False);
           end
           else if ShotTexture[Shots[i].ShotType] <> 0 then
           begin

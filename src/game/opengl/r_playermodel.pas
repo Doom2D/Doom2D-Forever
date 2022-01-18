@@ -321,7 +321,9 @@ begin
       FlagAnimState,
       X + IfThen(pm.Direction = TDirection.D_LEFT, fp.X - 1, 2 * FLAG_BASEPOINT.X - fp.X + 1) - FLAG_BASEPOINT.X,
       Y + fp.Y - FLAG_BASEPOINT.Y + 1,
+      0,
       Mirror,
+      False,
       p,
       IfThen(pm.Direction = TDirection.D_RIGHT, fa, -fa)
     );
@@ -363,15 +365,13 @@ begin
 // Модель:
   if (pm.Direction = TDirection.D_LEFT) and (Models[pm.id].Frames[TDirection.D_LEFT, pm.CurrentAnimation].base <> 0) then
   begin
-    pm.AnimState.Alpha := Alpha; // !!!
     FramesID := Models[pm.id].Frames[TDirection.D_LEFT, pm.CurrentAnimation].base;
-    r_AnimationState_Draw(FramesID, pm.AnimState, X, Y, TMirrorType.None);
+    r_AnimationState_Draw(FramesID, pm.AnimState, X, Y, Alpha, TMirrorType.None, False);
   end
   else
   begin
-    pm.AnimState.Alpha := Alpha; // !!!
     FramesID := Models[pm.id].Frames[TDirection.D_RIGHT, pm.CurrentAnimation].base;
-    r_AnimationState_Draw(FramesID, pm.AnimState, X, Y, Mirror);
+    r_AnimationState_Draw(FramesID, pm.AnimState, X, Y, Alpha, Mirror, False);
   end;
 
 // Маска модели:
@@ -379,15 +379,13 @@ begin
 
   if (pm.Direction = TDirection.D_LEFT) and (Models[pm.id].Frames[TDirection.D_LEFT, pm.CurrentAnimation].mask <> 0) then
   begin
-    pm.AnimState.Alpha := Alpha; // !!!
     FramesID := Models[pm.id].Frames[TDirection.D_LEFT, pm.CurrentAnimation].mask;
-    r_AnimationState_Draw(FramesID, pm.AnimState, X, Y, TMirrorType.None);
+    r_AnimationState_Draw(FramesID, pm.AnimState, X, Y, Alpha, TMirrorType.None, False);
   end
   else
   begin
-    pm.AnimState.Alpha := Alpha; // !!!
     FramesID := Models[pm.id].Frames[TDirection.D_RIGHT, pm.CurrentAnimation].mask;
-    r_AnimationState_Draw(FramesID, pm.AnimState, X, Y, Mirror);
+    r_AnimationState_Draw(FramesID, pm.AnimState, X, Y, Alpha, Mirror, False);
   end;
 
   e_Colors.R := 255;

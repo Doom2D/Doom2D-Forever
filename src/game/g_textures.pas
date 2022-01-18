@@ -33,8 +33,6 @@ type
 
   TAnimationState = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
-    mAlpha: Byte;
-    mBlending: Boolean;
     mCounter: Byte; // Счетчик ожидания между кадрами
     mSpeed: Byte; // Время ожидания между кадрами
     mCurrentFrame: Integer; // Текущий кадр (начиная с 0)
@@ -56,8 +54,8 @@ type
     procedure disable ();
     procedure revert (r: Boolean);
 
-    procedure saveState (st: TStream);
-    procedure loadState (st: TStream);
+    procedure saveState (st: TStream; mAlpha: Byte; mBlending: Boolean);
+    procedure loadState (st: TStream; out mAlpha: Byte; out mBlending: Boolean);
 
     function totalFrames (): Integer; inline;
 
@@ -71,8 +69,6 @@ type
     property currentFrame: Integer read mCurrentFrame write mCurrentFrame;
     property currentCounter: Byte read mCounter write mCounter;
     property counter: Byte read mCounter;
-    property blending: Boolean read mBlending write mBlending;
-    property alpha: Byte read mAlpha write mAlpha;
     property length: Integer read mLength;
   end;
 
@@ -92,7 +88,6 @@ begin
   mSpeed := aspeed;
   mEnabled := true;
   mCurrentFrame := 0;
-  mAlpha := 0;
   mPlayed := false;
 end;
 
@@ -187,7 +182,7 @@ begin
   result := mLength
 end;
 
-procedure TAnimationState.saveState (st: TStream);
+procedure TAnimationState.saveState (st: TStream; mAlpha: Byte; mBlending: Boolean);
 begin
   if (st = nil) then exit;
 
@@ -216,7 +211,7 @@ begin
 end;
 
 
-procedure TAnimationState.loadState (st: TStream);
+procedure TAnimationState.loadState (st: TStream; out mAlpha: Byte; out mBlending: Boolean);
 begin
   if (st = nil) then exit;
 
