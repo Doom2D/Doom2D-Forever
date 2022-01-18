@@ -1663,7 +1663,7 @@ begin
     FAnim[a, TDirection.D_LEFT] := TAnimationState.Create(ANIMTABLE[a].loop, MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a], MONSTER_ANIMTABLE[MonsterType].AnimCount[a]);
   end;
   if MonsterType = MONSTER_VILE then
-    vilefire := TAnimationState.Create(True, 2, 0); // !!! len
+    vilefire := TAnimationState.Create(True, 2, 8);
 end;
 
 function TMonster.Damage(aDamage: Word; VelX, VelY: Integer; SpawnerUID: Word; t: Byte): Boolean;
