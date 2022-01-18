@@ -177,7 +177,7 @@ implementation
 
 uses
   {$IFNDEF HEADLESS}
-    g_gui, g_menu, r_game, g_system,
+    g_gui, g_menu, r_render, g_system,
   {$ENDIF}
   e_input, e_log, g_net, g_console,
   g_map, g_game, g_sound, g_options, g_language, g_basic,
@@ -1785,7 +1785,7 @@ begin
       slWaitStr := _lc[I_NET_SLIST_WAIT];
 
 {$IFNDEF HEADLESS}
-      r_Game_Draw;
+      r_Render_Draw;
       sys_Repaint;
 {$ENDIF}
 

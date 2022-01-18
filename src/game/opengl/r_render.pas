@@ -29,6 +29,7 @@ interface
   procedure r_Render_FreeTextures;
 
   procedure r_Render_Update;
+  procedure r_Render_Draw;
 
   procedure r_Render_Resize (w, h: Integer);
   procedure r_Render_Apply;
@@ -150,6 +151,11 @@ implementation
     r_Map_Update;
     r_PlayerModel_Update;
     r_Console_Update;
+  end;
+
+  procedure r_Render_Draw;
+  begin
+    r_Game_Draw;
   end;
 
   procedure r_Render_Resize (w, h: Integer);

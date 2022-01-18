@@ -304,7 +304,7 @@ begin
     else
       gLerpFactor := nmin(1.0, (Time - Time_Old) / 28.0);
 {$IFNDEF HEADLESS}
-    r_Game_Draw;
+    r_Render_Draw;
     sys_Repaint;
 {$ENDIF}
     Frame := Time

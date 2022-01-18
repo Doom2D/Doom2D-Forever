@@ -455,7 +455,7 @@ uses
     g_holmes,
   {$ENDIF}
   {$IFNDEF HEADLESS}
-    r_render, g_menu, r_playermodel, g_system,
+    r_render, g_menu, g_system,
   {$ENDIF}
   e_res, g_window,
   e_input, e_log, g_console, g_items, g_map, g_panel,
