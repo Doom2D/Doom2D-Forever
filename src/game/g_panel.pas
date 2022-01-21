@@ -607,6 +607,7 @@ var
   nx, ny, nw, nh: Integer;
   ex, ey, nex, ney: Integer;
   mpw, mph: Integer;
+  conveyor: Boolean;
 
   // return `true` if we should move by dx,dy
   function tryMPlatMove (px, py, pw, ph: Integer; out dx, dy: Integer; out squash: Boolean; ontop: PBoolean=nil): Boolean;
@@ -682,7 +683,7 @@ var
     dx := tex-px;
     dy := tey-py;
     result := (dx <> 0) or (dy <> 0);
-    if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
+    if not conveyor and ((tag and (GridTagWall or GridTagDoor)) <> 0) then
     begin
       // check for squashing; as entity cannot be pushed into a wall, check only collision with the platform itself
       squash := g_Collide(tex, tey, pw, ph, nx, ny, nw, nh); // squash, if still in platform
@@ -748,10 +749,19 @@ begin
     mpw := Width;
     mph := Height;
 
+    // the mplat acts as a stationary conveyor belt when it's locked within a movement rect of zero area
+    conveyor := (mMovingEnd.X = mMovingStart.X) and (mMovingEnd.Y = mMovingStart.Y)
+      and (mMovingEnd.X = X) and (mMovingEnd.Y = Y);
+
     nw := mpw+mSizeSpeed.w;
     nh := mph+mSizeSpeed.h;
-    nx := ox+mMovingSpeed.X;
-    ny := oy+mMovingSpeed.Y;
+    nx := ox;
+    ny := oy;
+    if not conveyor then
+    begin
+      nx += mMovingSpeed.X;
+      ny += mMovingSpeed.Y;
+    end;
 
     // force network updates only if some sudden change happened
     // set the flag here, so we can sync affected monsters
@@ -899,21 +909,24 @@ begin
       if (nw < 1) or (nh < 1) then mMovingActive := false; //HACK!
     end;
 
-    // reverse moving direction, if necessary
-    if ((mMovingSpeed.X < 0) and (nx <= mMovingStart.X)) or ((mMovingSpeed.X > 0) and (nx >= mMovingEnd.X)) then
+    if not conveyor then
     begin
-      if mMoveOnce then mMovingActive := false else mMovingSpeed.X := -mMovingSpeed.X;
-      actMoveTrig := true;
-    end;
+      // reverse moving direction, if necessary
+      if ((mMovingSpeed.X < 0) and (nx <= mMovingStart.X)) or ((mMovingSpeed.X > 0) and (nx >= mMovingEnd.X)) then
+      begin
+        if mMoveOnce then mMovingActive := false else mMovingSpeed.X := -mMovingSpeed.X;
+        actMoveTrig := true;
+      end;
 
-    if ((mMovingSpeed.Y < 0) and (ny <= mMovingStart.Y)) or ((mMovingSpeed.Y > 0) and (ny >= mMovingEnd.Y)) then
-    begin
-      if mMoveOnce then mMovingActive := false else mMovingSpeed.Y := -mMovingSpeed.Y;
-      actMoveTrig := true;
-    end;
+      if ((mMovingSpeed.Y < 0) and (ny <= mMovingStart.Y)) or ((mMovingSpeed.Y > 0) and (ny >= mMovingEnd.Y)) then
+      begin
+        if mMoveOnce then mMovingActive := false else mMovingSpeed.Y := -mMovingSpeed.Y;
+        actMoveTrig := true;
+      end;
 
-    if (mOldMovingActive <> mMovingActive) then mNeedSend := true;
-    mOldMovingActive := mMovingActive;
+      if (mOldMovingActive <> mMovingActive) then mNeedSend := true;
+      mOldMovingActive := mMovingActive;
+    end;
 
     if not g_Game_IsClient then
     begin
