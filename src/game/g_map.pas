@@ -3169,6 +3169,7 @@ end;
 procedure g_Map_DrawFlags();
 var
   i, dx: Integer;
+  tx, ty: Integer;
   Mirror: TMirrorType;
 begin
   if gGameSettings.GameMode <> GM_CTF then
@@ -3181,6 +3182,8 @@ begin
         if State = FLAG_STATE_NONE then
           continue;
 
+        Obj.lerp(gLerpFactor, tx, ty);
+
         if Direction = TDirection.D_LEFT then
           begin
             Mirror := TMirrorType.Horizontal;
@@ -3192,7 +3195,7 @@ begin
             dx := 1;
           end;
 
-        Animation.Draw(Obj.X+dx, Obj.Y+1, Mirror);
+        Animation.Draw(tx+dx, ty+1, Mirror);
 
         if g_debug_Frames then
         begin
