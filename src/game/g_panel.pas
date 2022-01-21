@@ -97,7 +97,9 @@ type
     FCurFrame:        Integer;
     FCurFrameCount:   Byte;
     FX, FY:           Integer;
+    FOldX, FOldY:     Integer;
     FWidth, FHeight:  Word;
+    FOldW, FOldH:     Word;
     FPanelType:       Word;
     FEnabled:         Boolean;
     FDoor:            Boolean;
@@ -145,6 +147,8 @@ type
     // get-and-clear
     function gncNeedSend (): Boolean; inline;
     procedure setDirty (); inline; // why `dirty`? 'cause i may introduce property `needSend` later
+
+    procedure lerp (t: Single; out tX, tY, tW, tH: Integer);
 
   public
     property visvalid: Boolean read getvisvalid; // panel is "visvalid" when it's width and height are positive
@@ -236,8 +240,12 @@ var
 begin
   X := PanelRec.X;
   Y := PanelRec.Y;
+  FOldX := X;
+  FOldY := Y;
   Width := PanelRec.Width;
   Height := PanelRec.Height;
+  FOldW := Width;
+  FOldH := Height;
   FAlpha := 0;
   FBlending := False;
   FCurFrame := 0;
@@ -381,6 +389,24 @@ begin
   Inherited;
 end;
 
+procedure TPanel.lerp (t: Single; out tX, tY, tW, tH: Integer);
+begin
+  if mMovingActive then
+  begin
+    tX := nlerp(FOldX, FX, t);
+    tY := nlerp(FOldY, FY, t);
+    tW := nlerp(FOldW, FWidth, t);
+    tH := nlerp(FOldH, FHeight, t);
+  end
+  else
+  begin
+    tX := FX;
+    tY := FY;
+    tW := FWidth;
+    tH := FHeight;
+  end;
+end;
+
 function TPanel.getx1 (): Integer; inline; begin result := X+Width-1; end;
 function TPanel.gety1 (): Integer; inline; begin result := Y+Height-1; end;
 function TPanel.getvisvalid (): Boolean; inline; begin result := (Width > 0) and (Height > 0); end;
@@ -426,6 +452,7 @@ procedure TPanel.setDirty (); inline; begin mNeedSend := true; end;
 
 procedure TPanel.Draw (hasAmbient: Boolean; constref ambColor: TDFColor);
 var
+  tx, ty, tw, th: Integer;
   xx, yy: Integer;
   NoTextureID: DWORD;
   NW, NH: Word;
@@ -434,45 +461,46 @@ begin
      (Width > 0) and (Height > 0) and (FAlpha < 255) {and
      g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
   begin
+    lerp(gLerpFactor, tx, ty, tw, th);
     if FTextureIDs[FCurTexture].Anim then
       begin // Анимированная текстура
         if FTextureIDs[FCurTexture].AnTex = nil then
           Exit;
 
-        for xx := 0 to (Width div FTextureWidth)-1 do
-          for yy := 0 to (Height div FTextureHeight)-1 do
+        for xx := 0 to (tw div FTextureWidth)-1 do
+          for yy := 0 to (th div FTextureHeight)-1 do
             FTextureIDs[FCurTexture].AnTex.Draw(
-              X + xx*FTextureWidth,
-              Y + yy*FTextureHeight, TMirrorType.None);
+              tx + xx*FTextureWidth,
+              ty + yy*FTextureHeight, TMirrorType.None);
       end
     else
       begin // Обычная текстура
         case FTextureIDs[FCurTexture].Tex of
-          LongWord(TEXTURE_SPECIAL_WATER): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 0, 0, 255, 0, TBlending.Filter);
-          LongWord(TEXTURE_SPECIAL_ACID1): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 0, 230, 0, 0, TBlending.Filter);
-          LongWord(TEXTURE_SPECIAL_ACID2): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 230, 0, 0, 0, TBlending.Filter);
+          LongWord(TEXTURE_SPECIAL_WATER): e_DrawFillQuad(tx, ty, tx+tw-1, ty+th-1, 0, 0, 255, 0, TBlending.Filter);
+          LongWord(TEXTURE_SPECIAL_ACID1): e_DrawFillQuad(tx, ty, tx+tw-1, ty+th-1, 0, 230, 0, 0, TBlending.Filter);
+          LongWord(TEXTURE_SPECIAL_ACID2): e_DrawFillQuad(tx, ty, tx+tw-1, ty+th-1, 230, 0, 0, 0, TBlending.Filter);
           LongWord(TEXTURE_NONE):
             if g_Texture_Get('NOTEXTURE', NoTextureID) then
             begin
               e_GetTextureSize(NoTextureID, @NW, @NH);
-              e_DrawFill(NoTextureID, X, Y, Width div NW, Height div NH, 0, False, False);
+              e_DrawFill(NoTextureID, tx, ty, tw div NW, th div NH, 0, False, False);
             end
             else
             begin
-              xx := X + (Width div 2);
-              yy := Y + (Height div 2);
-              e_DrawFillQuad(X, Y, xx, yy, 255, 0, 255, 0);
-              e_DrawFillQuad(xx, Y, X+Width-1, yy, 255, 255, 0, 0);
-              e_DrawFillQuad(X, yy, xx, Y+Height-1, 255, 255, 0, 0);
-              e_DrawFillQuad(xx, yy, X+Width-1, Y+Height-1, 255, 0, 255, 0);
+              xx := tx + (tw div 2);
+              yy := ty + (th div 2);
+              e_DrawFillQuad(tx, ty, xx, yy, 255, 0, 255, 0);
+              e_DrawFillQuad(xx, ty, tx+tw-1, yy, 255, 255, 0, 0);
+              e_DrawFillQuad(tx, yy, xx, ty+th-1, 255, 255, 0, 0);
+              e_DrawFillQuad(xx, yy, tx+tw-1, ty+th-1, 255, 0, 255, 0);
             end;
           else
           begin
             if not mMovingActive then
-              e_DrawFill(FTextureIDs[FCurTexture].Tex, X, Y, Width div FTextureWidth, Height div FTextureHeight, FAlpha, True, FBlending, hasAmbient)
+              e_DrawFill(FTextureIDs[FCurTexture].Tex, tx, ty, tw div FTextureWidth, th div FTextureHeight, FAlpha, True, FBlending, hasAmbient)
             else
-              e_DrawFillX(FTextureIDs[FCurTexture].Tex, X, Y, Width, Height, FAlpha, True, FBlending, g_dbg_scale, hasAmbient);
-            if hasAmbient then e_AmbientQuad(X, Y, Width, Height, ambColor.r, ambColor.g, ambColor.b, ambColor.a);
+              e_DrawFillX(FTextureIDs[FCurTexture].Tex, tx, ty, tw, th, FAlpha, True, FBlending, g_dbg_scale, hasAmbient);
+            if hasAmbient then e_AmbientQuad(tx, ty, tw, th, ambColor.r, ambColor.g, ambColor.b, ambColor.a);
           end;
         end;
       end;
@@ -480,6 +508,9 @@ begin
 end;
 
 procedure TPanel.DrawShadowVolume(lightX: Integer; lightY: Integer; radius: Integer);
+var
+  tx, ty, tw, th: Integer;
+
   procedure extrude (x: Integer; y: Integer);
   begin
     glVertex2i(x+(x-lightX)*500, y+(y-lightY)*500);
@@ -501,8 +532,9 @@ procedure TPanel.DrawShadowVolume(lightX: Integer; lightY: Integer; radius: Inte
 begin
   if radius < 4 then exit;
   if Enabled and (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (FAlpha < 255) {and
-     g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
+     g_Collide(X, Y, tw, th, sX, sY, sWidth, sHeight)} then
   begin
+    lerp(gLerpFactor, tx, ty, tw, th);
     if not FTextureIDs[FCurTexture].Anim then
     begin
       case FTextureIDs[FCurTexture].Tex of
@@ -512,17 +544,17 @@ begin
         LongWord(TEXTURE_NONE): exit;
       end;
     end;
-    if (X+Width < lightX-radius) then exit;
-    if (Y+Height < lightY-radius) then exit;
-    if (X > lightX+radius) then exit;
-    if (Y > lightY+radius) then exit;
-    //e_DrawFill(FTextureIDs[FCurTexture].Tex, X, Y, Width div FTextureWidth, Height div FTextureHeight, FAlpha, True, FBlending);
+    if (tx+tw < lightX-radius) then exit;
+    if (ty+th < lightY-radius) then exit;
+    if (tx > lightX+radius) then exit;
+    if (ty > lightY+radius) then exit;
+    //e_DrawFill(FTextureIDs[FCurTexture].Tex, X, Y, tw div FTextureWidth, th div FTextureHeight, FAlpha, True, FBlending);
 
     glBegin(GL_QUADS);
-      drawLine(x,       y,        x+width, y); // top
-      drawLine(x+width, y,        x+width, y+height); // right
-      drawLine(x+width, y+height, x,       y+height); // bottom
-      drawLine(x,       y+height, x,       y); // left
+      drawLine(tx,    ty,    tx+tw, ty); // top
+      drawLine(tx+tw, ty,    tx+tw, ty+th); // right
+      drawLine(tx+tw, ty+th, tx,    ty+th); // bottom
+      drawLine(tx,    ty+th, tx,    ty); // left
     glEnd();
   end;
 end;
@@ -843,8 +875,12 @@ begin
     end;
 
     // move panel
+    FOldX := X;
+    FOldY := Y;
     X := nx;
     Y := ny;
+    FOldW := FWidth;
+    FOldH := FHeight;
     FWidth := nw;
     FHeight := nh;
     positionChanged();
@@ -1089,8 +1125,12 @@ begin
   // Координаты и размер
   FX := utils.readLongInt(st);
   FY := utils.readLongInt(st);
+  FOldX := FX;
+  FOldY := FY;
   FWidth := utils.readWord(st);
   FHeight := utils.readWord(st);
+  FOldW := FWidth;
+  FOldH := FHeight;
   // Анимированная ли текущая текстура
   if utils.readBool(st) then
   begin
