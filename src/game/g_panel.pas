@@ -222,7 +222,7 @@ implementation
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
-  e_texture, g_basic, g_map, g_game, g_gfx, e_graphics, g_weapons, g_triggers,
+  e_texture, g_basic, g_map, g_game, g_gfx, e_graphics, g_weapons, g_triggers, g_items,
   g_console, g_language, g_monsters, g_player, g_grid, e_log, geom, utils, xstreams;
 
 const
@@ -707,6 +707,8 @@ var
   gib: PGib;
   cor: TCorpse;
   mon: TMonster;
+  flg: PFlag;
+  itm: PItem;
   mpfrid: LongWord;
   ontop: Boolean;
   actMoveTrig: Boolean;
@@ -848,6 +850,40 @@ begin
             // set new position
             cor.moveBy(pdx, pdy); // this will call `positionChanged()` for us
           end;
+        end;
+
+        // move and push flags
+        if gGameSettings.GameMode = GM_CTF then
+          for f := FLAG_RED to FLAG_BLUE do
+          begin
+            flg := @gFlags[f];
+            if (flg.State in [FLAG_STATE_NONE, FLAG_STATE_CAPTURED]) then continue;
+            px := flg.Obj.X+flg.Obj.Rect.X;
+            py := flg.Obj.Y+flg.Obj.Rect.Y;
+            pw := flg.Obj.Rect.Width;
+            ph := flg.Obj.Rect.Height;
+            if not g_Collide(px, py, pw, ph, cx0, cy0, cw, ch) then continue;
+            if tryMPlatMove(px, py, pw, ph, pdx, pdy, squash, @ontop) then
+              if (pdx <> 0) or (pdy <> 0) then
+              begin
+                flg.Obj.X := flg.Obj.X + pdx;
+                flg.Obj.Y := flg.Obj.Y + pdy;
+                flg.NeedSend := true;
+              end;
+          end;
+
+        // move and push items
+        itm := g_Items_NextAlive(-1);
+        while itm <> nil do
+        begin
+          if itm.Fall then
+          begin
+            itm.getMapBox(px, py, pw, ph);
+            if g_Collide(px, py, pw, ph, cx0, cy0, cw, ch) then
+              if tryMPlatMove(px, py, pw, ph, pdx, pdy, squash, @ontop) then
+                itm.moveBy(pdx, pdy); // this will call `positionChanged()` for us
+          end;
+          itm := g_Items_NextAlive(itm.myId);
         end;
 
         // collect monsters

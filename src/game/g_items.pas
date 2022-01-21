@@ -44,6 +44,8 @@ Type
     NeedSend: Boolean;
 
     procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
+    procedure getMapBox (out x, y, w, h: Integer); inline;
+    procedure moveBy (dx, dy: Integer); inline;
 
     property myid: Integer read arrIdx;
   end;
@@ -80,7 +82,7 @@ type
   TItemEachAliveCB = function (it: PItem): Boolean is nested; // return `true` to stop
 
 function g_Items_ForEachAlive (cb: TItemEachAliveCB; backwards: Boolean=false): Boolean;
-
+function g_Items_NextAlive (startIdx: Integer): PItem;
 
 var
   gItemsTexturesID: Array [1..ITEM_MAX] of DWORD;
@@ -137,6 +139,23 @@ begin
   NeedSend := NeedSend or (Obj.X <> Obj.oldX) or (Obj.Y <> Obj.oldY);
 end;
 
+procedure TItem.getMapBox (out x, y, w, h: Integer); inline;
+begin
+  x := Obj.X+Obj.Rect.X;
+  y := Obj.Y+Obj.Rect.Y;
+  w := Obj.Rect.Width;
+  h := Obj.Rect.Height;
+end;
+
+procedure TItem.moveBy (dx, dy: Integer); inline;
+begin
+  if (dx <> 0) or (dy <> 0) then
+  begin
+    Obj.X += dx;
+    Obj.Y += dy;
+    positionChanged();
+  end;
+end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 const
@@ -893,6 +912,19 @@ begin
   end;
 end;
 
+function g_Items_NextAlive (startIdx: Integer): PItem;
+var
+  idx: Integer;
+begin
+  result := nil;
+  if (ggItems = nil) or (startIdx >= High(ggItems)) then exit;
+  for idx := startIdx + 1 to High(ggItems) do
+    if ggItems[idx].alive and ggItems[idx].slotIsUsed then
+    begin
+      result := @ggItems[idx];
+      exit;
+    end;
+end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure g_Items_EmitPickupSound (idx: Integer);
