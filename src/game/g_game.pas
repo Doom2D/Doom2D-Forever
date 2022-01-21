@@ -1781,6 +1781,16 @@ var
     if mon.gncNeedSend then MH_SEND_MonsterPos(mon.UID);
   end;
 
+  function sendItemPos (it: PItem): Boolean;
+  begin
+    result := false; // don't stop
+    if it.needSend then
+    begin
+      MH_SEND_ItemPos(it.myId);
+      it.needSend := False;
+    end;
+  end;
+
 var
   reliableUpdate: Boolean;
 begin
@@ -2238,6 +2248,18 @@ begin
         end;
 
         g_Mons_ForEach(sendMonsPos);
+
+        // update flags that aren't stationary
+        if gGameSettings.GameMode = GM_CTF then
+          for I := FLAG_RED to FLAG_BLUE do
+            if gFlags[I].NeedSend then
+            begin
+              gFlags[I].NeedSend := False;
+              MH_SEND_FlagPos(I);
+            end;
+
+        // update items that aren't stationary
+        g_Items_ForEachAlive(sendItemPos);
 
         if reliableUpdate then
         begin

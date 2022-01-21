@@ -31,6 +31,7 @@ const
   NET_MSG_FLAG   = 107;
   NET_MSG_REQFST = 108;
   NET_MSG_GSET   = 109;
+  NET_MSG_FLAGPOS= 110;
 
   NET_MSG_PLR    = 111;
   NET_MSG_PLRPOS = 112;
@@ -44,6 +45,7 @@ const
 
   NET_MSG_ISPAWN = 121;
   NET_MSG_IDEL   = 122;
+  NET_MSG_IPOS   = 123;
 
   NET_MSG_MSPAWN = 131;
   NET_MSG_MPOS   = 132;
@@ -51,8 +53,8 @@ const
   NET_MSG_MSHOT  = 134;
   NET_MSG_MDEL   = 135;
 
-  NET_MSG_PSTATE   = 141;
-  NET_MSG_PTEX     = 142;
+  NET_MSG_PSTATE = 141;
+  NET_MSG_PTEX   = 142;
 
   NET_MSG_TSOUND = 151;
   NET_MSG_TMUSIC = 152;
@@ -162,6 +164,7 @@ procedure MH_SEND_GameStats(ID: Integer = NET_EVERYONE);
 procedure MH_SEND_CoopStats(ID: Integer = NET_EVERYONE);
 procedure MH_SEND_GameEvent(EvType: Byte; EvNum: Integer = 0; EvStr: string = 'N'; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_FlagEvent(EvType: Byte; Flag: Byte; PID: Word; Quiet: Boolean = False; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_FlagPos(Flag: Byte; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_GameSettings(ID: Integer = NET_EVERYONE);
 // PLAYER
 procedure MH_SEND_PlayerCreate(PID: Word; ID: Integer = NET_EVERYONE);
@@ -175,6 +178,7 @@ procedure MH_SEND_PlayerSettings(PID: Word; Mdl: string = ''; ID: Integer = NET_
 // ITEM
 procedure MH_SEND_ItemSpawn(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_ItemDestroy(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_ItemPos(IID: Word; ID: Integer = NET_EVERYONE);
 // PANEL
 procedure MH_SEND_PanelTexture(PGUID: Integer; AnimLoop: Byte; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_PanelState(PGUID: Integer; ID: Integer = NET_EVERYONE);
@@ -204,6 +208,7 @@ procedure MC_RECV_GameStats(var M: TMsg);
 procedure MC_RECV_CoopStats(var M: TMsg);
 procedure MC_RECV_GameEvent(var M: TMsg);
 procedure MC_RECV_FlagEvent(var M: TMsg);
+procedure MC_RECV_FlagPos(var M: TMsg);
 procedure MC_RECV_GameSettings(var M: TMsg);
 // PLAYER
 function  MC_RECV_PlayerCreate(var M: TMsg): Word;
@@ -217,6 +222,7 @@ procedure MC_RECV_PlayerSettings(var M: TMsg);
 // ITEM
 procedure MC_RECV_ItemSpawn(var M: TMsg);
 procedure MC_RECV_ItemDestroy(var M: TMsg);
+procedure MC_RECV_ItemPos(var M: TMsg);
 // PANEL
 procedure MC_RECV_PanelTexture(var M: TMsg);
 procedure MC_RECV_PanelState(var M: TMsg);
@@ -1054,8 +1060,21 @@ begin
   NetOut.Write(gFlags[Flag].Obj.Y);
   NetOut.Write(gFlags[Flag].Obj.Vel.X);
   NetOut.Write(gFlags[Flag].Obj.Vel.Y);
+  NetOut.Write(Byte(gFlags[Flag].Direction));
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
+end;
+
+procedure MH_SEND_FlagPos(Flag: Byte; ID: Integer = NET_EVERYONE);
+begin
+  NetOut.Write(Byte(NET_MSG_FLAGPOS));
+  NetOut.Write(Flag);
+  NetOut.Write(gFlags[Flag].Obj.X);
+  NetOut.Write(gFlags[Flag].Obj.Y);
+  NetOut.Write(gFlags[Flag].Obj.Vel.X);
+  NetOut.Write(gFlags[Flag].Obj.Vel.Y);
+
+  g_Net_Host_Send(ID, False, NET_CHAN_IMPORTANT);
 end;
 
 procedure MH_SEND_GameSettings(ID: Integer = NET_EVERYONE);
@@ -1295,6 +1314,22 @@ begin
   NetOut.Write(Byte(Quiet));
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
+end;
+
+procedure MH_SEND_ItemPos(IID: Word; ID: Integer = NET_EVERYONE);
+var
+  it: PItem;
+begin
+  it := g_Items_ByIdx(IID);
+
+  NetOut.Write(Byte(NET_MSG_IPOS));
+  NetOut.Write(IID);
+  NetOut.Write(it.Obj.X);
+  NetOut.Write(it.Obj.Y);
+  NetOut.Write(it.Obj.Vel.X);
+  NetOut.Write(it.Obj.Vel.Y);
+
+  g_Net_Host_Send(ID, False, NET_CHAN_LARGEDATA);
 end;
 
 // PANEL
@@ -2026,6 +2061,18 @@ begin
   end;
 end;
 
+procedure MC_RECV_FlagPos(var M: TMsg);
+var
+  Fl: Byte;
+begin
+  Fl := M.ReadByte();
+  if Fl = FLAG_NONE then Exit;
+  gFlags[Fl].Obj.X := M.ReadLongInt();
+  gFlags[Fl].Obj.Y := M.ReadLongInt();
+  gFlags[Fl].Obj.Vel.X := M.ReadLongInt();
+  gFlags[Fl].Obj.Vel.Y := M.ReadLongInt();
+end;
+
 procedure MC_RECV_FlagEvent(var M: TMsg);
 var
   PID: Word;
@@ -2049,6 +2096,7 @@ begin
   gFlags[Fl].Obj.Y := M.ReadLongInt();
   gFlags[Fl].Obj.Vel.X := M.ReadLongInt();
   gFlags[Fl].Obj.Vel.Y := M.ReadLongInt();
+  gFlags[Fl].Direction := TDirection(M.ReadByte());
 
   Pl := g_Player_Get(PID);
   if (Pl = nil) and
@@ -2603,6 +2651,31 @@ begin
   if not Quiet then g_Items_EmitPickupSound(ID);
 
   g_Items_Remove(ID);
+end;
+
+procedure MC_RECV_ItemPos(var M: TMsg);
+var
+  ID: Word;
+  X, Y, VX, VY: Integer;
+  it: PItem;
+begin
+  if not gGameOn then Exit;
+
+  ID := M.ReadWord();
+  X := M.ReadLongInt();
+  Y := M.ReadLongInt();
+  VX := M.ReadLongInt();
+  VY := M.ReadLongInt();
+
+  if g_Items_ValidId(ID) then
+  begin
+    it := g_Items_ByIdx(ID);
+    it.Obj.X := X;
+    it.Obj.Y := Y;
+    it.Obj.Vel.X := VX;
+    it.Obj.Vel.Y := VY;
+    it.positionChanged();
+  end;
 end;
 
 // PANEL

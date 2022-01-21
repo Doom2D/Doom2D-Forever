@@ -41,6 +41,7 @@ Type
     Obj: TObj;
     Animation: TAnimation;
     dropped: Boolean; // dropped from the monster? drops should be rendered after corpses, so zombie corpse will not obscure ammo container, for example
+    NeedSend: Boolean;
 
     procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
 
@@ -133,6 +134,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure TItem.positionChanged ();
 begin
+  NeedSend := NeedSend or (Obj.X <> Obj.oldX) or (Obj.Y <> Obj.oldY);
 end;
 
 
@@ -348,6 +350,7 @@ begin
   it.alive := False;
   it.SpawnTrigger := -1;
   it.ItemType := ITEM_NONE;
+  it.NeedSend := false;
   freeIds.release(LongWord(idx));
 end;
 
@@ -371,6 +374,7 @@ begin
     it.alive := false;
     it.SpawnTrigger := -1;
     it.Respawnable := false;
+    it.NeedSend := false;
     //if not freeIds.hasFree[LongWord(i)] then raise Exception.Create('internal error in item idx manager');
   end;
 end;
@@ -461,6 +465,7 @@ begin
   it.alive := True;
   it.QuietRespawn := False;
   it.dropped := false;
+  it.NeedSend := false;
 
   g_Obj_Init(@it.Obj);
   it.Obj.X := X;

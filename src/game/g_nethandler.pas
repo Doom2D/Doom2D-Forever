@@ -101,6 +101,7 @@ begin
     NET_MSG_GEVENT: MC_RECV_GameEvent(NetMsg);
     NET_MSG_FLAG:   MC_RECV_FlagEvent(NetMsg);
     NET_MSG_GSET:   MC_RECV_GameSettings(NetMsg);
+    NET_MSG_FLAGPOS:MC_RECV_FlagPos(NetMsg);
 
     NET_MSG_PLR:    MC_RECV_PlayerCreate(NetMsg);
     NET_MSG_PLRPOS: MC_RECV_PlayerPos(NetMsg);
@@ -123,6 +124,7 @@ begin
 
     NET_MSG_ISPAWN: MC_RECV_ItemSpawn(NetMsg);
     NET_MSG_IDEL:   MC_RECV_ItemDestroy(NetMsg);
+    NET_MSG_IPOS:   MC_RECV_ItemPos(NetMsg);
 
     NET_MSG_PSTATE: MC_RECV_PanelState(NetMsg);
     NET_MSG_PTEX:   MC_RECV_PanelTexture(NetMsg);

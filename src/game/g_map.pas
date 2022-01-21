@@ -54,6 +54,7 @@ type
     CaptureTime: LongWord;
     Animation:   TAnimation;
     Direction:   TDirection;
+    NeedSend:    Boolean;
   end;
 
 function  g_Map_Load(Res: String): Boolean;
@@ -2567,7 +2568,12 @@ begin
         begin
           if gFlags[a].Animation <> nil then gFlags[a].Animation.Update();
 
+          Obj.oldX := Obj.X;
+          Obj.oldY := Obj.Y;
+
           m := g_Obj_Move(@Obj, True, True);
+
+          NeedSend := NeedSend or (Obj.X <> Obj.oldX) or (Obj.Y <> Obj.oldY);
 
           if gTime mod (GAME_TICK*2) <> 0 then Continue;
 
@@ -3153,6 +3159,9 @@ begin
       Direction := FlagPoints[Flag]^.Direction;
       State := FLAG_STATE_NORMAL;
     end;
+    Obj.oldX := Obj.X;
+    Obj.oldY := Obj.Y;
+    NeedSend := False; // the event will take care of this
     Count := -1;
   end;
 end;
