@@ -71,9 +71,11 @@ implementation
     JoystickHatState: array [0..e_MaxJoys - 1, 0..e_MaxJoyHats - 1, HAT_LEFT..HAT_DOWN] of Boolean;
     JoystickZeroAxes: array [0..e_MaxJoys - 1, 0..e_MaxJoyAxes - 1] of Integer;
 
+{$IFDEF ENABLE_TOUCH}
   var (* touch *)
     angleFire: Boolean;
     keyFinger: array [VK_FIRSTKEY..VK_LASTKEY] of Integer;
+{$ENDIF}
 
   (* --------- Graphics --------- *)
 
