@@ -63,24 +63,113 @@ implementation
   var
     LoadedGL: Boolean = false;
 
+  function GLExtensionList (): SSArray;
+    var s: PChar; i, j, num: GLint;
+  begin
+    result := nil;
+    s := glGetString(GL_EXTENSIONS);
+    if s <> nil then
+    begin
+      num := 0;
+      i := 0;
+      j := 0;
+      while (s[i] <> #0) and (s[i] = ' ') do Inc(i);
+      while (s[i] <> #0) do
+      begin
+        while (s[i] <> #0) and (s[i] <> ' ') do Inc(i);
+        SetLength(result, num+1);
+        result[num] := Copy(s, j+1, i-j);
+        while (s[i] <> #0) and (s[i] = ' ') do Inc(i);
+        j := i;
+        Inc(num)
+      end
+    end
+  end;
+
+  function GLExtensionSupported (ext: AnsiString): Boolean;
+    var e: AnsiString;
+  begin
+    {$IFDEF NOGL_INIT}
+      Result := nogl_ExtensionSupported(ext);
+    {$ELSE}
+      result := false;
+      for e in GLExtensionList() do
+      begin
+        if strEquCI1251(e, ext) then
+        begin
+          result := true;
+          exit
+        end
+      end
+    {$ENDIF}
+  end;
+
+  function HaveNPOTSupport (): Boolean;
+  begin
+    Result := GLExtensionSupported('GL_ARB_texture_non_power_of_two') or
+              GLExtensionSupported('GL_OES_texture_npot')
+  end;
+
+  function HaveFBOSupport (): Boolean;
+  begin
+    Result := GLExtensionSupported('GL_ARB_framebuffer_object') or
+              GLExtensionSupported('GL_OES_framebuffer_object')
+  end;
+
+  procedure PrintGLSupportedExtensions;
+  begin
+    e_LogWritefln('GL Vendor: %s', [glGetString(GL_VENDOR)]);
+    e_LogWritefln('GL Renderer: %s', [glGetString(GL_RENDERER)]);
+    e_LogWritefln('GL Version: %s', [glGetString(GL_VERSION)]);
+    e_LogWritefln('GL Shaders: %s', [glGetString(GL_SHADING_LANGUAGE_VERSION)]);
+    e_LogWritefln('GL Extensions: %s', [glGetString(GL_EXTENSIONS)]);
+  end;
+
+  procedure r_Window_Initialize;
+  begin
+{$IFNDEF USE_SYSSTUB}
+    PrintGLSupportedExtensions;
+    glLegacyNPOT := not HaveNPOTSupport();
+{$ELSE}
+    glLegacyNPOT := False;
+    glRenderToFBO := False;
+{$ENDIF}
+    if glNPOTOverride and glLegacyNPOT then
+    begin
+      glLegacyNPOT := true;
+      e_logWriteln('NPOT texture emulation: FORCED')
+    end
+    else
+    begin
+      if glLegacyNPOT then
+        e_logWriteln('NPOT texture emulation: enabled')
+      else
+        e_logWriteln('NPOT texture emulation: disabled')
+    end
+  end;
+
   procedure LoadGL;
+    var fboload: Boolean;
   begin
     if LoadedGL = false then
     begin
       {$IFDEF NOGL_INIT}
         nogl_Init;
-        if glRenderToFBO and (not nogl_ExtensionSupported('GL_OES_framebuffer_object')) then
-        begin
-          e_LogWriteln('GL: framebuffer objects not supported; disabling FBO rendering');
-          glRenderToFBO := false
-        end;
-      {$ELSE}
-        if glRenderToFBO and (not Load_GL_ARB_framebuffer_object) then
-        begin
-          e_LogWriteln('GL: framebuffer objects not supported; disabling FBO rendering');
-          glRenderToFBO := false
-        end;
       {$ENDIF}
+      if glRenderToFBO then
+      begin
+        fboload := True;
+        {$IFDEF NOGL_INIT}
+          fboload := True; // !!! but if not?
+        {$ELSE}
+          fboload := Load_GL_ARB_framebuffer_object();
+        {$ENDIF}
+        if (fboload = False) or (HaveFBOSupport() = False) or (HaveNPOTSupport() = False) then
+        begin
+          e_LogWriteln('GL: framebuffer objects not supported; disabling FBO rendering');
+          glRenderToFBO := false
+        end;
+      end;
       LoadedGL := true
     end
   end;
