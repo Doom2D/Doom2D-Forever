@@ -651,8 +651,11 @@ uses
   {$IFDEF ENABLE_HOLMES}
     g_holmes,
   {$ENDIF}
+  {$IFDEF ENABLE_MENU}
+    g_menu,
+  {$ENDIF}
   {$IFNDEF HEADLESS}
-    r_render, g_menu,
+    r_render,
   {$ENDIF}
   e_log, g_map, g_items, g_console, g_gfx, Math,
   g_options, g_triggers, g_game, g_grid, e_res,

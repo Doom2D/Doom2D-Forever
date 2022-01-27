@@ -176,8 +176,11 @@ function GetTimerMS (): Int64;
 implementation
 
 uses
+  {$IFDEF ENABLE_MENU}
+    g_gui, g_menu,
+  {$ENDIF}
   {$IFNDEF HEADLESS}
-    g_gui, g_menu, r_render, g_system,
+    r_render, g_system,
   {$ENDIF}
   e_input, e_log, g_net, g_console,
   g_map, g_game, g_sound, g_options, g_language, g_basic,
@@ -1759,7 +1762,7 @@ begin
     SL := nil;
     ST := nil;
     gState := STATE_MENU;
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_MENU}
     g_GUI_ShowWindow('MainMenu');
     g_GUI_ShowWindow('NetGameMenu');
     g_GUI_ShowWindow('NetClientMenu');
@@ -1815,12 +1818,12 @@ begin
       Srv := GetServerFromTable(slSelection, SL, ST);
       if Srv.Password then
       begin
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_MENU}
         PromptIP := Srv.IP;
         PromptPort := Srv.Port;
 {$ENDIF}
         gState := STATE_MENU;
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_MENU}
         g_GUI_ShowWindow('ClientPasswordMenu');
 {$ENDIF}
         SL := nil;

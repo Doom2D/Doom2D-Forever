@@ -31,21 +31,26 @@ interface
 
   var
     gStdFont: DWORD;
+    gMenuFont: DWORD;
+    gMenuSmallFont: DWORD;
 
 implementation
 
   uses
     {$INCLUDE ../nogl/noGLuses.inc}
-{$IFDEF ENABLE_HOLMES}
-    g_holmes,
-{$ENDIF}
+    {$IFDEF ENABLE_HOLMES}
+      g_holmes,
+    {$ENDIF}
+    {$IFDEF ENABLE_MENU}
+      g_gui, g_menu,
+    {$ENDIF}
     SysUtils, Classes, Math,
     g_base, g_basic, r_graphics,
     g_system, g_touch,
-    MAPDEF, xprofiler, utils, wadreader,
+    MAPDEF, xprofiler, utils, wadreader, CONFIG,
     e_input, e_sound,
-    g_language, g_console, g_menu, g_triggers, g_player, g_options, g_monsters, g_map, g_panel,
-    g_items, g_weapons, g_gfx, g_phys, g_net, g_gui, g_netmaster,
+    g_language, g_console, g_triggers, g_player, g_options, g_monsters, g_map, g_panel,
+    g_items, g_weapons, g_gfx, g_phys, g_net, g_netmaster,
     g_game, r_console, r_gfx, r_items, r_map, r_monsters, r_weapons, r_netmaster, r_player, r_textures,
     r_playermodel
   ;
@@ -60,6 +65,90 @@ implementation
 
     BackID: DWORD = DWORD(-1);
     gBackSize: TDFPoint;
+
+procedure LoadStdFont(cfgres, texture: string; var FontID: DWORD);
+var
+  cwdt, chgt: Byte;
+  spc: ShortInt;
+  ID: DWORD;
+  wad: TWADFile;
+  cfgdata: Pointer;
+  cfglen: Integer;
+  config: TConfig;
+begin
+  cfglen := 0;
+
+  wad := TWADFile.Create;
+  if wad.ReadFile(GameWAD) then
+    wad.GetResource('FONTS/'+cfgres, cfgdata, cfglen);
+  wad.Free();
+
+  if cfglen <> 0 then
+  begin
+    g_Texture_CreateWADEx('FONT_STD', GameWAD+':FONTS\'+texture);
+
+    config := TConfig.CreateMem(cfgdata, cfglen);
+    cwdt := Min(Max(config.ReadInt('FontMap', 'CharWidth', 0), 0), 255);
+    chgt := Min(Max(config.ReadInt('FontMap', 'CharHeight', 0), 0), 255);
+    spc := Min(Max(config.ReadInt('FontMap', 'Kerning', 0), -128), 127);
+
+    if g_Texture_Get('FONT_STD', ID) then
+      e_TextureFontBuild(ID, FontID, cwdt, chgt, spc);
+
+    config.Free();
+  end;
+
+  if cfglen <> 0 then FreeMem(cfgdata);
+end;
+
+procedure LoadFont(txtres, fntres: string; var FontID: DWORD);
+var
+  cwdt, chgt: Byte;
+  spc: ShortInt;
+  CharID: DWORD;
+  wad: TWADFile;
+  cfgdata, fntdata: Pointer;
+  cfglen, fntlen: Integer;
+  config: TConfig;
+  chrwidth: Integer;
+  a: Byte;
+begin
+  cfglen := 0;
+  fntlen := 0;
+
+  wad := TWADFile.Create;
+  if wad.ReadFile(GameWAD) then
+  begin
+    wad.GetResource('FONTS/'+txtres, cfgdata, cfglen);
+    wad.GetResource('FONTS/'+fntres, fntdata, fntlen);
+  end;
+  wad.Free();
+
+  if cfglen <> 0 then
+  begin
+    config := TConfig.CreateMem(cfgdata, cfglen);
+    cwdt := Min(Max(config.ReadInt('FontMap', 'CharWidth', 0), 0), 255);
+    chgt := Min(Max(config.ReadInt('FontMap', 'CharHeight', 0), 0), 255);
+
+    spc := Min(Max(config.ReadInt('FontMap', 'Kerning', 0), -128), 127);
+    FontID := e_CharFont_Create(spc);
+
+    for a := 0 to 255 do
+    begin
+      chrwidth := config.ReadInt(IntToStr(a), 'Width', 0);
+      if chrwidth = 0 then Continue;
+
+      if e_CreateTextureMemEx(fntdata, fntlen, CharID, cwdt*(a mod 16), chgt*(a div 16),
+                              cwdt, chgt) then
+        e_CharFont_AddChar(FontID, CharID, Chr(a), chrwidth);
+    end;
+
+    config.Free();
+  end;
+
+  if cfglen <> 0 then FreeMem(cfgdata);
+  if fntlen <> 0 then FreeMem(fntdata);
+end;
 
   procedure r_Game_Load;
     var
@@ -1924,7 +2013,11 @@ begin
     end;
   end;
 
+{$IFDEF ENABLE_MENU}
   if gPauseMain and gGameOn and (g_ActiveWindow = nil) then
+{$ELSE}
+  if gPauseMain and gGameOn then
+{$ENDIF}
   begin
     //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
     e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
@@ -1936,26 +2029,30 @@ begin
 
   if not gGameOn then
   begin
-    if (gState = STATE_MENU) then
-    begin
-      if (g_ActiveWindow = nil) or (g_ActiveWindow.BackTexture = '') then r_Game_DrawMenuBackground('MENU_BACKGROUND');
-      // F3 at menu will show game loading dialog
-      if e_KeyPressed(IK_F3) then g_Menu_Show_LoadMenu(true);
-      if (g_ActiveWindow <> nil) then
+    {$IFDEF ENABLE_MENU}
+      if (gState = STATE_MENU) then
       begin
-        //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
-        e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
-      end
-      else
-      begin
-        // F3 at titlepic will show game loading dialog
-        if e_KeyPressed(IK_F3) then
+        if (g_ActiveWindow = nil) or (g_ActiveWindow.BackTexture = '') then r_Game_DrawMenuBackground('MENU_BACKGROUND');
+        // F3 at menu will show game loading dialog
+        if e_KeyPressed(IK_F3) then g_Menu_Show_LoadMenu(true);
+        if (g_ActiveWindow <> nil) then
         begin
-          g_Menu_Show_LoadMenu(true);
-          if (g_ActiveWindow <> nil) then e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
+          //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+          e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
+        end
+        else
+        begin
+          // F3 at titlepic will show game loading dialog
+          if e_KeyPressed(IK_F3) then
+          begin
+            g_Menu_Show_LoadMenu(true);
+            if (g_ActiveWindow <> nil) then e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
+          end;
         end;
       end;
-    end;
+    {$ELSE}
+      r_Game_DrawMenuBackground('MENU_BACKGROUND');
+    {$ENDIF}
 
     if gState = STATE_FOLD then
     begin
@@ -1977,11 +2074,13 @@ begin
 
       DrawCustomStat();
 
-      if g_ActiveWindow <> nil then
-      begin
-        //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
-        e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
-      end;
+      {$IFDEF ENABLE_MENU}
+        if g_ActiveWindow <> nil then
+        begin
+          //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+          e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
+        end;
+      {$ENDIF}
     end;
 
     if gState = STATE_INTERSINGLE then
@@ -1998,11 +2097,13 @@ begin
 
         DrawSingleStat();
 
-        if g_ActiveWindow <> nil then
-        begin
-          //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
-          e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
-        end;
+        {$IFDEF ENABLE_MENU}
+          if g_ActiveWindow <> nil then
+          begin
+            //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+            e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
+          end;
+        {$ENDIF}
       end;
     end;
 
@@ -2012,11 +2113,13 @@ begin
       if g_Texture_Get('TEXTURE_endpic', ID) then r_Game_DrawMenuBackground('TEXTURE_endpic')
       else r_Game_DrawMenuBackground(_lc[I_TEXTURE_ENDPIC]);
 
-      if g_ActiveWindow <> nil then
-      begin
-        //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
-        e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
-      end;
+      {$IFDEF ENABLE_MENU}
+        if g_ActiveWindow <> nil then
+        begin
+          //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+          e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
+        end;
+      {$ENDIF}
     end;
 
     if gState = STATE_SLIST then
@@ -2032,6 +2135,7 @@ begin
     end;
   end;
 
+{$IFDEF ENABLE_MENU}
   if g_ActiveWindow <> nil then
   begin
     if gGameOn then
@@ -2041,6 +2145,7 @@ begin
     end;
     g_ActiveWindow.Draw();
   end;
+{$ENDIF}
 
 {$IFNDEF HEADLESS}
   r_Console_Draw();

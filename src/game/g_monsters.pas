@@ -521,7 +521,7 @@ var
 implementation
 
 uses
-  {$IFNDEF HEADLESS}
+  {$IFDEF ENABLE_MENU}
     g_menu,
   {$ENDIF}
   e_log, g_sound, g_gfx, g_player, g_game,

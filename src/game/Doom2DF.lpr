@@ -170,8 +170,10 @@ uses
   r_textures in 'opengl/r_textures.pas',
   r_weapons in 'opengl/r_weapons.pas',
   r_window in 'opengl/r_window.pas',
-  g_gui in 'g_gui.pas',
-  g_menu in 'g_menu.pas',
+  {$IFDEF ENABLE_MENU}
+    g_gui in 'g_gui.pas',
+    g_menu in 'g_menu.pas',
+  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF USE_FMOD}
@@ -968,7 +970,9 @@ end;
       {$ENDIF}
       {$IFNDEF ANDROID}
         (* This will fix menu reset on keyboard showing *)
-        g_Menu_Reset;
+        {$IFDEF ENABLE_MENU}
+          g_Menu_Reset;
+        {$ENDIF}
       {$ENDIF}
       //g_Game_ClearLoading;
       {$IFDEF ENABLE_HOLMES}
@@ -1012,23 +1016,25 @@ end;
       r_Render_Load;
     {$ENDIF}
     g_Game_Init;
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_MENU}
       g_Menu_Init;
       g_GUI_Init;
     {$ENDIF}
     g_Game_Process_Params;
     // TODO reload GAME textures
     g_Console_Init; // welcome message
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_MENU}
       if (not gGameOn) and gAskLanguage then
         g_Menu_AskLanguage;
     {$ENDIF}
     Time_Old := GetTickCount64();
     while not ProcessMessage() do begin end;
     g_Console_WriteGameConfig;
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_MENU}
       g_GUI_Destroy;
       g_Menu_Free;
+    {$ENDIF}
+    {$IFNDEF HEADLESS}
       r_Render_Free;
     {$ENDIF}
     {$IFDEF ENABLE_HOLMES}

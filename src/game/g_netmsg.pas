@@ -284,7 +284,7 @@ function IsValidFilePath(const S: String): Boolean;
 implementation
 
 uses
-  {$IFNDEF HEADLESS}
+  {$IFDEF ENABLE_MENU}
     g_gui,
   {$ENDIF}
   Math, ENet, e_input, e_log, g_base, g_basic,
@@ -3173,7 +3173,7 @@ begin
   kByte := 0;
   Predict := NetPredictSelf; // and (not NetGotKeys);
 
-{$IFDEF HEADLESS}
+{$IFDEF DISABLE_MENU}
   if (not gConsoleShow) and (not gChatShow) then
 {$ELSE}
   if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then

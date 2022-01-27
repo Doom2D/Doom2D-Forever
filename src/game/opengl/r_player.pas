@@ -41,12 +41,15 @@ interface
 implementation
 
   uses
+    {$IFDEF ENABLE_HOLMES}
+      g_holmes,
+    {$ENDIF}
+    {$IFDEF ENABLE_MENU}
+      g_menu,
+    {$ENDIF}
     SysUtils, Classes, Math,
     MAPDEF, utils,
-    g_basic, g_game, g_phys, g_map, g_menu, g_language, g_weapons, g_items, g_net, g_options,
-{$IFDEF ENABLE_HOLMES}
-    g_holmes,
-{$ENDIF}
+    g_basic, g_game, g_phys, g_map, g_language, g_weapons, g_items, g_net, g_options,
     r_playermodel, r_graphics, r_animations, r_textures, r_items, r_game, r_map
   ;
 

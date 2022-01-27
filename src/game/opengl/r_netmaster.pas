@@ -24,9 +24,12 @@ interface
 implementation
 
   uses
+    {$IFDEF ENABLE_MENU}
+      g_menu,
+    {$ENDIF}
     SysUtils, Classes, Math,
     r_graphics, r_game,
-    g_basic, g_language, g_game, g_menu
+    g_basic, g_language, g_game
   ;
 
 procedure r_Serverlist_Draw (var SL: TNetServerList; var ST: TNetServerTable);

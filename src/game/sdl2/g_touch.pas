@@ -35,8 +35,12 @@ interface
 implementation
 
   uses
+    {$IFDEF ENABLE_MENU}
+      g_gui,
+    {$ENDIF}
     SysUtils,
-    e_log, r_graphics, r_game, e_input, g_options, g_game, g_gui, g_weapons, g_console;
+    e_log, r_graphics, r_game, e_input, g_options, g_game, g_weapons, g_console
+  ;
 
   var
     angleFire: Boolean;
@@ -219,7 +223,11 @@ implementation
       g_Console_ProcessBind(i, False);
 
       (* up/down + fire hack *)
+{$IFDEF ENABLE_MENU}
       if g_touch_fire and (gGameSettings.GameType <> GT_NONE) and (g_ActiveWindow = nil) and angleFire then
+{$ELSE}
+      if g_touch_fire and (gGameSettings.GameType <> GT_NONE) and angleFire then
+{$ENDIF}
       begin
         if (i = VK_UP) or (i = VK_DOWN) then
         begin
@@ -241,7 +249,11 @@ implementation
       g_Console_ProcessBind(i, True);
 
       (* up/down + fire hack *)
+{$IFDEF ENABLE_MENU}
       if g_touch_fire and (gGameSettings.GameType <> GT_NONE) and (g_ActiveWindow = nil) then
+{$ELSE}
+      if g_touch_fire and (gGameSettings.GameType <> GT_NONE) then
+{$ENDIF}
       begin
         if i = VK_UP then
         begin
