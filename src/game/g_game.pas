@@ -21,9 +21,6 @@ interface
     {$IFDEF ENABLE_MENU}
       g_gui,
     {$ENDIF}
-    {$IFNDEF HEADLESS}
-      g_touch,
-    {$ENDIF}
     SysUtils, Classes, MAPDEF,
     g_base, g_basic, g_player, g_res_downloader,
     g_sound, utils, md5, mempool, xprofiler,

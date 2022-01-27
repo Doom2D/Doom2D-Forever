@@ -39,12 +39,20 @@ interface
   function r_Render_GetGibRect (m, id: Integer): TRectWH;
   procedure r_Render_QueueEffect (AnimType, X, Y: Integer);
 
+{$IFDEF ENABLE_TOUCH}
+  // touch screen button location and size
+  procedure r_Render_GetKeyRect (key: Integer; out x, y, w, h: Integer; out founded: Boolean);
+{$ENDIF}
+
   procedure r_Render_DrawLoading (force: Boolean); // !!! remove it
 
 implementation
 
   uses
     {$INCLUDE ../../nogl/noGLuses.inc}
+    {$IFDEF ENABLE_TOUCH}
+      r_touch,
+    {$ENDIF}
     SysUtils, Classes, Math,
     e_log, g_system, utils,
     g_game, g_options, g_console,
@@ -156,6 +164,9 @@ implementation
   procedure r_Render_Draw;
   begin
     r_Game_Draw;
+    {$IFDEF ENABLE_TOUCH}
+      r_Touch_Draw;
+    {$ENDIF}
   end;
 
   procedure r_Render_Resize (w, h: Integer);
@@ -220,6 +231,13 @@ implementation
   begin
     r_GFX_OnceAnim(AnimType, X, Y)
   end;
+
+{$IFDEF ENABLE_TOUCH}
+  procedure r_Render_GetKeyRect (key: Integer; out x, y, w, h: Integer; out founded: Boolean);
+  begin
+    r_Touch_GetKeyRect (key, x, y, w, h, founded)
+  end;
+{$ENDIF}
 
   procedure r_Render_DrawLoading (force: Boolean);
   begin

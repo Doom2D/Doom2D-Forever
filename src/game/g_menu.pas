@@ -44,7 +44,7 @@ uses
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
   MAPDEF, Math, g_saveload,
   g_language, e_res,
-  g_net, g_netmsg, g_netmaster, g_items, e_input, g_touch,
+  g_net, g_netmsg, g_netmaster, g_items, e_input,
   utils, wadreader, g_system, r_render, r_game;
 
 

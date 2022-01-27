@@ -19,7 +19,7 @@ interface
 
 uses
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-  g_base, r_graphics, e_input, e_log, g_playermodel, g_basic, g_touch, MAPDEF, utils;
+  g_base, r_graphics, e_input, e_log, g_playermodel, g_basic, MAPDEF, utils;
 
 const
   MAINMENU_HEADER_COLOR: TRGB = (R:255; G:255; B:255);
@@ -552,6 +552,9 @@ procedure g_GUI_LoadMenuPos();
 implementation
 
 uses
+  {$IFDEF ENABLE_TOUCH}
+    g_system,
+  {$ENDIF}
   g_sound, SysUtils, e_res, r_textures,
   g_game, Math, StrUtils, g_player, g_options, g_console, r_playermodel,
   g_map, g_weapons, xdynrec, wadreader;
@@ -2439,7 +2442,10 @@ begin
     end;
 
   g_GUIGrabInput := (@FOnEnterEvent = nil) and (FWindow.FActiveControl = Self);
-  g_Touch_ShowKeyboard(g_GUIGrabInput)
+
+  {$IFDEF ENABLE_TOUCH}
+    sys_ShowKeyboard(g_GUIGrabInput)
+  {$ENDIF}
 end;
 
 procedure TGUIEdit.SetText(Text: string);

@@ -105,8 +105,8 @@ uses
   {$IFDEF ENABLE_MENU}
     g_gui, g_menu,
   {$ENDIF}
-  {$IFNDEF HEADLESS}
-    g_touch,
+  {$IFDEF ENABLE_TOUCH}
+    g_system,
   {$ENDIF}
   g_textures, e_input, g_game, g_gfx, g_player, g_items,
   SysUtils, g_basic, g_options, Math, e_res,
@@ -169,8 +169,8 @@ begin
   gChatShow := False;
   gConsoleShow := not gConsoleShow;
   InputReady := False;
-  {$IFNDEF HEADLESS}
-    g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
+  {$IFDEF ENABLE_TOUCH}
+    sys_ShowKeyboard(gConsoleShow or gChatShow);
   {$ENDIF}
 end;
 
@@ -183,8 +183,8 @@ begin
   InputReady := False;
   Line := '';
   CPos := 1;
-  {$IFNDEF HEADLESS}
-    g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
+  {$IFDEF ENABLE_TOUCH}
+    sys_ShowKeyboard(gConsoleShow or gChatShow);
   {$ENDIF}
 end;
 
@@ -879,11 +879,11 @@ begin
   'unbindall':
     for i := 0 to e_MaxInputKeys - 1 do
       g_Console_BindKey(i, '');
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_TOUCH}
   'showkeyboard':
-    g_Touch_ShowKeyboard(True);
+    sys_ShowKeyboard(True);
   'hidekeyboard':
-    g_Touch_ShowKeyboard(False);
+    sys_ShowKeyboard(False);
 {$ENDIF}
   'togglemenu':
     begin

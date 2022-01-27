@@ -46,7 +46,7 @@ implementation
     {$ENDIF}
     SysUtils, Classes, Math,
     g_base, g_basic, r_graphics,
-    g_system, g_touch,
+    g_system,
     MAPDEF, xprofiler, utils, wadreader, CONFIG,
     e_input, e_sound,
     g_language, g_console, g_triggers, g_player, g_options, g_monsters, g_map, g_panel,
@@ -2180,10 +2180,6 @@ begin
   e_SetRendertarget(False);
   e_SetViewPort(0, 0, gWinSizeX, gWinSizeY);
   e_BlitFramebuffer(gWinSizeX, gWinSizeY);
-
-  // draw the overlay stuff on top of it
-
-  g_Touch_Draw;
 end;
 
 end.

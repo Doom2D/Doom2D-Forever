@@ -29,6 +29,11 @@ interface
   function sys_HandleInput (): Boolean;
   procedure sys_RequestQuit;
 
+{$IFDEF ENABLE_TOUCH}
+  function sys_IsTextInputActive (): Boolean;
+  procedure sys_ShowKeyboard (yes: Boolean);
+{$ENDIF}
+
   (* --- Init --- *)
   procedure sys_Init;
   procedure sys_Final;
@@ -445,6 +450,18 @@ implementation
       {127: result := IK_POWER;}
     otherwise result := IK_INVALID
     end
+  end;
+{$ENDIF}
+
+{$IFDEF ENABLE_TOUCH}
+  procedure sys_ShowKeyboard (yes: Boolean);
+  begin
+    // stub
+  end;
+
+  function sys_IsTextInputActive (): Boolean;
+  begin
+    Result := false
   end;
 {$ENDIF}
 

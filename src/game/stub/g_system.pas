@@ -29,6 +29,11 @@ interface
   function sys_HandleInput (): Boolean;
   procedure sys_RequestQuit;
 
+{$IFDEF ENABLE_TOUCH}
+  function sys_IsTextInputActive (): Boolean;
+  procedure sys_ShowKeyboard (yes: Boolean);
+{$ENDIF}
+
   (* --- Init --- *)
   procedure sys_Init;
   procedure sys_Final;
@@ -62,6 +67,17 @@ implementation
   end;
 
   (* --------- Input --------- *)
+
+{$IFDEF ENABLE_TOUCH}
+  function sys_IsTextInputActive (): Boolean;
+  begin
+    Result := false
+  end;
+
+  procedure sys_ShowKeyboard (yes: Boolean);
+  begin
+  end;
+{$ENDIF}
 
   function sys_HandleInput (): Boolean;
   begin

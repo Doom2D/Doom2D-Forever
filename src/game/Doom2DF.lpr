@@ -140,15 +140,12 @@ uses
 {$IFNDEF HEADLESS}
   {$IFDEF USE_SYSSTUB}
     g_system in 'stub/g_system.pas',
-    g_touch in 'stub/g_touch.pas',
   {$ENDIF}
   {$IFDEF USE_SDL}
     g_system in 'sdl/g_system.pas',
-    g_touch in 'sdl/g_touch.pas',
   {$ENDIF}
   {$IFDEF USE_SDL2}
     g_system in 'sdl2/g_system.pas',
-    g_touch in 'sdl2/g_touch.pas',
   {$ENDIF}
 {$ENDIF}
 
@@ -170,6 +167,9 @@ uses
   r_textures in 'opengl/r_textures.pas',
   r_weapons in 'opengl/r_weapons.pas',
   r_window in 'opengl/r_window.pas',
+  {$IFDEF ENABLE_TOUCH}
+    r_touch in 'opengl/r_touch.pas',
+  {$ENDIF}
   {$IFDEF ENABLE_MENU}
     g_gui in 'g_gui.pas',
     g_menu in 'g_menu.pas',
@@ -1001,7 +1001,6 @@ end;
     g_Language_Set(gLanguage);
     {$IFNDEF HEADLESS}
       r_Render_Initialize;
-      g_Touch_Init;
     {$ENDIF}
     DebugOptions;
     g_Net_InitLowLevel;

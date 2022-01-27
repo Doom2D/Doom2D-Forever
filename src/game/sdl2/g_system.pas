@@ -29,6 +29,11 @@ interface
   function sys_HandleInput (): Boolean;
   procedure sys_RequestQuit;
 
+{$IFDEF ENABLE_TOUCH}
+  function sys_IsTextInputActive (): Boolean;
+  procedure sys_ShowKeyboard (yes: Boolean);
+{$ENDIF}
+
   (* --- Init --- *)
   procedure sys_Init;
   procedure sys_Final;
@@ -40,12 +45,18 @@ interface
 implementation
 
   uses
-    SysUtils, SDL2, Math, ctypes,
-    e_log, e_input, e_sound,
     {$IFDEF ENABLE_HOLMES}
       sdlcarcass,
     {$ENDIF}
-    g_touch, g_options, g_console, g_game, g_basic
+    {$IFNDEF HEADLESS}
+      r_render,
+    {$ENDIF}
+    {$IFDEF ENABLE_MENU}
+      g_gui,
+    {$ENDIF}
+    SysUtils, SDL2, Math, ctypes,
+    e_log, e_input, e_sound,
+    g_options, g_console, g_game, g_basic
   ;
 
   const
@@ -59,6 +70,10 @@ implementation
     JoystickHandle: array [0..e_MaxJoys - 1] of PSDL_Joystick;
     JoystickHatState: array [0..e_MaxJoys - 1, 0..e_MaxJoyHats - 1, HAT_LEFT..HAT_DOWN] of Boolean;
     JoystickZeroAxes: array [0..e_MaxJoys - 1, 0..e_MaxJoyAxes - 1] of Integer;
+
+  var (* touch *)
+    angleFire: Boolean;
+    keyFinger: array [VK_FIRSTKEY..VK_LASTKEY] of Integer;
 
   (* --------- Graphics --------- *)
 
@@ -365,6 +380,136 @@ implementation
     end
   end;
 
+  (* --------- Touch --------- *)
+
+{$IFDEF ENABLE_TOUCH}
+  function sys_IsTextInputActive (): Boolean;
+  begin
+    Result := SDL_IsTextInputActive() = SDL_True
+  end;
+
+  procedure sys_ShowKeyboard (yes: Boolean);
+  begin
+    {$IFNDEF HEADLESS}
+      if g_dbg_input then
+        e_LogWritefln('g_Touch_ShowKeyboard(%s)', [yes]);
+      (* on desktop we always receive text (needed for cheats) *)
+      if yes or (SDL_HasScreenKeyboardSupport() = SDL_FALSE) then
+        SDL_StartTextInput
+      else
+        SDL_StopTextInput
+    {$ENDIF}
+  end;
+
+  procedure HandleTouch (const ev: TSDL_TouchFingerEvent);
+    var
+      x, y, i, finger: Integer;
+
+    function IntersectControl(ctl, xx, yy: Integer): Boolean;
+      var x, y, w, h: Integer; founded: Boolean;
+    begin
+      r_Render_GetKeyRect(ctl, x, y, w, h, founded);
+      result := founded and (xx >= x) and (yy >= y) and (xx <= x + w) and (yy <= y + h);
+    end;
+
+    procedure KeyUp (finger, i: Integer);
+    begin
+      if g_dbg_input then
+        e_LogWritefln('Input Debug: g_touch.KeyUp, finger=%s, key=%s', [finger, i]);
+
+      keyFinger[i] := 0;
+      e_KeyUpDown(i, False);
+      g_Console_ProcessBind(i, False);
+
+      (* up/down + fire hack *)
+{$IFDEF ENABLE_MENU}
+      if g_touch_fire and (gGameSettings.GameType <> GT_NONE) and (g_ActiveWindow = nil) and angleFire then
+{$ELSE}
+      if g_touch_fire and (gGameSettings.GameType <> GT_NONE) and angleFire then
+{$ENDIF}
+      begin
+        if (i = VK_UP) or (i = VK_DOWN) then
+        begin
+          angleFire := False;
+          keyFinger[VK_FIRE] := 0;
+          e_KeyUpDown(VK_FIRE, False);
+          g_Console_ProcessBind(VK_FIRE, False)
+        end
+      end
+    end;
+
+    procedure KeyDown (finger, i: Integer);
+    begin
+      if g_dbg_input then
+        e_LogWritefln('Input Debug: g_touch.KeyDown, finger=%s, key=%s', [finger, i]);
+
+      keyFinger[i] := finger;
+      e_KeyUpDown(i, True);
+      g_Console_ProcessBind(i, True);
+
+      (* up/down + fire hack *)
+{$IFDEF ENABLE_MENU}
+      if g_touch_fire and (gGameSettings.GameType <> GT_NONE) and (g_ActiveWindow = nil) then
+{$ELSE}
+      if g_touch_fire and (gGameSettings.GameType <> GT_NONE) then
+{$ENDIF}
+      begin
+        if i = VK_UP then
+        begin
+          angleFire := True;
+          keyFinger[VK_FIRE] := -1;
+          e_KeyUpDown(VK_FIRE, True);
+          g_Console_ProcessBind(VK_FIRE, True)
+        end
+        else if i = VK_DOWN then
+        begin
+          angleFire := True;
+          keyFinger[VK_FIRE] := -1;
+          e_KeyUpDown(VK_FIRE, True);
+          g_Console_ProcessBind(VK_FIRE, True)
+        end
+      end
+    end;
+
+    procedure KeyMotion (finger, i: Integer);
+    begin
+      if keyFinger[i] <> finger then
+      begin
+        KeyUp(finger, i);
+        KeyDown(finger, i)
+      end
+    end;
+
+  begin
+    if not g_touch_enabled then
+      Exit;
+
+    finger := ev.fingerId + 2;
+    x := Trunc(ev.x * gWinSizeX);
+    y := Trunc(ev.y * gWinSizeY);
+
+    for i := VK_FIRSTKEY to VK_LASTKEY do
+    begin
+      if IntersectControl(i, x, y) then
+      begin
+        if ev.type_ = SDL_FINGERUP then
+          KeyUp(finger, i)
+        else if ev.type_ = SDL_FINGERMOTION then
+          KeyMotion(finger, i)
+        else if ev.type_ = SDL_FINGERDOWN then
+          keyDown(finger, i)
+      end
+      else if keyFinger[i] = finger then
+      begin
+        if ev.type_ = SDL_FINGERUP then
+          KeyUp(finger, i)
+        else if ev.type_ = SDL_FINGERMOTION then
+          KeyUp(finger, i)
+      end
+    end
+  end;
+{$ENDIF} // TOUCH
+
   (* --------- Input --------- *)
 
   function HandleWindow (var ev: TSDL_WindowEvent): Boolean;
@@ -471,7 +616,9 @@ implementation
         SDL_JOYDEVICEADDED: HandleJoyAdd(ev.jdevice);
         SDL_JOYDEVICEREMOVED: HandleJoyRemove(ev.jdevice);
         SDL_TEXTINPUT: HandleTextInput(ev.text);
-        SDL_FINGERMOTION, SDL_FINGERDOWN, SDL_FINGERUP: g_Touch_HandleEvent(ev.tfinger);
+        {$IFDEF ENABLE_TOUCH}
+          SDL_FINGERMOTION, SDL_FINGERDOWN, SDL_FINGERUP: HandleTouch(ev.tfinger);
+        {$ENDIF}
         {$IFDEF ENABLE_HOLMES}
           SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEWHEEL, SDL_MOUSEMOTION: fuiOnSDLEvent(ev);
         {$ENDIF}
@@ -509,6 +656,12 @@ implementation
         e_LogWritefln('SDL: Init subsystem failed: %s', [SDL_GetError()]);
     {$ENDIF}
     SDL_ShowCursor(SDL_DISABLE);
+    {$IFDEF ENABLE_TOUCH}
+      sys_ShowKeyboard(FALSE);
+      g_touch_enabled := SDL_GetNumTouchDevices() > 0;
+    {$ELSE}
+      g_touch_enabled := False;
+    {$ENDIF}
   end;
 
   procedure sys_Final;

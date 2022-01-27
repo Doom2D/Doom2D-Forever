@@ -90,6 +90,13 @@ var
   g_dbg_aimline_on: Boolean = false;
   g_dbg_input: Boolean = False;
 
+  var (* touch *)
+    g_touch_enabled: Boolean = False;
+    g_touch_size: Single = 1.0;
+    g_touch_offset: Single = 50.0;
+    g_touch_fire: Boolean = True;
+    g_touch_alt: Boolean = False;
+
   {--- Read-only dirs ---}
   GameWAD: string;
   DataDirs: SSArray;
@@ -405,5 +412,12 @@ initialization
   conRegVar('g_screenshot_stats', @gScreenshotStats, '', '');
   conRegVar('g_lastmap', @gsMap, '', '');
 
-  conRegVar('d_input', @g_dbg_input, '', '')
+  conRegVar('d_input', @g_dbg_input, '', '');
+
+  (* touch *)
+  conRegVar('touch_enable', @g_touch_enabled, 'enable/disable virtual buttons', 'draw buttons');
+  conRegVar('touch_fire', @g_touch_fire, 'enable/disable fire when press virtual up/down', 'fire when press up/down');
+  conRegVar('touch_size', @g_touch_size, 0.1, 10, 'size of virtual buttons', 'button size');
+  conRegVar('touch_offset', @g_touch_offset, 0, 100, '', '');
+  conRegVar('touch_alt', @g_touch_alt, 'althernative virtual buttons layout', 'althernative layout');
 end.
