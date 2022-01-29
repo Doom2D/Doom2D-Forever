@@ -283,14 +283,18 @@ function IsValidFilePath(const S: String): Boolean;
 
 implementation
 
-uses
-  {$IFDEF ENABLE_MENU}
-    g_gui,
-  {$ENDIF}
-  Math, ENet, e_input, e_log, g_base, g_basic,
-  g_textures, g_gfx, g_sound, g_console, g_options,
-  g_game, g_player, g_map, g_panel, g_items, g_weapons, g_phys,
-  g_language, g_monsters, g_netmaster, utils, wadreader, MAPDEF;
+  uses
+    {$IFDEF ENABLE_MENU}
+      g_gui,
+    {$ENDIF}
+    {$IFDEF ENABLE_GFX}
+      g_gfx,
+    {$ENDIF}
+    Math, ENet, e_input, e_log, g_base, g_basic,
+    g_textures, g_sound, g_console, g_options,
+    g_game, g_player, g_map, g_panel, g_items, g_weapons, g_phys,
+    g_language, g_monsters, g_netmaster, utils, wadreader, MAPDEF
+  ;
 
 const
   NET_KEY_LEFT     = 1 shl 0;
@@ -1735,54 +1739,65 @@ begin
 
   case Kind of
     NET_GFX_SPARK:
-      g_GFX_Spark(X, Y, 2 + Random(2), Ang, 0, 0);
-
+    begin
+      {$IFDEF ENABLE_GFX}
+        g_GFX_Spark(X, Y, 2 + Random(2), Ang, 0, 0);
+      {$ENDIF}
+    end;
     NET_GFX_TELE:
     begin
-      g_GFX_QueueEffect(R_GFX_TELEPORT_FAST, X, Y);
+      {$IFDEF ENABLE_GFX}
+        g_GFX_QueueEffect(R_GFX_TELEPORT_FAST, X, Y);
+      {$ENDIF}
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_GAME_TELEPORT', X, Y);
     end;
-
     NET_GFX_EXPLODE:
     begin
-      g_GFX_QueueEffect(R_GFX_EXPLODE_ROCKET, X - 64, Y - 64);
+      {$IFDEF ENABLE_GFX}
+        g_GFX_QueueEffect(R_GFX_EXPLODE_ROCKET, X - 64, Y - 64);
+      {$ENDIF}
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', X, Y);
     end;
-
     NET_GFX_BFGEXPL:
     begin
-      g_GFX_QueueEffect(R_GFX_EXPLODE_BFG, X - 64, Y - 64);
+      {$IFDEF ENABLE_GFX}
+        g_GFX_QueueEffect(R_GFX_EXPLODE_BFG, X - 64, Y - 64);
+      {$ENDIF}
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', X, Y);
     end;
-
     NET_GFX_BFGHIT:
     begin
-      g_GFX_QueueEffect(R_GFX_BFG_HIT, X - 32, Y - 32);
+      {$IFDEF ENABLE_GFX}
+        g_GFX_QueueEffect(R_GFX_BFG_HIT, X - 32, Y - 32);
+      {$ENDIF}
     end;
-
     NET_GFX_FIRE:
     begin
-      g_GFX_QueueEffect(R_GFX_FIRE, X, Y);
+      {$IFDEF ENABLE_GFX}
+        g_GFX_QueueEffect(R_GFX_FIRE, X, Y);
+      {$ENDIF}
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_FIRE', X, Y);
     end;
-
     NET_GFX_RESPAWN:
     begin
-      g_GFX_QueueEffect(R_GFX_ITEM_RESPAWN, X, Y);
+      {$IFDEF ENABLE_GFX}
+        g_GFX_QueueEffect(R_GFX_ITEM_RESPAWN, X, Y);
+      {$ENDIF}
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', X, Y);
     end;
-
     NET_GFX_SHELL1:
+    begin
       g_Player_CreateShell(X, Y, 0, -2, SHELL_BULLET);
-
+    end;
     NET_GFX_SHELL2:
+    begin
       g_Player_CreateShell(X, Y, 0, -2, SHELL_SHELL);
-
+    end;
     NET_GFX_SHELL3:
     begin
       g_Player_CreateShell(X, Y, 0, -2, SHELL_SHELL);
@@ -2735,7 +2750,9 @@ begin
   if not Quiet then
   begin
     g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', X, Y);
-    g_GFX_QueueEffect(R_GFX_ITEM_RESPAWN, X+(it.Obj.Rect.Width div 2)-16, Y+(it.Obj.Rect.Height div 2)-16);
+    {$IFDEF ENABLE_GFX}
+      g_GFX_QueueEffect(R_GFX_ITEM_RESPAWN, X+(it.Obj.Rect.Width div 2)-16, Y+(it.Obj.Rect.Height div 2)-16);
+    {$ENDIF}
   end;
 end;
 

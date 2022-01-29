@@ -39,8 +39,11 @@ var
 implementation
 
 uses
+  {$IFDEF ENABLE_GFX}
+    g_gfx,
+  {$ENDIF}
   g_gui, r_textures, r_graphics, g_game, g_map,
-  g_base, g_basic, g_console, g_sound, g_gfx, g_player, g_options, g_weapons,
+  g_base, g_basic, g_console, g_sound, g_player, g_options, g_weapons,
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
   MAPDEF, Math, g_saveload,
   g_language, e_res,
@@ -132,7 +135,9 @@ begin
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
 
-  g_GFX_SetMax(TGUIScroll(menu.GetControl('scParticlesCount')).Value*1000);
+  {$IFDEF ENABLE_GFX}
+    g_GFX_SetMax(TGUIScroll(menu.GetControl('scParticlesCount')).Value*1000);
+  {$ENDIF}
   g_Shells_SetMax(TGUIScroll(menu.GetControl('scShellsMax')).Value*30);
   g_Gibs_SetMax(TGUIScroll(menu.GetControl('scGibsMax')).Value*25);
   g_Corpses_SetMax(TGUIScroll(menu.GetControl('scCorpsesMax')).Value*5);
@@ -574,7 +579,9 @@ begin
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
 
-  TGUIScroll(menu.GetControl('scParticlesCount')).Value := g_GFX_GetMax() div 1000;
+  {$IFDEF ENABLE_GFX}
+    TGUIScroll(menu.GetControl('scParticlesCount')).Value := g_GFX_GetMax() div 1000;
+  {$ENDIF}
   TGUIScroll(menu.GetControl('scShellsMax')).Value := g_Shells_GetMax() div 30;
   TGUIScroll(menu.GetControl('scGibsMax')).Value := g_Gibs_GetMax() div 25;
   TGUIScroll(menu.GetControl('scCorpsesMax')).Value := g_Corpses_GetMax() div 5;

@@ -125,7 +125,10 @@ uses
   {$IFDEF USE_SDL2}
     SDL2,
   {$ENDIF}
-  e_log, e_input, g_console, g_sound, g_gfx, g_player, Math,
+  {$IFDEF ENABLE_GFX}
+    g_gfx,
+  {$ENDIF}
+  e_log, e_input, g_console, g_sound, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game,
   g_items, wadreader, envvars;
 
@@ -277,7 +280,9 @@ begin
   end;
 
   (* section Game *)
-  g_GFX_SetMax(2000);
+  {$IFDEF ENABLE_GFX}
+    g_GFX_SetMax(2000);
+  {$ENDIF}
   g_Shells_SetMax(300);
   g_Gibs_SetMax(150);
   g_Corpses_SetMax(20);

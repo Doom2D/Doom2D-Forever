@@ -123,7 +123,9 @@ uses
   g_res_downloader in 'g_res_downloader.pas',
   g_grid in 'g_grid.pas',
   g_game in 'g_game.pas',
-  g_gfx in 'g_gfx.pas',
+  {$IFDEF ENABLE_GFX}
+    g_gfx in 'g_gfx.pas',
+  {$ENDIF}
   g_items in 'g_items.pas',
   g_map in 'g_map.pas',
   g_monsters in 'g_monsters.pas',
@@ -154,7 +156,9 @@ uses
   r_animations in 'opengl/r_animations.pas',
   r_console in 'opengl/r_console.pas',
   r_game in 'opengl/r_game.pas',
-  r_gfx in 'opengl/r_gfx.pas',
+  {$IFDEF ENABLE_GFX}
+    r_gfx in 'opengl/r_gfx.pas',
+  {$ENDIF}
   r_graphics in 'opengl/r_graphics.pas',
   r_items in 'opengl/r_items.pas',
   r_map in 'opengl/r_map.pas',
@@ -334,19 +338,21 @@ begin
     Inc(idx);
     //if arg = '--twinkletwinkle' then gwin_k8_enable_light_experiments := true;
     if arg = '--jah' then g_profile_history_size := 100;
-    if arg = '--no-particles' then gpart_dbg_enabled := false;
     if arg = '--no-los' then gmon_dbg_los_enabled := false;
 
     if arg = '--profile-render' then g_profile_frame_draw := true;
     if arg = '--profile-coldet' then g_profile_collision := true;
     if arg = '--profile-los' then g_profile_los := true;
 
-    if arg = '--no-part-phys' then gpart_dbg_phys_enabled := false;
-    if arg = '--no-part-physics' then gpart_dbg_phys_enabled := false;
-    if arg = '--no-particles-phys' then gpart_dbg_phys_enabled := false;
-    if arg = '--no-particles-physics' then gpart_dbg_phys_enabled := false;
-    if arg = '--no-particle-phys' then gpart_dbg_phys_enabled := false;
-    if arg = '--no-particle-physics' then gpart_dbg_phys_enabled := false;
+    {$IFDEF ENABLE_GFX}
+      if arg = '--no-particles' then gpart_dbg_enabled := false;
+      if arg = '--no-part-phys' then gpart_dbg_phys_enabled := false;
+      if arg = '--no-part-physics' then gpart_dbg_phys_enabled := false;
+      if arg = '--no-particles-phys' then gpart_dbg_phys_enabled := false;
+      if arg = '--no-particles-physics' then gpart_dbg_phys_enabled := false;
+      if arg = '--no-particle-phys' then gpart_dbg_phys_enabled := false;
+      if arg = '--no-particle-physics' then gpart_dbg_phys_enabled := false;
+    {$ENDIF}
 
     if arg = '--debug-input' then g_dbg_input := True;
 

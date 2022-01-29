@@ -81,10 +81,12 @@ type
     tx, ty: Integer;
     FStartID: Integer;
     FObj: TObj;
-    FBloodRed: Byte;
-    FBloodGreen: Byte;
-    FBloodBlue: Byte;
-    FBloodKind: Byte;
+    {$IFDEF ENABLE_GFX}
+      FBloodRed: Byte;
+      FBloodGreen: Byte;
+      FBloodBlue: Byte;
+      FBloodKind: Byte;
+    {$ENDIF}
     FShellTimer: Integer;
     FShellType: Byte;
     FFirePainTime: Integer;
@@ -524,7 +526,10 @@ uses
   {$IFDEF ENABLE_MENU}
     g_menu,
   {$ENDIF}
-  e_log, g_sound, g_gfx, g_player, g_game,
+  {$IFDEF ENABLE_GFX}
+    g_gfx,
+  {$ENDIF}
+  e_log, g_sound, g_player, g_game,
   g_weapons, g_triggers, g_items, g_options,
   g_console, g_map, Math, wadreader,
   g_language, g_netmsg, idpool, utils, xstreams;
@@ -1633,6 +1638,7 @@ begin
   mplatCheckFrameId := 0;
   mNeedSend := false;
 
+{$IFDEF ENABLE_GFX}
   if FMonsterType in [MONSTER_ROBO, MONSTER_BARREL] then
     FBloodKind := BLOOD_SPARKS
   else
@@ -1655,6 +1661,7 @@ begin
     FBloodGreen := 0;
     FBloodBlue := 0;
   end;
+{$ENDIF}
 
   SetLength(FAnim, Length(ANIMTABLE));
   for a := ANIM_SLEEP to ANIM_PAIN do
@@ -1888,6 +1895,7 @@ end;
 
 procedure TMonster.MakeBloodSimple(Count: Word);
 begin
+{$IFDEF ENABLE_GFX}
   g_GFX_Blood(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)+8,
               FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
               Count div 2, 3, -1, 16, (FObj.Rect.Height*2 div 3),
@@ -1896,14 +1904,17 @@ begin
               FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
               Count div 2, -3, -1, 16, (FObj.Rect.Height*2) div 3,
               FBloodRed, FBloodGreen, FBloodBlue, FBloodKind);
+{$ENDIF}
 end;
 
 procedure TMonster.MakeBloodVector(Count: Word; VelX, VelY: Integer);
 begin
+{$IFDEF ENABLE_GFX}
   g_GFX_Blood(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
               FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
               Count, VelX, VelY, 16, (FObj.Rect.Height*2) div 3,
               FBloodRed, FBloodGreen, FBloodBlue, FBloodKind);
+{$ENDIF}
 end;
 
 procedure TMonster.Push(vx, vy: Integer);
@@ -1987,12 +1998,13 @@ begin
   if not silent then
   begin
     g_Sound_PlayExAt('SOUND_GAME_TELEPORT', Obj.X, Obj.Y);
+{$IFDEF ENABLE_GFX}
     g_GFX_QueueEffect(
       R_GFX_TELEPORT,
       FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
       FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32
     );
-
+{$ENDIF}
     if g_Game_IsServer and g_Game_IsNet then
       MH_SEND_Effect(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
                      FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32, 1,
@@ -2022,12 +2034,13 @@ begin
 // Эффект телепорта в точке назначения:
   if not silent then
   begin
+{$IFDEF ENABLE_GFX}
     g_GFX_QueueEffect(
       R_GFX_TELEPORT,
       FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
       FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32
     );
-
+{$ENDIF}
     if g_Game_IsServer and g_Game_IsNet then
      MH_SEND_Effect(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
                     FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32, 0,
@@ -2157,18 +2170,20 @@ begin
 // Возможно, создаем пузырьки в воде:
   if WordBool(st and MOVE_INWATER) and (Random(32) = 0) then
   begin
-    case FMonsterType of
-      MONSTER_FISH:
-        if Random(4) <> 0 then bubbles := False else
+    {$IFDEF ENABLE_GFX}
+      case FMonsterType of
+        MONSTER_FISH:
+          if Random(4) <> 0 then bubbles := False else
+            g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
+                          FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
+        MONSTER_ROBO, MONSTER_BARREL:
           g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
                         FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
-      MONSTER_ROBO, MONSTER_BARREL:
-        g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
-                      FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
-      else
-        g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width-4),
-                      FObj.Y+FObj.Rect.Y + Random(4), 5, 4, 4);
-    end;
+        else
+          g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width-4),
+                        FObj.Y+FObj.Rect.Y + Random(4), 5, 4, 4);
+      end;
+    {$ENDIF}
     if bubbles then if Random(2) = 0
       then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
       else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
@@ -3119,18 +3134,20 @@ begin
 // Возможно, создаем пузырьки в воде:
   if WordBool(st and MOVE_INWATER) and (Random(32) = 0) then
   begin
-    case FMonsterType of
-      MONSTER_FISH:
-        if Random(4) <> 0 then bubbles := False else
+    {$IFDEF ENABLE_GFX}
+      case FMonsterType of
+        MONSTER_FISH:
+          if Random(4) <> 0 then bubbles := False else
+            g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
+                          FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
+        MONSTER_ROBO, MONSTER_BARREL:
           g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
                         FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
-      MONSTER_ROBO, MONSTER_BARREL:
-        g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
-                      FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
-      else
-        g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width-4),
-                      FObj.Y+FObj.Rect.Y + Random(4), 5, 4, 4);
-    end;
+        else
+          g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width-4),
+                        FObj.Y+FObj.Rect.Y + Random(4), 5, 4, 4);
+      end;
+    {$ENDIF}
     if bubbles then if Random(2) = 0
       then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
       else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
@@ -4291,17 +4308,20 @@ begin
 end;
 
 procedure TMonster.OnFireFlame(Times: DWORD = 1);
-  var i: DWORD; x, y: Integer;
+  {$IFDEF ENABLE_GFX}
+    var i: DWORD; x, y: Integer;
+  {$ENDIF}
 begin
-  if (Random(10) = 1) and (Times = 1) then
-    Exit;
-
-  for i := 1 to Times do
-  begin
-    x := Obj.X + Obj.Rect.X + Random(Obj.Rect.Width + Times * 2) - (R_GFX_FLAME_WIDTH div 2);
-    y := Obj.Y + 8 + Random(8 + Times * 2) + IfThen(FState = MONSTATE_DEAD, 16, 0);
-    g_GFX_QueueEffect(R_GFX_FLAME, x, y);
-  end;
+  {$IFDEF ENABLE_GFX}
+    if (Random(10) = 1) and (Times = 1) then
+      Exit;
+    for i := 1 to Times do
+    begin
+      x := Obj.X + Obj.Rect.X + Random(Obj.Rect.Width + Times * 2) - (R_GFX_FLAME_WIDTH div 2);
+      y := Obj.Y + 8 + Random(8 + Times * 2) + IfThen(FState = MONSTATE_DEAD, 16, 0);
+      g_GFX_QueueEffect(R_GFX_FLAME, x, y);
+    end;
+  {$ENDIF}
 end;
 
 

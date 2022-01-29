@@ -147,13 +147,13 @@ function awmIsSetHolmes (x, y: Integer): Boolean; inline;
 
 implementation
 
-uses
-  {$IFNDEF HEADLESS}
-    r_render,
-  {$ENDIF}
-  g_map, g_panel, g_basic, Math,
-  g_options, g_console, SysUtils, g_triggers, MAPDEF,
-  g_game, g_language, g_net, utils, xprofiler;
+  uses
+    {$IFNDEF HEADLESS}
+      r_render,
+    {$ENDIF}
+    g_map, g_panel, Math, utils,
+    g_options, SysUtils, MAPDEF
+  ;
 
 
 const

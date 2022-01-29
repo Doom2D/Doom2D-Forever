@@ -37,12 +37,15 @@ interface
   function r_Render_WriteScreenShot (filename: String): Boolean;
 
   function r_Render_GetGibRect (m, id: Integer): TRectWH;
-  procedure r_Render_QueueEffect (AnimType, X, Y: Integer);
 
-{$IFDEF ENABLE_TOUCH}
-  // touch screen button location and size
-  procedure r_Render_GetKeyRect (key: Integer; out x, y, w, h: Integer; out founded: Boolean);
-{$ENDIF}
+  {$IFDEF ENABLE_GFX}
+    procedure r_Render_QueueEffect (AnimType, X, Y: Integer);
+  {$ENDIF}
+
+  {$IFDEF ENABLE_TOUCH}
+    // touch screen button location and size
+    procedure r_Render_GetKeyRect (key: Integer; out x, y, w, h: Integer; out founded: Boolean);
+  {$ENDIF}
 
   procedure r_Render_DrawLoading (force: Boolean); // !!! remove it
 
@@ -53,11 +56,14 @@ implementation
     {$IFDEF ENABLE_TOUCH}
       r_touch,
     {$ENDIF}
+    {$IFDEF ENABLE_GFX}
+      r_gfx,
+    {$ENDIF}
     SysUtils, Classes, Math,
     e_log, g_system, utils,
     g_game, g_options, g_console,
     r_window, r_graphics, r_console, r_playermodel, r_textures, r_animations,
-    r_weapons, r_items, r_gfx, r_monsters, r_map, r_player, r_game
+    r_weapons, r_items, r_monsters, r_map, r_player, r_game
   ;
 
   var
@@ -206,12 +212,16 @@ implementation
     r_Monsters_Load;
     r_Weapon_Load;
     r_Items_Load;
-    r_GFX_Load;
+    {$IFDEF ENABLE_GFX}
+      r_GFX_Load;
+    {$ENDIF}
   end;
 
   procedure r_Render_Free;
   begin
-    r_GFX_Free;
+    {$IFDEF ENABLE_GFX}
+      r_GFX_Free;
+    {$ENDIF}
     r_Items_Free;
     r_Weapon_Free;
     r_Monsters_Free;
@@ -244,7 +254,9 @@ implementation
 
   procedure r_Render_Update;
   begin
-    r_GFX_Update;
+    {$IFDEF ENABLE_GFX}
+      r_GFX_Update;
+    {$ENDIF}
     r_Map_Update;
     r_PlayerModel_Update;
     r_Console_Update;
@@ -316,10 +328,12 @@ implementation
     Result := r_PlayerModel_GetGibRect(m, id)
   end;
 
+{$IFDEF ENABLE_GFX}
   procedure r_Render_QueueEffect (AnimType, X, Y: Integer);
   begin
     r_GFX_OnceAnim(AnimType, X, Y)
   end;
+{$ENDIF}
 
 {$IFDEF ENABLE_TOUCH}
   procedure r_Render_GetKeyRect (key: Integer; out x, y, w, h: Integer; out founded: Boolean);

@@ -457,12 +457,15 @@ uses
   {$IFDEF ENABLE_MENU}
     g_menu,
   {$ENDIF}
+  {$IFDEF ENABLE_GFX}
+    g_gfx,
+  {$ENDIF}
   {$IFNDEF HEADLESS}
     r_render, g_system,
   {$ENDIF}
   e_res, g_window,
   e_input, e_log, g_console, g_items, g_map, g_panel,
-  g_playermodel, g_gfx, g_options, Math,
+  g_playermodel, g_options, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
   g_language, g_net, g_phys,
   ENet, e_msg, g_netmsg, g_netmaster,
@@ -2203,7 +2206,9 @@ begin
     g_Triggers_Update();
     g_Weapon_Update();
     g_Monsters_Update();
-    g_GFX_Update();
+    {$IFDEF ENABLE_GFX}
+      g_GFX_Update;
+    {$ENDIF}
     g_Player_UpdateAll();
     g_Player_UpdatePhysicalObjects();
 
@@ -4033,12 +4038,18 @@ begin
   begin
     if Length(p) = 2 then
     begin
-      a := Max(0, StrToIntDef(p[1], 0));
-      g_GFX_SetMax(a)
+      {$IFDEF ENABLE_GFX}
+        a := Max(0, StrToIntDef(p[1], 0));
+        g_GFX_SetMax(a)
+      {$ENDIF}
     end
     else if Length(p) = 1 then
     begin
-      e_LogWritefln('%s', [g_GFX_GetMax()])
+      {$IFDEF ENABLE_GFX}
+        e_LogWritefln('%s', [g_GFX_GetMax()])
+      {$ELSE}
+        e_LogWritefln('%s', [0])
+      {$ENDIF}
     end
     else
     begin
@@ -6969,8 +6980,10 @@ begin
   conRegVar('mon_sq_enabled', @gmon_debug_use_sqaccel, 'accelerated spatial queries for monsters', 'accelerated monster coldet');
   conRegVar('wtrace_sq_enabled', @gwep_debug_fast_trace, 'accelerated spatial queries for weapon hitscan trace', 'accelerated weapon hitscan');
 
+{$IFDEF ENABLE_GFX}
   conRegVar('pr_enabled', @gpart_dbg_enabled, 'enable/disable particles', 'particles');
   conRegVar('pr_phys_enabled', @gpart_dbg_phys_enabled, 'enable/disable particle physics', 'particle physics');
+{$ENDIF}
 
   conRegVar('los_enabled', @gmon_dbg_los_enabled, 'enable/disable monster LOS calculations', 'monster LOS', true);
   conRegVar('mon_think', @gmon_debug_think, 'enable/disable monster thinking', 'monster thinking', true);

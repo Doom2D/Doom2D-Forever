@@ -657,7 +657,10 @@ uses
   {$IFNDEF HEADLESS}
     r_render,
   {$ENDIF}
-  e_log, g_map, g_items, g_console, g_gfx, Math,
+  {$IFDEF ENABLE_GFX}
+    g_gfx,
+  {$ENDIF}
+  e_log, g_map, g_items, g_console, Math,
   g_options, g_triggers, g_game, g_grid, e_res,
   wadreader, g_monsters, CONFIG, g_language,
   g_net, g_netmsg,
@@ -1581,7 +1584,9 @@ procedure g_Player_CreateGibs (fX, fY, mid: Integer; fColor: TRGB);
 var
   a: Integer;
   GibsArray: TGibsArray;
-  Blood: TModelBlood;
+  {$IFDEF ENABLE_GFX}
+    Blood: TModelBlood;
+  {$ENDIF}
 begin
   if mid = -1 then
     Exit;
@@ -1589,7 +1594,10 @@ begin
     Exit;
   if not g_PlayerModel_GetGibs(mid, GibsArray) then
     Exit;
-  Blood := PlayerModelsArray[mid].Blood;
+
+  {$IFDEF ENABLE_GFX}
+    Blood := PlayerModelsArray[mid].Blood;
+  {$ENDIF}
 
   for a := 0 to High(GibsArray) do
     with gGibs[CurrentGib] do
@@ -1613,9 +1621,24 @@ begin
       positionChanged(); // this updates spatial accelerators
       RAngle := Random(360);
 
-      if gBloodCount > 0 then
-        g_GFX_Blood(fX, fY, 16*gBloodCount+Random(5*gBloodCount), -16+Random(33), -16+Random(33),
-                    Random(48), Random(48), Blood.R, Blood.G, Blood.B, Blood.Kind);
+      {$IFDEF ENABLE_GFX}
+        if gBloodCount > 0 then
+        begin
+          g_GFX_Blood(
+            fX,
+            fY,
+            16 * gBloodCount + Random(5 * gBloodCount),
+            -16 + Random(33),
+            -16 + Random(33),
+            Random(48),
+            Random(48),
+            Blood.R,
+            Blood.G,
+            Blood.B,
+            Blood.Kind
+         );
+        end;
+      {$ENDIF}
 
       if CurrentGib >= High(gGibs) then
         CurrentGib := 0
@@ -2220,14 +2243,16 @@ begin
           HIT_BFG, HIT_ROCKET, HIT_SOME: MakeBloodVector(c, vx, vy);
         end;
 
-      if t = HIT_WATER then
-      begin
-        g_GFX_Bubbles(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
-                      FObj.Y+PLAYER_RECT.Y-4, value div 2, 8, 4);
-        if Random(2) = 0
-          then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
-          else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
-      end;
+      {$IFDEF ENABLE_GFX}
+        if t = HIT_WATER then
+        begin
+          g_GFX_Bubbles(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
+                        FObj.Y+PLAYER_RECT.Y-4, value div 2, 8, 4);
+          if Random(2) = 0
+            then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
+            else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
+        end;
+      {$ENDIF}
     end;
 
   // Буфер урона:
@@ -3027,27 +3052,35 @@ begin
 end;
 
 procedure TPlayer.MakeBloodSimple(Count: Word);
-  var Blood: TModelBlood;
+  {$IFDEF ENABLE_GFX}
+    var Blood: TModelBlood;
+  {$ENDIF}
 begin
-  Blood := SELF.FModel.GetBlood();
-  g_GFX_Blood(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)+8,
-              FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
-              Count div 2, 3, -1, 16, (PLAYER_RECT.Height*2 div 3),
-              Blood.R, Blood.G, Blood.B, Blood.Kind);
-  g_GFX_Blood(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-8,
-              FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
-              Count div 2, -3, -1, 16, (PLAYER_RECT.Height*2) div 3,
-              Blood.R, Blood.G, Blood.B, Blood.Kind);
+  {$IFDEF ENABLE_GFX}
+    Blood := SELF.FModel.GetBlood();
+    g_GFX_Blood(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)+8,
+                FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
+                Count div 2, 3, -1, 16, (PLAYER_RECT.Height*2 div 3),
+                Blood.R, Blood.G, Blood.B, Blood.Kind);
+    g_GFX_Blood(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-8,
+                FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
+                Count div 2, -3, -1, 16, (PLAYER_RECT.Height*2) div 3,
+                Blood.R, Blood.G, Blood.B, Blood.Kind);
+  {$ENDIF}
 end;
 
 procedure TPlayer.MakeBloodVector(Count: Word; VelX, VelY: Integer);
-  var Blood: TModelBlood;
+  {$IFDEF ENABLE_GFX}
+    var Blood: TModelBlood;
+  {$ENDIF}
 begin
-  Blood := SELF.FModel.GetBlood();
-  g_GFX_Blood(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
-              FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
-              Count, VelX, VelY, 16, (PLAYER_RECT.Height*2) div 3,
-              Blood.R, Blood.G, Blood.B, Blood.Kind);
+  {$IFDEF ENABLE_GFX}
+    Blood := SELF.FModel.GetBlood();
+    g_GFX_Blood(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
+                FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
+                Count, VelX, VelY, 16, (PLAYER_RECT.Height*2) div 3,
+                Blood.R, Blood.G, Blood.B, Blood.Kind);
+  {$ENDIF}
 end;
 
 procedure TPlayer.ProcessWeaponAction(Action: Byte);
@@ -3999,13 +4032,17 @@ begin
   FFirePainTime := 0;
   FFireAttacker := 0;
 
-// Анимация возрождения:
-  if (not gLoadGameMode) and (not Silent) then
-    g_GFX_QueueEffect(
-      R_GFX_TELEPORT_FAST,
-      FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
-      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32
-    );
+  {$IFDEF ENABLE_GFX}
+    // Анимация возрождения:
+    if (not gLoadGameMode) and (not Silent) then
+    begin
+      g_GFX_QueueEffect(
+        R_GFX_TELEPORT_FAST,
+        FObj.X + PLAYER_RECT.X + (PLAYER_RECT.Width div 2) - 32,
+        FObj.Y + PLAYER_RECT.Y + (PLAYER_RECT.Height div 2) - 32
+      );
+    end;
+  {$ENDIF}
 
   FSpectator := False;
   FGhost := False;
@@ -4201,11 +4238,13 @@ begin
   if not silent then
   begin
     g_Sound_PlayExAt('SOUND_GAME_TELEPORT', FObj.X, FObj.Y);
-    g_GFX_QueueEffect(
-      R_GFX_TELEPORT_FAST,
-      FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
-      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32
-    );
+    {$IFDEF ENABLE_GFX}
+      g_GFX_QueueEffect(
+        R_GFX_TELEPORT_FAST,
+        FObj.X + PLAYER_RECT.X + (PLAYER_RECT.Width div 2) - 32,
+        FObj.Y + PLAYER_RECT.Y + (PLAYER_RECT.Height div 2) - 32
+      );
+    {$ENDIF}
     if g_Game_IsServer and g_Game_IsNet then
       MH_SEND_Effect(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
                      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, 1,
@@ -4253,11 +4292,13 @@ begin
 
   if not silent then
   begin
-    g_GFX_QueueEffect(
-      R_GFX_TELEPORT_FAST,
-      FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
-      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32
-    );
+    {$IFDEF ENABLE_GFX}
+      g_GFX_QueueEffect(
+        R_GFX_TELEPORT_FAST,
+        FObj.X + PLAYER_RECT.X + (PLAYER_RECT.Width div 2) - 32,
+        FObj.Y + PLAYER_RECT.Y + (PLAYER_RECT.Height div 2) - 32
+      );
+    {$ENDIF}
     if g_Game_IsServer and g_Game_IsNet then
       MH_SEND_Effect(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
                      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, 0,
@@ -4646,7 +4687,9 @@ begin
       end
       else if (FAir mod 31 = 0) and not blockmon then
       begin
-        g_GFX_Bubbles(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2), FObj.Y+PLAYER_RECT.Y-4, 5+Random(6), 8, 4);
+        {$IFDEF ENABLE_GFX}
+          g_GFX_Bubbles(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2), FObj.Y+PLAYER_RECT.Y-4, 5+Random(6), 8, 4);
+        {$ENDIF}
         if Random(2) = 0
           then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
           else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
@@ -5745,8 +5788,10 @@ begin
 
   if BodyInLiquid(0, 0) then
   begin
-    g_GFX_Bubbles(Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)+Random(3)-1,
-                  Obj.Y+Obj.Rect.Height+8, 1, 8, 4);
+    {$IFDEF ENABLE_GFX}
+      g_GFX_Bubbles(Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)+Random(3)-1,
+                    Obj.Y+Obj.Rect.Height+8, 1, 8, 4);
+    {$ENDIF}
     if Random(2) = 0
       then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
       else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
@@ -5755,11 +5800,13 @@ begin
 
   for i := 1 to Times do
   begin
-    g_GFX_QueueEffect(
-      R_GFX_SMOKE_TRANS,
-      Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(R_GFX_SMOKE_WIDTH div 2),
-      Obj.Y+Obj.Rect.Height-4+Random(8+Times*2)
-    );
+    {$IFDEF ENABLE_GFX}
+      g_GFX_QueueEffect(
+        R_GFX_SMOKE_TRANS,
+        Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(R_GFX_SMOKE_WIDTH div 2),
+        Obj.Y+Obj.Rect.Height-4+Random(8+Times*2)
+      );
+    {$ENDIF}
   end;
 end;
 
@@ -5771,11 +5818,13 @@ begin
 
   for i := 1 to Times do
   begin
-    g_GFX_QueueEffect(
-      R_GFX_FLAME,
-      Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(R_GFX_FLAME_WIDTH div 2),
-      Obj.Y+8+Random(8+Times*2)
-    );
+    {$IFDEF ENABLE_GFX}
+      g_GFX_QueueEffect(
+        R_GFX_FLAME,
+        Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(R_GFX_FLAME_WIDTH div 2),
+        Obj.Y+8+Random(8+Times*2)
+      );
+    {$ENDIF}
   end;
 end;
 
@@ -5847,7 +5896,9 @@ end;
 
 
 procedure TCorpse.Damage(Value: Word; SpawnerUID: Word; vx, vy: Integer);
-  var Blood: TModelBlood;
+  {$IFDEF ENABLE_GFX}
+    var Blood: TModelBlood;
+  {$ENDIF}
 begin
   if FState = CORPSE_STATE_REMOVEME then
     Exit;
@@ -5881,13 +5932,15 @@ begin
   end
   else
     begin
-      Blood := FModel.GetBlood();
       FObj.Vel.X := FObj.Vel.X + vx;
       FObj.Vel.Y := FObj.Vel.Y + vy;
-      g_GFX_Blood(FObj.X+PLAYER_CORPSERECT.X+(PLAYER_CORPSERECT.Width div 2),
-                  FObj.Y+PLAYER_CORPSERECT.Y+(PLAYER_CORPSERECT.Height div 2),
-                  Value, vx, vy, 16, (PLAYER_CORPSERECT.Height*2) div 3,
-                  Blood.R, Blood.G, Blood.B, Blood.Kind);
+      {$IFDEF ENABLE_GFX}
+        Blood := FModel.GetBlood();
+        g_GFX_Blood(FObj.X+PLAYER_CORPSERECT.X+(PLAYER_CORPSERECT.Width div 2),
+                    FObj.Y+PLAYER_CORPSERECT.Y+(PLAYER_CORPSERECT.Height div 2),
+                    Value, vx, vy, 16, (PLAYER_CORPSERECT.Height*2) div 3,
+                    Blood.R, Blood.G, Blood.B, Blood.Kind);
+      {$ENDIF}
     end;
 end;
 

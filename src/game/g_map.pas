@@ -246,13 +246,17 @@ var (* private state *)
 
 implementation
 
-uses
-  e_input, e_log, e_res, g_items, g_gfx, g_console,
-  g_weapons, g_game, g_sound, e_sound, CONFIG,
-  g_options, g_triggers, g_player,
-  Math, g_monsters, g_saveload, g_language, g_netmsg,
-  sfs, xstreams, hashtable, wadreader,
-  g_res_downloader;
+  uses
+    {$IFDEF ENABLE_GFX}
+      g_gfx,
+    {$ENDIF}
+    e_input, e_log, e_res, g_items, g_console,
+    g_weapons, g_game, g_sound, e_sound, CONFIG,
+    g_options, g_triggers, g_player,
+    Math, g_monsters, g_saveload, g_language, g_netmsg,
+    sfs, xstreams, hashtable, wadreader,
+    g_res_downloader
+  ;
 
 const
   FLAGRECT: TRectWH = (X:15; Y:12; Width:33; Height:52);
@@ -1899,8 +1903,10 @@ begin
     g_Weapon_Init();
     g_Monsters_Init();
 
-    // Если не LoadState, то создаем карту столкновений:
-    if not gLoadGameMode then g_GFX_Init();
+    {$IFDEF ENABLE_GFX}
+      // Если не LoadState, то создаем карту столкновений:
+      if not gLoadGameMode then g_GFX_Init();
+    {$ENDIF}
 
     // Сброс локальных массивов:
     mapTextureList := nil;
@@ -2078,7 +2084,9 @@ procedure g_Map_Free(freeTextures: Boolean=true);
   end;
 
 begin
-  g_GFX_Free();
+  {$IFDEF ENABLE_GFX}
+    g_GFX_Free;
+  {$ENDIF}
   g_Weapon_Free();
   g_Items_Free();
   g_Triggers_Free();
@@ -2557,7 +2565,10 @@ begin
   if pan.Enabled and mapGrid.proxyEnabled[pan.proxyId] then exit;
 
   pan.Enabled := True;
-  g_Mark(pan.X, pan.Y, pan.Width, pan.Height, MARK_DOOR, true);
+
+  {$IFDEF ENABLE_GFX}
+    g_Mark(pan.X, pan.Y, pan.Width, pan.Height, MARK_DOOR, true);
+  {$ENDIF}
 
   mapGrid.proxyEnabled[pan.proxyId] := true;
   //if (pan.proxyId >= 0) then mapGrid.proxyEnabled[pan.proxyId] := true
@@ -2583,7 +2594,9 @@ begin
   if (not pan.Enabled) and (not mapGrid.proxyEnabled[pan.proxyId]) then exit;
 
   pan.Enabled := False;
-  g_Mark(pan.X, pan.Y, pan.Width, pan.Height, MARK_DOOR, false);
+  {$IFDEF ENABLE_GFX}
+    g_Mark(pan.X, pan.Y, pan.Width, pan.Height, MARK_DOOR, false);
+  {$ENDIF}
 
   mapGrid.proxyEnabled[pan.proxyId] := false;
   //if (pan.proxyId >= 0) then begin mapGrid.removeBody(pan.proxyId); pan.proxyId := -1; end;
@@ -2624,15 +2637,16 @@ begin
   begin
     LiftType := t;
 
-    g_Mark(X, Y, Width, Height, MARK_LIFT, false);
-    //TODO: make separate lift tags, and change tag here
-
-    case LiftType of
-      LIFTTYPE_UP:    g_Mark(X, Y, Width, Height, MARK_LIFTUP);
-      LIFTTYPE_DOWN:  g_Mark(X, Y, Width, Height, MARK_LIFTDOWN);
-      LIFTTYPE_LEFT:  g_Mark(X, Y, Width, Height, MARK_LIFTLEFT);
-      LIFTTYPE_RIGHT: g_Mark(X, Y, Width, Height, MARK_LIFTRIGHT);
-    end;
+    {$IFDEF ENABLE_GFX}
+      g_Mark(X, Y, Width, Height, MARK_LIFT, false);
+      //TODO: make separate lift tags, and change tag here
+      case LiftType of
+        LIFTTYPE_UP:    g_Mark(X, Y, Width, Height, MARK_LIFTUP);
+        LIFTTYPE_DOWN:  g_Mark(X, Y, Width, Height, MARK_LIFTDOWN);
+        LIFTTYPE_LEFT:  g_Mark(X, Y, Width, Height, MARK_LIFTLEFT);
+        LIFTTYPE_RIGHT: g_Mark(X, Y, Width, Height, MARK_LIFTRIGHT);
+      end;
+    {$ENDIF}
 
     //if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(pguid);
     // mark platform as interesting
@@ -2832,8 +2846,11 @@ begin
   loadPanels();
   ///// /////
 
-  // Обновляем карту столкновений и сетку
-  g_GFX_Init();
+  {$IFDEF ENABLE_GFX}
+    // Обновляем карту столкновений и сетку
+    g_GFX_Init();
+  {$ENDIF}
+
   //mapCreateGrid();
 
   ///// Загружаем музыку: /////

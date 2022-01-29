@@ -44,14 +44,17 @@ implementation
     {$IFDEF ENABLE_MENU}
       g_gui, g_menu,
     {$ENDIF}
+    {$IFDEF ENABLE_GFX}
+      g_gfx, r_gfx,
+    {$ENDIF}
     SysUtils, Classes, Math,
     g_base, g_basic, r_graphics,
     g_system,
     MAPDEF, xprofiler, utils, wadreader, CONFIG,
     e_input, e_sound,
     g_language, g_console, g_triggers, g_player, g_options, g_monsters, g_map, g_panel,
-    g_items, g_weapons, g_gfx, g_phys, g_net, g_netmaster,
-    g_game, r_console, r_gfx, r_items, r_map, r_monsters, r_weapons, r_netmaster, r_player, r_textures,
+    g_items, g_weapons, g_phys, g_net, g_netmaster,
+    g_game, r_console, r_items, r_map, r_monsters, r_weapons, r_netmaster, r_player, r_textures,
     r_playermodel
   ;
 
@@ -1552,7 +1555,9 @@ begin
   drawOther('monsters', @r_Monsters_Draw);
   drawOther('itemdrop', @r_Items_DrawDrop);
   drawPanelType('*door', PANEL_CLOSEDOOR, g_rlayer_door);
-  drawOther('gfx', @r_GFX_Draw);
+  {$IFDEF ENABLE_GFX}
+    drawOther('gfx', @r_GFX_Draw);
+  {$ENDIF}
   drawOther('flags', @r_Map_DrawFlags);
   drawPanelType('*acid1', PANEL_ACID1, g_rlayer_acid1);
   drawPanelType('*acid2', PANEL_ACID2, g_rlayer_acid2);

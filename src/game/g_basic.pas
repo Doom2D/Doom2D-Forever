@@ -98,7 +98,7 @@ var
 implementation
 
 uses
-  Math, geom, e_log, g_map, g_gfx, g_player, SysUtils, MAPDEF,
+  Math, geom, e_log, g_map, g_player, SysUtils, MAPDEF,
   StrUtils, g_monsters, g_items, g_game;
 
 {$PUSH}

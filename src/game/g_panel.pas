@@ -222,9 +222,13 @@ var
 
 implementation
 
-uses
-  g_basic, g_map, g_game, g_gfx, g_weapons, g_triggers, g_items,
-  g_console, g_language, g_monsters, g_player, g_grid, e_log, geom, utils, xstreams;
+  uses
+    {$IFDEF ENABLE_GFX}
+      g_gfx,
+    {$ENDIF}
+    g_basic, g_map, g_game, g_weapons, g_triggers, g_items,
+    g_console, g_language, g_monsters, g_player, g_grid, e_log, geom, utils, xstreams
+  ;
 
 const
   PANEL_SIGNATURE = $4C4E4150; // 'PANL'
@@ -446,7 +450,9 @@ begin
       e_LogWritefln('panel moved: arridx=%s; guid=%s; proxyid=%s; old:(%s,%s)-(%sx%s); new:(%s,%s)-(%sx%s)',
         [arrIdx, mGUID, proxyId, px, py, pw, ph, x, y, width, height]);
       }
-      g_Mark(px, py, pw, ph, MARK_WALL, false);
+      {$IFDEF ENABLE_GFX}
+        g_Mark(px, py, pw, ph, MARK_WALL, false);
+      {$ENDIF}
       if (Width < 1) or (Height < 1) then
       begin
         mapGrid.proxyEnabled[proxyId] := false;
@@ -463,7 +469,9 @@ begin
         begin
           mapGrid.moveBody(proxyId, X, Y);
         end;
-        g_Mark(X, Y, Width, Height, MARK_WALL);
+        {$IFDEF ENABLE_GFX}
+          g_Mark(X, Y, Width, Height, MARK_WALL);
+        {$ENDIF}
       end;
     end;
   end;

@@ -108,7 +108,10 @@ uses
   {$IFDEF ENABLE_TOUCH}
     g_system,
   {$ENDIF}
-  g_textures, e_input, g_game, g_gfx, g_player, g_items,
+  {$IFDEF ENABLE_GFX}
+    g_gfx,
+  {$ENDIF}
+  g_textures, e_input, g_game, g_player, g_items,
   SysUtils, g_basic, g_options, Math, e_res,
   g_language, g_net, g_netmsg, e_log, conbuf, g_weapons,
   Keyboard;
@@ -2084,7 +2087,9 @@ begin
   WriteLn(f, 'sv_public ', IfThen(NetUseMaster, 1, 0));
 
   // game settings
-  WriteLn(f, 'g_max_particles ', g_GFX_GetMax());
+  {$IFDEF ENABLE_GFX}
+    WriteLn(f, 'g_max_particles ', g_GFX_GetMax());
+  {$ENDIF}
   WriteLn(f, 'g_max_shells ', g_Shells_GetMax());
   WriteLn(f, 'g_max_gibs ', g_Gibs_GetMax());
   WriteLn(f, 'g_max_corpses ', g_Corpses_GetMax());

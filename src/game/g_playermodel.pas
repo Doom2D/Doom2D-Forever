@@ -18,7 +18,7 @@ unit g_playermodel;
 
 interface
 
-  uses MAPDEF, g_textures, g_base, g_basic, g_weapons, utils, g_gfx;
+  uses MAPDEF, g_textures, g_base, g_basic, g_weapons, utils;
 
 const
   A_STAND      = 0;
@@ -74,9 +74,11 @@ type
     Back:     Boolean;
   end;
 
+{$IFDEF ENABLE_GFX}
   TModelBlood = record
     R, G, B, Kind: Byte;
   end;
+{$ENDIF}
 
   TModelSound = record
     ID:    DWORD;
@@ -109,7 +111,10 @@ type
     function    PlaySound(SoundType, Level: Byte; X, Y: Integer): Boolean;
     procedure   Update();
 
-    function GetBlood (): TModelBlood;
+    {$IFDEF ENABLE_GFX}
+      function GetBlood (): TModelBlood;
+    {$ENDIF}
+
     function GetName (): String;
 
   published
@@ -130,10 +135,13 @@ procedure g_PlayerModel_LoadAll;
 procedure g_PlayerModel_FreeData();
 function  g_PlayerModel_Load(FileName: String): Boolean;
 function  g_PlayerModel_GetNames(): SSArray;
-function  g_PlayerModel_GetBlood(ModelName: String): TModelBlood;
 function  g_PlayerModel_Get(ModelName: String): TPlayerModel;
 function  g_PlayerModel_GetGibs (ModelID: Integer; var Gibs: TGibsArray): Boolean;
 function  g_PlayerModel_GetIndex (ModelName: String): Integer;
+
+{$IFDEF ENABLE_GFX}
+  function  g_PlayerModel_GetBlood(ModelName: String): TModelBlood;
+{$ENDIF}
 
 procedure g_PlayerModel_LoadFake (ModelName, FileName: String);
 
@@ -152,7 +160,9 @@ procedure g_PlayerModel_LoadFake (ModelName, FileName: String);
       PainSounds:   TModelSoundArray;
       DieSounds:    TModelSoundArray;
       SlopSound:    Byte;
-      Blood:        TModelBlood;
+      {$IFDEF ENABLE_GFX}
+        Blood:        TModelBlood;
+      {$ENDIF}
       // =======================
       FileName:    String;
       Anim:        TModelTextures;
@@ -167,9 +177,13 @@ procedure g_PlayerModel_LoadFake (ModelName, FileName: String);
 
 implementation
 
-uses
-  g_sound, g_console, SysUtils, g_player, CONFIG,
-  e_sound, g_options, g_map, Math, e_log, wadreader;
+  uses
+    {$IFDEF ENABLE_GFX}
+      g_gfx,
+    {$ENDIF}
+    g_sound, g_console, SysUtils, g_player, CONFIG,
+    e_sound, g_options, g_map, Math, e_log, wadreader
+  ;
 
 const
   FLAG_DEFPOINT:  TDFPoint = (X:32; Y:16);
@@ -358,19 +372,22 @@ begin
   PlayerModelsArray[ID].Author := config.ReadStr('Model', 'author', '');
   PlayerModelsArray[ID].Description := config.ReadStr('Model', 'description', '');
   PlayerModelsArray[ID].FileName := FileName;
-  with PlayerModelsArray[ID] do
-  begin
-    Blood.R := MAX(0, MIN(255, config.ReadInt('Blood', 'R', 150)));
-    Blood.G := MAX(0, MIN(255, config.ReadInt('Blood', 'G', 0)));
-    Blood.B := MAX(0, MIN(255, config.ReadInt('Blood', 'B', 0)));
-    case config.ReadStr('Blood', 'Kind', 'NORMAL') of
-      'NORMAL': Blood.Kind := BLOOD_NORMAL;
-      'SPARKS': Blood.Kind := BLOOD_CSPARKS;
-      'COMBINE': Blood.Kind := BLOOD_COMBINE;
-    else
-      Blood.Kind := BLOOD_NORMAL
-    end
-  end;
+
+  {$IFDEF ENABLE_GFX}
+    with PlayerModelsArray[ID] do
+    begin
+      Blood.R := MAX(0, MIN(255, config.ReadInt('Blood', 'R', 150)));
+      Blood.G := MAX(0, MIN(255, config.ReadInt('Blood', 'G', 0)));
+      Blood.B := MAX(0, MIN(255, config.ReadInt('Blood', 'B', 0)));
+      case config.ReadStr('Blood', 'Kind', 'NORMAL') of
+        'NORMAL': Blood.Kind := BLOOD_NORMAL;
+        'SPARKS': Blood.Kind := BLOOD_CSPARKS;
+        'COMBINE': Blood.Kind := BLOOD_COMBINE;
+      else
+        Blood.Kind := BLOOD_NORMAL
+      end
+    end;
+  {$ENDIF}
 
   for b := A_STAND to A_LAST do
   begin
@@ -625,6 +642,7 @@ begin
   end;
 end;
 
+{$IFDEF ENABLE_GFX}
 function g_PlayerModel_GetBlood(ModelName: string): TModelBlood;
 var
   a: Integer;
@@ -642,6 +660,7 @@ begin
       Break;
     end;
 end;
+{$ENDIF}
 
 procedure g_PlayerModel_FreeData();
   var i, b: Integer;
@@ -769,10 +788,12 @@ end;
     FCurrentWeapon := Weapon
   end;
 
+{$IFDEF ENABLE_GFX}
   function TPlayerModel.GetBlood (): TModelBlood;
   begin
     Result := PlayerModelsArray[FID].Blood
   end;
+{$ENDIF}
 
   function TPlayerModel.GetName (): String;
   begin
