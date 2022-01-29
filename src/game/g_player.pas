@@ -79,14 +79,9 @@ const
 
   ANGLE_NONE        = Low(SmallInt);
 
-  CORPSE_STATE_REMOVEME = 0;
-  CORPSE_STATE_NORMAL   = 1;
-  CORPSE_STATE_MESS     = 2;
-
   PLAYER_RECT: TRectWH = (X:15; Y:12; Width:34; Height:52);
   PLAYER_RECT_CX       = 15+(34 div 2);
   PLAYER_RECT_CY       = 12+(52 div 2);
-  PLAYER_CORPSERECT: TRectWH = (X:15; Y:48; Width:34; Height:16);
 
   PLAYER_HP_SOFT  = 100;
   PLAYER_HP_LIMIT = 200;
@@ -253,8 +248,6 @@ type
 
     procedure doDamage (v: Integer);
 
-    function refreshCorpse(): Boolean;
-
   public
     FDamageBuffer:   Integer;
 
@@ -290,7 +283,10 @@ type
     FSpawnInvul: Integer;
     FHandicap:  Integer;
     FWaitForFirstSpawn: Boolean; // set to `true` in server, used to spawn a player on first full state request
-    FCorpse:    Integer;
+
+    {$IFDEF ENABLE_CORPSES}
+      FCorpse:    Integer;
+    {$ENDIF}
 
     // debug: viewport offset
     viewPortX, viewPortY, viewPortW, viewPortH: Integer;
@@ -368,8 +364,6 @@ type
 
     procedure getMapBox (out x, y, w, h: Integer); inline;
     procedure moveBy (dx, dy: Integer); inline;
-
-    function getCameraObj(): TObj;
 
     function GetAmmoByWeapon(Weapon: Byte): Word; // private state
 
@@ -458,6 +452,10 @@ type
     // set this before assigning something to `eDamage`
     property eDamageType: Integer read mEDamageType write mEDamageType;
     property eDamage: Integer write doDamage;
+
+    {$IFDEF ENABLE_CORPSES}
+      property Corpse: Integer read FCorpse;
+    {$ENDIF}
   end;
 
   TDifficult = record
@@ -518,36 +516,6 @@ type
     procedure   LoadState (st: TStream); override;
   end;
 
-  TCorpse = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
-  private
-    FMess:          Boolean;
-    FState:         Byte;
-    FDamage:        Byte;
-    FObj:           TObj;
-    FPlayerUID:     Word;
-    FModel:   TPlayerModel;
-
-  public
-    constructor Create(X, Y: Integer; ModelName: String; aMess: Boolean);
-    destructor  Destroy(); override;
-    procedure   Damage(Value: Word; SpawnerUID: Word; vx, vy: Integer);
-    procedure   Update();
-    procedure   SaveState (st: TStream);
-    procedure   LoadState (st: TStream);
-
-    procedure getMapBox (out x, y, w, h: Integer); inline;
-    procedure moveBy (dx, dy: Integer); inline;
-
-    procedure positionChanged ();  inline; //WARNING! call this after entity position was changed, or coldet will not work right!
-
-    function ObjPtr (): PObj; inline;
-
-    property    Obj: TObj read FObj; // copies object
-    property    State: Byte read FState;
-    property    Mess: Boolean read FMess;
-    property    Model: TPlayerModel read FModel;
-  end;
-
   TTeamStat = Array [TEAM_RED..TEAM_BLUE] of
     record
       Score: SmallInt;
@@ -555,7 +523,6 @@ type
 
 var
   gPlayers: Array of TPlayer;
-  gCorpses: Array of TCorpse;
   gTeamStat: TTeamStat;
   gFly: Boolean = False;
   gAimLine: Boolean = False;
@@ -570,8 +537,6 @@ var
 
 function  Lerp(X, Y, Factor: Integer): Integer;
 
-procedure g_Corpses_SetMax(Count: Word);
-function  g_Corpses_GetMax(): Word;
 procedure g_Force_Model_Set(Mode: Word);
 function g_Force_Model_Get(): Word;
 procedure g_Forced_Model_SetName(Model: String);
@@ -591,11 +556,6 @@ function  g_Player_Get(UID: Word): TPlayer;
 function  g_Player_GetCount(): Byte;
 function  g_Player_GetStats(): TPlayerStatArray;
 function  g_Player_ValidName(Name: String): Boolean;
-function  g_Player_CreateCorpse(Player: TPlayer): Integer;
-procedure g_Player_UpdatePhysicalObjects();
-procedure g_Player_RemoveAllCorpses();
-procedure g_Player_Corpses_SaveState (st: TStream);
-procedure g_Player_Corpses_LoadState (st: TStream);
 procedure g_Player_ResetReady();
 procedure g_Bot_Add(Team, Difficult: Byte; Handicap: Integer = 100);
 procedure g_Bot_AddList(Team: Byte; lname: ShortString; num: Integer = -1; Handicap: Integer = 100);
@@ -623,6 +583,9 @@ uses
   {$ENDIF}
   {$IFDEF ENABLE_SHELLS}
     g_shells,
+  {$ENDIF}
+  {$IFDEF ENABLE_CORPSES}
+    g_corpses,
   {$ENDIF}
   e_log, g_map, g_items, g_console, Math,
   g_options, g_triggers, g_game, g_grid, e_res,
@@ -697,7 +660,6 @@ const
   BOTLIST_FILENAME = 'botlist.txt';
 
 var
-  MaxCorpses: Word = 20;
   ForceModel: Word = 0;
   ForcedModelName: String = STD_PLAYER_MODEL;
   BotNames: Array of String;
@@ -723,17 +685,6 @@ begin
       (g_Player_Get(UID2).Team = TEAM_NONE)) then Exit;
 
   Result := g_Player_Get(UID1).FTeam = g_Player_Get(UID2).FTeam;
-end;
-
-procedure g_Corpses_SetMax(Count: Word);
-begin
-  MaxCorpses := Count;
-  SetLength(gCorpses, Count);
-end;
-
-function g_Corpses_GetMax(): Word;
-begin
-  Result := MaxCorpses;
 end;
 
 procedure g_Force_Model_Set(Mode: Word);
@@ -1422,160 +1373,6 @@ begin
       end;
 end;
 
-function  g_Player_CreateCorpse(Player: TPlayer): Integer;
-var
-  i: Integer;
-  find_id: DWORD;
-  ok: Boolean;
-begin
-  Result := -1;
-
-  if Player.alive then
-    Exit;
-
-// Разрываем связь с прежним трупом:
-  i := Player.FCorpse;
-  if (i >= 0) and (i < Length(gCorpses)) then
-  begin
-    if (gCorpses[i] <> nil) and (gCorpses[i].FPlayerUID = Player.FUID) then
-      gCorpses[i].FPlayerUID := 0;
-  end;
-
-  if Player.FObj.Y >= gMapInfo.Height+128 then
-    Exit;
-
-  with Player do
-  begin
-{$IFDEF ENABLE_GIBS}
-      if (FHealth < -50) and (gGibsCount > 0) then
-      begin
-        g_Gibs_Create(FObj.X + PLAYER_RECT_CX, FObj.Y + PLAYER_RECT_CY, FModel.id, FModel.Color);
-      end
-      else
-{$ENDIF}
-      begin
-        if (gCorpses = nil) or (Length(gCorpses) = 0) then
-          Exit;
-
-        ok := False;
-        for find_id := 0 to High(gCorpses) do
-          if gCorpses[find_id] = nil then
-          begin
-            ok := True;
-            Break;
-          end;
-
-        if not ok then
-          find_id := Random(Length(gCorpses));
-
-        gCorpses[find_id] := TCorpse.Create(FObj.X, FObj.Y, FModel.GetName(), FHealth < -20);
-        gCorpses[find_id].FModel.Color := FModel.Color;
-        gCorpses[find_id].FObj.Vel := FObj.Vel;
-        gCorpses[find_id].FObj.Accel := FObj.Accel;
-        gCorpses[find_id].FPlayerUID := FUID;
-
-        Result := find_id;
-      end
-  end;
-end;
-
-procedure g_Player_UpdatePhysicalObjects();
-  var i: Integer;
-begin
-  if gCorpses <> nil then
-    for i := 0 to High(gCorpses) do
-      if gCorpses[i] <> nil then
-        if gCorpses[i].State = CORPSE_STATE_REMOVEME then
-          begin
-            gCorpses[i].Free();
-            gCorpses[i] := nil;
-          end
-        else
-          gCorpses[i].Update();
-end;
-
-procedure g_Player_RemoveAllCorpses();
-  var i: Integer;
-begin
-  {$IFDEF ENABLE_GIBS}
-    i := g_Gibs_GetMax();
-    g_Gibs_SetMax(0);
-    g_Gibs_SetMax(i);
-  {$ENDIF}
-  {$IFDEF ENABLE_SHELLS}
-    i := g_Shells_GetMax();
-    g_Shells_SetMax(0);
-    g_Shells_SetMax(i);
-  {$ENDIF}
-
-  if gCorpses <> nil then
-    for i := 0 to High(gCorpses) do
-      gCorpses[i].Free();
-
-  gCorpses := nil;
-  SetLength(gCorpses, MaxCorpses);
-end;
-
-procedure g_Player_Corpses_SaveState (st: TStream);
-var
-  count, i: Integer;
-begin
-  // Считаем количество существующих трупов
-  count := 0;
-  for i := 0 to High(gCorpses) do if (gCorpses[i] <> nil) then Inc(count);
-
-  // Количество трупов
-  utils.writeInt(st, LongInt(count));
-
-  if (count = 0) then exit;
-
-  // Сохраняем трупы
-  for i := 0 to High(gCorpses) do
-  begin
-    if gCorpses[i] <> nil then
-    begin
-      // Название модели
-      utils.writeStr(st, gCorpses[i].FModel.GetName());
-      // Тип смерти
-      utils.writeBool(st, gCorpses[i].Mess);
-      // Сохраняем данные трупа:
-      gCorpses[i].SaveState(st);
-    end;
-  end;
-end;
-
-
-procedure g_Player_Corpses_LoadState (st: TStream);
-var
-  count, i: Integer;
-  str: String;
-  b: Boolean;
-begin
-  assert(st <> nil);
-
-  g_Player_RemoveAllCorpses();
-
-  // Количество трупов:
-  count := utils.readLongInt(st);
-  if (count < 0) or (count > Length(gCorpses)) then raise XStreamError.Create('invalid number of corpses');
-
-  if (count = 0) then exit;
-
-  // Загружаем трупы
-  for i := 0 to count-1 do
-  begin
-    // Название модели:
-    str := utils.readStr(st);
-    // Тип смерти
-    b := utils.readBool(st);
-    // Создаем труп
-    gCorpses[i] := TCorpse.Create(0, 0, str, b);
-    // Загружаем данные трупа
-    gCorpses[i].LoadState(st);
-  end;
-end;
-
-
 { T P l a y e r : }
 
 function TPlayer.isValidViewPort (): Boolean; inline; begin result := (viewPortW > 0) and (viewPortH > 0); end;
@@ -1832,7 +1629,10 @@ begin
   FFirePainTime := 0;
   FFireAttacker := 0;
   FHandicap := 100;
-  FCorpse := -1;
+
+  {$IFDEF ENABLE_CORPSES}
+    FCorpse := -1;
+  {$ENDIF}
 
   FActualModelName := 'doomer';
 
@@ -2614,7 +2414,9 @@ begin
     DropFlag(KillType = K_FALLKILL);
   end;
 
-  FCorpse := g_Player_CreateCorpse(Self);
+  {$IFDEF ENABLE_CORPSES}
+    FCorpse := g_Corpses_Create(Self);
+  {$ENDIF}
 
   if Srv and (gGameSettings.MaxLives > 0) and FNoRespawn and
      (gLMSRespawn = LMS_RESPAWN_NONE) then
@@ -3484,7 +3286,9 @@ begin
   FDeath := 0;
   FSecrets := 0;
   FSpawnInvul := 0;
-  FCorpse := -1;
+  {$IFDEF ENABLE_CORPSES}
+    FCorpse := -1;
+  {$ENDIF}
   FReady := False;
   if FNoRespawn then
   begin
@@ -3599,7 +3403,10 @@ begin
   FPain := 0;
   FLastHit := 0;
   FSpawnInvul := 0;
-  FCorpse := -1;
+
+  {$IFDEF ENABLE_CORPSES}
+    FCorpse := -1;
+  {$ENDIF}
 
   if not g_Game_IsServer then
     Exit;
@@ -3784,7 +3591,10 @@ begin
   FPhysics := False;
   FWantsInGame := False;
   FSpawned := False;
-  FCorpse := -1;
+
+  {$IFDEF ENABLE_CORPSES}
+    FCorpse := -1;
+  {$ENDIF}
 
   if FNoRespawn then
   begin
@@ -4017,41 +3827,6 @@ begin
     Result := a
   else
     Result := 1;
-end;
-
-function TPlayer.refreshCorpse(): Boolean;
-var
-  i: Integer;
-begin
-  Result := False;
-  FCorpse := -1;
-  if FAlive or FSpectator then
-    Exit;
-  if (gCorpses = nil) or (Length(gCorpses) = 0) then
-    Exit;
-  for i := 0 to High(gCorpses) do
-    if gCorpses[i] <> nil then
-      if gCorpses[i].FPlayerUID = FUID then
-      begin
-        Result := True;
-        FCorpse := i;
-        break;
-      end;
-end;
-
-function TPlayer.getCameraObj(): TObj;
-begin
-  if (not FAlive) and (not FSpectator) and
-     (FCorpse >= 0) and (FCorpse < Length(gCorpses)) and
-     (gCorpses[FCorpse] <> nil) and (gCorpses[FCorpse].FPlayerUID = FUID) then
-  begin
-    gCorpses[FCorpse].FObj.slopeUpLeft := FObj.slopeUpLeft;
-    Result := gCorpses[FCorpse].FObj;
-  end
-  else
-  begin
-    Result := FObj;
-  end;
 end;
 
 procedure TPlayer.PreUpdate();
@@ -5552,213 +5327,6 @@ begin
   FJetSoundFly.Pause(Enable);
   FJetSoundOn.Pause(Enable);
   FJetSoundOff.Pause(Enable);
-end;
-
-{ T C o r p s e : }
-
-constructor TCorpse.Create(X, Y: Integer; ModelName: String; aMess: Boolean);
-begin
-  g_Obj_Init(@FObj);
-  FObj.X := X;
-  FObj.Y := Y;
-  FObj.Rect := PLAYER_CORPSERECT;
-  FMess := aMess;
-  FModel := g_PlayerModel_Get(ModelName);
-
-  if FMess then
-  begin
-    FState := CORPSE_STATE_MESS;
-    FModel.ChangeAnimation(A_DIE2);
-  end
-  else
-  begin
-    FState := CORPSE_STATE_NORMAL;
-    FModel.ChangeAnimation(A_DIE1);
-  end;
-end;
-
-destructor TCorpse.Destroy();
-begin
-  FModel.Free;
-  inherited;
-end;
-
-function TCorpse.ObjPtr (): PObj; inline; begin result := @FObj; end;
-
-procedure TCorpse.positionChanged (); inline; begin end;
-
-procedure TCorpse.moveBy (dx, dy: Integer); inline;
-begin
-  if (dx <> 0) or (dy <> 0) then
-  begin
-    FObj.X += dx;
-    FObj.Y += dy;
-    positionChanged();
-  end;
-end;
-
-
-procedure TCorpse.getMapBox (out x, y, w, h: Integer); inline;
-begin
-  x := FObj.X+PLAYER_CORPSERECT.X;
-  y := FObj.Y+PLAYER_CORPSERECT.Y;
-  w := PLAYER_CORPSERECT.Width;
-  h := PLAYER_CORPSERECT.Height;
-end;
-
-
-procedure TCorpse.Damage(Value: Word; SpawnerUID: Word; vx, vy: Integer);
-  {$IFDEF ENABLE_GFX}
-    var Blood: TModelBlood;
-  {$ENDIF}
-begin
-  if FState = CORPSE_STATE_REMOVEME then
-    Exit;
-
-  FDamage := FDamage + Value;
-
-{$IFDEF ENABLE_GIBS}
-  if FDamage > 150 then
-  begin
-    if FModel <> nil then
-    begin
-      FState := CORPSE_STATE_REMOVEME;
-
-      g_Gibs_Create(
-        FObj.X + FObj.Rect.X + (FObj.Rect.Width div 2),
-        FObj.Y + FObj.Rect.Y + (FObj.Rect.Height div 2),
-        FModel.id,
-        FModel.Color
-      );
-
-      // Звук мяса от трупа:
-      FModel.PlaySound(MODELSOUND_DIE, 5, FObj.X, FObj.Y);
-
-      // Зловещий смех:
-      if (gBodyKillEvent <> -1) and gDelayedEvents[gBodyKillEvent].Pending then
-        gDelayedEvents[gBodyKillEvent].Pending := False;
-      gBodyKillEvent := g_Game_DelayEvent(DE_BODYKILL, 1050, SpawnerUID);
-
-      FModel.Free;
-      FModel := nil;
-    end
-  end
-  else
-{$ENDIF}
-  begin
-    FObj.Vel.X := FObj.Vel.X + vx;
-    FObj.Vel.Y := FObj.Vel.Y + vy;
-    {$IFDEF ENABLE_GFX}
-      Blood := FModel.GetBlood();
-      g_GFX_Blood(FObj.X+PLAYER_CORPSERECT.X+(PLAYER_CORPSERECT.Width div 2),
-                  FObj.Y+PLAYER_CORPSERECT.Y+(PLAYER_CORPSERECT.Height div 2),
-                  Value, vx, vy, 16, (PLAYER_CORPSERECT.Height*2) div 3,
-                  Blood.R, Blood.G, Blood.B, Blood.Kind);
-    {$ENDIF}
-  end;
-end;
-
-procedure TCorpse.Update();
-var
-  st: Word;
-begin
-  if FState = CORPSE_STATE_REMOVEME then
-    Exit;
-
-  FObj.oldX := FObj.X;
-  FObj.oldY := FObj.Y;
-
-  if gTime mod (GAME_TICK*2) <> 0 then
-  begin
-    g_Obj_Move(@FObj, True, True, True);
-    positionChanged(); // this updates spatial accelerators
-    Exit;
-  end;
-
-// Сопротивление воздуха для трупа:
-  FObj.Vel.X := z_dec(FObj.Vel.X, 1);
-
-  st := g_Obj_Move(@FObj, True, True, True);
-  positionChanged(); // this updates spatial accelerators
-
-  if WordBool(st and MOVE_FALLOUT) then
-  begin
-    FState := CORPSE_STATE_REMOVEME;
-    Exit;
-  end;
-
-  if FModel <> nil then
-    FModel.Update;
-end;
-
-
-procedure TCorpse.SaveState (st: TStream);
-  var anim: Boolean;
-begin
-  assert(st <> nil);
-
-  // Сигнатура трупа
-  utils.writeSign(st, 'CORP');
-  utils.writeInt(st, Byte(0));
-  // Состояние
-  utils.writeInt(st, Byte(FState));
-  // Накопленный урон
-  utils.writeInt(st, Byte(FDamage));
-  // Цвет
-  utils.writeInt(st, Byte(FModel.Color.R));
-  utils.writeInt(st, Byte(FModel.Color.G));
-  utils.writeInt(st, Byte(FModel.Color.B));
-  // Объект трупа
-  Obj_SaveState(st, @FObj);
-  utils.writeInt(st, Word(FPlayerUID));
-  // animation
-  anim := (FModel <> nil);
-  utils.writeBool(st, anim);
-  if anim then FModel.AnimState.SaveState(st, 0, False);
-  // animation for mask (same as animation, compat with older saves)
-  anim := (FModel <> nil);
-  utils.writeBool(st, anim);
-  if anim then FModel.AnimState.SaveState(st, 0, False);
-end;
-
-
-procedure TCorpse.LoadState (st: TStream);
-  var anim, blending: Boolean; r, g, b, alpha: Byte; stub: TAnimationState;
-begin
-  assert(st <> nil);
-
-  // Сигнатура трупа
-  if not utils.checkSign(st, 'CORP') then raise XStreamError.Create('invalid corpse signature');
-  if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid corpse version');
-  // Состояние
-  FState := utils.readByte(st);
-  // Накопленный урон
-  FDamage := utils.readByte(st);
-  // Цвет
-  r := utils.readByte(st);
-  g := utils.readByte(st);
-  b := utils.readByte(st);
-  FModel.SetColor(r, g, b);
-  // Объект трупа
-  Obj_LoadState(@FObj, st);
-  FPlayerUID := utils.readWord(st);
-  // animation
-  stub := TAnimationState.Create(False, 0, 0);
-  anim := utils.readBool(st);
-  if anim then
-  begin
-    stub.LoadState(st, alpha, blending);
-    FModel.AnimState.CurrentFrame := Min(stub.CurrentFrame, FModel.AnimState.Length);
-  end
-  else
-  begin
-    FModel.Free;
-    FModel := nil
-  end;
-  // animation for mask (same as animation, compat with older saves)
-  anim := utils.readBool(st);
-  if anim then stub.LoadState(st, alpha, blending);
-  stub.Free;
 end;
 
 { T B o t : }

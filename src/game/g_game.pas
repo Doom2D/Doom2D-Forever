@@ -466,6 +466,9 @@ uses
   {$IFDEF ENABLE_SHELLS}
     g_shells,
   {$ENDIF}
+  {$IFDEF ENABLE_CORPSES}
+    g_corpses,
+  {$ENDIF}
   {$IFNDEF HEADLESS}
     r_render, g_system,
   {$ENDIF}
@@ -1498,7 +1501,16 @@ begin
 
   g_Map_Free(freeTextures);
   g_Player_Free();
-  g_Player_RemoveAllCorpses();
+
+  {$IFDEF ENABLE_GIBS}
+    g_Gibs_RemoveAll;
+  {$ENDIF}
+  {$IFDEF ENALBE_SHELLS}
+    g_Shells_RemoveAll;
+  {$ENDIF}
+  {$IFDEF ENABLE_CORPSES}
+    g_Corpses_RemoveAll;
+  {$ENDIF}
 
   gGameSettings.GameType := GT_NONE;
   if gGameSettings.GameMode = GM_SINGLE then
@@ -2219,7 +2231,9 @@ begin
     {$IFDEF ENABLE_GIBS}
       g_Gibs_Update;
     {$ENDIF}
-    g_Player_UpdatePhysicalObjects();
+    {$IFDEF ENABLE_CORPSES}
+      g_Corpses_Update;
+    {$ENDIF}
     {$IFDEF ENABLE_SHELLS}
       g_Shells_Update;
     {$ENDIF}
@@ -3361,7 +3375,16 @@ var
   nws: AnsiString;
 begin
   g_Map_Free((Map <> gCurrentMapFileName) and (oldMapPath <> gCurrentMapFileName));
-  g_Player_RemoveAllCorpses();
+
+  {$IFDEF ENABLE_GIBS}
+    g_Gibs_RemoveAll;
+  {$ENDIF}
+  {$IFDEF ENALBE_SHELLS}
+    g_Shells_RemoveAll;
+  {$ENDIF}
+  {$IFDEF ENABLE_CORPSES}
+    g_Corpses_RemoveAll;
+  {$ENDIF}
 
   if (not g_Game_IsClient) and
      (gSwitchGameMode <> gGameSettings.GameMode) and
@@ -3691,7 +3714,16 @@ begin
     Exit;
   end;
 
-  g_Player_RemoveAllCorpses;
+  {$IFDEF ENABLE_GIBS}
+    g_Gibs_RemoveAll;
+  {$ENDIF}
+  {$IFDEF ENALBE_SHELLS}
+    g_Shells_RemoveAll;
+  {$ENDIF}
+  {$IFDEF ENABLE_CORPSES}
+    g_Corpses_RemoveAll;
+  {$ENDIF}
+
   g_Game_Message(_lc[I_MESSAGE_LMS_START], 144);
   if g_Game_IsNet then
     MH_SEND_GameEvent(NET_EV_LMS_START);
@@ -4116,12 +4148,18 @@ begin
   begin
     if Length(p) = 2 then
     begin
-      a := Max(0, StrToIntDef(p[1], 0));
-      g_Corpses_SetMax(a)
+      {$IFDEF ENABLE_CORPSES}
+        a := Max(0, StrToIntDef(p[1], 0));
+        g_Corpses_SetMax(a)
+      {$ENDIF}
     end
     else if Length(p) = 1 then
     begin
-      e_LogWritefln('%s', [g_Corpses_GetMax()])
+      {$IFDEF ENABLE_CORPSES}
+        e_LogWritefln('%s', [g_Corpses_GetMax()])
+      {$ELSE}
+        e_LogWritefln('%s', [0])
+      {$ENDIF}
     end
     else
     begin

@@ -133,6 +133,9 @@ uses
   {$IFDEF ENABLE_SHELLS}
     g_shells,
   {$ENDIF}
+  {$IFDEF ENABLE_CORPSES}
+    g_corpses,
+  {$ENDIF}
   e_log, e_input, g_console, g_sound, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game,
   g_items, wadreader, envvars;
@@ -291,7 +294,9 @@ begin
   {$IFDEF ENABLE_SHELLS}
     g_Shells_SetMax(DefaultShellMax);
   {$ENDIF}
-  g_Corpses_SetMax(20);
+  {$IFDEF ENABLE_CORPSES}
+    g_Corpses_SetMax(DefaultCorpsesMax);
+  {$ENDIF}
   {$IFDEF ENABLE_GIBS}
     g_Gibs_SetMax(DefaultGibsMax);
     gGibsCount := DefaultGibsCount;

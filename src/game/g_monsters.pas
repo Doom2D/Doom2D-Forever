@@ -537,6 +537,9 @@ uses
   {$IFDEF ENABLE_SHELLS}
     g_shells,
   {$ENDIF}
+  {$IFDEF ENABLE_CORPSES}
+    g_corpses,
+  {$ENDIF}
   e_log, g_sound, g_player, g_game,
   g_weapons, g_triggers, g_items, g_options,
   g_console, g_map, Math, wadreader,
@@ -2070,14 +2073,20 @@ begin
 end;
 
 procedure TMonster.Update();
-var
-  a, b, sx, sy, wx, wy, oldvelx: Integer;
-  st: Word;
-  o, co: TObj;
-  fall, bubbles: Boolean;
-  mon: TMonster;
-  mit: PMonster;
-  it: TMonsterGrid.Iter;
+  {$IFDEF ENABLE_CORPSES}
+    var co: TObj;
+  {$ENDIF}
+  {$IF DEFINED(ENABLE_GIBS) OR DEFINED(ENABLE_CORPSES)}
+    var b: Integer;
+  {$ENDIF}
+  var
+    a, sx, sy, wx, wy, oldvelx: Integer;
+    st: Word;
+    o: TObj;
+    fall, bubbles: Boolean;
+    mon: TMonster;
+    mit: PMonster;
+    it: TMonsterGrid.Iter;
 label
   _end;
 begin
@@ -2545,25 +2554,27 @@ begin
                 end;
               end;
             {$ENDIF}
-          // Боссы могут пинать трупы:
-            if (FMonsterType in [MONSTER_CYBER, MONSTER_SPIDER, MONSTER_ROBO]) and
-               (FObj.Vel.X <> 0) and (gCorpses <> nil) then
-            begin
-              b := Abs(FObj.Vel.X);
-              if b > 1 then b := b * (Random(8 div b) + 1);
-              for a := 0 to High(gCorpses) do
-                if (gCorpses[a] <> nil) and (gCorpses[a].State > 0) then
-                begin
-                  co := gCorpses[a].Obj;
-                  if g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
-                                   FObj.Rect.Width, 8, @co) and (Random(3) = 0) then
-                    // Пинаем трупы
-                    if FObj.Vel.X < 0 then
-                      gCorpses[a].Damage(b*2, FUID, -b, Random(7)) // налево
-                    else
-                      gCorpses[a].Damage(b*2, FUID, b, Random(7)); // направо
-                end;
-            end;
+            {$IFDEF ENABLE_CORPSES}
+              // Боссы могут пинать трупы:
+              if (FMonsterType in [MONSTER_CYBER, MONSTER_SPIDER, MONSTER_ROBO]) and
+                 (FObj.Vel.X <> 0) and (gCorpses <> nil) then
+              begin
+                b := Abs(FObj.Vel.X);
+                if b > 1 then b := b * (Random(8 div b) + 1);
+                for a := 0 to High(gCorpses) do
+                  if (gCorpses[a] <> nil) and (gCorpses[a].State > 0) then
+                  begin
+                    co := gCorpses[a].Obj;
+                    if g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
+                                     FObj.Rect.Width, 8, @co) and (Random(3) = 0) then
+                      // Пинаем трупы
+                      if FObj.Vel.X < 0 then
+                        gCorpses[a].Damage(b*2, FUID, -b, Random(7)) // налево
+                      else
+                        gCorpses[a].Damage(b*2, FUID, b, Random(7)); // направо
+                  end;
+              end;
+            {$ENDIF}
           // Если цель высоко, то, возможно, прыгаем:
             if sy < -40 then
               if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
@@ -3089,11 +3100,14 @@ begin
 end;
 
 procedure TMonster.ClientUpdate();
-var
-  a, b, sx, sy, oldvelx: Integer;
-  st: Word;
-  o, co: TObj;
-  fall, bubbles: Boolean;
+  {$IFDEF ENABLE_CORPSES}
+    var a, b: Integer; co: TObj;
+  {$ENDIF}
+  var
+    sx, sy, oldvelx: Integer;
+    st: Word;
+    o: TObj;
+    fall, bubbles: Boolean;
 label
   _end;
 begin
@@ -3420,25 +3434,27 @@ begin
                 end;
               end;
             {$ENDIF}
-          // Боссы могут пинать трупы:
-            if (FMonsterType in [MONSTER_CYBER, MONSTER_SPIDER, MONSTER_ROBO]) and
-               (FObj.Vel.X <> 0) and (gCorpses <> nil) then
-            begin
-              b := Abs(FObj.Vel.X);
-              if b > 1 then b := b * (Random(8 div b) + 1);
-              for a := 0 to High(gCorpses) do
-                if (gCorpses[a] <> nil) and (gCorpses[a].State > 0) then
-                begin
-                  co := gCorpses[a].Obj;
-                  if g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
-                                   FObj.Rect.Width, 8, @co) and (Random(3) = 0) then
-                    // Пинаем трупы
-                    if FObj.Vel.X < 0 then
-                      gCorpses[a].Damage(b*2, FUID, -b, Random(7)) // налево
-                    else
-                      gCorpses[a].Damage(b*2, FUID, b, Random(7)); // направо
-                end;
-            end;
+            {$IFDEF ENABLE_CORPSES}
+              // Боссы могут пинать трупы:
+              if (FMonsterType in [MONSTER_CYBER, MONSTER_SPIDER, MONSTER_ROBO]) and
+                 (FObj.Vel.X <> 0) and (gCorpses <> nil) then
+              begin
+                b := Abs(FObj.Vel.X);
+                if b > 1 then b := b * (Random(8 div b) + 1);
+                for a := 0 to High(gCorpses) do
+                  if (gCorpses[a] <> nil) and (gCorpses[a].State > 0) then
+                  begin
+                    co := gCorpses[a].Obj;
+                    if g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
+                                     FObj.Rect.Width, 8, @co) and (Random(3) = 0) then
+                      // Пинаем трупы
+                      if FObj.Vel.X < 0 then
+                        gCorpses[a].Damage(b*2, FUID, -b, Random(7)) // налево
+                      else
+                        gCorpses[a].Damage(b*2, FUID, b, Random(7)); // направо
+                  end;
+              end;
+            {$ENDIF}
           end;
 
         FSleep := FSleep + 1;

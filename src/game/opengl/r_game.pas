@@ -47,6 +47,9 @@ implementation
     {$IFDEF ENABLE_GFX}
       g_gfx, r_gfx,
     {$ENDIF}
+    {$IFDEF ENABLE_CORPSES}
+      g_corpses,
+    {$ENDIF}
     SysUtils, Classes, Math,
     g_base, g_basic, r_graphics,
     g_system,
@@ -1554,7 +1557,9 @@ begin
   {$IFDEF ENABLE_GIBS}
     drawOther('gibs', @r_PlayerModel_DrawGibs);
   {$ENDIF}
-  drawOther('corpses', @r_Player_DrawCorpses);
+  {$IFDEF ENABLE_CORPSES}
+    drawOther('corpses', @r_Player_DrawCorpses);
+  {$ENDIF}
   drawPanelType('*wall', PANEL_WALL, g_rlayer_wall);
   drawOther('monsters', @r_Monsters_Draw);
   drawOther('itemdrop', @r_Items_DrawDrop);
@@ -1630,7 +1635,12 @@ begin
 
   glPushMatrix();
 
-  camObj := p.getCameraObj();
+  {$IFDEF ENABLE_CORPSES}
+    camObj := g_Corpses_GetCameraObj(p);
+  {$ELSE}
+    camObj := p.Obj;
+  {$ENDIF}
+
   camObj.lerp(gLerpFactor, fX, fY);
   px := fX + PLAYER_RECT_CX;
   py := fY + PLAYER_RECT_CY+nlerp(p.SlopeOld, camObj.slopeUpLeft, gLerpFactor);

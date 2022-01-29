@@ -46,6 +46,7 @@ interface
   function g_Gibs_GetMax (): Word;
 
   procedure g_Gibs_Create (fX, fY, mid: Integer; fColor: TRGB);
+  procedure g_Gibs_RemoveAll;
   procedure g_Gibs_Update;
 
 implementation
@@ -196,6 +197,14 @@ implementation
           Inc(CurrentGib);
       end;
     end;
+  end;
+
+  procedure g_Gibs_RemoveAll;
+    var i: Integer;
+  begin
+    i := g_Gibs_GetMax();
+    g_Gibs_SetMax(0);
+    g_Gibs_SetMax(i);
   end;
 
   procedure g_Gibs_Update;

@@ -117,6 +117,9 @@ implementation
     {$IFDEF ENABLE_GIBS}
       g_gibs,
     {$ENDIF}
+    {$IFDEF ENABLE_CORPSES}
+      g_corpses,
+    {$ENDIF}
     Math, g_map, g_player, g_sound, g_panel,
     g_console, g_options, g_game,
     g_triggers, MAPDEF, e_log, g_monsters, g_saveload,
@@ -520,21 +523,29 @@ var
 begin
   //g_Sound_PlayEx('SOUND_WEAPON_EXPLODEBFG', 255);
 
-  h := High(gCorpses);
-
-  if gAdvCorpses and (h <> -1) then
-    for i := 0 to h do
-      if (gCorpses[i] <> nil) and (gCorpses[i].State <> CORPSE_STATE_REMOVEME) then
-        with gCorpses[i] do
-          if (g_PatchLength(X, Y, Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
-                            Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)) <= SHOT_BFG_RADIUS) and
-              g_TraceVector(X, Y, Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
-                            Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)) then
+  {$IFDEF ENABLE_CORPSES}
+    h := High(gCorpses);
+    if gAdvCorpses and (h <> -1) then
+    begin
+      for i := 0 to h do
+      begin
+        if (gCorpses[i] <> nil) and (gCorpses[i].State <> CORPSE_STATE_REMOVEME) then
+        begin
+          with gCorpses[i] do
           begin
-            Damage(50, SpawnerUID, 0, 0);
-            g_Weapon_BFGHit(Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
-                            Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2));
+            if (g_PatchLength(X, Y, Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
+                              Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)) <= SHOT_BFG_RADIUS) and
+                g_TraceVector(X, Y, Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
+                              Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)) then
+            begin
+              Damage(50, SpawnerUID, 0, 0);
+              g_Weapon_BFGHit(Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2), Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2));
+            end;
           end;
+        end;
+      end;
+    end;
+  {$ENDIF}
 
   st := TEAM_NONE;
   pl := g_Player_Get(SpawnerUID);
@@ -778,8 +789,10 @@ begin
 end;
 
 function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte; HitCorpses: Boolean = True): Byte;
-var
-  i, h: Integer;
+  {$IFDEF ENABLE_CORPSES}
+    var i: Integer;
+  {$ENDIF}
+  var h: Integer;
 
   function PlayerHit(Team: Byte = 0): Boolean;
   var
@@ -858,21 +871,26 @@ var
 begin
   Result := 0;
 
-  if HitCorpses then
-  begin
-    h := High(gCorpses);
-
-    if gAdvCorpses and (h <> -1) then
-      for i := 0 to h do
-        if (gCorpses[i] <> nil) and (gCorpses[i].State <> CORPSE_STATE_REMOVEME) and
-           g_Obj_Collide(obj, @gCorpses[i].Obj) then
+  {$IFDEF ENABLE_CORPSES}
+    if HitCorpses then
+    begin
+      h := High(gCorpses);
+      if gAdvCorpses and (h <> -1) then
+      begin
+        for i := 0 to h do
         begin
-          // Распиливаем труп:
-          gCorpses[i].Damage(d, SpawnerUID, (obj^.Vel.X+obj^.Accel.X) div 4,
-                                            (obj^.Vel.Y+obj^.Accel.Y) div 4);
-          Result := 1;
+          if (gCorpses[i] <> nil) and (gCorpses[i].State <> CORPSE_STATE_REMOVEME) and
+             g_Obj_Collide(obj, @gCorpses[i].Obj) then
+          begin
+            // Распиливаем труп:
+            gCorpses[i].Damage(d, SpawnerUID, (obj^.Vel.X+obj^.Accel.X) div 4,
+                                              (obj^.Vel.Y+obj^.Accel.Y) div 4);
+            Result := 1;
+          end;
         end;
-  end;
+      end;
+    end;
+  {$ENDIF}
 
   case gGameSettings.GameMode of
     // Кампания:
@@ -992,9 +1010,12 @@ var
     end;
   end;
 
-  var i, h, dx, dy, m, mm: Integer;
+  var i, h, dx, dy, mm: Integer;
   {$IFDEF ENABLE_GIBS}
     var _angle: SmallInt;
+  {$ENDIF}
+  {$IF DEFINED(ENABLE_GIBS) OR DEFINED(ENABLE_CORPSES)}
+    var m: Integer;
   {$ENDIF}
 begin
   result := false;
@@ -1032,30 +1053,33 @@ begin
   //g_Mons_ForEach(monsExCheck);
   g_Mons_ForEachAt(X-(rad+32), Y-(rad+32), (rad+32)*2, (rad+32)*2, monsExCheck);
 
-  h := High(gCorpses);
-
-  if gAdvCorpses and (h <> -1) then
-    for i := 0 to h do
-      if (gCorpses[i] <> nil) and (gCorpses[i].State <> CORPSE_STATE_REMOVEME) then
-        with gCorpses[i] do
+  {$IFDEF ENABLE_CORPSES}
+    h := High(gCorpses);
+    if gAdvCorpses and (h <> -1) then
+    begin
+      for i := 0 to h do
+      begin
+        if (gCorpses[i] <> nil) and (gCorpses[i].State <> CORPSE_STATE_REMOVEME) then
         begin
-          dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
-          dy := Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)-Y;
-
-          if dx > 1000 then dx := 1000;
-          if dy > 1000 then dy := 1000;
-
-          if dx*dx+dy*dy < r then
+          with gCorpses[i] do
           begin
-            m := PointToRect(X, Y, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y,
-                             Obj.Rect.Width, Obj.Rect.Height);
-
-            mm := Max(abs(dx), abs(dy));
-            if mm = 0 then mm := 1;
-
-            Damage(Round(100*(rad-m)/rad), SpawnerUID, (dx*10) div mm, (dy*10) div mm);
+            dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
+            dy := Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)-Y;
+            if dx > 1000 then dx := 1000;
+            if dy > 1000 then dy := 1000;
+            if dx*dx+dy*dy < r then
+            begin
+              m := PointToRect(X, Y, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y, Obj.Rect.Width, Obj.Rect.Height);
+              mm := Max(abs(dx), abs(dy));
+              if mm = 0 then
+                mm := 1;
+              Damage(Round(100*(rad-m)/rad), SpawnerUID, (dx*10) div mm, (dy*10) div mm);
+            end;
           end;
         end;
+      end;
+    end;
+  {$ENDIF}
 
   {$IFDEF ENABLE_GIBS}
     h := High(gGibs);

@@ -132,6 +132,9 @@ uses
   {$IFDEF ENABLE_SHELLS}
     g_shells in 'g_shells.pas',
   {$ENDIF}
+  {$IFDEF ENABLE_CORPSES}
+    g_corpses in 'g_corpses.pas',
+  {$ENDIF}
   g_items in 'g_items.pas',
   g_map in 'g_map.pas',
   g_monsters in 'g_monsters.pas',

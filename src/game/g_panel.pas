@@ -229,6 +229,9 @@ implementation
     {$IFDEF ENABLE_GIBS}
       g_gibs,
     {$ENDIF}
+    {$IFDEF ENABLE_CORPSES}
+      g_corpses,
+    {$ENDIF}
     g_basic, g_map, g_game, g_weapons, g_triggers, g_items,
     g_console, g_language, g_monsters, g_player, g_grid, e_log, geom, utils, xstreams
   ;
@@ -591,12 +594,14 @@ var
   {$IFDEF ENABLE_GIBS}
     gib: PGib;
   {$ENDIF}
-  cor: TCorpse;
+  {$IFDEF ENABLE_CORPSES}
+    cor: TCorpse;
+  {$ENDIF}
+  ontop: Boolean;
   mon: TMonster;
   flg: PFlag;
   itm: PItem;
   mpfrid: LongWord;
-  ontop: Boolean;
   actMoveTrig: Boolean;
   actSizeTrig: Boolean;
 begin
@@ -726,19 +731,21 @@ begin
           end;
         {$ENDIF}
 
-        // move and push corpses
-        for f := 0 to High(gCorpses) do
-        begin
-          cor := gCorpses[f];
-          if (cor = nil) then continue;
-          cor.getMapBox(px, py, pw, ph);
-          if not g_Collide(px, py, pw, ph, cx0, cy0, cw, ch) then continue;
-          if tryMPlatMove(px, py, pw, ph, pdx, pdy, squash, @ontop) then
+        {$IFDEF ENABLE_CORPSES}
+          // move and push corpses
+          for f := 0 to High(gCorpses) do
           begin
-            // set new position
-            cor.moveBy(pdx, pdy); // this will call `positionChanged()` for us
+            cor := gCorpses[f];
+            if (cor = nil) then continue;
+            cor.getMapBox(px, py, pw, ph);
+            if not g_Collide(px, py, pw, ph, cx0, cy0, cw, ch) then continue;
+            if tryMPlatMove(px, py, pw, ph, pdx, pdy, squash, @ontop) then
+            begin
+              // set new position
+              cor.moveBy(pdx, pdy); // this will call `positionChanged()` for us
+            end;
           end;
-        end;
+        {$ENDIF}
 
         // move and push flags
         if gGameSettings.GameMode = GM_CTF then

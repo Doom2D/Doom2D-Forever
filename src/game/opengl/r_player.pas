@@ -26,8 +26,6 @@ interface
   procedure r_Player_DrawDebug (p: TPlayer);
   procedure r_Player_DrawHealth;
 
-  procedure r_Player_DrawCorpses;
-
   procedure r_Player_Draw (p: TPlayer);
   procedure r_Player_DrawIndicator (p: TPlayer; Color: TRGB);
   procedure r_Player_DrawBubble (p: TPlayer);
@@ -41,6 +39,10 @@ interface
     procedure r_Player_DrawShells;
   {$ENDIF}
 
+  {$IFDEF ENABLE_CORPSES}
+    procedure r_Player_DrawCorpses;
+  {$ENDIF}
+
 implementation
 
   uses
@@ -52,6 +54,9 @@ implementation
     {$ENDIF}
     {$IFDEF ENABLE_SHELLS}
       g_shells,
+    {$ENDIF}
+    {$IFDEF ENABLE_CORPSES}
+      g_corpses,
     {$ENDIF}
     SysUtils, Classes, Math,
     MAPDEF, utils,
@@ -136,6 +141,7 @@ begin
     end;
 end;
 
+{$IFDEF ENABLE_CORPSES}
   procedure r_Player_DrawCorpse (p: TCorpse);
     var fX, fY: Integer;
   begin
@@ -154,6 +160,7 @@ end;
         if gCorpses[i] <> nil then
           r_Player_DrawCorpse(gCorpses[i])
   end;
+{$ENDIF}
 
 {$IFDEF ENABLE_SHELLS}
   procedure r_Player_DrawShells;
@@ -272,7 +279,11 @@ var
   Dot: Byte;
   CObj: TObj;
 begin
-  CObj := p.getCameraObj();
+  {$IFDEF ENABLE_CORPSES}
+    CObj := g_Corpses_GetCameraObj(p);
+  {$ELSE}
+    CObj := p.Obj;
+  {$ENDIF}
   CObj.lerp(gLerpFactor, fX, fY);
   // NB: _F_Obj.Rect is used to keep the bubble higher; this is not a mistake
   bubX := fX + p.Obj.Rect.X + IfThen(p.Direction = TDirection.D_LEFT, -4, 18);

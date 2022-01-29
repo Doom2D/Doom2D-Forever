@@ -49,6 +49,7 @@ interface
   function g_Shells_GetMax (): Word;
 
   procedure g_Shells_Create (fX, fY, dX, dY: Integer; T: Byte);
+  procedure g_Shells_RemoveAll;
   procedure g_Shells_Update;
 
 implementation
@@ -128,6 +129,14 @@ implementation
       else
         Inc(CurrentShell);
     end;
+  end;
+
+  procedure g_Shells_RemoveAll;
+    var i: Integer;
+  begin
+    i := g_Shells_GetMax();
+    g_Shells_SetMax(0);
+    g_Shells_SetMax(i);
   end;
 
   procedure g_Shells_SoundBounce(X, Y: Integer; T: Byte);

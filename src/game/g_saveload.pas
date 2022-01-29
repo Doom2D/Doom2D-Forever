@@ -36,6 +36,12 @@ procedure Obj_LoadState (o: PObj; st: TStream);
 implementation
 
 uses
+  {$IFDEF ENABLE_GIBS}
+    g_gibs,
+  {$ENDIF}
+  {$IFDEF ENABLE_CORPSES}
+    g_corpses,
+  {$ENDIF}
   MAPDEF, utils, xstreams,
   g_game, g_items, g_map, g_monsters, g_triggers,
   g_basic, Math, wadreader,
@@ -160,6 +166,70 @@ begin
   end;
 end;
 
+procedure g_Player_Corpses_SaveState (st: TStream);
+  {$IFDEF ENABLE_CORPSES}
+    var i: Integer;
+  {$ENDIF}
+  var count: Integer;
+begin
+  count := 0;
+  {$IFDEF ENABLE_CORPSES}
+    for i := 0 to High(gCorpses) do
+      if (gCorpses[i] <> nil) then
+        Inc(count);
+  {$ENDIF}
+  utils.writeInt(st, LongInt(count));
+  {$IFDEF ENABLE_CORPSES}
+    if count > 0 then
+    begin
+      for i := 0 to High(gCorpses) do
+      begin
+        if gCorpses[i] <> nil then
+        begin
+          utils.writeStr(st, gCorpses[i].Model.GetName());
+          utils.writeBool(st, gCorpses[i].Mess);
+          gCorpses[i].SaveState(st);
+        end;
+      end;
+    end;
+  {$ENDIF}
+end;
+
+procedure g_Player_Corpses_LoadState (st: TStream);
+  {$IFDEF ENABLE_CORPSES}
+    var str: String; b: Boolean; i: Integer;
+  {$ENDIF}
+  var count: Integer;
+begin
+  assert(st <> nil);
+
+  {$IFDEF ENABLE_GIBS}
+    g_Gibs_RemoveAll;
+  {$ENDIF}
+  {$IFDEF ENALBE_SHELLS}
+    g_Shells_RemoveAll; // ???
+  {$ENDIF}
+  {$IFDEF ENABLE_CORPSES}
+    g_Corpses_RemoveAll;
+  {$ENDIF}
+
+  count := utils.readLongInt(st);
+
+  {$IFDEF ENABLE_CORPSES}
+    if (count < 0) or (count > Length(gCorpses)) then
+      raise XStreamError.Create('invalid number of corpses');
+    for i := 0 to count - 1 do
+    begin
+      str := utils.readStr(st);
+      b := utils.readBool(st);
+      gCorpses[i] := TCorpse.Create(0, 0, str, b);
+      gCorpses[i].LoadState(st);
+    end;
+  {$ELSE}
+    if count <> 0 then
+      raise XStreamError.Create('corpses not supported in this version');
+  {$ENDIF}
+end;
 
 function g_SaveGameTo (const filename: AnsiString; const aname: AnsiString; deleteOnError: Boolean=true): Boolean;
 var

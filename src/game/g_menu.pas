@@ -48,6 +48,9 @@ uses
   {$IFDEF ENABLE_SHELLS}
     g_shells,
   {$ENDIF}
+  {$IFDEF ENABLE_CORPSES}
+    g_corpses,
+  {$ENDIF}
   g_gui, r_textures, r_graphics, g_game, g_map,
   g_base, g_basic, g_console, g_sound, g_player, g_options, g_weapons,
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
@@ -150,7 +153,9 @@ begin
   {$IFDEF ENABLE_GIBS}
     g_Gibs_SetMax(TGUIScroll(menu.GetControl('scGibsMax')).Value*25);
   {$ENDIF}
-  g_Corpses_SetMax(TGUIScroll(menu.GetControl('scCorpsesMax')).Value*5);
+  {$IFDEF ENABLE_CORPSES}
+    g_Corpses_SetMax(TGUIScroll(menu.GetControl('scCorpsesMax')).Value*5);
+  {$ENDIF}
 
   {$IFDEF ENABLE_GIBS}
     case TGUISwitch(menu.GetControl('swGibsCount')).ItemIndex of
@@ -600,7 +605,9 @@ begin
   {$IFDEF ENABLE_GIBS}
     TGUIScroll(menu.GetControl('scGibsMax')).Value := g_Gibs_GetMax() div 25;
   {$ENDIF}
-  TGUIScroll(menu.GetControl('scCorpsesMax')).Value := g_Corpses_GetMax() div 5;
+  {$IFDEF ENABLE_CORPSES}
+    TGUIScroll(menu.GetControl('scCorpsesMax')).Value := g_Corpses_GetMax() div 5;
+  {$ENDIF}
   TGUISwitch(menu.GetControl('swBloodCount')).ItemIndex := gBloodCount;
 
   with TGUISwitch(menu.GetControl('swScreenFlash')) do

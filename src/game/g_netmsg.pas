@@ -290,8 +290,14 @@ implementation
     {$IFDEF ENABLE_GFX}
       g_gfx,
     {$ENDIF}
+    {$IFDEF ENABLE_GIBS}
+      g_gibs,
+    {$ENDIF}
     {$IFDEF ENABLE_SHELLS}
       g_shells,
+    {$ENDIF}
+    {$IFDEF ENABLE_CORPSES}
+      g_corpses,
     {$ENDIF}
     Math, ENet, e_input, e_log, g_base, g_basic,
     g_textures, g_sound, g_console, g_options,
@@ -2136,7 +2142,15 @@ begin
 
     NET_EV_LMS_START:
     begin
-      g_Player_RemoveAllCorpses;
+      {$IFDEF ENABLE_GIBS}
+        g_Gibs_RemoveAll;
+      {$ENDIF}
+      {$IFDEF ENALBE_SHELLS}
+        g_Shells_RemoveAll;
+      {$ENDIF}
+      {$IFDEF ENABLE_CORPSES}
+        g_Corpses_RemoveAll;
+      {$ENDIF}
       gLMSRespawn := LMS_RESPAWN_NONE;
       g_Game_Message(_lc[I_MESSAGE_LMS_START], 144);
     end;
