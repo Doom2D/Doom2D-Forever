@@ -290,6 +290,9 @@ implementation
     {$IFDEF ENABLE_GFX}
       g_gfx,
     {$ENDIF}
+    {$IFDEF ENABLE_SHELLS}
+      g_shells,
+    {$ENDIF}
     Math, ENet, e_input, e_log, g_base, g_basic,
     g_textures, g_sound, g_console, g_options,
     g_game, g_player, g_map, g_panel, g_items, g_weapons, g_phys,
@@ -1792,16 +1795,22 @@ begin
     end;
     NET_GFX_SHELL1:
     begin
-      g_Player_CreateShell(X, Y, 0, -2, SHELL_BULLET);
+      {$IFDEF ENABLE_SHELLS}
+        g_Shells_Create(X, Y, 0, -2, SHELL_BULLET);
+      {$ENDIF}
     end;
     NET_GFX_SHELL2:
     begin
-      g_Player_CreateShell(X, Y, 0, -2, SHELL_SHELL);
+      {$IFDEF ENABLE_SHELLS}
+        g_Shells_Create(X, Y, 0, -2, SHELL_SHELL);
+      {$ENDIF}
     end;
     NET_GFX_SHELL3:
     begin
-      g_Player_CreateShell(X, Y, 0, -2, SHELL_SHELL);
-      g_Player_CreateShell(X, Y, 0, -2, SHELL_SHELL);
+      {$IFDEF ENABLE_SHELLS}
+        g_Shells_Create(X, Y, 0, -2, SHELL_SHELL);
+        g_Shells_Create(X, Y, 0, -2, SHELL_SHELL);
+      {$ENDIF}
     end;
   end;
 end;

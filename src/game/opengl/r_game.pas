@@ -1547,7 +1547,9 @@ begin
   drawPanelType('*step', PANEL_STEP, g_rlayer_step);
   drawOther('items', @r_Items_Draw);
   drawOther('weapons', @r_Weapon_Draw);
-  drawOther('shells', @r_Player_DrawShells);
+  {$IFDEF ENABLE_SHELLS}
+    drawOther('shells', @r_Player_DrawShells);
+  {$ENDIF}
   drawOther('drawall', @r_Player_DrawAll);
   {$IFDEF ENABLE_GIBS}
     drawOther('gibs', @r_PlayerModel_DrawGibs);

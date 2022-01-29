@@ -27,7 +27,6 @@ interface
   procedure r_Player_DrawHealth;
 
   procedure r_Player_DrawCorpses;
-  procedure r_Player_DrawShells;
 
   procedure r_Player_Draw (p: TPlayer);
   procedure r_Player_DrawIndicator (p: TPlayer; Color: TRGB);
@@ -38,6 +37,10 @@ interface
   procedure r_Player_DrawPain (p: TPlayer);
   procedure r_Player_DrawPickup (p: TPlayer);
 
+  {$IFDEF ENABLE_SHELLS}
+    procedure r_Player_DrawShells;
+  {$ENDIF}
+
 implementation
 
   uses
@@ -46,6 +49,9 @@ implementation
     {$ENDIF}
     {$IFDEF ENABLE_MENU}
       g_menu,
+    {$ENDIF}
+    {$IFDEF ENABLE_SHELLS}
+      g_shells,
     {$ENDIF}
     SysUtils, Classes, Math,
     MAPDEF, utils,
@@ -149,6 +155,7 @@ end;
           r_Player_DrawCorpse(gCorpses[i])
   end;
 
+{$IFDEF ENABLE_SHELLS}
   procedure r_Player_DrawShells;
     var i, fX, fY: Integer; a: TDFPoint; TextureID: DWORD = DWORD(-1);
   begin
@@ -180,6 +187,7 @@ end;
       end
     end
   end;
+{$ENDIF}
 
 procedure r_Player_DrawIndicator (p: TPlayer; Color: TRGB);
 var

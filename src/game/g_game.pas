@@ -463,6 +463,9 @@ uses
   {$IFDEF ENABLE_GIBS}
     g_gibs,
   {$ENDIF}
+  {$IFDEF ENABLE_SHELLS}
+    g_shells,
+  {$ENDIF}
   {$IFNDEF HEADLESS}
     r_render, g_system,
   {$ENDIF}
@@ -2217,6 +2220,9 @@ begin
       g_Gibs_Update;
     {$ENDIF}
     g_Player_UpdatePhysicalObjects();
+    {$IFDEF ENABLE_SHELLS}
+      g_Shells_Update;
+    {$ENDIF}
 
     // server: send newly spawned monsters unconditionally
     if (gGameSettings.GameType = GT_SERVER) then
@@ -4066,12 +4072,18 @@ begin
   begin
     if Length(p) = 2 then
     begin
-      a := Max(0, StrToIntDef(p[1], 0));
-      g_Shells_SetMax(a)
+      {$IFDEF ENABLE_SHELLS}
+        a := Max(0, StrToIntDef(p[1], 0));
+        g_Shells_SetMax(a)
+      {$ENDIF}
     end
     else if Length(p) = 1 then
     begin
-      e_LogWritefln('%s', [g_Shells_GetMax()])
+      {$IFDEF ENABLE_SHELLS}
+        e_LogWritefln('%s', [g_Shells_GetMax()])
+      {$ELSE}
+        e_LogWritefln('%s', [0])
+      {$ENDIF}
     end
     else
     begin

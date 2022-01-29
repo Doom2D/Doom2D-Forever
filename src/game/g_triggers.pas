@@ -105,6 +105,9 @@ implementation
     {$IFDEF ENABLE_GFX}
       g_gfx,
     {$ENDIF}
+    {$IFDEF ENABLE_SHELLS}
+      g_shells,
+    {$ENDIF}
     Math,
     g_player, g_map, g_panel, g_game,
     g_console, g_monsters, g_items, g_phys, g_weapons,
@@ -681,7 +684,9 @@ begin
         Projectile := False;
         if ShotSound then
         begin
-          g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
+          {$IFDEF ENABLE_SHELLS}
+            g_Shells_Create(wx, wy, 0, -2, SHELL_BULLET);
+          {$ENDIF}
           if g_Game_IsNet then MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
         end;
       end;
@@ -694,7 +699,9 @@ begin
         Projectile := False;
         if ShotSound then
         begin
-          g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
+          {$IFDEF ENABLE_SHELLS}
+            g_Shells_Create(wx, wy, 0, -2, SHELL_BULLET);
+          {$ENDIF}
           if g_Game_IsNet then MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
         end;
       end;
@@ -706,7 +713,9 @@ begin
         Projectile := False;
         if ShotSound then
         begin
-          g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
+          {$IFDEF ENABLE_SHELLS}
+            g_Shells_Create(wx, wy, 0, -2, SHELL_SHELL);
+          {$ENDIF}
           if g_Game_IsNet then MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL2);
         end;
       end;
@@ -718,8 +727,10 @@ begin
         Projectile := False;
         if ShotSound then
         begin
-          g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
-          g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
+          {$IFDEF ENABLE_SHELLS}
+            g_Shells_Create(wx, wy, 0, -2, SHELL_SHELL);
+            g_Shells_Create(wx, wy, 0, -2, SHELL_SHELL);
+          {$ENDIF}
           if g_Game_IsNet then MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL3);
         end;
       end;

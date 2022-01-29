@@ -45,6 +45,9 @@ uses
   {$IFDEF ENABLE_GIBS}
     g_gibs,
   {$ENDIF}
+  {$IFDEF ENABLE_SHELLS}
+    g_shells,
+  {$ENDIF}
   g_gui, r_textures, r_graphics, g_game, g_map,
   g_base, g_basic, g_console, g_sound, g_player, g_options, g_weapons,
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
@@ -141,7 +144,9 @@ begin
   {$IFDEF ENABLE_GFX}
     g_GFX_SetMax(TGUIScroll(menu.GetControl('scParticlesCount')).Value*1000);
   {$ENDIF}
-  g_Shells_SetMax(TGUIScroll(menu.GetControl('scShellsMax')).Value*30);
+  {$IFDEF ENABLE_SHELLS}
+    g_Shells_SetMax(TGUIScroll(menu.GetControl('scShellsMax')).Value*30);
+  {$ENDIF}
   {$IFDEF ENABLE_GIBS}
     g_Gibs_SetMax(TGUIScroll(menu.GetControl('scGibsMax')).Value*25);
   {$ENDIF}
@@ -589,7 +594,9 @@ begin
   {$IFDEF ENABLE_GFX}
     TGUIScroll(menu.GetControl('scParticlesCount')).Value := g_GFX_GetMax() div 1000;
   {$ENDIF}
-  TGUIScroll(menu.GetControl('scShellsMax')).Value := g_Shells_GetMax() div 30;
+  {$IFDEF ENABLE_SHELLS}
+    TGUIScroll(menu.GetControl('scShellsMax')).Value := g_Shells_GetMax() div 30;
+  {$ENDIF}
   {$IFDEF ENABLE_GIBS}
     TGUIScroll(menu.GetControl('scGibsMax')).Value := g_Gibs_GetMax() div 25;
   {$ENDIF}

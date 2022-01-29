@@ -77,10 +77,6 @@ const
   TEAM_BLUE         = 2;
   TEAM_COOP         = 3;
 
-  SHELL_BULLET      = 0;
-  SHELL_SHELL       = 1;
-  SHELL_DBLSHELL    = 2;
-
   ANGLE_NONE        = Low(SmallInt);
 
   CORPSE_STATE_REMOVEME = 0;
@@ -204,8 +200,10 @@ type
     FIncCamOld:      Integer;
     FIncCam:         Integer;
     FSlopeOld:       Integer;
-    FShellTimer:     Integer;
-    FShellType:      Byte;
+    {$IFDEF ENABLE_SHELLS}
+      FShellTimer:     Integer;
+      FShellType:      Byte;
+    {$ENDIF}
     FSawSound:       TPlayableSound;
     FSawSoundIdle:   TPlayableSound;
     FSawSoundHit:    TPlayableSound;
@@ -520,20 +518,6 @@ type
     procedure   LoadState (st: TStream); override;
   end;
 
-  PShell = ^TShell;
-  TShell = record
-    alive:    Boolean;
-    SType:    Byte;
-    RAngle:   Integer;
-    Timeout:  Cardinal;
-    Obj:      TObj;
-
-    procedure getMapBox (out x, y, w, h: Integer); inline;
-    procedure moveBy (dx, dy: Integer); inline;
-
-    procedure positionChanged ();  inline; //WARNING! call this after entity position was changed, or coldet will not work right!
-  end;
-
   TCorpse = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
     FMess:          Boolean;
@@ -572,7 +556,6 @@ type
 var
   gPlayers: Array of TPlayer;
   gCorpses: Array of TCorpse;
-  gShells: Array of TShell;
   gTeamStat: TTeamStat;
   gFly: Boolean = False;
   gAimLine: Boolean = False;
@@ -584,7 +567,6 @@ var
   gSpectLatchPID2: Word = 0;
   MAX_RUNVEL: Integer = 8;
   VEL_JUMP: Integer = 10;
-  SHELL_TIMEOUT: Cardinal = 60000;
 
 function  Lerp(X, Y, Factor: Integer): Integer;
 
@@ -594,8 +576,6 @@ procedure g_Force_Model_Set(Mode: Word);
 function g_Force_Model_Get(): Word;
 procedure g_Forced_Model_SetName(Model: String);
 function  g_Forced_Model_GetName(): String;
-procedure g_Shells_SetMax(Count: Word);
-function  g_Shells_GetMax(): Word;
 
 procedure g_Player_Init();
 procedure g_Player_Free();
@@ -612,7 +592,6 @@ function  g_Player_GetCount(): Byte;
 function  g_Player_GetStats(): TPlayerStatArray;
 function  g_Player_ValidName(Name: String): Boolean;
 function  g_Player_CreateCorpse(Player: TPlayer): Integer;
-procedure g_Player_CreateShell(fX, fY, dX, dY: Integer; T: Byte);
 procedure g_Player_UpdatePhysicalObjects();
 procedure g_Player_RemoveAllCorpses();
 procedure g_Player_Corpses_SaveState (st: TStream);
@@ -641,6 +620,9 @@ uses
   {$ENDIF}
   {$IFDEF ENABLE_GIBS}
     g_gibs,
+  {$ENDIF}
+  {$IFDEF ENABLE_SHELLS}
+    g_shells,
   {$ENDIF}
   e_log, g_map, g_items, g_console, Math,
   g_options, g_triggers, g_game, g_grid, e_res,
@@ -716,10 +698,8 @@ const
 
 var
   MaxCorpses: Word = 20;
-  MaxShells: Word = 300;
   ForceModel: Word = 0;
   ForcedModelName: String = STD_PLAYER_MODEL;
-  CurrentShell: Integer = 0;
   BotNames: Array of String;
   BotList: Array of TBotProfile;
   SavedStates: Array of TPlayerSavedState;
@@ -744,21 +724,6 @@ begin
 
   Result := g_Player_Get(UID1).FTeam = g_Player_Get(UID2).FTeam;
 end;
-
-procedure g_Shells_SetMax(Count: Word);
-begin
-  MaxShells := Count;
-  SetLength(gShells, Count);
-
-  if CurrentShell >= Count then
-    CurrentShell := 0;
-end;
-
-function g_Shells_GetMax(): Word;
-begin
-  Result := MaxShells;
-end;
-
 
 procedure g_Corpses_SetMax(Count: Word);
 begin
@@ -1514,61 +1479,9 @@ begin
   end;
 end;
 
-procedure g_Player_CreateShell(fX, fY, dX, dY: Integer; T: Byte);
-begin
-  if (gShells = nil) or (Length(gShells) = 0) then
-    Exit;
-
-  with gShells[CurrentShell] do
-  begin
-    g_Obj_Init(@Obj);
-    Obj.Rect.X := 0;
-    Obj.Rect.Y := 0;
-    if T = SHELL_BULLET then
-    begin
-      Obj.Rect.Width := 4;
-      Obj.Rect.Height := 2;
-    end
-    else
-    begin
-      Obj.Rect.Width := 7;
-      Obj.Rect.Height := 3;
-    end;
-    SType := T;
-    alive := True;
-    Obj.X := fX;
-    Obj.Y := fY;
-    g_Obj_Push(@Obj, dX + Random(4)-Random(4), dY-Random(4));
-    positionChanged(); // this updates spatial accelerators
-    RAngle := Random(360);
-    Timeout := gTime + SHELL_TIMEOUT;
-
-    if CurrentShell >= High(gShells) then
-      CurrentShell := 0
-    else
-      Inc(CurrentShell);
-  end;
-end;
-
 procedure g_Player_UpdatePhysicalObjects();
-var
-  i: Integer;
-  vel: TPoint2i;
-  mr: Word;
-
-  procedure ShellSound_Bounce(X, Y: Integer; T: Byte);
-  var
-    k: Integer;
-  begin
-    k := 1 + Random(2);
-    if T = SHELL_BULLET then
-      g_Sound_PlayExAt('SOUND_PLAYER_CASING' + IntToStr(k), X, Y)
-    else
-      g_Sound_PlayExAt('SOUND_PLAYER_SHELL' + IntToStr(k), X, Y);
-  end;
-
+  var i: Integer;
 begin
-// Трупы:
   if gCorpses <> nil then
     for i := 0 to High(gCorpses) do
       if gCorpses[i] <> nil then
@@ -1579,94 +1492,21 @@ begin
           end
         else
           gCorpses[i].Update();
-
-// Гильзы:
-  if gShells <> nil then
-    for i := 0 to High(gShells) do
-      if gShells[i].alive then
-        with gShells[i] do
-        begin
-          Obj.oldX := Obj.X;
-          Obj.oldY := Obj.Y;
-
-          vel := Obj.Vel;
-          mr := g_Obj_Move(@Obj, True, False, True);
-          positionChanged(); // this updates spatial accelerators
-
-          if WordBool(mr and MOVE_FALLOUT) or (gShells[i].Timeout < gTime) then
-          begin
-            alive := False;
-            Continue;
-          end;
-
-        // Отлетает от удара о стену/потолок/пол:
-          if WordBool(mr and MOVE_HITWALL) then
-          begin
-            Obj.Vel.X := -(vel.X div 2);
-            if not WordBool(mr and MOVE_INWATER) then
-              ShellSound_Bounce(Obj.X, Obj.Y, SType);
-          end;
-          if WordBool(mr and (MOVE_HITCEIL or MOVE_HITLAND)) then
-          begin
-            Obj.Vel.Y := -(vel.Y div 2);
-            if Obj.Vel.X <> 0 then Obj.Vel.X := Obj.Vel.X div 2;
-            if (Obj.Vel.X = 0) and (Obj.Vel.Y = 0) then
-            begin
-              if RAngle mod 90 <> 0 then
-                RAngle := (RAngle div 90) * 90;
-            end
-            else if not WordBool(mr and MOVE_INWATER) then
-              ShellSound_Bounce(Obj.X, Obj.Y, SType);
-          end;
-
-          if (Obj.Vel.X >= 0) then
-          begin // Clockwise
-            RAngle := RAngle + Abs(Obj.Vel.X)*8 + Abs(Obj.Vel.Y);
-            if RAngle >= 360 then
-              RAngle := RAngle mod 360;
-          end else begin // Counter-clockwise
-            RAngle := RAngle - Abs(Obj.Vel.X)*8 - Abs(Obj.Vel.Y);
-            if RAngle < 0 then
-              RAngle := (360 - (Abs(RAngle) mod 360)) mod 360;
-          end;
-        end;
 end;
-
-procedure TShell.getMapBox (out x, y, w, h: Integer); inline;
-begin
-  x := Obj.X;
-  y := Obj.Y;
-  w := Obj.Rect.Width;
-  h := Obj.Rect.Height;
-end;
-
-procedure TShell.moveBy (dx, dy: Integer); inline;
-begin
-  if (dx <> 0) or (dy <> 0) then
-  begin
-    Obj.X += dx;
-    Obj.Y += dy;
-    positionChanged();
-  end;
-end;
-
-procedure TShell.positionChanged (); inline; begin end;
-
 
 procedure g_Player_RemoveAllCorpses();
   var i: Integer;
-  {$IFDEF ENABLE_GIBS}
-    var maxgibs: Integer;
-  {$ENDIF}
 begin
   {$IFDEF ENABLE_GIBS}
-    maxgibs := g_Gibs_GetMax();
+    i := g_Gibs_GetMax();
     g_Gibs_SetMax(0);
-    g_Gibs_SetMax(maxgibs);
+    g_Gibs_SetMax(i);
   {$ENDIF}
-  gShells := nil;
-  SetLength(gShells, MaxShells);
-  CurrentShell := 0;
+  {$IFDEF ENABLE_SHELLS}
+    i := g_Shells_GetMax();
+    g_Shells_SetMax(0);
+    g_Shells_SetMax(i);
+  {$ENDIF}
 
   if gCorpses <> nil then
     for i := 0 to High(gCorpses) do
@@ -1985,7 +1825,9 @@ begin
   FPing := 0;
   FLoss := 0;
   FSavedStateNum := -1;
-  FShellTimer := -1;
+  {$IFDEF ENABLE_SHELLS}
+    FShellTimer := -1;
+  {$ENDIF}
   FFireTime := 0;
   FFirePainTime := 0;
   FFireAttacker := 0;
@@ -2257,8 +2099,9 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-2, SHELL_BULLET);
+        {$IFDEF ENABLE_SHELLS}
+          g_Shells_Create(GameX + PLAYER_RECT_CX, GameY + PLAYER_RECT_CX, GameVelX, GameVelY - 2, SHELL_BULLET);
+        {$ENDIF}
       end;
 
     WEAPON_SHOTGUN1:
@@ -2271,8 +2114,10 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        FShellTimer := 10;
-        FShellType := SHELL_SHELL;
+        {$IFDEF ENABLE_SHELLS}
+          FShellTimer := 10;
+          FShellType := SHELL_SHELL;
+        {$ENDIF}
       end;
 
     WEAPON_SHOTGUN2:
@@ -2284,8 +2129,10 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        FShellTimer := 13;
-        FShellType := SHELL_DBLSHELL;
+        {$IFDEF ENABLE_SHELLS}
+          FShellTimer := 13;
+          FShellType := SHELL_DBLSHELL;
+        {$ENDIF}
       end;
 
     WEAPON_CHAINGUN:
@@ -2298,8 +2145,9 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-2, SHELL_BULLET);
+        {$IFDEF ENABLE_SHELLS}
+          g_Shells_Create(GameX + PLAYER_RECT_CX, GameY + PLAYER_RECT_CX, GameVelX, GameVelY - 2, SHELL_BULLET);
+        {$ENDIF}
       end;
 
     WEAPON_ROCKETLAUNCHER:
@@ -2344,8 +2192,9 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-2, SHELL_SHELL);
+        {$IFDEF ENABLE_SHELLS}
+          g_Shells_Create(GameX + PLAYER_RECT_CX, GameY + PLAYER_RECT_CX, GameVelX, GameVelY - 2, SHELL_SHELL);
+        {$ENDIF}
       end;
 
     WEAPON_FLAMETHROWER:
@@ -2574,7 +2423,10 @@ begin
       FPhysics := True;
     FAlive := False;
   end;
-  FShellTimer := -1;
+
+  {$IFDEF ENABLE_SHELLS}
+    FShellTimer := -1;
+  {$ENDIF}
 
   if (gGameSettings.MaxLives > 0) and Srv and (gLMSRespawn = LMS_RESPAWN_NONE) then
   begin
@@ -3656,7 +3508,9 @@ begin
   FIncCamOld := 0;
   FIncCam := 0;
   FBFGFireCounter := -1;
-  FShellTimer := -1;
+  {$IFDEF ENABLE_SHELLS}
+    FShellTimer := -1;
+  {$ENDIF}
   FPain := 0;
   FLastHit := 0;
   FLastFrag := 0;
@@ -3739,7 +3593,9 @@ begin
   FIncCamOld := 0;
   FIncCam := 0;
   FBFGFireCounter := -1;
-  FShellTimer := -1;
+  {$IFDEF ENABLE_SHELLS}
+    FShellTimer := -1;
+  {$ENDIF}
   FPain := 0;
   FLastHit := 0;
   FSpawnInvul := 0;
@@ -4476,21 +4332,23 @@ begin
         else
           Dec(FReloading[b]);
 
+{$IFDEF ENABLE_SHELLS}
     if FShellTimer > -1 then
       if FShellTimer = 0 then
       begin
         if FShellType = SHELL_SHELL then
-          g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+          g_Shells_Create(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
                                GameVelX, GameVelY-2, SHELL_SHELL)
         else if FShellType = SHELL_DBLSHELL then
         begin
-          g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+          g_Shells_Create(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
                                GameVelX+1, GameVelY-2, SHELL_SHELL);
-          g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+          g_Shells_Create(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
                                GameVelX-1, GameVelY-2, SHELL_SHELL);
         end;
         FShellTimer := -1;
       end else Dec(FShellTimer);
+{$ENDIF}
 
     if (FBFGFireCounter > -1) then
       if FBFGFireCounter = 0 then
@@ -4805,32 +4663,38 @@ begin
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', GameX, Gamey);
       FFireAngle := FAngle;
-      g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-2, SHELL_BULLET);
+      {$IFDEF ENABLE_SHELLS}
+        g_Shells_Create(GameX + PLAYER_RECT_CX, GameY + PLAYER_RECT_CX, GameVelX, GameVelY - 2, SHELL_BULLET);
+      {$ENDIF}
     end;
 
     WEAPON_SHOTGUN1:
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', Gamex, Gamey);
       FFireAngle := FAngle;
-      FShellTimer := 10;
-      FShellType := SHELL_SHELL;
+      {$IFDEF ENABLE_SHELLS}
+        FShellTimer := 10;
+        FShellType := SHELL_SHELL;
+      {$ENDIF}
     end;
 
     WEAPON_SHOTGUN2:
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN2', Gamex, Gamey);
       FFireAngle := FAngle;
-      FShellTimer := 13;
-      FShellType := SHELL_DBLSHELL;
+      {$IFDEF ENABLE_SHELLS}
+        FShellTimer := 13;
+        FShellType := SHELL_DBLSHELL;
+      {$ENDIF}
     end;
 
     WEAPON_CHAINGUN:
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', Gamex, Gamey);
       FFireAngle := FAngle;
-      g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-2, SHELL_BULLET);
+      {$IFDEF ENABLE_SHELLS}
+        g_Shells_Create(GameX + PLAYER_RECT_CX, GameY + PLAYER_RECT_CX, GameVelX, GameVelY - 2, SHELL_BULLET);
+      {$ENDIF}
     end;
 
     WEAPON_ROCKETLAUNCHER:
@@ -4855,8 +4719,9 @@ begin
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', Gamex, Gamey);
       FFireAngle := FAngle;
-      g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-2, SHELL_SHELL);
+      {$IFDEF ENABLE_SHELLS}
+        g_Shells_Create(GameX + PLAYER_RECT_CX, GameY + PLAYER_RECT_CX, GameVelX, GameVelY - 2, SHELL_SHELL);
+      {$ENDIF}
     end;
 
     WEAPON_FLAMETHROWER:

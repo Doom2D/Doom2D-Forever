@@ -87,8 +87,10 @@ type
       FBloodBlue: Byte;
       FBloodKind: Byte;
     {$ENDIF}
-    FShellTimer: Integer;
-    FShellType: Byte;
+    {$IFDEF ENABLE_SHELLS}
+      FShellTimer: Integer;
+      FShellType: Byte;
+    {$ENDIF}
     FFirePainTime: Integer;
     FFireAttacker: Word;
     vilefire: TAnimationState;
@@ -531,6 +533,9 @@ uses
   {$ENDIF}
   {$IFDEF ENABLE_GIBS}
     g_gibs,
+  {$ENDIF}
+  {$IFDEF ENABLE_SHELLS}
+    g_shells,
   {$ENDIF}
   e_log, g_sound, g_player, g_game,
   g_weapons, g_triggers, g_items, g_options,
@@ -1591,7 +1596,9 @@ begin
   FDieTriggers := nil;
   FWaitAttackAnim := False;
   FChainFire := False;
-  FShellTimer := -1;
+  {$IFDEF ENABLE_SHELLS}
+    FShellTimer := -1;
+  {$ENDIF}
 
   FState := MONSTATE_SLEEP;
   FCurAnim := ANIM_SLEEP;
@@ -1628,7 +1635,9 @@ begin
   FChainFire := False;
   FStartID := aID;
   FNoRespawn := False;
-  FShellTimer := -1;
+  {$IFDEF ENABLE_SHELLS}
+    FShellTimer := -1;
+  {$ENDIF}
   FBehaviour := BH_NORMAL;
   FFireTime := 0;
   FFirePainTime := 0;
@@ -2218,25 +2227,35 @@ begin
 // Таймер - ждем после потери цели:
   FTargetTime := FTargetTime + 1;
 
-// Гильзы
+{$IFDEF ENABLE_SHELLS}
+  // Гильзы
   if FShellTimer > -1 then
+  begin
     if FShellTimer = 0 then
     begin
       if FShellType = SHELL_SHELL then
-        g_Player_CreateShell(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
+      begin
+        g_Shells_Create(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                              FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
                              GameVelX, GameVelY-2, SHELL_SHELL)
+      end
       else if FShellType = SHELL_DBLSHELL then
       begin
-        g_Player_CreateShell(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
+        g_Shells_Create(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                              FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
                              GameVelX-1, GameVelY-2, SHELL_SHELL);
-        g_Player_CreateShell(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
+        g_Shells_Create(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                              FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
                              GameVelX+1, GameVelY-2, SHELL_SHELL);
       end;
       FShellTimer := -1;
-    end else Dec(FShellTimer);
+    end
+    else
+    begin
+      Dec(FShellTimer);
+    end;
+  end;
+{$ENDIF}
 
 // Пробуем увернуться от летящей пули:
   if fall then
@@ -2917,20 +2936,26 @@ _end:
                   begin
                     g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', wx, wy);
                     g_Weapon_gun(wx, wy, tx, ty, 1, 3, FUID, True);
-                    g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
+                    {$IFDEF ENABLE_SHELLS}
+                      g_Shells_Create(wx, wy, 0, -2, SHELL_BULLET);
+                    {$ENDIF}
                   end;
                 MONSTER_SERG:
                   begin
                     g_Weapon_shotgun(wx, wy, tx, ty, FUID);
                     if not gSoundEffectsDF then g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', wx, wy);
-                    FShellTimer := 10;
-                    FShellType := SHELL_SHELL;
+                    {$IFDEF ENABLE_SHELLS}
+                      FShellTimer := 10;
+                      FShellType := SHELL_SHELL;
+                    {$ENDIF}
                   end;
                 MONSTER_MAN:
                   begin
                     g_Weapon_dshotgun(wx, wy, tx, ty, FUID);
-                    FShellTimer := 13;
-                    FShellType := SHELL_DBLSHELL;
+                    {$IFDEF ENABLE_SHELLS}
+                      FShellTimer := 13;
+                      FShellType := SHELL_DBLSHELL;
+                    {$ENDIF}
                     FAmmo := -36;
                   end;
                 MONSTER_CYBER:
@@ -2944,13 +2969,17 @@ _end:
                   begin
                     g_Weapon_mgun(wx, wy, tx, ty, FUID);
                     if not gSoundEffectsDF then g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', wx, wy);
-                    g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
+                    {$IFDEF ENABLE_SHELLS}
+                      g_Shells_Create(wx, wy, 0, -2, SHELL_BULLET);
+                    {$ENDIF}
                   end;
                 MONSTER_SPIDER:
                   begin
                     g_Weapon_mgun(wx, wy, tx, ty, FUID);
                     if not gSoundEffectsDF then g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', wx, wy);
-                    g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
+                    {$IFDEF ENABLE_SHELLS}
+                      g_Shells_Create(wx, wy, 0, -2, SHELL_SHELL);
+                    {$ENDIF}
                   end;
                 MONSTER_BSP:
                   g_Weapon_aplasma(wx, wy, tx, ty, FUID);
@@ -3184,24 +3213,34 @@ begin
 // Таймер - ждем после потери цели:
   FTargetTime := FTargetTime + 1;
 
+{$IFDEF ENABLE_SHELLS}
   if FShellTimer > -1 then
+  begin
     if FShellTimer = 0 then
     begin
       if FShellType = SHELL_SHELL then
-        g_Player_CreateShell(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
+      begin
+        g_Shells_Create(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                              FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
                              GameVelX, GameVelY-2, SHELL_SHELL)
+      end
       else if FShellType = SHELL_DBLSHELL then
       begin
-        g_Player_CreateShell(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
+        g_Shells_Create(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                              FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
                              GameVelX-1, GameVelY-2, SHELL_SHELL);
-        g_Player_CreateShell(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
+        g_Shells_Create(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                              FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
                              GameVelX+1, GameVelY-2, SHELL_SHELL);
       end;
       FShellTimer := -1;
-    end else Dec(FShellTimer);
+    end
+    else
+    begin
+      Dec(FShellTimer);
+    end;
+  end;
+{$ENDIF}
 
 // Пробуем увернуться от летящей пули:
   if fall then
@@ -3743,24 +3782,32 @@ begin
     MONSTER_ZOMBY:
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', wx, wy);
-      g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
+      {$IFDEF ENABLE_SHELLS}
+        g_Shells_Create(wx, wy, 0, -2, SHELL_BULLET);
+      {$ENDIF}
     end;
     MONSTER_SERG:
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', wx, wy);
-      FShellTimer := 10;
-      FShellType := SHELL_SHELL;
+      {$IFDEF ENABLE_SHELLS}
+        FShellTimer := 10;
+        FShellType := SHELL_SHELL;
+      {$ENDIF}
     end;
     MONSTER_MAN:
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN2', wx, wy);
-      FShellTimer := 13;
-      FShellType := SHELL_DBLSHELL;
+      {$IFDEF ENABLE_SHELLS}
+        FShellTimer := 13;
+        FShellType := SHELL_DBLSHELL;
+      {$ENDIF}
     end;
     MONSTER_CGUN, MONSTER_SPIDER:
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', wx, wy);
-      g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
+      {$IFDEF ENABLE_SHELLS}
+        g_Shells_Create(wx, wy, 0, -2, SHELL_BULLET);
+      {$ENDIF}
     end;
     MONSTER_IMP:
       g_Weapon_ball1(wx, wy, atx, aty, FUID);

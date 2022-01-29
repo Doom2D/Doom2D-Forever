@@ -129,6 +129,9 @@ uses
   {$IFDEF ENABLE_GIBS}
     g_gibs in 'g_gibs.pas',
   {$ENDIF}
+  {$IFDEF ENABLE_SHELLS}
+    g_shells in 'g_shells.pas',
+  {$ENDIF}
   g_items in 'g_items.pas',
   g_map in 'g_map.pas',
   g_monsters in 'g_monsters.pas',
