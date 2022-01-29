@@ -148,7 +148,7 @@ function awmIsSetHolmes (x, y: Integer): Boolean; inline;
 implementation
 
   uses
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_RENDER}
       r_render,
     {$ENDIF}
     g_map, g_panel, Math, utils,
@@ -176,7 +176,7 @@ var
 
   procedure g_GFX_QueueEffect (AnimType, X, Y: Integer);
   begin
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_RENDER}
       r_Render_QueueEffect(AnimType, X, Y)
     {$ENDIF}
   end;

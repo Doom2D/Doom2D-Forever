@@ -160,7 +160,7 @@ uses
   {$ENDIF}
 {$ENDIF}
 
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_RENDER}
   {$I ../shared/vampimg.inc}
   r_animations in 'opengl/r_animations.pas',
   r_console in 'opengl/r_console.pas',
@@ -251,7 +251,7 @@ begin
        if (NetMode = NET_SERVER) then g_Net_Host_Update()
   else if (NetMode = NET_CLIENT) then g_Net_Client_Update();
   // think
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_RENDER}
   r_Render_Update;
 {$ENDIF}
   g_Game_Update();
@@ -318,7 +318,7 @@ begin
       gLerpFactor := 1.0
     else
       gLerpFactor := nmin(1.0, (Time - Time_Old) / 28.0);
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_RENDER}
     r_Render_Draw;
     sys_Repaint;
 {$ENDIF}
@@ -977,7 +977,7 @@ end;
 
   procedure ScreenResize (w, h: Integer);
   begin
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_RENDER}
       r_Render_Resize(w, h);
       {$IFDEF ENABLE_HOLMES}
         fuiScrWdt := w;
@@ -1014,7 +1014,7 @@ end;
     g_Console_Initialize;
     // TODO move load configs here
     g_Language_Set(gLanguage);
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_RENDER}
       r_Render_Initialize;
     {$ENDIF}
     DebugOptions;
@@ -1023,11 +1023,11 @@ end;
     {$IFDEF ENABLE_HOLMES}
       InitHolmes;
     {$ENDIF}
-    {$IFDEF HEADLESS}
-      g_PlayerModel_LoadFake('doomer', 'doomer.wad');
-    {$ELSE}
+    {$IFDEF ENABLE_RENDER}
       g_PlayerModel_LoadAll;
       r_Render_Load;
+    {$ELSE}
+      g_PlayerModel_LoadFake('doomer', 'doomer.wad');
     {$ENDIF}
     g_Game_Init;
     {$IFDEF ENABLE_MENU}
@@ -1048,7 +1048,7 @@ end;
       g_GUI_Destroy;
       g_Menu_Free;
     {$ENDIF}
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_RENDER}
       r_Render_Free;
     {$ENDIF}
     {$IFDEF ENABLE_HOLMES}
@@ -1057,7 +1057,7 @@ end;
     g_Net_Slist_ShutdownAll;
     g_Net_DeinitLowLevel;
     (* g_Touch_Finalize; *)
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_RENDER}
       r_Render_Finalize;
       sys_Final;
     {$ENDIF}

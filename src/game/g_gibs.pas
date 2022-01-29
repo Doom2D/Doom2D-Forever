@@ -55,7 +55,7 @@ implementation
     {$IFDEF ENABLE_GFX}
       g_gfx,
     {$ENDIF}
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_RENDER}
       r_render,
     {$ENDIF}
     g_playermodel, g_options, g_game
@@ -160,7 +160,7 @@ implementation
         Color := fColor;
         alive := True;
         g_Obj_Init(@Obj);
-        {$IFNDEF HEADLESS}
+        {$IFDEF ENABLE_RENDER}
           Obj.Rect := r_Render_GetGibRect(ModelID, GibID);
         {$ELSE}
           Obj.Rect.X := 16;

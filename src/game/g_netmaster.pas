@@ -179,8 +179,11 @@ uses
   {$IFDEF ENABLE_MENU}
     g_gui, g_menu,
   {$ENDIF}
+  {$IFDEF ENABLE_RENDER}
+    r_render,
+  {$ENDIF}
   {$IFNDEF HEADLESS}
-    r_render, g_system,
+    g_system,
   {$ENDIF}
   e_input, e_log, g_net, g_console,
   g_map, g_game, g_sound, g_options, g_language, g_basic,
@@ -1787,10 +1790,12 @@ begin
     begin
       slWaitStr := _lc[I_NET_SLIST_WAIT];
 
-{$IFNDEF HEADLESS}
-      r_Render_Draw;
-      sys_Repaint;
-{$ENDIF}
+      {$IFDEF ENABLE_RENDER}
+        r_Render_Draw;
+      {$ENDIF}
+      {$IFNDEF HEADLESS}
+        sys_Repaint;
+      {$ENDIF}
 
       if g_Net_Slist_Fetch(SL) then
       begin

@@ -48,7 +48,7 @@ implementation
     {$IFDEF ENABLE_HOLMES}
       sdlcarcass,
     {$ENDIF}
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_RENDER}
       r_render,
     {$ENDIF}
     {$IFDEF ENABLE_MENU}
@@ -408,10 +408,16 @@ implementation
       x, y, i, finger: Integer;
 
     function IntersectControl(ctl, xx, yy: Integer): Boolean;
-      var x, y, w, h: Integer; founded: Boolean;
+      {$IFDEF ENABLE_RENDER}
+        var x, y, w, h: Integer; founded: Boolean;
+      {$ENDIF}
     begin
-      r_Render_GetKeyRect(ctl, x, y, w, h, founded);
-      result := founded and (xx >= x) and (yy >= y) and (xx <= x + w) and (yy <= y + h);
+      {$IFDEF ENABLE_RENDER}
+        r_Render_GetKeyRect(ctl, x, y, w, h, founded);
+        Result := founded and (xx >= x) and (yy >= y) and (xx <= x + w) and (yy <= y + h);
+      {$ELSE}
+        Result := False
+      {$ENDIF}
     end;
 
     procedure KeyUp (finger, i: Integer);

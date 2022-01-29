@@ -22,8 +22,11 @@ interface
 implementation
 
   uses
+    {$IFDEF ENABLE_RENDER}
+      r_render,
+    {$ENDIF}
     {$IFNDEF HEADLESS}
-      r_render, g_system,
+      g_system,
     {$ENDIF}
     e_sound, g_net
   ;
@@ -38,7 +41,7 @@ implementation
     {$ENDIF}
     if update then
     begin
-      {$IFNDEF HEADLESS}
+      {$IFDEF ENABLE_RENDER}
         r_Render_DrawLoading(forceUpdate);
       {$ENDIF}
       e_SoundUpdate();
