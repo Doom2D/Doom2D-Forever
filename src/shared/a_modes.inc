@@ -288,17 +288,23 @@
   {$IF DEFINED(USE_GLSTUB) OR DEFINED(USE_GLES1)}
     {$ERROR Only one render driver must be selected!}
   {$ENDIF}
-{$ELSE}
+{$ELSEIF DEFINED(ENABLE_RENDER)}
   {$DEFINE USE_OPENGL}
   {.$ERROR Render driver not selected. Use -dUSE_GLSTUB or -dUSE_GLES1 or -dUSE_OPENGL}
 {$ENDIF}
 
 {$IFDEF ENABLE_HOLMES}
+  {$IFDEF DISABLE_SYSTEM}
+    {$FATAL System driver required for current Holmes implementation}
+  {$ENDIF}
+  {$IFDEF DISABLE_RENDER}
+    {$FATAL Render driver required for current Holmes implementation}
+  {$ENDIF}
   {$IFNDEF USE_SDL2}
-    {$ERROR Holmes supported only with SDL2}
+    {$FATAL SDL2 required for current Holmes implementation}
   {$ENDIF}
   {$IFNDEF USE_OPENGL}
-    {$ERROR Holmes supported only with desktop OpenGL}
+    {$FATAL Desktop OpenGL required for current Holmes implementation}
   {$ENDIF}
 {$ENDIF}
 

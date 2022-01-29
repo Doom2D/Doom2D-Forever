@@ -70,7 +70,7 @@ interface
   procedure g_Corpses_RemoveAll;
   procedure g_Corpses_Update;
 
-  {$IFNDEF HEADLESS}
+  {$IFDEF ENABLE_RENDER}
     function g_Corpses_GetCameraObj (Player: TPlayer): TObj;
   {$ENDIF}
 
@@ -372,7 +372,7 @@ implementation
     SetLength(gCorpses, MaxCorpses);
   end;
 
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_RENDER}
   function g_Corpses_GetCameraObj (Player: TPlayer): TObj;
   begin
     {$IFDEF ENABLE_CORPSES}

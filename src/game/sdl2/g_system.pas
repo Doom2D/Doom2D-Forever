@@ -392,15 +392,13 @@ implementation
 
   procedure sys_ShowKeyboard (yes: Boolean);
   begin
-    {$IFNDEF HEADLESS}
-      if g_dbg_input then
-        e_LogWritefln('g_Touch_ShowKeyboard(%s)', [yes]);
-      (* on desktop we always receive text (needed for cheats) *)
-      if yes or (SDL_HasScreenKeyboardSupport() = SDL_FALSE) then
-        SDL_StartTextInput
-      else
-        SDL_StopTextInput
-    {$ENDIF}
+    if g_dbg_input then
+      e_LogWritefln('g_Touch_ShowKeyboard(%s)', [yes]);
+    (* on desktop we always receive text (needed for cheats) *)
+    if yes or (SDL_HasScreenKeyboardSupport() = SDL_FALSE) then
+      SDL_StartTextInput
+    else
+      SDL_StopTextInput
   end;
 
   procedure HandleTouch (const ev: TSDL_TouchFingerEvent);

@@ -1406,12 +1406,8 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure g_Holmes_OnEvent (var ev: TFUIEvent);
-{$IF not DEFINED(HEADLESS)}
-var
-  doeat: Boolean = false;
-{$ENDIF}
+  var doeat: Boolean = false;
 begin
-{$IF not DEFINED(HEADLESS)}
   if g_Game_IsNet then exit;
   if not g_holmes_enabled then exit;
   if g_holmes_imfunctional then exit;
@@ -1424,12 +1420,14 @@ begin
 
   if (ev.key) then
   begin
+{$IFDEF USE_SDL2}
     case ev.scan of
       SDL_SCANCODE_LCTRL, SDL_SCANCODE_RCTRL,
       SDL_SCANCODE_LALT, SDL_SCANCODE_RALT,
       SDL_SCANCODE_LSHIFT, SDL_SCANCODE_RSHIFT:
         doeat := true;
     end;
+{$ENDIF}
   end
   else if (ev.mouse) then
   begin
@@ -1455,7 +1453,6 @@ begin
   end;
 
   if (doeat) then ev.eat();
-{$ENDIF}
 end;
 
 
@@ -1466,10 +1463,10 @@ begin
   if not g_holmes_enabled then exit;
   if g_holmes_imfunctional then exit;
 
-  {$IF not DEFINED(HEADLESS)}
   holmesInitCommands();
   holmesInitBinds();
 
+{$IFDEF ENABLE_RENDER}
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // modify color buffer
   glDisable(GL_STENCIL_TEST);
   glDisable(GL_BLEND);
@@ -1477,7 +1474,7 @@ begin
   glDisable(GL_TEXTURE_2D);
 
   if gGameOn then plrDebugDraw();
-  {$ENDIF}
+{$ENDIF}
 
   laserSet := false;
 end;
@@ -1489,8 +1486,9 @@ begin
   if not g_holmes_enabled then exit;
   if g_holmes_imfunctional then exit;
 
-  {$IF not DEFINED(HEADLESS)}
   gGfxDoClear := false;
+
+{$IFDEF ENABLE_RENDER}
   //if assigned(prerenderFrameCB) then prerenderFrameCB();
   uiDraw();
   glMatrixMode(GL_MODELVIEW);
@@ -1501,7 +1499,7 @@ begin
   finally
     glPopMatrix();
   end;
-  {$ENDIF}
+{$ENDIF}
 end;
 
 

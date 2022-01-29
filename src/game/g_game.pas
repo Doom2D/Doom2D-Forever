@@ -159,9 +159,10 @@ procedure SortGameStat(var stat: TPlayerStatArray);
 {$IFDEF ENABLE_MENU}
   procedure g_Game_InGameMenu(Show: Boolean);
 {$ENDIF}
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_SYSTEM}
   procedure CharPress (C: AnsiChar);
 {$ENDIF}
+
   procedure KeyPress (K: Word);
 
 { procedure SetWinPause(Enable: Boolean); }
@@ -811,7 +812,7 @@ end;
   end;
 {$ENDIF}
 
-{$IFNDEF HEADLESS}
+{$IFDEF ENABLE_SYSTEM}
   procedure CharPress (C: AnsiChar);
     {$IFDEF ENABLE_MENU}
       var Msg: g_gui.TMessage;
@@ -2349,7 +2350,7 @@ begin
   // Нужно сменить разрешение:
     if gResolutionChange then
     begin
-      {$IFNDEF HEADLESS}
+      {$IFDEF ENABLE_RENDER}
         e_WriteLog('Changing resolution', TMsgType.Notify);
         r_Render_Apply;
       {$ENDIF}
@@ -2586,9 +2587,9 @@ begin
   gMusic.Free();
   g_Game_FreeData();
   g_PlayerModel_FreeData();
-{$IFNDEF HEADLESS}
-  //g_Menu_Free(); //k8: this segfaults after resolution change; who cares?
-{$ENDIF}
+  {$IFDEF ENABLE_MENU}
+    // g_Menu_Free(); //k8: this segfaults after resolution change; who cares?
+  {$ENDIF}
 
   if NetInitDone then g_Net_Free;
 
