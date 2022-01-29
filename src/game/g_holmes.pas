@@ -21,7 +21,7 @@ uses
   mempool, geom,
   e_log, e_input,
   g_textures, g_basic, r_graphics, g_phys, g_grid, g_player, g_monsters,
-  g_map, g_triggers, g_items, g_game, g_panel, g_console, g_gfx,
+  g_map, g_triggers, g_items, g_game, g_panel, g_console,
   xprofiler,
   sdlcarcass,
   fui_common, fui_events, fui_ctls,
@@ -48,6 +48,9 @@ implementation
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
+  {$IFDEF ENABLE_GFX}
+    g_gfx,
+  {$ENDIF}
   {$IFDEF ENABLE_GIBS}
     g_gibs,
   {$ENDIF}
@@ -919,6 +922,7 @@ procedure plrDebugDraw ();
     end;
   end;
 
+{$IFDEF ENABLE_GFX}
   procedure drawAwakeCells ();
   var
     x, y: Integer;
@@ -935,6 +939,7 @@ procedure plrDebugDraw ();
       end;
     end;
   end;
+{$ENDIF}
 
   procedure drawTraceBox ();
   var
@@ -1302,7 +1307,9 @@ begin
     if showTriggers then drawTriggers();
     if showGrid then drawSelectedPlatformCells();
 
-    //drawAwakeCells();
+    {$IFDEF ENABLE_GFX}
+      // drawAwakeCells();
+    {$ENDIF}
 
     if showTraceBox then drawTraceBox();
 
