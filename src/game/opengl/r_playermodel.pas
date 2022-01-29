@@ -25,13 +25,18 @@ interface
   procedure r_PlayerModel_Free;
   procedure r_PlayerModel_Update;
   procedure r_PlayerModel_Draw (pm: TPlayerModel; X, Y: Integer; Alpha: Byte = 0);
-  procedure r_PlayerModel_DrawGibs;
 
-  function r_PlayerModel_GetGibRect (m, id: Integer): TRectWH;
+  {$IFDEF ENABLE_GIBS}
+    procedure r_PlayerModel_DrawGibs;
+    function r_PlayerModel_GetGibRect (m, id: Integer): TRectWH;
+  {$ENDIF}
 
 implementation
 
   uses
+    {$IFDEF ENABLE_GIBS}
+      g_gibs,
+    {$ENDIF}
     SysUtils, Classes, Math,
     MAPDEF, utils, e_log, wadreader,
     ImagingTypes, Imaging, ImagingUtility,
@@ -53,20 +58,24 @@ implementation
         base: DWORD;
         mask: DWORD;
       end;
-      Gibs: Array of record
-        base: DWORD;
-        mask: DWORD;
-        rect: TRectWH;
-      end;
+      {$IFDEF ENABLE_GIBS}
+        Gibs: Array of record
+          base: DWORD;
+          mask: DWORD;
+          rect: TRectWH;
+        end;
+      {$ENDIF}
     end;
     RedFlagFrames: DWORD;
     BlueFlagFrames: DWORD;
     FlagAnimState: TAnimationState;
 
+{$IFDEF ENABLE_GIBS}
   function r_PlayerModel_GetGibRect (m, id: Integer): TRectWH;
   begin
     Result := Models[m].Gibs[id].rect
   end;
+{$ENDIF}
 
   procedure r_PlayerModel_Initialize;
   begin
@@ -180,12 +189,10 @@ implementation
   end;
 
   procedure r_PlayerModel_Load;
-    var
-      ID1, ID2: DWORD;
-      i, a, b: Integer;
-      prefix, aname: String;
-      base, mask: Pointer;
-      baseLen, maskLen: Integer;
+    {$IFDEF ENABLE_GIBS}
+      var base, mask: Pointer; baseLen, maskLen: Integer;
+    {$ENDIF}
+    var ID1, ID2: DWORD; i, a, b: Integer; prefix, aname: String;
   begin
     g_Frames_CreateWAD(@RedFlagFrames, 'FRAMES_FLAG_RED', GameWAD + ':TEXTURES\FLAGRED', 64, 64, 5, False);
     g_Frames_CreateWAD(@BlueFlagFrames, 'FRAMES_FLAG_BLUE', GameWAD + ':TEXTURES\FLAGBLUE', 64, 64, 5, False);
@@ -234,28 +241,30 @@ implementation
             end
           end
         end;
-        SetLength(Models[i].Gibs, PlayerModelsArray[i].GibsCount);
-        if PlayerModelsArray[i].GibsCount > 0 then
-        begin
-          r_PlayerModel_LoadResource(prefix + PlayerModelsArray[i].GibsResource, base, baseLen);
-          r_PlayerModel_LoadResource(prefix + PlayerModelsArray[i].GibsMask, mask, maskLen);
-          if (base <> nil) and (mask <> nil) then
+        {$IFDEF ENABLE_GIBS}
+          SetLength(Models[i].Gibs, PlayerModelsArray[i].GibsCount);
+          if PlayerModelsArray[i].GibsCount > 0 then
           begin
-            for a := 0 to PlayerModelsArray[i].GibsCount - 1 do
+            r_PlayerModel_LoadResource(prefix + PlayerModelsArray[i].GibsResource, base, baseLen);
+            r_PlayerModel_LoadResource(prefix + PlayerModelsArray[i].GibsMask, mask, maskLen);
+            if (base <> nil) and (mask <> nil) then
             begin
-              if e_CreateTextureMemEx(base, baseLen, Models[i].Gibs[a].base, a * 32, 0, 32, 32) and
-                 e_CreateTextureMemEx(mask, maskLen, Models[i].Gibs[a].mask, a * 32, 0, 32, 32) then
+              for a := 0 to PlayerModelsArray[i].GibsCount - 1 do
               begin
-                Models[i].Gibs[a].rect := g_PlayerModel_CalcGibSize(base, baseLen, a * 32, 0, 32, 32);
-                with Models[i].Gibs[a].Rect do
-                  if Height > 3 then
-                    Height := Height - 1 - Random(2); // ???
+                if e_CreateTextureMemEx(base, baseLen, Models[i].Gibs[a].base, a * 32, 0, 32, 32) and
+                   e_CreateTextureMemEx(mask, maskLen, Models[i].Gibs[a].mask, a * 32, 0, 32, 32) then
+                begin
+                  Models[i].Gibs[a].rect := g_PlayerModel_CalcGibSize(base, baseLen, a * 32, 0, 32, 32);
+                  with Models[i].Gibs[a].Rect do
+                    if Height > 3 then
+                      Height := Height - 1 - Random(2); // ???
+                end
               end
-            end
-          end;
-          FreeMem(mask);
-          FreeMem(base);
-        end
+            end;
+            FreeMem(mask);
+            FreeMem(base);
+          end
+        {$ENDIF}
       end
     end
   end;
@@ -393,6 +402,7 @@ begin
   e_Colors.B := 255;
 end;
 
+{$IFDEF ENABLE_GIBS}
   procedure r_PlayerModel_DrawGibs;
     var i, fX, fY, m, id: Integer; a: TDFPoint; pobj: ^TObj;
   begin
@@ -420,5 +430,6 @@ end;
       end
     end
   end;
+{$ENDIF}
 
 end.

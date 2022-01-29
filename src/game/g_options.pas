@@ -49,7 +49,6 @@ var
   gAdvCorpses: Boolean;
   gAdvBlood: Boolean;
   gAdvGibs: Boolean;
-  gGibsCount: Integer;
   gBloodCount: Integer;
   gFlash: Integer;
   gDrawBackGround: Boolean;
@@ -127,6 +126,9 @@ uses
   {$ENDIF}
   {$IFDEF ENABLE_GFX}
     g_gfx,
+  {$ENDIF}
+  {$IFDEF ENABLE_GIBS}
+    g_gibs,
   {$ENDIF}
   e_log, e_input, g_console, g_sound, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game,
@@ -284,9 +286,11 @@ begin
     g_GFX_SetMax(2000);
   {$ENDIF}
   g_Shells_SetMax(300);
-  g_Gibs_SetMax(150);
   g_Corpses_SetMax(20);
-  gGibsCount := 32;
+  {$IFDEF ENABLE_GIBS}
+    g_Gibs_SetMax(DefaultGibsMax);
+    gGibsCount := DefaultGibsCount;
+  {$ENDIF}
   gBloodCount := 4;
   gAdvBlood := True;
   gAdvCorpses := True;
@@ -399,7 +403,9 @@ initialization
   {$ENDIF}
 
   (* Game *)
-  conRegVar('g_gibs_count', @gGibsCount, '', '');
+  {$IFDEF ENABLE_GIBS}
+    conRegVar('g_gibs_count', @gGibsCount, '', '');
+  {$ENDIF}
   conRegVar('g_blood_count', @gBloodCount, '', '');
   conRegVar('g_adv_blood', @gAdvBlood, '', '');
   conRegVar('g_adv_corpses', @gAdvCorpses, '', '');

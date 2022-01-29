@@ -226,6 +226,9 @@ implementation
     {$IFDEF ENABLE_GFX}
       g_gfx,
     {$ENDIF}
+    {$IFDEF ENABLE_GIBS}
+      g_gibs,
+    {$ENDIF}
     g_basic, g_map, g_game, g_weapons, g_triggers, g_items,
     g_console, g_language, g_monsters, g_player, g_grid, e_log, geom, utils, xstreams
   ;
@@ -585,7 +588,9 @@ var
   px, py, pw, ph, pdx, pdy: Integer;
   squash: Boolean;
   plr: TPlayer;
-  gib: PGib;
+  {$IFDEF ENABLE_GIBS}
+    gib: PGib;
+  {$ENDIF}
   cor: TCorpse;
   mon: TMonster;
   flg: PFlag;
@@ -705,19 +710,21 @@ begin
           if not g_Game_IsClient and squash then plr.Damage(15000, 0, 0, 0, HIT_TRAP);
         end;
 
-        // process gibs
-        for f := 0 to High(gGibs) do
-        begin
-          gib := @gGibs[f];
-          if not gib.alive then continue;
-          gib.getMapBox(px, py, pw, ph);
-          if not g_Collide(px, py, pw, ph, cx0, cy0, cw, ch) then continue;
-          if tryMPlatMove(px, py, pw, ph, pdx, pdy, squash, @ontop) then
+        {$IFDEF ENABLE_GIBS}
+          // process gibs
+          for f := 0 to High(gGibs) do
           begin
-            // set new position
-            gib.moveBy(pdx, pdy); // this will call `positionChanged()` for us
+            gib := @gGibs[f];
+            if not gib.alive then continue;
+            gib.getMapBox(px, py, pw, ph);
+            if not g_Collide(px, py, pw, ph, cx0, cy0, cw, ch) then continue;
+            if tryMPlatMove(px, py, pw, ph, pdx, pdy, squash, @ontop) then
+            begin
+              // set new position
+              gib.moveBy(pdx, pdy); // this will call `positionChanged()` for us
+            end;
           end;
-        end;
+        {$ENDIF}
 
         // move and push corpses
         for f := 0 to High(gCorpses) do

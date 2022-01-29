@@ -114,6 +114,9 @@ implementation
     {$IFDEF ENABLE_GFX}
       g_gfx,
     {$ENDIF}
+    {$IFDEF ENABLE_GIBS}
+      g_gibs,
+    {$ENDIF}
     Math, g_map, g_player, g_sound, g_panel,
     g_console, g_options, g_game,
     g_triggers, MAPDEF, e_log, g_monsters, g_saveload,
@@ -989,9 +992,10 @@ var
     end;
   end;
 
-var
-  i, h, dx, dy, m, mm: Integer;
-  _angle: SmallInt;
+  var i, h, dx, dy, m, mm: Integer;
+  {$IFDEF ENABLE_GIBS}
+    var _angle: SmallInt;
+  {$ENDIF}
 begin
   result := false;
 
@@ -1053,30 +1057,28 @@ begin
           end;
         end;
 
-  h := High(gGibs);
-
-  if gAdvGibs and (h <> -1) then
-    for i := 0 to h do
-      if gGibs[i].alive then
-        with gGibs[i] do
-        begin
-          dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
-          dy := Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)-Y;
-
-          if dx > 1000 then dx := 1000;
-          if dy > 1000 then dy := 1000;
-
-          if dx*dx+dy*dy < r then
+  {$IFDEF ENABLE_GIBS}
+    h := High(gGibs);
+    if gAdvGibs and (h <> -1) then
+      for i := 0 to h do
+        if gGibs[i].alive then
+          with gGibs[i] do
           begin
-            m := PointToRect(X, Y, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y,
-                             Obj.Rect.Width, Obj.Rect.Height);
-            _angle := GetAngle(Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
-                               Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2), X, Y);
-
-            g_Obj_PushA(@Obj, Round(15*(rad-m)/rad), _angle);
-            positionChanged(); // this updates spatial accelerators
+            dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
+            dy := Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)-Y;
+            if dx > 1000 then dx := 1000;
+            if dy > 1000 then dy := 1000;
+            if dx*dx+dy*dy < r then
+            begin
+              m := PointToRect(X, Y, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y,
+                               Obj.Rect.Width, Obj.Rect.Height);
+              _angle := GetAngle(Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
+                                 Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2), X, Y);
+              g_Obj_PushA(@Obj, Round(15*(rad-m)/rad), _angle);
+              positionChanged(); // this updates spatial accelerators
+            end;
           end;
-        end;
+  {$ENDIF}
 end;
 
 procedure g_Weapon_Init();

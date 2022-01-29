@@ -529,6 +529,9 @@ uses
   {$IFDEF ENABLE_GFX}
     g_gfx,
   {$ENDIF}
+  {$IFDEF ENABLE_GIBS}
+    g_gibs,
+  {$ENDIF}
   e_log, g_sound, g_player, g_game,
   g_weapons, g_triggers, g_items, g_options,
   g_console, g_map, Math, wadreader,
@@ -2498,29 +2501,31 @@ begin
           end
         else // "Наземные" монстры
           begin
-          // Возможно, пинаем куски:
-            if (FObj.Vel.X <> 0) and (gGibs <> nil) then
-            begin
-              b := Abs(FObj.Vel.X);
-              if b > 1 then b := b * (Random(8 div b) + 1);
-              for a := 0 to High(gGibs) do
+            {$IFDEF ENABLE_GIBS}
+              // Возможно, пинаем куски:
+              if (FObj.Vel.X <> 0) and (gGibs <> nil) then
               begin
-                if gGibs[a].alive and
-                   g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
-                                 FObj.Rect.Width, 8, @gGibs[a].Obj) and (Random(3) = 0) then
+                b := Abs(FObj.Vel.X);
+                if b > 1 then b := b * (Random(8 div b) + 1);
+                for a := 0 to High(gGibs) do
                 begin
-                  // Пинаем куски
-                  if FObj.Vel.X < 0 then
+                  if gGibs[a].alive and
+                     g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
+                                   FObj.Rect.Width, 8, @gGibs[a].Obj) and (Random(3) = 0) then
                   begin
-                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61)+120); // налево
-                  end
-                  else
-                  begin
-                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61));    // направо
+                    // Пинаем куски
+                    if FObj.Vel.X < 0 then
+                    begin
+                      g_Obj_PushA(@gGibs[a].Obj, b, Random(61)+120); // налево
+                    end
+                    else
+                    begin
+                      g_Obj_PushA(@gGibs[a].Obj, b, Random(61));    // направо
+                    end;
                   end;
                 end;
               end;
-            end;
+            {$ENDIF}
           // Боссы могут пинать трупы:
             if (FMonsterType in [MONSTER_CYBER, MONSTER_SPIDER, MONSTER_ROBO]) and
                (FObj.Vel.X <> 0) and (gCorpses <> nil) then
@@ -3350,30 +3355,32 @@ begin
           end
         else // "Наземные" монстры
           begin
-          // Возможно, пинаем куски:
-            if (FObj.Vel.X <> 0) and (gGibs <> nil) then
-            begin
-              b := Abs(FObj.Vel.X);
-              if b > 1 then b := b * (Random(8 div b) + 1);
-              for a := 0 to High(gGibs) do
+            {$IFDEF ENBALE_GIBS}
+              // Возможно, пинаем куски:
+              if (FObj.Vel.X <> 0) and (gGibs <> nil) then
               begin
-                if gGibs[a].alive and
-                   g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
-                                 FObj.Rect.Width, 8, @gGibs[a].Obj) and (Random(3) = 0) then
+                b := Abs(FObj.Vel.X);
+                if b > 1 then b := b * (Random(8 div b) + 1);
+                for a := 0 to High(gGibs) do
                 begin
-                  // Пинаем куски
-                  if FObj.Vel.X < 0 then
+                  if gGibs[a].alive and
+                     g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
+                                   FObj.Rect.Width, 8, @gGibs[a].Obj) and (Random(3) = 0) then
                   begin
-                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61)+120); // налево
-                  end
-                  else
-                  begin
-                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61));    // направо
+                    // Пинаем куски
+                    if FObj.Vel.X < 0 then
+                    begin
+                      g_Obj_PushA(@gGibs[a].Obj, b, Random(61)+120); // налево
+                    end
+                    else
+                    begin
+                      g_Obj_PushA(@gGibs[a].Obj, b, Random(61));    // направо
+                    end;
+                    positionChanged(); // this updates spatial accelerators
                   end;
-                  positionChanged(); // this updates spatial accelerators
                 end;
               end;
-            end;
+            {$ENDIF}
           // Боссы могут пинать трупы:
             if (FMonsterType in [MONSTER_CYBER, MONSTER_SPIDER, MONSTER_ROBO]) and
                (FObj.Vel.X <> 0) and (gCorpses <> nil) then

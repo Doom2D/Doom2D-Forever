@@ -36,7 +36,9 @@ interface
 
   function r_Render_WriteScreenShot (filename: String): Boolean;
 
-  function r_Render_GetGibRect (m, id: Integer): TRectWH;
+  {$IFDEF ENABLE_GIBS}
+    function r_Render_GetGibRect (m, id: Integer): TRectWH;
+  {$ENDIF}
 
   {$IFDEF ENABLE_GFX}
     procedure r_Render_QueueEffect (AnimType, X, Y: Integer);
@@ -323,10 +325,12 @@ implementation
     end
   end;
 
+{$IFDEF ENABLE_GIBS}
   function r_Render_GetGibRect (m, id: Integer): TRectWH;
   begin
     Result := r_PlayerModel_GetGibRect(m, id)
   end;
+{$ENDIF}
 
 {$IFDEF ENABLE_GFX}
   procedure r_Render_QueueEffect (AnimType, X, Y: Integer);

@@ -520,23 +520,6 @@ type
     procedure   LoadState (st: TStream); override;
   end;
 
-  PGib = ^TGib;
-  TGib = record
-    alive:    Boolean;
-    RAngle:   Integer;
-    Color:    TRGB;
-    Obj:      TObj;
-
-    ModelID: Integer;
-    GibID: Integer;
-
-    procedure getMapBox (out x, y, w, h: Integer); inline;
-    procedure moveBy (dx, dy: Integer); inline;
-
-    procedure positionChanged (); inline; //WARNING! call this after entity position was changed, or coldet will not work right!
-  end;
-
-
   PShell = ^TShell;
   TShell = record
     alive:    Boolean;
@@ -589,7 +572,6 @@ type
 var
   gPlayers: Array of TPlayer;
   gCorpses: Array of TCorpse;
-  gGibs: Array of TGib;
   gShells: Array of TShell;
   gTeamStat: TTeamStat;
   gFly: Boolean = False;
@@ -606,8 +588,6 @@ var
 
 function  Lerp(X, Y, Factor: Integer): Integer;
 
-procedure g_Gibs_SetMax(Count: Word);
-function  g_Gibs_GetMax(): Word;
 procedure g_Corpses_SetMax(Count: Word);
 function  g_Corpses_GetMax(): Word;
 procedure g_Force_Model_Set(Mode: Word);
@@ -632,7 +612,6 @@ function  g_Player_GetCount(): Byte;
 function  g_Player_GetStats(): TPlayerStatArray;
 function  g_Player_ValidName(Name: String): Boolean;
 function  g_Player_CreateCorpse(Player: TPlayer): Integer;
-procedure g_Player_CreateGibs (fX, fY, mid: Integer; fColor: TRGB);
 procedure g_Player_CreateShell(fX, fY, dX, dY: Integer; T: Byte);
 procedure g_Player_UpdatePhysicalObjects();
 procedure g_Player_RemoveAllCorpses();
@@ -659,6 +638,9 @@ uses
   {$ENDIF}
   {$IFDEF ENABLE_GFX}
     g_gfx,
+  {$ENDIF}
+  {$IFDEF ENABLE_GIBS}
+    g_gibs,
   {$ENDIF}
   e_log, g_map, g_items, g_console, Math,
   g_options, g_triggers, g_game, g_grid, e_res,
@@ -733,12 +715,10 @@ const
   BOTLIST_FILENAME = 'botlist.txt';
 
 var
-  MaxGibs: Word = 150;
   MaxCorpses: Word = 20;
   MaxShells: Word = 300;
   ForceModel: Word = 0;
   ForcedModelName: String = STD_PLAYER_MODEL;
-  CurrentGib: Integer = 0;
   CurrentShell: Integer = 0;
   BotNames: Array of String;
   BotList: Array of TBotProfile;
@@ -763,20 +743,6 @@ begin
       (g_Player_Get(UID2).Team = TEAM_NONE)) then Exit;
 
   Result := g_Player_Get(UID1).FTeam = g_Player_Get(UID2).FTeam;
-end;
-
-procedure g_Gibs_SetMax(Count: Word);
-begin
-  MaxGibs := Count;
-  SetLength(gGibs, Count);
-
-  if CurrentGib >= Count then
-    CurrentGib := 0;
-end;
-
-function g_Gibs_GetMax(): Word;
-begin
-  Result := MaxGibs;
 end;
 
 procedure g_Shells_SetMax(Count: Word);
@@ -1515,7 +1481,13 @@ begin
 
   with Player do
   begin
-    if (FHealth >= -50) or (gGibsCount = 0) then
+{$IFDEF ENABLE_GIBS}
+      if (FHealth < -50) and (gGibsCount > 0) then
+      begin
+        g_Gibs_Create(FObj.X + PLAYER_RECT_CX, FObj.Y + PLAYER_RECT_CY, FModel.id, FModel.Color);
+      end
+      else
+{$ENDIF}
       begin
         if (gCorpses = nil) or (Length(gCorpses) = 0) then
           Exit;
@@ -1539,8 +1511,6 @@ begin
 
         Result := find_id;
       end
-    else
-      g_Player_CreateGibs(FObj.X + PLAYER_RECT_CX, FObj.Y + PLAYER_RECT_CY, FModel.id, FModel.Color);
   end;
 end;
 
@@ -1580,73 +1550,6 @@ begin
   end;
 end;
 
-procedure g_Player_CreateGibs (fX, fY, mid: Integer; fColor: TRGB);
-var
-  a: Integer;
-  GibsArray: TGibsArray;
-  {$IFDEF ENABLE_GFX}
-    Blood: TModelBlood;
-  {$ENDIF}
-begin
-  if mid = -1 then
-    Exit;
-  if (gGibs = nil) or (Length(gGibs) = 0) then
-    Exit;
-  if not g_PlayerModel_GetGibs(mid, GibsArray) then
-    Exit;
-
-  {$IFDEF ENABLE_GFX}
-    Blood := PlayerModelsArray[mid].Blood;
-  {$ENDIF}
-
-  for a := 0 to High(GibsArray) do
-    with gGibs[CurrentGib] do
-    begin
-      ModelID := mid;
-      GibID := GibsArray[a];
-      Color := fColor;
-      alive := True;
-      g_Obj_Init(@Obj);
-      {$IFNDEF HEADLESS}
-        Obj.Rect := r_Render_GetGibRect(ModelID, GibID);
-      {$ELSE}
-        Obj.Rect.X := 16;
-        Obj.Rect.Y := 16;
-        Obj.Rect.Width := 16;
-        Obj.Rect.Height := 16;
-      {$ENDIF}
-      Obj.X := fX - Obj.Rect.X - (Obj.Rect.Width div 2);
-      Obj.Y := fY - Obj.Rect.Y - (Obj.Rect.Height div 2);
-      g_Obj_PushA(@Obj, 25 + Random(10), Random(361));
-      positionChanged(); // this updates spatial accelerators
-      RAngle := Random(360);
-
-      {$IFDEF ENABLE_GFX}
-        if gBloodCount > 0 then
-        begin
-          g_GFX_Blood(
-            fX,
-            fY,
-            16 * gBloodCount + Random(5 * gBloodCount),
-            -16 + Random(33),
-            -16 + Random(33),
-            Random(48),
-            Random(48),
-            Blood.R,
-            Blood.G,
-            Blood.B,
-            Blood.Kind
-         );
-        end;
-      {$ENDIF}
-
-      if CurrentGib >= High(gGibs) then
-        CurrentGib := 0
-      else
-        Inc(CurrentGib);
-    end;
-end;
-
 procedure g_Player_UpdatePhysicalObjects();
 var
   i: Integer;
@@ -1665,47 +1568,6 @@ var
   end;
 
 begin
-// Куски мяса:
-  if gGibs <> nil then
-    for i := 0 to High(gGibs) do
-      if gGibs[i].alive then
-        with gGibs[i] do
-        begin
-          Obj.oldX := Obj.X;
-          Obj.oldY := Obj.Y;
-
-          vel := Obj.Vel;
-          mr := g_Obj_Move(@Obj, True, False, True);
-          positionChanged(); // this updates spatial accelerators
-
-          if WordBool(mr and MOVE_FALLOUT) then
-          begin
-            alive := False;
-            Continue;
-          end;
-
-        // Отлетает от удара о стену/потолок/пол:
-          if WordBool(mr and MOVE_HITWALL) then
-            Obj.Vel.X := -(vel.X div 2);
-          if WordBool(mr and (MOVE_HITCEIL or MOVE_HITLAND)) then
-            Obj.Vel.Y := -(vel.Y div 2);
-
-          if (Obj.Vel.X >= 0) then
-          begin // Clockwise
-            RAngle := RAngle + Abs(Obj.Vel.X)*6 + Abs(Obj.Vel.Y);
-            if RAngle >= 360 then
-              RAngle := RAngle mod 360;
-          end else begin // Counter-clockwise
-            RAngle := RAngle - Abs(Obj.Vel.X)*6 - Abs(Obj.Vel.Y);
-            if RAngle < 0 then
-              RAngle := (360 - (Abs(RAngle) mod 360)) mod 360;
-          end;
-
-        // Сопротивление воздуха для куска трупа:
-          if gTime mod (GAME_TICK*3) = 0 then
-            Obj.Vel.X := z_dec(Obj.Vel.X, 1);
-        end;
-
 // Трупы:
   if gCorpses <> nil then
     for i := 0 to High(gCorpses) do
@@ -1770,26 +1632,6 @@ begin
         end;
 end;
 
-
-procedure TGib.getMapBox (out x, y, w, h: Integer); inline;
-begin
-  x := Obj.X+Obj.Rect.X;
-  y := Obj.Y+Obj.Rect.Y;
-  w := Obj.Rect.Width;
-  h := Obj.Rect.Height;
-end;
-
-procedure TGib.moveBy (dx, dy: Integer); inline;
-begin
-  if (dx <> 0) or (dy <> 0) then
-  begin
-    Obj.X += dx;
-    Obj.Y += dy;
-    positionChanged();
-  end;
-end;
-
-
 procedure TShell.getMapBox (out x, y, w, h: Integer); inline;
 begin
   x := Obj.X;
@@ -1808,20 +1650,22 @@ begin
   end;
 end;
 
-
-procedure TGib.positionChanged (); inline; begin end;
 procedure TShell.positionChanged (); inline; begin end;
 
 
 procedure g_Player_RemoveAllCorpses();
-var
-  i: Integer;
+  var i: Integer;
+  {$IFDEF ENABLE_GIBS}
+    var maxgibs: Integer;
+  {$ENDIF}
 begin
-  gGibs := nil;
+  {$IFDEF ENABLE_GIBS}
+    maxgibs := g_Gibs_GetMax();
+    g_Gibs_SetMax(0);
+    g_Gibs_SetMax(maxgibs);
+  {$ENDIF}
   gShells := nil;
-  SetLength(gGibs, MaxGibs);
-  SetLength(gShells, MaxGibs);
-  CurrentGib := 0;
+  SetLength(gShells, MaxShells);
   CurrentShell := 0;
 
   if gCorpses <> nil then
@@ -4122,8 +3966,9 @@ begin
 end;
 
 procedure TPlayer.Run(Direction: TDirection);
-var
-  a, b: Integer;
+  {$IFDEF ENABLE_GIBS}
+    var a, b: Integer;
+  {$ENDIF}
 begin
   if MAX_RUNVEL > 8 then
     FlySmoke();
@@ -4138,30 +3983,32 @@ begin
     if FObj.Vel.X < MAX_RUNVEL then
       FObj.Vel.X := FObj.Vel.X + (MAX_RUNVEL shr 3);
 
-// Возможно, пинаем куски:
-  if (FObj.Vel.X <> 0) and (gGibs <> nil) then
-  begin
-    b := Abs(FObj.Vel.X);
-    if b > 1 then b := b * (Random(8 div b) + 1);
-    for a := 0 to High(gGibs) do
+  {$IFDEF ENABLE_GIBS}
+    // Возможно, пинаем куски:
+    if (FObj.Vel.X <> 0) and (gGibs <> nil) then
     begin
-      if gGibs[a].alive and
-         g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
-                       FObj.Rect.Width, 8, @gGibs[a].Obj) and (Random(3) = 0) then
+      b := Abs(FObj.Vel.X);
+      if b > 1 then b := b * (Random(8 div b) + 1);
+      for a := 0 to High(gGibs) do
       begin
-        // Пинаем куски
-        if FObj.Vel.X < 0 then
+        if gGibs[a].alive and
+           g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
+                         FObj.Rect.Width, 8, @gGibs[a].Obj) and (Random(3) = 0) then
         begin
-          g_Obj_PushA(@gGibs[a].Obj, b, Random(61)+120) // налево
-        end
-        else
-        begin
-          g_Obj_PushA(@gGibs[a].Obj, b, Random(61));    // направо
+          // Пинаем куски
+          if FObj.Vel.X < 0 then
+          begin
+            g_Obj_PushA(@gGibs[a].Obj, b, Random(61)+120) // налево
+          end
+          else
+          begin
+            g_Obj_PushA(@gGibs[a].Obj, b, Random(61));    // направо
+          end;
+          gGibs[a].positionChanged(); // this updates spatial accelerators
         end;
-        gGibs[a].positionChanged(); // this updates spatial accelerators
       end;
     end;
-  end;
+  {$ENDIF}
 
   SetAction(A_WALK);
 end;
@@ -5905,13 +5752,14 @@ begin
 
   FDamage := FDamage + Value;
 
+{$IFDEF ENABLE_GIBS}
   if FDamage > 150 then
   begin
     if FModel <> nil then
     begin
       FState := CORPSE_STATE_REMOVEME;
 
-      g_Player_CreateGibs(
+      g_Gibs_Create(
         FObj.X + FObj.Rect.X + (FObj.Rect.Width div 2),
         FObj.Y + FObj.Rect.Y + (FObj.Rect.Height div 2),
         FModel.id,
@@ -5931,17 +5779,18 @@ begin
     end
   end
   else
-    begin
-      FObj.Vel.X := FObj.Vel.X + vx;
-      FObj.Vel.Y := FObj.Vel.Y + vy;
-      {$IFDEF ENABLE_GFX}
-        Blood := FModel.GetBlood();
-        g_GFX_Blood(FObj.X+PLAYER_CORPSERECT.X+(PLAYER_CORPSERECT.Width div 2),
-                    FObj.Y+PLAYER_CORPSERECT.Y+(PLAYER_CORPSERECT.Height div 2),
-                    Value, vx, vy, 16, (PLAYER_CORPSERECT.Height*2) div 3,
-                    Blood.R, Blood.G, Blood.B, Blood.Kind);
-      {$ENDIF}
-    end;
+{$ENDIF}
+  begin
+    FObj.Vel.X := FObj.Vel.X + vx;
+    FObj.Vel.Y := FObj.Vel.Y + vy;
+    {$IFDEF ENABLE_GFX}
+      Blood := FModel.GetBlood();
+      g_GFX_Blood(FObj.X+PLAYER_CORPSERECT.X+(PLAYER_CORPSERECT.Width div 2),
+                  FObj.Y+PLAYER_CORPSERECT.Y+(PLAYER_CORPSERECT.Height div 2),
+                  Value, vx, vy, 16, (PLAYER_CORPSERECT.Height*2) div 3,
+                  Blood.R, Blood.G, Blood.B, Blood.Kind);
+    {$ENDIF}
+  end;
 end;
 
 procedure TCorpse.Update();

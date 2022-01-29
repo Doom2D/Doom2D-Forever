@@ -87,8 +87,6 @@ type
 
   TModelSoundArray = Array of TModelSound;
 
-  TGibsArray = Array of Integer;
-
   TPlayerModel = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
     FDirection:        TDirection;
@@ -136,7 +134,6 @@ procedure g_PlayerModel_FreeData();
 function  g_PlayerModel_Load(FileName: String): Boolean;
 function  g_PlayerModel_GetNames(): SSArray;
 function  g_PlayerModel_Get(ModelName: String): TPlayerModel;
-function  g_PlayerModel_GetGibs (ModelID: Integer; var Gibs: TGibsArray): Boolean;
 function  g_PlayerModel_GetIndex (ModelName: String): Integer;
 
 {$IFDEF ENABLE_GFX}
@@ -166,10 +163,12 @@ procedure g_PlayerModel_LoadFake (ModelName, FileName: String);
       // =======================
       FileName:    String;
       Anim:        TModelTextures;
-      GibsCount:   Integer;
-      GibsResource:String;
-      GibsMask:    String;
-      GibsOnce:    Integer;
+      {$IFDEF ENABLE_GIBS}
+        GibsCount:   Integer;
+        GibsResource:String;
+        GibsMask:    String;
+        GibsOnce:    Integer;
+      {$ENDIF}
     end;
 
   var
@@ -462,10 +461,12 @@ begin
 
     SlopSound := Min(Max(config.ReadInt('Sound', 'slop', 0), 0), 2);
 
-    GibsCount := config.ReadInt('Gibs', 'count', 0);
-    GibsResource := config.ReadStr('Gibs', 'resource', 'GIBS');
-    GibsMask := config.ReadStr('Gibs', 'mask', 'GIBSMASK');
-    GibsOnce := config.ReadInt('Gibs', 'once', -1);
+    {$IFDEF ENABLE_GIBS}
+      GibsCount := config.ReadInt('Gibs', 'count', 0);
+      GibsResource := config.ReadStr('Gibs', 'resource', 'GIBS');
+      GibsMask := config.ReadStr('Gibs', 'mask', 'GIBSMASK');
+      GibsOnce := config.ReadInt('Gibs', 'once', -1);
+    {$ENDIF}
 
     ok := True;
     for aa := WP_FIRST + 1 to WP_LAST do
@@ -597,35 +598,6 @@ begin
     end;
   end;
 end;
-
-  function g_PlayerModel_GetGibs (ModelID: Integer; var Gibs: TGibsArray): Boolean;
-    var i, b: Integer; c: Boolean;
-  begin
-    Gibs := nil;
-    Result := False;
-    if (PlayerModelsArray = nil) or (gGibsCount = 0) then
-      Exit;
-
-    c := False;
-    SetLength(Gibs, gGibsCount);
-    for i := 0 to High(Gibs) do
-    begin
-      if c and (PlayerModelsArray[ModelID].GibsCount = 1) then
-      begin
-        SetLength(Gibs, i);
-        Break;
-      end;
-
-      repeat
-        b := Random(PlayerModelsArray[ModelID].GibsCount);
-      until not ((PlayerModelsArray[ModelID].GibsOnce = b + 1) and c);
-
-      Gibs[i] := b;
-
-      c := PlayerModelsArray[ModelID].GibsOnce = b + 1;
-    end;
-    Result := True;
-  end;
 
 function g_PlayerModel_GetNames(): SSArray;
 var

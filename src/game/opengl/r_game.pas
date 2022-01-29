@@ -1549,7 +1549,9 @@ begin
   drawOther('weapons', @r_Weapon_Draw);
   drawOther('shells', @r_Player_DrawShells);
   drawOther('drawall', @r_Player_DrawAll);
-  drawOther('gibs', @r_PlayerModel_DrawGibs);
+  {$IFDEF ENABLE_GIBS}
+    drawOther('gibs', @r_PlayerModel_DrawGibs);
+  {$ENDIF}
   drawOther('corpses', @r_Player_DrawCorpses);
   drawPanelType('*wall', PANEL_WALL, g_rlayer_wall);
   drawOther('monsters', @r_Monsters_Draw);

@@ -48,6 +48,9 @@ implementation
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
+  {$IFDEF ENABLE_GIBS}
+    g_gibs,
+  {$ENDIF}
   {rttiobj,} typinfo, e_res,
   SysUtils, Classes, SDL2,
   MAPDEF, g_options,
@@ -1224,6 +1227,7 @@ procedure plrDebugDraw ();
     for f := 0 to High(gTriggers) do drawTrigger(gTriggers[f]);
   end;
 
+{$IFDEF ENABLE_GIBS}
   procedure drawGibsBoxes ();
   var
     f: Integer;
@@ -1241,6 +1245,7 @@ procedure plrDebugDraw ();
       end;
     end;
   end;
+{$ENDIF}
 
 var
   mon: TMonster;
@@ -1301,8 +1306,9 @@ begin
 
     if showTraceBox then drawTraceBox();
 
-    //drawGibsBoxes();
-
+    {$IFDEF ENABLE_GIBS}
+      // drawGibsBoxes();
+    {$ENDIF}
 
     //pan := g_Map_traceToNearest(16, 608, 16, 8, (GridTagObstacle or GridTagLiquid), @ex, @ey);
     (*

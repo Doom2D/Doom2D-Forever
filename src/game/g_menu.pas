@@ -42,6 +42,9 @@ uses
   {$IFDEF ENABLE_GFX}
     g_gfx,
   {$ENDIF}
+  {$IFDEF ENABLE_GIBS}
+    g_gibs,
+  {$ENDIF}
   g_gui, r_textures, r_graphics, g_game, g_map,
   g_base, g_basic, g_console, g_sound, g_player, g_options, g_weapons,
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
@@ -139,16 +142,20 @@ begin
     g_GFX_SetMax(TGUIScroll(menu.GetControl('scParticlesCount')).Value*1000);
   {$ENDIF}
   g_Shells_SetMax(TGUIScroll(menu.GetControl('scShellsMax')).Value*30);
-  g_Gibs_SetMax(TGUIScroll(menu.GetControl('scGibsMax')).Value*25);
+  {$IFDEF ENABLE_GIBS}
+    g_Gibs_SetMax(TGUIScroll(menu.GetControl('scGibsMax')).Value*25);
+  {$ENDIF}
   g_Corpses_SetMax(TGUIScroll(menu.GetControl('scCorpsesMax')).Value*5);
 
-  case TGUISwitch(menu.GetControl('swGibsCount')).ItemIndex of
-    0: gGibsCount := 0;
-    1: gGibsCount := 8;
-    2: gGibsCount := 16;
-    3: gGibsCount := 32;
-    else gGibsCount := 48;
-  end;
+  {$IFDEF ENABLE_GIBS}
+    case TGUISwitch(menu.GetControl('swGibsCount')).ItemIndex of
+      0: gGibsCount := 0;
+      1: gGibsCount := 8;
+      2: gGibsCount := 16;
+      3: gGibsCount := 32;
+      else gGibsCount := 48;
+    end;
+  {$ENDIF}
 
   gBloodCount := TGUISwitch(menu.GetControl('swBloodCount')).ItemIndex;
   gFlash := TGUISwitch(menu.GetControl('swScreenFlash')).ItemIndex;
@@ -583,7 +590,9 @@ begin
     TGUIScroll(menu.GetControl('scParticlesCount')).Value := g_GFX_GetMax() div 1000;
   {$ENDIF}
   TGUIScroll(menu.GetControl('scShellsMax')).Value := g_Shells_GetMax() div 30;
-  TGUIScroll(menu.GetControl('scGibsMax')).Value := g_Gibs_GetMax() div 25;
+  {$IFDEF ENABLE_GIBS}
+    TGUIScroll(menu.GetControl('scGibsMax')).Value := g_Gibs_GetMax() div 25;
+  {$ENDIF}
   TGUIScroll(menu.GetControl('scCorpsesMax')).Value := g_Corpses_GetMax() div 5;
   TGUISwitch(menu.GetControl('swBloodCount')).ItemIndex := gBloodCount;
 
@@ -599,14 +608,18 @@ begin
   with TGUISwitch(menu.GetControl('swGibsType')) do
     if gAdvGibs then ItemIndex := 1 else ItemIndex := 0;
 
-  with TGUISwitch(menu.GetControl('swGibsCount')) do
-    case gGibsCount of
-      0: ItemIndex := 0;
-      8: ItemIndex := 1;
-      16: ItemIndex := 2;
-      32: ItemIndex := 3;
-      else ItemIndex := 4;
+  {$IFDEF ENABLE_GIBS}
+    with TGUISwitch(menu.GetControl('swGibsCount')) do
+    begin
+      case gGibsCount of
+        0: ItemIndex := 0;
+        8: ItemIndex := 1;
+        16: ItemIndex := 2;
+        32: ItemIndex := 3;
+        else ItemIndex := 4;
+      end;
     end;
+  {$ENDIF}
 
   with TGUISwitch(menu.GetControl('swBackGround')) do
     if gDrawBackGround then ItemIndex := 0 else ItemIndex := 1;
