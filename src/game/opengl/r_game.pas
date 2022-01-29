@@ -50,9 +50,11 @@ implementation
     {$IFDEF ENABLE_CORPSES}
       g_corpses,
     {$ENDIF}
+    {$IFDEF ENABLE_SYSTEM}
+      g_system,
+    {$ENDIF}
     SysUtils, Classes, Math,
     g_base, g_basic, r_graphics,
-    g_system,
     MAPDEF, xprofiler, utils, wadreader, CONFIG,
     e_input, e_sound,
     g_language, g_console, g_triggers, g_player, g_options, g_monsters, g_map, g_panel,
@@ -575,7 +577,9 @@ var
 begin
   e_TextureFontGetSize(gStdFont, ww2, hh2);
 
-  sys_HandleInput;
+  {$IFDEF ENABLE_SYSTEM}
+    sys_HandleInput;
+  {$ENDIF}
 
   if g_Console_Action(ACTION_SCORES) then
   begin

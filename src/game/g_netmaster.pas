@@ -182,7 +182,7 @@ uses
   {$IFDEF ENABLE_RENDER}
     r_render,
   {$ENDIF}
-  {$IFNDEF HEADLESS}
+  {$IFDEF ENABLE_SYSTEM}
     g_system,
   {$ENDIF}
   e_input, e_log, g_net, g_console,
@@ -1752,10 +1752,10 @@ begin
   if gConsoleShow or gChatShow then
     Exit;
 
-  {$IFDEF HEADLESS}
-    qm := True;
-  {$ELSE}
+  {$IFDEF ENABLE_SYSTEM}
     qm := sys_HandleInput(); // this updates kbd
+  {$ELSE}
+    qm := True;
   {$ENDIF}
 
   if qm or e_KeyPressed(IK_ESCAPE) or e_KeyPressed(VK_ESCAPE) or
@@ -1793,7 +1793,7 @@ begin
       {$IFDEF ENABLE_RENDER}
         r_Render_Draw;
       {$ENDIF}
-      {$IFNDEF HEADLESS}
+      {$IFDEF ENABLE_SYSTEM}
         sys_Repaint;
       {$ENDIF}
 

@@ -25,7 +25,7 @@ implementation
     {$IFDEF ENABLE_RENDER}
       r_render,
     {$ENDIF}
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_SYSTEM}
       g_system,
     {$ENDIF}
     e_sound, g_net
@@ -34,10 +34,10 @@ implementation
   procedure ProcessLoading (forceUpdate: Boolean = False);
     var update: Boolean;
   begin
-    {$IFDEF HEADLESS}
-      update := True;
-    {$ELSE}
+    {$IFDEF ENABLE_SYSTEM}
       update := sys_HandleInput() = False;
+    {$ELSE}
+      update := True;
     {$ENDIF}
     if update then
     begin

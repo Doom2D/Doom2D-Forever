@@ -23,9 +23,12 @@ implementation
 
   uses
     {$INCLUDE ../nogl/noGLuses.inc}
+    {$IFDEF ENABLE_SYSTEM}
+      g_system,
+    {$ENDIF}
     SysUtils, Classes,
     e_log, utils,
-    r_graphics, r_game, r_console, g_system,
+    r_graphics, r_game, r_console,
     g_options, g_game, g_console,
     xprofiler
   ;
@@ -61,7 +64,9 @@ implementation
         e_SetViewPort(0, 0, gWinSizeX, gWinSizeY);
         e_BlitFramebuffer(gWinSizeX, gWinSizeY);
 
-        sys_Repaint;
+        {$IFDEF ENABLE_SYSTEM}
+          sys_Repaint;
+        {$ENDIF}
         prevLoadingUpdateTime := getTimeMilli();
       end;
     end;

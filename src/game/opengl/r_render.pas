@@ -61,8 +61,11 @@ implementation
     {$IFDEF ENABLE_GFX}
       r_gfx,
     {$ENDIF}
+    {$IFDEF ENABLE_SYSTEM}
+      g_system,
+    {$ENDIF}
     SysUtils, Classes, Math,
-    e_log, g_system, utils,
+    e_log, utils,
     g_game, g_options, g_console,
     r_window, r_graphics, r_console, r_playermodel, r_textures, r_animations,
     r_weapons, r_items, r_monsters, r_map, r_player, r_game
@@ -237,8 +240,10 @@ implementation
 
   procedure r_Render_Initialize;
   begin
-    if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized) = False then
-      raise Exception.Create('Failed to set videomode on startup.');
+    {$IFDEF ENABLE_SYSTEM}
+      if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized) = False then
+        raise Exception.Create('Failed to set videomode on startup.');
+    {$ENDIF}
     LoadGL;
     r_Window_Initialize;
     r_Console_Init;
@@ -301,11 +306,13 @@ implementation
 
   procedure r_Render_Apply;
   begin
-    if sys_SetDisplayMode(Max(1, gRC_Width), Max(1, gRC_Height), Max(1, gBPP), gRC_FullScreen, gRC_Maximized) then
-      e_LogWriteln('resolution changed')
-    else
-      e_LogWriteln('resolution not changed');
-    sys_EnableVSync(gVSync)
+    {$IFDEF ENABLE_SYSTEM}
+      if sys_SetDisplayMode(Max(1, gRC_Width), Max(1, gRC_Height), Max(1, gBPP), gRC_FullScreen, gRC_Maximized) then
+        e_LogWriteln('resolution changed')
+      else
+        e_LogWriteln('resolution not changed');
+      sys_EnableVSync(gVSync)
+    {$ENDIF}
   end;
 
   function r_Render_WriteScreenShot (filename: String): Boolean;

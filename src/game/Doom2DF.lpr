@@ -148,17 +148,18 @@ uses
   g_triggers in 'g_triggers.pas',
   g_weapons in 'g_weapons.pas',
   g_window in 'g_window.pas',
-{$IFNDEF HEADLESS}
-  {$IFDEF USE_SYSSTUB}
-    g_system in 'stub/g_system.pas',
+
+  {$IFDEF ENABLE_SYSTEM}
+    {$IFDEF USE_SYSSTUB}
+      g_system in 'stub/g_system.pas',
+    {$ENDIF}
+    {$IFDEF USE_SDL}
+      g_system in 'sdl/g_system.pas',
+    {$ENDIF}
+    {$IFDEF USE_SDL2}
+      g_system in 'sdl2/g_system.pas',
+    {$ENDIF}
   {$ENDIF}
-  {$IFDEF USE_SDL}
-    g_system in 'sdl/g_system.pas',
-  {$ENDIF}
-  {$IFDEF USE_SDL2}
-    g_system in 'sdl2/g_system.pas',
-  {$ENDIF}
-{$ENDIF}
 
 {$IFDEF ENABLE_RENDER}
   {$I ../shared/vampimg.inc}
@@ -266,10 +267,10 @@ var
   Time, Time_Delta: Int64;
   Frame: Int64;
 begin
-  {$IFDEF HEADLESS}
-    Result := False;
-  {$ELSE}
+  {$IFDEF ENABLE_SYSTEM}
     Result := sys_HandleInput();
+  {$ELSE}
+    Result := False;
   {$ENDIF}
 
   Time := GetTickCount64();
@@ -318,10 +319,12 @@ begin
       gLerpFactor := 1.0
     else
       gLerpFactor := nmin(1.0, (Time - Time_Old) / 28.0);
-{$IFDEF ENABLE_RENDER}
-    r_Render_Draw;
-    sys_Repaint;
-{$ENDIF}
+    {$IFDEF ENABLE_RENDER}
+      r_Render_Draw;
+    {$ENDIF}
+    {$IFDEF ENABLE_SYSTEM}
+      sys_Repaint;
+    {$ENDIF}
     Frame := Time
   end
   else
@@ -1004,7 +1007,7 @@ end;
     InitPrep;
     e_Input_Initialize;
     InitSound;
-    {$IFNDEF HEADLESS}
+    {$IFDEF ENABLE_SYSTEM}
       sys_Init;
       sys_CharPress := @CharPress; (* install hook *)
       sys_ScreenResize := @ScreenResize; (* install hook *)
@@ -1059,6 +1062,8 @@ end;
     (* g_Touch_Finalize; *)
     {$IFDEF ENABLE_RENDER}
       r_Render_Finalize;
+    {$ENDIF}
+    {$IFDEF ENABLE_SYSTEM}
       sys_Final;
     {$ENDIF}
     g_Console_Finalize;

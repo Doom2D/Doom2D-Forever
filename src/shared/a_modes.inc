@@ -140,6 +140,11 @@
     {$UNDEF ENABLE_RENDER}
     {$DEFINE DISABLE_RENDER}
   {$ENDIF}
+  {$IFDEF ENABLE_SYSTEM}
+    {$WARNING System in headless mode has no sense. Disabled.}
+    {$UNDEF ENABLE_SYSTEM}
+    {$DEFINE DISABLE_SYSTEM}
+  {$ENDIF}
 {$ENDIF}
 
 {$IF DEFINED(ENABLE_MENU) AND DEFINED(DISABLE_MENU)}
@@ -219,6 +224,17 @@
   {$ENDIF}
 {$ENDIF}
 
+{$IF DEFINED(ENABLE_SYSTEM) AND DEFINED(DISABLE_SYSTEM)}
+  {$ERROR Select ENABLE_SYSTEM or DISABLE_SYSTEM}
+{$ELSEIF NOT DEFINED(ENABLE_SYSTEM) AND NOT DEFINED(DISABLE_SYSTEM)}
+  // default ENABLE/DISABLE system driver
+  {$IFDEF HEADLESS}
+    {$DEFINE DISABLE_SYSTEM}
+  {$ELSE}
+    {$DEFINE ENABLE_SYSTEM}
+  {$ENDIF}
+{$ENDIF}
+
 {$IF DEFINED(USE_SYSSTUB)}
   {$IF DEFINED(USE_SDL) OR DEFINED(USE_SDL2)}
     {$ERROR Only one system driver must be selected!}
@@ -283,5 +299,17 @@
   {$ENDIF}
   {$IFNDEF USE_OPENGL}
     {$ERROR Holmes supported only with desktop OpenGL}
+  {$ENDIF}
+{$ENDIF}
+
+{$IFDEF ENABLE_MENU}
+  {$IFDEF DISABLE_RENDER}
+    {$FATAL Render driver required for current menu implementation}
+  {$ENDIF}
+{$ENDIF}
+
+{$IFDEF ENABLE_TOUCH}
+  {$IFDEF DISABLE_SYSTEM}
+    {$FATAL System driver required for current touch implementation}
   {$ENDIF}
 {$ENDIF}
