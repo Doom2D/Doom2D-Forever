@@ -24,6 +24,8 @@ interface
 
   procedure r_GUI_GetSize (ctrl: TGUIControl; out w, h: Integer);
   procedure r_GUI_GetLogoSize (out w, h: WORD);
+  procedure r_GUI_GetMaxFontSize (BigFont: Boolean; out w, h: Integer);
+  procedure r_GUI_GetStringSize (BigFont: Boolean; str: String; out w, h: Integer);
   procedure r_GUI_Draw_Window (win: TGUIWindow);
 
 implementation
@@ -47,6 +49,23 @@ implementation
     BOX8 = 'BOX8';
     BOX9 = 'BOX9';
 
+  type
+    TFontType = (Texture, Character);
+
+    TFont = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
+    private
+      FID: DWORD;
+      FScale: Single;
+      FFontType: TFontType;
+    public
+      constructor Create(FontID: DWORD; FontType: TFontType);
+      destructor Destroy; override;
+      procedure Draw(X, Y: Integer; Text: string; R, G, B: Byte);
+      procedure GetTextSize(Text: string; var w, h: Word);
+      property Scale: Single read FScale write FScale;
+      property ID: DWORD read FID;
+    end;
+
   var
     Box: Array [0..8] of DWORD;
     MarkerID: array [Boolean] of DWORD;
@@ -55,6 +74,57 @@ implementation
 
     Font: array [boolean] of TFont; (* Small[FALSE] / Big[TRUE] *)
     LogoTex: DWORD;
+
+  constructor TFont.Create (FontID: DWORD; FontType: TFontType);
+  begin
+    FID := FontID;
+    FScale := 1;
+    FFontType := FontType;
+  end;
+
+  destructor TFont.Destroy;
+  begin
+    inherited;
+  end;
+
+  procedure TFont.Draw (X, Y: Integer; Text: string; R, G, B: Byte);
+  begin
+    if FFontType = TFontType.Character then
+      e_CharFont_PrintEx(ID, X, Y, Text, _RGB(R, G, B), FScale)
+    else
+      e_TextureFontPrintEx(X, Y, Text, ID, R, G, B, FScale)
+  end;
+
+  procedure TFont.GetTextSize (Text: string; var w, h: Word);
+    var cw, ch: Byte;
+  begin
+    if FFontType = TFontType.Character then
+      e_CharFont_GetSize(ID, Text, w, h)
+    else
+    begin
+      e_TextureFontGetSize(ID, cw, ch);
+      w := cw * Length(Text);
+      h := ch;
+    end;
+    w := Round(w * FScale);
+    h := Round(h * FScale);
+  end;
+
+  procedure r_GUI_GetMaxFontSize (BigFont: Boolean; out w, h: Integer);
+    var f: TFont;
+  begin
+    f := Font[BigFont];
+    w := e_CharFont_GetMaxWidth(f.ID);
+    h := e_CharFont_GetMaxHeight(f.ID);
+  end;
+
+  procedure r_GUI_GetStringSize (BigFont: Boolean; str: String; out w, h: Integer);
+    var ww, hh: WORD;
+  begin
+    e_CharFont_GetSize(Font[BigFont].ID, str, ww, hh);
+    w := ww;
+    h := hh;
+  end;
 
   procedure r_GUI_GetLogoSize (out w, h: WORD);
   begin
@@ -150,26 +220,28 @@ implementation
   end;
 
   procedure r_GUI_GetSize_TextButton (ctrl: TGUITextButton; out w, h: Integer);
-    var ww, hh: WORD;
+    var ww, hh: WORD; f: TFont;
   begin
-    ctrl.Font.GetTextSize(ctrl.Caption, ww, hh);
+    f := Font[ctrl.BigFont];
+    f.GetTextSize(ctrl.Caption, ww, hh);
     w := ww;
     h := hh;
   end;
 
   procedure r_GUI_GetSize_Label (ctrl: TGUILabel; out w, h: Integer);
-    var ww, hh: WORD;
+    var ww, hh: WORD; f: TFont;
   begin
-    ctrl.Font.GetTextSize(ctrl.Text, ww, hh);
+    f := Font[ctrl.BigFont];
+    f.GetTextSize(ctrl.Text, ww, hh);
     h := hh;
     if ctrl.FixedLength = 0 then
       w := ww
     else
-      w := e_CharFont_GetMaxWidth(ctrl.Font.ID) * ctrl.FixedLength
+      w := e_CharFont_GetMaxWidth(f.ID) * ctrl.FixedLength
   end;
 
   procedure r_GUI_GetSize_Switch (ctrl: TGUISwitch; out w, h: Integer);
-    var i: Integer; ww, hh: WORD;
+    var i: Integer; ww, hh: WORD; f: TFont;
   begin
     w := 0;
     h := 0;
@@ -177,7 +249,8 @@ implementation
     begin
       for i := 0 to High(ctrl.Items) do
       begin
-        ctrl.Font.GetTextSize(ctrl.Items[i], ww, hh);
+        f := Font[ctrl.BigFont];
+        f.GetTextSize(ctrl.Items[i], ww, hh);
         if ww > w then
           w := ww;
       end;
@@ -185,18 +258,19 @@ implementation
   end;
 
   procedure r_GUI_GetSize_KeyRead (ctrl: TGUIKeyRead; out w, h: Integer);
-    var i: Integer; ww, hh: WORD;
+    var i: Integer; ww, hh: WORD; f: TFont;
   begin
     w := 0;
     h := 0; // ??? always 0
+    f := Font[ctrl.BigFont];
     for i := 0 to 255 do
     begin
-      ctrl.Font.GetTextSize(e_KeyNames[i], ww, hh);
+      f.GetTextSize(e_KeyNames[i], ww, hh);
       w := MAX(w, ww);
     end;
-    ctrl.Font.GetTextSize(KEYREAD_QUERY, ww, hh);
+    f.GetTextSize(KEYREAD_QUERY, ww, hh);
     if ww > w then w := ww;
-    ctrl.Font.GetTextSize(KEYREAD_CLEAR, ww, hh);
+    f.GetTextSize(KEYREAD_CLEAR, ww, hh);
     if ww > w then w := ww;
   end;
 
@@ -238,20 +312,23 @@ implementation
   procedure r_GUI_Draw_Control (ctrl: TGUIControl); forward;
 
   procedure r_GUI_Draw_TextButton (ctrl: TGUITextButton);
+    var f: TFont;
   begin
-    ctrl.Font.Draw(ctrl.X, ctrl.Y, ctrl.Caption, ctrl.Color.R, ctrl.Color.G, ctrl.Color.B)
+    f := Font[ctrl.BigFont];
+    f.Draw(ctrl.X, ctrl.Y, ctrl.Caption, ctrl.Color.R, ctrl.Color.G, ctrl.Color.B)
   end;
 
   procedure r_GUI_Draw_Label (ctrl: TGUILabel);
-    var w, h: Word;
+    var w, h: Word; f: TFont;
   begin
+    f := Font[ctrl.BigFont];
     if ctrl.RightAlign then
     begin
-      ctrl.Font.GetTextSize(ctrl.Text, w, h);
-      ctrl.Font.Draw(ctrl.X + ctrl.CMaxWidth - w, ctrl.Y, ctrl.Text, ctrl.Color.R, ctrl.Color.G, ctrl.Color.B);
+      f.GetTextSize(ctrl.Text, w, h);
+      f.Draw(ctrl.X + ctrl.CMaxWidth - w, ctrl.Y, ctrl.Text, ctrl.Color.R, ctrl.Color.G, ctrl.Color.B);
     end
     else
-      ctrl.Font.Draw(ctrl.X, ctrl.Y, ctrl.Text, ctrl.Color.R, ctrl.Color.G, ctrl.Color.B);
+      f.Draw(ctrl.X, ctrl.Y, ctrl.Text, ctrl.Color.R, ctrl.Color.G, ctrl.Color.B);
   end;
 
   procedure r_GUI_Draw_Scroll (ctrl: TGUIScroll);
@@ -265,12 +342,14 @@ implementation
   end;
 
   procedure r_GUI_Draw_Switch (ctrl: TGUISwitch);
+    var f: TFont;
   begin
-    ctrl.Font.Draw(ctrl.X, ctrl.Y, ctrl.Items[ctrl.ItemIndex], ctrl.Color.R, ctrl.Color.G, ctrl.Color.B);
+    f := Font[ctrl.BigFont];
+    f.Draw(ctrl.X, ctrl.Y, ctrl.Items[ctrl.ItemIndex], ctrl.Color.R, ctrl.Color.G, ctrl.Color.B);
   end;
 
   procedure r_GUI_Draw_Edit (ctrl: TGUIEdit);
-    var c, w, h: Word; r, g, b: Byte;
+    var c, w, h: Word; r, g, b: Byte; f: TFont;
   begin
     e_Draw(EditLeft, ctrl.X, ctrl.Y, 0, True, False);
     e_Draw(EditRight, ctrl.X + 8 + ctrl.Width * 16, ctrl.Y, 0, True, False);
@@ -285,17 +364,18 @@ implementation
       g := 128;
       b := 128;
     end;
-    ctrl.Font.Draw(ctrl.X + 8, ctrl.Y, ctrl.Text, r, g, b);
+    f := Font[ctrl.BigFont];
+    f.Draw(ctrl.X + 8, ctrl.Y, ctrl.Text, r, g, b);
     if ctrl.Window.ActiveControl = ctrl then
     begin
-      ctrl.Font.GetTextSize(Copy(ctrl.Text, 1, ctrl.CaretPos), w, h);
-      h := e_CharFont_GetMaxHeight(ctrl.Font.ID);
+      f.GetTextSize(Copy(ctrl.Text, 1, ctrl.CaretPos), w, h);
+      h := e_CharFont_GetMaxHeight(f.ID);
       e_DrawLine(2, ctrl.X + 8 + w, ctrl.Y + h - 3, ctrl.X + 8 + w + EDIT_CURSORLEN, ctrl.Y + h - 3, EDIT_CURSORCOLOR.R, EDIT_CURSORCOLOR.G, EDIT_CURSORCOLOR.B);
     end;
   end;
 
   procedure r_GUI_Draw_KeyRead (ctrl: TGUIKeyRead);
-    var k: AnsiString;
+    var k: AnsiString; f: TFont;
   begin
     if ctrl.IsQuery then
       k := KEYREAD_QUERY
@@ -303,13 +383,14 @@ implementation
       k := e_KeyNames[ctrl.Key]
     else
       k := KEYREAD_CLEAR;
-    ctrl.Font.Draw(ctrl.X, ctrl.Y, k, ctrl.Color.R, ctrl.Color.G, ctrl.Color.B);
+    f := Font[ctrl.BigFont];
+    f.Draw(ctrl.X, ctrl.Y, k, ctrl.Color.R, ctrl.Color.G, ctrl.Color.B);
   end;
 
   procedure r_GUI_Draw_KeyRead2 (ctrl: TGUIKeyRead2);
 
     procedure drawText (idx: Integer);
-      var x, y: Integer; r, g, b: Byte; kk: DWORD; str: AnsiString;
+      var x, y: Integer; r, g, b: Byte; kk: DWORD; str: AnsiString; f: TFont;
     begin
       if idx = 0 then kk := ctrl.Key0 else kk := ctrl.Key1;
       y := ctrl.Y;
@@ -321,9 +402,10 @@ implementation
       begin
         r := 255; g := 255; b := 255;
       end;
+      f := Font[ctrl.BigFont];
       if ctrl.IsQuery and (ctrl.KeyIdx = idx) then
       begin
-        ctrl.Font.Draw(x, y, KEYREAD_QUERY, r, g, b)
+        f.Draw(x, y, KEYREAD_QUERY, r, g, b)
       end
       else
       begin
@@ -331,7 +413,7 @@ implementation
           str := e_KeyNames[kk]
         else
           str := KEYREAD_CLEAR;
-        ctrl.Font.Draw(x, y, str, r, g, b);
+        f.Draw(x, y, str, r, g, b);
       end
     end;
 
@@ -443,7 +525,7 @@ implementation
   end;
 
   procedure r_GUI_Draw_ListBox (ctrl: TGUIListBox); // + TGUIFileListBox
-    var w2, h2: Word; a: Integer; s: string;
+    var w2, h2: Word; a: Integer; s: string; f: TFont;
   begin
     if ctrl.DrawBack then
       DrawBox(ctrl.X, ctrl.Y, ctrl.Width + 1, ctrl.Height);
@@ -451,33 +533,35 @@ implementation
       DrawScroll(ctrl.X + 4 + ctrl.Width * 16, ctrl.Y + 4, ctrl.Height, (ctrl.StartLine > 0) and (ctrl.Items <> nil), (ctrl.StartLine + ctrl.Height - 1 < High(ctrl.Items)) and (ctrl.Items <> nil));
     if ctrl.Items <> nil then
     begin
+      f := Font[ctrl.BigFont];
       for a := ctrl.StartLine to Min(High(ctrl.Items), ctrl.StartLine + ctrl.Height - 1) do
       begin
         s := ctrl.Items[a];
-        ctrl.Font.GetTextSize(s, w2, h2);
+        f.GetTextSize(s, w2, h2);
         while (Length(s) > 0) and (w2 > ctrl.Width * 16) do
         begin
           SetLength(s, Length(s) - 1);
-          ctrl.Font.GetTextSize(s, w2, h2);
+          f.GetTextSize(s, w2, h2);
         end;
         if a = ctrl.ItemIndex then
-          ctrl.Font.Draw(ctrl.X + 4, ctrl.Y + 4 + (a - ctrl.StartLine) * 16, s, ctrl.ActiveColor.R, ctrl.ActiveColor.G, ctrl.ActiveColor.B)
+          f.Draw(ctrl.X + 4, ctrl.Y + 4 + (a - ctrl.StartLine) * 16, s, ctrl.ActiveColor.R, ctrl.ActiveColor.G, ctrl.ActiveColor.B)
         else
-          ctrl.Font.Draw(ctrl.X + 4, ctrl.Y + 4 + (a - ctrl.StartLine) * 16, s, ctrl.UnActiveColor.R, ctrl.UnActiveColor.G, ctrl.UnActiveColor.B);
+          f.Draw(ctrl.X + 4, ctrl.Y + 4 + (a - ctrl.StartLine) * 16, s, ctrl.UnActiveColor.R, ctrl.UnActiveColor.G, ctrl.UnActiveColor.B);
       end;
     end;
   end;
 
   procedure r_GUI_Draw_Memo (ctrl: TGUIMemo);
-    var a: Integer;
+    var a: Integer; f: TFont;
   begin
+    f := Font[ctrl.BigFont];
     if ctrl.DrawBack then
       DrawBox(ctrl.X, ctrl.Y, ctrl.Width + 1, ctrl.Height);
     if ctrl.DrawScrollBar then
       DrawScroll(ctrl.X + 4 + ctrl.Width * 16, ctrl.Y + 4, ctrl.Height, (ctrl.StartLine > 0) and (ctrl.Lines <> nil), (ctrl.StartLine + ctrl.Height - 1 < High(ctrl.Lines)) and (ctrl.Lines <> nil));
     if ctrl.Lines <> nil then
       for a := ctrl.StartLine to Min(High(ctrl.Lines), ctrl.StartLine + ctrl.Height - 1) do
-        ctrl.Font.Draw(ctrl.X + 4, ctrl.Y + 4 + (a - ctrl.StartLine) * 16, ctrl.Lines[a], ctrl.Color.R, ctrl.Color.G, ctrl.Color.B);
+        f.Draw(ctrl.X + 4, ctrl.Y + 4 + (a - ctrl.StartLine) * 16, ctrl.Lines[a], ctrl.Color.R, ctrl.Color.G, ctrl.Color.B);
   end;
 
   procedure r_GUI_Draw_MainMenu (ctrl: TGUIMainMenu);
@@ -506,7 +590,7 @@ implementation
   end;
 
   procedure r_GUI_Draw_Menu (ctrl: TGUIMenu);
-    var a, locx, locy: Integer;
+    var a, locx, locy: Integer; f: TFont;
   begin
     if ctrl.Header <> nil then
       r_GUI_Draw_Label(ctrl.Header);
@@ -539,8 +623,9 @@ implementation
         locx := ctrl.Items[ctrl.Index].Control.X;
         locy := ctrl.Items[ctrl.Index].Control.Y;
       end;
-      locx := locx - e_CharFont_GetMaxWidth(ctrl.FontID);
-      e_CharFont_PrintEx(ctrl.FontID, locx, locy, #16, _RGB(255, 0, 0));
+      f := Font[ctrl.BigFont];
+      locx := locx - e_CharFont_GetMaxWidth(f.ID);
+      e_CharFont_PrintEx(f.ID, locx, locy, #16, _RGB(255, 0, 0));
     end;
   end;
 
