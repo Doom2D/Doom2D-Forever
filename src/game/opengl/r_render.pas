@@ -17,7 +17,12 @@ unit r_render;
 
 interface
 
-  uses g_base; // TRectWH
+  uses
+    {$IFDEF ENABLE_MENU}
+      g_gui,
+    {$ENDIF}
+    g_base // TRectWH
+  ;
 
   procedure r_Render_Initialize;
   procedure r_Render_Finalize;
@@ -47,6 +52,13 @@ interface
   {$IFDEF ENABLE_TOUCH}
     // touch screen button location and size
     procedure r_Render_GetKeyRect (key: Integer; out x, y, w, h: Integer; out founded: Boolean);
+  {$ENDIF}
+
+  {$IFDEF ENABLE_MENU}
+    procedure r_Render_GetControlSize (ctrl: TGUIControl; out w, h: Integer);
+    procedure r_Render_GetLogoSize (out w, h: Integer);
+    procedure r_Render_GetMaxFontSize (BigFont: Boolean; out w, h: Integer);
+    procedure r_Render_GetStringSize (BigFont: Boolean; str: String; out w, h: Integer);
   {$ENDIF}
 
   procedure r_Render_DrawLoading (force: Boolean); // !!! remove it
@@ -359,6 +371,28 @@ implementation
   procedure r_Render_GetKeyRect (key: Integer; out x, y, w, h: Integer; out founded: Boolean);
   begin
     r_Touch_GetKeyRect (key, x, y, w, h, founded)
+  end;
+{$ENDIF}
+
+{$IFDEF ENABLE_MENU}
+  procedure r_Render_GetControlSize (ctrl: TGUIControl; out w, h: Integer);
+  begin
+    r_GUI_GetSize(ctrl, w, h)
+  end;
+
+  procedure r_Render_GetLogoSize (out w, h: Integer);
+  begin
+    r_GUI_GetLogoSize(w, h)
+  end;
+
+  procedure r_Render_GetMaxFontSize (BigFont: Boolean; out w, h: Integer);
+  begin
+    r_GUI_GetMaxFontSize(BigFont, w, h)
+  end;
+
+  procedure r_Render_GetStringSize (BigFont: Boolean; str: String; out w, h: Integer);
+  begin
+    r_GUI_GetStringSize(BigFont, str, w, h)
   end;
 {$ENDIF}
 

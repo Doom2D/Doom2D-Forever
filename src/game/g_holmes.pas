@@ -20,7 +20,7 @@ interface
 uses
   mempool, geom,
   e_log, e_input,
-  g_textures, g_basic, r_graphics, g_phys, g_grid, g_player, g_monsters,
+  g_basic, g_phys, g_grid, g_player, g_monsters,
   g_map, g_triggers, g_items, g_game, g_panel, g_console,
   xprofiler,
   sdlcarcass,

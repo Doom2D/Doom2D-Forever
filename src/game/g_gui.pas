@@ -17,51 +17,42 @@ unit g_gui;
 
 interface
 
-uses
-  {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-  g_base, e_input, e_log, g_playermodel, g_basic, MAPDEF, utils;
+  uses
+    {$IFDEF USE_MEMPOOL}
+      mempool,
+    {$ENDIF}
+    g_base, g_playermodel, MAPDEF, utils
+  ;
 
 const
-  MAINMENU_HEADER_COLOR: TRGB = (R:255; G:255; B:255);
+
   MAINMENU_ITEMS_COLOR: TRGB = (R:255; G:255; B:255);
   MAINMENU_UNACTIVEITEMS_COLOR: TRGB = (R:192; G:192; B:192);
-  MAINMENU_CLICKSOUND = 'MENU_SELECT';
-  MAINMENU_CHANGESOUND = 'MENU_CHANGE';
+  MAINMENU_HEADER_COLOR: TRGB = (R:255; G:255; B:255);
   MAINMENU_SPACE = 4;
-  MAINMENU_MARKER1 = 'MAINMENU_MARKER1';
-  MAINMENU_MARKER2 = 'MAINMENU_MARKER2';
   MAINMENU_MARKERDELAY = 24;
-  WINDOW_CLOSESOUND = 'MENU_CLOSE';
-  MENU_HEADERCOLOR: TRGB = (R:255; G:255; B:255);
+
   MENU_ITEMSTEXT_COLOR: TRGB = (R:255; G:255; B:255);
   MENU_UNACTIVEITEMS_COLOR: TRGB = (R:128; G:128; B:128);
   MENU_ITEMSCTRL_COLOR: TRGB = (R:255; G:0; B:0);
   MENU_VSPACE = 2;
   MENU_HSPACE = 32;
-  MENU_CLICKSOUND = 'MENU_SELECT';
-  MENU_CHANGESOUND = 'MENU_CHANGE';
   MENU_MARKERDELAY = 24;
-  SCROLL_LEFT = 'SCROLL_LEFT';
-  SCROLL_RIGHT = 'SCROLL_RIGHT';
-  SCROLL_MIDDLE = 'SCROLL_MIDDLE';
-  SCROLL_MARKER = 'SCROLL_MARKER';
-  SCROLL_ADDSOUND = 'SCROLL_ADD';
-  SCROLL_SUBSOUND = 'SCROLL_SUB';
-  EDIT_LEFT = 'EDIT_LEFT';
-  EDIT_RIGHT = 'EDIT_RIGHT';
-  EDIT_MIDDLE = 'EDIT_MIDDLE';
-  EDIT_CURSORCOLOR: TRGB = (R:200; G:0; B:0);
-  EDIT_CURSORLEN = 10;
-  KEYREAD_QUERY = '<...>';
-  KEYREAD_CLEAR = '???';
-  KEYREAD_TIMEOUT = 24;
+
   MAPPREVIEW_WIDTH = 8;
   MAPPREVIEW_HEIGHT = 8;
-  BSCROLL_UPA = 'BSCROLL_UP_A';
-  BSCROLL_UPU = 'BSCROLL_UP_U';
-  BSCROLL_DOWNA = 'BSCROLL_DOWN_A';
-  BSCROLL_DOWNU = 'BSCROLL_DOWN_U';
-  BSCROLL_MIDDLE = 'BSCROLL_MIDDLE';
+
+  KEYREAD_QUERY = '<...>';
+  KEYREAD_CLEAR = '???';
+
+  WINDOW_CLOSESOUND = 'MENU_CLOSE';
+  MAINMENU_CLICKSOUND = 'MENU_SELECT';
+  MAINMENU_CHANGESOUND = 'MENU_CHANGE';
+  MENU_CLICKSOUND = 'MENU_SELECT';
+  MENU_CHANGESOUND = 'MENU_CHANGE';
+  SCROLL_ADDSOUND = 'SCROLL_ADD';
+  SCROLL_SUBSOUND = 'SCROLL_SUB';
+
   WM_KEYDOWN = 101;
   WM_CHAR    = 102;
   WM_USER    = 110;
@@ -538,8 +529,9 @@ uses
     g_system,
   {$ENDIF}
   {$IFDEF ENABLE_RENDER}
-    r_gui,
+    r_render,
   {$ENDIF}
+  e_input, e_log,
   g_sound, SysUtils, e_res,
   g_game, Math, StrUtils, g_player, g_options, g_console,
   g_map, g_weapons, xdynrec, wadreader;
@@ -577,7 +569,7 @@ function GetLines (text: string; BigFont: Boolean; MaxWidth: Word): SSArray;
     {$ENDIF}
   begin
     {$IFDEF ENABLE_RENDER}
-      r_GUI_GetStringSize(BigFont, GetLine(i, False), w, h);
+      r_Render_GetStringSize(BigFont, GetLine(i, False), w, h);
       Result := w;
     {$ELSE}
       Result := 0;
@@ -905,7 +897,7 @@ end;
     {$ENDIF}
   begin
     {$IFDEF ENABLE_RENDER}
-      r_GUI_GetSize(Self, Result, h);
+      r_Render_GetControlSize(Self, Result, h);
     {$ELSE}
       Result := 0;
     {$ENDIF}
@@ -917,7 +909,7 @@ end;
     {$ENDIF}
   begin
     {$IFDEF ENABLE_RENDER}
-      r_GUI_GetSize(Self, w, Result);
+      r_Render_GetControlSize(Self, w, Result);
     {$ELSE}
       Result := 0;
     {$ENDIF}
@@ -976,11 +968,11 @@ end;
 function TGUIMainMenu.AddButton(fProc: Pointer; Caption: string; ShowWindow: string = ''): TGUITextButton;
   var
     {$IFDEF ENABLE_RENDER}
-      lw: Word = 0;
+      lw: Integer;
     {$ENDIF}
     a, _x: Integer;
     h, hh: Word;
-    lh: Word = 0;
+    lh: Integer;
 begin
   FIndex := 0;
 
@@ -1000,9 +992,11 @@ begin
     if FButtons[a] <> nil then
       _x := Min(_x, (gScreenWidth div 2)-(FButtons[a].GetWidth div 2));
 
+  lw := 0;
+  lh := 0;
   {$IFDEF ENABLE_RENDER}
     if FHeader = nil then
-      r_GUI_GetLogoSize(lw, lh);
+      r_Render_GetLogoSize(lw, lh);
   {$ENDIF}
   hh := FButtons[High(FButtons)].GetHeight;
 
@@ -1543,7 +1537,7 @@ begin
       else
       begin
         {$IFDEF ENABLE_RENDER}
-          r_GUI_GetMaxFontSize(FBigFont, fw, fh);
+          r_Render_GetMaxFontSize(FBigFont, fw, fh);
           h := h + fh;
         {$ENDIF}
       end;
@@ -1601,7 +1595,7 @@ begin
       else
       begin
         {$IFDEF ENABLE_RENDER}
-          r_GUI_GetMaxFontSize(FBigFont, fw, fh);
+          r_Render_GetMaxFontSize(FBigFont, fw, fh);
           h := h + fh + MENU_VSPACE;
         {$ELSE}
           h := h + MENU_VSPACE;
@@ -2243,13 +2237,13 @@ begin
   {$IFDEF ENABLE_RENDER}
     for a := 0 to 255 do
     begin
-      r_GUI_GetStringSize(BigFont, e_KeyNames[a], w, h);
+      r_Render_GetStringSize(BigFont, e_KeyNames[a], w, h);
       FMaxKeyNameWdt := Max(FMaxKeyNameWdt, w);
     end;
     FMaxKeyNameWdt := FMaxKeyNameWdt-(FMaxKeyNameWdt div 3);
-    r_GUI_GetStringSize(BigFont, KEYREAD_QUERY, w, h);
+    r_Render_GetStringSize(BigFont, KEYREAD_QUERY, w, h);
     if w > FMaxKeyNameWdt then FMaxKeyNameWdt := w;
-    r_GUI_GetStringSize(BigFont, KEYREAD_CLEAR, w, h);
+    r_Render_GetStringSize(BigFont, KEYREAD_CLEAR, w, h);
     if w > FMaxKeyNameWdt then FMaxKeyNameWdt := w;
   {$ENDIF}
 end;

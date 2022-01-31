@@ -23,7 +23,7 @@ interface
   procedure r_GUI_Free;
 
   procedure r_GUI_GetSize (ctrl: TGUIControl; out w, h: Integer);
-  procedure r_GUI_GetLogoSize (out w, h: WORD);
+  procedure r_GUI_GetLogoSize (out w, h: Integer);
   procedure r_GUI_GetMaxFontSize (BigFont: Boolean; out w, h: Integer);
   procedure r_GUI_GetStringSize (BigFont: Boolean; str: String; out w, h: Integer);
 
@@ -49,6 +49,23 @@ implementation
     BOX7 = 'BOX7';
     BOX8 = 'BOX8';
     BOX9 = 'BOX9';
+
+    MAINMENU_MARKER1 = 'MAINMENU_MARKER1';
+    MAINMENU_MARKER2 = 'MAINMENU_MARKER2';
+    SCROLL_LEFT = 'SCROLL_LEFT';
+    SCROLL_RIGHT = 'SCROLL_RIGHT';
+    SCROLL_MIDDLE = 'SCROLL_MIDDLE';
+    SCROLL_MARKER = 'SCROLL_MARKER';
+    EDIT_LEFT = 'EDIT_LEFT';
+    EDIT_RIGHT = 'EDIT_RIGHT';
+    EDIT_MIDDLE = 'EDIT_MIDDLE';
+    EDIT_CURSORCOLOR: TRGB = (R:200; G:0; B:0);
+    EDIT_CURSORLEN = 10;
+    BSCROLL_UPA = 'BSCROLL_UP_A';
+    BSCROLL_UPU = 'BSCROLL_UP_U';
+    BSCROLL_DOWNA = 'BSCROLL_DOWN_A';
+    BSCROLL_DOWNU = 'BSCROLL_DOWN_U';
+    BSCROLL_MIDDLE = 'BSCROLL_MIDDLE';
 
   type
     TFontType = (Texture, Character);
@@ -127,12 +144,15 @@ implementation
     h := hh;
   end;
 
-  procedure r_GUI_GetLogoSize (out w, h: WORD);
+  procedure r_GUI_GetLogoSize (out w, h: Integer);
+    var ww, hh: WORD;
   begin
-    w := 0;
-    h := 0;
+    ww := 0;
+    hh := 0;
     if LogoTex <> 0 then
-      e_GetTextureSize(LogoTex, @w, @h);
+      e_GetTextureSize(LogoTex, @ww, @hh);
+    w := ww;
+    h := hh;
   end;
 
   procedure r_GUI_Load;
