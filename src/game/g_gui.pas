@@ -539,7 +539,6 @@ uses
   {$ENDIF}
   {$IFDEF ENABLE_RENDER}
     r_gui,
-    r_textures, (* load/free image *)
   {$ENDIF}
   g_sound, SysUtils, e_res,
   g_game, Math, StrUtils, g_player, g_options, g_console,
@@ -2987,9 +2986,6 @@ end;
 
 procedure TGUIimage.ClearImage();
 begin
-  if FImageRes = '' then Exit;
-
-  g_Texture_Delete(FImageRes);
   FImageRes := '';
 end;
 
@@ -3012,9 +3008,7 @@ end;
 
 procedure TGUIimage.SetImage(Res: string);
 begin
-  ClearImage();
-
-  if g_Texture_CreateWADEx(Res, Res) then FImageRes := Res;
+  FImageRes := Res;
 end;
 
 procedure TGUIimage.Update();

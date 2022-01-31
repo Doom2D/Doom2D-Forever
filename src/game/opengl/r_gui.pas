@@ -26,6 +26,7 @@ interface
   procedure r_GUI_GetLogoSize (out w, h: WORD);
   procedure r_GUI_GetMaxFontSize (BigFont: Boolean; out w, h: Integer);
   procedure r_GUI_GetStringSize (BigFont: Boolean; str: String; out w, h: Integer);
+
   procedure r_GUI_Draw_Window (win: TGUIWindow);
 
 implementation
@@ -500,8 +501,12 @@ implementation
     end
     else
     begin
-      if g_Texture_Get(ctrl.ImageRes, ID) then
-        e_Draw(ID, ctrl.X, ctrl.Y, 0, True, False);
+      if g_Texture_CreateWADEx(ctrl.ImageRes, ctrl.ImageRes) then
+      begin
+        if g_Texture_Get(ctrl.ImageRes, ID) then
+          e_Draw(ID, ctrl.X, ctrl.Y, 0, True, False);
+        g_Texture_Delete(ctrl.ImageRes);
+      end;
     end;
   end;
 
