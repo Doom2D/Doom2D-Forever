@@ -51,13 +51,19 @@ uses
   {$IFDEF ENABLE_CORPSES}
     g_corpses,
   {$ENDIF}
-  g_gui, r_textures, r_graphics, g_game, g_map,
+  {$IFDEF ENABLE_RENDER}
+    r_render, r_game,
+  {$ENDIF}
+  {$IFDEF ENABLE_SYSTEM}
+    g_system,
+  {$ENDIF}
+  g_gui, g_game, g_map,
   g_base, g_basic, g_console, g_sound, g_player, g_options, g_weapons,
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
   MAPDEF, Math, g_saveload,
   g_language, e_res,
   g_net, g_netmsg, g_netmaster, g_items, e_input,
-  utils, wadreader, g_system, r_render, r_game;
+  utils, wadreader;
 
 
 type TYNCallback = procedure (yes:Boolean);
@@ -886,8 +892,12 @@ begin
 
   slWaitStr := _lc[I_NET_SLIST_WAIT];
 
-  r_Render_Draw;
-  sys_Repaint;
+  {$IFDEF ENABLE_RENDER}
+    r_Render_Draw;
+  {$ENDIF}
+  {$IFDEF ENABLE_SYSTEM}
+    sys_Repaint;
+  {$ENDIF}
 
   slReturnPressed := True;
   if g_Net_Slist_Fetch(slCurrent) then
@@ -1063,32 +1073,6 @@ procedure MenuLoadData();
 begin
   e_WriteLog('Loading menu data...', TMsgType.Notify);
 
-  g_Texture_CreateWADEx('MAINMENU_LOGO', GameWAD+':TEXTURES\MAINLOGO');
-  g_Texture_CreateWADEx('MAINMENU_MARKER1', GameWAD+':TEXTURES\MARKER1');
-  g_Texture_CreateWADEx('MAINMENU_MARKER2', GameWAD+':TEXTURES\MARKER2');
-  g_Texture_CreateWADEx('SCROLL_LEFT', GameWAD+':TEXTURES\SLEFT');
-  g_Texture_CreateWADEx('SCROLL_RIGHT', GameWAD+':TEXTURES\SRIGHT');
-  g_Texture_CreateWADEx('SCROLL_MIDDLE', GameWAD+':TEXTURES\SMIDDLE');
-  g_Texture_CreateWADEx('SCROLL_MARKER', GameWAD+':TEXTURES\SMARKER');
-  g_Texture_CreateWADEx('EDIT_LEFT', GameWAD+':TEXTURES\ELEFT');
-  g_Texture_CreateWADEx('EDIT_RIGHT', GameWAD+':TEXTURES\ERIGHT');
-  g_Texture_CreateWADEx('EDIT_MIDDLE', GameWAD+':TEXTURES\EMIDDLE');
-  g_Texture_CreateWADEx('BOX1', GameWAD+':TEXTURES\BOX1');
-  g_Texture_CreateWADEx('BOX2', GameWAD+':TEXTURES\BOX2');
-  g_Texture_CreateWADEx('BOX3', GameWAD+':TEXTURES\BOX3');
-  g_Texture_CreateWADEx('BOX4', GameWAD+':TEXTURES\BOX4');
-  g_Texture_CreateWADEx('BOX5', GameWAD+':TEXTURES\BOX5');
-  g_Texture_CreateWADEx('BOX6', GameWAD+':TEXTURES\BOX6');
-  g_Texture_CreateWADEx('BOX7', GameWAD+':TEXTURES\BOX7');
-  g_Texture_CreateWADEx('BOX8', GameWAD+':TEXTURES\BOX8');
-  g_Texture_CreateWADEx('BOX9', GameWAD+':TEXTURES\BOX9');
-  g_Texture_CreateWADEx('BSCROLL_UP_A', GameWAD+':TEXTURES\SCROLLUPA');
-  g_Texture_CreateWADEx('BSCROLL_UP_U', GameWAD+':TEXTURES\SCROLLUPU');
-  g_Texture_CreateWADEx('BSCROLL_DOWN_A', GameWAD+':TEXTURES\SCROLLDOWNA');
-  g_Texture_CreateWADEx('BSCROLL_DOWN_U', GameWAD+':TEXTURES\SCROLLDOWNU');
-  g_Texture_CreateWADEx('BSCROLL_MIDDLE', GameWAD+':TEXTURES\SCROLLMIDDLE');
-  g_Texture_CreateWADEx('NOPIC', GameWAD+':TEXTURES\NOPIC');
-
   g_Sound_CreateWADEx('MENU_SELECT', GameWAD+':SOUNDS\MENUSELECT');
   g_Sound_CreateWADEx('MENU_OPEN', GameWAD+':SOUNDS\MENUOPEN');
   g_Sound_CreateWADEx('MENU_CLOSE', GameWAD+':SOUNDS\MENUCLOSE');
@@ -1100,35 +1084,6 @@ end;
 
 procedure MenuFreeData();
 begin
-  e_CharFont_Remove(gMenuFont);
-  e_CharFont_Remove(gMenuSmallFont);
-
-  g_Texture_Delete('MAINMENU_LOGO');
-  g_Texture_Delete('MAINMENU_MARKER1');
-  g_Texture_Delete('MAINMENU_MARKER2');
-  g_Texture_Delete('SCROLL_LEFT');
-  g_Texture_Delete('SCROLL_RIGHT');
-  g_Texture_Delete('SCROLL_MIDDLE');
-  g_Texture_Delete('SCROLL_MARKER');
-  g_Texture_Delete('EDIT_LEFT');
-  g_Texture_Delete('EDIT_RIGHT');
-  g_Texture_Delete('EDIT_MIDDLE');
-  g_Texture_Delete('BOX1');
-  g_Texture_Delete('BOX2');
-  g_Texture_Delete('BOX3');
-  g_Texture_Delete('BOX4');
-  g_Texture_Delete('BOX5');
-  g_Texture_Delete('BOX6');
-  g_Texture_Delete('BOX7');
-  g_Texture_Delete('BOX8');
-  g_Texture_Delete('BOX9');
-  g_Texture_Delete('BSCROLL_UP_A');
-  g_Texture_Delete('BSCROLL_UP_U');
-  g_Texture_Delete('BSCROLL_DOWN_A');
-  g_Texture_Delete('BSCROLL_DOWN_U');
-  g_Texture_Delete('BSCROLL_MIDDLE');
-  g_Texture_Delete('NOPIC');
-
   g_Sound_Delete('MENU_SELECT');
   g_Sound_Delete('MENU_OPEN');
   g_Sound_Delete('MENU_CLOSE');
@@ -2021,7 +1976,7 @@ var
 begin
   Menu := TGUIWindow.Create('FirstLanguageMenu');
 
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', ' '))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, ' '))) do // space to prevent show logo
   begin
     Name := 'mmFirstLanguageMenu';
     AddButton(@ProcSetFirstRussianLanguage, 'Русский', '');
@@ -2115,7 +2070,7 @@ var
   //list: SSArray;
 begin
   Menu := TGUIWindow.Create('MainMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, 'MAINMENU_LOGO', _lc[I_MENU_MAIN_MENU]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '' (*_lc[I_MENU_MAIN_MENU]*) ))) do
   begin
     Name := 'mmMainMenu';
     AddButton(nil, _lc[I_MENU_NEW_GAME], 'NewGameMenu');
@@ -2136,7 +2091,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('NewGameMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_NEW_GAME]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_NEW_GAME]))) do
   begin
     Name := 'mmNewGameMenu';
     AddButton(@ProcSingle1Player, _lc[I_MENU_1_PLAYER]);
@@ -2148,7 +2103,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('NetGameMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_MULTIPLAYER]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MULTIPLAYER]))) do
   begin
     Name := 'mmNetGameMenu';
     AddButton(@ProcRecallAddress, _lc[I_MENU_START_CLIENT], 'NetClientMenu');
@@ -2751,7 +2706,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('OptionsMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_OPTIONS]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_OPTIONS]))) do
   begin
     Name := 'mmOptionsMenu';
     AddButton(nil, _lc[I_MENU_VIDEO_OPTIONS], 'OptionsVideoMenu');
@@ -3460,7 +3415,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('GameSingleMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_MAIN_MENU]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
   begin
     Name := 'mmGameSingleMenu';
     AddButton(nil, _lc[I_MENU_LOAD_GAME], 'LoadMenu');
@@ -3485,7 +3440,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('GameCustomMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_MAIN_MENU]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
   begin
     Name := 'mmGameCustomMenu';
     AddButton(nil, _lc[I_MENU_CHANGE_PLAYERS], 'TeamMenu');
@@ -3503,7 +3458,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('GameServerMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_MAIN_MENU]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
   begin
     Name := 'mmGameServerMenu';
     AddButton(nil, _lc[I_MENU_CHANGE_PLAYERS], 'TeamMenu');
@@ -3519,7 +3474,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('GameClientMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_MAIN_MENU]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
   begin
     Name := 'mmGameClientMenu';
     AddButton(nil, _lc[I_MENU_CHANGE_PLAYERS], 'TeamMenu');
@@ -3622,7 +3577,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('TeamMenu');
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_CHANGE_PLAYERS]))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_CHANGE_PLAYERS]))) do
   begin
     Name := 'mmTeamMenu';
     AddButton(@ProcJoinRed, _lc[I_MENU_JOIN_RED], '').Name := 'tmJoinRed';

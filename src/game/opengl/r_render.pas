@@ -64,6 +64,9 @@ implementation
     {$IFDEF ENABLE_SYSTEM}
       g_system,
     {$ENDIF}
+    {$IFDEF ENABLE_MENU}
+      r_gui,
+    {$ENDIF}
     SysUtils, Classes, Math,
     e_log, utils,
     g_game, g_options, g_console,
@@ -220,10 +223,16 @@ implementation
     {$IFDEF ENABLE_GFX}
       r_GFX_Load;
     {$ENDIF}
+    {$IFDEF ENABLE_MENU}
+      r_GUI_Load;
+    {$ENDIF}
   end;
 
   procedure r_Render_Free;
   begin
+    {$IFDEF ENABLE_MENU}
+      r_GUI_Free;
+    {$ENDIF}
     {$IFDEF ENABLE_GFX}
       r_GFX_Free;
     {$ENDIF}

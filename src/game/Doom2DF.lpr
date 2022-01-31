@@ -187,6 +187,7 @@ uses
   {$IFDEF ENABLE_MENU}
     g_gui in 'g_gui.pas',
     g_menu in 'g_menu.pas',
+    r_gui in 'opengl/r_gui.pas',
   {$ENDIF}
 {$ENDIF}
 
@@ -1029,7 +1030,6 @@ end;
     g_Game_Init;
     {$IFDEF ENABLE_MENU}
       g_Menu_Init;
-      g_GUI_Init;
     {$ENDIF}
     g_Game_Process_Params;
     // TODO reload GAME textures

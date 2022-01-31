@@ -42,7 +42,7 @@ implementation
       g_holmes,
     {$ENDIF}
     {$IFDEF ENABLE_MENU}
-      g_gui, g_menu,
+      g_gui, g_menu, r_gui,
     {$ENDIF}
     {$IFDEF ENABLE_GFX}
       g_gfx, r_gfx,
@@ -212,6 +212,8 @@ end;
 
   procedure r_Game_Free;
   begin
+    e_CharFont_Remove(gMenuFont);
+    e_CharFont_Remove(gMenuSmallFont);
     g_Texture_Delete('NOTEXTURE');
     g_Texture_Delete('TEXTURE_PLAYER_HUD');
     g_Texture_Delete('TEXTURE_PLAYER_HUDBG');
@@ -2164,7 +2166,7 @@ begin
       //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
       e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
     end;
-    g_ActiveWindow.Draw();
+    r_GUI_Draw_Window(g_ActiveWindow);
   end;
 {$ENDIF}
 
