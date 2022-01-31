@@ -572,10 +572,16 @@ function GetLines (text: string; BigFont: Boolean; MaxWidth: Word): SSArray;
   end;
 
   function LineWidth (): Integer; inline;
-    var w, h: Integer;
+    {$IFDEF ENABLE_RENDER}
+      var w, h: Integer;
+    {$ENDIF}
   begin
-    r_GUI_GetStringSize(BigFont, GetLine(i, False), w, h);
-    Result := w;
+    {$IFDEF ENABLE_RENDER}
+      r_GUI_GetStringSize(BigFont, GetLine(i, False), w, h);
+      Result := w;
+    {$ELSE}
+      Result := 0;
+    {$ENDIF}
   end;
 
 begin
@@ -968,11 +974,13 @@ end;
 { TGUIMainMenu }
 
 function TGUIMainMenu.AddButton(fProc: Pointer; Caption: string; ShowWindow: string = ''): TGUITextButton;
-var
-  a, _x: Integer;
-  h, hh: Word;
-  lw: Word = 0;
-  lh: Word = 0;
+  var
+    {$IFDEF ENABLE_RENDER}
+      lw: Word = 0;
+    {$ENDIF}
+    a, _x: Integer;
+    h, hh: Word;
+    lh: Word = 0;
 begin
   FIndex := 0;
 
@@ -992,8 +1000,10 @@ begin
     if FButtons[a] <> nil then
       _x := Min(_x, (gScreenWidth div 2)-(FButtons[a].GetWidth div 2));
 
-  if FHeader = nil then
-    r_GUI_GetLogoSize(lw, lh);
+  {$IFDEF ENABLE_RENDER}
+    if FHeader = nil then
+      r_GUI_GetLogoSize(lw, lh);
+  {$ENDIF}
   hh := FButtons[High(FButtons)].GetHeight;
 
   if FHeader = nil then h := lh + hh * (1 + Length(FButtons)) + MAINMENU_SPACE * (Length(FButtons) - 1)
@@ -1458,10 +1468,13 @@ begin
 end;
 
 procedure TGUIMenu.ReAlign();
-var
-  a, tx, cx, w, h, fw, fh: Integer;
-  cww: array of Integer; // cached widths
-  maxcww: Integer;
+  var
+    {$IFDEF ENABLE_RENDER}
+      fw, fh: Integer;
+    {$ENDIF}
+    a, tx, cx, w, h: Integer;
+    cww: array of Integer; // cached widths
+    maxcww: Integer;
 begin
   if FItems = nil then Exit;
 
@@ -1529,8 +1542,10 @@ begin
         h := h+(FItems[a].Control as TGUIListBox).GetHeight()
       else
       begin
-        r_GUI_GetMaxFontSize(FBigFont, fw, fh);
-        h := h + fh;
+        {$IFDEF ENABLE_RENDER}
+          r_GUI_GetMaxFontSize(FBigFont, fw, fh);
+          h := h + fh;
+        {$ENDIF}
       end;
     end;
   end;
@@ -1585,8 +1600,12 @@ begin
       else if ControlType = TGUIMemo then Inc(h, (Control as TGUIMemo).GetHeight+MENU_VSPACE)
       else
       begin
-        r_GUI_GetMaxFontSize(FBigFont, fw, fh);
-        h := h + fh + MENU_VSPACE;
+        {$IFDEF ENABLE_RENDER}
+          r_GUI_GetMaxFontSize(FBigFont, fw, fh);
+          h := h + fh + MENU_VSPACE;
+        {$ELSE}
+          h := h + MENU_VSPACE;
+        {$ENDIF}
       end;
     end;
   end;
@@ -2206,7 +2225,9 @@ end;
 { TGUIKeyRead2 }
 
 constructor TGUIKeyRead2.Create(BigFont: Boolean);
-  var a: Byte; w, h: Integer;
+  {$IFDEF ENABLE_RENDER}
+    var a: Byte; w, h: Integer;
+  {$ENDIF}
 begin
   inherited Create();
 
@@ -2219,21 +2240,18 @@ begin
 
   FMaxKeyNameWdt := 0;
 
-  FMaxKeyNameWdt := 0;
-
-  for a := 0 to 255 do
-  begin
-    r_GUI_GetStringSize(BigFont, e_KeyNames[a], w, h);
-    FMaxKeyNameWdt := Max(FMaxKeyNameWdt, w);
-  end;
-
-  FMaxKeyNameWdt := FMaxKeyNameWdt-(FMaxKeyNameWdt div 3);
-
-  r_GUI_GetStringSize(BigFont, KEYREAD_QUERY, w, h);
-  if w > FMaxKeyNameWdt then FMaxKeyNameWdt := w;
-
-  r_GUI_GetStringSize(BigFont, KEYREAD_CLEAR, w, h);
-  if w > FMaxKeyNameWdt then FMaxKeyNameWdt := w;
+  {$IFDEF ENABLE_RENDER}
+    for a := 0 to 255 do
+    begin
+      r_GUI_GetStringSize(BigFont, e_KeyNames[a], w, h);
+      FMaxKeyNameWdt := Max(FMaxKeyNameWdt, w);
+    end;
+    FMaxKeyNameWdt := FMaxKeyNameWdt-(FMaxKeyNameWdt div 3);
+    r_GUI_GetStringSize(BigFont, KEYREAD_QUERY, w, h);
+    if w > FMaxKeyNameWdt then FMaxKeyNameWdt := w;
+    r_GUI_GetStringSize(BigFont, KEYREAD_CLEAR, w, h);
+    if w > FMaxKeyNameWdt then FMaxKeyNameWdt := w;
+  {$ENDIF}
 end;
 
 function TGUIKeyRead2.WantActivationKey (key: LongInt): Boolean;

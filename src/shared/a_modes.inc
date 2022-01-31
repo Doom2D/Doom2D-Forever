@@ -308,12 +308,6 @@
   {$ENDIF}
 {$ENDIF}
 
-{$IFDEF ENABLE_MENU}
-  {$IFDEF DISABLE_RENDER}
-    {$FATAL Render driver required for current menu implementation}
-  {$ENDIF}
-{$ENDIF}
-
 {$IFDEF ENABLE_TOUCH}
   {$IFDEF DISABLE_SYSTEM}
     {$FATAL System driver required for current touch implementation}

@@ -161,6 +161,11 @@ uses
     {$ENDIF}
   {$ENDIF}
 
+  {$IFDEF ENABLE_MENU}
+    g_gui in 'g_gui.pas',
+    g_menu in 'g_menu.pas',
+  {$ENDIF}
+
 {$IFDEF ENABLE_RENDER}
   {$I ../shared/vampimg.inc}
   r_animations in 'opengl/r_animations.pas',
@@ -185,8 +190,6 @@ uses
     r_touch in 'opengl/r_touch.pas',
   {$ENDIF}
   {$IFDEF ENABLE_MENU}
-    g_gui in 'g_gui.pas',
-    g_menu in 'g_menu.pas',
     r_gui in 'opengl/r_gui.pas',
   {$ENDIF}
 {$ENDIF}

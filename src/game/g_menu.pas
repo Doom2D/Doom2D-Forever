@@ -1878,7 +1878,11 @@ begin
 
   with TGUIListBox(menu.GetControl('lsResolution')) do
   begin
-    list := sys_GetDisplayModes(gBPP);
+    {$IFDEF ENABLE_SYSTEM}
+      list := sys_GetDisplayModes(gBPP);
+    {$ELSE}
+      list := nil;
+    {$ENDIF}
     if list <> nil then
     begin
       Items := list;
