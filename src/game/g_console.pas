@@ -74,7 +74,11 @@ function conGetBoolArg (p: SSArray; idx: Integer): Integer;
 function conParseFloat (var res: Single; const s: AnsiString): Boolean;
 
 const
-  defaultConfigScript = 'dfconfig.cfg';
+  {$IFDEF HEADLESS}
+    defaultConfigScript = 'dfserver.cfg';
+  {$ELSE}
+    defaultConfigScript = 'dfconfig.cfg';
+  {$ENDIF}
 
 var
   gConsoleShow: Boolean = false; // True - консоль открыта или открывается
