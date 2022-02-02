@@ -19,7 +19,7 @@ interface
 
 uses
   SysUtils, Classes,
-  MAPDEF, g_textures, g_phys, g_saveload;
+  MAPDEF, g_phys, g_saveload;
 
 Type
   PItem = ^TItem;
@@ -39,7 +39,6 @@ Type
     QuietRespawn: Boolean;
     SpawnTrigger: Integer;
     Obj: TObj;
-    Animation: TAnimationState;
     dropped: Boolean; // dropped from the monster? drops should be rendered after corpses, so zombie corpse will not obscure ammo container, for example
     NeedSend: Boolean;
 
@@ -238,11 +237,6 @@ begin
   if not it.slotIsUsed then raise Exception.Create('releaseItem: trying to release unallocated item (1)');
   if (it.arrIdx <> idx) then raise Exception.Create('releaseItem: arrIdx inconsistency');
   it.slotIsUsed := false;
-  if (it.Animation <> nil) then
-  begin
-    it.Animation.Free();
-    it.Animation := nil;
-  end;
   it.alive := False;
   it.SpawnTrigger := -1;
   it.ItemType := ITEM_NONE;
@@ -266,7 +260,6 @@ begin
     it.slotIsUsed := false;
     it.arrIdx := i;
     it.ItemType := ITEM_NONE;
-    it.Animation := nil;
     it.alive := false;
     it.SpawnTrigger := -1;
     it.Respawnable := false;
@@ -323,14 +316,9 @@ end;
 
 
 procedure g_Items_Free ();
-var
-  i: Integer;
 begin
   if (ggItems <> nil) then
-  begin
-    for i := 0 to High(ggItems) do ggItems[i].Animation.Free();
     ggItems := nil;
-  end;
   freeIds.clear();
 end;
 
@@ -368,7 +356,6 @@ begin
   it.Obj.Rect.Width := ITEMSIZE[ItemType][0];
   it.Obj.Rect.Height := ITEMSIZE[ItemType][1];
 
-  it.Animation := nil;
   it.SpawnTrigger := -1;
 
   // Координаты относительно центра нижнего ребра
@@ -385,19 +372,6 @@ begin
 
   it.Obj.oldX := it.Obj.X;
   it.Obj.oldY := it.Obj.Y;
-
-  // Установка анимации
-  case it.ItemType of
-    ITEM_ARMOR_GREEN: it.Animation := TAnimationState.Create(True, 20, 3);
-    ITEM_ARMOR_BLUE: it.Animation := TAnimationState.Create(True, 20, 3);
-    ITEM_JETPACK: it.Animation := TAnimationState.Create(True, 15, 3);
-    ITEM_SPHERE_BLUE: it.Animation := TAnimationState.Create(True, 15, 4);
-    ITEM_SPHERE_WHITE: it.Animation := TAnimationState.Create(True, 20, 4);
-    ITEM_INVUL: it.Animation := TAnimationState.Create(True, 20, 4);
-    ITEM_INVIS: it.Animation := TAnimationState.Create(True, 20, 4);
-    ITEM_BOTTLE: it.Animation := TAnimationState.Create(True, 20, 4);
-    ITEM_HELMET: it.Animation := TAnimationState.Create(True, 20, 4);
-  end;
 
   it.positionChanged();
 
@@ -536,8 +510,6 @@ begin
           QuietRespawn := false;
         end;
       end;
-
-      if (Animation <> nil) then Animation.Update();
     end;
   end;
 end;

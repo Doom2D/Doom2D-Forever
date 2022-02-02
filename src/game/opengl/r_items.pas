@@ -23,24 +23,79 @@ interface
   procedure r_Items_Free;
   procedure r_Items_Draw;
   procedure r_Items_DrawDrop;
-
-  var
-    gItemsTexturesID: Array [1..ITEM_MAX] of DWORD;
+  procedure r_Items_Update;
 
 implementation
 
   uses
     SysUtils, Classes, Math,
     r_graphics, r_animations, r_textures,
-    g_base, g_basic, g_game, g_options,
+    g_base, g_basic, g_game, g_options, g_textures,
     g_items
   ;
 
   var
-    itemFrames: Array [0..ITEM_MAX] of DWORD;
+    items: Array [0..ITEM_MAX] of record
+      id: DWORD;
+      anim: TAnimState;
+    end;
+
+  procedure LoadItem (i: Integer; name: String; w, h, delay, n: Integer; backanim: Boolean);
+  begin
+    g_Frames_CreateWAD(@items[i].id, '', GameWAD + ':TEXTURES\' + name, w, h, n, backanim);
+    if backanim then n := n * 2 - 2;
+    items[i].anim := TAnimState.Create(True, delay, n);
+  end;
 
   procedure r_Items_Load;
+    var i: Integer;
   begin
+    //       i                            name           w    h    d  n  backanim
+    LoadItem(ITEM_NONE,                  'NOTEXTURE',    16,  16,  0, 1, False);
+    LoadItem(ITEM_MEDKIT_SMALL,          'MED1',         16,  16,  0, 1, False);
+    LoadItem(ITEM_MEDKIT_LARGE,          'MED2',         32,  32,  0, 1, False);
+    LoadItem(ITEM_MEDKIT_BLACK,          'BMED',         32,  32,  0, 1, False);
+    LoadItem(ITEM_ARMOR_GREEN,           'ARMORGREEN',   32,  16, 20, 3, True);
+    LoadItem(ITEM_ARMOR_BLUE,            'ARMORBLUE',    32,  16, 20, 3, True);
+    LoadItem(ITEM_SPHERE_BLUE,           'SBLUE',        32,  32, 15, 4, True);
+    LoadItem(ITEM_SPHERE_WHITE,          'SWHITE',       32,  32, 20, 4, True);
+    LoadItem(ITEM_SUIT,                  'SUIT',         32,  64,  0, 1, False);
+    LoadItem(ITEM_OXYGEN,                'OXYGEN',       16,  32,  0, 1, False);
+    LoadItem(ITEM_INVUL,                 'INVUL',        32,  32, 20, 4, True);
+    LoadItem(ITEM_WEAPON_SAW,            'SAW',          64,  32,  0, 1, False);
+    LoadItem(ITEM_WEAPON_SHOTGUN1,       'SHOTGUN1',     64,  16,  0, 1, False);
+    LoadItem(ITEM_WEAPON_SHOTGUN2,       'SHOTGUN2',     64,  16,  0, 1, False);
+    LoadItem(ITEM_WEAPON_CHAINGUN,       'MGUN',         64,  16,  0, 1, False);
+    LoadItem(ITEM_WEAPON_ROCKETLAUNCHER, 'RLAUNCHER',    64,  16,  0, 1, False);
+    LoadItem(ITEM_WEAPON_PLASMA,         'PGUN',         64,  16,  0, 1, False);
+    LoadItem(ITEM_WEAPON_BFG,            'BFG',          64,  64,  0, 1, False);
+    LoadItem(ITEM_WEAPON_SUPERPULEMET,   'SPULEMET',     64,  16,  0, 1, False);
+    LoadItem(ITEM_AMMO_BULLETS,          'CLIP',         16,  16,  0, 1, False);
+    LoadItem(ITEM_AMMO_BULLETS_BOX,      'AMMO',         32,  16,  0, 1, False);
+    LoadItem(ITEM_AMMO_SHELLS,           'SHELL1',       16,   8,  0, 1, False);
+    LoadItem(ITEM_AMMO_SHELLS_BOX,       'SHELL2',       32,  16,  0, 1, False);
+    LoadItem(ITEM_AMMO_ROCKET,           'ROCKET',       16,  32,  0, 1, False);
+    LoadItem(ITEM_AMMO_ROCKET_BOX,       'ROCKETS',      64,  32,  0, 1, False);
+    LoadItem(ITEM_AMMO_CELL,             'CELL',         16,  16,  0, 1, False);
+    LoadItem(ITEM_AMMO_CELL_BIG,         'CELL2',        32,  32,  0, 1, False);
+    LoadItem(ITEM_AMMO_BACKPACK,         'BPACK',        32,  32,  0, 1, False);
+    LoadItem(ITEM_KEY_RED,               'KEYR',         16,  16,  0, 1, False);
+    LoadItem(ITEM_KEY_GREEN,             'KEYG',         16,  16,  0, 1, False);
+    LoadItem(ITEM_KEY_BLUE,              'KEYB',         16,  16,  0, 1, False);
+    LoadItem(ITEM_WEAPON_KASTET,         'KASTET',       64,  32,  0, 1, False);
+    LoadItem(ITEM_WEAPON_PISTOL,         'PISTOL',       64,  16,  0, 1, False);
+    LoadItem(ITEM_BOTTLE,                'BOTTLE',       64,  32, 20, 4, True);
+    LoadItem(ITEM_HELMET,                'HELMET',       64,  16, 20, 4, True);
+    LoadItem(ITEM_JETPACK,               'JETPACK',      96,  32, 15, 3, True);
+    LoadItem(ITEM_INVIS,                 'INVIS',        128, 32, 20, 4, True);
+    LoadItem(ITEM_WEAPON_FLAMETHROWER,   'FLAMETHROWER', 64,  32,  0, 1, False);
+    LoadItem(ITEM_AMMO_FUELCAN,          'FUELCAN',      16,  32,  0, 1, False);
+
+    // fill with NOTEXURE forgotten item
+    for i := ITEM_AMMO_FUELCAN + 1 to ITEM_MAX do
+      LoadItem(i,'NOTEXTURE',    16,  16,  0, 1, False);
+
+    // hud
     g_Frames_CreateWAD(nil, 'FRAMES_ITEM_BLUESPHERE', GameWAD+':TEXTURES\SBLUE', 32, 32, 4, True);
     g_Frames_CreateWAD(nil, 'FRAMES_ITEM_WHITESPHERE', GameWAD+':TEXTURES\SWHITE', 32, 32, 4, True);
     g_Frames_CreateWAD(nil, 'FRAMES_ITEM_ARMORGREEN', GameWAD+':TEXTURES\ARMORGREEN', 32, 16, 3, True);
@@ -84,93 +139,13 @@ implementation
     g_Texture_CreateWADEx('ITEM_SUIT', GameWAD+':TEXTURES\SUIT');
     g_Texture_CreateWADEx('ITEM_WEAPON_KASTET', GameWAD+':TEXTURES\KASTET');
     g_Texture_CreateWADEx('ITEM_MEDKIT_BLACK', GameWAD+':TEXTURES\BMED');
-    //
-    g_Texture_Get('ITEM_MEDKIT_SMALL',     gItemsTexturesID[ITEM_MEDKIT_SMALL]);
-    g_Texture_Get('ITEM_MEDKIT_LARGE',     gItemsTexturesID[ITEM_MEDKIT_LARGE]);
-    g_Texture_Get('ITEM_MEDKIT_BLACK',     gItemsTexturesID[ITEM_MEDKIT_BLACK]);
-    g_Texture_Get('ITEM_SUIT',             gItemsTexturesID[ITEM_SUIT]);
-    g_Texture_Get('ITEM_OXYGEN',           gItemsTexturesID[ITEM_OXYGEN]);
-    g_Texture_Get('ITEM_WEAPON_SAW',       gItemsTexturesID[ITEM_WEAPON_SAW]);
-    g_Texture_Get('ITEM_WEAPON_SHOTGUN1',  gItemsTexturesID[ITEM_WEAPON_SHOTGUN1]);
-    g_Texture_Get('ITEM_WEAPON_SHOTGUN2',  gItemsTexturesID[ITEM_WEAPON_SHOTGUN2]);
-    g_Texture_Get('ITEM_WEAPON_CHAINGUN',  gItemsTexturesID[ITEM_WEAPON_CHAINGUN]);
-    g_Texture_Get('ITEM_WEAPON_ROCKETLAUNCHER', gItemsTexturesID[ITEM_WEAPON_ROCKETLAUNCHER]);
-    g_Texture_Get('ITEM_WEAPON_PLASMA',    gItemsTexturesID[ITEM_WEAPON_PLASMA]);
-    g_Texture_Get('ITEM_WEAPON_BFG',       gItemsTexturesID[ITEM_WEAPON_BFG]);
-    g_Texture_Get('ITEM_WEAPON_SUPERPULEMET', gItemsTexturesID[ITEM_WEAPON_SUPERPULEMET]);
-    g_Texture_Get('ITEM_WEAPON_FLAMETHROWER', gItemsTexturesID[ITEM_WEAPON_FLAMETHROWER]);
-    g_Texture_Get('ITEM_AMMO_BULLETS',     gItemsTexturesID[ITEM_AMMO_BULLETS]);
-    g_Texture_Get('ITEM_AMMO_BULLETS_BOX', gItemsTexturesID[ITEM_AMMO_BULLETS_BOX]);
-    g_Texture_Get('ITEM_AMMO_SHELLS',      gItemsTexturesID[ITEM_AMMO_SHELLS]);
-    g_Texture_Get('ITEM_AMMO_SHELLS_BOX',  gItemsTexturesID[ITEM_AMMO_SHELLS_BOX]);
-    g_Texture_Get('ITEM_AMMO_ROCKET',      gItemsTexturesID[ITEM_AMMO_ROCKET]);
-    g_Texture_Get('ITEM_AMMO_ROCKET_BOX',  gItemsTexturesID[ITEM_AMMO_ROCKET_BOX]);
-    g_Texture_Get('ITEM_AMMO_CELL',        gItemsTexturesID[ITEM_AMMO_CELL]);
-    g_Texture_Get('ITEM_AMMO_CELL_BIG',    gItemsTexturesID[ITEM_AMMO_CELL_BIG]);
-    g_Texture_Get('ITEM_AMMO_FUELCAN',     gItemsTexturesID[ITEM_AMMO_FUELCAN]);
-    g_Texture_Get('ITEM_AMMO_BACKPACK',    gItemsTexturesID[ITEM_AMMO_BACKPACK]);
-    g_Texture_Get('ITEM_KEY_RED',          gItemsTexturesID[ITEM_KEY_RED]);
-    g_Texture_Get('ITEM_KEY_GREEN',        gItemsTexturesID[ITEM_KEY_GREEN]);
-    g_Texture_Get('ITEM_KEY_BLUE',         gItemsTexturesID[ITEM_KEY_BLUE]);
-    g_Texture_Get('ITEM_WEAPON_KASTET',    gItemsTexturesID[ITEM_WEAPON_KASTET]);
-    g_Texture_Get('ITEM_WEAPON_PISTOL',    gItemsTexturesID[ITEM_WEAPON_PISTOL]);
-    // Frames
-    g_Frames_Get(itemFrames[ITEM_ARMOR_GREEN], 'FRAMES_ITEM_ARMORGREEN');
-    g_Frames_Get(itemFrames[ITEM_ARMOR_BLUE], 'FRAMES_ITEM_ARMORBLUE');
-    g_Frames_Get(itemFrames[ITEM_JETPACK], 'FRAMES_ITEM_JETPACK');
-    g_Frames_Get(itemFrames[ITEM_SPHERE_BLUE], 'FRAMES_ITEM_BLUESPHERE');
-    g_Frames_Get(itemFrames[ITEM_SPHERE_WHITE], 'FRAMES_ITEM_WHITESPHERE');
-    g_Frames_Get(itemFrames[ITEM_INVUL], 'FRAMES_ITEM_INVUL');
-    g_Frames_Get(itemFrames[ITEM_INVIS], 'FRAMES_ITEM_INVIS');
-    g_Frames_Get(itemFrames[ITEM_BOTTLE], 'FRAMES_ITEM_BOTTLE');
-    g_Frames_Get(itemFrames[ITEM_HELMET], 'FRAMES_ITEM_HELMET');
   end;
 
   procedure r_Items_Free;
+    var i: Integer;
   begin
-    g_Frames_DeleteByName('FRAMES_ITEM_BLUESPHERE');
-    g_Frames_DeleteByName('FRAMES_ITEM_WHITESPHERE');
-    g_Frames_DeleteByName('FRAMES_ITEM_ARMORGREEN');
-    g_Frames_DeleteByName('FRAMES_ITEM_ARMORBLUE');
-    g_Frames_DeleteByName('FRAMES_ITEM_JETPACK');
-    g_Frames_DeleteByName('FRAMES_ITEM_INVUL');
-    g_Frames_DeleteByName('FRAMES_ITEM_INVIS');
-    g_Frames_DeleteByName('FRAMES_ITEM_RESPAWN');
-    g_Frames_DeleteByName('FRAMES_ITEM_BOTTLE');
-    g_Frames_DeleteByName('FRAMES_ITEM_HELMET');
-    g_Frames_DeleteByName('FRAMES_FLAG_RED');
-    g_Frames_DeleteByName('FRAMES_FLAG_BLUE');
-    g_Frames_DeleteByName('FRAMES_FLAG_DOM');
-    g_Texture_Delete('ITEM_MEDKIT_SMALL');
-    g_Texture_Delete('ITEM_MEDKIT_LARGE');
-    g_Texture_Delete('ITEM_WEAPON_SAW');
-    g_Texture_Delete('ITEM_WEAPON_PISTOL');
-    g_Texture_Delete('ITEM_WEAPON_KASTET');
-    g_Texture_Delete('ITEM_WEAPON_SHOTGUN1');
-    g_Texture_Delete('ITEM_WEAPON_SHOTGUN2');
-    g_Texture_Delete('ITEM_WEAPON_CHAINGUN');
-    g_Texture_Delete('ITEM_WEAPON_ROCKETLAUNCHER');
-    g_Texture_Delete('ITEM_WEAPON_PLASMA');
-    g_Texture_Delete('ITEM_WEAPON_BFG');
-    g_Texture_Delete('ITEM_WEAPON_SUPERPULEMET');
-    g_Texture_Delete('ITEM_WEAPON_FLAMETHROWER');
-    g_Texture_Delete('ITEM_AMMO_BULLETS');
-    g_Texture_Delete('ITEM_AMMO_BULLETS_BOX');
-    g_Texture_Delete('ITEM_AMMO_SHELLS');
-    g_Texture_Delete('ITEM_AMMO_SHELLS_BOX');
-    g_Texture_Delete('ITEM_AMMO_ROCKET');
-    g_Texture_Delete('ITEM_AMMO_ROCKET_BOX');
-    g_Texture_Delete('ITEM_AMMO_CELL');
-    g_Texture_Delete('ITEM_AMMO_CELL_BIG');
-    g_Texture_Delete('ITEM_AMMO_FUELCAN');
-    g_Texture_Delete('ITEM_AMMO_BACKPACK');
-    g_Texture_Delete('ITEM_KEY_RED');
-    g_Texture_Delete('ITEM_KEY_GREEN');
-    g_Texture_Delete('ITEM_KEY_BLUE');
-    g_Texture_Delete('ITEM_OXYGEN');
-    g_Texture_Delete('ITEM_SUIT');
-    g_Texture_Delete('ITEM_WEAPON_KASTET');
-    g_Texture_Delete('ITEM_MEDKIT_BLACK');
+    for i := 0 to ITEM_MAX do
+      g_Frames_DeleteByID(items[i].id);
   end;
 
 procedure itemsDrawInternal (dropflag: Boolean);
@@ -192,14 +167,8 @@ begin
       if g_Collide(Obj.X, Obj.Y, Obj.Rect.Width, Obj.Rect.Height, sX, sY, sWidth, sHeight) then
       begin
         Obj.lerp(gLerpFactor, fX, fY);
-        if (Animation = nil) then
-        begin
-          e_Draw(gItemsTexturesID[ItemType], fX, fY, 0, true, false);
-        end
-        else if itemFrames[it.ItemType] <> 0 then
-        begin
-          r_AnimationState_Draw(itemFrames[it.ItemType], Animation, fX, fY, 0, TMirrorType.None, False)
-        end;
+
+        r_AnimState_Draw(items[it.ItemType].id, items[it.ItemType].anim, fX, fY, 0, TMirrorType.None, False);
 
         if g_debug_Frames then
         begin
@@ -223,5 +192,12 @@ procedure r_Items_DrawDrop;
 begin
   itemsDrawInternal(true);
 end;
+
+  procedure r_Items_Update;
+    var i: Integer;
+  begin
+    for i := 0 to ITEM_MAX do
+      items[i].anim.Update;
+  end;
 
 end.

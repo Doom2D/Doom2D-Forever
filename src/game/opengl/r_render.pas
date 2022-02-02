@@ -288,6 +288,7 @@ implementation
     r_Map_Update;
     r_PlayerModel_Update;
     r_Console_Update;
+    r_Items_Update;
   end;
 
   procedure r_Render_Draw;
