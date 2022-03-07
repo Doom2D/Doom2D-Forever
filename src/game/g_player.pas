@@ -4927,7 +4927,7 @@ begin
       DoLerp(4);
 
   if NetServer then
-    if FClientID >= 0 then
+    if (FClientID >= 0) and (NetClients[FClientID].Peer <> nil) then
     begin
       FPing := NetClients[FClientID].Peer^.lastRoundTripTime;
       if NetClients[FClientID].Peer^.packetsSent > 0 then
