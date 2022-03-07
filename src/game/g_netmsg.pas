@@ -137,6 +137,7 @@ const
 
 // HOST MESSAGES
 
+procedure MH_MalformedPacket(C: pTNetClient);
 procedure MH_ProcessFirstSpawn (C: pTNetClient);
 
 procedure MH_RECV_Info(C: pTNetClient; var M: TMsg);
@@ -336,18 +337,34 @@ end;
 
 // GAME
 
+procedure MH_MalformedPacket(C: pTNetClient);
+begin
+  g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
+    _lc[I_NET_DISC_PROTOCOL]);
+  enet_peer_disconnect(C^.Peer, NET_DISC_PROTOCOL);
+end;
+
 procedure MH_RECV_Chat(C: pTNetClient; var M: TMsg);
 var
   Txt: string;
   Mode: Byte;
   PID: Word;
   Pl: TPlayer;
+  Err: Boolean;
 begin
   PID := C^.Player;
   Pl := g_Player_Get(PID);
 
-  Txt := M.ReadString();
-  Mode := M.ReadByte();
+  Err := False;
+  try
+    Txt := M.ReadString();
+    Mode := M.ReadByte();
+  except
+    Err := True;
+  end;
+
+  if Err then begin MH_MalformedPacket(C); Exit; end;
+
   if (Mode = NET_CHAT_SYSTEM) then
     Mode := NET_CHAT_PLAYER; // prevent sending system messages from clients
   if (Mode = NET_CHAT_TEAM) and (not gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
@@ -366,15 +383,23 @@ var
   PID: Word;
   Color: TRGB;
   I: Integer;
+  Err: Boolean;
 begin
-  Ver := M.ReadString();
-  Pw := M.ReadString();
-  PName := M.ReadString();
-  Model := M.ReadString();
-  R := M.ReadByte();
-  G := M.ReadByte();
-  B := M.ReadByte();
-  T := M.ReadByte();
+  Err := False;
+  try
+    Ver := M.ReadString();
+    Pw := M.ReadString();
+    PName := M.ReadString();
+    Model := M.ReadString();
+    R := M.ReadByte();
+    G := M.ReadByte();
+    B := M.ReadByte();
+    T := M.ReadByte();
+  except
+    Err := True;
+  end;
+
+  if Err then begin MH_MalformedPacket(C); Exit; end;
 
   if Ver <> GAME_VERSION then
   begin
@@ -530,11 +555,20 @@ var
   kByte: Word;
   Pl: TPlayer;
   GT: LongWord;
+  Err: Boolean;
 begin
   Result := 0;
+  Err := False;
   if not gGameOn then Exit;
 
-  GT := M.ReadLongWord();
+  try
+    GT := M.ReadLongWord();
+  except
+    Err := True;
+  end;
+
+  if Err then begin MH_MalformedPacket(C); Exit; end;
+
   PID := C^.Player;
   Pl := g_Player_Get(PID);
   if Pl = nil then
@@ -545,10 +579,17 @@ begin
   with Pl do
   begin
     NetTime := GT;
-    kByte := M.ReadWord();
-    Dir := M.ReadByte();
-    WeaponAct := M.ReadByte();
-    WeaponSelect := M.ReadWord();
+    try
+      kByte := M.ReadWord();
+      Dir := M.ReadByte();
+      WeaponAct := M.ReadByte();
+      WeaponSelect := M.ReadWord();
+    except
+      Err := True;
+    end;
+
+    if Err then begin MH_MalformedPacket(C); Exit; end;
+
     //e_WriteLog(Format('R:ws=%d', [WeaponSelect]), MSG_WARNING);
     if Direction <> TDirection(Dir) then
       JustTeleported := False;
@@ -596,11 +637,19 @@ procedure MH_RECV_CheatRequest(C: pTNetClient; var M: TMsg);
 var
   CheatKind: Byte;
   Pl: TPlayer;
+  Err: Boolean;
 begin
+  Err := False;
   Pl := g_Player_Get(C^.Player);
   if Pl = nil then Exit;
 
-  CheatKind := M.ReadByte();
+  try
+    CheatKind := M.ReadByte();
+  except
+    Err := True;
+  end;
+
+  if Err then begin MH_MalformedPacket(C); Exit; end;
 
   case CheatKind of
     NET_CHEAT_SUICIDE:
@@ -644,13 +693,21 @@ var
   TmpColor: TRGB;
   TmpTeam: Byte;
   Pl: TPlayer;
+  Err: Boolean;
 begin
-  TmpName := M.ReadString();
-  TmpModel := M.ReadString();
-  TmpColor.R := M.ReadByte();
-  TmpColor.G := M.ReadByte();
-  TmpColor.B := M.ReadByte();
-  TmpTeam := M.ReadByte();
+  Err := False;
+  try
+    TmpName := M.ReadString();
+    TmpModel := M.ReadString();
+    TmpColor.R := M.ReadByte();
+    TmpColor.G := M.ReadByte();
+    TmpColor.B := M.ReadByte();
+    TmpTeam := M.ReadByte();
+  except
+    Err := True;
+  end;
+
+  if Err then begin MH_MalformedPacket(C); Exit; end;
 
   Pl := g_Player_Get(C^.Player);
   if Pl = nil then Exit;
@@ -677,8 +734,15 @@ end;
 procedure MH_RECV_RCONPassword(C: pTNetClient; var M: TMsg);
 var
   Pwd: string;
+  Err: Boolean;
 begin
-  Pwd := M.ReadString();
+  Err := False;
+  try
+    Pwd := M.ReadString();
+  except
+    Err := True;
+  end;
+  if Err then begin MH_MalformedPacket(C); Exit; end;
   if not NetAllowRCON then Exit;
   if Pwd = NetRCONPassword then
   begin
@@ -692,8 +756,15 @@ end;
 procedure MH_RECV_RCONCommand(C: pTNetClient; var M: TMsg);
 var
   Cmd: string;
+  Err: Boolean;
 begin
-  Cmd := M.ReadString();
+  Err := False;
+  try
+    Cmd := M.ReadString();
+  except
+    Err := True;
+  end;
+  if Err then begin MH_MalformedPacket(C); Exit; end;
   if not NetAllowRCON then Exit;
   if not C^.RCONAuth then
   begin
@@ -711,9 +782,17 @@ var
   Name, Command: string;
   Need: Integer;
   Pl: TPlayer;
+  Err: Boolean;
 begin
-  Start := M.ReadByte() <> 0;
-  Command := M.ReadString();
+  Err := False;
+  try
+    Start := M.ReadByte() <> 0;
+    Command := M.ReadString();
+  except
+    Err := True;
+  end;
+
+  if Err then begin MH_MalformedPacket(C); Exit; end;
 
   Pl := g_Player_Get(C^.Player);
   if Pl = nil then Exit;
