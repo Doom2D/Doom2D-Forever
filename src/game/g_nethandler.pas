@@ -40,23 +40,30 @@ var
   MSize: LongWord;
   MHandled: Boolean = false;
   NetMsg: TMsg;
+  Err: Boolean;
 begin
   if not NetMsg.Init(P^.data, P^.dataLength, True) then
     Exit;
 
+  Err := False;
   MNext := 0;
 
-  while NetMsg.BytesLeft() > 0 do
+  while (NetMsg.BytesLeft() > 0) and (not Err) do
   begin
-    MSize := NetMsg.ReadLongWord();
-    MNext := NetMsg.ReadCount + MSize;
-    MHandled := Handler(NetMsg); // TODO: maybe do something with this bool
-    NetMsg.Seek(MNext);
+    try
+      MSize := NetMsg.ReadLongWord();
+      MNext := NetMsg.ReadCount + MSize;
+      MHandled := Handler(NetMsg); // TODO: maybe do something with this bool
+      NetMsg.Seek(MNext);
+    except
+      Err := True;
+    end;
   end;
 
   MHandled := not MHandled; //k8: stfu, fpc!
 
   enet_packet_destroy(P);
+  //if Err then begin MC_MalformedPacket(S); Exit; end;
 end;
 
 procedure g_Net_Host_HandlePacket(S: pTNetClient; P: pENetPacket; Handler: TNetHostMsgHandler);
@@ -65,32 +72,48 @@ var
   MSize: LongWord;
   MHandled: Boolean = false;
   NetMsg: TMsg;
+  Err: Boolean;
 begin
   if not NetMsg.Init(P^.data, P^.dataLength, True) then
     Exit;
 
+  Err := False;
   MNext := 0;
 
-  while NetMsg.BytesLeft() > 0 do
+  while (NetMsg.BytesLeft() > 0) and (not Err) do
   begin
-    MSize := NetMsg.ReadLongWord();
-    MNext := NetMsg.ReadCount + MSize;
-    MHandled := Handler(S, NetMsg); // TODO: maybe do something with this bool
-    NetMsg.Seek(MNext);
+    try
+      MSize := NetMsg.ReadLongWord();
+      MNext := NetMsg.ReadCount + MSize;
+      MHandled := Handler(S, NetMsg); // TODO: maybe do something with this bool
+      NetMsg.Seek(MNext);
+    except
+      Err := True;
+    end;
   end;
 
   MHandled := not MHandled; //k8: stfu, fpc!
 
   enet_packet_destroy(P);
+  if Err then begin MH_MalformedPacket(S); Exit; end;
 end;
 
 
 function g_Net_ClientMsgHandler(NetMsg: TMsg): Boolean;
 var
   MID: Byte;
+  Err: Boolean;
 begin
   Result := True;
-  MID := NetMsg.ReadByte();
+  Err := False;
+  try
+    MID := NetMsg.ReadByte();
+  except
+    MID := 0;
+    Err := True;
+  end;
+
+  //if Err then begin MC_MalformedPacket(S); Exit; end;
 
   case MID of
     NET_MSG_CHAT:   MC_RECV_Chat(NetMsg);
@@ -146,9 +169,18 @@ end;
 function g_Net_ClientLightMsgHandler(NetMsg: TMsg): Boolean;
 var
   MID: Byte;
+  Err: Boolean;
 begin
   Result := True;
-  MID := NetMsg.ReadByte();
+  Err := False;
+  try
+    MID := NetMsg.ReadByte();
+  except
+    MID := 0;
+    Err := True;
+  end;
+
+  //if Err then begin MC_MalformedPacket(S); Exit; end;
 
   case MID of
     NET_MSG_GEVENT: MC_RECV_GameEvent(NetMsg);
@@ -164,9 +196,18 @@ end;
 function g_Net_HostMsgHandler(S: pTNetClient; NetMsg: TMsg): Boolean;
 var
   MID: Byte;
+  Err: Boolean;
 begin
   Result := True;
-  MID := NetMsg.ReadByte();
+  Err := False;
+  try
+    MID := NetMsg.ReadByte();
+  except
+    MID := 0;
+    Err := True;
+  end;
+
+  if Err then begin MH_MalformedPacket(S); Exit; end;
 
   case MID of
     NET_MSG_INFO: MH_RECV_Info(S, NetMsg);
