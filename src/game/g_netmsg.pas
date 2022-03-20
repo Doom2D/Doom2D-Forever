@@ -435,6 +435,13 @@ begin
       Exit;
     end;
 
+  if (C^.Player <> 0) then
+  begin
+    // already received info
+    g_Net_Penalize(C, 'client info spam');
+    Exit;
+  end;
+
   Color.R := R;
   Color.B := B;
   Color.G := G;

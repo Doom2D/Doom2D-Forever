@@ -105,6 +105,7 @@ type
     WaitForFirstSpawn: Boolean; // set to `true` in server, used to spawn a player on first full state request
     RCONAuth: Boolean;
     Voted:    Boolean;
+    Crimes:   Integer;
     Transfer: TNetFileTransfer; // only one transfer may be active
     NetOut:   array [0..1] of TMsg;
   end;
@@ -153,6 +154,10 @@ var
   NetClientCount: Byte = 0;
   NetMaxClients:  Byte = 255;
   NetBannedHosts: array of TBanRecord;
+
+  NetAutoBanLimit: Integer = 5;
+  NetAutoBanPerm:  Boolean = True;
+  NetAutoBanWarn:  Boolean = False;
 
   NetState:      Integer = NET_STATE_NONE;
 
@@ -222,6 +227,8 @@ function  g_Net_UnbanHost(IP: string): Boolean; overload;
 function  g_Net_UnbanHost(IP: LongWord): Boolean; overload;
 procedure g_Net_UnbanNonPermHosts();
 procedure g_Net_SaveBanList();
+
+procedure g_Net_Penalize(C: pTNetClient; Reason: string);
 
 procedure g_Net_DumpStart();
 procedure g_Net_DumpSendBuffer();
@@ -1555,6 +1562,8 @@ begin
       enet_peer_reset(NetClients[I].Peer);
       NetClients[I].Peer := nil;
       NetClients[I].Used := False;
+      NetClients[I].Player := 0;
+      NetClients[I].Crimes := 0;
       NetClients[I].NetOut[NET_UNRELIABLE].Free();
       NetClients[I].NetOut[NET_RELIABLE].Free();
     end;
@@ -1681,6 +1690,17 @@ begin
           Exit;
         end;
 
+        if g_Net_IsHostBanned(NetEvent.Peer^.address.host) then
+        begin
+          g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
+            _lc[I_NET_DISC_BAN]);
+          NetEvent.peer^.data := GetMemory(SizeOf(Byte));
+          Byte(NetEvent.peer^.data^) := 255;
+          enet_peer_disconnect(NetEvent.Peer, NET_DISC_BAN);
+          enet_host_flush(NetHost);
+          Exit;
+        end;
+
         ID := g_Net_FindSlot();
 
         if ID < 0 then
@@ -1698,6 +1718,8 @@ begin
         NetClients[ID].Peer^.data := GetMemory(SizeOf(Byte));
         Byte(NetClients[ID].Peer^.data^) := ID;
         NetClients[ID].State := NET_STATE_AUTH;
+        NetClients[ID].Player := 0;
+        NetClients[ID].Crimes := 0;
         NetClients[ID].RCONAuth := False;
         NetClients[ID].NetOut[NET_UNRELIABLE].Alloc(NET_BUFSIZE*2);
         NetClients[ID].NetOut[NET_RELIABLE].Alloc(NET_BUFSIZE*2);
@@ -1752,6 +1774,7 @@ begin
         TC^.State := NET_STATE_NONE;
         TC^.Peer := nil;
         TC^.Player := 0;
+        TC^.Crimes := 0;
         TC^.RequestedFullUpdate := False;
         TC^.WaitForFirstSpawn := False;
         TC^.NetOut[NET_UNRELIABLE].Free();
@@ -2200,6 +2223,31 @@ begin
   end
 end;
 
+procedure g_Net_Penalize(C: pTNetClient; Reason: string);
+var
+  s: string;
+begin
+  e_LogWritefln('NET: client #%u (cid #%u) triggered a penalty (%d/%d): %s',
+    [C^.ID, C^.Player, C^.Crimes, NetAutoBanLimit, Reason]);
+
+  if (NetAutoBanLimit <= 0) then Exit;
+
+  Inc(C^.Crimes);
+
+  if (NetAutoBanWarn) then
+    MH_SEND_Chat('You have been warned by the server: ' + Reason, NET_CHAT_SYSTEM, C^.ID);
+
+  if (C^.Crimes >= NetAutoBanLimit) then
+  begin
+    s := '#' + IntToStr(C^.ID); // can't be arsed
+    g_Net_BanHost(C^.Peer^.address.host, NetAutoBanPerm);
+    enet_peer_disconnect(C^.Peer, NET_DISC_BAN);
+    g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
+    MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
+    g_Net_Slist_ServerPlayerLeaves();
+  end;
+end;
+
 procedure g_Net_DumpStart();
 begin
   if NetMode = NET_SERVER then
@@ -2452,6 +2500,10 @@ initialization
   conRegVar('sv_update_interval', @NetUpdateRate, '', 'unreliable update interval');
   conRegVar('sv_reliable_interval', @NetRelupdRate, '', 'reliable update interval');
   conRegVar('sv_master_interval', @NetMasterRate, '', 'master server update interval');
+
+  conRegVar('sv_autoban_threshold', @NetAutoBanLimit, '', 'max crimes before autoban (0 = no autoban)');
+  conRegVar('sv_autoban_permanent', @NetAutoBanPerm, '', 'whether autobans are permanent');
+  conRegVar('sv_autoban_warn', @NetAutoBanWarn, '', 'send warnings to the client when he triggers penalties');
 
   conRegVar('net_master_list', @NetMasterList, '', 'list of master servers');
 
