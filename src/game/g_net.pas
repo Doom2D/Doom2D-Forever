@@ -162,7 +162,7 @@ var
   NetAutoBanWarn:  Boolean = False;
 
   NetAuthTimeout:   Integer = 36 * 15;
-  NetPacketTimeout: Integer = 36 * 30;
+  NetPacketTimeout: Integer = 36 * 60;
 
   NetState:      Integer = NET_STATE_NONE;
 
@@ -344,7 +344,6 @@ begin
             e_KeyPressed(JOY2_JUMP) or
             e_KeyPressed(JOY3_JUMP)
 end;
-
 
 //**************************************************************************
 //
@@ -1671,7 +1670,6 @@ procedure g_Net_Host_CheckTimeouts();
 var
   ID: Integer;
 begin
-  // auth timeout
   for ID := Low(NetClients) to High(NetClients) do
   begin
     with NetClients[ID] do
@@ -1689,8 +1687,54 @@ begin
       end;
     end;
   end;
+end;
 
+procedure g_Net_Host_Disconnect_Client(ID: Integer; Force: Boolean = False);
+var
+  TP: TPlayer;
+  TC: pTNetClient;
+begin
+  TC := @NetClients[ID];
+  if (TC = nil) then Exit;
+  clearNetClient(NetClients[ID]);
+  if not (TC^.Used) then Exit;
 
+  TP := g_Player_Get(TC^.Player);
+
+  if TP <> nil then
+  begin
+    TP.Lives := 0;
+    TP.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
+    g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [TP.Name]), True);
+    e_WriteLog('NET: Client ' + TP.Name + ' [' + IntToStr(TC^.ID) + '] disconnected.', TMsgType.Notify);
+    g_Player_Remove(TP.UID);
+  end;
+
+  if (Force) then
+    enet_peer_reset(TC^.Peer);
+
+  TC^.Used := False;
+  TC^.State := NET_STATE_NONE;
+  TC^.Peer := nil;
+  TC^.Player := 0;
+  TC^.Crimes := 0;
+  TC^.AuthTime := 0;
+  TC^.MsgTime := 0;
+  TC^.RequestedFullUpdate := False;
+  TC^.WaitForFirstSpawn := False;
+  TC^.NetOut[NET_UNRELIABLE].Free();
+  TC^.NetOut[NET_RELIABLE].Free();
+
+  if (NetEvent.peer^.data <> nil) then
+  begin
+    FreeMemory(NetEvent.peer^.data);
+    NetEvent.peer^.data := nil;
+  end;
+
+  g_Console_Add(_lc[I_NET_MSG] + Format(_lc[I_NET_MSG_HOST_DISC], [ID]));
+  Dec(NetClientCount);
+
+  if NetUseMaster then g_Net_Slist_ServerPlayerLeaves();
 end;
 
 
@@ -1700,7 +1744,6 @@ var
   Port: Word;
   ID: Integer;
   TC: pTNetClient;
-  TP: TPlayer;
 begin
   IP := '';
   Result := 0;
@@ -1811,41 +1854,7 @@ begin
       begin
         ID := Byte(NetEvent.peer^.data^);
         if ID > High(NetClients) then Exit;
-        clearNetClient(NetClients[ID]);
-        TC := @NetClients[ID];
-        if TC = nil then Exit;
-
-        if not (TC^.Used) then Exit;
-
-        TP := g_Player_Get(TC^.Player);
-
-        if TP <> nil then
-        begin
-          TP.Lives := 0;
-          TP.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
-          g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [TP.Name]), True);
-          e_WriteLog('NET: Client ' + TP.Name + ' [' + IntToStr(ID) + '] disconnected.', TMsgType.Notify);
-          g_Player_Remove(TP.UID);
-        end;
-
-        TC^.Used := False;
-        TC^.State := NET_STATE_NONE;
-        TC^.Peer := nil;
-        TC^.Player := 0;
-        TC^.Crimes := 0;
-        TC^.AuthTime := 0;
-        TC^.MsgTime := 0;
-        TC^.RequestedFullUpdate := False;
-        TC^.WaitForFirstSpawn := False;
-        TC^.NetOut[NET_UNRELIABLE].Free();
-        TC^.NetOut[NET_RELIABLE].Free();
-
-        FreeMemory(NetEvent.peer^.data);
-        NetEvent.peer^.data := nil;
-        g_Console_Add(_lc[I_NET_MSG] + Format(_lc[I_NET_MSG_HOST_DISC], [ID]));
-        Dec(NetClientCount);
-
-        if NetUseMaster then g_Net_Slist_ServerPlayerLeaves();
+        g_Net_Host_Disconnect_Client(ID);
       end;
     end;
   end;
@@ -2288,9 +2297,18 @@ var
   s: string;
 begin
   e_LogWritefln('NET: client #%u (cid #%u) triggered a penalty (%d/%d): %s',
-    [C^.ID, C^.Player, C^.Crimes, NetAutoBanLimit, Reason]);
+    [C^.ID, C^.Player, C^.Crimes + 1, NetAutoBanLimit, Reason]);
 
   if (NetAutoBanLimit <= 0) then Exit;
+
+  if (C^.Crimes >= NetAutoBanLimit) then
+  begin
+    // we have tried asking nicely before, now it is time to die
+    e_LogWritefln('NET: client #%u (cid #%u) force kicked',
+      [C^.ID, C^.Player]);
+    g_Net_Host_Disconnect_Client(C^.ID, True);
+    Exit;
+  end;
 
   Inc(C^.Crimes);
 
