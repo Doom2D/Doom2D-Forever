@@ -1678,11 +1678,14 @@ begin
         Port := NetEvent.Peer^.address.port;
         g_Console_Add(_lc[I_NET_MSG] +
           Format(_lc[I_NET_MSG_HOST_CONN], [IP, Port]));
+        e_WriteLog('NET: Connection request from ' + IP + '.', TMsgType.Notify);
 
         if (NetEvent.data <> NET_PROTOCOL_VER) then
         begin
           g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
             _lc[I_NET_DISC_PROTOCOL]);
+          e_WriteLog('NET: Connection request from ' + IP + ' rejected: version mismatch',
+            TMsgType.Notify);
           NetEvent.peer^.data := GetMemory(SizeOf(Byte));
           Byte(NetEvent.peer^.data^) := 255;
           enet_peer_disconnect(NetEvent.peer, NET_DISC_PROTOCOL);
@@ -1694,6 +1697,8 @@ begin
         begin
           g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
             _lc[I_NET_DISC_BAN]);
+          e_WriteLog('NET: Connection request from ' + IP + ' rejected: banned',
+            TMsgType.Notify);
           NetEvent.peer^.data := GetMemory(SizeOf(Byte));
           Byte(NetEvent.peer^.data^) := 255;
           enet_peer_disconnect(NetEvent.Peer, NET_DISC_BAN);
@@ -1707,6 +1712,8 @@ begin
         begin
           g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
             _lc[I_NET_DISC_FULL]);
+          e_WriteLog('NET: Connection request from ' + IP + ' rejected: server full',
+            TMsgType.Notify);
           NetEvent.Peer^.data := GetMemory(SizeOf(Byte));
           Byte(NetEvent.peer^.data^) := 255;
           enet_peer_disconnect(NetEvent.peer, NET_DISC_FULL);
