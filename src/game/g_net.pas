@@ -161,8 +161,8 @@ var
   NetAutoBanPerm:  Boolean = True;
   NetAutoBanWarn:  Boolean = False;
 
-  NetAuthTimeout:   Integer = 36 * 15;
-  NetPacketTimeout: Integer = 36 * 60;
+  NetAuthTimeout:   Integer = 15 * 1000;
+  NetPacketTimeout: Integer = 30 * 1000;
 
   NetState:      Integer = NET_STATE_NONE;
 
@@ -1678,12 +1678,12 @@ begin
       if (State = NET_STATE_AUTH) and (AuthTime > 0) and (AuthTime <= gTime) then
       begin
         g_Net_Penalize(@NetClients[ID], 'auth taking too long');
-        AuthTime := gTime + 18; // do it twice a second to give them a chance
+        AuthTime := gTime + 500; // do it twice a second to give them a chance
       end
       else if (State = NET_STATE_GAME) and (MsgTime > 0) and (MsgTime <= gTime) then
       begin
         g_Net_Penalize(@NetClients[ID], 'message timeout');
-        AuthTime := gTime + 18; // do it twice a second to give them a chance
+        AuthTime := gTime + 500; // do it twice a second to give them a chance
       end;
     end;
   end;
@@ -2583,8 +2583,8 @@ initialization
   conRegVar('sv_autoban_permanent', @NetAutoBanPerm, '', 'whether autobans are permanent');
   conRegVar('sv_autoban_warn', @NetAutoBanWarn, '', 'send warnings to the client when he triggers penalties');
 
-  conRegVar('sv_auth_timeout', @NetAuthTimeout, '', 'number of frames in which connecting clients must complete auth (0 = unlimited)');
-  conRegVar('sv_packet_timeout', @NetPacketTimeout, '', 'number of frames the client must idle to be kicked (0 = unlimited)');
+  conRegVar('sv_auth_timeout', @NetAuthTimeout, '', 'number of msec in which connecting clients must complete auth (0 = unlimited)');
+  conRegVar('sv_packet_timeout', @NetPacketTimeout, '', 'number of msec the client must idle to be kicked (0 = unlimited)');
 
   conRegVar('net_master_list', @NetMasterList, '', 'list of master servers');
 
