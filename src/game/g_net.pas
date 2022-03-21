@@ -1710,6 +1710,12 @@ begin
     g_Player_Remove(TP.UID);
   end;
 
+  if (TC^.Peer^.data <> nil) then
+  begin
+    FreeMemory(TC^.Peer^.data);
+    TC^.Peer^.data := nil;
+  end;
+
   if (Force) then
     enet_peer_reset(TC^.Peer);
 
@@ -1724,12 +1730,6 @@ begin
   TC^.WaitForFirstSpawn := False;
   TC^.NetOut[NET_UNRELIABLE].Free();
   TC^.NetOut[NET_RELIABLE].Free();
-
-  if (NetEvent.peer^.data <> nil) then
-  begin
-    FreeMemory(NetEvent.peer^.data);
-    NetEvent.peer^.data := nil;
-  end;
 
   g_Console_Add(_lc[I_NET_MSG] + Format(_lc[I_NET_MSG_HOST_DISC], [ID]));
   Dec(NetClientCount);
