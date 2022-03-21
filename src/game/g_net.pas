@@ -106,6 +106,8 @@ type
     RCONAuth: Boolean;
     Voted:    Boolean;
     Crimes:   Integer;
+    AuthTime: LongWord;
+    MsgTime:  LongWord;
     Transfer: TNetFileTransfer; // only one transfer may be active
     NetOut:   array [0..1] of TMsg;
   end;
@@ -158,6 +160,9 @@ var
   NetAutoBanLimit: Integer = 5;
   NetAutoBanPerm:  Boolean = True;
   NetAutoBanWarn:  Boolean = False;
+
+  NetAuthTimeout:   Integer = 36 * 15;
+  NetPacketTimeout: Integer = 36 * 30;
 
   NetState:      Integer = NET_STATE_NONE;
 
@@ -504,6 +509,12 @@ begin
     killClientByFT(nc^);
     exit;
   end;
+
+  // don't time out clients during a file transfer
+  if (NetAuthTimeout > 0) then
+    nc^.AuthTime := gTime + NetAuthTimeout;
+  if (NetPacketTimeout > 0) then
+    nc^.MsgTime := gTime + NetPacketTimeout;
 
   tf := @NetClients[nid].Transfer;
   tf.lastAckTime := GetTimerMS();
@@ -1564,6 +1575,8 @@ begin
       NetClients[I].Used := False;
       NetClients[I].Player := 0;
       NetClients[I].Crimes := 0;
+      NetClients[I].AuthTime := 0;
+      NetClients[I].MsgTime := 0;
       NetClients[I].NetOut[NET_UNRELIABLE].Free();
       NetClients[I].NetOut[NET_RELIABLE].Free();
     end;
@@ -1654,6 +1667,32 @@ begin
   end;
 end;
 
+procedure g_Net_Host_CheckTimeouts();
+var
+  ID: Integer;
+begin
+  // auth timeout
+  for ID := Low(NetClients) to High(NetClients) do
+  begin
+    with NetClients[ID] do
+    begin
+      if (Peer = nil) or (State = NET_STATE_NONE) then continue;
+      if (State = NET_STATE_AUTH) and (AuthTime > 0) and (AuthTime <= gTime) then
+      begin
+        g_Net_Penalize(@NetClients[ID], 'auth taking too long');
+        AuthTime := gTime + 18; // do it twice a second to give them a chance
+      end
+      else if (State = NET_STATE_GAME) and (MsgTime > 0) and (MsgTime <= gTime) then
+      begin
+        g_Net_Penalize(@NetClients[ID], 'message timeout');
+        AuthTime := gTime + 18; // do it twice a second to give them a chance
+      end;
+    end;
+  end;
+
+
+end;
+
 
 function g_Net_Host_Update(): enet_size_t;
 var
@@ -1668,6 +1707,7 @@ begin
 
   if NetUseMaster then g_Net_Slist_Pulse();
   g_Net_Host_CheckPings();
+  g_Net_Host_CheckTimeouts();
 
   while (enet_host_service(NetHost, @NetEvent, 0) > 0) do
   begin
@@ -1730,6 +1770,14 @@ begin
         NetClients[ID].RCONAuth := False;
         NetClients[ID].NetOut[NET_UNRELIABLE].Alloc(NET_BUFSIZE*2);
         NetClients[ID].NetOut[NET_RELIABLE].Alloc(NET_BUFSIZE*2);
+        if (NetAuthTimeout > 0) then
+          NetClients[ID].AuthTime := gTime + NetAuthTimeout
+        else
+          NetClients[ID].AuthTime := 0;
+        if (NetPacketTimeout > 0) then
+          NetClients[ID].MsgTime := gTime + NetPacketTimeout
+        else
+          NetClients[ID].MsgTime := 0;
         clearNetClientTransfers(NetClients[ID]); // just in case
 
         enet_peer_timeout(NetEvent.peer, ENET_PEER_TIMEOUT_LIMIT * 2, ENET_PEER_TIMEOUT_MINIMUM * 2, ENET_PEER_TIMEOUT_MAXIMUM * 2);
@@ -1750,6 +1798,9 @@ begin
           ID := Byte(NetEvent.peer^.data^);
           if ID > High(NetClients) then Exit;
           TC := @NetClients[ID];
+
+          if (NetPacketTimeout > 0) then
+            TC^.MsgTime := gTime + NetPacketTimeout;
 
           if NetDump then g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
           g_Net_Host_HandlePacket(TC, NetEvent.packet, g_Net_HostMsgHandler);
@@ -1782,6 +1833,8 @@ begin
         TC^.Peer := nil;
         TC^.Player := 0;
         TC^.Crimes := 0;
+        TC^.AuthTime := 0;
+        TC^.MsgTime := 0;
         TC^.RequestedFullUpdate := False;
         TC^.WaitForFirstSpawn := False;
         TC^.NetOut[NET_UNRELIABLE].Free();
@@ -2511,6 +2564,9 @@ initialization
   conRegVar('sv_autoban_threshold', @NetAutoBanLimit, '', 'max crimes before autoban (0 = no autoban)');
   conRegVar('sv_autoban_permanent', @NetAutoBanPerm, '', 'whether autobans are permanent');
   conRegVar('sv_autoban_warn', @NetAutoBanWarn, '', 'send warnings to the client when he triggers penalties');
+
+  conRegVar('sv_auth_timeout', @NetAuthTimeout, '', 'number of frames in which connecting clients must complete auth (0 = unlimited)');
+  conRegVar('sv_packet_timeout', @NetPacketTimeout, '', 'number of frames the client must idle to be kicked (0 = unlimited)');
 
   conRegVar('net_master_list', @NetMasterList, '', 'list of master servers');
 

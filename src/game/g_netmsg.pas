@@ -455,6 +455,7 @@ begin
 
   C^.Player := PID;
   C^.WaitForFirstSpawn := false;
+  C^.AuthTime := 0;
 
   g_Console_Add(Format(_lc[I_PLAYER_JOIN], [PName]), True);
   e_WriteLog('NET: Client ' + PName + ' [' + IntToStr(C^.ID) +
