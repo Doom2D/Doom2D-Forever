@@ -9,6 +9,7 @@
 
 #define MS_VERSION "0.2"
 #define MS_MAXSRVS 128
+#define MS_MAXHOST 5
 #define MS_MAXBANS 256
 #define MS_TIMEOUT 100
 #define MS_BANTIME (3 * 86400)
@@ -39,6 +40,8 @@
 #define LC_MS_NOBANS "\nCould not load ban list from file\n"
 #define LC_MS_BADADR "\nBad address in file: %s\n"
 #define LC_MS_BANHEUR "tripped heuristic check"
+#define LC_MS_BANTOOMUCH "created too many servers"
+#define LC_MS_BANSPAM "suspicious multiple server activity"
 #define LC_MS_BANLIST "address in ban list"
 #define LC_MS_OOM "\nOut of memory\n"
 
@@ -80,6 +83,7 @@ char ms_urgent[255] = "";
 
 int ms_port = 25660;
 int ms_timeout = 100;
+int ms_checkmultiple = 0;
 
 size_t b_read = 0;
 size_t b_write = 0;
@@ -162,7 +166,10 @@ void d_getargs (int argc, char *argv[]) {
       }
     } else if (!strcmp(argv[i], "-t") & (i + 1 < argc)) {
         ms_timeout = atoi(argv[++i]);
+    } else if (!strcmp(argv[i], "--check-multihost")) {
+        ms_checkmultiple = 1;
     }
+
   }
 }
 
@@ -386,7 +393,7 @@ int ban_heur (const ms_server *srv, const time_t now) {
   int score = 0;
 
   // can't have more than 24 maxplayers; can't have more than max
-  if (srv->s_plrs > srv->s_maxplrs || srv->s_maxplrs > 24)
+  if (srv->s_plrs > srv->s_maxplrs || srv->s_maxplrs > 24 || srv->s_maxplrs == 0)
     score += MS_MAXHEUR;
 
   // name and map have to be non-garbage
@@ -420,6 +427,24 @@ int ban_heur (const ms_server *srv, const time_t now) {
   return score;
 }
 
+void erase_banned_host(char* ip) {
+  for (int i = 0; i < MS_MAXSRVS; ++i) {
+    if (ms_srv[i].s_ip == ip) {
+      ms_srv[i].used = 0;
+    }
+  }
+}
+
+time_t get_sum_lasttime(char* ip) {
+  time_t sumLastTime = 0;
+  const time_t now = time(NULL);
+  for (int i = 0; i < MS_MAXSRVS; ++i) {
+    if (ms_srv[i].used && (strncmp(ip, ms_srv[i].s_ip, 16) == 0)) {
+      sumLastTime = sumLastTime + (now - ms_srv[i].lasttime);
+    }
+  }
+  return sumLastTime;
+}
 
 void ban_add (const ENetAddress *addr, const char *reason) {
   const time_t now = time(NULL);
@@ -433,12 +458,25 @@ void ban_add (const ENetAddress *addr, const char *reason) {
   printf(LC_MS_BANNED, rec->ip, d_strtime(rec->cur_ban), reason, rec->ban_count);
 
   ban_save_list(MS_BAN_FILE);
+  erase_banned_host(rec->ip);
 }
 
 
 void d_deinit(void) {
   ban_save_list(MS_BAN_FILE);
 }
+
+int count_servers(char* ip) {
+  int sameHostServers = 0;
+  for (int i = 0; i < MS_MAXSRVS; ++i) {
+    if ((strncmp(ip, ms_srv[i].s_ip, 16) == 0)) {
+      ++sameHostServers;
+    }
+  }
+  return sameHostServers;
+}
+
+
 
 
 int main (int argc, char *argv[]) {
@@ -551,6 +589,17 @@ int main (int argc, char *argv[]) {
                     break;
                   }
                 } else {
+                    int countServer = count_servers(ip);
+                    if (countServer > MS_MAXHOST) {
+                      ban_add(&(event.peer->address), LC_MS_BANTOOMUCH);
+                      break;
+                    }
+                    else if (ms_checkmultiple && countServer > 1) {
+                      if (get_sum_lasttime(ip) < (countServer*3)) {
+                        ban_add(&(event.peer->address), LC_MS_BANSPAM);
+                        break;
+                      }
+                    }
                     strncpy(ms_srv[i].s_ip, ip, sizeof(ms_srv[i].s_ip));
                     strncpy(ms_srv[i].s_map, map, sizeof(ms_srv[i].s_map));
                     strncpy(ms_srv[i].s_name, name, sizeof(ms_srv[i].s_name));
