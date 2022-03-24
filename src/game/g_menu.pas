@@ -170,6 +170,8 @@ begin
     TempScale := TGUIScroll(menu.GetControl('scScaleFactor')).Value;
     g_dbg_scale := TempScale + 1;
   end;
+  gWeaponAutoswitch := TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex = 0;
+
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsMenu').GetControl('mOptionsControlsMenu'));
 
@@ -594,6 +596,9 @@ begin
 
   TempScale := Round(g_dbg_scale - 1);
   TGUIScroll(menu.GetControl('scScaleFactor')).Value := TempScale;
+
+  with TGUISwitch(menu.GetControl('swWeaponAutoswitch')) do
+    if gWeaponAutoswitch then ItemIndex := 0 else ItemIndex := 1;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mOptionsPlayersP1Menu'));
 
@@ -2989,6 +2994,12 @@ begin
       Name := 'scScaleFactor';
       Max := 10;
       OnChange := ProcChangeGameSettings;
+    end;
+    with AddSwitch(_lc[I_MENU_GAME_WEAPON_AUTOSWITCH]) do
+    begin
+      Name := 'swWeaponAutoswitch';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
     end;
     ReAlign();
   end;

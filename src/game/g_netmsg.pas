@@ -2447,6 +2447,7 @@ var
   PID: Word;
   Pl: TPlayer;
   I, OldFire: Integer;
+  checkWeapon: Boolean;
   OldJet, Flam: Boolean;
   NewTeam: Byte;
 begin
@@ -2468,8 +2469,19 @@ begin
     NewTeam := M.ReadByte();
 
     for I := WP_FIRST to WP_LAST do
-      FWeapon[I] := (M.ReadByte() <> 0);
-
+    begin
+      checkWeapon := (M.ReadByte() <> 0);
+      if ( ((PID = gPlayer1.UID) or ( (gPlayer2 <> nil) and (PID = gPlayer2.UID))) and (I <> WEAPON_PISTOL) and (I <> WEAPON_KASTET ) and (gWeaponAutoswitch = True)) then
+      begin
+        if ( (checkWeapon = True) and (FWeapon[I] = False) ) then
+        begin
+          FWeapon[I] := True;
+          if (PID = gPlayer1.UID) then gSelectWeapon[0, I] := True
+          else gSelectWeapon[1, I] := True;
+        end;
+      end;
+      FWeapon[I] := checkWeapon;
+    end;
     for I := A_BULLETS to A_HIGH do
       FAmmo[I] := M.ReadWord();
 
