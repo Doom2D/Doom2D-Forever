@@ -3381,7 +3381,8 @@ begin
 
   if SpawnerUID = FUID then
     begin // Самоубился
-      if Srv and (DoFrags or (gGameSettings.GameMode = GM_TDM)) then
+      if Srv and (gGameSettings.GameMode = GM_TDM) then
+      Dec(gTeamStat[FTeam].Goals);
       begin
         Dec(FFrags);
         FLastFrag := 0;
