@@ -95,7 +95,7 @@ implementation
 uses
   g_textures, g_main, e_graphics, e_input, g_game, g_gfx, g_player, g_items,
   SysUtils, g_basic, g_options, Math, g_touch, e_res,
-  g_menu, g_gui, g_language, g_net, g_netmsg, e_log, conbuf;
+  g_menu, g_gui, g_language, g_net, g_netmsg, e_log, conbuf, g_weapons;
 
 const
   autoexecScript = 'autoexec.cfg';
@@ -1036,6 +1036,32 @@ begin
   AddCommand('p2_model', PlayerSettingsCVars);
   AddCommand('p1_team', PlayerSettingsCVars);
   AddCommand('p2_team', PlayerSettingsCVars);
+  AddCommand('p1_autoswitch', PlayerSettingsCVars);
+  AddCommand('p2_autoswitch', PlayerSettingsCVars);  
+  AddCommand('p1_priority_kastet', PlayerSettingsCVars);
+  AddCommand('p2_priority_kastet', PlayerSettingsCVars);  
+  AddCommand('p1_priority_saw', PlayerSettingsCVars);
+  AddCommand('p2_priority_saw', PlayerSettingsCVars);
+  AddCommand('p1_priority_pistol', PlayerSettingsCVars);
+  AddCommand('p2_priority_pistol', PlayerSettingsCVars);  
+  AddCommand('p1_priority_shotgun1', PlayerSettingsCVars);
+  AddCommand('p2_priority_shotgun1', PlayerSettingsCVars);
+  AddCommand('p1_priority_shotgun2', PlayerSettingsCVars);
+  AddCommand('p2_priority_shotgun2', PlayerSettingsCVars);
+  AddCommand('p1_priority_chaingun', PlayerSettingsCVars);
+  AddCommand('p2_priority_chaingun', PlayerSettingsCVars);
+  AddCommand('p1_priority_rocketlauncher', PlayerSettingsCVars);
+  AddCommand('p2_priority_rocketlauncher', PlayerSettingsCVars);
+  AddCommand('p1_priority_plasma', PlayerSettingsCVars);
+  AddCommand('p2_priority_plasma', PlayerSettingsCVars);
+  AddCommand('p1_priority_bfg', PlayerSettingsCVars);
+  AddCommand('p2_priority_bfg', PlayerSettingsCVars);
+  AddCommand('p1_priority_super', PlayerSettingsCVars);
+  AddCommand('p2_priority_super', PlayerSettingsCVars);
+  AddCommand('p1_priority_flamethrower', PlayerSettingsCVars);
+  AddCommand('p2_priority_flamethrower', PlayerSettingsCVars);
+  AddCommand('p1_priority_berserk', PlayerSettingsCVars);
+  AddCommand('p2_priority_berserk', PlayerSettingsCVars);  
 
   AddCommand('g_max_particles', GameCVars);
   AddCommand('g_max_shells', GameCVars);
@@ -2178,6 +2204,20 @@ begin
     WriteLn(f, 'p1_color ', Color.R, ' ', Color.G, ' ', Color.B);
     WriteLn(f, 'p1_model ', QuoteStr(Model));
     WriteLn(f, 'p1_team ', FormatTeam(Team));
+    WriteLn(f, 'p1_autoswitch ', WeaponSwitch);
+    WriteLn(f, 'p1_priority_kastet ', Max(0, WeaponPreferences[WEAPON_KASTET]));    
+    WriteLn(f, 'p1_priority_saw ', Max(0, WeaponPreferences[WEAPON_SAW]));
+    WriteLn(f, 'p1_priority_pistol ', Max(0, WeaponPreferences[WEAPON_PISTOL]));    
+    WriteLn(f, 'p1_priority_shotgun1 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN1]));    
+    WriteLn(f, 'p1_priority_shotgun2 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN2] ));
+    WriteLn(f, 'p1_priority_chaingun ', Max(0, WeaponPreferences[WEAPON_CHAINGUN]));    
+    WriteLn(f, 'p1_priority_rocketlauncher ', Max(0, WeaponPreferences[WEAPON_ROCKETLAUNCHER]));    
+    WriteLn(f, 'p1_priority_plasma ', Max(0, WeaponPreferences[WEAPON_PLASMA]));    
+    WriteLn(f, 'p1_priority_bfg ', Max(0, WeaponPreferences[WEAPON_BFG]));
+    WriteLn(f, 'p1_priority_super ', Max(0, WeaponPreferences[WEAPON_SUPERPULEMET]));                         
+    WriteLn(f, 'p1_priority_flamethrower ', Max(0, WeaponPreferences[WEAPON_FLAMETHROWER]));
+    WriteLn(f, 'p1_priority_berserk ', Max(0, WeaponPreferences[WP_LAST+1]));    
+    //
   end;
   with gPlayer2Settings do
   begin
@@ -2185,6 +2225,19 @@ begin
     WriteLn(f, 'p2_color ', Color.R, ' ', Color.G, ' ', Color.B);
     WriteLn(f, 'p2_model ', QuoteStr(Model));
     WriteLn(f, 'p2_team ', FormatTeam(Team));
+    WriteLn(f, 'p2_autoswitch ', WeaponSwitch);
+    WriteLn(f, 'p2_priority_kastet ', Max(0, WeaponPreferences[WEAPON_KASTET]));    
+    WriteLn(f, 'p2_priority_saw ', Max(0, WeaponPreferences[WEAPON_SAW]));
+    WriteLn(f, 'p2_priority_pistol ', Max(0, WeaponPreferences[WEAPON_PISTOL]));
+    WriteLn(f, 'p2_priority_shotgun1 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN1]));
+    WriteLn(f, 'p2_priority_shotgun2 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN1]));
+    WriteLn(f, 'p2_priority_chaingun ', Max(0, WeaponPreferences[WEAPON_CHAINGUN]));
+    WriteLn(f, 'p2_priority_rocketlauncher ', Max(0, WeaponPreferences[WEAPON_ROCKETLAUNCHER]));
+    WriteLn(f, 'p2_priority_plasma ', Max(0, WeaponPreferences[WEAPON_PLASMA]));
+    WriteLn(f, 'p2_priority_bfg ', Max(0, WeaponPreferences[WEAPON_BFG]));
+    WriteLn(f, 'p2_priority_super ', Max(0, WeaponPreferences[WEAPON_SUPERPULEMET]));
+    WriteLn(f, 'p2_priority_flamethrower ', Max(0, WeaponPreferences[WEAPON_FLAMETHROWER]));
+    WriteLn(f, 'p2_priority_berserk ', Max(0, WeaponPreferences[WP_LAST+1]));       
   end;
 
   // all cvars

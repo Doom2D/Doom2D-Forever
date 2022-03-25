@@ -63,7 +63,6 @@ var
   gsSDLBufferSize: Integer;
   gDefaultMegawadStart: AnsiString;
   gBerserkAutoswitch: Boolean;
-  gWeaponAutoswitch: Boolean;
   glNPOTOverride: Boolean = false;
 
   (* Latched game settings *)
@@ -256,7 +255,6 @@ begin
   e_FastScreenshots := True;
   gDefaultMegawadStart := DF_Default_Megawad_Start;
   gBerserkAutoswitch := True;
-  gWeaponAutoswitch := True;
   g_dbg_scale := 1.0;
   gSaveStats := False;
 

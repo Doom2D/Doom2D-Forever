@@ -170,7 +170,6 @@ begin
     TempScale := TGUIScroll(menu.GetControl('scScaleFactor')).Value;
     g_dbg_scale := TempScale + 1;
   end;
-  gWeaponAutoswitch := TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex = 0;
 
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsMenu').GetControl('mOptionsControlsMenu'));
@@ -343,6 +342,42 @@ begin
     gPlayer1Settings.Color := Model.Color;
   end;
 
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mOptionsPlayersP1Menu'));
+
+  gPlayer1Settings.Name := b_Text_Unformat(TGUIEdit(menu.GetControl('edP1Name')).Text);
+  gPlayer1Settings.Team := IfThen(TGUISwitch(menu.GetControl('swP1Team')).ItemIndex = 0,
+                                  TEAM_RED, TEAM_BLUE);
+
+  with TGUIModelView(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mvP1Model')) do
+  begin
+    gPlayer1Settings.Model := Model.Name;
+    gPlayer1Settings.Color := Model.Color;
+  end;
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1WeaponMenu').GetControl('mOptionsPlayersP1WeaponMenu'));
+  gPlayer1Settings.WeaponSwitch := TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex;    
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP1WeaponMenu').GetControl('mOptionsPreferencesP1WeaponMenu'));
+  with menu do
+  begin
+    for i := WP_FIRST to WP_LAST+1 do
+    begin
+      gPlayer1Settings.WeaponPreferences[i] := TGUISwitch(menu.GetControl(IntToStr(i))).ItemIndex;
+    end;
+  end;
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2WeaponMenu').GetControl('mOptionsPlayersP2WeaponMenu'));
+  gPlayer2Settings.WeaponSwitch := TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex;    
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP2WeaponMenu').GetControl('mOptionsPreferencesP2WeaponMenu'));
+  with menu do
+  begin
+    for i := WP_FIRST to WP_LAST+1 do
+    begin
+      gPlayer2Settings.WeaponPreferences[i] := TGUISwitch(menu.GetControl(IntToStr(i))).ItemIndex;
+    end;
+  end;
+
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mOptionsPlayersP2Menu'));
 
   gPlayer2Settings.Name := b_Text_Unformat(TGUIEdit(menu.GetControl('edP2Name')).Text);
@@ -392,7 +427,7 @@ end;
 procedure ReadOptions();
 var
   menu: TGUIMenu;
-  i: Integer;
+  i, a: Integer;
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoMenu').GetControl('mOptionsVideoMenu'));
 
@@ -597,9 +632,6 @@ begin
   TempScale := Round(g_dbg_scale - 1);
   TGUIScroll(menu.GetControl('scScaleFactor')).Value := TempScale;
 
-  with TGUISwitch(menu.GetControl('swWeaponAutoswitch')) do
-    if gWeaponAutoswitch then ItemIndex := 0 else ItemIndex := 1;
-
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mOptionsPlayersP1Menu'));
 
   TGUIListBox(menu.GetControl('lsP1Model')).SelectItem(gPlayer1Settings.Model);
@@ -611,6 +643,26 @@ begin
   TGUIScroll(menu.GetControl('scP1Red')).Value := Round(gPlayer1Settings.Color.R/16);
   TGUIScroll(menu.GetControl('scP1Green')).Value := Round(gPlayer1Settings.Color.G/16);
   TGUIScroll(menu.GetControl('scP1Blue')).Value := Round(gPlayer1Settings.Color.B/16);
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1WeaponMenu').GetControl('mOptionsPlayersP1WeaponMenu'));
+  TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex := gPlayer1Settings.WeaponSwitch;
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP1WeaponMenu').GetControl('mOptionsPreferencesP1WeaponMenu'));
+  for i := WP_FIRST to WP_LAST+1 do
+  begin
+        if (gPlayer1Settings.WeaponPreferences[i] > 0) and (gPlayer1Settings.WeaponPreferences[i] <= WP_LAST+1) then TGUISwitch(menu.GetControl(IntToStr(i))).ItemIndex := gPlayer1Settings.WeaponPreferences[i]
+        else TGUISwitch(menu.GetControl(IntToStr(i))).ItemIndex := 0;
+  end;
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2WeaponMenu').GetControl('mOptionsPlayersP2WeaponMenu'));
+  TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex := gPlayer2Settings.WeaponSwitch;
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP2WeaponMenu').GetControl('mOptionsPreferencesP2WeaponMenu'));
+  for i := WP_FIRST to WP_LAST+1 do
+  begin
+        if (gPlayer2Settings.WeaponPreferences[i] > 0) and (gPlayer2Settings.WeaponPreferences[i] <= WP_LAST+1) then TGUISwitch(menu.GetControl(IntToStr(i))).ItemIndex := gPlayer2Settings.WeaponPreferences[i]
+        else TGUISwitch(menu.GetControl(IntToStr(i))).ItemIndex := 0;
+  end;  
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mOptionsPlayersP2Menu'));
 
@@ -1402,6 +1454,34 @@ begin
   g_GUI_ShowWindow('OptionsPlayersMIMenu');
 end;
 
+procedure ProcOptionsPlayerP1WeaponMenu();
+var
+  a: string;
+begin
+  a := TGUIListBox(TGUIMenu(g_ActiveWindow.GetControl('mOptionsPlayers'+'P1'+'Menu')).GetControl('ls'+'P1'+'Model')).SelectedItem;
+  if a = '' then Exit;
+  g_GUI_ShowWindow('OptionsPlayersP1WeaponMenu');
+end;
+
+procedure ProcOptionsPlayerP1WeaponPreferencesMenu();
+begin
+  g_GUI_ShowWindow('OptionsPreferencesP1WeaponMenu');
+end;
+
+procedure ProcOptionsPlayerP2WeaponMenu();
+var
+  a: string;
+begin
+  a := TGUIListBox(TGUIMenu(g_ActiveWindow.GetControl('mOptionsPlayers'+'P2'+'Menu')).GetControl('ls'+'P2'+'Model')).SelectedItem;
+  if a = '' then Exit;
+  g_GUI_ShowWindow('OptionsPlayersP2WeaponMenu');
+end;
+
+procedure ProcOptionsPlayerP2WeaponPreferencesMenu();
+begin
+  g_GUI_ShowWindow('OptionsPreferencesP2WeaponMenu');
+end;
+
 procedure ProcOptionsPlayersAnim();
 var
   s: String;
@@ -2074,7 +2154,8 @@ begin
     AddButton(@ProcOptionsPlayersAnim, _lc[I_MENU_MODEL_ANIMATION]);
     AddButton(@ProcOptionsPlayersWeap, _lc[I_MENU_MODEL_CHANGE_WEAPON]);
     AddButton(@ProcOptionsPlayersRot, _lc[I_MENU_MODEL_ROTATE]);
-
+    if s = 'P1' then AddButton(@ProcOptionsPlayerP1WeaponMenu, _lc[I_MENU_WEAPON])
+    else AddButton(@ProcOptionsPlayerP2WeaponMenu, _lc[I_MENU_WEAPON]);
     with TGUIModelView(Menu.AddChild(TGUIModelView.Create)) do
     begin
       Name := 'mv'+s+'Model';
@@ -2090,7 +2171,7 @@ procedure CreateAllMenus();
 var
   Menu: TGUIWindow;
   //SR: TSearchRec;
-  a, cx, _y, i: Integer;
+  a, cx, _y, i, x: Integer;
   //list: SSArray;
 begin
   Menu := TGUIWindow.Create('MainMenu');
@@ -2995,12 +3076,6 @@ begin
       Max := 10;
       OnChange := ProcChangeGameSettings;
     end;
-    with AddSwitch(_lc[I_MENU_GAME_WEAPON_AUTOSWITCH]) do
-    begin
-      Name := 'swWeaponAutoswitch';
-      AddItem(_lc[I_MENU_YES]);
-      AddItem(_lc[I_MENU_NO]);
-    end;
     ReAlign();
   end;
   Menu.DefControl := 'mOptionsGameMenu';
@@ -3185,6 +3260,99 @@ begin
   end;
   Menu.DefControl := 'mOptionsPlayersMIMenu';
   g_GUI_AddWindow(Menu);
+
+  Menu := TGUIWindow.Create('OptionsPlayersP1WeaponMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_WEAPON]))) do
+  begin
+    Name := 'mOptionsPlayersP1WeaponMenu';
+    with AddSwitch(_lc[I_MENU_WEAPON_SWITCH]) do
+    begin
+      Name := 'swWeaponAutoswitch';
+      AddItem(_lc[I_MENU_NO]);
+      AddItem(_lc[I_MENU_WEAPON_SWITCH_LINEAR]);
+      AddItem(_lc[I_MENU_WEAPON_SWITCH_PREFERENCE]);
+    end;
+    AddButton(@ProcOptionsPlayerP1WeaponPreferencesMenu, _lc[I_MENU_WEAPON_SWITCH_PRIORITY]);
+    ReAlign();
+  end;
+  Menu.DefControl := 'mOptionsPlayersP1WeaponMenu';
+  g_GUI_AddWindow(Menu);
+
+  Menu := TGUIWindow.Create('OptionsPreferencesP1WeaponMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_WEAPON_PRIORITY_PLAYER_1]))) do
+  begin
+    Name := 'mOptionsPreferencesP1WeaponMenu';
+    for i := WP_FIRST to WP_LAST do
+    begin
+        with AddSwitch(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)]) do
+        begin
+          Name := IntToStr(i);
+          for a := WP_FIRST to WP_LAST+1 do
+            begin
+              AddItem(IntToStr(a));            
+            end;
+          ItemIndex := i
+        end;
+    end;
+    with AddSwitch(_lc[I_GAME_WEAPON_BERSERK]) do
+    begin
+      Name := IntToStr(WP_LAST+1);
+      for a := WP_FIRST to WP_LAST+1 do
+      begin
+         AddItem(IntToStr(a));            
+      end;
+      ItemIndex := WP_LAST + 1;
+    end;
+  end;    
+  Menu.DefControl := 'mOptionsPreferencesP1WeaponMenu';
+  g_GUI_AddWindow(Menu);
+
+
+  Menu := TGUIWindow.Create('OptionsPlayersP2WeaponMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_WEAPON]))) do
+  begin
+    Name := 'mOptionsPlayersP2WeaponMenu';
+    with AddSwitch(_lc[I_MENU_WEAPON_SWITCH]) do
+    begin
+      Name := 'swWeaponAutoswitch';
+      AddItem(_lc[I_MENU_NO]);
+      AddItem(_lc[I_MENU_WEAPON_SWITCH_LINEAR]);
+      AddItem(_lc[I_MENU_WEAPON_SWITCH_PREFERENCE]);
+    end;
+    AddButton(@ProcOptionsPlayerP2WeaponPreferencesMenu, _lc[I_MENU_WEAPON_SWITCH_PRIORITY]);
+    ReAlign();
+  end;
+  Menu.DefControl := 'mOptionsPlayersP2WeaponMenu';
+  g_GUI_AddWindow(Menu);
+
+  Menu := TGUIWindow.Create('OptionsPreferencesP2WeaponMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_WEAPON_PRIORITY_PLAYER_2]))) do
+  begin
+    Name := 'mOptionsPreferencesP2WeaponMenu';
+    for i := WP_FIRST to WP_LAST do
+    begin
+        with AddSwitch(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)]) do
+        begin
+          Name := IntToStr(i);
+          for a := WP_FIRST to WP_LAST+1 do
+            begin
+              AddItem(IntToStr(a));            
+            end;
+          ItemIndex := i
+        end;
+    end;
+    with AddSwitch(_lc[I_GAME_WEAPON_BERSERK]) do
+    begin
+      Name := IntToStr(WP_LAST+1);
+      for a := WP_FIRST to WP_LAST+1 do
+      begin
+         AddItem(IntToStr(a));            
+      end;
+      ItemIndex := WP_LAST + 1;
+    end;
+  end;
+  Menu.DefControl := 'mOptionsPreferencesP2WeaponMenu';
+  g_GUI_AddWindow(Menu);  
 
   Menu := TGUIWindow.Create('OptionsLanguageMenu');
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_LANGUAGE_OPTIONS]))) do

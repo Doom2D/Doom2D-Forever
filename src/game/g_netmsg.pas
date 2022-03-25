@@ -2471,16 +2471,25 @@ begin
     for I := WP_FIRST to WP_LAST do
     begin
       checkWeapon := (M.ReadByte() <> 0);
-      if ( ((PID = gPlayer1.UID) or ( (gPlayer2 <> nil) and (PID = gPlayer2.UID))) and (I <> WEAPON_PISTOL) and (I <> WEAPON_KASTET ) and (gWeaponAutoswitch = True)) then
+      if ( (gPlayer1Settings.WeaponSwitch = 0) and (gPlayer2Settings.WeaponSwitch = 0) ) or ( (I = WEAPON_KASTET) or (I = WEAPON_PISTOL) or (checkWeapon = False) or (FWeapon[I] = True) ) then 
+        FWeapon[I] := checkWeapon
+      else
       begin
-        if ( (checkWeapon = True) and (FWeapon[I] = False) ) then
-        begin
-          FWeapon[I] := True;
-          if (PID = gPlayer1.UID) then gSelectWeapon[0, I] := True
-          else gSelectWeapon[1, I] := True;
-        end;
+          if ((PID = gPlayer1.UID) and (gPlayer1Settings.WeaponSwitch <> 0)) or ( (gPlayer2 <> nil) and (PID = gPlayer2.UID) and (gPlayer2Settings.WeaponSwitch <> 0) )  then
+          begin
+            FWeapon[I] := True;
+            if (PID = gPlayer1.UID) then              
+              if (gPlayer1Settings.WeaponSwitch = 1) or ( (gPlayer1Settings.WeaponSwitch = 2) and (gPlayer1Settings.WeaponPreferences[I] > gPlayer1Settings.WeaponPreferences[CurrWeap]) ) then
+                begin
+                  gSelectWeapon[0, I] := True;
+                end
+            else
+              if (gPlayer2Settings.WeaponSwitch = 1) or ( (gPlayer2Settings.WeaponSwitch = 2) and (gPlayer2Settings.WeaponPreferences[I] > gPlayer2Settings.WeaponPreferences[CurrWeap]) ) then
+                gSelectWeapon[1, I] := True;
+          end
+          else 
+            FWeapon[I] := checkWeapon;
       end;
-      FWeapon[I] := checkWeapon;
     end;
     for I := A_BULLETS to A_HIGH do
       FAmmo[I] := M.ReadWord();
@@ -2500,8 +2509,28 @@ begin
       FRulez := FRulez + [R_KEY_GREEN];
     if (M.ReadByte() <> 0) then
       FRulez := FRulez + [R_KEY_BLUE];
-    if (M.ReadByte() <> 0) then
+    checkWeapon := M.ReadByte() <> 0;
+    if (checkWeapon) then
+    begin
       FRulez := FRulez + [R_BERSERK];
+          if ((gPlayer2Settings.WeaponSwitch <> 0) and (gPlayer2Settings.WeaponSwitch <> 0)) and ((PID = gPlayer1.UID) or ( (gPlayer2 <> nil) and (PID = gPlayer2.UID) )) then
+          begin
+              if (PID = gPlayer1.UID) then
+                begin
+                if (gPlayer1Settings.WeaponSwitch = 1) or ( (gPlayer1Settings.WeaponSwitch = 2) and (gPlayer1Settings.WeaponPreferences[WP_LAST+1] > gPlayer1Settings.WeaponPreferences[CurrWeap]) ) then
+                  begin
+                    gSelectWeapon[0, WEAPON_KASTET] := True;       
+                  end;
+                end
+              else
+                begin
+                if (gPlayer2Settings.WeaponSwitch = 1) or ( (gPlayer2Settings.WeaponSwitch = 2) and (gPlayer2Settings.WeaponPreferences[WP_LAST+1] > gPlayer2Settings.WeaponPreferences[CurrWeap]) ) then
+                  begin
+                    gSelectWeapon[0, WEAPON_KASTET] := True;
+                  end;
+                end;
+          end;      
+    end;
 
     Frags := M.ReadLongInt();
     Death := M.ReadLongInt();
@@ -3282,7 +3311,6 @@ begin
   NetOut.Write(gPlayer1Settings.Color.G);
   NetOut.Write(gPlayer1Settings.Color.B);
   NetOut.Write(gPlayer1Settings.Team);
-
   g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
 end;
 

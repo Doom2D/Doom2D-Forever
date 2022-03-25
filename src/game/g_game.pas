@@ -62,6 +62,8 @@ type
     Model: String;
     Color: TRGB;
     Team: Byte;
+    WeaponSwitch: Byte;
+    WeaponPreferences: Array[WP_FIRST..WP_LAST+1] of Byte;
   end;
 
   TMegaWADInfo = record
@@ -5917,6 +5919,136 @@ begin
             g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
         end;
       end;
+    'p1_autoswitch':
+      begin
+        if (Length(P) = 2) then
+          gPlayer1Settings.WeaponSwitch := EnsureRange(StrTointDef(P[1], 0), 0, 2);
+        end;
+    'p2_autoswitch':
+      begin
+        if (Length(P) = 2) then
+          gPlayer2Settings.WeaponSwitch := EnsureRange(StrTointDef(P[1], 0), 0, 2);
+        end;
+    'p1_priority_kastet':
+      begin
+        if (Length(P) = 2) then
+          gPlayer1Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1); 
+        end;
+    'p2_priority_kastet':
+      begin
+        if (Length(P) = 2) then
+          gPlayer2Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1); 
+      end;        
+    'p1_priority_saw':
+      begin
+        if (Length(P) = 2) then
+          gPlayer1Settings.WeaponPreferences[WEAPON_SAW] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+        end;
+    'p2_priority_saw':
+      begin
+        if (Length(P) = 2) then
+          gPlayer2Settings.WeaponPreferences[WEAPON_SAW] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p1_priority_pistol':
+      begin
+        if (Length(P) = 2) then
+          gPlayer1Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1); 
+        end;
+    'p2_priority_pistol':
+      begin
+        if (Length(P) = 2) then
+          gPlayer2Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1); 
+      end;         
+    'p1_priority_shotgun1':
+      begin
+        if (Length(P) = 2) then
+          gPlayer1Settings.WeaponPreferences[WEAPON_SHOTGUN1] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p2_priority_shotgun1':
+      begin
+        if (Length(P) = 2) then
+          gPlayer2Settings.WeaponPreferences[WEAPON_SHOTGUN1] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p1_priority_shotgun2':
+      begin
+        if (Length(P) = 2) then
+          gPlayer1Settings.WeaponPreferences[WEAPON_SHOTGUN2] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p2_priority_shotgun2':
+      begin
+        if (Length(P) = 2) then
+          gPlayer2Settings.WeaponPreferences[WEAPON_SHOTGUN2] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p1_priority_chaingun':
+      begin
+        if (Length(P) = 2) then
+          gPlayer1Settings.WeaponPreferences[WEAPON_CHAINGUN] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p2_priority_chaingun':
+      begin
+        if (Length(P) = 2) then
+          gPlayer2Settings.WeaponPreferences[WEAPON_CHAINGUN] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p1_priority_rocketlauncher':
+      begin
+        if (Length(P) = 2) then
+          gPlayer1Settings.WeaponPreferences[WEAPON_ROCKETLAUNCHER] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p2_priority_rocketlauncher':
+      begin
+        if (Length(P) = 2) then
+          gPlayer2Settings.WeaponPreferences[WEAPON_ROCKETLAUNCHER] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p1_priority_plasma':
+      begin
+        if (Length(P) = 2) then
+          gPlayer1Settings.WeaponPreferences[WEAPON_PLASMA] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p2_priority_plasma':
+      begin
+        if (Length(P) = 2) then
+          gPlayer2Settings.WeaponPreferences[WEAPON_PLASMA] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p1_priority_bfg':
+      begin
+        if (Length(P) = 2) then
+          gPlayer1Settings.WeaponPreferences[WEAPON_BFG] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p2_priority_bfg':
+      begin
+        if (Length(P) = 2) then
+          gPlayer2Settings.WeaponPreferences[WEAPON_BFG] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p1_priority_super':
+      begin
+        if (Length(P) = 2) then
+          gPlayer1Settings.WeaponPreferences[WEAPON_SUPERPULEMET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p2_priority_super':
+      begin
+        if (Length(P) = 2) then
+          gPlayer2Settings.WeaponPreferences[WEAPON_SUPERPULEMET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p1_priority_flamethrower':
+      begin
+        if (Length(P) = 2) then
+          gPlayer1Settings.WeaponPreferences[WEAPON_FLAMETHROWER] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
+    'p2_priority_flamethrower':
+      begin
+        if (Length(P) = 2) then
+          gPlayer2Settings.WeaponPreferences[WEAPON_FLAMETHROWER] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;      
+    'p1_priority_berserk':
+      begin
+        if (Length(P) = 2) then
+          gPlayer1Settings.WeaponPreferences[WP_LAST+1] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1); 
+        end;
+    'p2_priority_berserk':
+      begin
+        if (Length(P) = 2) then
+          gPlayer2Settings.WeaponPreferences[WP_LAST+1] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1); 
+      end;                                                                                  
   end;
 end;
 

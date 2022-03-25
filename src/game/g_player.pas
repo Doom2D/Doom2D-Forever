@@ -3877,6 +3877,7 @@ function TPlayer.PickItem(ItemType: Byte; arespawn: Boolean; var remove: Boolean
 
 var
   a: Boolean;
+  switchWeapon: Byte;
   hadWeapon: Boolean;
 begin
   Result := False;
@@ -3885,7 +3886,6 @@ begin
   // a = true - место спавна предмета:
   a := LongBool(gGameSettings.Options and GAME_OPTION_WEAPONSTAY) and arespawn;
   remove := not a;
-
   case ItemType of
     ITEM_MEDKIT_SMALL:
       if (FHealth < PLAYER_HP_SOFT) or (FFireTime > 0) then
@@ -3951,18 +3951,9 @@ begin
     ITEM_WEAPON_SAW:
       if (not FWeapon[WEAPON_SAW]) or ((not arespawn) and (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
       begin
-        if ( (gWeaponAutoswitch = True) and ((g_Game_IsNet = False or (NetMode = NET_SERVER)) and ((Self = gPlayer1) or (Self = gPlayer2)))) then
-        begin
-          hadWeapon := FWeapon[WEAPON_SAW];
-          FWeapon[WEAPON_SAW] := True;
-          if (hadWeapon = False) then
-          begin
-            FCurrWeap := WEAPON_SAW;
-            resetWeaponQueue();
-            FModel.SetWeapon(WEAPON_SAW);
-          end;
-        end
-        else FWeapon[WEAPON_SAW] := True;
+        hadWeapon := FWeapon[WEAPON_SAW];
+        switchWeapon := WEAPON_SAW;
+        FWeapon[WEAPON_SAW] := True;
         Result := True;
         if gFlash = 2 then Inc(FPickup, 5);
         if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
@@ -3973,19 +3964,10 @@ begin
       begin
         // Нужно, чтобы не взять все пули сразу:
         if a and FWeapon[WEAPON_SHOTGUN1] then Exit;
+        hadWeapon := FWeapon[WEAPON_SHOTGUN1];
+        switchWeapon := WEAPON_SHOTGUN1;
         IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
-        if ( (gWeaponAutoswitch = True) and ((g_Game_IsNet = False or (NetMode = NET_SERVER)) and ((Self = gPlayer1) or (Self = gPlayer2)))) then
-        begin
-          hadWeapon := FWeapon[WEAPON_SHOTGUN1];
-          FWeapon[WEAPON_SHOTGUN1] := True;
-          if (hadWeapon = False) then
-          begin
-            FCurrWeap := WEAPON_SHOTGUN1;
-            resetWeaponQueue();
-            FModel.SetWeapon(WEAPON_SHOTGUN1);
-          end;
-        end
-        else FWeapon[WEAPON_SHOTGUN1] := True;
+        FWeapon[WEAPON_SHOTGUN1] := True;
         Result := True;
         if gFlash = 2 then Inc(FPickup, 5);
         if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
@@ -3995,19 +3977,10 @@ begin
       if (FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS]) or not FWeapon[WEAPON_SHOTGUN2] then
       begin
         if a and FWeapon[WEAPON_SHOTGUN2] then Exit;
-        if ( (gWeaponAutoswitch = True) and ((g_Game_IsNet = False or (NetMode = NET_SERVER)) and ((Self = gPlayer1) or (Self = gPlayer2)))) then
-        begin
-          hadWeapon := FWeapon[WEAPON_SHOTGUN2];
-          FWeapon[WEAPON_SHOTGUN2] := True;
-          if (hadWeapon = False) then
-          begin
-            FCurrWeap := WEAPON_SHOTGUN2;
-            resetWeaponQueue();
-            FModel.SetWeapon(WEAPON_SHOTGUN2);
-          end;
-        end
-        else FWeapon[WEAPON_SHOTGUN2] := True;
+        hadWeapon := FWeapon[WEAPON_SHOTGUN2];
+        switchWeapon := WEAPON_SHOTGUN2;
         IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
+        FWeapon[WEAPON_SHOTGUN2] := True;
         Result := True;
         if gFlash = 2 then Inc(FPickup, 5);
         if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
@@ -4017,19 +3990,10 @@ begin
       if (FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS]) or not FWeapon[WEAPON_CHAINGUN] then
       begin
         if a and FWeapon[WEAPON_CHAINGUN] then Exit;
-        if ( (gWeaponAutoswitch = True) and ((g_Game_IsNet = False or (NetMode = NET_SERVER)) and ((Self = gPlayer1) or (Self = gPlayer2)))) then
-        begin
-          hadWeapon := FWeapon[WEAPON_CHAINGUN];
-          FWeapon[WEAPON_CHAINGUN] := True;
-          if (hadWeapon = False) then
-          begin
-            FCurrWeap := WEAPON_CHAINGUN;
-            resetWeaponQueue();
-            FModel.SetWeapon(WEAPON_CHAINGUN);
-          end;
-        end
-        else FWeapon[WEAPON_CHAINGUN] := True;
+        hadWeapon := FWeapon[WEAPON_CHAINGUN];
+        switchWeapon := WEAPON_CHAINGUN;
         IncMax(FAmmo[A_BULLETS], 50, FMaxAmmo[A_BULLETS]);
+        FWeapon[WEAPON_CHAINGUN] := True;
         Result := True;
         if gFlash = 2 then Inc(FPickup, 5);
         if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
@@ -4039,19 +4003,10 @@ begin
       if (FAmmo[A_ROCKETS] < FMaxAmmo[A_ROCKETS]) or not FWeapon[WEAPON_ROCKETLAUNCHER] then
       begin
         if a and FWeapon[WEAPON_ROCKETLAUNCHER] then Exit;
-        if ( (gWeaponAutoswitch = True) and ((g_Game_IsNet = False or (NetMode = NET_SERVER)) and ((Self = gPlayer1) or (Self = gPlayer2)))) then
-        begin
-          hadWeapon := FWeapon[WEAPON_ROCKETLAUNCHER];
-          FWeapon[WEAPON_ROCKETLAUNCHER] := True;
-          if (hadWeapon = False) then
-          begin
-            FCurrWeap := WEAPON_ROCKETLAUNCHER;
-            resetWeaponQueue();
-            FModel.SetWeapon(WEAPON_ROCKETLAUNCHER);
-          end;
-        end
-        else FWeapon[WEAPON_ROCKETLAUNCHER] := True;
+        switchWeapon := WEAPON_ROCKETLAUNCHER;
+        hadWeapon := FWeapon[WEAPON_ROCKETLAUNCHER];
         IncMax(FAmmo[A_ROCKETS], 2, FMaxAmmo[A_ROCKETS]);
+        FWeapon[WEAPON_ROCKETLAUNCHER] := True;
         Result := True;
         if gFlash = 2 then Inc(FPickup, 5);
         if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
@@ -4061,19 +4016,10 @@ begin
       if (FAmmo[A_CELLS] < FMaxAmmo[A_CELLS]) or not FWeapon[WEAPON_PLASMA] then
       begin
         if a and FWeapon[WEAPON_PLASMA] then Exit;
-        if ( (gWeaponAutoswitch = True) and ((g_Game_IsNet = False or (NetMode = NET_SERVER)) and ((Self = gPlayer1) or (Self = gPlayer2)))) then
-        begin
-          hadWeapon := FWeapon[WEAPON_PLASMA];
-          FWeapon[WEAPON_PLASMA] := True;
-          if (hadWeapon = False) then
-          begin
-            FCurrWeap := WEAPON_PLASMA;
-            resetWeaponQueue();
-            FModel.SetWeapon(WEAPON_PLASMA);
-          end;
-        end
-        else FWeapon[WEAPON_PLASMA] := True;
+        switchWeapon := WEAPON_PLASMA;
+        hadWeapon := FWeapon[WEAPON_PLASMA];
         IncMax(FAmmo[A_CELLS], 40, FMaxAmmo[A_CELLS]);
+        FWeapon[WEAPON_PLASMA] := True;
         Result := True;
         if gFlash = 2 then Inc(FPickup, 5);
         if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
@@ -4083,19 +4029,10 @@ begin
       if (FAmmo[A_CELLS] < FMaxAmmo[A_CELLS]) or not FWeapon[WEAPON_BFG] then
       begin
         if a and FWeapon[WEAPON_BFG] then Exit;
-        if ( (gWeaponAutoswitch = True) and ((g_Game_IsNet = False or (NetMode = NET_SERVER)) and ((Self = gPlayer1) or (Self = gPlayer2)))) then
-        begin
-          hadWeapon := FWeapon[WEAPON_BFG];
-          FWeapon[WEAPON_BFG] := True;
-          if (hadWeapon = False) then
-          begin
-            FCurrWeap := WEAPON_BFG;
-            resetWeaponQueue();
-            FModel.SetWeapon(WEAPON_BFG);
-          end;
-        end
-        else FWeapon[WEAPON_BFG] := True;
+        switchWeapon := WEAPON_BFG;
+        hadWeapon := FWeapon[WEAPON_BFG];
         IncMax(FAmmo[A_CELLS], 40, FMaxAmmo[A_CELLS]);
+        FWeapon[WEAPON_BFG] := True;
         Result := True;
         if gFlash = 2 then Inc(FPickup, 5);
         if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
@@ -4105,19 +4042,10 @@ begin
       if (FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS]) or not FWeapon[WEAPON_SUPERPULEMET] then
       begin
         if a and FWeapon[WEAPON_SUPERPULEMET] then Exit;
-        if ( (gWeaponAutoswitch = True) and ((g_Game_IsNet = False or (NetMode = NET_SERVER)) and ((Self = gPlayer1) or (Self = gPlayer2)))) then
-        begin
-          hadWeapon := FWeapon[WEAPON_SUPERPULEMET];
-          FWeapon[WEAPON_SUPERPULEMET] := True;
-          if (hadWeapon = False) then
-          begin
-            FCurrWeap := WEAPON_SUPERPULEMET;
-            resetWeaponQueue();
-            FModel.SetWeapon(WEAPON_SUPERPULEMET);
-          end;
-        end
-        else FWeapon[WEAPON_SUPERPULEMET] := True;
+        switchWeapon := WEAPON_SUPERPULEMET;
+        hadWeapon := FWeapon[WEAPON_SUPERPULEMET];
         IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
+        FWeapon[WEAPON_SUPERPULEMET] := True;
         Result := True;
         if gFlash = 2 then Inc(FPickup, 5);
         if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
@@ -4127,19 +4055,10 @@ begin
       if (FAmmo[A_FUEL] < FMaxAmmo[A_FUEL]) or not FWeapon[WEAPON_FLAMETHROWER] then
       begin
         if a and FWeapon[WEAPON_FLAMETHROWER] then Exit;
-        if ( (gWeaponAutoswitch = True) and ((g_Game_IsNet = False or (NetMode = NET_SERVER)) and ((Self = gPlayer1) or (Self = gPlayer2)))) then
-        begin
-          hadWeapon := FWeapon[WEAPON_FLAMETHROWER];
-          FWeapon[WEAPON_FLAMETHROWER] := True;
-          if (hadWeapon = False) then
-          begin
-            FCurrWeap := WEAPON_FLAMETHROWER;
-            resetWeaponQueue();
-            FModel.SetWeapon(WEAPON_FLAMETHROWER);
-          end;
-        end
-        else FWeapon[WEAPON_FLAMETHROWER] := True;
+        switchWeapon := WEAPON_FLAMETHROWER;
+        hadWeapon := FWeapon[WEAPON_FLAMETHROWER];
         IncMax(FAmmo[A_FUEL], 100, FMaxAmmo[A_FUEL]);
+        FWeapon[WEAPON_FLAMETHROWER] := True;
         Result := True;
         if gFlash = 2 then Inc(FPickup, 5);
         if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
@@ -4311,11 +4230,33 @@ begin
         if not (R_BERSERK in FRulez) then
         begin
           Include(FRulez, R_BERSERK);
+          (*
           if allowBerserkSwitching then
           begin
             FCurrWeap := WEAPON_KASTET;
             resetWeaponQueue();
             FModel.SetWeapon(WEAPON_KASTET);
+          end; *)
+          if ( (g_Game_IsNet = False) or (NetMode = NET_SERVER) ) and ( ( (Self = gPlayer1) and (gPlayer1Settings.WeaponSwitch <> 0) ) or ( (gPlayer2 <> nil) and (Self = gPlayer2) and (gPlayer2Settings.WeaponSwitch <> 0) )) then
+          begin
+              if (Self = gPlayer1) then
+                begin
+                if (gPlayer1Settings.WeaponSwitch = 1) or ( (gPlayer1Settings.WeaponSwitch = 2) and (gPlayer1Settings.WeaponPreferences[WP_LAST+1] > gPlayer1Settings.WeaponPreferences[FCurrWeap]) ) then
+                  begin
+                    FCurrWeap := WEAPON_KASTET;
+                    resetWeaponQueue();
+                    FModel.SetWeapon(WEAPON_KASTET);              
+                  end;
+                end
+              else
+                begin
+                if (gPlayer2Settings.WeaponSwitch = 1) or ( (gPlayer2Settings.WeaponSwitch = 2) and (gPlayer2Settings.WeaponPreferences[WP_LAST+1] > gPlayer2Settings.WeaponPreferences[FCurrWeap]) ) then
+                  begin
+                    FCurrWeap := WEAPON_KASTET;
+                    resetWeaponQueue();
+                    FModel.SetWeapon(WEAPON_KASTET);   
+                  end;
+                end;
           end;
           if gFlash <> 0 then
           begin
@@ -4383,6 +4324,26 @@ begin
         remove := True;
         if gFlash = 2 then Inc(FPickup, 5);
       end;
+  end;
+  if ( (g_Game_IsNet = False) or (NetMode = NET_SERVER) ) and ( ( (Self = gPlayer1) and (gPlayer1Settings.WeaponSwitch <> 0) ) or ( (gPlayer2 <> nil) and (Self = gPlayer2) and (gPlayer2Settings.WeaponSwitch <> 0) )) then
+  begin
+    if (hadWeapon = False) then
+    begin
+      if (Self = gPlayer1) and ( (gPlayer1Settings.WeaponSwitch = 1) or ( (gPlayer1Settings.WeaponSwitch = 2) 
+        and (gPlayer1Settings.WeaponPreferences[switchWeapon] > gPlayer1Settings.WeaponPreferences[FCurrWeap]) )  ) then
+      begin
+        FCurrWeap := switchWeapon;
+        resetWeaponQueue();
+        FModel.SetWeapon(switchWeapon);
+      end
+      else if (Self = gPlayer2) and ( (gPlayer2Settings.WeaponSwitch = 1) or ( (gPlayer2Settings.WeaponSwitch = 2) 
+        and (gPlayer2Settings.WeaponPreferences[switchWeapon] > gPlayer2Settings.WeaponPreferences[FCurrWeap]) )  ) then
+      begin
+        FCurrWeap := switchWeapon;
+        resetWeaponQueue();
+        FModel.SetWeapon(switchWeapon);
+      end;          
+    end;
   end;
 end;
 
@@ -8012,5 +7973,4 @@ begin
   conRegVar('cheat_berserk_autoswitch', @gBerserkAutoswitch, 'autoswitch to fist when berserk pack taken', '',  true, true);
   conRegVar('player_indicator', @gPlayerIndicator, 'Draw indicator only for current player, also for teammates, or not at all', 'Draw indicator only for current player, also for teammates, or not at all');
   conRegVar('player_indicator_style', @gPlayerIndicatorStyle, 'Visual appearance of indicator', 'Visual appearance of indicator');
-  conRegVar('weapon_autoswitch', @gWeaponAutoswitch, 'Automatically switch to a first time picked up weapon', '');
 end.
