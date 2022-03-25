@@ -1260,7 +1260,7 @@ const
     ('MENU WEAPON SWITCH LINEAR',      'On pickup',
                                        'При подборе'),  
     ('MENU WEAPON SWITCH PREFERENCE',  'By priority',
-                                       'По приоритетности'),
+                                       'По приоритету'),
     ('MENU WEAPON SWITCH PRIORITY',    'Weapon priority',
                                        'Приоритетность оружия'),
     ('MENU WEAPON PRIORITY PLAYER 1',  'Player 1 Priority',
