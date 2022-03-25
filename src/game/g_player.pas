@@ -3381,11 +3381,15 @@ begin
 
   if SpawnerUID = FUID then
     begin // Самоубился
-      if Srv and (gGameSettings.GameMode = GM_TDM) then
-      Dec(gTeamStat[FTeam].Goals);
+      if Srv then
       begin
-        Dec(FFrags);
-        FLastFrag := 0;
+        if gGameSettings.GameMode = GM_TDM then
+          Dec(gTeamStat[FTeam].Goals);
+        if DoFrags or (gGameSettings.GameMode = GM_TDM) then
+        begin
+          Dec(FFrags);
+          FLastFrag := 0;
+        end;
       end;
       g_Console_Add(Format(_lc[I_PLAYER_KILL_SELF], [FName]), True);
     end
