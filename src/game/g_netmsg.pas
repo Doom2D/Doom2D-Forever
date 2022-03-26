@@ -380,6 +380,9 @@ procedure MH_RECV_Info(C: pTNetClient; var M: TMsg);
 var
   Ver, PName, Model, Pw: string;
   R, G, B, T: Byte;
+  WeapSwitch: Byte;
+  TmpPrefArray: Array [WP_FIRST .. WP_LAST + 1] of Byte;
+  SwitchEmpty: Byte;
   PID: Word;
   Color: TRGB;
   I: Integer;
@@ -395,6 +398,11 @@ begin
     G := M.ReadByte();
     B := M.ReadByte();
     T := M.ReadByte();
+    WeapSwitch := M.ReadByte();
+    if (WeapSwitch = 2) then
+      for I := WP_FIRST to WP_LAST + 1 do
+        TmpPrefArray[I] := M.ReadByte();
+    SwitchEmpty := M.ReadByte();
   except
     Err := True;
   end;
@@ -450,6 +458,10 @@ begin
   with g_Player_Get(PID) do
   begin
     Name := PName;
+    WeapSwitchMode := WeapSwitch;
+    if (WeapSwitch = 2) then
+      SetWeaponPrefs(TmpPrefArray);
+    SwitchToEmpty := SwitchEmpty;
     Reset(True);
   end;
 
@@ -700,6 +712,10 @@ var
   TmpModel: string;
   TmpColor: TRGB;
   TmpTeam: Byte;
+  TmpWeapSwitch: Byte;
+  TmpPrefArray: Array [WP_FIRST .. WP_LAST + 1] of Byte;
+  TmpSwEmpty: Byte;
+  I: Integer;
   Pl: TPlayer;
   Err: Boolean;
 begin
@@ -711,6 +727,11 @@ begin
     TmpColor.G := M.ReadByte();
     TmpColor.B := M.ReadByte();
     TmpTeam := M.ReadByte();
+    TmpWeapSwitch := M.ReadByte();
+    if (TmpWeapSwitch = 2) then
+      for I := WP_FIRST to WP_LAST + 1 do
+        TmpPrefArray[I] := M.ReadByte();
+    TmpSwEmpty := M.ReadByte();
   except
     Err := True;
   end;
@@ -734,6 +755,14 @@ begin
   if TmpModel <> Pl.Model.Name then
     Pl.SetModel(TmpModel);
 
+  if (TmpWeapSwitch <> Pl.WeapSwitchMode) then
+    Pl.WeapSwitchMode := TmpWeapSwitch;
+
+  if (TmpWeapSwitch = 2) then
+    Pl.SetWeaponPrefs(TmpPrefArray);
+
+  if (TmpSwEmpty <> Pl.SwitchToEmpty) then
+    Pl.SwitchToEmpty := TmpSwEmpty;
   MH_SEND_PlayerSettings(Pl.UID, TmpModel);
 end;
 
@@ -2447,7 +2476,6 @@ var
   PID: Word;
   Pl: TPlayer;
   I, OldFire: Integer;
-  checkWeapon: Boolean;
   OldJet, Flam: Boolean;
   NewTeam: Byte;
 begin
@@ -2469,28 +2497,8 @@ begin
     NewTeam := M.ReadByte();
 
     for I := WP_FIRST to WP_LAST do
-    begin
-      checkWeapon := (M.ReadByte() <> 0);
-      if ( (gPlayer1Settings.WeaponSwitch = 0) and (gPlayer2Settings.WeaponSwitch = 0) ) or ( (I = WEAPON_KASTET) or (I = WEAPON_PISTOL) or (checkWeapon = False) or (FWeapon[I] = True) ) then 
-        FWeapon[I] := checkWeapon
-      else
-      begin
-          if ((PID = gPlayer1.UID) and (gPlayer1Settings.WeaponSwitch <> 0)) or ( (gPlayer2 <> nil) and (PID = gPlayer2.UID) and (gPlayer2Settings.WeaponSwitch <> 0) )  then
-          begin
-            FWeapon[I] := True;
-            if (PID = gPlayer1.UID) then              
-              if (gPlayer1Settings.WeaponSwitch = 1) or ( (gPlayer1Settings.WeaponSwitch = 2) and (gPlayer1Settings.WeaponPreferences[I] > gPlayer1Settings.WeaponPreferences[CurrWeap]) ) then
-                begin
-                  gSelectWeapon[0, I] := True;
-                end
-            else
-              if (gPlayer2Settings.WeaponSwitch = 1) or ( (gPlayer2Settings.WeaponSwitch = 2) and (gPlayer2Settings.WeaponPreferences[I] > gPlayer2Settings.WeaponPreferences[CurrWeap]) ) then
-                gSelectWeapon[1, I] := True;
-          end
-          else 
-            FWeapon[I] := checkWeapon;
-      end;
-    end;
+      FWeapon[I] := (M.ReadByte() <> 0);
+
     for I := A_BULLETS to A_HIGH do
       FAmmo[I] := M.ReadWord();
 
@@ -2509,28 +2517,8 @@ begin
       FRulez := FRulez + [R_KEY_GREEN];
     if (M.ReadByte() <> 0) then
       FRulez := FRulez + [R_KEY_BLUE];
-    checkWeapon := M.ReadByte() <> 0;
-    if (checkWeapon) then
-    begin
+    if (M.ReadByte() <> 0) then
       FRulez := FRulez + [R_BERSERK];
-          if ((gPlayer2Settings.WeaponSwitch <> 0) and (gPlayer2Settings.WeaponSwitch <> 0)) and ((PID = gPlayer1.UID) or ( (gPlayer2 <> nil) and (PID = gPlayer2.UID) )) then
-          begin
-              if (PID = gPlayer1.UID) then
-                begin
-                if (gPlayer1Settings.WeaponSwitch = 1) or ( (gPlayer1Settings.WeaponSwitch = 2) and (gPlayer1Settings.WeaponPreferences[WP_LAST+1] > gPlayer1Settings.WeaponPreferences[CurrWeap]) ) then
-                  begin
-                    gSelectWeapon[0, WEAPON_KASTET] := True;       
-                  end;
-                end
-              else
-                begin
-                if (gPlayer2Settings.WeaponSwitch = 1) or ( (gPlayer2Settings.WeaponSwitch = 2) and (gPlayer2Settings.WeaponPreferences[WP_LAST+1] > gPlayer2Settings.WeaponPreferences[CurrWeap]) ) then
-                  begin
-                    gSelectWeapon[0, WEAPON_KASTET] := True;
-                  end;
-                end;
-          end;      
-    end;
 
     Frags := M.ReadLongInt();
     Death := M.ReadLongInt();
@@ -2688,6 +2676,7 @@ var
   TmpModel: string;
   TmpColor: TRGB;
   TmpTeam: Byte;
+  i: Integer;
   Pl: TPlayer;
   PID: Word;
 begin
@@ -3152,6 +3141,7 @@ end;
 // CLIENT SEND
 
 procedure MC_SEND_Info(Password: string);
+var i: Integer;
 begin
   NetOut.Clear();
 
@@ -3164,6 +3154,11 @@ begin
   NetOut.Write(gPlayer1Settings.Color.G);
   NetOut.Write(gPlayer1Settings.Color.B);
   NetOut.Write(gPlayer1Settings.Team);
+  NetOut.Write(gPlayer1Settings.WeaponSwitch);
+  if (gPlayer1Settings.WeaponSwitch = 2) then
+    for i := WP_FIRST to WP_LAST + 1 do
+      NetOut.Write(gPlayer1Settings.WeaponPreferences[i]);
+  NetOut.Write(gPlayer1Settings.SwitchToEmpty);
 
   g_Net_Client_Send(True, NET_CHAN_SERVICE);
 end;
@@ -3303,6 +3298,7 @@ begin
 end;
 
 procedure MC_SEND_PlayerSettings();
+var i: Integer;
 begin
   NetOut.Write(Byte(NET_MSG_PLRSET));
   NetOut.Write(gPlayer1Settings.Name);
@@ -3311,6 +3307,11 @@ begin
   NetOut.Write(gPlayer1Settings.Color.G);
   NetOut.Write(gPlayer1Settings.Color.B);
   NetOut.Write(gPlayer1Settings.Team);
+  NetOut.Write(gPlayer1Settings.WeaponSwitch);
+  if (gPlayer1Settings.WeaponSwitch = 2) then
+    for i := WP_FIRST to WP_LAST + 1 do
+      NetOut.Write(gPlayer1Settings.WeaponPreferences[i]);
+  NetOut.Write(gPlayer1Settings.SwitchToEmpty);
   g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
 end;
 

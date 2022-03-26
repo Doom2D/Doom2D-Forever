@@ -1037,9 +1037,11 @@ begin
   AddCommand('p1_team', PlayerSettingsCVars);
   AddCommand('p2_team', PlayerSettingsCVars);
   AddCommand('p1_autoswitch', PlayerSettingsCVars);
-  AddCommand('p2_autoswitch', PlayerSettingsCVars);  
+  AddCommand('p2_autoswitch', PlayerSettingsCVars);
+  AddCommand('p1_switch_empty', PlayerSettingsCVars);
+  AddCommand('p2_switch_empty', PlayerSettingsCVars);
   AddCommand('p1_priority_kastet', PlayerSettingsCVars);
-  AddCommand('p2_priority_kastet', PlayerSettingsCVars);  
+  AddCommand('p2_priority_kastet', PlayerSettingsCVars);
   AddCommand('p1_priority_saw', PlayerSettingsCVars);
   AddCommand('p2_priority_saw', PlayerSettingsCVars);
   AddCommand('p1_priority_pistol', PlayerSettingsCVars);
@@ -2205,9 +2207,10 @@ begin
     WriteLn(f, 'p1_model ', QuoteStr(Model));
     WriteLn(f, 'p1_team ', FormatTeam(Team));
     WriteLn(f, 'p1_autoswitch ', WeaponSwitch);
-    WriteLn(f, 'p1_priority_kastet ', Max(0, WeaponPreferences[WEAPON_KASTET]));    
+    WriteLn(f, 'p1_switch_empty ', SwitchToEmpty);
+    WriteLn(f, 'p1_priority_kastet ', Max(0, WeaponPreferences[WEAPON_KASTET]));
     WriteLn(f, 'p1_priority_saw ', Max(0, WeaponPreferences[WEAPON_SAW]));
-    WriteLn(f, 'p1_priority_pistol ', Max(0, WeaponPreferences[WEAPON_PISTOL]));    
+    WriteLn(f, 'p1_priority_pistol ', Max(0, WeaponPreferences[WEAPON_PISTOL]));
     WriteLn(f, 'p1_priority_shotgun1 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN1]));    
     WriteLn(f, 'p1_priority_shotgun2 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN2] ));
     WriteLn(f, 'p1_priority_chaingun ', Max(0, WeaponPreferences[WEAPON_CHAINGUN]));    
@@ -2226,7 +2229,8 @@ begin
     WriteLn(f, 'p2_model ', QuoteStr(Model));
     WriteLn(f, 'p2_team ', FormatTeam(Team));
     WriteLn(f, 'p2_autoswitch ', WeaponSwitch);
-    WriteLn(f, 'p2_priority_kastet ', Max(0, WeaponPreferences[WEAPON_KASTET]));    
+    WriteLn(f, 'p2_switch_empty ', SwitchToEmpty);
+    WriteLn(f, 'p2_priority_kastet ', Max(0, WeaponPreferences[WEAPON_KASTET]));
     WriteLn(f, 'p2_priority_saw ', Max(0, WeaponPreferences[WEAPON_SAW]));
     WriteLn(f, 'p2_priority_pistol ', Max(0, WeaponPreferences[WEAPON_PISTOL]));
     WriteLn(f, 'p2_priority_shotgun1 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN1]));

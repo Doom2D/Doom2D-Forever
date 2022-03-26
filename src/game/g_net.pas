@@ -21,7 +21,7 @@ uses
   e_log, e_msg, utils, ENet, Classes, md5, MAPDEF{$IFDEF USE_MINIUPNPC}, miniupnpc;{$ELSE};{$ENDIF}
 
 const
-  NET_PROTOCOL_VER = 187;
+  NET_PROTOCOL_VER = 188;
 
   NET_MAXCLIENTS = 24;
   NET_CHANS = 12;

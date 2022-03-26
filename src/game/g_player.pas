@@ -240,6 +240,7 @@ type
     function getNextWeaponIndex (): Byte; // return 255 for "no switch"
     procedure resetWeaponQueue ();
     function hasAmmoForWeapon (weapon: Byte): Boolean;
+    function shouldSwitch (weapon: Byte; hadWeapon: Boolean) : Boolean;
 
     procedure doDamage (v: Integer);
 
@@ -257,6 +258,9 @@ type
     FReloading: Array [WP_FIRST..WP_LAST] of Word;
     FTime:      Array [T_RESPAWN..T_FLAGCAP] of DWORD;
     FKeys:      Array [KEY_LEFT..KEY_CHAT] of TKeyState;
+    FWeapSwitchMode: Byte;
+    FWeapPreferences: Array [WP_FIRST .. WP_LAST+1] of Byte;
+    FSwitchToEmpty: Byte;
     FColor:     TRGB;
     FPreferredTeam: Byte;
     FSpectator: Boolean;
@@ -296,6 +300,9 @@ type
     function    IsKeyPressed(K: Byte): Boolean;
     function    GetKeys(): Byte;
     function    PickItem(ItemType: Byte; arespawn: Boolean; var remove: Boolean): Boolean; virtual;
+    procedure   SetWeaponPrefs(Prefs: Array of Byte);
+    procedure   SetWeaponPref(Weapon, Pref: Byte);
+    function    GetWeaponPref(Weapon: Byte) : Byte;
     function    Collide(X, Y: Integer; Width, Height: Word): Boolean; overload;
     function    Collide(Panel: TPanel): Boolean; overload;
     function    Collide(X, Y: Integer): Boolean; overload;
@@ -375,6 +382,8 @@ type
     property    Death: Integer read FDeath write FDeath;
     property    Kills: Integer read FKills write FKills;
     property    CurrWeap: Byte read FCurrWeap write FCurrWeap;
+    property    WeapSwitchMode: Byte read FWeapSwitchMode write FWeapSwitchMode;
+    property    SwitchToEmpty: Byte read FSwitchToEmpty write FSwitchToEmpty;
     property    MonsterKills: Integer read FMonsterKills write FMonsterKills;
     property    Secrets: Integer read FSecrets;
     property    GodMode: Boolean read FGodMode write FGodMode;
@@ -1976,9 +1985,42 @@ begin
     if FModel <> nil then FModel.Color := Color;
 end;
 
+
+
 function TPlayer.GetColor(): TRGB;
 begin
   result := FModel.Color;
+end;
+
+procedure TPlayer.SetWeaponPrefs(Prefs: Array of Byte);
+var i: Integer;
+begin
+  for i := WP_FIRST to WP_LAST + 1 do
+    begin
+      if (Prefs[i] < 0) or (Prefs[i] > WP_LAST + 1) then
+        FWeapPreferences[i] := 0
+      else FWeapPreferences[i] := Prefs[i];
+    end;
+end;
+
+procedure TPlayer.SetWeaponPref(Weapon, Pref: Byte);
+begin
+  if (Weapon < 0) or (Weapon > WP_LAST + 1) then
+    exit
+  else if (Pref >= 0) and (Pref <= WP_LAST + 1) and (Weapon >= 0) and (Weapon <= WP_LAST + 1) then
+    FWeapPreferences[Weapon] := Pref
+  else if (Weapon >= 0) and (Weapon <= WP_LAST + 1) and ((Pref < 0) or (Pref > WP_LAST + 1)) then
+    FWeapPreferences[Weapon] := 0;
+end;
+
+function TPlayer.GetWeaponPref(Weapon: Byte) : Byte;
+begin
+  if (Weapon < 0) or (Weapon > WP_LAST + 1) then
+    result := 0
+  else if (FWeapPreferences[Weapon] < 0) or (FWeapPreferences[Weapon] > WP_LAST + 1) then
+    result := 0
+  else
+    result := FWeapPreferences[Weapon];
 end;
 
 procedure TPlayer.SwitchTeam;
@@ -3710,6 +3752,20 @@ begin
   end;
 end;
 
+function TPlayer.shouldSwitch (weapon: Byte; hadWeapon: Boolean): Boolean;
+begin
+  result := false;
+  if (weapon < 0) or (weapon > WP_LAST + 1) then
+    begin
+      result := false;
+      exit;
+    end;
+  if (FWeapSwitchMode = 1) and not hadWeapon then
+    result := true
+  else if (FWeapSwitchMode = 2) then
+    result := (FWeapPreferences[weapon] > FWeapPreferences[FCurrWeap]);
+end;
+
 // return 255 for "no switch"
 function TPlayer.getNextWeaponIndex (): Byte;
 var
@@ -3719,6 +3775,7 @@ var
   dir, cwi: Integer;
 begin
   result := 255; // default result: "no switch"
+  //e_LogWriteFln('FSWITCHTOEMPTY: %s', [FSwitchToEmpty], TMsgType.Notify);
   // had weapon cycling on previous frame? remove that flag
   if (FNextWeap and $2000) <> 0 then
   begin
@@ -3739,9 +3796,9 @@ begin
     for i := 0 to High(FWeapon) do
     begin
       cwi := (cwi+length(FWeapon)+dir) mod length(FWeapon);
-      if FWeapon[cwi] then
+      if FWeapon[cwi] and ((FSwitchToEmpty = 1) or hasAmmoForWeapon(cwi))  then
       begin
-        //e_WriteLog(Format(' SWITCH: cur=%d; new=%d', [FCurrWeap, cwi]), MSG_WARNING);
+        //e_LogWriteFln(' SWITCH: cur=%d; new=%d %s %s', [FCurrWeap, cwi, FSwitchToEmpty, hasAmmoForWeapon(cwi)], TMsgType.Notify);
         result := Byte(cwi);
         FNextWeapDelay := WEAPON_DELAY;
         exit;
@@ -3759,6 +3816,7 @@ begin
       wantThisWeapon[i] := true;
       Inc(wwc);
     end;
+
   // exclude currently selected weapon from the set
   wantThisWeapon[FCurrWeap] := false;
   // slow down alterations a little
@@ -3789,6 +3847,7 @@ begin
       result := Byte(i);
       resetWeaponQueue();
       FNextWeapDelay := WEAPON_DELAY * 2; // anyway, 'cause why not
+      //e_LogWriteFln('FOUND %s %s %s', [result, FSwitchToEmpty, hasAmmoForWeapon(i)], TMsgType.Notify);
       exit;
     end;
   end;
@@ -3827,6 +3886,7 @@ begin
   end;
 
   nw := getNextWeaponIndex();
+  //
   if nw = 255 then exit; // don't reset anything here
   if nw > High(FWeapon) then
   begin
@@ -3882,8 +3942,8 @@ function TPlayer.PickItem(ItemType: Byte; arespawn: Boolean; var remove: Boolean
 
 var
   a: Boolean;
-  switchWeapon: Byte;
-  hadWeapon: Boolean;
+  switchWeapon: Byte = -1;
+  hadWeapon: Boolean = False;
 begin
   Result := False;
   if g_Game_IsClient then Exit;
@@ -4235,34 +4295,8 @@ begin
         if not (R_BERSERK in FRulez) then
         begin
           Include(FRulez, R_BERSERK);
-          (*
-          if allowBerserkSwitching then
-          begin
-            FCurrWeap := WEAPON_KASTET;
-            resetWeaponQueue();
-            FModel.SetWeapon(WEAPON_KASTET);
-          end; *)
-          if ( (g_Game_IsNet = False) or (NetMode = NET_SERVER) ) and ( ( (Self = gPlayer1) and (gPlayer1Settings.WeaponSwitch <> 0) ) or ( (gPlayer2 <> nil) and (Self = gPlayer2) and (gPlayer2Settings.WeaponSwitch <> 0) )) then
-          begin
-              if (Self = gPlayer1) then
-                begin
-                if (gPlayer1Settings.WeaponSwitch = 1) or ( (gPlayer1Settings.WeaponSwitch = 2) and (gPlayer1Settings.WeaponPreferences[WP_LAST+1] > gPlayer1Settings.WeaponPreferences[FCurrWeap]) ) then
-                  begin
-                    FCurrWeap := WEAPON_KASTET;
-                    resetWeaponQueue();
-                    FModel.SetWeapon(WEAPON_KASTET);              
-                  end;
-                end
-              else
-                begin
-                if (gPlayer2Settings.WeaponSwitch = 1) or ( (gPlayer2Settings.WeaponSwitch = 2) and (gPlayer2Settings.WeaponPreferences[WP_LAST+1] > gPlayer2Settings.WeaponPreferences[FCurrWeap]) ) then
-                  begin
-                    FCurrWeap := WEAPON_KASTET;
-                    resetWeaponQueue();
-                    FModel.SetWeapon(WEAPON_KASTET);   
-                  end;
-                end;
-          end;
+          if (shouldSwitch(WP_LAST + 1, false)) then
+            QueueWeaponSwitch(WEAPON_KASTET);
           if gFlash <> 0 then
           begin
             Inc(FPain, 100);
@@ -4330,26 +4364,9 @@ begin
         if gFlash = 2 then Inc(FPickup, 5);
       end;
   end;
-  if ( (g_Game_IsNet = False) or (NetMode = NET_SERVER) ) and ( ( (Self = gPlayer1) and (gPlayer1Settings.WeaponSwitch <> 0) ) or ( (gPlayer2 <> nil) and (Self = gPlayer2) and (gPlayer2Settings.WeaponSwitch <> 0) )) then
-  begin
-    if (hadWeapon = False) then
-    begin
-      if (Self = gPlayer1) and ( (gPlayer1Settings.WeaponSwitch = 1) or ( (gPlayer1Settings.WeaponSwitch = 2) 
-        and (gPlayer1Settings.WeaponPreferences[switchWeapon] > gPlayer1Settings.WeaponPreferences[FCurrWeap]) )  ) then
-      begin
-        FCurrWeap := switchWeapon;
-        resetWeaponQueue();
-        FModel.SetWeapon(switchWeapon);
-      end
-      else if (Self = gPlayer2) and ( (gPlayer2Settings.WeaponSwitch = 1) or ( (gPlayer2Settings.WeaponSwitch = 2) 
-        and (gPlayer2Settings.WeaponPreferences[switchWeapon] > gPlayer2Settings.WeaponPreferences[FCurrWeap]) )  ) then
-      begin
-        FCurrWeap := switchWeapon;
-        resetWeaponQueue();
-        FModel.SetWeapon(switchWeapon);
-      end;          
-    end;
-  end;
+
+  if (shouldSwitch(switchWeapon, hadWeapon)) then
+    QueueWeaponSwitch(switchWeapon);
 end;
 
 procedure TPlayer.Touch();
