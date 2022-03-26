@@ -2043,9 +2043,11 @@ function TPlayer.maySwitch(Weapon: Byte) : Boolean;
 begin
   result := true;
   if (Weapon = WEAPON_KASTET) and (FSkipFist <> 0) then
+  begin
     if (FSkipFist = 1) and (not (R_BERSERK in FRulez)) then
-      result := false
-  else if (FSwitchToEmpty = 0) and not hasAmmoForWeapon(Weapon) then
+      result := false;
+  end
+  else if (FSwitchToEmpty = 0) and (not hasAmmoForWeapon(Weapon)) then
     result := false
 end;
 
