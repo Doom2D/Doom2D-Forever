@@ -66,7 +66,7 @@ type
     WeaponSwitch: Byte;
     WeaponPreferences: Array[WP_FIRST..WP_LAST+1] of Byte;
     SwitchToEmpty: Byte;
-    SwitchToFist: Byte;
+    SkipFist: Byte;
   end;
 
   TMegaWADInfo = record
@@ -4354,6 +4354,7 @@ begin
       gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
       gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
       gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
+      gPlayer1.SkipFist := gPlayer1Settings.SkipFist;
       g_Console_Add(Format(_lc[I_PLAYER_JOIN], [gPlayer1.Name]), True);
       if g_Game_IsServer and g_Game_IsNet then
         MH_SEND_PlayerCreate(gPlayer1.UID);
@@ -4387,6 +4388,7 @@ begin
       gPlayer2.WeapSwitchMode := gPlayer2Settings.WeaponSwitch;
       gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
       gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
+      gPlayer2.SkipFist := gPlayer2Settings.SkipFist;
       g_Console_Add(Format(_lc[I_PLAYER_JOIN], [gPlayer2.Name]), True);
       if g_Game_IsServer and g_Game_IsNet then
         MH_SEND_PlayerCreate(gPlayer2.UID);
@@ -4505,6 +4507,7 @@ begin
   gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
   gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
   gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
+  gPlayer1.SkipFist := gPlayer1Settings.SkipFist;
   nPl := 1;
 
 // Создание второго игрока, если есть:
@@ -4523,6 +4526,7 @@ begin
     gPlayer2.WeapSwitchMode := gPlayer2Settings.WeaponSwitch;
     gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
     gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
+    gPlayer2.SkipFist := gPlayer2Settings.SkipFist;
     Inc(nPl);
   end;
 
@@ -4605,6 +4609,7 @@ begin
     gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
     gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
     gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
+    gPlayer1.SkipFist := gPlayer1Settings.SkipFist;
     Inc(nPl);
   end;
 
@@ -4624,6 +4629,7 @@ begin
     gPlayer2.WeapSwitchMode := gPlayer2Settings.WeaponSwitch;
     gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
     gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
+    gPlayer2.SkipFist := gPlayer2Settings.SkipFist;
     Inc(nPl);
   end;
 
@@ -4714,6 +4720,7 @@ begin
     gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
     gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
     gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
+    gPlayer1.SkipFist := gPlayer1Settings.SkipFist;
   end;
 
   if nPlayers >= 2 then
@@ -4732,6 +4739,7 @@ begin
     gPlayer2.WeapSwitchMode := gPlayer2Settings.WeaponSwitch;
     gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
     gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
+    gPlayer2.SkipFist := gPlayer2Settings.SkipFist;
   end;
 
   g_Game_SetLoadingText(_lc[I_LOAD_HOST], 0, False);
@@ -4913,6 +4921,7 @@ begin
           gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
           gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
           gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
+          gPlayer1.SkipFist := gPlayer1Settings.SkipFist;
           gPlayer1.UID := NetPlrUID1;
           gPlayer1.Reset(True);
 
@@ -5968,6 +5977,16 @@ begin
       begin
         if (Length(P) = 2) then
           gPlayer2Settings.SwitchToEmpty := EnsureRange(StrTointDef(P[1], 0), 0, 1);
+        end;
+    'p1_skip_fist':
+      begin
+        if (Length(P) = 2) then
+          gPlayer1Settings.SkipFist := EnsureRange(StrTointDef(P[1], 0), 0, 1);
+        end;
+    'p2_skip_fist':
+      begin
+        if (Length(P) = 2) then
+          gPlayer2Settings.SkipFist := EnsureRange(StrTointDef(P[1], 0), 0, 1);
         end;
     'p1_priority_kastet':
       begin

@@ -261,6 +261,7 @@ type
     FWeapSwitchMode: Byte;
     FWeapPreferences: Array [WP_FIRST .. WP_LAST+1] of Byte;
     FSwitchToEmpty: Byte;
+    FSkipFist: Byte;
     FColor:     TRGB;
     FPreferredTeam: Byte;
     FSpectator: Boolean;
@@ -304,6 +305,7 @@ type
     procedure   SetWeaponPref(Weapon, Pref: Byte);
     function    GetWeaponPref(Weapon: Byte) : Byte;
     function    GetMorePrefered() : Byte;
+    function    MaySwitch(Weapon: Byte) : Boolean;
     function    Collide(X, Y: Integer; Width, Height: Word): Boolean; overload;
     function    Collide(Panel: TPanel): Boolean; overload;
     function    Collide(X, Y: Integer): Boolean; overload;
@@ -385,6 +387,7 @@ type
     property    CurrWeap: Byte read FCurrWeap write FCurrWeap;
     property    WeapSwitchMode: Byte read FWeapSwitchMode write FWeapSwitchMode;
     property    SwitchToEmpty: Byte read FSwitchToEmpty write FSwitchToEmpty;
+    property    SkipFist: Byte read FSkipFist write FSkipFist;
     property    MonsterKills: Integer read FMonsterKills write FMonsterKills;
     property    Secrets: Integer read FSecrets;
     property    GodMode: Boolean read FGodMode write FGodMode;
@@ -2034,6 +2037,16 @@ begin
   if (R_BERSERK in FRulez) and (FWeapPreferences[WP_LAST + 1] > FWeapPreferences[testedWeap]) then
     testedWeap := WEAPON_KASTET;
   result := testedWeap;
+end;
+
+function TPlayer.maySwitch(Weapon: Byte) : Boolean;
+begin
+  result := true;
+  if (Weapon = WEAPON_KASTET) and (FSkipFist <> 0) then
+    if (FSkipFist = 1) and (not (R_BERSERK in FRulez)) then
+      result := false
+  else if (FSwitchToEmpty = 0) and not hasAmmoForWeapon(Weapon) then
+    result := false
 end;
 
 procedure TPlayer.SwitchTeam;
@@ -3809,7 +3822,7 @@ begin
     for i := 0 to High(FWeapon) do
     begin
       cwi := (cwi+length(FWeapon)+dir) mod length(FWeapon);
-      if FWeapon[cwi] and ((FSwitchToEmpty = 1) or hasAmmoForWeapon(cwi))  then
+      if FWeapon[cwi] and maySwitch(cwi)  then
       begin
         //e_LogWriteFln(' SWITCH: cur=%d; new=%d %s %s', [FCurrWeap, cwi, FSwitchToEmpty, hasAmmoForWeapon(cwi)], TMsgType.Notify);
         result := Byte(cwi);

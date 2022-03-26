@@ -1040,6 +1040,8 @@ begin
   AddCommand('p2_autoswitch', PlayerSettingsCVars);
   AddCommand('p1_switch_empty', PlayerSettingsCVars);
   AddCommand('p2_switch_empty', PlayerSettingsCVars);
+  AddCommand('p1_skip_fist', PlayerSettingsCVars);
+  AddCommand('p2_skip_fist', PlayerSettingsCVars);
   AddCommand('p1_priority_kastet', PlayerSettingsCVars);
   AddCommand('p2_priority_kastet', PlayerSettingsCVars);
   AddCommand('p1_priority_saw', PlayerSettingsCVars);

@@ -383,6 +383,7 @@ var
   WeapSwitch: Byte;
   TmpPrefArray: Array [WP_FIRST .. WP_LAST + 1] of Byte;
   SwitchEmpty: Byte;
+  SkipF: Byte;
   PID: Word;
   Color: TRGB;
   I: Integer;
@@ -403,6 +404,7 @@ begin
       for I := WP_FIRST to WP_LAST + 1 do
         TmpPrefArray[I] := M.ReadByte();
     SwitchEmpty := M.ReadByte();
+    SkipF := M.ReadByte();
   except
     Err := True;
   end;
@@ -462,6 +464,7 @@ begin
     if (WeapSwitch = 2) then
       SetWeaponPrefs(TmpPrefArray);
     SwitchToEmpty := SwitchEmpty;
+    SkipFist := SkipF;
     Reset(True);
   end;
 
@@ -715,6 +718,7 @@ var
   TmpWeapSwitch: Byte;
   TmpPrefArray: Array [WP_FIRST .. WP_LAST + 1] of Byte;
   TmpSwEmpty: Byte;
+  TmpSkipF: Byte;
   I: Integer;
   Pl: TPlayer;
   Err: Boolean;
@@ -732,6 +736,7 @@ begin
       for I := WP_FIRST to WP_LAST + 1 do
         TmpPrefArray[I] := M.ReadByte();
     TmpSwEmpty := M.ReadByte();
+    TmpSkipF := M.ReadByte();
   except
     Err := True;
   end;
@@ -763,6 +768,10 @@ begin
 
   if (TmpSwEmpty <> Pl.SwitchToEmpty) then
     Pl.SwitchToEmpty := TmpSwEmpty;
+
+  if (TmpSkipF <> Pl.SkipFist) then
+    Pl.SkipFist := TmpSkipF;
+
   MH_SEND_PlayerSettings(Pl.UID, TmpModel);
 end;
 
@@ -3159,6 +3168,7 @@ begin
     for i := WP_FIRST to WP_LAST + 1 do
       NetOut.Write(gPlayer1Settings.WeaponPreferences[i]);
   NetOut.Write(gPlayer1Settings.SwitchToEmpty);
+  NetOut.Write(gPlayer1Settings.SkipFist);
 
   g_Net_Client_Send(True, NET_CHAN_SERVICE);
 end;
@@ -3312,6 +3322,8 @@ begin
     for i := WP_FIRST to WP_LAST + 1 do
       NetOut.Write(gPlayer1Settings.WeaponPreferences[i]);
   NetOut.Write(gPlayer1Settings.SwitchToEmpty);
+  NetOut.Write(gPlayer1Settings.SkipFist);
+
   g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
 end;
 

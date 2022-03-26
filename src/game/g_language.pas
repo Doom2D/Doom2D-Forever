@@ -1272,7 +1272,7 @@ const
     ('MENU KASTET ALLOW',              'Switch to fist',
                                        'Выбирать кастет'),
     ('MENU KASTET ALLOW BERSERK',      'Only with berserk',
-                                       'Есть берсерк'),
+                                       'Только с берсерком'),
     ('MENU KASTET ALLOW ALWAYS',       'Always',
                                        'Всегда'),
     ('MENU WEAPON PRIORITY PLAYER 1',  'Player 1 Priority',

@@ -357,8 +357,8 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1WeaponMenu').GetControl('mOptionsPlayersP1WeaponMenu'));
   gPlayer1Settings.WeaponSwitch := TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex;
   gPlayer1Settings.SwitchToEmpty := TGUISwitch(menu.GetControl('swWeaponAllowEmpty')).ItemIndex;
-
-
+  gPlayer1Settings.SkipFist := TGUISwitch(menu.GetControl('swWeaponAllowFist')).ItemIndex;
+  
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP1WeaponMenu').GetControl('mOptionsPreferencesP1WeaponMenu'));
   with menu do
   begin
@@ -371,6 +371,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2WeaponMenu').GetControl('mOptionsPlayersP2WeaponMenu'));
   gPlayer2Settings.WeaponSwitch := TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex;
   gPlayer2Settings.SwitchToEmpty := TGUISwitch(menu.GetControl('swWeaponAllowEmpty')).ItemIndex;
+  gPlayer2Settings.SkipFist := TGUISwitch(menu.GetControl('swWeaponAllowFist')).ItemIndex;
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP2WeaponMenu').GetControl('mOptionsPreferencesP2WeaponMenu'));
   with menu do
   begin
@@ -409,6 +410,7 @@ begin
       if (gPlayer1.WeapSwitchMode = 2) then
         gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
       gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
+      gPlayer1.SkipFist := gPlayer1Settings.SkipFist;
       if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
     end;
 
@@ -425,6 +427,7 @@ begin
       if (gPlayer2.WeapSwitchMode = 2) then
         gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
       gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
+      gPlayer2.SkipFist := gPlayer2Settings.SkipFist;
     end;
   end;
 
@@ -656,7 +659,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1WeaponMenu').GetControl('mOptionsPlayersP1WeaponMenu'));
   TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex := gPlayer1Settings.WeaponSwitch;
   TGUISwitch(menu.GetControl('swWeaponAllowEmpty')).ItemIndex := gPlayer1Settings.SwitchToEmpty;
-
+  TGUISwitch(menu.GetControl('swWeaponAllowFist')).ItemIndex := gPlayer1Settings.SkipFist;
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP1WeaponMenu').GetControl('mOptionsPreferencesP1WeaponMenu'));
   for i := WP_FIRST to WP_LAST+1 do
   begin
@@ -667,6 +670,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2WeaponMenu').GetControl('mOptionsPlayersP2WeaponMenu'));
   TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex := gPlayer2Settings.WeaponSwitch;
   TGUISwitch(menu.GetControl('swWeaponAllowEmpty')).ItemIndex := gPlayer2Settings.SwitchToEmpty;
+  TGUISwitch(menu.GetControl('swWeaponAllowFist')).ItemIndex := gPlayer2Settings.SkipFist;
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP2WeaponMenu').GetControl('mOptionsPreferencesP2WeaponMenu'));
   for i := WP_FIRST to WP_LAST+1 do
   begin
@@ -3288,6 +3292,12 @@ begin
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
     end;
+    with AddSwitch(_lc[I_MENU_KASTET_ALLOW]) do
+    begin
+      Name := 'swWeaponAllowFist';
+      AddItem(_lc[I_MENU_KASTET_ALLOW_ALWAYS]);
+      AddItem(_lc[I_MENU_KASTET_ALLOW_BERSERK]);
+    end;
     AddButton(@ProcOptionsPlayerP1WeaponPreferencesMenu, _lc[I_MENU_WEAPON_SWITCH_PRIORITY]);
     ReAlign();
   end;
@@ -3340,6 +3350,12 @@ begin
       Name := 'swWeaponAllowEmpty';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
+    end;
+    with AddSwitch(_lc[I_MENU_KASTET_ALLOW]) do
+    begin
+      Name := 'swWeaponAllowFist';
+      AddItem(_lc[I_MENU_KASTET_ALLOW_ALWAYS]);
+      AddItem(_lc[I_MENU_KASTET_ALLOW_BERSERK]);
     end;
     AddButton(@ProcOptionsPlayerP2WeaponPreferencesMenu, _lc[I_MENU_WEAPON_SWITCH_PRIORITY]);
     ReAlign();
