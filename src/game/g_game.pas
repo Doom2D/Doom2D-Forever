@@ -7438,6 +7438,14 @@ begin
         gSelectWeapon[b, a] := True
     end
   end
+  else if (cmd = 'p1_weapbest') or (cmd = 'p2_weapbest') then
+  begin
+    b := ord(cmd[2]) - ord('1');
+    if b = 0 then
+      gSelectWeapon[b, gPlayer1.GetMorePrefered()] := True
+    else
+      gSelectWeapon[b, gPlayer2.GetMorePrefered()] := True;
+  end
   else if (cmd = 'dropflag') then
   begin
     if g_Game_IsServer then

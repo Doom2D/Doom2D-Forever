@@ -303,6 +303,7 @@ type
     procedure   SetWeaponPrefs(Prefs: Array of Byte);
     procedure   SetWeaponPref(Weapon, Pref: Byte);
     function    GetWeaponPref(Weapon: Byte) : Byte;
+    function    GetMorePrefered() : Byte;
     function    Collide(X, Y: Integer; Width, Height: Word): Boolean; overload;
     function    Collide(Panel: TPanel): Boolean; overload;
     function    Collide(X, Y: Integer): Boolean; overload;
@@ -2021,6 +2022,18 @@ begin
     result := 0
   else
     result := FWeapPreferences[Weapon];
+end;
+
+function TPlayer.GetMorePrefered() : Byte;
+var testedWeap, i: Byte;
+begin
+  testedWeap := FCurrWeap;
+  for i := WP_FIRST to WP_LAST do
+    if FWeapon[i] and (FWeapPreferences[i] > FWeapPreferences[testedWeap]) then
+      testedWeap := i;
+  if (R_BERSERK in FRulez) and (FWeapPreferences[WP_LAST + 1] > FWeapPreferences[testedWeap]) then
+    testedWeap := WEAPON_KASTET;
+  result := testedWeap;
 end;
 
 procedure TPlayer.SwitchTeam;

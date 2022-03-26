@@ -1148,10 +1148,12 @@ begin
   AddCommand('p1_weapnext', GameCommands);
   AddCommand('p1_weapprev', GameCommands);
   AddCommand('p1_weapon', GameCommands);
+  AddCommand('p1_weapbest', GameCommands);
   AddCommand('p1_dropflag', GameCommands);
   AddCommand('p2_weapnext', GameCommands);
   AddCommand('p2_weapprev', GameCommands);
   AddCommand('p2_weapon', GameCommands);
+  AddCommand('p2_weapbest', GameCommands);
   AddCommand('p2_dropflag', GameCommands);
 
   AddCommand('god', GameCheats);
