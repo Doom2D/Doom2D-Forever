@@ -407,8 +407,7 @@ begin
         if gPlayer1.Team <> gPlayer1Settings.Team then
           gPlayer1.SwitchTeam;
       gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
-      if (gPlayer1.WeapSwitchMode = 2) then
-        gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
+      gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
       gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
       gPlayer1.SkipFist := gPlayer1Settings.SkipFist;
       if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
@@ -424,14 +423,17 @@ begin
         if gPlayer2.Team <> gPlayer2Settings.Team then
           gPlayer2.SwitchTeam;
       gPlayer2.WeapSwitchMode := gPlayer2Settings.WeaponSwitch;
-      if (gPlayer2.WeapSwitchMode = 2) then
-        gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
+      gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
       gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
       gPlayer2.SkipFist := gPlayer2Settings.SkipFist;
     end;
   end;
 
-  if g_Game_IsClient then MC_SEND_PlayerSettings;
+  if g_Game_IsClient then
+  begin
+    MC_SEND_PlayerSettings;
+    gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
+  end;
 
   g_Console_WriteGameConfig;
 end;

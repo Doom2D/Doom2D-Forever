@@ -400,9 +400,8 @@ begin
     B := M.ReadByte();
     T := M.ReadByte();
     WeapSwitch := M.ReadByte();
-    if (WeapSwitch = 2) then
-      for I := WP_FIRST to WP_LAST + 1 do
-        TmpPrefArray[I] := M.ReadByte();
+    for I := WP_FIRST to WP_LAST + 1 do
+      TmpPrefArray[I] := M.ReadByte();
     SwitchEmpty := M.ReadByte();
     SkipF := M.ReadByte();
   except
@@ -461,8 +460,7 @@ begin
   begin
     Name := PName;
     WeapSwitchMode := WeapSwitch;
-    if (WeapSwitch = 2) then
-      SetWeaponPrefs(TmpPrefArray);
+    SetWeaponPrefs(TmpPrefArray);
     SwitchToEmpty := SwitchEmpty;
     SkipFist := SkipF;
     Reset(True);
@@ -732,9 +730,8 @@ begin
     TmpColor.B := M.ReadByte();
     TmpTeam := M.ReadByte();
     TmpWeapSwitch := M.ReadByte();
-    if (TmpWeapSwitch = 2) then
-      for I := WP_FIRST to WP_LAST + 1 do
-        TmpPrefArray[I] := M.ReadByte();
+    for I := WP_FIRST to WP_LAST + 1 do
+      TmpPrefArray[I] := M.ReadByte();
     TmpSwEmpty := M.ReadByte();
     TmpSkipF := M.ReadByte();
   except
@@ -763,9 +760,7 @@ begin
   if (TmpWeapSwitch <> Pl.WeapSwitchMode) then
     Pl.WeapSwitchMode := TmpWeapSwitch;
 
-  if (TmpWeapSwitch = 2) then
-    Pl.SetWeaponPrefs(TmpPrefArray);
-
+  Pl.SetWeaponPrefs(TmpPrefArray);
   if (TmpSwEmpty <> Pl.SwitchToEmpty) then
     Pl.SwitchToEmpty := TmpSwEmpty;
 
@@ -3164,9 +3159,8 @@ begin
   NetOut.Write(gPlayer1Settings.Color.B);
   NetOut.Write(gPlayer1Settings.Team);
   NetOut.Write(gPlayer1Settings.WeaponSwitch);
-  if (gPlayer1Settings.WeaponSwitch = 2) then
-    for i := WP_FIRST to WP_LAST + 1 do
-      NetOut.Write(gPlayer1Settings.WeaponPreferences[i]);
+  for i := WP_FIRST to WP_LAST + 1 do
+    NetOut.Write(gPlayer1Settings.WeaponPreferences[i]);
   NetOut.Write(gPlayer1Settings.SwitchToEmpty);
   NetOut.Write(gPlayer1Settings.SkipFist);
 
@@ -3318,9 +3312,8 @@ begin
   NetOut.Write(gPlayer1Settings.Color.B);
   NetOut.Write(gPlayer1Settings.Team);
   NetOut.Write(gPlayer1Settings.WeaponSwitch);
-  if (gPlayer1Settings.WeaponSwitch = 2) then
-    for i := WP_FIRST to WP_LAST + 1 do
-      NetOut.Write(gPlayer1Settings.WeaponPreferences[i]);
+  for i := WP_FIRST to WP_LAST + 1 do
+    NetOut.Write(gPlayer1Settings.WeaponPreferences[i]);
   NetOut.Write(gPlayer1Settings.SwitchToEmpty);
   NetOut.Write(gPlayer1Settings.SkipFist);
 
