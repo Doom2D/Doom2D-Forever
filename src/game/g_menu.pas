@@ -441,7 +441,7 @@ end;
 procedure ReadOptions();
 var
   menu: TGUIMenu;
-  i, a: Integer;
+  i: Integer;
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoMenu').GetControl('mOptionsVideoMenu'));
 
@@ -2187,7 +2187,7 @@ procedure CreateAllMenus();
 var
   Menu: TGUIWindow;
   //SR: TSearchRec;
-  a, cx, _y, i, x: Integer;
+  a, cx, _y, i: Integer;
   //list: SSArray;
 begin
   Menu := TGUIWindow.Create('MainMenu');

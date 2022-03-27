@@ -1998,38 +1998,41 @@ begin
 end;
 
 procedure TPlayer.SetWeaponPrefs(Prefs: Array of Byte);
-var i: Integer;
+var
+  i: Integer;
 begin
   for i := WP_FIRST to WP_LAST + 1 do
     begin
-      if (Prefs[i] < 0) or (Prefs[i] > WP_LAST + 1) then
+      if (Prefs[i] > WP_LAST + 1) then
         FWeapPreferences[i] := 0
-      else FWeapPreferences[i] := Prefs[i];
+      else
+        FWeapPreferences[i] := Prefs[i];
     end;
 end;
 
 procedure TPlayer.SetWeaponPref(Weapon, Pref: Byte);
 begin
-  if (Weapon < 0) or (Weapon > WP_LAST + 1) then
+  if (Weapon > WP_LAST + 1) then
     exit
-  else if (Pref >= 0) and (Pref <= WP_LAST + 1) and (Weapon >= 0) and (Weapon <= WP_LAST + 1) then
+  else if (Pref <= WP_LAST + 1) and (Weapon <= WP_LAST + 1) then
     FWeapPreferences[Weapon] := Pref
-  else if (Weapon >= 0) and (Weapon <= WP_LAST + 1) and ((Pref < 0) or (Pref > WP_LAST + 1)) then
+  else if (Weapon <= WP_LAST + 1) and (Pref > WP_LAST + 1) then
     FWeapPreferences[Weapon] := 0;
 end;
 
 function TPlayer.GetWeaponPref(Weapon: Byte) : Byte;
 begin
-  if (Weapon < 0) or (Weapon > WP_LAST + 1) then
+  if (Weapon > WP_LAST + 1) then
     result := 0
-  else if (FWeapPreferences[Weapon] < 0) or (FWeapPreferences[Weapon] > WP_LAST + 1) then
+  else if (FWeapPreferences[Weapon] > WP_LAST + 1) then
     result := 0
   else
     result := FWeapPreferences[Weapon];
 end;
 
 function TPlayer.GetMorePrefered() : Byte;
-var testedWeap, i: Byte;
+var
+  testedWeap, i: Byte;
 begin
   testedWeap := FCurrWeap;
   for i := WP_FIRST to WP_LAST do
@@ -3800,7 +3803,7 @@ end;
 function TPlayer.shouldSwitch (weapon: Byte; hadWeapon: Boolean): Boolean;
 begin
   result := false;
-  if (weapon < 0) or (weapon > WP_LAST + 1) then
+  if (weapon > WP_LAST + 1) then
     begin
       result := false;
       exit;
@@ -3987,7 +3990,7 @@ function TPlayer.PickItem(ItemType: Byte; arespawn: Boolean; var remove: Boolean
 
 var
   a: Boolean;
-  switchWeapon: Byte = -1;
+  switchWeapon: Byte = 255;
   hadWeapon: Boolean = False;
 begin
   Result := False;

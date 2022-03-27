@@ -2680,7 +2680,6 @@ var
   TmpModel: string;
   TmpColor: TRGB;
   TmpTeam: Byte;
-  i: Integer;
   Pl: TPlayer;
   PID: Word;
 begin
