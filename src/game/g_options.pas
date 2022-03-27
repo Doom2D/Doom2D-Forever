@@ -62,7 +62,6 @@ var
   gsSDLSampleRate: Integer;
   gsSDLBufferSize: Integer;
   gDefaultMegawadStart: AnsiString;
-  gBerserkAutoswitch: Boolean;
   glNPOTOverride: Boolean = false;
 
   (* Latched game settings *)
@@ -254,7 +253,6 @@ begin
   wadoptFast := False;
   e_FastScreenshots := True;
   gDefaultMegawadStart := DF_Default_Megawad_Start;
-  gBerserkAutoswitch := True;
   g_dbg_scale := 1.0;
   gSaveStats := False;
 

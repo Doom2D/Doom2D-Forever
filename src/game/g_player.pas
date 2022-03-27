@@ -3978,16 +3978,6 @@ begin
 end;
 
 function TPlayer.PickItem(ItemType: Byte; arespawn: Boolean; var remove: Boolean): Boolean;
-
-  function allowBerserkSwitching (): Boolean;
-  begin
-    if (FBFGFireCounter <> -1) then begin result := false; exit; end;
-    result := true;
-    if gBerserkAutoswitch then exit;
-    if not conIsCheatsEnabled then exit;
-    result := false;
-  end;
-
 var
   a: Boolean;
   switchWeapon: Byte = 255;
@@ -4343,8 +4333,12 @@ begin
         if not (R_BERSERK in FRulez) then
         begin
           Include(FRulez, R_BERSERK);
-          if (shouldSwitch(WP_LAST + 1, false)) then
-            QueueWeaponSwitch(WEAPON_KASTET);
+          if (FBFGFireCounter = -1) then
+          begin
+            FCurrWeap := WEAPON_KASTET;
+            resetWeaponQueue();
+            FModel.SetWeapon(WEAPON_KASTET);
+          end;
           if gFlash <> 0 then
           begin
             Inc(FPain, 100);
@@ -8040,7 +8034,6 @@ end;
 
 
 begin
-  conRegVar('cheat_berserk_autoswitch', @gBerserkAutoswitch, 'autoswitch to fist when berserk pack taken', '',  true, true);
   conRegVar('player_indicator', @gPlayerIndicator, 'Draw indicator only for current player, also for teammates, or not at all', 'Draw indicator only for current player, also for teammates, or not at all');
   conRegVar('player_indicator_style', @gPlayerIndicatorStyle, 'Visual appearance of indicator', 'Visual appearance of indicator');
 end.
