@@ -2052,7 +2052,7 @@ begin
       result := false;
   end
   else if (FSwitchToEmpty = 0) and (not hasAmmoForShooting(Weapon)) then
-    result := false
+    result := false;
 end;
 
 procedure TPlayer.SwitchTeam;
