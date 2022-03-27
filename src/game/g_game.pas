@@ -5701,7 +5701,7 @@ begin
   begin
     if Length(p) = 2 then
     begin
-      a := Max(0, StrToInt(p[1]));
+      a := Max(0, StrToIntDef(p[1], 0));
       g_GFX_SetMax(a)
     end
     else if Length(p) = 1 then
@@ -5717,7 +5717,7 @@ begin
   begin
     if Length(p) = 2 then
     begin
-      a := Max(0, StrToInt(p[1]));
+      a := Max(0, StrToIntDef(p[1], 0));
       g_Shells_SetMax(a)
     end
     else if Length(p) = 1 then
@@ -5733,7 +5733,7 @@ begin
   begin
     if Length(p) = 2 then
     begin
-      a := Max(0, StrToInt(p[1]));
+      a := Max(0, StrToIntDef(p[1], 0));
       g_Gibs_SetMax(a)
     end
     else if Length(p) = 1 then
@@ -5749,7 +5749,7 @@ begin
   begin
     if Length(p) = 2 then
     begin
-      a := Max(0, StrToInt(p[1]));
+      a := Max(0, StrToIntDef(p[1], 0));
       g_Corpses_SetMax(a)
     end
     else if Length(p) = 1 then
@@ -7432,7 +7432,7 @@ begin
   begin
     if Length(p) = 2 then
     begin
-      a := WP_FIRST + StrToInt(p[1]) - 1;
+      a := WP_FIRST + StrToIntDef(p[1], 0) - 1;
       if (a >= WP_FIRST) and (a <= WP_LAST) then
         gSelectWeapon[0, a] := True
     end
@@ -7451,7 +7451,7 @@ begin
   begin
     if Length(p) = 2 then
     begin
-      a := WP_FIRST + StrToInt(p[1]) - 1;
+      a := WP_FIRST + StrToIntDef(p[1], 0) - 1;
       b := ord(cmd[2]) - ord('1');
       if (a >= WP_FIRST) and (a <= WP_LAST) then
         gSelectWeapon[b, a] := True
