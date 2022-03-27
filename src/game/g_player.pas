@@ -2036,7 +2036,7 @@ var
 begin
   testedWeap := FCurrWeap;
   for i := WP_FIRST to WP_LAST do
-    if FWeapon[i] and (FWeapPreferences[i] > FWeapPreferences[testedWeap]) then
+    if FWeapon[i] and maySwitch(i) and (FWeapPreferences[i] > FWeapPreferences[testedWeap]) then
       testedWeap := i;
   if (R_BERSERK in FRulez) and (FWeapPreferences[WP_LAST + 1] > FWeapPreferences[testedWeap]) then
     testedWeap := WEAPON_KASTET;
