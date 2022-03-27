@@ -240,6 +240,7 @@ type
     function getNextWeaponIndex (): Byte; // return 255 for "no switch"
     procedure resetWeaponQueue ();
     function hasAmmoForWeapon (weapon: Byte): Boolean;
+    function hasAmmoForShooting (weapon: Byte): Boolean;
     function shouldSwitch (weapon: Byte; hadWeapon: Boolean) : Boolean;
 
     procedure doDamage (v: Integer);
@@ -2047,7 +2048,7 @@ begin
     if (FSkipFist = 1) and (not (R_BERSERK in FRulez)) then
       result := false;
   end
-  else if (FSwitchToEmpty = 0) and (not hasAmmoForWeapon(Weapon)) then
+  else if (FSwitchToEmpty = 0) and (not hasAmmoForShooting(Weapon)) then
     result := false
 end;
 
@@ -3775,6 +3776,22 @@ begin
     WEAPON_PISTOL, WEAPON_CHAINGUN: result := (FAmmo[A_BULLETS] > 0);
     WEAPON_ROCKETLAUNCHER: result := (FAmmo[A_ROCKETS] > 0);
     WEAPON_PLASMA, WEAPON_BFG: result := (FAmmo[A_CELLS] > 0);
+    WEAPON_FLAMETHROWER: result := (FAmmo[A_FUEL] > 0);
+    else result := (weapon < length(FWeapon));
+  end;
+end;
+
+function TPlayer.hasAmmoForShooting (weapon: Byte): Boolean;
+begin
+  result := false;
+  case weapon of
+    WEAPON_KASTET, WEAPON_SAW: result := true;
+    WEAPON_SHOTGUN1, WEAPON_SUPERPULEMET: result := (FAmmo[A_SHELLS] > 0);
+    WEAPON_SHOTGUN2: result := (FAmmo[A_SHELLS] > 1);
+    WEAPON_PISTOL, WEAPON_CHAINGUN: result := (FAmmo[A_BULLETS] > 0);
+    WEAPON_ROCKETLAUNCHER: result := (FAmmo[A_ROCKETS] > 0);
+    WEAPON_PLASMA: result := (FAmmo[A_CELLS] > 0);
+    WEAPON_BFG: result := (FAmmo[A_CELLS] >= 40);
     WEAPON_FLAMETHROWER: result := (FAmmo[A_FUEL] > 0);
     else result := (weapon < length(FWeapon));
   end;
