@@ -19,9 +19,6 @@ interface
 
   uses g_base, g_textures, MAPDEF, Imaging; // TMirrorType, TAnimationState, TDFPoint, TDynImageDataArray
 
-  procedure r_AnimationState_Draw (FID: DWORD; t: TAnimationState; x, y: Integer; alpha: Byte; mirror: TMirrorType; blending: Boolean);
-  procedure r_AnimationState_DrawEx (FID: DWORD; t: TAnimationState; x, y: Integer; alpha: Byte; mirror: TMirrorType; blending: Boolean; rpoint: TDFPoint; angle: SmallInt);
-
   procedure r_AnimState_Draw (FID: DWORD; const t: TAnimState; x, y: Integer; alpha: Byte; mirror: TMirrorType; blending: Boolean);
   procedure r_AnimState_DrawEx (FID: DWORD; const t: TAnimState; x, y: Integer; alpha: Byte; mirror: TMirrorType; blending: Boolean; rpoint: TDFPoint; angle: SmallInt);
 
@@ -69,18 +66,6 @@ implementation
       w := framesArray[ID].frameWidth;
       h := framesArray[ID].frameHeight;
     end
-  end;
-
-  procedure r_AnimationState_Draw (FID: DWORD; t: TAnimationState; x, y: Integer; alpha: Byte; mirror: TMirrorType; blending: Boolean);
-  begin
-    if t.enabled then
-      e_DrawAdv(framesArray[FID].TexturesID[t.currentFrame], x, y, alpha, true, blending, 0, nil, mirror)
-  end;
-
-  procedure r_AnimationState_DrawEx (FID: DWORD; t: TAnimationState; x, y: Integer; alpha: Byte; mirror: TMirrorType; blending: Boolean; rpoint: TDFPoint; angle: SmallInt);
-  begin
-    if t.enabled then
-      e_DrawAdv(framesArray[FID].TexturesID[t.currentFrame], x, y, alpha, true, blending, angle, @rpoint, mirror)
   end;
 
   procedure r_AnimState_Draw (FID: DWORD; const t: TAnimState; x, y: Integer; alpha: Byte; mirror: TMirrorType; blending: Boolean);
