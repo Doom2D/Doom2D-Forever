@@ -247,7 +247,7 @@ implementation
   end;
 
   procedure TCorpse.LoadState (st: TStream);
-    var anim, blending: Boolean; r, g, b, alpha: Byte; stub: TAnimationState;
+    var anim, blending: Boolean; r, g, b, alpha: Byte; stub: TAnimState;
   begin
     assert(st <> nil);
 
@@ -267,7 +267,7 @@ implementation
     Obj_LoadState(@FObj, st);
     FPlayerUID := utils.readWord(st);
     // animation
-    stub := TAnimationState.Create(False, 0, 0);
+    stub := TAnimState.Create(False, 0, 0);
     anim := utils.readBool(st);
     if anim then
     begin
@@ -282,7 +282,6 @@ implementation
     // animation for mask (same as animation, compat with older saves)
     anim := utils.readBool(st);
     if anim then stub.LoadState(st, alpha, blending);
-    stub.Free;
   end;
 
   procedure g_Corpses_SetMax (Count: Word);
