@@ -49,7 +49,7 @@ implementation
       Alpha:      Byte;
       x, y:       Integer;
       oldX, oldY: Integer;
-      Animation:  TAnimationState;
+      Animation:  TAnimState;
     end;
 
   var
@@ -76,15 +76,9 @@ implementation
   end;
 
   procedure r_GFX_Free;
-    var a: Integer;
   begin
     g_Frames_DeleteByName('FRAMES_TELEPORT');
-    if OnceAnims <> nil then
-    begin
-      for a := 0 to High(OnceAnims) do
-        OnceAnims[a].Animation.Free();
-      OnceAnims := nil;
-    end;
+    OnceAnims := nil;
   end;
 
   function FindOnceAnim (): DWORD;
@@ -92,7 +86,7 @@ implementation
   begin
     if OnceAnims <> nil then
       for i := 0 to High(OnceAnims) do
-        if OnceAnims[i].Animation = nil then
+        if OnceAnims[i].Animation.IsInvalid() then
         begin
           Result := i;
           Exit;
@@ -110,50 +104,52 @@ implementation
   end;
 
   procedure r_GFX_OnceAnim (AnimType, x, y: Integer);
-    var find_id: DWORD; a: TAnimationState; alpha: Byte;
+    var find_id: DWORD; a: TAnimState; alpha: Byte;
   begin
     if not gpart_dbg_enabled then exit;
     find_id := FindOnceAnim();
     alpha := 0;
     case AnimType of
-      R_GFX_NONE: a := nil;
-      R_GFX_TELEPORT: a := TAnimationState.Create(false, 6, 10); // !!! speed can be 3
+      R_GFX_NONE: a := TAnimState.Create(false, 0, 0);
+      R_GFX_TELEPORT: a := TAnimState.Create(false, 6, 10);
       R_GFX_TELEPORT_FAST:
       begin
         AnimType := R_GFX_TELEPORT;
-        a := TAnimationState.Create(false, 3, 10);
+        a := TAnimState.Create(false, 3, 10);
       end;
-      R_GFX_FLAME: a := TAnimationState.Create(false, 3, 11);
+      R_GFX_FLAME: a := TAnimState.Create(false, 3, 11);
       R_GFX_FLAME_RAND:
       begin
         AnimType := R_GFX_FLAME;
-        a := TAnimationState.Create(false, 2 + Random(2), 10);
+        a := TAnimState.Create(false, 2 + Random(2), 10);
       end;
-      R_GFX_EXPLODE_ROCKET: a := TAnimationState.Create(false, 6, 6);
-      R_GFX_EXPLODE_BFG: a := TAnimationState.Create(false, 6, 6);
-      R_GFX_BFG_HIT: a := TAnimationState.Create(false, 4, 4);
-      R_GFX_FIRE: a := TAnimationState.Create(false, 4, 8); // !!! speed can be random
-      R_GFX_ITEM_RESPAWN: a := TAnimationState.Create(false, 4, 5);
-      R_GFX_SMOKE: a := TAnimationState.Create(false, 3, 10);
+      R_GFX_EXPLODE_ROCKET: a := TAnimState.Create(false, 6, 6);
+      R_GFX_EXPLODE_BFG: a := TAnimState.Create(false, 6, 6);
+      R_GFX_BFG_HIT: a := TAnimState.Create(false, 4, 4);
+      R_GFX_FIRE: a := TAnimState.Create(false, 4, 8); // !!! TODO: random speed
+      R_GFX_ITEM_RESPAWN: a := TAnimState.Create(false, 4, 5);
+      R_GFX_SMOKE: a := TAnimState.Create(false, 3, 10);
       R_GFX_SMOKE_TRANS:
       begin
         AnimType := R_GFX_SMOKE;
-        a := TAnimationState.Create(false, 3, 10);
+        a := TAnimState.Create(false, 3, 10);
         alpha := 150;
       end;
-      R_GFX_EXPLODE_SKELFIRE: a := TAnimationState.Create(false, 8, 3);
-      R_GFX_EXPLODE_PLASMA: a := TAnimationState.Create(false, 3, 4);
-      R_GFX_EXPLODE_BSPFIRE: a := TAnimationState.Create(false, 3, 5);
-      R_GFX_EXPLODE_IMPFIRE: a := TAnimationState.Create(false, 6, 3);
-      R_GFX_EXPLODE_CACOFIRE: a := TAnimationState.Create(false, 6, 3);
-      R_GFX_EXPLODE_BARONFIRE: a := TAnimationState.Create(false, 6, 3);
+      R_GFX_EXPLODE_SKELFIRE: a := TAnimState.Create(false, 8, 3);
+      R_GFX_EXPLODE_PLASMA: a := TAnimState.Create(false, 3, 4);
+      R_GFX_EXPLODE_BSPFIRE: a := TAnimState.Create(false, 3, 5);
+      R_GFX_EXPLODE_IMPFIRE: a := TAnimState.Create(false, 6, 3);
+      R_GFX_EXPLODE_CACOFIRE: a := TAnimState.Create(false, 6, 3);
+      R_GFX_EXPLODE_BARONFIRE: a := TAnimState.Create(false, 6, 3);
     else
-      a := nil;
-      assert(false)
+      a := TAnimState.Create(false, 0, 0);
+      raise Exception.Create('invalid anim type');
     end;
     OnceAnims[find_id].AnimType := AnimType;
     OnceAnims[find_id].Alpha := alpha;
     OnceAnims[find_id].Animation := a;
+    OnceAnims[find_id].Animation.Reset();
+    OnceAnims[find_id].Animation.Enable();
     OnceAnims[find_id].x := x;
     OnceAnims[find_id].y := y;
   end;
@@ -165,7 +161,7 @@ implementation
     begin
       for a := 0 to High(OnceAnims) do
       begin
-        if OnceAnims[a].Animation <> nil then
+        if OnceAnims[a].Animation.IsValid() then
         begin
           OnceAnims[a].oldx := OnceAnims[a].x;
           OnceAnims[a].oldy := OnceAnims[a].y;
@@ -179,10 +175,7 @@ implementation
             end;
           end;
           if OnceAnims[a].Animation.Played then
-          begin
-            OnceAnims[a].Animation.Free();
-            OnceAnims[a].Animation := nil;
-          end
+            OnceAnims[a].Animation.Invalidate()
           else
             OnceAnims[a].Animation.Update();
         end;
@@ -235,13 +228,13 @@ begin
     len := High(OnceAnims);
     for a := 0 to len do
     begin
-      if (OnceAnims[a].Animation <> nil) then
+      if OnceAnims[a].Animation.IsValid() then
       begin
         with OnceAnims[a] do
         begin
           fx := nlerp(oldx, x, gLerpFactor);
           fy := nlerp(oldy, y, gLerpFactor);
-          r_AnimationState_Draw(gfxFrames[AnimType], Animation, x, y, Alpha, TMirrorType.None, False);
+          r_AnimState_Draw(gfxFrames[AnimType], Animation, x, y, Alpha, TMirrorType.None, False);
         end;
       end;
     end;

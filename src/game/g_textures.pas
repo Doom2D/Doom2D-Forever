@@ -87,7 +87,7 @@ type
 
   public
     constructor Create (aloop: Boolean; aspeed: Byte; len: Integer);
-    procedure Destroy;
+    procedure Invalidate;
 
     procedure reset ();
     procedure update ();
@@ -99,6 +99,8 @@ type
     procedure loadState (st: TStream; out mAlpha: Byte; out mBlending: Boolean);
 
     function totalFrames (): Integer; inline;
+    function IsInvalid (): Boolean;
+    function IsValid (): Boolean;
 
   public
     property played: Boolean read mPlayed;
@@ -285,6 +287,8 @@ end;
 
 constructor TAnimState.Create (aloop: Boolean; aspeed: Byte; len: Integer);
 begin
+  Self := Default(TAnimState);
+
   assert(len >= 0);
   mLength := len;
 
@@ -296,7 +300,7 @@ begin
   mPlayed := false;
 end;
 
-procedure TAnimState.Destroy;
+procedure TAnimState.Invalidate;
 begin
   Self := Default(TAnimState);
 end;
@@ -378,6 +382,16 @@ end;
 function TAnimState.totalFrames (): Integer; inline;
 begin
   result := mLength
+end;
+
+function TAnimState.IsInvalid (): Boolean;
+begin
+  result := mLength <= 0
+end;
+
+function TAnimState.IsValid (): Boolean;
+begin
+  result := mLength > 0
 end;
 
 procedure TAnimState.saveState (st: TStream; mAlpha: Byte; mBlending: Boolean);
