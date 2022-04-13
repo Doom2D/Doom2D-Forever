@@ -299,14 +299,14 @@ end;
       IsAnim := RenTextures[Texture].Anim;
       if IsAnim then
       begin
-        if p.TextureIDs[p.FCurTexture].AnTex <> nil then
+        if p.TextureIDs[p.FCurTexture].AnTex.IsValid() then
         begin
           FramesID := RenTextures[Texture].ID;
           w := RenTextures[Texture].Width;
           h := RenTextures[Texture].Height;
           for xx := 0 to tw div w - 1 do
             for yy := 0 to th div h - 1 do
-              r_AnimationState_Draw(FramesID, p.TextureIDs[p.FCurTexture].AnTex, tx + xx * w, ty + yy * h, p.Alpha, TMirrorType.None, p.Blending);
+              r_AnimState_Draw(FramesID, p.TextureIDs[p.FCurTexture].AnTex, tx + xx * w, ty + yy * h, p.Alpha, TMirrorType.None, p.Blending);
         end
       end
       else

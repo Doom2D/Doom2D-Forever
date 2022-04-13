@@ -31,7 +31,7 @@ type
     Texture: Cardinal; // Textures[Texture]
     case Anim: Boolean of
       False: ();
-      True:  (AnTex: TAnimationState);
+      True:  (AnTex: TAnimState);
   end;
 
   PPanel = ^TPanel;
@@ -365,7 +365,7 @@ begin
     FTextureIDs[i].Anim := Textures[AddTextures[i].Texture].FramesCount > 0;
     if FTextureIDs[i].Anim then
     begin // Анимированная текстура
-      FTextureIDs[i].AnTex := TAnimationState.Create(True, Textures[AddTextures[i].Texture].Speed, Textures[AddTextures[i].Texture].FramesCount);
+      FTextureIDs[i].AnTex := TAnimState.Create(True, Textures[AddTextures[i].Texture].Speed, Textures[AddTextures[i].Texture].FramesCount);
     end
   end;
 
@@ -395,7 +395,7 @@ var
 begin
   for i := 0 to High(FTextureIDs) do
     if FTextureIDs[i].Anim then
-      FTextureIDs[i].AnTex.Free();
+      FTextureIDs[i].AnTex.Invalidate;
   SetLength(FTextureIDs, 0);
 
   Inherited;
@@ -609,7 +609,7 @@ begin
 
   if (FCurTexture >= 0) and
     (FTextureIDs[FCurTexture].Anim) and
-    (FTextureIDs[FCurTexture].AnTex <> nil) and
+    (FTextureIDs[FCurTexture].AnTex.IsValid()) and
     (FAlpha < 255) then
   begin
     FTextureIDs[FCurTexture].AnTex.Update();
@@ -884,7 +884,7 @@ procedure TPanel.SetFrame(Frame: Integer; Count: Byte);
 begin
   if Enabled and (FCurTexture >= 0) and
     (FTextureIDs[FCurTexture].Anim) and
-    (FTextureIDs[FCurTexture].AnTex <> nil) and
+    (FTextureIDs[FCurTexture].AnTex.IsValid()) and
     (Width > 0) and (Height > 0) and (FAlpha < 255) then
   begin
     FCurFrame := ClampInt(Frame, 0, FTextureIDs[FCurTexture].AnTex.TotalFrames - 1);
@@ -923,7 +923,7 @@ begin
 // Переключились на видимую аним. текстуру:
   if (FCurTexture >= 0) and FTextureIDs[FCurTexture].Anim then
   begin
-    if (FTextureIDs[FCurTexture].AnTex = nil) then
+    if (FTextureIDs[FCurTexture].AnTex.IsInvalid()) then
     begin
       g_FatalError(_lc[I_GAME_ERROR_SWITCH_TEXTURE]);
       Exit;
@@ -949,7 +949,7 @@ begin
 // Переключились на видимую аним. текстуру:
   if (FCurTexture >= 0) and FTextureIDs[FCurTexture].Anim then
   begin
-    if (FTextureIDs[FCurTexture].AnTex = nil) then
+    if (FTextureIDs[FCurTexture].AnTex.IsInvalid()) then
     begin
       g_FatalError(_lc[I_GAME_ERROR_SWITCH_TEXTURE]);
       Exit;
@@ -987,7 +987,7 @@ begin
   Result := Length(FTextureIDs);
   if Enabled and (FCurTexture >= 0) then
      if (FTextureIDs[FCurTexture].Anim) and
-        (FTextureIDs[FCurTexture].AnTex <> nil) and
+        (FTextureIDs[FCurTexture].AnTex.IsValid()) and
         (Width > 0) and (Height > 0) and (FAlpha < 255) then
        Result := Result + 100;
 end;
@@ -1023,7 +1023,7 @@ begin
   // Анимирована ли текущая текстура
   if (FCurTexture >= 0) and (FTextureIDs[FCurTexture].Anim) then
   begin
-    assert(FTextureIDs[FCurTexture].AnTex <> nil, 'TPanel.SaveState: No animation object');
+    assert(FTextureIDs[FCurTexture].AnTex.IsValid(), 'TPanel.SaveState: No animation object');
     anim := true;
   end
   else
@@ -1083,7 +1083,7 @@ begin
     // Если да - загружаем анимацию
     Assert((FCurTexture >= 0) and
            (FTextureIDs[FCurTexture].Anim) and
-           (FTextureIDs[FCurTexture].AnTex <> nil),
+           (FTextureIDs[FCurTexture].AnTex.IsValid()),
            'TPanel.LoadState: No animation object');
     FTextureIDs[FCurTexture].AnTex.LoadState(st, FAlpha, FBlending);
   end;
