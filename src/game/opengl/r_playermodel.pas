@@ -374,12 +374,12 @@ begin
   if (pm.Direction = TDirection.D_LEFT) and (Models[pm.id].Frames[TDirection.D_LEFT, pm.CurrentAnimation].base <> 0) then
   begin
     FramesID := Models[pm.id].Frames[TDirection.D_LEFT, pm.CurrentAnimation].base;
-    r_AnimationState_Draw(FramesID, pm.AnimState, X, Y, Alpha, TMirrorType.None, False);
+    r_AnimState_Draw(FramesID, pm.AnimState, X, Y, Alpha, TMirrorType.None, False);
   end
   else
   begin
     FramesID := Models[pm.id].Frames[TDirection.D_RIGHT, pm.CurrentAnimation].base;
-    r_AnimationState_Draw(FramesID, pm.AnimState, X, Y, Alpha, Mirror, False);
+    r_AnimState_Draw(FramesID, pm.AnimState, X, Y, Alpha, Mirror, False);
   end;
 
 // Маска модели:
@@ -388,12 +388,12 @@ begin
   if (pm.Direction = TDirection.D_LEFT) and (Models[pm.id].Frames[TDirection.D_LEFT, pm.CurrentAnimation].mask <> 0) then
   begin
     FramesID := Models[pm.id].Frames[TDirection.D_LEFT, pm.CurrentAnimation].mask;
-    r_AnimationState_Draw(FramesID, pm.AnimState, X, Y, Alpha, TMirrorType.None, False);
+    r_AnimState_Draw(FramesID, pm.AnimState, X, Y, Alpha, TMirrorType.None, False);
   end
   else
   begin
     FramesID := Models[pm.id].Frames[TDirection.D_RIGHT, pm.CurrentAnimation].mask;
-    r_AnimationState_Draw(FramesID, pm.AnimState, X, Y, Alpha, Mirror, False);
+    r_AnimState_Draw(FramesID, pm.AnimState, X, Y, Alpha, Mirror, False);
   end;
 
   e_Colors.R := 255;

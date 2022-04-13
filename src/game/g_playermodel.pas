@@ -65,7 +65,7 @@ const
 type
   TWeaponPoints = Array [WP_FIRST + 1..WP_LAST, A_STAND..A_LAST, TDirection.D_LEFT..TDirection.D_RIGHT] of Array of TDFPoint;
 
-  TModelMatrix = Array [TDirection.D_LEFT..TDirection.D_RIGHT, A_STAND..A_LAST] of TAnimationState;
+  TModelMatrix = Array [TDirection.D_LEFT..TDirection.D_RIGHT, A_STAND..A_LAST] of TAnimState;
 
   TModelTextures = Array [TDirection.D_LEFT..TDirection.D_RIGHT, A_STAND..A_LAST] of record
     Resource: String;
@@ -92,7 +92,7 @@ type
     FDirection:        TDirection;
     FColor:            TRGB;
     FCurrentAnimation: Byte;
-    FAnimState:        TAnimationState;
+    FAnimState:        TAnimState;
     FCurrentWeapon:    Byte;
     FFlag:             Byte;
     FFireCounter:      Byte;
@@ -122,7 +122,7 @@ type
 
   public
     property    Color: TRGB read FColor write FColor;
-    property    AnimState: TAnimationState read FAnimState;
+    property    AnimState: TAnimState read FAnimState;
     property    CurrentAnimation: Byte read FCurrentAnimation;
     property    CurrentWeapon: Byte read FCurrentWeapon;
     property    Flag: Byte read FFlag;
@@ -668,12 +668,12 @@ end;
     once := FCurrentAnimation in [A_STAND, A_WALK];
     speed := PlayerModelsArray[FID].ModelSpeed[FCurrentAnimation];
     count := PlayerModelsArray[FID].Anim[FDirection, FCurrentAnimation].Frames;
-    FAnimState := TAnimationState.Create(once, speed, count);
+    FAnimState := TAnimState.Create(once, speed, count);
   end;
 
 destructor TPlayerModel.Destroy();
 begin
-  FAnimState.Free;
+  FAnimState.Invalidate;
   inherited;
 end;
 
@@ -774,7 +774,7 @@ end;
 
   procedure TPlayerModel.Update;
   begin
-    if FAnimState <> nil then
+    if FAnimState.IsValid() then
       FAnimState.Update;
     if FFireCounter > 0 then
       Dec(FFireCounter)
