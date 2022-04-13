@@ -452,12 +452,12 @@ begin
     else
       Mirror := TMirrorType.Horizontal;
 
-    if p.PunchAnim.enabled then
+    if p.PunchAnim.IsValid() and p.PunchAnim.enabled then
     begin
       if p.FKeys[KEY_DOWN].Pressed then ID := PunchFrames[R_BERSERK in p.FRulez, 2]
       else if p.FKeys[KEY_UP].Pressed then ID := PunchFrames[R_BERSERK in p.FRulez, 1]
       else ID := PunchFrames[R_BERSERK in p.FRulez, 0];
-      r_AnimationState_Draw(ID, p.PunchAnim, fX + IfThen(p.Direction = TDirection.D_LEFT, 15 - p.Obj.Rect.X, p.Obj.Rect.X - 15), fY + fSlope + p.Obj.Rect.Y - 11, 0, Mirror, False);
+      r_AnimState_Draw(ID, p.PunchAnim, fX + IfThen(p.Direction = TDirection.D_LEFT, 15 - p.Obj.Rect.X, p.Obj.Rect.X - 15), fY + fSlope + p.Obj.Rect.Y - 11, 0, Mirror, False);
     end;
 
     if (p.FMegaRulez[MR_INVUL] > gTime) and ((gPlayerDrawn <> p) or (p.SpawnInvul >= gTime)) then

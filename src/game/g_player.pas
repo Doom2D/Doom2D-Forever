@@ -185,7 +185,7 @@ type
     FSavedStateNum:   Integer;
 
     FModel:     TPlayerModel;
-    FPunchAnim: TAnimationState;
+    FPunchAnim: TAnimState;
     FActionPrior:    Byte;
     FActionAnim:     Byte;
     FActionForce:    Boolean;
@@ -414,7 +414,7 @@ type
     property    Berserk: Integer read FBerserk;
     property    Pain: Integer read FPain;
     property    Pickup: Integer read FPickup;
-    property    PunchAnim: TAnimationState read FPunchAnim write FPunchAnim;
+    property    PunchAnim: TAnimState read FPunchAnim write FPunchAnim;
     property    SpawnInvul: Integer read FSpawnInvul;
     property    Ghost: Boolean read FGhost;
 
@@ -1644,7 +1644,7 @@ begin
   FNetTime := 0;
 
   FWaitForFirstSpawn := false;
-  FPunchAnim := TAnimationState.Create(False, 1, 4);
+  FPunchAnim := TAnimState.Create(False, 1, 4);
   FPunchAnim.Disable;
 
   resetWeaponQueue();
@@ -1799,7 +1799,7 @@ begin
   FJetSoundOn.Free();
   FJetSoundOff.Free();
   FModel.Free();
-  FPunchAnim.Free();
+  FPunchAnim.Invalidate;
 
   inherited;
 end;
