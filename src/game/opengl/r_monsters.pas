@@ -384,7 +384,7 @@ implementation
       if MonsterType = MONSTER_VILE then
         if MonsterState = MONSTATE_SHOOT then
           if GetPos(MonsterTargetUID, @o) then
-            r_AnimationState_Draw(VileFire, VileFireAnim, o.X + o.Rect.X + (o.Rect.Width div 2) - 32, o.Y + o.Rect.Y + o.Rect.Height - 128, 0, TMirrorType.None, False);
+            r_AnimState_Draw(VileFire, VileFireAnim, o.X + o.Rect.X + (o.Rect.Width div 2) - 32, o.Y + o.Rect.Y + o.Rect.Height - 128, 0, TMirrorType.None, False);
 
       // Не в области рисования не ресуем:
       //FIXME!
@@ -434,7 +434,7 @@ implementation
           dy := MONSTER_ANIMTABLE[MonsterType].AnimDeltaRight[MonsterAnim].Y;
         end;
 
-        r_AnimationState_Draw(monFrames[MonsterType, MonsterAnim, GameDirection], DirAnim[MonsterAnim, GameDirection], fX + dx, fY + dy, 0, m, False);
+        r_AnimState_Draw(monFrames[MonsterType, MonsterAnim, GameDirection], DirAnim[MonsterAnim, GameDirection], fX + dx, fY + dy, 0, m, False);
       end;
 
       if g_debug_Frames then

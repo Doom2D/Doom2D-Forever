@@ -52,7 +52,7 @@ const
 }
 
 type
-  ADirectedAnim = Array of Array [TDirection.D_LEFT..TDirection.D_RIGHT] of TAnimationState;
+  ADirectedAnim = Array of Array [TDirection.D_LEFT..TDirection.D_RIGHT] of TAnimState;
 
   PMonster = ^TMonster;
   TMonster = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
@@ -93,7 +93,7 @@ type
     {$ENDIF}
     FFirePainTime: Integer;
     FFireAttacker: Word;
-    vilefire: TAnimationState;
+    vilefire: TAnimState;
     mProxyId: Integer; // node in dyntree or -1
     mArrIdx: Integer; // in gMonsters
 
@@ -198,7 +198,7 @@ type
 
     property StartID: Integer read FStartID;
 
-    property VileFireAnim: TAnimationState read vilefire;
+    property VileFireAnim: TAnimState read vilefire;
     property DirAnim: ADirectedAnim read FAnim;
 
   published
@@ -1681,11 +1681,11 @@ begin
   SetLength(FAnim, Length(ANIMTABLE));
   for a := ANIM_SLEEP to ANIM_PAIN do
   begin
-    FAnim[a, TDirection.D_RIGHT] := TAnimationState.Create(ANIMTABLE[a].loop, MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a], MONSTER_ANIMTABLE[MonsterType].AnimCount[a]);
-    FAnim[a, TDirection.D_LEFT] := TAnimationState.Create(ANIMTABLE[a].loop, MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a], MONSTER_ANIMTABLE[MonsterType].AnimCount[a]);
+    FAnim[a, TDirection.D_RIGHT] := TAnimState.Create(ANIMTABLE[a].loop, MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a], MONSTER_ANIMTABLE[MonsterType].AnimCount[a]);
+    FAnim[a, TDirection.D_LEFT] := TAnimState.Create(ANIMTABLE[a].loop, MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a], MONSTER_ANIMTABLE[MonsterType].AnimCount[a]);
   end;
   if MonsterType = MONSTER_VILE then
-    vilefire := TAnimationState.Create(True, 2, 8);
+    vilefire := TAnimState.Create(True, 2, 8);
 end;
 
 function TMonster.Damage(aDamage: Word; VelX, VelY: Integer; SpawnerUID: Word; t: Byte): Boolean;
@@ -1878,11 +1878,11 @@ var
 begin
   for a := 0 to High(FAnim) do
   begin
-    FAnim[a, TDirection.D_LEFT].Free();
-    FAnim[a, TDirection.D_RIGHT].Free();
+    FAnim[a, TDirection.D_LEFT].Invalidate;
+    FAnim[a, TDirection.D_RIGHT].Invalidate;
   end;
 
-  vilefire.Free();
+  vilefire.Invalidate;
 
   if (mProxyId <> -1) then
   begin
@@ -1989,7 +1989,7 @@ begin
 
 // Если анимация новая - перезапускаем её:
   if FCurAnim <> Anim then
-    if FAnim[Anim, FDirection] <> nil then
+    if FAnim[Anim, FDirection].IsValid() then
     begin
       FAnim[Anim, FDirection].Reset();
       FCurAnim := Anim;
@@ -2777,12 +2777,12 @@ _end:
     end;
 
 // Если есть анимация огня колдуна - пусть она идет:
-  if vilefire <> nil then
+  if vilefire.IsValid() then
     vilefire.Update();
 
 // Состояние - Умирает и текущая анимация проиграна:
   if (FState = MONSTATE_DIE) and
-     (FAnim[FCurAnim, FDirection] <> nil) and
+     (FAnim[FCurAnim, FDirection].IsValid()) and
      (FAnim[FCurAnim, FDirection].Played) then
     begin
     // Умер:
@@ -2833,7 +2833,7 @@ _end:
 
 // Совершение атаки и стрельбы:
   if (FState = MONSTATE_ATTACK) or (FState = MONSTATE_SHOOT) then
-    if (FAnim[FCurAnim, FDirection] <> nil) then
+    if (FAnim[FCurAnim, FDirection].IsValid()) then
     // Анимация атаки есть - можно атаковать
       if (FAnim[FCurAnim, FDirection].Played) then
         begin // Анимация атаки закончилась => переходим на шаг
@@ -3074,7 +3074,7 @@ _end:
     FObj.Vel.X := oldvelx;
 
 // Если есть анимация, то пусть она идет:
-  if FAnim[FCurAnim, FDirection] <> nil then
+  if FAnim[FCurAnim, FDirection].IsValid() then
     FAnim[FCurAnim, FDirection].Update();
 end;
 
@@ -3640,12 +3640,12 @@ _end:
     end;
 
 // Если есть анимация огня колдуна - пусть она идет:
-  if vilefire <> nil then
+  if vilefire.IsValid() then
     vilefire.Update();
 
 // Состояние - Умирает и текущая анимация проиграна:
   if (FState = MONSTATE_DIE) and
-     (FAnim[FCurAnim, FDirection] <> nil) and
+     (FAnim[FCurAnim, FDirection].IsValid()) and
      (FAnim[FCurAnim, FDirection].Played) then
     begin
     // Умер:
@@ -3662,7 +3662,7 @@ _end:
 
 // Совершение атаки и стрельбы:
   if (FState = MONSTATE_ATTACK) or (FState = MONSTATE_SHOOT) then
-    if (FAnim[FCurAnim, FDirection] <> nil) then
+    if (FAnim[FCurAnim, FDirection].IsValid()) then
     // Анимация атаки есть - можно атаковать
       if (FAnim[FCurAnim, FDirection].Played) then
         begin // Анимация атаки закончилась => переходим на шаг
@@ -3788,7 +3788,7 @@ _end:
     FObj.Vel.X := oldvelx;
 
 // Если есть анимация, то пусть она идет:
-  if FAnim[FCurAnim, FDirection] <> nil then
+  if FAnim[FCurAnim, FDirection].IsValid() then
     FAnim[FCurAnim, FDirection].Update();
 end;
 
@@ -4226,7 +4226,7 @@ begin
   // Объект монстра
   Obj_SaveState(st, @FObj);
   // Есть ли анимация огня колдуна
-  anim := (vilefire <> nil);
+  anim := (vilefire.IsValid());
   utils.writeBool(st, anim);
   // Если есть - сохраняем:
   if anim then vilefire.SaveState(st, 0, False);
@@ -4234,12 +4234,12 @@ begin
   for i := ANIM_SLEEP to ANIM_PAIN do
   begin
     // Есть ли левая анимация
-    anim := (FAnim[i, TDirection.D_LEFT] <> nil);
+    anim := (FAnim[i, TDirection.D_LEFT].IsValid());
     utils.writeBool(st, anim);
     // Если есть - сохраняем
     if anim then FAnim[i, TDirection.D_LEFT].SaveState(st, 0, False);
     // Есть ли правая анимация
-    anim := (FAnim[i, TDirection.D_RIGHT] <> nil);
+    anim := (FAnim[i, TDirection.D_RIGHT].IsValid());
     utils.writeBool(st, anim);
     // Если есть - сохраняем
     if anim then FAnim[i, TDirection.D_RIGHT].SaveState(st, 0, False);
@@ -4310,7 +4310,7 @@ begin
   // Если есть - загружаем:
   if anim then
   begin
-    Assert(vilefire <> nil, 'TMonster.LoadState: no vilefire anim');
+    Assert(vilefire.IsValid(), 'TMonster.LoadState: no vilefire anim');
     vilefire.LoadState(st, alpha, blending);
   end;
   // Анимации
@@ -4321,7 +4321,7 @@ begin
     // Если есть - загружаем
     if anim then
     begin
-      Assert(FAnim[i, TDirection.D_LEFT] <> nil, 'TMonster.LoadState: no '+IntToStr(i)+'_left anim');
+      Assert(FAnim[i, TDirection.D_LEFT].IsValid(), 'TMonster.LoadState: no '+IntToStr(i)+'_left anim');
       FAnim[i, TDirection.D_LEFT].LoadState(st, alpha, blending);
     end;
     // Есть ли правая анимация
@@ -4329,7 +4329,7 @@ begin
     // Если есть - загружаем
     if anim then
     begin
-      Assert(FAnim[i, TDirection.D_RIGHT] <> nil, 'TMonster.LoadState: no '+IntToStr(i)+'_right anim');
+      Assert(FAnim[i, TDirection.D_RIGHT].IsValid(), 'TMonster.LoadState: no '+IntToStr(i)+'_right anim');
       FAnim[i, TDirection.D_RIGHT].LoadState(st, alpha, blending);
     end;
   end;
