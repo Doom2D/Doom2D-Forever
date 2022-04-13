@@ -144,12 +144,12 @@ implementation
           p.X := Obj.Rect.Width div 2;
           p.Y := Obj.Rect.Height div 2;
 
-          if Animation <> nil then
+          if Animation.IsValid() then
           begin
             if Shots[i].ShotType in [WEAPON_BARON_FIRE, WEAPON_MANCUB_FIRE, WEAPON_SKEL_FIRE] then
-              r_AnimationState_DrawEx(ShotFrames[Shots[i].ShotType], Animation, fX, fY, 0, TMirrorType.None, False, p, a)
+              r_AnimState_DrawEx(ShotFrames[Shots[i].ShotType], Animation, fX, fY, 0, TMirrorType.None, False, p, a)
             else
-              r_AnimationState_Draw(ShotFrames[Shots[i].ShotType], Animation, fX, fY, 0, TMirrorType.None, False);
+              r_AnimState_Draw(ShotFrames[Shots[i].ShotType], Animation, fX, fY, 0, TMirrorType.None, False);
           end
           else if ShotTexture[Shots[i].ShotType] <> 0 then
           begin

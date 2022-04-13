@@ -30,7 +30,7 @@ type
     SpawnerUID: Word;
     Triggers: DWArray;
     Obj: TObj;
-    Animation: TAnimationState;
+    Animation: TAnimState;
     Timeout: DWORD;
     Stopped: Byte;
 
@@ -598,9 +598,9 @@ begin
         Obj.Rect.Width := SHOT_ROCKETLAUNCHER_WIDTH;
         Obj.Rect.Height := SHOT_ROCKETLAUNCHER_HEIGHT;
 
-        Animation := nil;
         Triggers := nil;
         ShotType := WEAPON_ROCKETLAUNCHER;
+        Animation.Invalidate;
       end;
     end;
 
@@ -615,7 +615,7 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_PLASMA;
-        Animation := TAnimationState.Create(True, 5, 2); // !!! put values into table
+        Animation := TAnimState.Create(True, 5, 2); // !!! put values into table
       end;
     end;
 
@@ -630,7 +630,7 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_BFG;
-        Animation := TAnimationState.Create(True, 6, 2); // !!! put values into table
+        Animation := TAnimState.Create(True, 6, 2); // !!! put values into table
       end;
     end;
 
@@ -645,7 +645,8 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_FLAMETHROWER;
-        // Animation := TAnimationState.Create(True, 6, 0); // drawed as gfx
+        Animation.Invalidate;
+        // Animation := TAnimState.Create(True, 6, 0); // drawed as gfx
       end;
     end;
 
@@ -660,7 +661,7 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_IMP_FIRE;
-        Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
+        Animation := TAnimState.Create(True, 4, 2); // !!! put values into table
       end;
     end;
 
@@ -675,7 +676,7 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_CACO_FIRE;
-        Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
+        Animation := TAnimState.Create(True, 4, 2); // !!! put values into table
       end;
     end;
 
@@ -690,7 +691,7 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_MANCUB_FIRE;
-        Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
+        Animation := TAnimState.Create(True, 4, 2); // !!! put values into table
       end;
     end;
 
@@ -705,7 +706,7 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_BARON_FIRE;
-        Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
+        Animation := TAnimState.Create(True, 4, 2); // !!! put values into table
       end;
     end;
 
@@ -720,7 +721,7 @@ begin
 
         Triggers := nil;
         ShotType := WEAPON_BSP_FIRE;
-        Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
+        Animation := TAnimState.Create(True, 4, 2); // !!! put values into table
       end;
     end;
 
@@ -736,7 +737,7 @@ begin
         Triggers := nil;
         ShotType := WEAPON_SKEL_FIRE;
         target := TargetUID;
-        Animation := TAnimationState.Create(True, 5, 2); // !!! put values into table
+        Animation := TAnimState.Create(True, 5, 2); // !!! put values into table
       end;
     end;
   end;
@@ -1111,18 +1112,8 @@ begin
 end;
 
 procedure g_Weapon_Free();
-var
-  i: Integer;
 begin
-  if Shots <> nil then
-  begin
-    for i := 0 to High(Shots) do
-      if Shots[i].ShotType <> 0 then
-        Shots[i].Animation.Free();
-
-    Shots := nil;
-  end;
-
+  Shots := nil;
   WaterMap := nil;
 end;
 
@@ -1662,7 +1653,7 @@ begin
     ShotType := WEAPON_ROCKETLAUNCHER;
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 12);
 
-    Animation := nil;
+    Animation.Invalidate;
     triggers := nil;
   end;
 
@@ -1702,7 +1693,7 @@ begin
 
     triggers := nil;
     target := TargetUID;
-    Animation := TAnimationState.Create(True, 5, 2); // !!! put values into table
+    Animation := TAnimState.Create(True, 5, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1743,7 +1734,7 @@ begin
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    Animation := TAnimationState.Create(True, 5, 2); // !!! put values into table
+    Animation := TAnimState.Create(True, 5, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1784,7 +1775,7 @@ begin
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    Animation := nil;
+    Animation.Invalidate;
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1825,7 +1816,7 @@ begin
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
+    Animation := TAnimState.Create(True, 4, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1866,7 +1857,7 @@ begin
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
+    Animation := TAnimState.Create(True, 4, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1907,7 +1898,7 @@ begin
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
+    Animation := TAnimState.Create(True, 4, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1949,7 +1940,7 @@ begin
 
     triggers := nil;
 
-    Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
+    Animation := TAnimState.Create(True, 4, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1991,7 +1982,7 @@ begin
 
     triggers := nil;
 
-    Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
+    Animation := TAnimState.Create(True, 4, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -2032,7 +2023,7 @@ begin
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    Animation := TAnimationState.Create(True, 6, 2); // !!! put values into table
+    Animation := TAnimState.Create(True, 6, 2); // !!! put values into table
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -2192,7 +2183,7 @@ begin
       end;
 
     // Анимация снаряда:
-      if Animation <> nil then
+      if Animation.IsValid() then
         Animation.Update();
 
     // Движение:
@@ -2216,7 +2207,7 @@ begin
       begin
         // На клиенте скорее всего и так уже выпал.
         ShotType := 0;
-        Animation.Free();
+        Animation.Invalidate();
         Continue;
       end;
 
@@ -2490,11 +2481,7 @@ begin
       begin
         if gGameSettings.GameType = GT_SERVER then
           MH_SEND_DeleteShot(i, Obj.X, Obj.Y, Loud);
-        if Animation <> nil then
-        begin
-          Animation.Free();
-          Animation := nil;
-        end;
+        Animation.Invalidate;
       end
       else if (ShotType <> WEAPON_FLAMETHROWER) and ((oldvx <> Obj.Vel.X) or (oldvy <> Obj.Vel.Y)) then
         if gGameSettings.GameType = GT_SERVER then
@@ -2601,7 +2588,7 @@ begin
     Shots[i].Stopped := utils.readByte(st);
 
     // Установка текстуры или анимации
-    Shots[i].Animation := nil;
+    Shots[i].Animation.Invalidate;
 
     case Shots[i].ShotType of
       WEAPON_ROCKETLAUNCHER, WEAPON_SKEL_FIRE:
@@ -2609,31 +2596,31 @@ begin
         end;
       WEAPON_PLASMA:
         begin
-          Shots[i].Animation := TAnimationState.Create(True, 5, 2); // !!! put values into table
+          Shots[i].Animation := TAnimState.Create(True, 5, 2); // !!! put values into table
         end;
       WEAPON_BFG:
         begin
-          Shots[i].Animation := TAnimationState.Create(True, 6, 2); // !!! put values into table
+          Shots[i].Animation := TAnimState.Create(True, 6, 2); // !!! put values into table
         end;
       WEAPON_IMP_FIRE:
         begin
-          Shots[i].Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
+          Shots[i].Animation := TAnimState.Create(True, 4, 2); // !!! put values into table
         end;
       WEAPON_BSP_FIRE:
         begin
-          Shots[i].Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
+          Shots[i].Animation := TAnimState.Create(True, 4, 2); // !!! put values into table
         end;
       WEAPON_CACO_FIRE:
         begin
-          Shots[i].Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
+          Shots[i].Animation := TAnimState.Create(True, 4, 2); // !!! put values into table
         end;
       WEAPON_BARON_FIRE:
         begin
-          Shots[i].Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
+          Shots[i].Animation := TAnimState.Create(True, 4, 2); // !!! put values into table
         end;
       WEAPON_MANCUB_FIRE:
         begin
-          Shots[i].Animation := TAnimationState.Create(True, 4, 2); // !!! put values into table
+          Shots[i].Animation := TAnimState.Create(True, 4, 2); // !!! put values into table
         end;
     end;
   end;
@@ -2720,7 +2707,7 @@ begin
     end; // case ShotType of...
 
     ShotType := 0;
-    Animation.Free();
+    Animation.Invalidate;
   end;
 end;
 
