@@ -68,7 +68,7 @@ implementation
     end;
     RedFlagFrames: DWORD;
     BlueFlagFrames: DWORD;
-    FlagAnimState: TAnimationState;
+    FlagAnimState: TAnimState;
 
 {$IFDEF ENABLE_GIBS}
   function r_PlayerModel_GetGibRect (m, id: Integer): TRectWH;
@@ -79,13 +79,12 @@ implementation
 
   procedure r_PlayerModel_Initialize;
   begin
-    FlagAnimState := TAnimationState.Create(True, 8, 5);
+    FlagAnimState := TAnimState.Create(True, 8, 5);
   end;
 
   procedure r_PlayerModel_Finalize;
   begin
-    FlagAnimState.Free;
-    FlagAnimState := nil;
+    FlagAnimState.Invalidate;
   end;
 
   procedure ExtAnimFromBaseAnim(MName: String; AIdx: Integer);
@@ -325,7 +324,7 @@ begin
     fa := PlayerModelsArray[pm.id].FlagAngle;
     p.X := IfThen(pm.Direction = TDirection.D_LEFT, FLAG_BASEPOINT.X, 64 - FLAG_BASEPOINT.X);
     p.Y := FLAG_BASEPOINT.Y;
-    r_AnimationState_DrawEx(
+    r_AnimState_DrawEx(
       FramesID,
       FlagAnimState,
       X + IfThen(pm.Direction = TDirection.D_LEFT, fp.X - 1, 2 * FLAG_BASEPOINT.X - fp.X + 1) - FLAG_BASEPOINT.X,

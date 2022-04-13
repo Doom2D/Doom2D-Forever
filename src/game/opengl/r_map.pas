@@ -55,17 +55,16 @@ implementation
       Anim: Boolean;
     end;
     FlagFrames: array [FLAG_RED..FLAG_BLUE] of DWORD;
-    FlagAnim: TAnimationState;
+    FlagAnim: TAnimState;
 
   procedure r_Map_Initialize;
   begin
-    FlagAnim := TAnimationState.Create(True, 8, 5);
+    FlagAnim := TAnimState.Create(True, 8, 5);
   end;
 
   procedure r_Map_Finalize;
   begin
-    FlagAnim.Free;
-    FlagAnim := nil;
+    FlagAnim.Invalidate;
   end;
 
   procedure r_Map_Load;
@@ -264,7 +263,7 @@ end;
           else
             Mirror := TMirrorType.None;
           dx := IfThen(f.Direction = TDirection.D_LEFT, -1, +1);
-          r_AnimationState_Draw(FlagFrames[i], FlagAnim, tx + dx, ty + 1, 0, Mirror, False);
+          r_AnimState_Draw(FlagFrames[i], FlagAnim, tx + dx, ty + 1, 0, Mirror, False);
           if g_debug_Frames then
             e_DrawQuad(tx + f.Obj.Rect.X, ty + f.Obj.Rect.Y, tx + f.Obj.Rect.X + f.Obj.Rect.Width - 1, ty + f.Obj.Rect.Y + f.Obj.Rect.Height - 1, 0, 255, 0)
         end
