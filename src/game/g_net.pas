@@ -160,6 +160,7 @@ var
   NetAutoBanLimit: Integer = 5;
   NetAutoBanPerm:  Boolean = True;
   NetAutoBanWarn:  Boolean = False;
+  NetAutoBanForTimeout: Boolean = False;
 
   NetAuthTimeout:   Integer = 30 * 1000;
   NetPacketTimeout: Integer = 60 * 1000;
@@ -1623,6 +1624,54 @@ begin
   NetOut.Clear();
 end;
 
+procedure g_Net_Host_Disconnect_Client(ID: Integer; Force: Boolean = False);
+var
+  TP: TPlayer;
+  TC: pTNetClient;
+begin
+  TC := @NetClients[ID];
+  if (TC = nil) then Exit;
+  clearNetClient(NetClients[ID]);
+  if not (TC^.Used) then Exit;
+
+  TP := g_Player_Get(TC^.Player);
+
+  if TP <> nil then
+  begin
+    TP.Lives := 0;
+    TP.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
+    g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [TP.Name]), True);
+    e_WriteLog('NET: Client ' + TP.Name + ' [' + IntToStr(TC^.ID) + '] disconnected.', TMsgType.Notify);
+    g_Player_Remove(TP.UID);
+  end;
+
+  if (TC^.Peer^.data <> nil) then
+  begin
+    FreeMemory(TC^.Peer^.data);
+    TC^.Peer^.data := nil;
+  end;
+
+  if (Force) then
+    enet_peer_reset(TC^.Peer);
+
+  TC^.Used := False;
+  TC^.State := NET_STATE_NONE;
+  TC^.Peer := nil;
+  TC^.Player := 0;
+  TC^.Crimes := 0;
+  TC^.AuthTime := 0;
+  TC^.MsgTime := 0;
+  TC^.RequestedFullUpdate := False;
+  TC^.WaitForFirstSpawn := False;
+  TC^.NetOut[NET_UNRELIABLE].Free();
+  TC^.NetOut[NET_RELIABLE].Free();
+
+  g_Console_Add(_lc[I_NET_MSG] + Format(_lc[I_NET_MSG_HOST_DISC], [ID]));
+  Dec(NetClientCount);
+
+  if NetUseMaster then g_Net_Slist_ServerPlayerLeaves();
+end;
+
 procedure g_Net_Host_CheckPings();
 var
   ClAddr: ENetAddress;
@@ -1678,63 +1727,24 @@ begin
       if (State = NET_STATE_AUTH) and (AuthTime > 0) and (AuthTime <= gTime) then
       begin
         g_Net_Penalize(@NetClients[ID], 'auth taking too long');
-        AuthTime := gTime + 500; // do it twice a second to give them a chance
+        AuthTime := gTime + 1000; // do it every second to give them a chance
       end
       else if (State = NET_STATE_GAME) and (MsgTime > 0) and (MsgTime <= gTime) then
       begin
-        g_Net_Penalize(@NetClients[ID], 'message timeout');
-        MsgTime := gTime + (NetPacketTimeout div 2) + 500; // wait less for the next check
+        // client hasn't sent packets in a while; either ban em or kick em
+        if (NetAutoBanForTimeout) then
+        begin
+          g_Net_Penalize(@NetClients[ID], 'message timeout');
+          MsgTime := gTime + (NetPacketTimeout div 2) + 500; // wait less for the next check
+        end
+        else
+        begin
+          e_LogWritefln('NET: client #%u (cid #%u) timed out', [ID, Player]);
+          g_Net_Host_Disconnect_Client(ID, True);
+        end;
       end;
     end;
   end;
-end;
-
-procedure g_Net_Host_Disconnect_Client(ID: Integer; Force: Boolean = False);
-var
-  TP: TPlayer;
-  TC: pTNetClient;
-begin
-  TC := @NetClients[ID];
-  if (TC = nil) then Exit;
-  clearNetClient(NetClients[ID]);
-  if not (TC^.Used) then Exit;
-
-  TP := g_Player_Get(TC^.Player);
-
-  if TP <> nil then
-  begin
-    TP.Lives := 0;
-    TP.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
-    g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [TP.Name]), True);
-    e_WriteLog('NET: Client ' + TP.Name + ' [' + IntToStr(TC^.ID) + '] disconnected.', TMsgType.Notify);
-    g_Player_Remove(TP.UID);
-  end;
-
-  if (TC^.Peer^.data <> nil) then
-  begin
-    FreeMemory(TC^.Peer^.data);
-    TC^.Peer^.data := nil;
-  end;
-
-  if (Force) then
-    enet_peer_reset(TC^.Peer);
-
-  TC^.Used := False;
-  TC^.State := NET_STATE_NONE;
-  TC^.Peer := nil;
-  TC^.Player := 0;
-  TC^.Crimes := 0;
-  TC^.AuthTime := 0;
-  TC^.MsgTime := 0;
-  TC^.RequestedFullUpdate := False;
-  TC^.WaitForFirstSpawn := False;
-  TC^.NetOut[NET_UNRELIABLE].Free();
-  TC^.NetOut[NET_RELIABLE].Free();
-
-  g_Console_Add(_lc[I_NET_MSG] + Format(_lc[I_NET_MSG_HOST_DISC], [ID]));
-  Dec(NetClientCount);
-
-  if NetUseMaster then g_Net_Slist_ServerPlayerLeaves();
 end;
 
 
@@ -2582,6 +2592,7 @@ initialization
   conRegVar('sv_autoban_threshold', @NetAutoBanLimit, '', 'max crimes before autoban (0 = no autoban)');
   conRegVar('sv_autoban_permanent', @NetAutoBanPerm, '', 'whether autobans are permanent');
   conRegVar('sv_autoban_warn', @NetAutoBanWarn, '', 'send warnings to the client when he triggers penalties');
+  conRegVar('sv_autoban_packet_timeout', @NetAutoBanForTimeout, '', 'autoban for packet timeouts');
 
   conRegVar('sv_auth_timeout', @NetAuthTimeout, '', 'number of msec in which connecting clients must complete auth (0 = unlimited)');
   conRegVar('sv_packet_timeout', @NetPacketTimeout, '', 'number of msec the client must idle to be kicked (0 = unlimited)');
