@@ -161,8 +161,8 @@ var
   NetAutoBanPerm:  Boolean = True;
   NetAutoBanWarn:  Boolean = False;
 
-  NetAuthTimeout:   Integer = 15 * 1000;
-  NetPacketTimeout: Integer = 30 * 1000;
+  NetAuthTimeout:   Integer = 30 * 1000;
+  NetPacketTimeout: Integer = 60 * 1000;
 
   NetState:      Integer = NET_STATE_NONE;
 
@@ -1683,7 +1683,7 @@ begin
       else if (State = NET_STATE_GAME) and (MsgTime > 0) and (MsgTime <= gTime) then
       begin
         g_Net_Penalize(@NetClients[ID], 'message timeout');
-        AuthTime := gTime + 500; // do it twice a second to give them a chance
+        MsgTime := gTime + (NetPacketTimeout div 2) + 500; // wait less for the next check
       end;
     end;
   end;
