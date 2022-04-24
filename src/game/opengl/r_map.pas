@@ -17,7 +17,7 @@ unit r_map;
 
 interface
 
-  uses g_panel, MAPDEF; // TPanel, TDFColor
+  uses g_panel, MAPDEF, binheap; // TPanel, TDFColor
 
   procedure r_Map_Initialize;
   procedure r_Map_Finalize;
@@ -38,6 +38,17 @@ interface
   procedure r_Panel_Draw (constref p: TPanel; hasAmbient: Boolean; constref ambColor: TDFColor);
   procedure r_Panel_DrawShadowVolume (constref p: TPanel; lightX, lightY: Integer; radius: Integer);
 
+  type
+    TBinHeapPanelDrawCmp = class
+      public
+        class function less (const a, b: TPanel): Boolean; inline;
+    end;
+
+    TBinHeapPanelDraw = specialize TBinaryHeapBase<TPanel, TBinHeapPanelDrawCmp>;
+
+  var
+    gDrawPanelList: TBinHeapPanelDraw = nil; // binary heap of all walls we have to render, populated by `g_Map_CollectDrawPanels()`
+
 implementation
 
   uses
@@ -56,6 +67,13 @@ implementation
     end;
     FlagFrames: array [FLAG_RED..FLAG_BLUE] of DWORD;
     FlagAnim: TAnimState;
+
+  class function TBinHeapPanelDrawCmp.less (const a, b: TPanel): Boolean; inline;
+  begin
+    if (a.tag < b.tag) then begin result := true; exit; end;
+    if (a.tag > b.tag) then begin result := false; exit; end;
+    result := (a.arrIdx < b.arrIdx);
+  end;
 
   procedure r_Map_Initialize;
   begin

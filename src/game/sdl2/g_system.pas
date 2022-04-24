@@ -19,11 +19,25 @@ interface
 
   uses Utils;
 
+  type
+    TGLProfile = (Core, Compat, Common, CommonLite);
+
+  type
+    TGLDisplayInfo = record
+      w, h, bpp: Integer;
+      fullscreen: Boolean;
+      maximized: Boolean;
+      major, minor: Integer;
+      profile: TGLProfile;
+    end;
+
   (* --- Graphics --- *)
   function sys_GetDisplayModes (bpp: Integer): SSArray;
   function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
   procedure sys_EnableVSync (yes: Boolean);
   procedure sys_Repaint;
+
+  function sys_SetDisplayModeGL (const info: TGLDisplayInfo): Boolean;
 
   (* --- Input --- *)
   function sys_HandleInput (): Boolean;
@@ -70,6 +84,7 @@ implementation
     JoystickHandle: array [0..e_MaxJoys - 1] of PSDL_Joystick;
     JoystickHatState: array [0..e_MaxJoys - 1, 0..e_MaxJoyHats - 1, HAT_LEFT..HAT_DOWN] of Boolean;
     JoystickZeroAxes: array [0..e_MaxJoys - 1, 0..e_MaxJoyAxes - 1] of Integer;
+    rMajor, rMinor, rProfile: Integer;
 
 {$IFDEF ENABLE_TOUCH}
   var (* touch *)
@@ -96,20 +111,18 @@ implementation
     result := false;
     if window = nil then
     begin
-      {$IFDEF USE_GLES1}
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-      {$ELSE}
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+      SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, rMajor);
+      SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, rMinor);
+      SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, rProfile);
+      if rProfile in [SDL_GL_CONTEXT_PROFILE_CORE, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY] then
+      begin
         SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
         SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
         SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
         SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
         SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8); // lights; it is enough to have 1-bit stencil buffer for lighting, but...
-      {$ENDIF}
+      end;
       flags := SDL_WINDOW_OPENGL or SDL_WINDOW_RESIZABLE;
       if fullScreen then flags := flags or SDL_WINDOW_FULLSCREEN;
       if maximized then flags := flags or SDL_WINDOW_MAXIMIZED;
@@ -234,7 +247,29 @@ implementation
 
   function sys_SetDisplayMode (w, h, bpp: Integer; fullScreen, maximized: Boolean): Boolean;
   begin
+    {$IFDEF USE_GLES1}
+      rMajor := 1;
+      rMinor := 1;
+      rProfile := SDL_GL_CONTEXT_PROFILE_ES;
+    {$ELSE}
+      rMajor := 2;
+      rMinor := 1;
+      rProfile := SDL_GL_CONTEXT_PROFILE_COMPATIBILITY;
+    {$ENDIF}
     result := InitWindow(w, h, bpp, fullScreen, maximized)
+  end;
+
+  function sys_SetDisplayModeGL (const info: TGLDisplayInfo): Boolean;
+  begin
+    rMajor := info.major;
+    rMinor := info.minor;
+    case info.profile of
+      TGLProfile.Core: rProfile := SDL_GL_CONTEXT_PROFILE_CORE;
+      TGLProfile.Compat: rProfile := SDL_GL_CONTEXT_PROFILE_COMPATIBILITY;
+      TGLProfile.Common: rProfile := SDL_GL_CONTEXT_PROFILE_ES;
+      TGLProfile.CommonLite: rProfile := SDL_GL_CONTEXT_PROFILE_ES;
+    end;
+    result := InitWindow(info.w, info.h, info.bpp, info.fullscreen, info.maximized);
   end;
 
   (* --------- Joystick --------- *)

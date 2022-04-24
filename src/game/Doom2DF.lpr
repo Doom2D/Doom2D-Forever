@@ -195,6 +195,13 @@ uses
     {$ENDIF}
   {$ELSEIF DEFINED(USE_STUBRENDER)}
     r_render in 'renders/stub/r_render.pas',
+  {$ELSEIF DEFINED(USE_NEWGL)}
+    {$I ../shared/vampimg.inc}
+    r_render in 'renders/opengl/r_render.pas',
+    r_atlas in 'renders/opengl/r_atlas.pas',
+    r_textures in 'renders/opengl/r_textures.pas',
+    r_draw in 'renders/opengl/r_draw.pas',
+    r_map in 'renders/opengl/r_map.pas',
   {$ELSE}
     {$FATAL render driver not selected}
   {$ENDIF}

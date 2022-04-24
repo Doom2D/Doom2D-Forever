@@ -328,6 +328,7 @@ var
     ANIM_ATTACK  = 4;
     ANIM_ATTACK2 = 5;
     ANIM_PAIN    = 6;
+    ANIM_LAST    = ANIM_PAIN;
 
 // Таблица характеристик монстров:
   MONSTERTABLE: Array [MONSTER_DEMON..MONSTER_MAN] of
