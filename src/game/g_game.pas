@@ -6976,7 +6976,7 @@ begin
     end else
       g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
   end
-  else if cmd = 'announce' then
+  else if (cmd = 'an') or (cmd = 'announce') then
   begin
     if g_Game_IsNet then
     begin

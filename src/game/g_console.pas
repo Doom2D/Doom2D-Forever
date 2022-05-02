@@ -1110,6 +1110,7 @@ begin
   AddCommand('chat', GameCommands);
   AddCommand('teamchat', GameCommands);
   AddCommand('announce', GameCommands);
+  AddCommand('an', GameCommands);
   AddCommand('game', GameCommands);
   AddCommand('host', GameCommands);
   AddCommand('map', GameCommands);
