@@ -1084,6 +1084,7 @@ begin
   AddCommand('g_throw_flag', GameCVars);
   AddCommand('g_bot_vsmonsters', GameCVars);
   AddCommand('g_bot_vsplayers', GameCVars);
+  AddCommand('g_max_bots', GameCVars); // intentionally not whitelisted
   AddCommand('g_scorelimit', GameCVars);
   AddCommand('g_timelimit', GameCVars);
   AddCommand('g_maxlives', GameCVars);

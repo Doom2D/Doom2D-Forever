@@ -350,6 +350,7 @@ var
   gWeaponAction: Array [0..1, WP_FACT..WP_LACT] of Boolean; // [player, weapon_action]
   gSelectWeapon: Array [0..1, WP_FIRST..WP_LAST] of Boolean; // [player, weapon]
   gInterReadyCount: Integer = 0;
+  gMaxBots: Integer = 127;
 
   g_dbg_ignore_bounds: Boolean = false;
   r_smallmap_h: Integer = 0; // 0: left; 1: center; 2: right
@@ -5806,6 +5807,12 @@ begin
                          [gsTimeLimit div 3600,
                          (gsTimeLimit div 60) mod 60,
                           gsTimeLimit mod 60]));
+  end
+  else if cmd = 'g_max_bots' then
+  begin
+    if Length(P) > 1 then
+      gMaxBots := nclamp(StrToIntDef(P[1], gMaxBots), 0, 127);
+    g_Console_Add('g_max_bots = ' + IntToStr(gMaxBots));
   end
   else if cmd = 'g_maxlives' then
   begin

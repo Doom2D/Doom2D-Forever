@@ -634,6 +634,7 @@ procedure g_Bot_Add(Team, Difficult: Byte; Handicap: Integer = 100);
 procedure g_Bot_AddList(Team: Byte; lname: ShortString; num: Integer = -1; Handicap: Integer = 100);
 procedure g_Bot_MixNames();
 procedure g_Bot_RemoveAll();
+function g_Bot_GetCount(): Integer;
 
 implementation
 
@@ -944,6 +945,9 @@ var
 begin
   if not g_Game_IsServer then Exit;
 
+// Не добавляем ботов если лимит уже достигнут
+  if (g_Bot_GetCount() >= gMaxBots) then Exit;
+
 // Список названий моделей:
   m := g_PlayerModel_GetNames();
   if m = nil then
@@ -1040,6 +1044,9 @@ var
   a: Integer;
 begin
   if not g_Game_IsServer then Exit;
+
+// Не добавляем ботов если лимит уже достигнут
+  if (g_Bot_GetCount() >= gMaxBots) then Exit;
 
 // Список названий моделей:
   m := g_PlayerModel_GetNames();
@@ -1405,6 +1412,20 @@ begin
 
   for a := 0 to High(gPlayers) do
     if gPlayers[a] <> nil then
+      Result := Result + 1;
+end;
+
+function g_Bot_GetCount(): Integer;
+var
+  a: Integer;
+begin
+  Result := 0;
+
+  if gPlayers = nil then
+    Exit;
+
+  for a := 0 to High(gPlayers) do
+    if (gPlayers[a] <> nil) and (gPlayers[a] is TBot) then
       Result := Result + 1;
 end;
 
