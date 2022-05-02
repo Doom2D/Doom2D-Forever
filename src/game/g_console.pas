@@ -1109,6 +1109,7 @@ begin
   AddCommand('bot_removeall', GameCommands);
   AddCommand('chat', GameCommands);
   AddCommand('teamchat', GameCommands);
+  AddCommand('announce', GameCommands);
   AddCommand('game', GameCommands);
   AddCommand('host', GameCommands);
   AddCommand('map', GameCommands);

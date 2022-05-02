@@ -6976,6 +6976,34 @@ begin
     end else
       g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
   end
+  else if cmd = 'announce' then
+  begin
+    if g_Game_IsNet then
+    begin
+      if Length(P) > 1 then
+      begin
+        for a := 1 to High(P) do
+          chstr := chstr + P[a] + ' ';
+
+        if Length(chstr) > 200 then SetLength(chstr, 200);
+
+        if Length(chstr) < 1 then
+        begin
+          g_Console_Add('announce <text>');
+          Exit;
+        end;
+
+        chstr := 'centerprint 100 ' + b_Text_Format(chstr);
+        if g_Game_IsClient then
+          MC_SEND_RCONCommand(chstr)
+        else
+          g_Console_Process(chstr, True);
+      end
+      else
+        g_Console_Add('announce <text>');
+    end else
+      g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
+  end
   else if cmd = 'game' then
   begin
     if gGameSettings.GameType <> GT_NONE then
@@ -7775,7 +7803,7 @@ begin
     name := e_CatPath(dir, Filename + '.png');
     s := createDiskFile(name);
     try
-      e_MakeScreenshot(s, gWinSizeX, gWinSizeY);
+      e_MakeScreenshot(s, gWinSizeX, gWinSizeX);
       s.Free;
       g_Console_Add(Format(_lc[I_CONSOLE_SCREENSHOT], [name]))
     except
