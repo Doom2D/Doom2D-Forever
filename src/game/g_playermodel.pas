@@ -56,9 +56,11 @@ const
   W_POS_NORMAL = 0;
   W_POS_UP     = 1;
   W_POS_DOWN   = 2;
+  W_POS_LAST   = W_POS_DOWN;
 
   W_ACT_NORMAL = 0;
   W_ACT_FIRE   = 1;
+  W_ACT_LAST   = W_ACT_FIRE;
 
   FLAG_BASEPOINT: TDFPoint = (X:16; Y:43);
 

@@ -41,7 +41,7 @@ implementation
     e_log,
     binheap, MAPDEF, utils,
     g_options, g_textures, g_basic, g_base, g_phys,
-    g_game, g_map, g_panel, g_items, g_monsters, g_playermodel, g_player,
+    g_game, g_map, g_panel, g_items, g_monsters, g_playermodel, g_player, g_weapons,
     {$IFDEF ENABLE_CORPSES}
       g_corpses,
     {$ENDIF}
@@ -98,6 +98,7 @@ implementation
       anim: TAnimState;
     end;
     MonTextures: array [0..MONSTER_MAN] of TMonsterAnims;
+    WeapTextures: array [0..WP_LAST, 0..W_POS_LAST, 0..W_ACT_LAST] of TGLTexture;
     VileFire: TGLMultiTexture;
     Models: array of record
       anim: array [TDirection, 0..A_LAST] of record
@@ -162,7 +163,12 @@ implementation
 
 
   procedure r_Map_Load;
-    var i, j: Integer; d: TDirection;
+    const
+      WeapName: array [0..WP_LAST] of AnsiString = ('', 'CSAW', 'HGUN', 'SG', 'SSG', 'MGUN', 'RKT', 'PLZ', 'BFG', 'SPL', 'FLM');
+      WeapPos: array [0..W_POS_LAST] of AnsiString = ('', '_UP', '_DN');
+      WeapAct: array [0..W_ACT_LAST] of AnsiString = ('', '_FIRE');
+    var
+      i, j, k: Integer; d: TDirection;
 
     procedure LoadItem (i: Integer; const name: AnsiString; w, h, delay, count: Integer; backanim: Boolean);
     begin
@@ -262,6 +268,11 @@ implementation
       for i := 0 to High(PlayerModelsArray) do
         r_Map_LoadModel(i);
     end;
+    // --------- player weapons --------- //
+    for i := 1 to WP_LAST do
+      for j := 0 to W_POS_LAST do
+        for k := 0 to W_ACT_LAST do
+          WeapTextures[i, j, k] := r_Textures_LoadFromFile(GameWAD + ':WEAPONS\' + WeapName[i] + WeapPos[j] + WeapAct[k]);
   end;
 
   procedure r_Map_Free;
@@ -499,12 +510,37 @@ implementation
   end;
 
   procedure r_Map_DrawPlayerModel (pm: TPlayerModel; x, y: Integer);
-    var a: Integer; d: TDirection; flip: Boolean; t: TGLMultiTexture;
+    var a, pos, act, xx, yy: Integer; d: TDirection; flip: Boolean; t: TGLMultiTexture; tex: TGLTexture;
   begin
-    // TODO draw flag
-    // TODO draw weapon
     a := pm.CurrentAnimation;
     d := pm.Direction;
+    // TODO draw flag
+    if PlayerModelsArray[pm.id].HaveWeapon and not (pm.CurrentAnimation in [A_DIE1, A_DIE2, A_PAIN]) then
+    begin
+      case a of
+        A_SEEUP, A_ATTACKUP: pos := W_POS_UP;
+        A_SEEDOWN, A_ATTACKDOWN: pos := W_POS_DOWN;
+      else pos := W_POS_NORMAL;
+      end;
+      if (a in [A_ATTACK, A_ATTACKUP, A_ATTACKDOWN]) or pm.GetFire() then
+        act := W_ACT_FIRE
+      else
+        act := W_ACT_NORMAL;
+      tex := WeapTextures[pm.CurrentWeapon, pos, act];
+      if tex <> nil then
+      begin
+        xx := PlayerModelsArray[pm.id].WeaponPoints[pm.CurrentWeapon, a, d, pm.AnimState.CurrentFrame].X;
+        yy := PlayerModelsArray[pm.id].WeaponPoints[pm.CurrentWeapon, a, d, pm.AnimState.CurrentFrame].Y;
+        r_Draw_Texture(
+          tex,
+          x + xx,
+          y + yy,
+          tex.width,
+          tex.height,
+          d = TDirection.D_LEFT
+        );
+      end;
+    end;
     if r_Map_GetPlayerModelTex(pm.id, a, d, flip) then
     begin
       t := Models[pm.id].anim[d, a].base;
