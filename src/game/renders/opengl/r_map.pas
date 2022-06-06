@@ -276,8 +276,20 @@ implementation
   end;
 
   procedure r_Map_Free;
-    var i, j: Integer; d: TDirection;
+    var i, j, k: Integer; d: TDirection;
   begin
+    for i := 1 to WP_LAST do
+    begin
+      for j := 0 to W_POS_LAST do
+      begin
+        for k := 0 to W_ACT_LAST do
+        begin
+          if WeapTextures[i, j, k] <> nil then
+            WeapTextures[i, j, k].Free;
+          WeapTextures[i, j, k] := nil;
+        end;
+      end;
+    end;
     for i := MONSTER_DEMON to MONSTER_MAN do
     begin
       for j := 0 to ANIM_LAST do
@@ -515,7 +527,7 @@ implementation
     a := pm.CurrentAnimation;
     d := pm.Direction;
     // TODO draw flag
-    if PlayerModelsArray[pm.id].HaveWeapon and not (pm.CurrentAnimation in [A_DIE1, A_DIE2, A_PAIN]) then
+    if PlayerModelsArray[pm.id].HaveWeapon and not (a in [A_DIE1, A_DIE2, A_PAIN]) then
     begin
       case a of
         A_SEEUP, A_ATTACKUP: pos := W_POS_UP;
