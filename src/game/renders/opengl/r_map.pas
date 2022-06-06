@@ -276,7 +276,7 @@ implementation
   end;
 
   procedure r_Map_Free;
-    var i, j, k: Integer; d: TDirection;
+    var i, j, k, a: Integer; d: TDirection;
   begin
     for i := 1 to WP_LAST do
     begin
@@ -288,6 +288,18 @@ implementation
             WeapTextures[i, j, k].Free;
           WeapTextures[i, j, k] := nil;
         end;
+      end;
+    end;
+    for d := TDirection.D_LEFT to TDirection.D_RIGHT do
+    begin
+      for a := A_STAND to A_LAST do
+      begin
+        if Models[i].anim[d, a].base <> nil then
+          Models[i].anim[d, a].base.Free;
+        if Models[i].anim[d, a].mask <> nil then
+          Models[i].anim[d, a].mask.Free;
+        Models[i].anim[d, a].base := nil;
+        Models[i].anim[d, a].mask := nil;
       end;
     end;
     for i := MONSTER_DEMON to MONSTER_MAN do
