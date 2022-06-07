@@ -261,6 +261,7 @@ implementation
 {$IFDEF ENABLE_GFX}
   procedure r_Render_QueueEffect (AnimType, X, Y: Integer);
   begin
+    r_Map_NewGFX(AnimType, X, Y);
   end;
 {$ENDIF}
 

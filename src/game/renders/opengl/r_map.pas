@@ -26,6 +26,8 @@ interface
   procedure r_Map_LoadTextures;
   procedure r_Map_FreeTextures;
 
+  procedure r_Map_NewGFX (typ, x, y: Integer);
+
   procedure r_Map_Update;
 
   procedure r_Map_Draw (x, y, w, h, camx, camy: Integer);
@@ -44,6 +46,9 @@ implementation
     g_game, g_map, g_panel, g_items, g_monsters, g_playermodel, g_player, g_weapons,
     {$IFDEF ENABLE_CORPSES}
       g_corpses,
+    {$ENDIF}
+    {$IFDEF ENABLE_GFX}
+      g_gfx,
     {$ENDIF}
     r_textures, r_draw
   ;
@@ -76,6 +81,35 @@ implementation
     );
     VILEFIRE_DX = 32;
     VILEFIRE_DY = 128;
+
+    GFXAnim: array [0..R_GFX_LAST] of record
+      name: AnsiString;
+      w, h: Integer;
+      count: Integer;
+      back: Boolean;
+      speed: Integer;
+      rspeed: Integer;
+      alpha: Integer;
+    end = (
+      (name: '';            w: 0;   h: 0;   count: 0;  back: false; speed: 0; rspeed: 0; alpha: 0),
+      (name: 'TELEPORT';    w: 64;  h: 64;  count: 10; back: false; speed: 6; rspeed: 0; alpha: 0),
+      (name: 'FLAME';       w: 32;  h: 32;  count: 11; back: false; speed: 3; rspeed: 0; alpha: 0),
+      (name: 'EROCKET';     w: 128; h: 128; count: 6;  back: false; speed: 6; rspeed: 0; alpha: 0),
+      (name: 'EBFG';        w: 128; h: 128; count: 6;  back: false; speed: 6; rspeed: 0; alpha: 0),
+      (name: 'BFGHIT';      w: 64;  h: 64;  count: 4;  back: false; speed: 4; rspeed: 0; alpha: 0),
+      (name: 'FIRE';        w: 64;  h: 128; count: 8;  back: false; speed: 4; rspeed: 2; alpha: 0),
+      (name: 'ITEMRESPAWN'; w: 32;  h: 32;  count: 5;  back: true;  speed: 4; rspeed: 0; alpha: 0),
+      (name: 'SMOKE';       w: 32;  h: 32;  count: 10; back: false; speed: 3; rspeed: 0; alpha: 0),
+      (name: 'ESKELFIRE';   w: 64;  h: 64;  count: 3;  back: false; speed: 8; rspeed: 0; alpha: 0),
+      (name: 'EPLASMA';     w: 32;  h: 32;  count: 4;  back: true;  speed: 3; rspeed: 0; alpha: 0),
+      (name: 'EBSPFIRE';    w: 32;  h: 32;  count: 5;  back: false; speed: 3; rspeed: 0; alpha: 0),
+      (name: 'EIMPFIRE';    w: 64;  h: 64;  count: 3;  back: false; speed: 6; rspeed: 0; alpha: 0),
+      (name: 'ECACOFIRE';   w: 64;  h: 64;  count: 3;  back: false; speed: 6; rspeed: 0; alpha: 0),
+      (name: 'EBARONFIRE';  w: 64;  h: 64;  count: 3;  back: false; speed: 6; rspeed: 0; alpha: 0),
+      (name: 'TELEPORT';    w: 64;  h: 64;  count: 10; back: false; speed: 3; rspeed: 0; alpha: 0),   // fast
+      (name: 'SMOKE';       w: 32;  h: 32;  count: 10; back: false; speed: 3; rspeed: 0; alpha: 150), // transparent
+      (name: 'FLAME';       w: 32;  h: 32;  count: 11; back: false; speed: 3; rspeed: 2; alpha: 0)    // random
+    );
 
   type
     TBinHeapPanelDrawCmp = class
@@ -113,6 +147,17 @@ implementation
       {$ENDIF}
 *)
     end;
+
+{$IFDEF ENABLE_GFX}
+    GFXTextures: array [0..R_GFX_LAST] of TGLMultiTexture;
+    gfxlist: array of record
+      typ: Byte;
+      alpha: Byte;
+      x, y: Integer;
+      oldX, oldY: Integer;
+      anim: TAnimState;
+    end = nil;
+{$ENDIF}
 
     plist: TBinHeapPanelDraw = nil;
 
@@ -273,11 +318,25 @@ implementation
       for j := 0 to W_POS_LAST do
         for k := 0 to W_ACT_LAST do
           WeapTextures[i, j, k] := r_Textures_LoadFromFile(GameWAD + ':WEAPONS\' + WeapName[i] + WeapPos[j] + WeapAct[k]);
+    // --------- gfx animations --------- //
+    {$IFDEF ENABLE_GFX}
+      for i := 1 to R_GFX_LAST do
+        GFXTextures[i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/' + GFXAnim[i].name, GFXAnim[i].w, GFXAnim[i].h, GFXAnim[i].count, GFXAnim[i].back);
+    {$ENDIF}
   end;
 
   procedure r_Map_Free;
     var i, j, k, a: Integer; d: TDirection;
   begin
+    {$IFDEF ENABLE_GFX}
+      gfxlist := nil;
+      for i := 0 to R_GFX_LAST do
+      begin
+        if GFXTextures[i] <> nil then
+          GFXTextures[i].Free;
+        GFXTextures[i] := nil;
+      end;
+    {$ENDIF}
     for i := 1 to WP_LAST do
     begin
       for j := 0 to W_POS_LAST do
@@ -364,13 +423,6 @@ implementation
         if RenTextures[i].tex <> nil then
           RenTextures[i].tex.Free;
     RenTextures := nil;
-  end;
-
-  procedure r_Map_Update;
-    var i: Integer;
-  begin
-    for i := 0 to ITEM_MAX do
-      Items[i].anim.Update;
   end;
 
   procedure r_Map_DrawPanel (p: TPanel);
@@ -624,6 +676,131 @@ implementation
   end;
 {$ENDIF}
 
+{$IFDEF ENABLE_GFX}
+  function r_Map_GetGFXID (): Integer;
+    var i: Integer;
+  begin
+    i := 0;
+    if gfxlist <> nil then
+    begin
+      while (i < Length(gfxlist)) and gfxlist[i].anim.IsValid() do
+        Inc(i);
+      if i >= Length(gfxlist) then
+        SetLength(gfxlist, Length(gfxlist) + 1)
+    end
+    else
+      SetLength(gfxlist, 1);
+    gfxlist[i].typ := R_GFX_NONE;
+    gfxlist[i].anim.Invalidate;
+    result := i
+  end;
+
+  procedure r_Map_NewGFX (typ, x, y: Integer);
+    var i: Integer;
+  begin
+    if gpart_dbg_enabled and (typ > 0) and (typ <= R_GFX_LAST) then
+    begin
+      i := r_Map_GetGFXID();
+      if i >= 0 then
+      begin
+        gfxlist[i].typ := typ;
+        gfxlist[i].x := x;
+        gfxlist[i].y := y;
+        gfxlist[i].oldX := x;
+        gfxlist[i].oldY := y;
+        gfxlist[i].anim := TAnimState.Create(false, GFXAnim[typ].speed + Random(GFXAnim[typ].rspeed), GFXAnim[typ].count);
+        gfxlist[i].anim.Reset();
+        gfxlist[i].anim.Enable();
+      end;
+    end;
+  end;
+
+  procedure r_Map_UpdateGFX;
+    var i: Integer;
+  begin
+    if gfxlist <> nil then
+    begin
+      for i := 0 to High(gfxlist) do
+      begin
+        if gfxlist[i].anim.IsValid() then
+        begin
+          gfxlist[i].oldX := gfxlist[i].x;
+          gfxlist[i].oldY := gfxlist[i].y;
+          case gfxlist[i].typ of
+            R_GFX_FLAME, R_GFX_SMOKE:
+            begin
+              if Random(3) = 0 then
+                gfxlist[i].x := gfxlist[i].x - 1 + Random(3);
+              if Random(2) = 0 then
+                gfxlist[i].y := gfxlist[i].y - Random(2);
+            end;
+          end;
+          if gfxlist[i].anim.played then
+            gfxlist[i].anim.Invalidate
+          else
+            gfxlist[i].anim.Update
+        end;
+      end;
+    end;
+  end;
+
+  procedure r_Map_DrawParticles (x, y, w, h: Integer);
+    var i, fx, fy: Integer;
+  begin
+    if gpart_dbg_enabled and (Particles <> nil) then
+    begin
+      glDisable(GL_TEXTURE_2D);
+      if (g_dbg_scale < 0.6) then
+        glPointSize(1)
+      else if (g_dbg_scale > 1.3) then
+        glPointSize(g_dbg_scale + 1)
+      else
+        glPointSize(2);
+      glDisable(GL_POINT_SMOOTH);
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+      glBegin(GL_POINTS);
+        for i := 0 to High(Particles) do
+        begin
+          if Particles[i].alive then
+          begin
+            fx := nlerp(Particles[i].oldX, Particles[i].x, gLerpFactor);
+            fy := nlerp(Particles[i].oldY, Particles[i].y, gLerpFactor);
+            glColor4ub(Particles[i].red, Particles[i].green, Particles[i].blue, Particles[i].alpha);
+            glVertex2f(fx, fy);
+          end;
+        end;
+      glEnd;
+
+      glDisable(GL_BLEND);
+    end;
+  end;
+
+  procedure r_Map_DrawGFX (x, y, w, h: Integer);
+    var i, fx, fy, typ: Integer; tex: TGLMultiTexture;
+  begin
+    if gfxlist <> nil then
+    begin
+      for i := 0 to High(gfxlist) do
+      begin
+        if gfxlist[i].anim.IsValid() then
+        begin
+          typ := gfxlist[i].typ;
+          tex := GFXTextures[typ];
+          if tex <> nil then
+          begin
+            fx := nlerp(gfxlist[i].oldX, gfxlist[i].x, gLerpFactor);
+            fy := nlerp(gfxlist[i].oldY, gfxlist[i].y, gLerpFactor);
+            // TODO set GFXAnim[typ].alpha
+            r_Draw_MultiTextureRepeat(tex, gfxlist[i].anim, fx, fy, tex.width, tex.height, false);
+          end;
+        end;
+      end;
+    end;
+  end;
+{$ENDIF}
+
   procedure r_Map_Draw (x, y, w, h, camx, camy: Integer);
     var iter: TPanelGrid.Iter; p: PPanel; cx, cy, xx, yy, ww, hh: Integer;
   begin
@@ -660,13 +837,24 @@ implementation
     r_Map_DrawMonsters(xx, yy, ww, hh);
     r_Map_DrawItems(xx, yy, ww, hh, true);
     r_Map_DrawPanelType(PANEL_CLOSEDOOR);
-    // TODO draw gfx
+    {$IFDEF ENABLE_GFX}
+      r_Map_DrawParticles(xx, yy, ww, hh);
+      r_Map_DrawGFX(xx, yy, ww, hh);
+    {$ENDIF}
     // TODO draw flags
     r_Map_DrawPanelType(PANEL_ACID1);
     r_Map_DrawPanelType(PANEL_ACID2);
     r_Map_DrawPanelType(PANEL_WATER);
     r_Map_DrawPanelType(PANEL_FORE);
     glPopMatrix;
+  end;
+
+  procedure r_Map_Update;
+    var i: Integer;
+  begin
+    for i := 0 to ITEM_MAX do
+      Items[i].anim.Update;
+    r_Map_UpdateGFX;
   end;
 
 end.
