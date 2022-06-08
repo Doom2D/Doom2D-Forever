@@ -126,7 +126,7 @@ implementation
       (name: 'BPLASMA';     w: 16; h: 16; count: 2),  // 7  PLASMA
       (name: 'BBFG';        w: 64; h: 64; count: 2),  // 8  BFG
       (name: '';            w: 0;  h: 0;  count: 0),  // 9  SUPERPULEMET
-      (name: 'FLAME';       w: 32; h: 32; count: 11), // 10 FLAMETHROWER
+      (name: 'FLAME';       w: 32; h: 32; count: 0{11}), // 10 FLAMETHROWER
       (name: '';            w: 0;  h: 0;  count: 0),  // 11
       (name: '';            w: 0;  h: 0;  count: 0),  // 12
       (name: '';            w: 0;  h: 0;  count: 0),  // 13
