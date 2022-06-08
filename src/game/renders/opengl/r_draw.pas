@@ -22,11 +22,11 @@ interface
     r_textures
   ;
 
-  procedure r_Draw_Texture (img: TGLTexture; x, y, w, h: Integer; flip: Boolean);
-  procedure r_Draw_TextureRepeat (img: TGLTexture; x, y, w, h: Integer; flip: Boolean);
+  procedure r_Draw_Texture (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
+  procedure r_Draw_TextureRepeat (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
 
-  procedure r_Draw_MultiTextureRepeat (m: TGLMultiTexture; const a: TAnimState; x, y, w, h: Integer; flip: Boolean);
-  procedure r_Draw_MultiTextureRepeatRotate (img: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; rx, ry, a: Integer);
+  procedure r_Draw_MultiTextureRepeat (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
+  procedure r_Draw_MultiTextureRepeatRotate (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; rx, ry, angle: Integer; blend: Boolean);
 
   procedure r_Draw_Filter (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
 
@@ -42,6 +42,12 @@ implementation
     e_log, utils,
     g_game // gScreenWidth, gScreenHeight
   ;
+
+  const
+    NTR = $FF;
+    NTG = $00;
+    NTB = $00;
+    NTA = $FF;
 
   procedure SetupMatrix;
   begin
@@ -64,15 +70,15 @@ implementation
     glEnd();
   end;
 
-  procedure DrawTile (tile: TGLAtlasNode; x, y, w, h: Integer; flip: Boolean);
+  procedure DrawTile (tile: TGLAtlasNode; x, y, w, h: Integer; flip: Boolean; rr, gg, bb, aa: Byte; blend: Boolean);
     var nw, nh, ax, bx, ay, by: GLfloat; l, t, r, b: Integer;
   begin
     if tile = nil then
     begin
-      glColor3ub(255, 0, 0);
-      glDisable(GL_BLEND);
-      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      glColor4ub(rr, gg, bb, aa);
+      if blend then glBlendFunc(GL_SRC_ALPHA, GL_ONE) else glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
       glDisable(GL_TEXTURE_2D);
+      glEnable(GL_BLEND);
       DrawQuad(x, y, w, h);
     end
     else
@@ -84,11 +90,11 @@ implementation
       ay := (tile.t) / nw;
       by := (tile.b + 1) / nh;
       l := x; t := y; r := x + w; b := y + h;
-      glColor3ub(255, 255, 255);
       glBindTexture(GL_TEXTURE_2D, tile.id);
+      glColor4ub(rr, gg, bb, aa);
+      if blend then glBlendFunc(GL_SRC_ALPHA, GL_ONE) else glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
       glEnable(GL_TEXTURE_2D);
       glEnable(GL_BLEND);
-      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
       glBegin(GL_QUADS);
         glTexCoord2f(ax, ay); glVertex2i(r, t);
         glTexCoord2f(bx, ay); glVertex2i(l, t);
@@ -100,43 +106,13 @@ implementation
     end
   end;
 
-(*
-  procedure r_Draw_Texture (img: TGLTexture; x, y, w, h: Integer; flip: Boolean);
-    var i, j, offx, offy, nw, nh: Integer; n: TGLAtlasNode;
-  begin
-    ASSERT(w >= 0);
-    ASSERT(h >= 0);
-    if img = nil then
-      DrawTile(nil, x, y, w, h, flip)
-    else
-    begin
-      offx := 0;
-      offy := 0;
-      nw := w div img.cols;
-      nh := h div img.lines;
-      for j := 0 to img.lines - 1 do
-      begin
-        for i := 0 to img.cols - 1 do
-        begin
-          n := img.GetTile(i, j);
-          ASSERT(n <> nil);
-          DrawTile(n, x + offx, y + offy, nw, nh, flip);
-          offx := offx + nw;
-        end;
-        offx := 0;
-        offy := offy + nh;
-      end
-    end
-  end;
-*)
-
-  procedure r_Draw_Texture (img: TGLTexture; x, y, w, h: Integer; flip: Boolean);
+  procedure r_Draw_Texture (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
     var i, j, offx, offy: Integer; n: TGLAtlasNode;
   begin
     ASSERT(w >= 0);
     ASSERT(h >= 0);
     if img = nil then
-      DrawTile(nil, x, y, w, h, flip)
+      DrawTile(nil, x, y, w, h, flip, NTR, NTB, NTG, NTA, blend)
     else
     begin
       glPushMatrix;
@@ -149,7 +125,7 @@ implementation
         begin
           n := img.GetTile(i, j);
           ASSERT(n <> nil);
-          DrawTile(n, x + offx, y + offy, n.width, n.height, flip);
+          DrawTile(n, x + offx, y + offy, n.width, n.height, flip, r, g, b, a, blend);
           offx := offx + n.width;
         end;
         offx := 0;
@@ -159,41 +135,41 @@ implementation
     end
   end;
 
-  procedure r_Draw_TextureRepeat (img: TGLTexture; x, y, w, h: Integer; flip: Boolean);
+  procedure r_Draw_TextureRepeat (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
     var i, j: Integer;
   begin
     ASSERT(w >= 0);
     ASSERT(h >= 0);
     if img = nil then
-      r_Draw_Texture(nil, x, y, w, h, flip)
+      r_Draw_Texture(nil, x, y, w, h, flip, NTR, NTG, NTB, NTB, blend)
     else
       for j := 0 to h div img.height - 1 do
         for i := 0 to w div img.width - 1 do
-          r_Draw_Texture(img, x + i * img.width, y + j * img.height, img.width, img.height, flip);
+          r_Draw_Texture(img, x + i * img.width, y + j * img.height, img.width, img.height, flip, r, g, b, a, blend);
   end;
 
-  procedure r_Draw_MultiTextureRepeat (m: TGLMultiTexture; const a: TAnimState; x, y, w, h: Integer; flip: Boolean);
+  procedure r_Draw_MultiTextureRepeat (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
     var img: TGLTexture; cur, total, i: Integer;
   begin
-    ASSERT(a.IsValid());
+    ASSERT(anim.IsValid());
     if m = nil then
-      r_Draw_TextureRepeat(nil, x, y, w, h, flip)
+      r_Draw_TextureRepeat(nil, x, y, w, h, flip, NTR, NTG, NTB, NTB, blend)
     else
     begin
       if m.BackAnim then
       begin
         total := m.count * 2 - 1;
-        cur := a.CurrentFrame mod total;
+        cur := anim.CurrentFrame mod total;
         if cur < m.count then i := cur else i := total - cur - 1;
       end
       else
-        i := a.CurrentFrame mod m.count;
+        i := anim.CurrentFrame mod m.count;
       img := m.GetTexture(i);
-      r_Draw_TextureRepeat(img, x, y, w, h, flip)
+      r_Draw_TextureRepeat(img, x, y, w, h, flip, r, g, b, a, blend);
     end
   end;
 
-  procedure r_Draw_MultiTextureRepeatRotate (img: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; rx, ry, a: Integer);
+  procedure r_Draw_MultiTextureRepeatRotate (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; rx, ry, angle: Integer; blend: Boolean);
     var i, j: Integer;
   begin
     ASSERT(w >= 0);
@@ -202,13 +178,13 @@ implementation
     begin
       glPushMatrix;
       glTranslatef(x + rx, y + ry, 0);
-      glRotatef(a, 0, 0, 1);
+      glRotatef(angle, 0, 0, 1);
       glTranslatef(-(x + rx), -(y + ry), 0);
-      r_Draw_MultiTextureRepeat(img, anim, x, y, w, h, flip);
+      r_Draw_MultiTextureRepeat(m, anim, x, y, w, h, flip, r, g, b, a, blend);
       glPopMatrix;
     end
     else
-      r_Draw_MultiTextureRepeat(img, anim, x, y, w, h, flip);
+      r_Draw_MultiTextureRepeat(m, anim, x, y, w, h, flip, r, g, b, a, blend);
   end;
 
   procedure r_Draw_Filter (l, t, r, b: Integer; rr, gg, bb, aa: Byte);

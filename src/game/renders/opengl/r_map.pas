@@ -486,13 +486,12 @@ implementation
 
       if (RenTextures[Texture].spec = 0) or (t <> nil) then
       begin
-        // TODO set alpha and blending type
         if t = nil then
-          r_Draw_TextureRepeat(nil, p.x, p.y, p.width, p.height, false)
+          r_Draw_TextureRepeat(nil, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255 - p.alpha, p.blending)
         else if p.TextureIDs[p.FCurTexture].AnTex.IsValid() then
-          r_Draw_MultiTextureRepeat(t, p.TextureIDs[p.FCurTexture].AnTex, p.x, p.y, p.width, p.height, false)
+          r_Draw_MultiTextureRepeat(t, p.TextureIDs[p.FCurTexture].AnTex, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255 - p.alpha, p.blending)
         else
-          r_Draw_TextureRepeat(t.GetTexture(0), p.x, p.y, p.width, p.height, false)
+          r_Draw_TextureRepeat(t.GetTexture(0), p.x, p.y, p.width, p.height, false, 255, 255, 255, 255 - p.alpha, p.blending)
       end;
 
       if t = nil then
@@ -536,7 +535,7 @@ implementation
           if g_Collide(it.obj.x, it.obj.y, t.width, t.height, x, y, w, h) then
           begin
             it.obj.Lerp(gLerpFactor, fX, fY);
-            r_Draw_MultiTextureRepeat(t, Items[it.ItemType].anim, fX, fY, t.width, t.height, false);
+            r_Draw_MultiTextureRepeat(t, Items[it.ItemType].anim, fX, fY, t.width, t.height, false, 255, 255, 255, 255, false);
             // if g_debug_frames then // TODO draw collision frame
           end;
         end;
@@ -583,7 +582,7 @@ implementation
     if VileFire <> nil then
       if (mon.MonsterType = MONSTER_VILE) and (mon.MonsterState = MONSTATE_SHOOT) then
         if mon.VileFireAnim.IsValid() and GetPos(mon.MonsterTargetUID, @o) then
-          r_Draw_MultiTextureRepeat(VileFire, mon.VileFireAnim, o.x + o.rect.x + (o.rect.width div 2) - VILEFIRE_DX, o.y + o.rect.y + o.rect.height - VILEFIRE_DY, VileFire.width, VileFire.height, False);
+          r_Draw_MultiTextureRepeat(VileFire, mon.VileFireAnim, o.x + o.rect.x + (o.rect.width div 2) - VILEFIRE_DX, o.y + o.rect.y + o.rect.height - VILEFIRE_DY, VileFire.width, VileFire.height, False, 255, 255, 255, 255, false);
   end;
 
   procedure r_Map_DrawMonster (constref mon: TMonster);
@@ -596,7 +595,7 @@ implementation
     mon.obj.Lerp(gLerpFactor, fX, fY);
 
     if r_Map_GetMonsterTexture(m, a, d, t, dx, dy, flip) then
-      r_Draw_MultiTextureRepeat(t, mon.DirAnim[a, d], fX + dx, fY + dy, t.width, t.height, flip);
+      r_Draw_MultiTextureRepeat(t, mon.DirAnim[a, d], fX + dx, fY + dy, t.width, t.height, flip, 255, 255, 255, 255, false);
 
 {
     if g_debug_frames
@@ -636,7 +635,7 @@ implementation
   end;
 
   procedure r_Map_DrawPlayerModel (pm: TPlayerModel; x, y: Integer);
-    var a, pos, act, xx, yy: Integer; d: TDirection; flip: Boolean; t: TGLMultiTexture; tex: TGLTexture;
+    var a, pos, act, xx, yy: Integer; d: TDirection; flip: Boolean; t: TGLMultiTexture; tex: TGLTexture; c: TRGB;
   begin
     a := pm.CurrentAnimation;
     d := pm.Direction;
@@ -663,18 +662,21 @@ implementation
           y + yy,
           tex.width,
           tex.height,
-          d = TDirection.D_LEFT
+          d = TDirection.D_LEFT,
+          255, 255, 255, 255, false
         );
       end;
     end;
     if r_Map_GetPlayerModelTex(pm.id, a, d, flip) then
     begin
       t := Models[pm.id].anim[d, a].base;
-      r_Draw_MultiTextureRepeat(t, pm.AnimState, x, y, t.width, t.height, flip);
-      // TODO colorize mask
+      r_Draw_MultiTextureRepeat(t, pm.AnimState, x, y, t.width, t.height, flip, 255, 255, 255, 255, false);
       t := Models[pm.id].anim[d, a].mask;
       if t <> nil then
-        r_Draw_MultiTextureRepeat(t, pm.AnimState, x, y, t.width, t.height, flip);
+      begin
+        c := pm.Color;
+        r_Draw_MultiTextureRepeat(t, pm.AnimState, x, y, t.width, t.height, flip, c.r, c.g, c.b, 255, false);
+      end;
     end;
   end;
 
@@ -842,8 +844,7 @@ implementation
           begin
             fx := nlerp(gfxlist[i].oldX, gfxlist[i].x, gLerpFactor);
             fy := nlerp(gfxlist[i].oldY, gfxlist[i].y, gLerpFactor);
-            // TODO set GFXAnim[typ].alpha
-            r_Draw_MultiTextureRepeat(tex, gfxlist[i].anim, fx, fy, tex.width, tex.height, false);
+            r_Draw_MultiTextureRepeat(tex, gfxlist[i].anim, fx, fy, tex.width, tex.height, false, 255, 255, 255, 255 - GFXAnim[typ].alpha, false);
           end;
         end;
       end;
@@ -874,7 +875,7 @@ implementation
             pY := Shots[i].Obj.Rect.Height div 2;
             // TODO fix this hack
             if Shots[i].Animation.IsValid() then anim := @Shots[i].Animation else anim := @StubShotAnim;
-            r_Draw_MultiTextureRepeatRotate(tex, anim^, fX, fY, tex.width, tex.height, false, pX, pY, a);
+            r_Draw_MultiTextureRepeatRotate(tex, anim^, fX, fY, tex.width, tex.height, false, 255, 255, 255, 255, pX, pY, a, false);
           end;
         end;
       end;
@@ -892,7 +893,7 @@ implementation
     hh := h;
 
     if SkyTexture <> nil then
-      r_Draw_Texture(SkyTexture, x, y, w, h, false);
+      r_Draw_Texture(SkyTexture, x, y, w, h, false, 255, 255, 255, 255, false);
 
     plist.Clear;
     iter := mapGrid.ForEachInAABB(xx, yy, ww, hh, GridDrawableMask);
