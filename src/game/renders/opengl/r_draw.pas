@@ -26,6 +26,7 @@ interface
   procedure r_Draw_TextureRepeat (img: TGLTexture; x, y, w, h: Integer; flip: Boolean);
 
   procedure r_Draw_MultiTextureRepeat (m: TGLMultiTexture; const a: TAnimState; x, y, w, h: Integer; flip: Boolean);
+  procedure r_Draw_MultiTextureRepeatRotate (img: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; rx, ry, a: Integer);
 
   procedure r_Draw_Filter (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
 
@@ -190,6 +191,24 @@ implementation
       img := m.GetTexture(i);
       r_Draw_TextureRepeat(img, x, y, w, h, flip)
     end
+  end;
+
+  procedure r_Draw_MultiTextureRepeatRotate (img: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; rx, ry, a: Integer);
+    var i, j: Integer;
+  begin
+    ASSERT(w >= 0);
+    ASSERT(h >= 0);
+    if a <> 0 then
+    begin
+      glPushMatrix;
+      glTranslatef(x + rx, y + ry, 0);
+      glRotatef(a, 0, 0, 1);
+      glTranslatef(-(x + rx), -(y + ry), 0);
+      r_Draw_MultiTextureRepeat(img, anim, x, y, w, h, flip);
+      glPopMatrix;
+    end
+    else
+      r_Draw_MultiTextureRepeat(img, anim, x, y, w, h, flip);
   end;
 
   procedure r_Draw_Filter (l, t, r, b: Integer; rr, gg, bb, aa: Byte);

@@ -861,11 +861,9 @@ implementation
         typ := Shots[i].ShotType;
         if typ <> 0 then
         begin
-          e_logwritefln('draw shot %s typ %s', [i, typ]);
           tex := ShotTextures[typ];
           if tex <> nil then
           begin
-            e_logwritefln('draw shot %s typ %s <> nil', [i, typ]);
             a := 0;
             case typ of
               WEAPON_ROCKETLAUNCHER, WEAPON_BARON_FIRE, WEAPON_MANCUB_FIRE, WEAPON_SKEL_FIRE:
@@ -874,10 +872,9 @@ implementation
             Shots[i].Obj.Lerp(gLerpFactor, fX, fY);
             pX := Shots[i].Obj.Rect.Width div 2;
             pY := Shots[i].Obj.Rect.Height div 2;
-            // TODO fix this
+            // TODO fix this hack
             if Shots[i].Animation.IsValid() then anim := @Shots[i].Animation else anim := @StubShotAnim;
-            // TODO: change angle and base point
-            r_Draw_MultiTextureRepeat(tex, anim^, fX, fY, tex.width, tex.height, false);
+            r_Draw_MultiTextureRepeatRotate(tex, anim^, fX, fY, tex.width, tex.height, false, pX, pY, a);
           end;
         end;
       end;
