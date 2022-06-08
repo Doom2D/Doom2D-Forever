@@ -26,7 +26,7 @@ interface
   procedure r_Draw_TextureRepeat (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
 
   procedure r_Draw_MultiTextureRepeat (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
-  procedure r_Draw_MultiTextureRepeatRotate (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; rx, ry, angle: Integer; blend: Boolean);
+  procedure r_Draw_MultiTextureRepeatRotate (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean; rx, ry, angle: Integer);
 
   procedure r_Draw_Filter (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
 
@@ -169,7 +169,7 @@ implementation
     end
   end;
 
-  procedure r_Draw_MultiTextureRepeatRotate (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; rx, ry, angle: Integer; blend: Boolean);
+  procedure r_Draw_MultiTextureRepeatRotate (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean; rx, ry, angle: Integer);
     var i, j: Integer;
   begin
     ASSERT(w >= 0);

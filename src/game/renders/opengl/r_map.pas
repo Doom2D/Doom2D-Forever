@@ -35,6 +35,7 @@ interface
 implementation
 
   uses
+    Math,
     {$IFDEF USE_GLES1}
       GLES11,
     {$ELSE}
@@ -168,6 +169,7 @@ implementation
     MonTextures: array [0..MONSTER_MAN] of TMonsterAnims;
     WeapTextures: array [0..WP_LAST, 0..W_POS_LAST, 0..W_ACT_LAST] of TGLTexture;
     ShotTextures: array [0..WEAPON_LAST] of TGLMultiTexture;
+    FlagTextures: array [0..FLAG_LAST] of TGLMultiTexture;
     VileFire: TGLMultiTexture;
     Models: array of record
       anim: array [TDirection, 0..A_LAST] of record
@@ -184,6 +186,7 @@ implementation
     end;
 
     StubShotAnim: TAnimState;
+    FlagAnim: TAnimState;
 
 {$IFDEF ENABLE_GFX}
     GFXTextures: array [0..R_GFX_LAST] of TGLMultiTexture;
@@ -208,6 +211,7 @@ implementation
   procedure r_Map_Initialize;
   begin
     StubShotAnim := TAnimState.Create(true, 1, 1);
+    FlagAnim := TAnimState.Create(true, 8, 5);
     plist := TBinHeapPanelDraw.Create();
   end;
 
@@ -367,11 +371,22 @@ implementation
     for i := 0 to WEAPON_LAST do
       if ShotAnim[i].count > 0 then
         ShotTextures[i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/' + ShotAnim[i].name, ShotAnim[i].w, ShotAnim[i].h, ShotAnim[i].count, false);
+    // --------- flags --------- //
+    FlagTextures[FLAG_NONE] := nil;
+    FlagTextures[FLAG_RED]  := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGRED',  64, 64, 5, false);
+    FlagTextures[FLAG_BLUE] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGBLUE', 64, 64, 5, false);
+    // FlagTextures[FLAG_DOM]  := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGDOM',  64, 64, 8, false);
   end;
 
   procedure r_Map_Free;
     var i, j, k, a: Integer; d: TDirection;
   begin
+    for i := 0 to FLAG_LAST do
+    begin
+      if FlagTextures[i] <> nil then
+        FlagTextures[i].Free;
+      FlagTextures[i] := nil;
+    end;
     for i := 0 to WEAPON_LAST do
     begin
       if ShotTextures[i] <> nil then
@@ -635,11 +650,35 @@ implementation
   end;
 
   procedure r_Map_DrawPlayerModel (pm: TPlayerModel; x, y: Integer);
-    var a, pos, act, xx, yy: Integer; d: TDirection; flip: Boolean; t: TGLMultiTexture; tex: TGLTexture; c: TRGB;
+    var a, pos, act, xx, yy, angle: Integer; d: TDirection; flip: Boolean; t: TGLMultiTexture; tex: TGLTexture; c: TRGB;
   begin
     a := pm.CurrentAnimation;
     d := pm.Direction;
-    // TODO draw flag
+
+    (* draw flag*)
+    t := FlagTextures[pm.Flag];
+    if (t <> nil) and not (a in [A_DIE1, A_DIE2])  then
+    begin
+      flip := d = TDirection.D_RIGHT;
+      angle := PlayerModelsArray[pm.id].FlagAngle;
+      xx := PlayerModelsArray[pm.id].FlagPoint.X;
+      yy := PlayerModelsArray[pm.id].FlagPoint.Y;
+      r_Draw_MultiTextureRepeatRotate(
+        t,
+        FlagAnim,
+        x + IfThen(flip, 2 * FLAG_BASEPOINT.X - xx + 1, xx - 1) - FLAG_BASEPOINT.X,
+        y + yy - FLAG_BASEPOINT.Y + 1,
+        t.width,
+        t.height,
+        flip,
+        255, 255, 255, 255, false,
+        IfThen(flip, 64 - FLAG_BASEPOINT.X, FLAG_BASEPOINT.X),
+        FLAG_BASEPOINT.Y,
+        IfThen(flip, angle, -angle)
+      );
+    end;
+
+    (* draw weapon *)
     if PlayerModelsArray[pm.id].HaveWeapon and not (a in [A_DIE1, A_DIE2, A_PAIN]) then
     begin
       case a of
@@ -667,6 +706,8 @@ implementation
         );
       end;
     end;
+
+    (* draw body *)
     if r_Map_GetPlayerModelTex(pm.id, a, d, flip) then
     begin
       t := Models[pm.id].anim[d, a].base;
@@ -875,8 +916,28 @@ implementation
             pY := Shots[i].Obj.Rect.Height div 2;
             // TODO fix this hack
             if Shots[i].Animation.IsValid() then anim := @Shots[i].Animation else anim := @StubShotAnim;
-            r_Draw_MultiTextureRepeatRotate(tex, anim^, fX, fY, tex.width, tex.height, false, 255, 255, 255, 255, pX, pY, a, false);
+            r_Draw_MultiTextureRepeatRotate(tex, anim^, fX, fY, tex.width, tex.height, false, 255, 255, 255, 255, false, pX, pY, a);
           end;
+        end;
+      end;
+    end;
+  end;
+
+  procedure r_Map_DrawFlags (x, y, w, h: Integer);
+    var i, dx, fx, fy: Integer; flip: Boolean; tex: TGLMultiTexture;
+  begin
+    if gGameSettings.GameMode = GM_CTF then
+    begin
+      for i := FLAG_RED to FLAG_BLUE do
+      begin
+        if not (gFlags[i].state in [FLAG_STATE_NONE, FLAG_STATE_CAPTURED]) then
+        begin
+          gFlags[i].Obj.Lerp(gLerpFactor, fx, fy);
+          flip := gFlags[i].Direction = TDirection.D_LEFT;
+          if flip then dx := -1 else dx := +1;
+          tex := FlagTextures[i];
+          r_Draw_MultiTextureRepeat(tex, FlagAnim, fx + dx, fy + 1, tex.width, tex.height, flip, 255, 255, 255, 255, false)
+          // TODO g_debug_frames
         end;
       end;
     end;
@@ -922,7 +983,7 @@ implementation
       r_Map_DrawParticles(xx, yy, ww, hh);
       r_Map_DrawGFX(xx, yy, ww, hh);
     {$ENDIF}
-    // TODO draw flags
+    r_Map_DrawFlags(xx, yy, ww, hh);
     r_Map_DrawPanelType(PANEL_ACID1);
     r_Map_DrawPanelType(PANEL_ACID2);
     r_Map_DrawPanelType(PANEL_WATER);
@@ -936,6 +997,7 @@ implementation
     for i := 0 to ITEM_MAX do
       Items[i].anim.Update;
     r_Map_UpdateGFX;
+    FlagAnim.Update;
   end;
 
 end.

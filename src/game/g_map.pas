@@ -152,6 +152,7 @@ const
   FLAG_RED  = 1;
   FLAG_BLUE = 2;
   FLAG_DOM  = 3;
+  FLAG_LAST = FLAG_DOM;
 
   FLAG_STATE_NONE     = 0;
   FLAG_STATE_NORMAL   = 1;
