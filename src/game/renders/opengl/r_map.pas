@@ -111,6 +111,40 @@ implementation
       (name: 'FLAME';       w: 32;  h: 32;  count: 11; back: false; speed: 3; rspeed: 2; alpha: 0)    // random
     );
 
+    ShotAnim: array [0..WEAPON_LAST] of record
+      name: AnsiString;
+      w, h: Integer;
+      count: Integer;
+    end = (
+      (name: '';            w: 0;  h: 0;  count: 0),  // 0  KASTET
+      (name: '';            w: 0;  h: 0;  count: 0),  // 1  SAW
+      (name: '';            w: 0;  h: 0;  count: 0),  // 2  PISTOL
+      (name: '';            w: 0;  h: 0;  count: 0),  // 3  SHOTGUN1
+      (name: '';            w: 0;  h: 0;  count: 0),  // 4  SHOTGUN2
+      (name: '';            w: 0;  h: 0;  count: 0),  // 5  CHAINGUN
+      (name: 'BROCKET';     w: 64; h: 32; count: 1),  // 6  ROCKETLAUNCHER
+      (name: 'BPLASMA';     w: 16; h: 16; count: 2),  // 7  PLASMA
+      (name: 'BBFG';        w: 64; h: 64; count: 2),  // 8  BFG
+      (name: '';            w: 0;  h: 0;  count: 0),  // 9  SUPERPULEMET
+      (name: 'FLAME';       w: 32; h: 32; count: 11), // 10 FLAMETHROWER
+      (name: '';            w: 0;  h: 0;  count: 0),  // 11
+      (name: '';            w: 0;  h: 0;  count: 0),  // 12
+      (name: '';            w: 0;  h: 0;  count: 0),  // 13
+      (name: '';            w: 0;  h: 0;  count: 0),  // 14
+      (name: '';            w: 0;  h: 0;  count: 0),  // 15
+      (name: '';            w: 0;  h: 0;  count: 0),  // 16
+      (name: '';            w: 0;  h: 0;  count: 0),  // 17
+      (name: '';            w: 0;  h: 0;  count: 0),  // 18
+      (name: '';            w: 0;  h: 0;  count: 0),  // 19
+      (name: '';            w: 0;  h: 0;  count: 0),  // 20 ZOMPY_PISTOL
+      (name: 'BIMPFIRE';    w: 16; h: 16; count: 2),  // 21 IMP_FIRE
+      (name: 'BBSPFIRE';    w: 16; h: 16; count: 2),  // 22 BSP_FIRE
+      (name: 'BCACOFIRE';   w: 16; h: 16; count: 2),  // 23 CACO_FIRE
+      (name: 'BBARONFIRE';  w: 64; h: 16; count: 2),  // 24 BARON_FIRE
+      (name: 'BMANCUBFIRE'; w: 64; h: 32; count: 2),  // 25 MANCUB_FIRE
+      (name: 'BSKELFIRE';   w: 64; h: 64; count: 2)   // 26 SKEL_FIRE
+    );
+
   type
     TBinHeapPanelDrawCmp = class
       public
@@ -133,6 +167,7 @@ implementation
     end;
     MonTextures: array [0..MONSTER_MAN] of TMonsterAnims;
     WeapTextures: array [0..WP_LAST, 0..W_POS_LAST, 0..W_ACT_LAST] of TGLTexture;
+    ShotTextures: array [0..WEAPON_LAST] of TGLMultiTexture;
     VileFire: TGLMultiTexture;
     Models: array of record
       anim: array [TDirection, 0..A_LAST] of record
@@ -147,6 +182,8 @@ implementation
       {$ENDIF}
 *)
     end;
+
+    StubShotAnim: TAnimState;
 
 {$IFDEF ENABLE_GFX}
     GFXTextures: array [0..R_GFX_LAST] of TGLMultiTexture;
@@ -170,12 +207,14 @@ implementation
 
   procedure r_Map_Initialize;
   begin
+    StubShotAnim := TAnimState.Create(true, 1, 1);
     plist := TBinHeapPanelDraw.Create();
   end;
 
   procedure r_Map_Finalize;
   begin
-    plist.Free
+    plist.Free;
+    StubShotAnim.Invalidate;
   end;
 
   procedure r_Map_LoadModel (i: Integer);
@@ -321,13 +360,24 @@ implementation
     // --------- gfx animations --------- //
     {$IFDEF ENABLE_GFX}
       for i := 1 to R_GFX_LAST do
-        GFXTextures[i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/' + GFXAnim[i].name, GFXAnim[i].w, GFXAnim[i].h, GFXAnim[i].count, GFXAnim[i].back);
+        if GFXAnim[i].count > 0 then
+          GFXTextures[i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/' + GFXAnim[i].name, GFXAnim[i].w, GFXAnim[i].h, GFXAnim[i].count, GFXAnim[i].back);
     {$ENDIF}
+    // --------- shots --------- //
+    for i := 0 to WEAPON_LAST do
+      if ShotAnim[i].count > 0 then
+        ShotTextures[i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/' + ShotAnim[i].name, ShotAnim[i].w, ShotAnim[i].h, ShotAnim[i].count, false);
   end;
 
   procedure r_Map_Free;
     var i, j, k, a: Integer; d: TDirection;
   begin
+    for i := 0 to WEAPON_LAST do
+    begin
+      if ShotTextures[i] <> nil then
+        ShotTextures[i].Free;
+      ShotTextures[i] := nil;
+    end;
     {$IFDEF ENABLE_GFX}
       gfxlist := nil;
       for i := 0 to R_GFX_LAST do
@@ -801,6 +851,39 @@ implementation
   end;
 {$ENDIF}
 
+  procedure r_Map_DrawShots (x, y, w, h: Integer);
+    var i, a, fX, fY, pX, pY, typ: Integer; tex: TGLMultiTexture; anim: ^TAnimState;
+  begin
+    if Shots <> nil then
+    begin
+      for i := 0 to High(Shots) do
+      begin
+        typ := Shots[i].ShotType;
+        if typ <> 0 then
+        begin
+          e_logwritefln('draw shot %s typ %s', [i, typ]);
+          tex := ShotTextures[typ];
+          if tex <> nil then
+          begin
+            e_logwritefln('draw shot %s typ %s <> nil', [i, typ]);
+            a := 0;
+            case typ of
+              WEAPON_ROCKETLAUNCHER, WEAPON_BARON_FIRE, WEAPON_MANCUB_FIRE, WEAPON_SKEL_FIRE:
+                a := -GetAngle2(Shots[i].Obj.Vel.X, Shots[i].Obj.Vel.Y)
+            end;
+            Shots[i].Obj.Lerp(gLerpFactor, fX, fY);
+            pX := Shots[i].Obj.Rect.Width div 2;
+            pY := Shots[i].Obj.Rect.Height div 2;
+            // TODO fix this
+            if Shots[i].Animation.IsValid() then anim := @Shots[i].Animation else anim := @StubShotAnim;
+            // TODO: change angle and base point
+            r_Draw_MultiTextureRepeat(tex, anim^, fX, fY, tex.width, tex.height, false);
+          end;
+        end;
+      end;
+    end;
+  end;
+
   procedure r_Map_Draw (x, y, w, h, camx, camy: Integer);
     var iter: TPanelGrid.Iter; p: PPanel; cx, cy, xx, yy, ww, hh: Integer;
   begin
@@ -826,7 +909,7 @@ implementation
     r_Map_DrawPanelType(PANEL_BACK);
     r_Map_DrawPanelType(PANEL_STEP);
     r_Map_DrawItems(xx, yy, ww, hh, false);
-    // TODO draw weapons
+    r_Map_DrawShots(xx, yy, ww, hh);
     // TODO draw shells
     r_Map_DrawPlayers(xx, yy, ww, hh);
     // TODO draw gibs

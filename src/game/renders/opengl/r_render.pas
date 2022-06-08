@@ -170,7 +170,7 @@ implementation
 
     glColor4ub(255, 255, 255, 255);
 
-    e_LogWritefln('r_render_draw: %sx%s', [gScreenWidth, gScreenHeight]);
+    //e_LogWritefln('r_render_draw: %sx%s', [gScreenWidth, gScreenHeight]);
 
     if gGameOn or (gState = STATE_FOLD) then
     begin
