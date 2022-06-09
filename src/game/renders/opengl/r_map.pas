@@ -296,11 +296,40 @@ implementation
     StubShotAnim.Invalidate;
   end;
 
+  procedure r_Map_FreeModel (i: Integer);
+    var a: Integer; d: TDirection;
+  begin
+    for d := TDirection.D_LEFT to TDirection.D_RIGHT do
+    begin
+      for a := A_STAND to A_LAST do
+      begin
+        if Models[i].anim[d, a].base <> nil then
+          Models[i].anim[d, a].base.Free;
+        if Models[i].anim[d, a].mask <> nil then
+          Models[i].anim[d, a].mask.Free;
+        Models[i].anim[d, a].base := nil;
+        Models[i].anim[d, a].mask := nil;
+      end;
+    end;
+    {$IFDEF ENABLE_GIBS}
+      if Models[i].gibs.base <> nil then
+        for a := 0 to High(Models[i].gibs.base) do
+          Models[i].gibs.base[a].Free;
+      if Models[i].gibs.mask <> nil then
+        for a := 0 to High(Models[i].gibs.mask) do
+          Models[i].gibs.mask[a].Free;
+      Models[i].gibs.base := nil;
+      Models[i].gibs.mask := nil;
+      Models[i].gibs.rect := nil;
+    {$ENDIF}
+  end;
+
   procedure r_Map_LoadModel (i: Integer);
     var prefix: AnsiString; a: Integer; d: TDirection; m: ^TPlayerModelInfo;
   begin
     ASSERT(i < Length(Models));
     ASSERT(i < Length(PlayerModelsArray));
+    r_Map_FreeModel(i);
     m := @PlayerModelsArray[i];
     prefix := m.FileName + ':TEXTURES/';
     for d := TDirection.D_LEFT to TDirection.D_RIGHT do
@@ -476,18 +505,9 @@ implementation
         end;
       end;
     end;
-    for d := TDirection.D_LEFT to TDirection.D_RIGHT do
-    begin
-      for a := A_STAND to A_LAST do
-      begin
-        if Models[i].anim[d, a].base <> nil then
-          Models[i].anim[d, a].base.Free;
-        if Models[i].anim[d, a].mask <> nil then
-          Models[i].anim[d, a].mask.Free;
-        Models[i].anim[d, a].base := nil;
-        Models[i].anim[d, a].mask := nil;
-      end;
-    end;
+    if Models <> nil then
+      for i := 0 to High(Models) do
+        r_Map_FreeModel(i);
     for i := MONSTER_DEMON to MONSTER_MAN do
     begin
       for j := 0 to ANIM_LAST do
