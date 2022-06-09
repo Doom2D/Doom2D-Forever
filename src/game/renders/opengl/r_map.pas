@@ -802,7 +802,7 @@ implementation
           tex.width,
           tex.height,
           d = TDirection.D_LEFT,
-          255, 255, 255, 255, false
+          255, 255, 255, alpha, false
         );
       end;
     end;
