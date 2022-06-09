@@ -55,6 +55,9 @@ implementation
     {$IFDEF ENABLE_CORPSES}
       g_corpses,
     {$ENDIF}
+    {$IFDEF ENABLE_SHELLS}
+      g_shells,
+    {$ENDIF}
     {$IFDEF ENABLE_GIBS}
       g_gibs,
     {$ENDIF}
@@ -93,6 +96,7 @@ implementation
     VILEFIRE_DX = 32;
     VILEFIRE_DY = 128;
 
+{$IFDEF ENABLE_GFX}
     GFXAnim: array [0..R_GFX_LAST] of record
       name: AnsiString;
       w, h: Integer;
@@ -121,6 +125,7 @@ implementation
       (name: 'SMOKE';       w: 32;  h: 32;  count: 10; back: false; speed: 3; rspeed: 0; alpha: 150), // transparent
       (name: 'FLAME';       w: 32;  h: 32;  count: 11; back: false; speed: 3; rspeed: 2; alpha: 0)    // random
     );
+{$ENDIF}
 
     ShotAnim: array [0..WEAPON_LAST] of record
       name: AnsiString;
@@ -155,6 +160,17 @@ implementation
       (name: 'BMANCUBFIRE'; w: 64; h: 32; count: 2),  // 25 MANCUB_FIRE
       (name: 'BSKELFIRE';   w: 64; h: 64; count: 2)   // 26 SKEL_FIRE
     );
+
+{$IFDEF ENABLE_SHELLS}
+    ShellAnim: array [0..SHELL_LAST] of record
+      name: AnsiString;
+      dx, dy: Integer;
+    end = (
+      (name: 'EBULLET'; dx: 2; dy: 1), // 0 SHELL_BULLET
+      (name: 'ESHELL';  dx: 4; dy: 2), // 1 SHELL_SHELL
+      (name: 'ESHELL';  dx: 4; dy: 2)  // 2 SHELL_DBLSHELL
+    );
+{$ENDIF}
 
   type
     TBinHeapPanelDrawCmp = class
@@ -196,6 +212,9 @@ implementation
     StubShotAnim: TAnimState;
     FlagAnim: TAnimState;
 
+{$IFDEF ENABLE_SHELLS}
+    ShellTextures: array [0..SHELL_LAST] of TGLTexture;
+{$ENDIF}
 {$IFDEF ENABLE_GFX}
     GFXTextures: array [0..R_GFX_LAST] of TGLMultiTexture;
     gfxlist: array of record
@@ -398,11 +417,24 @@ implementation
     FlagTextures[FLAG_RED]  := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGRED',  64, 64, 5, false);
     FlagTextures[FLAG_BLUE] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGBLUE', 64, 64, 5, false);
     // FlagTextures[FLAG_DOM]  := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGDOM',  64, 64, 8, false);
+    // --------- shells --------- //
+    {$IFDEF ENABLE_SHELLS}
+      for i := 0 to SHELL_LAST do
+        ShellTextures[i] := r_Textures_LoadFromFile(GameWad + ':TEXTURES/' + ShellAnim[i].name);
+    {$ENDIF}
   end;
 
   procedure r_Map_Free;
     var i, j, k, a: Integer; d: TDirection;
   begin
+    {$IFDEF ENABLE_SHELLS}
+      for i := 0 to SHELL_LAST do
+      begin
+        if ShellTextures[i] <> nil then
+          ShellTextures[i].Free;
+        ShellTextures[i] := nil;
+      end;
+    {$ENDIF}
     for i := 0 to FLAG_LAST do
     begin
       if FlagTextures[i] <> nil then
@@ -1005,6 +1037,36 @@ implementation
     end;
   end;
 
+{$IFDEF ENABLE_SHELLS}
+  procedure r_Map_DrawShells (x, y, w, h: Integer);
+    var i, fx, fy, typ: Integer; t: TGLTexture; p: PObj;
+  begin
+    if gShells <> nil then
+    begin
+      for i := 0 to High(gShells) do
+      begin
+        if gShells[i].alive then
+        begin
+          typ := gShells[i].SType;
+          if typ <= SHELL_LAST then
+          begin
+            p := @gShells[i].Obj;
+            if g_Obj_Collide(x, y, w, h, p) then
+            begin
+              t := ShellTextures[typ];
+              if t <> nil then
+              begin
+                p.Lerp(gLerpFactor, fx, fy);
+                r_Draw_TextureRepeatRotate(t, fx, fy, t.width, t.height, false, 255, 255, 255, 255, false, ShellAnim[typ].dx, ShellAnim[typ].dy, gShells[i].RAngle);
+              end;
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
+{$ENDIF}
+
   procedure r_Map_Draw (x, y, w, h, camx, camy: Integer);
     var iter: TPanelGrid.Iter; p: PPanel; cx, cy, xx, yy, ww, hh: Integer;
   begin
@@ -1031,7 +1093,9 @@ implementation
     r_Map_DrawPanelType(PANEL_STEP);
     r_Map_DrawItems(xx, yy, ww, hh, false);
     r_Map_DrawShots(xx, yy, ww, hh);
-    // TODO draw shells
+    {$IFDEF ENABLE_SHELLS}
+      r_Map_DrawShells(xx, yy, ww, hh);
+    {$ENDIF}
     r_Map_DrawPlayers(xx, yy, ww, hh);
     {$IFDEF ENABLE_GIBS}
       r_Map_DrawGibs(xx, yy, ww, hh);

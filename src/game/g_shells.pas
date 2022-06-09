@@ -23,6 +23,7 @@ interface
     SHELL_BULLET   = 0;
     SHELL_SHELL    = 1;
     SHELL_DBLSHELL = 2;
+    SHELL_LAST     = SHELL_DBLSHELL;
 
     DefaultShellTimeout = 60000;
     DefaultShellMax = 300;
