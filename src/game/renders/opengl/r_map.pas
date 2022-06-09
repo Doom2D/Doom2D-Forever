@@ -244,6 +244,7 @@ implementation
     WeapTextures: array [0..WP_LAST, 0..W_POS_LAST, 0..W_ACT_LAST] of TGLTexture;
     ShotTextures: array [0..WEAPON_LAST] of TGLMultiTexture;
     FlagTextures: array [0..FLAG_LAST] of TGLMultiTexture;
+    PunchTextures: array [Boolean, 0..2] of TGLMultiTexture; // [berserk, center/up/down]
     VileFire: TGLMultiTexture;
     Models: array of record
       anim: array [TDirection, 0..A_LAST] of record
@@ -257,7 +258,7 @@ implementation
 {$ENDIF}
     end;
 
-    StubShotAnim: TAnimState;
+    StubShotAnim: TAnimState; // TODO remove this hack
     FlagAnim: TAnimState;
 
 {$IFDEF ENABLE_SHELLS}
@@ -401,8 +402,9 @@ implementation
       WeapName: array [0..WP_LAST] of AnsiString = ('', 'CSAW', 'HGUN', 'SG', 'SSG', 'MGUN', 'RKT', 'PLZ', 'BFG', 'SPL', 'FLM');
       WeapPos: array [0..W_POS_LAST] of AnsiString = ('', '_UP', '_DN');
       WeapAct: array [0..W_ACT_LAST] of AnsiString = ('', '_FIRE');
+      PunchName: array [Boolean] of AnsiString = ('PUNCH', 'PUNCHB');
     var
-      i, j, k: Integer; d: TDirection;
+      i, j, k: Integer; d: TDirection; b: Boolean;
   begin
     // --------- items --------- //
     for i := 0 to ITEM_LAST do
@@ -459,11 +461,26 @@ implementation
       for i := 0 to SHELL_LAST do
         ShellTextures[i] := r_Textures_LoadFromFile(GameWad + ':TEXTURES/' + ShellAnim[i].name);
     {$ENDIF}
+    // --------- punch --------- //
+    for b := false to true do
+    begin
+      for i := 0 to 2 do
+        PunchTextures[b, i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':WEAPONS/' + PunchName[b] + WeapPos[i], 64, 64, 4, false);
+    end;
   end;
 
   procedure r_Map_Free;
-    var i, j, k, a: Integer; d: TDirection;
+    var i, j, k: Integer; d: TDirection; b: Boolean;
   begin
+    for b := false to true do
+    begin
+      for i := 0 to 2 do
+      begin
+        if PunchTextures[b, i] <> nil then
+          PunchTextures[b, i].Free;
+        PunchTextures[b, i] := nil;
+      end;
+    end;
     {$IFDEF ENABLE_SHELLS}
       for i := 0 to SHELL_LAST do
       begin
@@ -633,11 +650,11 @@ implementation
           begin
             it.obj.Lerp(gLerpFactor, fX, fY);
             r_Draw_MultiTextureRepeat(t, Items[it.ItemType].anim, fX, fY, t.width, t.height, false, 255, 255, 255, 255, false);
-            // if g_debug_frames then // TODO draw collision frame
           end;
         end;
       end;
     end;
+    // TODO draw g_debug_frames
   end;
 
   function r_Map_GetMonsterTexture (m, a: Integer; d: TDirection; out t: TGLMultiTexture; out dx, dy: Integer; out flip: Boolean): Boolean;
@@ -694,10 +711,7 @@ implementation
     if r_Map_GetMonsterTexture(m, a, d, t, dx, dy, flip) then
       r_Draw_MultiTextureRepeat(t, mon.DirAnim[a, d], fX + dx, fY + dy, t.width, t.height, flip, 255, 255, 255, 255, false);
 
-{
-    if g_debug_frames
-      // TODO draw frame
-}
+    // TODO draw g_debug_frames
   end;
 
   procedure r_Map_DrawMonsters (x, y, w, h: Integer);
@@ -804,7 +818,7 @@ implementation
   end;
 
   procedure r_Map_DrawPlayer (p: TPlayer);
-    var fX, fY, fSlope: Integer;
+    var fX, fY, fSlope, ax, ay: Integer; b, flip: Boolean; t: TGLMultiTexture;
   begin
     if p.alive then
     begin
@@ -812,7 +826,23 @@ implementation
       // TODO fix lerp
       //p.obj.Lerp(gLerpFactor, fX, fY);
       fSlope := nlerp(p.SlopeOld, p.obj.slopeUpLeft, gLerpFactor);
-      // TODO draw punch
+      if p.PunchAnim.IsValid() and p.PunchAnim.enabled then
+      begin
+        b := R_BERSERK in p.FRulez;
+        if p.FKeys[KEY_DOWN].pressed then
+          t := PunchTextures[b, 2]
+        else if p.FKeys[KEY_UP].pressed then
+          t := PunchTextures[b, 1]
+        else
+          t := PunchTextures[b, 0];
+        if t <> nil then
+        begin
+          flip := p.Direction = TDirection.D_LEFT;
+          ax := IfThen(flip, 15 - p.Obj.Rect.X, p.Obj.Rect.X - 15); // ???
+          ay := p.Obj.Rect.Y - 11;
+          r_Draw_MultiTextureRepeat(t, p.PunchAnim, fx + ax, fy + fSlope + ay, t.width, t.height, flip, 255, 255, 255, 255, false)
+        end;
+      end;
       // TODO invul pentagram
       // TODO draw it with transparency
       r_Map_DrawPlayerModel(p.Model, fX, fY + fSlope);
@@ -825,7 +855,6 @@ implementation
   procedure r_Map_DrawPlayers (x, y, w, h: Integer);
     var i: Integer;
   begin
-    // TODO draw only visible
     if gPlayers <> nil then
       for i := 0 to High(gPlayers) do
         if gPlayers[i] <> nil then
@@ -869,6 +898,7 @@ implementation
         end;
       end;
     end;
+    // TODO draw g_debug_frames
   end;
 {$ENDIF}
 
@@ -888,6 +918,7 @@ implementation
         end;
       end;
     end;
+    // TODO draw g_debug_frames
   end;
 {$ENDIF}
 
@@ -1043,6 +1074,7 @@ implementation
         end;
       end;
     end;
+    // TODO draw g_debug_frames
   end;
 
   procedure r_Map_DrawFlags (x, y, w, h: Integer);
@@ -1059,10 +1091,10 @@ implementation
           if flip then dx := -1 else dx := +1;
           tex := FlagTextures[i];
           r_Draw_MultiTextureRepeat(tex, FlagAnim, fx + dx, fy + 1, tex.width, tex.height, flip, 255, 255, 255, 255, false)
-          // TODO g_debug_frames
         end;
       end;
     end;
+    // TODO g_debug_frames
   end;
 
 {$IFDEF ENABLE_SHELLS}
@@ -1105,6 +1137,9 @@ implementation
     ww := w;
     hh := h;
 
+    // TODO lock camera at map bounds
+
+    // TODO draw paralax
     if SkyTexture <> nil then
       r_Draw_Texture(SkyTexture, x, y, w, h, false, 255, 255, 255, 255, false);
 
@@ -1144,7 +1179,16 @@ implementation
     r_Map_DrawPanelType(PANEL_ACID2);
     r_Map_DrawPanelType(PANEL_WATER);
     r_Map_DrawPanelType(PANEL_FORE);
+    // TODO draw monsters health bar
+    // TODO draw players health bar
+    // TODO draw players indicators
     glPopMatrix;
+
+    // TODO draw player pain
+    // TODO draw player pickup
+    // TODO draw player invul
+    // TODO draw minimap
+    // TODO draw g_debug_player
   end;
 
   procedure r_Map_Update;
