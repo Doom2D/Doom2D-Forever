@@ -749,7 +749,7 @@ implementation
     end;
   end;
 
-  procedure r_Map_DrawPlayerModel (pm: TPlayerModel; x, y: Integer);
+  procedure r_Map_DrawPlayerModel (pm: TPlayerModel; x, y: Integer; alpha: Byte);
     var a, pos, act, xx, yy, angle: Integer; d: TDirection; flip: Boolean; t: TGLMultiTexture; tex: TGLTexture; c: TRGB;
   begin
     a := pm.CurrentAnimation;
@@ -811,18 +811,18 @@ implementation
     if r_Map_GetPlayerModelTex(pm.id, a, d, flip) then
     begin
       t := Models[pm.id].anim[d, a].base;
-      r_Draw_MultiTextureRepeat(t, pm.AnimState, x, y, t.width, t.height, flip, 255, 255, 255, 255, false);
+      r_Draw_MultiTextureRepeat(t, pm.AnimState, x, y, t.width, t.height, flip, 255, 255, 255, alpha, false);
       t := Models[pm.id].anim[d, a].mask;
       if t <> nil then
       begin
         c := pm.Color;
-        r_Draw_MultiTextureRepeat(t, pm.AnimState, x, y, t.width, t.height, flip, c.r, c.g, c.b, 255, false);
+        r_Draw_MultiTextureRepeat(t, pm.AnimState, x, y, t.width, t.height, flip, c.r, c.g, c.b, alpha, false);
       end;
     end;
   end;
 
   procedure r_Map_DrawPlayer (p, drawed: TPlayer);
-    var fX, fY, fSlope, ax, ay, w, h: Integer; b, flip: Boolean; t: TGLMultiTexture;
+    var fX, fY, fSlope, ax, ay, w, h: Integer; b, flip: Boolean; t: TGLMultiTexture; alpha: Byte;
   begin
     if p.alive then
     begin
@@ -830,6 +830,8 @@ implementation
       // TODO fix lerp
       //p.obj.Lerp(gLerpFactor, fX, fY);
       fSlope := nlerp(p.SlopeOld, p.obj.slopeUpLeft, gLerpFactor);
+
+      (* punch effect *)
       if p.PunchAnim.IsValid() and p.PunchAnim.enabled then
       begin
         b := R_BERSERK in p.FRulez;
@@ -847,6 +849,8 @@ implementation
           r_Draw_MultiTextureRepeat(t, p.PunchAnim, fx + ax, fy + fSlope + ay, t.width, t.height, flip, 255, 255, 255, 255, false)
         end;
       end;
+
+      (* invulnerability effect *)
       if (InvulPenta <> nil) and (p.FMegaRulez[MR_INVUL] > gTime) and ((p <> drawed) or (p.SpawnInvul >= gTime)) then
       begin
         w := InvulPenta.width;
@@ -855,8 +859,21 @@ implementation
         ay := p.Obj.Rect.Y + (p.Obj.Rect.Height div 2) - (h div 2) - 7; // ???
         r_Draw_Texture(InvulPenta, fx + ax, fy + ay + fSlope, w, h, false, 255, 255, 255, 255, false);
       end;
-      // TODO draw it with transparency
-      r_Map_DrawPlayerModel(p.Model, fX, fY + fSlope);
+
+      (* invisibility effect *)
+      alpha := 255;
+      if p.FMegaRulez[MR_INVIS] > gTime then
+      begin
+        if (drawed <> nil) and ((p = drawed) or ((p.Team = drawed.Team) and (gGameSettings.GameMode <> GM_DM))) then
+        begin
+          if (p.FMegaRulez[MR_INVIS] - gTime <= 2100) and not ODD((p.FMegaRulez[MR_INVIS] - gTime) div 300) then
+            alpha := 55;
+        end
+        else
+          alpha := 1; // ???
+      end;
+
+      r_Map_DrawPlayerModel(p.Model, fX, fY + fSlope, alpha);
     end;
     // TODO draw g_debug_frames
     // TODO draw chat bubble
@@ -925,7 +942,7 @@ implementation
         if (p <> nil) and (p.state <> CORPSE_STATE_REMOVEME) and (p.model <> nil) then
         begin
           p.obj.Lerp(gLerpFactor, fX, fY);
-          r_Map_DrawPlayerModel(p.model, fX, fY);
+          r_Map_DrawPlayerModel(p.model, fX, fY, 255);
         end;
       end;
     end;
