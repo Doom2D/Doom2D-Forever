@@ -180,7 +180,7 @@ implementation
       // TODO setup player view siz
 
       // TODO draw player view + setup screen coords
-      r_Map_Draw(0, 0, gScreenWidth, gScreenHeight, gPlayer1.obj.x + 32, gPlayer1.obj.y + 32); // !!! remove unnamed consts
+      r_Map_Draw(0, 0, gScreenWidth, gScreenHeight, gPlayer1.obj.x + 32, gPlayer1.obj.y + 32, gPlayer1); // !!! remove unnamed consts
 
       // TODO draw holmes inspector
 

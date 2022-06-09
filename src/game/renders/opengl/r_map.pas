@@ -17,7 +17,7 @@ unit r_map;
 
 interface
 
-  uses g_base; // TRectWH
+  uses g_base, g_player; // TRectWH, TPlayer
 
   procedure r_Map_Initialize;
   procedure r_Map_Finalize;
@@ -37,7 +37,7 @@ interface
 
   procedure r_Map_Update;
 
-  procedure r_Map_Draw (x, y, w, h, camx, camy: Integer);
+  procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer);
 
 implementation
 
@@ -51,7 +51,7 @@ implementation
     e_log,
     binheap, MAPDEF, utils,
     g_options, g_textures, g_basic, g_phys,
-    g_game, g_map, g_panel, g_items, g_monsters, g_playermodel, g_player, g_weapons,
+    g_game, g_map, g_panel, g_items, g_monsters, g_playermodel, g_weapons,
     {$IFDEF ENABLE_CORPSES}
       g_corpses,
     {$ENDIF}
@@ -246,6 +246,7 @@ implementation
     FlagTextures: array [0..FLAG_LAST] of TGLMultiTexture;
     PunchTextures: array [Boolean, 0..2] of TGLMultiTexture; // [berserk, center/up/down]
     VileFire: TGLMultiTexture;
+    InvulPenta: TGLTexture;
     Models: array of record
       anim: array [TDirection, 0..A_LAST] of record
         base, mask: TGLMultiTexture;
@@ -363,8 +364,6 @@ implementation
             // ok
           end;
         end;
-        for a := 0 to m.GibsCount - 1 do
-          e_logwritefln('model %s gib %s: %sx%s:%sx%s', [i, a, Models[i].gibs.rect[a].x, Models[i].gibs.rect[a].y, Models[i].gibs.rect[a].width, Models[i].gibs.rect[a].height]);
       end;
     {$ENDIF}
   end;
@@ -467,11 +466,16 @@ implementation
       for i := 0 to 2 do
         PunchTextures[b, i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':WEAPONS/' + PunchName[b] + WeapPos[i], 64, 64, 4, false);
     end;
+    // --------- other --------- //
+    InvulPenta := r_Textures_LoadFromFile(GameWad + ':TEXTURES/PENTA');
   end;
 
   procedure r_Map_Free;
     var i, j, k: Integer; d: TDirection; b: Boolean;
   begin
+    if InvulPenta <> nil then
+      InvulPenta.Free;
+    InvulPenta := nil;
     for b := false to true do
     begin
       for i := 0 to 2 do
@@ -817,8 +821,8 @@ implementation
     end;
   end;
 
-  procedure r_Map_DrawPlayer (p: TPlayer);
-    var fX, fY, fSlope, ax, ay: Integer; b, flip: Boolean; t: TGLMultiTexture;
+  procedure r_Map_DrawPlayer (p, drawed: TPlayer);
+    var fX, fY, fSlope, ax, ay, w, h: Integer; b, flip: Boolean; t: TGLMultiTexture;
   begin
     if p.alive then
     begin
@@ -843,7 +847,14 @@ implementation
           r_Draw_MultiTextureRepeat(t, p.PunchAnim, fx + ax, fy + fSlope + ay, t.width, t.height, flip, 255, 255, 255, 255, false)
         end;
       end;
-      // TODO invul pentagram
+      if (InvulPenta <> nil) and (p.FMegaRulez[MR_INVUL] > gTime) and ((p <> drawed) or (p.SpawnInvul >= gTime)) then
+      begin
+        w := InvulPenta.width;
+        h := InvulPenta.height;
+        ax := p.Obj.Rect.X + (p.Obj.Rect.Width div 2) - (w div 2); // + IfThen(flip, +4, -2) // ???
+        ay := p.Obj.Rect.Y + (p.Obj.Rect.Height div 2) - (h div 2) - 7; // ???
+        r_Draw_Texture(InvulPenta, fx + ax, fy + ay + fSlope, w, h, false, 255, 255, 255, 255, false);
+      end;
       // TODO draw it with transparency
       r_Map_DrawPlayerModel(p.Model, fX, fY + fSlope);
     end;
@@ -852,13 +863,13 @@ implementation
     // TODO draw aim
   end;
 
-  procedure r_Map_DrawPlayers (x, y, w, h: Integer);
+  procedure r_Map_DrawPlayers (x, y, w, h: Integer; player: TPlayer);
     var i: Integer;
   begin
     if gPlayers <> nil then
       for i := 0 to High(gPlayers) do
         if gPlayers[i] <> nil then
-          r_Map_DrawPlayer(gPlayers[i]);
+          r_Map_DrawPlayer(gPlayers[i], player);
   end;
 
 {$IFDEF ENABLE_GIBS}
@@ -1127,7 +1138,7 @@ implementation
   end;
 {$ENDIF}
 
-  procedure r_Map_Draw (x, y, w, h, camx, camy: Integer);
+  procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer);
     var iter: TPanelGrid.Iter; p: PPanel; cx, cy, xx, yy, ww, hh: Integer;
   begin
     cx := camx - w div 2;
@@ -1159,7 +1170,7 @@ implementation
     {$IFDEF ENABLE_SHELLS}
       r_Map_DrawShells(xx, yy, ww, hh);
     {$ENDIF}
-    r_Map_DrawPlayers(xx, yy, ww, hh);
+    r_Map_DrawPlayers(xx, yy, ww, hh, player);
     {$IFDEF ENABLE_GIBS}
       r_Map_DrawGibs(xx, yy, ww, hh);
     {$ENDIF}
