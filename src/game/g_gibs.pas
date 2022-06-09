@@ -22,6 +22,7 @@ interface
   const
     DefaultGibsCount = 32;
     DefaultGibsMax = 150;
+    DefaultGibSize: TRectWH = (X: 8; Y: 8; Width: 16; Height: 16);
 
   type
     PGib = ^TGib;
@@ -163,10 +164,7 @@ implementation
         {$IFDEF ENABLE_RENDER}
           Obj.Rect := r_Render_GetGibRect(ModelID, GibID);
         {$ELSE}
-          Obj.Rect.X := 16;
-          Obj.Rect.Y := 16;
-          Obj.Rect.Width := 16;
-          Obj.Rect.Height := 16;
+          Obj.Rect := DefaultGibSize;
         {$ENDIF}
         Obj.X := fX - Obj.Rect.X - (Obj.Rect.Width div 2);
         Obj.Y := fY - Obj.Rect.Y - (Obj.Rect.Height div 2);

@@ -23,8 +23,9 @@ interface
     {$ELSE}
       GL, GLEXT,
     {$ENDIF}
-    r_atlas,
-    utils    // SSArray
+    g_base,  // TRectHW
+    utils,
+    r_atlas
   ;
 
   type
@@ -97,12 +98,17 @@ interface
         property backAnim: Boolean read mBackanim; (* this property must be located at TAnimState? *)
     end;
 
+    TGLTextureArray = array of TGLTexture;
+
+    TRectArray = array of TRectWH;
+
   procedure r_Textures_Initialize;
   procedure r_Textures_Finalize;
 
   function r_Textures_LoadFromFile (const filename: AnsiString; log: Boolean = True): TGLTexture;
   function r_Textures_LoadMultiFromFile (const filename: AnsiString; log: Boolean = True): TGLMultiTexture;
   function r_Textures_LoadMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; backanim: Boolean; log: Boolean = True): TGLMultiTexture;
+  function r_Textures_LoadStreamFromFile (const filename: AnsiString; w, h, count: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
 
 implementation
 
@@ -115,7 +121,6 @@ implementation
   var
     maxTileSize: Integer;
     atl: array of TGLAtlas;
-//    tex: array of TGLTexture;
 
   (* --------- TGLAtlasNode --------- *)
 
@@ -360,6 +365,14 @@ implementation
     end;
   end;
 
+  function r_Textures_FixImageData (var img: TImageData): Boolean;
+  begin
+    result := false;
+    if ConvertImage(img, TImageFormat.ifA8R8G8B8) then
+      if SwapChannels(img, ChannelRed, ChannelBlue) then // wtf
+        result := true;
+  end;
+
   function r_Textures_LoadFromImage (var img: TImageData): TGLTexture;
     var t: TGLTexture; n: TGLAtlasNode; c: TDynImageDataArray; cw, ch, i, j: LongInt;
   begin
@@ -396,9 +409,8 @@ implementation
       InitImage(img);
       try
         if LoadImageFromMemory(data, size, img) then
-          if ConvertImage(img, TImageFormat.ifA8R8G8B8) then
-            if SwapChannels(img, ChannelRed, ChannelBlue) then // wth
-              result := r_Textures_LoadFromImage(img)
+          if r_Textures_FixImageData(img) then
+            result := r_Textures_LoadFromImage(img)
       except
       end;
       FreeImage(img);
@@ -459,9 +471,8 @@ implementation
       InitImage(img);
       try
         if LoadImageFromMemory(data, size, img) then
-          if ConvertImage(img, TImageFormat.ifA8R8G8B8) then
-            if SwapChannels(img, ChannelRed, ChannelBlue) then // wtf
-              result := r_Textures_LoadMultiFromImageAndInfo(img, w, h, c, b)
+          if r_Textures_FixImageData(img) then
+            result := r_Textures_LoadMultiFromImageAndInfo(img, w, h, c, b)
       except
       end;
       FreeImage(img);
@@ -491,9 +502,8 @@ implementation
             InitImage(img);
             try
               if LoadImageFromMemory(data, size, img) then
-                if ConvertImage(img, TImageFormat.ifA8R8G8B8) then
-                  if SwapChannels(img, ChannelRed, ChannelBlue) then // wtf
-                    result := r_Textures_LoadMultiFromImageAndInfo(img, w, h, c, b)
+                if r_Textures_FixImageData(img) then
+                  result := r_Textures_LoadMultiFromImageAndInfo(img, w, h, c, b)
             finally
               FreeMem(data);
             end;
@@ -565,6 +575,135 @@ implementation
       if wad.GetResource(resName, data, size, log) then
       begin
         result := r_Textures_LoadMultiFromDataAndInfo(data, size, w, h, count, backanim);
+        FreeMem(data);
+      end;
+      wad.Free
+    end
+  end;
+
+  function r_Textures_GetRect (var img: TImageData): TRectWH;
+    var i, j, w, h: Integer; done: Boolean;
+
+    function IsVoid (i, j: Integer): Boolean; inline;
+    begin
+      result := GetPixel32(img, i, j).Channels[3] = 0
+    end;
+
+  begin
+    w := img.Width;
+    h := img.Height;
+
+    (* trace x from right to left *)
+    done := false; i := 0;
+    while not done and (i < w) do
+    begin
+      j := 0;
+      while (j < h) and IsVoid(i, j) do inc(j);
+      done := (j < h) and (IsVoid(i, j) = false);
+      result.x := i;
+      inc(i);
+    end;
+
+    (* trace y from up to down *)
+    done := false; j := 0;
+    while not done and (j < h) do
+    begin
+      i := 0;
+      while (i < w) and IsVoid(i, j) do inc(i);
+      done := (i < w) and (IsVoid(i, j) = false);
+      result.y := j;
+      inc(j);
+    end;
+
+    (* trace x from right to left *)
+    done := false; i := w - 1;
+    while not done and (i >= 0) do
+    begin
+      j := 0;
+      while (j < h) and IsVoid(i, j) do inc(j);
+      done := (j < h) and (IsVoid(i, j) = false);
+      result.width := i - result.x + 1;
+      dec(i);
+    end;
+
+    (* trace y from down to up *)
+    done := false; j := h - 1;
+    while not done and (j >= 0) do
+    begin
+      i := 0;
+      while (i < w) and IsVoid(i, j) do inc(i);
+      done := (i < w) and (IsVoid(i, j) = false);
+      result.height := j - result.y + 1;
+      dec(j);
+    end;
+  end;
+
+  function r_Textures_LoadStreamFromImage (var img: TImageData; w, h, c: Integer; st: TGLTextureArray; rs: TRectArray): Boolean;
+    var i: Integer; t: TImageData;
+  begin
+    ASSERT(w >= 0);
+    ASSERT(h >= 0);
+    ASSERT(c >= 1);
+    ASSERT((st <> nil) and (Length(st) >= c));
+    ASSERT((rs = nil) or (Length(rs) >= c));
+    result := true;
+    for i := 0 to c - 1 do
+    begin
+      InitImage(t);
+      st[i] := nil;
+      if NewImage(w, h, img.Format, t) then
+      begin
+        if CopyRect(img, w * i, 0, w, h, t, 0, 0) then
+        begin
+          if rs <> nil then
+            rs[i] := r_Textures_GetRect(t);
+          st[i] := r_Textures_LoadFromImage(t);
+        end;
+      end;
+      ASSERT(st[i] <> nil);
+      FreeImage(t);
+    end;
+  end;
+
+  function r_Textures_LoadStreamFromMemory (data: Pointer; size: LongInt; w, h, c: Integer; st: TGLTextureArray; rs: TRectArray): Boolean;
+    var img: TImageData;
+  begin
+    ASSERT(w >= 0);
+    ASSERT(h >= 0);
+    ASSERT(c >= 1);
+    ASSERT((st <> nil) and (Length(st) >= c));
+    ASSERT((rs = nil) or (Length(rs) >= c));
+    result := false;
+    if (data <> nil) and (size > 0) then
+    begin
+      InitImage(img);
+      try
+        if LoadImageFromMemory(data, size, img) then
+          if r_Textures_FixImageData(img) then
+            result := r_Textures_LoadStreamFromImage(img, w, h, c, st, rs)
+      except
+      end;
+      FreeImage(img);
+    end;
+  end;
+
+  function r_Textures_LoadStreamFromFile (const filename: AnsiString; w, h, count: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
+    var wad: TWADFile; wadName, resName: AnsiString; data: Pointer; size: Integer;
+  begin
+    ASSERT(w > 0);
+    ASSERT(h > 0);
+    ASSERT(count >= 1);
+    ASSERT((st <> nil) and (Length(st) >= count));
+    ASSERT((rs = nil) or (Length(rs) >= count));
+    result := false;
+    wadName := g_ExtractWadName(filename);
+    wad := TWADFile.Create();
+    if wad.ReadFile(wadName) then
+    begin
+      resName := g_ExtractFilePathName(filename);
+      if wad.GetResource(resName, data, size, log) then
+      begin
+        result := r_Textures_LoadStreamFromMemory(data, size, w, h, count, st, rs);
         FreeMem(data);
       end;
       wad.Free

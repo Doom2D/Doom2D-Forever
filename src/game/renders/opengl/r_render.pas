@@ -251,10 +251,7 @@ implementation
 {$IFDEF ENABLE_GIBS}
   function r_Render_GetGibRect (m, id: Integer): TRectWH;
   begin
-    Result.X := 16;
-    Result.Y := 16;
-    Result.Width := 16;
-    Result.Height := 16;
+    result := r_Map_GetGibSize(m, id);
   end;
 {$ENDIF}
 

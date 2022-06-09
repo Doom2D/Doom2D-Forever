@@ -24,6 +24,7 @@ interface
 
   procedure r_Draw_Texture (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
   procedure r_Draw_TextureRepeat (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
+  procedure r_Draw_TextureRepeatRotate (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean; rx, ry, angle: Integer);
 
   procedure r_Draw_MultiTextureRepeat (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
   procedure r_Draw_MultiTextureRepeatRotate (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean; rx, ry, angle: Integer);
@@ -148,6 +149,23 @@ implementation
           r_Draw_Texture(img, x + i * img.width, y + j * img.height, img.width, img.height, flip, r, g, b, a, blend);
   end;
 
+  procedure r_Draw_TextureRepeatRotate (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean; rx, ry, angle: Integer);
+  begin
+    ASSERT(w >= 0);
+    ASSERT(h >= 0);
+    if a <> 0 then
+    begin
+      glPushMatrix;
+      glTranslatef(x + rx, y + ry, 0);
+      glRotatef(angle, 0, 0, 1);
+      glTranslatef(-(x + rx), -(y + ry), 0);
+      r_Draw_TextureRepeat(img, x, y, w, h, flip, r, g, b, a, blend);
+      glPopMatrix;
+    end
+    else
+      r_Draw_TextureRepeat(img, x, y, w, h, flip, r, g, b, a, blend);
+  end;
+
   procedure r_Draw_MultiTextureRepeat (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
     var img: TGLTexture; cur, total, i: Integer;
   begin
@@ -170,7 +188,6 @@ implementation
   end;
 
   procedure r_Draw_MultiTextureRepeatRotate (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean; rx, ry, angle: Integer);
-    var i, j: Integer;
   begin
     ASSERT(w >= 0);
     ASSERT(h >= 0);

@@ -17,6 +17,8 @@ unit r_map;
 
 interface
 
+  uses g_base; // TRectWH
+
   procedure r_Map_Initialize;
   procedure r_Map_Finalize;
 
@@ -26,7 +28,12 @@ interface
   procedure r_Map_LoadTextures;
   procedure r_Map_FreeTextures;
 
+{$IFDEF ENABLE_GFX}
   procedure r_Map_NewGFX (typ, x, y: Integer);
+{$ENDIF}
+{$IFDEF ENABLE_GIBS}
+  function r_Map_GetGibSize (m, i: Integer): TRectWH;
+{$ENDIF}
 
   procedure r_Map_Update;
 
@@ -43,10 +50,13 @@ implementation
     {$ENDIF}
     e_log,
     binheap, MAPDEF, utils,
-    g_options, g_textures, g_basic, g_base, g_phys,
+    g_options, g_textures, g_basic, g_phys,
     g_game, g_map, g_panel, g_items, g_monsters, g_playermodel, g_player, g_weapons,
     {$IFDEF ENABLE_CORPSES}
       g_corpses,
+    {$ENDIF}
+    {$IFDEF ENABLE_GIBS}
+      g_gibs,
     {$ENDIF}
     {$IFDEF ENABLE_GFX}
       g_gfx,
@@ -175,14 +185,12 @@ implementation
       anim: array [TDirection, 0..A_LAST] of record
         base, mask: TGLMultiTexture;
       end;
-(*
-      {$IFDEF ENABLE_GIBS}
-        gibs: array of record
-          base, mask: TGLTexture;
-          rect: TRectWH;
-        end;
-      {$ENDIF}
-*)
+{$IFDEF ENABLE_GIBS}
+      gibs: record
+        base, mask: TGLTextureArray;
+        rect: TRectArray;
+      end;
+{$ENDIF}
     end;
 
     StubShotAnim: TAnimState;
@@ -224,6 +232,8 @@ implementation
   procedure r_Map_LoadModel (i: Integer);
     var prefix: AnsiString; a: Integer; d: TDirection; m: ^TPlayerModelInfo;
   begin
+    ASSERT(i < Length(Models));
+    ASSERT(i < Length(PlayerModelsArray));
     m := @PlayerModelsArray[i];
     prefix := m.FileName + ':TEXTURES/';
     for d := TDirection.D_LEFT to TDirection.D_RIGHT do
@@ -238,17 +248,29 @@ implementation
           Models[i].anim[d, a].mask := r_Textures_LoadMultiFromFileAndInfo(prefix + m.anim[d, a].mask, 64, 64, m.anim[d, a].frames, m.anim[d, a].back, true);
       end
     end;
-(*
     {$IFDEF ENABLE_GIBS}
-      Models[i].gibs := nil;
+      Models[i].gibs.base := nil;
+      Models[i].gibs.mask := nil;
+      Models[i].gibs.rect := nil;
       if m.GibsCount > 0 then
       begin
-        SetLength(Models[i].gibs, m.GibsCount);
+        SetLength(Models[i].gibs.base, m.GibsCount);
+        SetLength(Models[i].gibs.mask, m.GibsCount);
+        SetLength(Models[i].gibs.rect, m.GibsCount);
+        for a := 0 to m.GibsCount - 1 do
+          Models[i].gibs.rect[a] := DefaultGibSize;
+        if r_Textures_LoadStreamFromFile(prefix + m.GibsResource, 32, 32, m.GibsCount, Models[i].gibs.base, Models[i].gibs.rect) then
+        begin
+          if r_Textures_LoadStreamFromFile(prefix + m.GibsMask, 32, 32, m.GibsCount, Models[i].gibs.mask, nil) then
+          begin
+            // ok
+          end;
+        end;
+        for a := 0 to m.GibsCount - 1 do
+          e_logwritefln('model %s gib %s: %sx%s:%sx%s', [i, a, Models[i].gibs.rect[a].x, Models[i].gibs.rect[a].y, Models[i].gibs.rect[a].width, Models[i].gibs.rect[a].height]);
       end;
     {$ENDIF}
-*)
   end;
-
 
   procedure r_Map_Load;
     const
@@ -750,6 +772,46 @@ implementation
           r_Map_DrawPlayer(gPlayers[i]);
   end;
 
+{$IFDEF ENABLE_GIBS}
+  function r_Map_GetGibSize (m, i: Integer): TRectWH;
+  begin
+    result := Models[m].gibs.rect[i];
+  end;
+
+  procedure r_Map_DrawGibs (x, y, w, h: Integer);
+    var i, fx, fy, m, id, rx, ry, ra: Integer; p: PObj; t: TGLTexture;
+  begin
+    if gGibs <> nil then
+    begin
+      for i := 0 to High(gGibs) do
+      begin
+        if gGibs[i].alive then
+        begin
+          p := @gGibs[i].Obj;
+          if g_Obj_Collide(x, y, w, h, p) then
+          begin
+            p.Lerp(gLerpFactor, fx, fy);
+            id := gGibs[i].GibID;
+            m := gGibs[i].ModelID;
+            t := Models[m].gibs.base[id];
+            if t <> nil then
+            begin
+              rx := p.Rect.X + p.Rect.Width div 2;
+              ry := p.Rect.Y + p.Rect.Height div 2;
+              ra := gGibs[i].RAngle;
+              r_Draw_TextureRepeatRotate(t, fx, fy, t.width, t.height, false, 255, 255, 255, 255, false, rx, ry, ra);
+              t := Models[m].gibs.mask[id];
+              if t <> nil then
+                r_Draw_TextureRepeatRotate(t, fx, fy, t.width, t.height, false, gGibs[i].Color.R, gGibs[i].Color.G, gGibs[i].Color.B, 255, false, rx, ry, ra);
+              // r_Draw_TextureRepeatRotate(nil, fx + p.Rect.X, fy + p.Rect.Y, p.Rect.Width, p.Rect.Height, false, 255, 255, 255, 255, false, p.Rect.Width div 2, p.Rect.Height div 2, ra);
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
+{$ENDIF}
+
 {$IFDEF ENABLE_CORPSES}
   procedure r_Map_DrawCorpses (x, y, w, h: Integer);
     var i, fX, fY: Integer; p: TCorpse;
@@ -971,7 +1033,9 @@ implementation
     r_Map_DrawShots(xx, yy, ww, hh);
     // TODO draw shells
     r_Map_DrawPlayers(xx, yy, ww, hh);
-    // TODO draw gibs
+    {$IFDEF ENABLE_GIBS}
+      r_Map_DrawGibs(xx, yy, ww, hh);
+    {$ENDIF}
     {$IFDEF ENABLE_CORPSES}
       r_Map_DrawCorpses(xx, yy, ww, hh);
     {$ENDIF}
