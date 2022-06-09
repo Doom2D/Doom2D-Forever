@@ -1165,7 +1165,19 @@ implementation
     ww := w;
     hh := h;
 
-    // TODO lock camera at map bounds
+    if g_dbg_ignore_bounds = false then
+    begin
+      if xx + ww > gMapInfo.Width then
+        xx := gMapInfo.Width - ww;
+      if yy + hh > gMapInfo.Height then
+        yy := gMapInfo.Height - hh;
+      if xx < 0 then
+        xx := 0;
+      if yy < 0 then
+        yy := 0;
+      cx := xx - x;
+      cy := yy - y;
+    end;
 
     // TODO draw paralax
     if SkyTexture <> nil then
