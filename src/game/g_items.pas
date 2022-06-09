@@ -21,6 +21,9 @@ uses
   SysUtils, Classes,
   MAPDEF, g_phys, g_saveload;
 
+const
+  ITEM_LAST = ITEM_MAX;
+
 Type
   PItem = ^TItem;
   TItem = record

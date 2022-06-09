@@ -96,6 +96,54 @@ implementation
     VILEFIRE_DX = 32;
     VILEFIRE_DY = 128;
 
+    ItemAnim: array [0..ITEM_LAST] of record
+      name: AnsiString;
+      w, h: Integer;
+      d: Integer; // delay
+      n: Integer; // count
+      b: Boolean; // backanim
+    end = (
+      (name: '';             w: 0;  h: 0;  d: 0;  n: 0; b: False),
+      (name: 'MED1';         w: 16; h: 16; d: 0;  n: 1; b: False),
+      (name: 'MED2';         w: 32; h: 32; d: 0;  n: 1; b: False),
+      (name: 'BMED';         w: 32; h: 32; d: 0;  n: 1; b: False),
+      (name: 'ARMORGREEN';   w: 32; h: 16; d: 20; n: 3; b: True),
+      (name: 'ARMORBLUE';    w: 32; h: 16; d: 20; n: 3; b: True),
+      (name: 'SBLUE';        w: 32; h: 32; d: 15; n: 4; b: True),
+      (name: 'SWHITE';       w: 32; h: 32; d: 20; n: 4; b: True),
+      (name: 'SUIT';         w: 32; h: 64; d: 0;  n: 1; b: False),
+      (name: 'OXYGEN';       w: 16; h: 32; d: 0;  n: 1; b: False),
+      (name: 'INVUL';        w: 32; h: 32; d: 20; n: 4; b: True),
+      (name: 'SAW';          w: 64; h: 32; d: 0;  n: 1; b: False),
+      (name: 'SHOTGUN1';     w: 64; h: 16; d: 0;  n: 1; b: False),
+      (name: 'SHOTGUN2';     w: 64; h: 16; d: 0;  n: 1; b: False),
+      (name: 'MGUN';         w: 64; h: 16; d: 0;  n: 1; b: False),
+      (name: 'RLAUNCHER';    w: 64; h: 16; d: 0;  n: 1; b: False),
+      (name: 'PGUN';         w: 64; h: 16; d: 0;  n: 1; b: False),
+      (name: 'BFG';          w: 64; h: 64; d: 0;  n: 1; b: False),
+      (name: 'SPULEMET';     w: 64; h: 16; d: 0;  n: 1; b: False),
+      (name: 'CLIP';         w: 16; h: 16; d: 0;  n: 1; b: False),
+      (name: 'AMMO';         w: 32; h: 16; d: 0;  n: 1; b: False),
+      (name: 'SHELL1';       w: 16; h: 8;  d: 0;  n: 1; b: False),
+      (name: 'SHELL2';       w: 32; h: 16; d: 0;  n: 1; b: False),
+      (name: 'ROCKET';       w: 16; h: 32; d: 0;  n: 1; b: False),
+      (name: 'ROCKETS';      w: 64; h: 32; d: 0;  n: 1; b: False),
+      (name: 'CELL';         w: 16; h: 16; d: 0;  n: 1; b: False),
+      (name: 'CELL2';        w: 32; h: 32; d: 0;  n: 1; b: False),
+      (name: 'BPACK';        w: 32; h: 32; d: 0;  n: 1; b: False),
+      (name: 'KEYR';         w: 16; h: 16; d: 0;  n: 1; b: False),
+      (name: 'KEYG';         w: 16; h: 16; d: 0;  n: 1; b: False),
+      (name: 'KEYB';         w: 16; h: 16; d: 0;  n: 1; b: False),
+      (name: 'KASTET';       w: 64; h: 32; d: 0;  n: 1; b: False),
+      (name: 'PISTOL';       w: 64; h: 16; d: 0;  n: 1; b: False),
+      (name: 'BOTTLE';       w: 16; h: 32; d: 20; n: 4; b: True),
+      (name: 'HELMET';       w: 16; h: 16; d: 20; n: 4; b: True),
+      (name: 'JETPACK';      w: 32; h: 32; d: 15; n: 3; b: True),
+      (name: 'INVIS';        w: 32; h: 32; d: 20; n: 4; b: True),
+      (name: 'FLAMETHROWER'; w: 64; h: 32; d: 0;  n: 1; b: False),
+      (name: 'FUELCAN';      w: 16; h: 32; d: 0;  n: 1; b: False)
+    );
+
 {$IFDEF ENABLE_GFX}
     GFXAnim: array [0..R_GFX_LAST] of record
       name: AnsiString;
@@ -188,7 +236,7 @@ implementation
       spec: LongInt;
       tex: TGLMultiTexture;
     end;
-    Items: array [0..ITEM_MAX] of record
+    Items: array [0..ITEM_LAST] of record
       tex: TGLMultiTexture;
       anim: TAnimState;
     end;
@@ -291,6 +339,34 @@ implementation
     {$ENDIF}
   end;
 
+  procedure r_Map_LoadMonsterAnim (m, a: Integer; d: TDirection);
+    const dir: array [TDirection] of AnsiString = ('_L', '');
+    var w, h, count: Integer;
+  begin
+    count := MONSTER_ANIMTABLE[m].AnimCount[a];
+    if count > 0 then
+    begin
+      w := MTABLE[m].w;
+      h := MTABLE[m].h;
+      if (m = MONSTER_SOUL) and (a = ANIM_DIE) then
+      begin
+        // special case
+        w := 128;
+        h := 128;
+      end;
+      MonTextures[m, a, d] := r_Textures_LoadMultiFromFileAndInfo(
+        GameWAD + ':MTEXTURES/' + MONSTERTABLE[m].name + '_' + ANIMTABLE[a].name + dir[d],
+        w,
+        h,
+        count,
+        False,
+        False
+      );
+    end
+    else
+      MonTextures[m, a, d] := nil;
+  end;
+
   procedure r_Map_Load;
     const
       WeapName: array [0..WP_LAST] of AnsiString = ('', 'CSAW', 'HGUN', 'SG', 'SSG', 'MGUN', 'RKT', 'PLZ', 'BFG', 'SPL', 'FLM');
@@ -298,97 +374,29 @@ implementation
       WeapAct: array [0..W_ACT_LAST] of AnsiString = ('', '_FIRE');
     var
       i, j, k: Integer; d: TDirection;
-
-    procedure LoadItem (i: Integer; const name: AnsiString; w, h, delay, count: Integer; backanim: Boolean);
-    begin
-      ASSERT(i >= 0);
-      ASSERT(i <= ITEM_MAX);
-      Items[i].tex := r_Textures_LoadMultiFromFileAndInfo(GameWAD + ':TEXTURES/' + name, w, h, count, backanim, false);
-      if backanim then count := count * 2 - 2;
-      Items[i].anim := TAnimState.Create(True, delay, count);
-      ASSERT(Items[i].tex <> NIL);
-    end;
-
-    procedure LoadMonster (m, a: Integer; d: TDirection);
-      const
-        dir: array [TDirection] of AnsiString = ('_L', '');
-      var
-        w, h, count: Integer;
-    begin
-      count := MONSTER_ANIMTABLE[m].AnimCount[a];
-      if count > 0 then
-      begin
-        w := MTABLE[m].w;
-        h := MTABLE[m].h;
-        if (m = MONSTER_SOUL) and (a = ANIM_DIE) then
-        begin
-          // special case
-          w := 128;
-          h := 128;
-        end;
-        MonTextures[m, a, d] := r_Textures_LoadMultiFromFileAndInfo(
-          GameWAD + ':MTEXTURES/' + MONSTERTABLE[m].name + '_' + ANIMTABLE[a].name + dir[d],
-          w,
-          h,
-          count,
-          False,
-          False
-        )
-      end
-      else
-        MonTextures[m, a, d] := nil
-    end;
-
   begin
     // --------- items --------- //
-    //       i                            name           w    h    d  n  backanim
-    LoadItem(ITEM_NONE,                  'NOTEXTURE',    16,  16,  0, 1, False);
-    LoadItem(ITEM_MEDKIT_SMALL,          'MED1',         16,  16,  0, 1, False);
-    LoadItem(ITEM_MEDKIT_LARGE,          'MED2',         32,  32,  0, 1, False);
-    LoadItem(ITEM_MEDKIT_BLACK,          'BMED',         32,  32,  0, 1, False);
-    LoadItem(ITEM_ARMOR_GREEN,           'ARMORGREEN',   32,  16, 20, 3, True);
-    LoadItem(ITEM_ARMOR_BLUE,            'ARMORBLUE',    32,  16, 20, 3, True);
-    LoadItem(ITEM_SPHERE_BLUE,           'SBLUE',        32,  32, 15, 4, True);
-    LoadItem(ITEM_SPHERE_WHITE,          'SWHITE',       32,  32, 20, 4, True);
-    LoadItem(ITEM_SUIT,                  'SUIT',         32,  64,  0, 1, False);
-    LoadItem(ITEM_OXYGEN,                'OXYGEN',       16,  32,  0, 1, False);
-    LoadItem(ITEM_INVUL,                 'INVUL',        32,  32, 20, 4, True);
-    LoadItem(ITEM_WEAPON_SAW,            'SAW',          64,  32,  0, 1, False);
-    LoadItem(ITEM_WEAPON_SHOTGUN1,       'SHOTGUN1',     64,  16,  0, 1, False);
-    LoadItem(ITEM_WEAPON_SHOTGUN2,       'SHOTGUN2',     64,  16,  0, 1, False);
-    LoadItem(ITEM_WEAPON_CHAINGUN,       'MGUN',         64,  16,  0, 1, False);
-    LoadItem(ITEM_WEAPON_ROCKETLAUNCHER, 'RLAUNCHER',    64,  16,  0, 1, False);
-    LoadItem(ITEM_WEAPON_PLASMA,         'PGUN',         64,  16,  0, 1, False);
-    LoadItem(ITEM_WEAPON_BFG,            'BFG',          64,  64,  0, 1, False);
-    LoadItem(ITEM_WEAPON_SUPERPULEMET,   'SPULEMET',     64,  16,  0, 1, False);
-    LoadItem(ITEM_AMMO_BULLETS,          'CLIP',         16,  16,  0, 1, False);
-    LoadItem(ITEM_AMMO_BULLETS_BOX,      'AMMO',         32,  16,  0, 1, False);
-    LoadItem(ITEM_AMMO_SHELLS,           'SHELL1',       16,   8,  0, 1, False);
-    LoadItem(ITEM_AMMO_SHELLS_BOX,       'SHELL2',       32,  16,  0, 1, False);
-    LoadItem(ITEM_AMMO_ROCKET,           'ROCKET',       16,  32,  0, 1, False);
-    LoadItem(ITEM_AMMO_ROCKET_BOX,       'ROCKETS',      64,  32,  0, 1, False);
-    LoadItem(ITEM_AMMO_CELL,             'CELL',         16,  16,  0, 1, False);
-    LoadItem(ITEM_AMMO_CELL_BIG,         'CELL2',        32,  32,  0, 1, False);
-    LoadItem(ITEM_AMMO_BACKPACK,         'BPACK',        32,  32,  0, 1, False);
-    LoadItem(ITEM_KEY_RED,               'KEYR',         16,  16,  0, 1, False);
-    LoadItem(ITEM_KEY_GREEN,             'KEYG',         16,  16,  0, 1, False);
-    LoadItem(ITEM_KEY_BLUE,              'KEYB',         16,  16,  0, 1, False);
-    LoadItem(ITEM_WEAPON_KASTET,         'KASTET',       64,  32,  0, 1, False);
-    LoadItem(ITEM_WEAPON_PISTOL,         'PISTOL',       64,  16,  0, 1, False);
-    LoadItem(ITEM_BOTTLE,                'BOTTLE',       16,  32, 20, 4, True);
-    LoadItem(ITEM_HELMET,                'HELMET',       16,  16, 20, 4, True);
-    LoadItem(ITEM_JETPACK,               'JETPACK',      32,  32, 15, 3, True);
-    LoadItem(ITEM_INVIS,                 'INVIS',        32,  32, 20, 4, True);
-    LoadItem(ITEM_WEAPON_FLAMETHROWER,   'FLAMETHROWER', 64,  32,  0, 1, False);
-    LoadItem(ITEM_AMMO_FUELCAN,          'FUELCAN',      16,  32,  0, 1, False);
-    // fill with NOTEXURE forgotten item
-    for i := ITEM_AMMO_FUELCAN + 1 to ITEM_MAX do
-      LoadItem(i,'NOTEXTURE', 16, 16, 0, 1, False);
+    for i := 0 to ITEM_LAST do
+    begin
+      if ItemAnim[i].n > 0 then
+      begin
+        Items[i].tex := r_Textures_LoadMultiFromFileAndInfo(
+          GameWAD + ':TEXTURES/' + ItemAnim[i].name,
+          ItemAnim[i].w,
+          ItemAnim[i].h,
+          ItemAnim[i].n,
+          ItemAnim[i].b,
+          false
+        );
+        k := IfThen(ItemAnim[i].b, ItemAnim[i].n * 2 - 2, ItemAnim[i].n);
+        Items[i].anim := TAnimState.Create(True, ItemAnim[i].d, k);
+      end;
+    end;
     // --------- monsters --------- //
     for i := MONSTER_DEMON to MONSTER_MAN do
       for j := 0 to ANIM_LAST do
         for d := TDirection.D_LEFT to TDirection.D_RIGHT do
-          LoadMonster(i, j, d);
+          r_Map_LoadMonsterAnim(i, j, d);
     VileFire := r_Textures_LoadMultiFromFileAndInfo(GameWAD + ':TEXTURES/FIRE', 64, 128, 8, False, False);
     // --------- player models --------- //
     if PlayerModelsArray <> nil then
@@ -492,7 +500,7 @@ implementation
         end;
       end;
     end;
-    for i := 0 to ITEM_MAX do
+    for i := 0 to ITEM_LAST do
     begin
       if Items[i].tex <> nil then
       begin
@@ -598,7 +606,7 @@ implementation
       for i := 0 to High(ggItems) do
       begin
         it := @ggItems[i];
-        if it.used and it.alive and (it.dropped = drop) and (it.ItemType <> ITEM_NONE) then
+        if it.used and it.alive and (it.dropped = drop) and (it.ItemType > ITEM_NONE) and (it.ItemType <= ITEM_LAST) then
         begin
           t := Items[it.ItemType].tex;
           if g_Collide(it.obj.x, it.obj.y, t.width, t.height, x, y, w, h) then
@@ -1122,7 +1130,7 @@ implementation
   procedure r_Map_Update;
     var i: Integer;
   begin
-    for i := 0 to ITEM_MAX do
+    for i := 0 to ITEM_LAST do
       Items[i].anim.Update;
     r_Map_UpdateGFX;
     FlagAnim.Update;
