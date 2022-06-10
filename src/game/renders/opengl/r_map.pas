@@ -1155,8 +1155,56 @@ implementation
   end;
 {$ENDIF}
 
+  procedure r_Map_CalcAspect (ow, oh, nw, nh: LongInt; horizontal: Boolean; out ww, hh: LongInt);
+  begin
+    if horizontal then
+    begin
+      ww := nw;
+      hh := nw * oh div ow;
+    end
+    else
+    begin
+      ww := nh * ow div oh;
+      hh := nh;
+    end;
+  end;
+
+  procedure r_Map_CalcSkyParallax (cx, cy, vw, vh, sw, sh, mw, mh: LongInt; out x, y, w, h: LongInt);
+    const
+      factor = 120; (* size ratio between view and sky (120%) *)
+      limit = 100;  (* max speed for parallax *)
+    var
+      msw, msh, mvw, mvh, svw, svh: LongInt;
+  begin
+    msw := vw * factor div 100;
+    msh := vh * factor div 100;
+    r_Map_CalcAspect(sw, sh, msw, msh, (sw / sh) <= (msw / msh), w, h);
+
+    (* calc x parallax or sky center on speed limit *)
+    mvw := MAX(1, mw - vw);
+    svw := w - vw;
+    if 100 * svw div mvw <= limit then
+      x := -cx * svw div mvw
+    else
+      x := -svw div 2;
+
+    (* calc y parallax or sky center on speed limit *)
+    mvh := MAX(1, mh - vh);
+    svh := h - vh;
+    if 100 * svh div mvh <= limit then
+      y := -cy * svh div mvh
+    else
+      y := -svh div 2;
+
+    (* handle out of map bounds *)
+    if x > 0 then x := 0;
+    if y > 0 then y := 0;
+    if x < -svw then x := -svw;
+    if y < -svh then y := -svh;
+  end;
+
   procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer);
-    var iter: TPanelGrid.Iter; p: PPanel; cx, cy, xx, yy, ww, hh: Integer;
+    var iter: TPanelGrid.Iter; p: PPanel; cx, cy, xx, yy, ww, hh: Integer; sx, sy, sw, sh: LongInt;
   begin
     cx := camx - w div 2;
     cy := camy - h div 2;
@@ -1179,9 +1227,11 @@ implementation
       cy := yy - y;
     end;
 
-    // TODO draw paralax
     if SkyTexture <> nil then
-      r_Draw_Texture(SkyTexture, x, y, w, h, false, 255, 255, 255, 255, false);
+    begin
+      r_Map_CalcSkyParallax(cx, cy, ww, hh, SkyTexture.width, SkyTexture.height, gMapInfo.Width, gMapInfo.Height, sx, sy, sw, sh);
+      r_Draw_Texture(SkyTexture, x + sx, y + sy, sw, sh, false, 255, 255, 255, 255, false);
+    end;
 
     plist.Clear;
     iter := mapGrid.ForEachInAABB(xx, yy, ww, hh, GridDrawableMask);
