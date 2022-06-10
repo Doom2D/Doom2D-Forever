@@ -30,6 +30,8 @@ interface
   procedure r_Draw_MultiTextureRepeatRotate (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean; rx, ry, angle: Integer);
 
   procedure r_Draw_Filter (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
+  procedure r_Draw_FillRect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
+  procedure r_Draw_InvertRect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
 
 implementation
 
@@ -211,6 +213,38 @@ implementation
     ASSERT(b >= t);
     glEnable(GL_BLEND);
     glBlendFunc(GL_ZERO, GL_SRC_COLOR);
+    glDisable(GL_TEXTURE_2D);
+    glColor4ub(rr, gg, bb, aa);
+    glBegin(GL_QUADS);
+      glVertex2i(l, t);
+      glVertex2i(r, t);
+      glVertex2i(r, b);
+      glVertex2i(l, b);
+    glEnd;
+  end;
+
+  procedure r_Draw_FillRect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
+  begin
+    ASSERT(r >= l);
+    ASSERT(b >= t);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_TEXTURE_2D);
+    glColor4ub(rr, gg, bb, aa);
+    glBegin(GL_QUADS);
+      glVertex2i(l, t);
+      glVertex2i(r, t);
+      glVertex2i(r, b);
+      glVertex2i(l, b);
+    glEnd;
+  end;
+
+  procedure r_Draw_InvertRect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
+  begin
+    ASSERT(r >= l);
+    ASSERT(b >= t);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
     glDisable(GL_TEXTURE_2D);
     glColor4ub(rr, gg, bb, aa);
     glBegin(GL_QUADS);

@@ -866,7 +866,7 @@ implementation
       begin
         if (drawed <> nil) and ((p = drawed) or ((p.Team = drawed.Team) and (gGameSettings.GameMode <> GM_DM))) then
         begin
-          if (p.FMegaRulez[MR_INVIS] - gTime <= 2100) and not ODD((p.FMegaRulez[MR_INVIS] - gTime) div 300) then
+          if (p.FMegaRulez[MR_INVIS] - gTime > 2100) or not ODD((p.FMegaRulez[MR_INVIS] - gTime) div 300) then
             alpha := 55;
         end
         else
@@ -1203,6 +1203,47 @@ implementation
     if y < -svh then y := -svh;
   end;
 
+  procedure r_Map_DrawScreenEffect (x, y, w, h, level: Integer; r, g, b: Byte);
+    var i: Integer;
+  begin
+    if level > 0 then
+    begin
+      case level of
+        0..14: i := 0;
+        15..34: i := 1;
+        35..54: i := 2;
+        55..74: i := 3;
+        75..94: i := 4;
+      else i := 5
+      end;
+      r_Draw_FillRect(x, y, x + w, y + h, r, g, b, i * 50)
+    end;
+  end;
+
+  procedure r_Map_DrawScreenEffects (x, y, w, h: Integer; p: TPlayer);
+    var i: Integer;
+  begin
+    if p <> nil then
+    begin
+      r_Map_DrawScreenEffect(x, y, w, h, p.pain, 255, 0, 0);
+      r_Map_DrawScreenEffect(x, y, w, h, p.pickup, 150, 200, 150);
+      if (p.FMegaRulez[MR_INVUL] >= gTime) and (p.SpawnInvul < gTime) then
+      begin
+        if ((p.FMegaRulez[MR_INVUL] - gTime) > 2100) or not ODD((p.FMegaRulez[MR_INVUL] - gTime) div 300) then
+          r_Draw_InvertRect(x, y, x + w, y + h, 191, 191, 191, 255);
+      end;
+      if p.FMegaRulez[MR_SUIT] >= gTime then
+      begin
+        if ((p.FMegaRulez[MR_SUIT] - gTime) > 2100) or not ODD((p.FMegaRulez[MR_SUIT] - gTime) div 300) then
+          r_Draw_FillRect(x, y, x + w, y + h, 0, 96, 0, 55);
+      end;
+      if (p.Berserk >= 0) and (p.Berserk >= gTime) and (gFlash = 2) then
+      begin
+        r_Draw_FillRect(x, y, x + w, y + h, 255, 0, 0, 55);
+      end;
+    end;
+  end;
+
   procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer);
     var iter: TPanelGrid.Iter; p: PPanel; cx, cy, xx, yy, ww, hh: Integer; sx, sy, sw, sh: LongInt;
   begin
@@ -1274,10 +1315,9 @@ implementation
     // TODO draw players indicators
     glPopMatrix;
 
-    // TODO draw player pain
-    // TODO draw player pickup
-    // TODO draw player invul
-    // TODO draw minimap
+    r_Map_DrawScreenEffects(x, y, w, h, player);
+
+    // TODO draw minimap (gShowMap)
     // TODO draw g_debug_player
   end;
 
