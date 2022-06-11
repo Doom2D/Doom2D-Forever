@@ -149,8 +149,8 @@ implementation
     if img = nil then
       r_Draw_Texture(nil, x, y, w, h, flip, NTR, NTG, NTB, NTB, blend)
     else
-      for j := 0 to h div img.height - 1 do
-        for i := 0 to w div img.width - 1 do
+      for j := 0 to (h - 1) div img.height do
+        for i := 0 to (w - 1) div img.width do
           r_Draw_Texture(img, x + i * img.width, y + j * img.height, img.width, img.height, flip, r, g, b, a, blend);
   end;
 
