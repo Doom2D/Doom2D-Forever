@@ -80,11 +80,14 @@ implementation
     SysUtils, Classes, Math,
     e_log, utils,
     g_game, g_options, g_console,
-    r_textures, r_map
+    r_draw, r_textures, r_fonts, r_map
   ;
 
   var
     menuBG: TGLTexture;
+    stdfont: TGLFont;
+    smallfont: TGLFont;
+    menufont: TGLFont;
 
   procedure r_Render_LoadTextures;
   begin
@@ -96,15 +99,32 @@ implementation
     r_Map_FreeTextures;
   end;
 
+  function r_Render_LoadFont (const name: AnsiString): TGLFont;
+    var info: TFontInfo; skiphack: Integer;
+  begin
+    result := nil;
+    if name = 'STD' then skiphack := 144 else skiphack := 0;
+    if r_Font_LoadInfoFromFile(GameWad + ':FONTS/' + name + 'TXT', info) then
+      result := r_Textures_LoadFontFromFile(GameWad + ':FONTS/' + name + 'FONT', info, skiphack, true);
+    if result = nil then
+      e_logwritefln('failed to load font %s', [name]);
+  end;
+
   procedure r_Render_Load;
   begin
     menuBG := r_Textures_LoadFromFile(GameWAD + ':' + 'TEXTURES/TITLE');
+    stdfont := r_Render_LoadFont('STD');
+    smallfont := r_Render_LoadFont('SMALL');
+    menufont := r_Render_LoadFont('MENU');
     r_Map_Load;
   end;
 
   procedure r_Render_Free;
   begin
     r_Map_Free;
+    menufont.Free;
+    smallfont.Free;
+    stdfont.Free;
     menuBG.Free;
   end;
 

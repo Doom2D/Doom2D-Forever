@@ -33,6 +33,8 @@ interface
   procedure r_Draw_FillRect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
   procedure r_Draw_InvertRect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
 
+  procedure r_Draw_Text (const text: AnsiString; x, y: Integer; r, g, b, a: Byte; f: TGLFont);
+
 implementation
 
   uses
@@ -253,6 +255,20 @@ implementation
       glVertex2i(r, b);
       glVertex2i(l, b);
     glEnd;
+  end;
+
+  procedure r_Draw_Text (const text: AnsiString; x, y: Integer; r, g, b, a: Byte; f: TGLFont);
+    var i, xoff: Integer; t: TGLTexture; ch: AnsiChar;
+  begin
+    xoff := x;
+    for i := 1 to Length(text) do
+    begin
+      ch := text[i];
+      t := f.GetChar(ch);
+      if t <> nil then
+        r_Draw_Texture(t, xoff, y, t.width, t.height, false, r, g, b, a, false);
+      Inc(xoff, f.GetWidth(ch) + f.GetSpace());
+    end;
   end;
 
 end.

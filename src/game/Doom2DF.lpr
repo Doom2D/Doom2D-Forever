@@ -202,6 +202,7 @@ uses
     r_textures in 'renders/opengl/r_textures.pas',
     r_draw in 'renders/opengl/r_draw.pas',
     r_map in 'renders/opengl/r_map.pas',
+    r_fonts in 'renders/opengl/r_fonts.pas',
   {$ELSE}
     {$FATAL render driver not selected}
   {$ENDIF}

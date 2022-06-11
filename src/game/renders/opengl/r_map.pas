@@ -357,9 +357,9 @@ implementation
         SetLength(Models[i].gibs.rect, m.GibsCount);
         for a := 0 to m.GibsCount - 1 do
           Models[i].gibs.rect[a] := DefaultGibSize;
-        if r_Textures_LoadStreamFromFile(prefix + m.GibsResource, 32, 32, m.GibsCount, Models[i].gibs.base, Models[i].gibs.rect) then
+        if r_Textures_LoadStreamFromFile(prefix + m.GibsResource, 32, 32, m.GibsCount, m.GibsCount, Models[i].gibs.base, Models[i].gibs.rect) then
         begin
-          if r_Textures_LoadStreamFromFile(prefix + m.GibsMask, 32, 32, m.GibsCount, Models[i].gibs.mask, nil) then
+          if r_Textures_LoadStreamFromFile(prefix + m.GibsMask, 32, 32, m.GibsCount, m.GibsCount, Models[i].gibs.mask, nil) then
           begin
             // ok
           end;

@@ -25,7 +25,7 @@ interface
     {$ENDIF}
     g_base,  // TRectHW
     utils,
-    r_atlas
+    r_atlas, r_fonts
   ;
 
   type
@@ -102,13 +102,27 @@ interface
 
     TRectArray = array of TRectWH;
 
+    TGLFont = class sealed (TFont)
+      private
+        info: TFontInfo;
+        ch: TGLTextureArray;
+
+      public
+        destructor Destroy; override;
+        function GetChar (c: AnsiChar): TGLTexture;
+        function GetWidth (c: AnsiChar): Integer;
+        function GetSpace (): Integer;
+    end;
+
   procedure r_Textures_Initialize;
   procedure r_Textures_Finalize;
 
   function r_Textures_LoadFromFile (const filename: AnsiString; log: Boolean = True): TGLTexture;
   function r_Textures_LoadMultiFromFile (const filename: AnsiString; log: Boolean = True): TGLMultiTexture;
   function r_Textures_LoadMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; backanim: Boolean; log: Boolean = True): TGLMultiTexture;
-  function r_Textures_LoadStreamFromFile (const filename: AnsiString; w, h, count: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
+  function r_Textures_LoadStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
+
+  function r_Textures_LoadFontFromFile (const filename: AnsiString; constref f: TFontInfo; skipch: Integer; log: Boolean = true): TGLFont;
 
 implementation
 
@@ -376,7 +390,6 @@ implementation
   function r_Textures_LoadFromImage (var img: TImageData): TGLTexture;
     var t: TGLTexture; n: TGLAtlasNode; c: TDynImageDataArray; cw, ch, i, j: LongInt;
   begin
-    // e_logwritefln('r_Textures_CreateFromImage: w=%s h=%s', [img.width, img.height]);
     result := nil;
     if SplitImage(img, c, maxTileSize, maxTileSize, cw, ch, False) then
     begin
@@ -638,22 +651,25 @@ implementation
     end;
   end;
 
-  function r_Textures_LoadStreamFromImage (var img: TImageData; w, h, c: Integer; st: TGLTextureArray; rs: TRectArray): Boolean;
-    var i: Integer; t: TImageData;
+  function r_Textures_LoadStreamFromImage (var img: TImageData; w, h, c, cw: Integer; st: TGLTextureArray; rs: TRectArray): Boolean;
+    var i, x, y: Integer; t: TImageData;
   begin
     ASSERT(w >= 0);
     ASSERT(h >= 0);
     ASSERT(c >= 1);
+    ASSERT(cw >= 1);
     ASSERT((st <> nil) and (Length(st) >= c));
     ASSERT((rs = nil) or (Length(rs) >= c));
     result := true;
     for i := 0 to c - 1 do
     begin
+      x := i mod cw;
+      y := i div cw;
       InitImage(t);
       st[i] := nil;
       if NewImage(w, h, img.Format, t) then
       begin
-        if CopyRect(img, w * i, 0, w, h, t, 0, 0) then
+        if CopyRect(img, x * w, y * h, w, h, t, 0, 0) then
         begin
           if rs <> nil then
             rs[i] := r_Textures_GetRect(t);
@@ -665,12 +681,13 @@ implementation
     end;
   end;
 
-  function r_Textures_LoadStreamFromMemory (data: Pointer; size: LongInt; w, h, c: Integer; st: TGLTextureArray; rs: TRectArray): Boolean;
+  function r_Textures_LoadStreamFromMemory (data: Pointer; size: LongInt; w, h, c, cw: Integer; st: TGLTextureArray; rs: TRectArray): Boolean;
     var img: TImageData;
   begin
     ASSERT(w >= 0);
     ASSERT(h >= 0);
     ASSERT(c >= 1);
+    ASSERT(cw >= 1);
     ASSERT((st <> nil) and (Length(st) >= c));
     ASSERT((rs = nil) or (Length(rs) >= c));
     result := false;
@@ -679,20 +696,25 @@ implementation
       InitImage(img);
       try
         if LoadImageFromMemory(data, size, img) then
+        begin
           if r_Textures_FixImageData(img) then
-            result := r_Textures_LoadStreamFromImage(img, w, h, c, st, rs)
+          begin
+            result := r_Textures_LoadStreamFromImage(img, w, h, c, cw, st, rs)
+          end;
+        end;
       except
       end;
       FreeImage(img);
     end;
   end;
 
-  function r_Textures_LoadStreamFromFile (const filename: AnsiString; w, h, count: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
+  function r_Textures_LoadStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
     var wad: TWADFile; wadName, resName: AnsiString; data: Pointer; size: Integer;
   begin
     ASSERT(w > 0);
     ASSERT(h > 0);
     ASSERT(count >= 1);
+    ASSERT(cw >= 1);
     ASSERT((st <> nil) and (Length(st) >= count));
     ASSERT((rs = nil) or (Length(rs) >= count));
     result := false;
@@ -703,11 +725,63 @@ implementation
       resName := g_ExtractFilePathName(filename);
       if wad.GetResource(resName, data, size, log) then
       begin
-        result := r_Textures_LoadStreamFromMemory(data, size, w, h, count, st, rs);
+        result := r_Textures_LoadStreamFromMemory(data, size, w, h, count, cw, st, rs);
         FreeMem(data);
       end;
       wad.Free
-    end
+    end;
+  end;
+
+  (* --------- TGLFont --------- *)
+
+  function r_Textures_LoadFontFromFile (const filename: AnsiString; constref f: TFontInfo; skipch: Integer; log: Boolean = true): TGLFont;
+    var i: Integer; st: TGLTextureArray; font: TGLFont; t: TGLTexture;
+  begin
+    ASSERT(skipch >= 0);
+    result := nil;
+    SetLength(st, 256);
+    if r_Textures_LoadStreamFromFile(filename, f.w, f.h, 256, 16, st, nil, log) then
+    begin
+      if skipch > 0 then
+      begin
+        for i := 0 to 255 do
+        begin
+          t := st[i];
+          st[i] := st[(i + skipch) mod 256];
+          st[(i + skipch) mod 256] := t;
+        end;
+      end;
+      font := TGLFont.Create();
+      font.info := f;
+      font.ch := st;
+      result := font;
+    end;
+  end;
+
+  destructor TGLFont.Destroy;
+    var i: Integer;
+  begin
+    if self.ch <> nil then
+      for i := 0 to High(self.ch) do
+        self.ch[i].Free;
+    self.ch := nil;
+  end;
+
+  function TGLFont.GetChar (c: AnsiChar): TGLTexture;
+  begin
+    result := self.ch[ORD(c)];
+  end;
+
+  function TGLFont.GetWidth (c: AnsiChar): Integer;
+  begin
+    result := self.info.ch[c].w;
+    if result = 0 then
+      result := self.info.w;
+  end;
+
+  function TGLFont.GetSpace (): Integer;
+  begin
+    result := self.info.kern;
   end;
 
 end.
