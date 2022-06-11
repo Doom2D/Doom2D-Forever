@@ -84,6 +84,13 @@ implementation
     r_draw, r_textures, r_fonts, r_map
   ;
 
+  type
+    TBasePoint = (
+      BP_LEFTUP,   BP_UP,     BP_RIGHTUP,
+      BP_LEFT,     BP_CENTER, BP_RIGHT,
+      BP_LEFTDOWN, BP_DOWN,   BP_RIGHTDOWN
+    );
+
   var
     menuBG: TGLTexture;
 
@@ -221,51 +228,83 @@ implementation
     glLoadIdentity;
   end;
 
+  procedure r_Render_GetBasePoint (x, y, w, h: Integer; p: TBasePoint; out xx, yy: Integer);
+  begin
+    case p of
+      TBasePoint.BP_LEFTUP,  TBasePoint.BP_LEFT,   TBasePoint.BP_LEFTDOWN:  xx := x;
+      TBasePoint.BP_UP,      TBasePoint.BP_CENTER, TBasePoint.BP_DOWN:      xx := x - w div 2;
+      TBasePoint.BP_RIGHTUP, TBasePoint.BP_RIGHT,  TBasePoint.BP_RIGHTDOWN: xx := x - w;
+    end;
+    case p of
+      TBasePoint.BP_LEFTUP,   TBasePoint.BP_UP,     TBasePoint.BP_RIGHTUP:   yy := y;
+      TBasePoint.BP_LEFT,     TBasePoint.BP_CENTER, TBasePoint.BP_RIGHT:     yy := y - h div 2;
+      TBasePoint.BP_LEFTDOWN, TBasePoint.BP_DOWN,   TBasePoint.BP_RIGHTDOWN: yy := y - h;
+    end;
+  end;
+
+  procedure r_Render_DrawText (const text: AnsiString; x, y: Integer; r, g, b, a: Byte; f: TGLFont; p: TBasePoint);
+    var w, h: Integer;
+  begin
+    if p <> TBasePoint.BP_LEFTUP then
+    begin
+      r_Draw_GetTextSize(text, f, w, h);
+      r_Render_GetBasePoint(x, y, w, h, p, x, y);
+    end;
+    r_Draw_Text(text, x, y, r, g, b, a, f);
+  end;
+
+  procedure r_Render_DrawTexture (img: TGLTexture; x, y, w, h: Integer; p: TBasePoint);
+  begin
+    r_Render_GetBasePoint(x, y, w, h, p, x, y);
+    r_Draw_TextureRepeat(img, x, y, w, h, false, 255, 255, 255, 255, false);
+  end;
+
   procedure r_Render_DrawHUD (x, y: Integer; p: TPlayer);
     var t: TGLTexture; s: AnsiString;
   begin
     ASSERT(p <> nil);
 
-    r_Draw_TextureRepeat(hud, x, y, 196, 240, false, 255, 255, 255, 255, false);
-    r_Draw_Text(p.name, x + 16, y + 8, 255, 0, 0, 255, smallfont); // TODO draw at center
+    // hud area is 196 x 240 pixels
+    r_Render_DrawTexture(hud, x, y, hud.width, hud.height, TBasePoint.BP_LEFTUP);
+    r_Render_DrawText(p.name, x + 98, y + 16, 255, 0, 0, 255, smallfont, TBasePoint.BP_CENTER);
 
     t := hudhp[R_BERSERK in p.FRulez];
-    r_Draw_Texture(t, x + 35, y + 45, t.width, t.height, false, 255, 255, 255, 255, false);
-    r_Draw_Texture(hudap, x + 34, y + 77, hudap.width, hudap.height, false, 255, 255, 255, 255, false);
+    r_Render_DrawTexture(t, x + 51, y + 61, t.width, t.height, TBasePoint.BP_CENTER);
+    r_Render_DrawTexture(hudap, x + 50, y + 85, hudap.width, hudap.height, TBasePoint.BP_CENTER);
 
-    r_Draw_Text(IntToStr(MAX(0, p.health)), x + 105{178}, y + 40, 255, 0, 0, 255, menufont); // TODO draw at center
-    r_Draw_Text(IntToStr(MAX(0, p.armor)), x + 105{178}, y + 68, 255, 0, 0, 255, menufont); // TODO draw at center
+    r_Render_DrawText(IntToStr(MAX(0, p.health)), x + 174, y + 56, 255, 0, 0, 255, menufont, TBasePoint.BP_RIGHT);
+    r_Render_DrawText(IntToStr(MAX(0, p.armor)), x + 174, y + 84, 255, 0, 0, 255, menufont, TBasePoint.BP_RIGHT);
 
     case p.CurrWeap of
       WEAPON_KASTET, WEAPON_SAW: s := '--';
       else s := IntToStr(p.GetAmmoByWeapon(p.CurrWeap));
     end;
-    r_Draw_Text(s, x + 105, y + 158, 255, 0, 0, 255, menufont); // TODO draw at center
+    r_Render_DrawText(s, x + 174, y + 174, 255, 0, 0, 255, menufont, TBasePoint.BP_RIGHT);
 
     if p.CurrWeap <= WP_LAST then
     begin
       t := hudwp[p.CurrWeap];
-      r_Draw_Texture(t, x + 18, y + 160, t.width, t.height, false, 255, 255, 255, 255, false);
+      r_Render_DrawTexture(t, x + 18, y + 160, t.width, t.height, TBasePoint.BP_LEFTUP);
     end;
 
     if R_KEY_RED in p.FRulez then
-      r_Draw_Texture(hudkey[0], x + 76, y + 214, 16, 16, false, 255, 255, 255, 255, false);
+      r_Render_DrawTexture(hudkey[0], x + 76, y + 214, 16, 16, TBasePoint.BP_LEFTUP);
     if R_KEY_GREEN in p.FRulez then
-      r_Draw_Texture(hudkey[1], x + 93, y + 214, 16, 16, false, 255, 255, 255, 255, false);
+      r_Render_DrawTexture(hudkey[1], x + 93, y + 214, 16, 16, TBasePoint.BP_LEFTUP);
     if R_KEY_BLUE in p.FRulez then
-      r_Draw_Texture(hudkey[2], x + 110, y + 214, 16, 16, false, 255, 255, 255, 255, false);
+      r_Render_DrawTexture(hudkey[2], x + 110, y + 214, 16, 16, TBasePoint.BP_LEFTUP);
 
     if p.JetFuel > 0 then
     begin
-      r_Draw_Texture(hudair, x, y + 116, hudair.width, hudair.height, false, 255, 255, 255, 255, false);
+      r_Render_DrawTexture(hudair, x, y + 116, hudair.width, hudair.height, TBasePoint.BP_LEFTUP);
       if p.air > 0 then
         r_Draw_FillRect(x + 14, y + 116 + 4, x + 14 + 168 * p.air div AIR_MAX, y + 116 + 4 + 4, 0, 0, 196, 255);
-      r_Draw_Texture(hudjet, x, y + 126, hudjet.width, hudjet.height, false, 255, 255, 255, 255, false);
+      r_Render_DrawTexture(hudjet, x, y + 126, hudjet.width, hudjet.height, TBasePoint.BP_LEFTUP);
       r_Draw_FillRect(x + 14, y + 126 + 4, x + 14 + 168 * p.JetFuel div JET_MAX, y + 126 + 4 + 4, 208, 0, 0, 255);
     end
     else
     begin
-      r_Draw_Texture(hudair, x, y + 124, hudair.width, hudair.height, false, 255, 255, 255, 255, false);
+      r_Render_DrawTexture(hudair, x, y + 124, hudair.width, hudair.height, TBasePoint.BP_LEFTUP);
       if p.air > 0 then
         r_Draw_FillRect(x + 14, y + 124 + 4, x + 14 + 168 * p.air div AIR_MAX, y + 124 + 4 + 4, 0, 0, 196, 255);
     end;
@@ -274,7 +313,7 @@ implementation
   procedure r_Render_DrawHUDArea (x, y, w, h: Integer; p: TPlayer);
     var s: AnsiString;
   begin
-    r_Draw_TextureRepeat(hudbg, x, y, w, h, false, 255, 255, 255, 255, false);
+    r_Render_DrawTexture(hudbg, x, y, w, h, TBasePoint.BP_LEFTUP);
 
     if p <> nil then
       r_Render_DrawHUD(x + w - 196 + 2, y, p);
@@ -282,16 +321,16 @@ implementation
     if gShowPing and g_Game_IsClient then
     begin
       s := _lc[I_GAME_PING_HUD] + IntToStr(NetPeer.lastRoundTripTime) + _lc[I_NET_SLIST_PING_MS];
-      r_Draw_Text(s, x + 4, y + 242, 255, 255, 255, 255, stdfont);
+      r_Render_DrawText(s, x + 4, y + 242, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
     end;
 
     if p.Spectator then
     begin
-      r_Draw_Text(_lc[I_PLAYER_SPECT], x + 4, y + 242, 255, 255, 255, 255, stdfont);
-      r_Draw_Text(_lc[I_PLAYER_SPECT2], x + 4, y + 258, 255, 255, 255, 255, stdfont);
-      r_Draw_Text(_lc[I_PLAYER_SPECT1], x + 4, y + 274, 255, 255, 255, 255, stdfont);
+      r_Render_DrawText(_lc[I_PLAYER_SPECT], x + 4, y + 242, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText(_lc[I_PLAYER_SPECT2], x + 4, y + 258, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText(_lc[I_PLAYER_SPECT1], x + 4, y + 274, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
       if p.NoRespawn then
-        r_Draw_Text(_lc[I_PLAYER_SPECT1S], x + 4, y + 290, 255, 255, 255, 255, stdfont);
+        r_Render_DrawText(_lc[I_PLAYER_SPECT1S], x + 4, y + 290, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
     end;
   end;
 
@@ -307,10 +346,7 @@ implementation
     if p <> nil then
     begin
       if p.Spectator and p.NoRespawn then
-      begin
-        // TODO draw at center
-        r_Draw_Text(_lc[I_PLAYER_SPECT4], x div 2 + w div 2, y div 2 + h div 2, 255, 255, 255, 255, stdfont);
-      end;
+        r_Render_DrawText(_lc[I_PLAYER_SPECT4], x div 2 + w div 2, y div 2 + h div 2, 255, 255, 255, 255, stdfont, TBasePoint.BP_CENTER);
     end;
   end;
 

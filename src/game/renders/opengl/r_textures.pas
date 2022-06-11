@@ -111,6 +111,7 @@ interface
         destructor Destroy; override;
         function GetChar (c: AnsiChar): TGLTexture;
         function GetWidth (c: AnsiChar): Integer;
+        function GetMaxHeight (): Integer;
         function GetSpace (): Integer;
     end;
 
@@ -777,6 +778,11 @@ implementation
     result := self.info.ch[c].w;
     if result = 0 then
       result := self.info.w;
+  end;
+
+  function TGLFont.GetMaxHeight (): Integer;
+  begin
+    result := self.info.h;
   end;
 
   function TGLFont.GetSpace (): Integer;

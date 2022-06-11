@@ -34,6 +34,7 @@ interface
   procedure r_Draw_InvertRect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
 
   procedure r_Draw_Text (const text: AnsiString; x, y: Integer; r, g, b, a: Byte; f: TGLFont);
+  procedure r_Draw_GetTextSize (const text: AnsiString; f: TGLFont; out w, h: Integer);
 
 implementation
 
@@ -268,6 +269,23 @@ implementation
       if t <> nil then
         r_Draw_Texture(t, xoff, y, t.width, t.height, false, r, g, b, a, false);
       Inc(xoff, f.GetWidth(ch) + f.GetSpace());
+    end;
+  end;
+
+  procedure r_Draw_GetTextSize (const text: AnsiString; f: TGLFont; out w, h: Integer);
+    var i, spc, len: Integer;
+  begin
+    w := 0;
+    h := f.GetMaxHeight();
+    len := Length(text);
+    if len > 0 then
+    begin
+      spc := f.GetSpace();
+      for i := 1 to len - 1 do
+        Inc(w, f.GetWidth(text[i]) + spc);
+      Inc(w, f.GetWidth(text[len]));
+      if spc < 0 then
+        Inc(w, spc)
     end;
   end;
 
