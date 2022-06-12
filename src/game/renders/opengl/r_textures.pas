@@ -779,6 +779,8 @@ implementation
     result := self.info.ch[c].w;
     if result = 0 then
       result := self.info.w;
+    if self.info.kern < 0 then
+      result := result + self.info.kern;
   end;
 
   function TGLFont.GetMaxWidth (): Integer;

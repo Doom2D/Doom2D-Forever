@@ -84,7 +84,7 @@ implementation
     e_log, utils,
     g_game, g_options, g_console, g_player, g_weapons, g_language,
     g_net,
-    r_draw, r_textures, r_fonts, r_common, r_map
+    r_draw, r_textures, r_fonts, r_common, r_console, r_map
   ;
 
   type
@@ -135,6 +135,7 @@ implementation
     hudkey[2] := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/KEYB');
     hudair := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/AIRBAR');
     hudjet := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/JETBAR');
+    r_Console_Load;
     r_Map_Load;
     {$IFDEF ENABLE_MENU}
       r_GUI_Load;
@@ -148,6 +149,7 @@ implementation
       r_GUI_Free;
     {$ENDIF}
     r_Map_Free;
+    r_Console_Free;
     hudjet.Free;
     hudair.Free;
     hudkey[0].Free;
@@ -193,17 +195,20 @@ implementation
       sys_EnableVSync(gVSync);
     {$ENDIF}
     r_Textures_Initialize;
+    r_Console_Initialize;
     r_Map_Initialize;
   end;
 
   procedure r_Render_Finalize;
   begin
     r_Map_Finalize;
+    r_Console_Finalize;
     r_Textures_Finalize;
   end;
 
   procedure r_Render_Update;
   begin
+    r_Console_Update;
     r_Map_Update;
   end;
 
@@ -403,7 +408,7 @@ implementation
       end;
     {$ENDIF}
 
-    // TODO draw console
+    r_Console_Draw(false);
 
     // TODO draw holmes interface
 

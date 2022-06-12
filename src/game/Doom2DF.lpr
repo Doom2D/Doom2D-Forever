@@ -204,6 +204,7 @@ uses
     r_map in 'renders/opengl/r_map.pas',
     r_fonts in 'renders/opengl/r_fonts.pas',
     r_common in 'renders/opengl/r_common.pas',
+    r_console in 'renders/opengl/r_console.pas',
     r_gui in 'renders/opengl/r_gui.pas',
   {$ELSE}
     {$FATAL render driver not selected}

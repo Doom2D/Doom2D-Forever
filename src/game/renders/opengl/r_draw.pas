@@ -259,16 +259,16 @@ implementation
   end;
 
   procedure r_Draw_Text (const text: AnsiString; x, y: Integer; r, g, b, a: Byte; f: TGLFont);
-    var i, xoff: Integer; t: TGLTexture; ch: AnsiChar;
+    var i, xoff, spc: Integer; t: TGLTexture; ch: AnsiChar;
   begin
-    xoff := x;
+    xoff := x; spc := MAX(0, f.GetSpace());
     for i := 1 to Length(text) do
     begin
       ch := text[i];
       t := f.GetChar(ch);
       if t <> nil then
         r_Draw_Texture(t, xoff, y, t.width, t.height, false, r, g, b, a, false);
-      Inc(xoff, f.GetWidth(ch) + f.GetSpace());
+      Inc(xoff, f.GetWidth(ch) + spc);
     end;
   end;
 
@@ -280,12 +280,10 @@ implementation
     len := Length(text);
     if len > 0 then
     begin
-      spc := f.GetSpace();
+      spc := MAX(0, f.GetSpace());
       for i := 1 to len - 1 do
         Inc(w, f.GetWidth(text[i]) + spc);
       Inc(w, f.GetWidth(text[len]));
-      if spc < 0 then
-        Inc(w, spc)
     end;
   end;
 
