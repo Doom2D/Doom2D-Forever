@@ -17,7 +17,7 @@ unit r_map;
 
 interface
 
-  uses g_base, g_player; // TRectWH, TPlayer
+  uses g_base, g_player, g_playermodel; // TRectWH, TPlayer, TPlayerModel
 
   procedure r_Map_Initialize;
   procedure r_Map_Finalize;
@@ -34,6 +34,10 @@ interface
 {$IFDEF ENABLE_GIBS}
   function r_Map_GetGibSize (m, i: Integer): TRectWH;
 {$ENDIF}
+{$IFDEF ENABLE_MENU}
+  procedure r_Map_DrawPlayerModel (pm: TPlayerModel; x, y: Integer; alpha: Byte);
+{$ENDIF}
+
 
   procedure r_Map_Update;
 
@@ -51,7 +55,7 @@ implementation
     e_log,
     binheap, MAPDEF, utils,
     g_options, g_textures, g_basic, g_phys,
-    g_game, g_map, g_panel, g_items, g_monsters, g_playermodel, g_weapons,
+    g_game, g_map, g_panel, g_items, g_monsters, g_weapons,
     {$IFDEF ENABLE_CORPSES}
       g_corpses,
     {$ENDIF}
@@ -1221,7 +1225,6 @@ implementation
   end;
 
   procedure r_Map_DrawScreenEffects (x, y, w, h: Integer; p: TPlayer);
-    var i: Integer;
   begin
     if p <> nil then
     begin

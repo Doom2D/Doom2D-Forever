@@ -74,6 +74,9 @@ implementation
     {$ELSE}
       GL, GLEXT,
     {$ENDIF}
+    {$IFDEF ENABLE_MENU}
+      r_gui,
+    {$ENDIF}
     {$IFDEF ENABLE_SYSTEM}
       g_system,
     {$ENDIF}
@@ -81,7 +84,7 @@ implementation
     e_log, utils,
     g_game, g_options, g_console, g_player, g_weapons, g_language,
     g_net,
-    r_draw, r_textures, r_fonts, r_map
+    r_draw, r_textures, r_fonts, r_common, r_map
   ;
 
   type
@@ -93,10 +96,6 @@ implementation
 
   var
     menuBG: TGLTexture;
-
-    stdfont: TGLFont;
-    smallfont: TGLFont;
-    menufont: TGLFont;
 
     hud, hudbg: TGLTexture;
     hudhp: array [Boolean] of TGLTexture;
@@ -116,27 +115,14 @@ implementation
     r_Map_FreeTextures;
   end;
 
-  function r_Render_LoadFont (const name: AnsiString): TGLFont;
-    var info: TFontInfo; skiphack: Integer;
-  begin
-    result := nil;
-    if name = 'STD' then skiphack := 144 else skiphack := 0;
-    if r_Font_LoadInfoFromFile(GameWad + ':FONTS/' + name + 'TXT', info) then
-      result := r_Textures_LoadFontFromFile(GameWad + ':FONTS/' + name + 'FONT', info, skiphack, true);
-    if result = nil then
-      e_logwritefln('failed to load font %s', [name]);
-  end;
-
   procedure r_Render_Load;
     const
       WeapName: array [0..WP_LAST] of AnsiString = ('KASTET', 'SAW', 'PISTOL', 'SHOTGUN1', 'SHOTGUN2', 'MGUN', 'RLAUNCHER', 'PGUN', 'BFG', 'SPULEMET', 'FLAMETHROWER');
     var
       i: Integer;
   begin
+    r_Common_Load;
     menuBG := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/TITLE');
-    stdfont := r_Render_LoadFont('STD');
-    smallfont := r_Render_LoadFont('SMALL');
-    menufont := r_Render_LoadFont('MENU');
     hud :=  r_Textures_LoadFromFile(GameWAD + ':TEXTURES/HUD');
     hudbg :=  r_Textures_LoadFromFile(GameWAD + ':TEXTURES/HUDBG');
     hudhp[false] := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/MED2');
@@ -150,11 +136,17 @@ implementation
     hudair := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/AIRBAR');
     hudjet := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/JETBAR');
     r_Map_Load;
+    {$IFDEF ENABLE_MENU}
+      r_GUI_Load;
+    {$ENDIF}
   end;
 
   procedure r_Render_Free;
     var i: Integer;
   begin
+    {$IFDEF ENABLE_MENU}
+      r_GUI_Free;
+    {$ENDIF}
     r_Map_Free;
     hudjet.Free;
     hudair.Free;
@@ -172,10 +164,8 @@ implementation
     hudhp[false].Free;
     hudbg.Free;
     hud.Free;
-    menufont.Free;
-    smallfont.Free;
-    stdfont.Free;
     menuBG.Free;
+    r_Common_Free;
   end;
 
 {$IFDEF ENABLE_SYSTEM}
@@ -407,7 +397,9 @@ implementation
     {$IFDEF ENABLE_MENU}
       if g_ActiveWindow <> nil then
       begin
-        // TODO draw menu widgets
+        if gGameOn then
+          r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
+        r_GUI_Draw_Window(g_ActiveWindow);
       end;
     {$ENDIF}
 
@@ -470,22 +462,22 @@ implementation
 {$IFDEF ENABLE_MENU}
   procedure r_Render_GetControlSize (ctrl: TGUIControl; out w, h: Integer);
   begin
-    w := 0; h := 0;
+    r_GUI_GetSize(ctrl, w, h);
   end;
 
   procedure r_Render_GetLogoSize (out w, h: Integer);
   begin
-    w := 0; h := 0;
+    r_GUI_GetLogoSize(w, h);
   end;
 
   procedure r_Render_GetMaxFontSize (BigFont: Boolean; out w, h: Integer);
   begin
-    w := 0; h := 0;
+    r_GUI_GetMaxFontSize(BigFont, w, h);
   end;
 
   procedure r_Render_GetStringSize (BigFont: Boolean; str: String; out w, h: Integer);
   begin
-    w := 0; h := 0;
+    r_GUI_GetStringSize(BigFont, str, w, h);
   end;
 {$ENDIF}
 
