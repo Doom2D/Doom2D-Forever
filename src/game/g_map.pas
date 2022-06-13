@@ -959,11 +959,10 @@ end;
   function CreateTexture (RecName: AnsiString; Map: String; log: Boolean): Integer;
     var
       HName: AnsiString;
-      WAD, WADz: TWADFile;
+      WAD: TWADFile;
       WADName, ResName: String;
-      ResData, ReszData: Pointer;
-      ResLen, ReszLen: Integer;
-      cfg: TConfig;
+      ResData: Pointer;
+      ResLen: Integer;
       id: Integer;
   begin
     Result := -1;
@@ -1000,40 +999,13 @@ end;
           begin
             if WAD.GetResource(ResName, ResData, ResLen, log) then
             begin
-              if IsWadData(ResData, ResLen) then
-              begin
-                WADz := TWADFile.Create();
-                if WADz.ReadMemory(ResData, ResLen) then
-                begin
-                  if WADz.GetResource('TEXT/ANIM', ReszData, ReszLen) then
-                  begin
-                    cfg := TConfig.CreateMem(ReszData, ReszLen);
-                    if cfg <> nil then
-                    begin
-                      SetLength(Textures, Length(Textures) + 1);
-                      Textures[High(Textures)].TextureName := RecName;
-                      Textures[High(Textures)].FullName := WadName + ':' + ResName;
-                      Textures[High(Textures)].FramesCount := cfg.ReadInt('', 'framecount', 0);
-                      Textures[High(Textures)].Speed := cfg.ReadInt('', 'waitcount', 0);
-                      Result := High(Textures);
-                      TextNameHash.put(HName, result);
-                      cfg.Free;
-                    end;
-                    FreeMem(ReszData);
-                  end
-                end;
-                WADz.Free;
-              end
-              else
-              begin
-                SetLength(Textures, Length(Textures) + 1);
-                Textures[High(Textures)].FullName := WADName + ':' + ResName;
-                Textures[High(Textures)].TextureName := RecName;
-                Result := High(Textures);
-                TextNameHash.put(HName, result);
-              end;
-              FreeMem(ResData);
-            end
+              SetLength(Textures, Length(Textures) + 1);
+              Textures[High(Textures)].FullName := WADName + ':' + ResName;
+              Textures[High(Textures)].TextureName := RecName;
+              Result := High(Textures);
+              TextNameHash.put(HName, result);
+            end;
+            FreeMem(ResData);
           end;
           WAD.Free;
         end
@@ -2601,7 +2573,7 @@ begin
   tp := g_Map_PanelByGUID(pguid);
   if (tp = nil) then exit;
   tp.NextTexture(AnimLoop);
-  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelTexture(pguid, AnimLoop);
+  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelTexture(pguid);
 end;
 
 

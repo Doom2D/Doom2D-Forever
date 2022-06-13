@@ -238,6 +238,7 @@ implementation
     RenTextures: array of record
       spec: LongInt;
       tex: TGLMultiTexture;
+      anim: TAnimInfo;
     end;
     Items: array [0..ITEM_LAST] of record
       tex: TGLMultiTexture;
@@ -547,7 +548,8 @@ implementation
   end;
 
   procedure r_Map_LoadTextures;
-    var i, n: Integer;
+    const DefaultAnimInfo: TAnimInfo = (loop: true; delay: 1; frames: 1; back: false);
+    var i, n: Integer; txt: TAnimTextInfo;
   begin
     if Textures <> nil then
     begin
@@ -555,6 +557,7 @@ implementation
       SetLength(RenTextures, n);
       for i := 0 to n - 1 do
       begin
+        txt.anim := DefaultAnimInfo;
         RenTextures[i].tex := nil;
         case Textures[i].TextureName of
           TEXTURE_NAME_WATER: RenTextures[i].spec := TEXTURE_SPECIAL_WATER;
@@ -562,10 +565,13 @@ implementation
           TEXTURE_NAME_ACID2: RenTextures[i].spec := TEXTURE_SPECIAL_ACID2;
           else
             RenTextures[i].spec := 0;
-            RenTextures[i].tex := r_Textures_LoadMultiFromFile(Textures[i].FullName);
+            e_LogWritefln('r_Map_LoadTextures: begin load texture: %s', [Textures[i].FullName]);
+            RenTextures[i].tex := r_Textures_LoadMultiTextFromFile(Textures[i].FullName, txt);
+            e_LogWritefln('r_Map_LoadTextures: end load texture: %s', [Textures[i].FullName]);
             if RenTextures[i].tex = nil then
               e_LogWritefln('r_Map_LoadTextures: failed to load texture: %s', [Textures[i].FullName]);
         end;
+        RenTextures[i].anim := txt.anim;
       end;
     end;
     if gMapInfo.SkyFullName <> '' then
@@ -588,22 +594,29 @@ implementation
   end;
 
   procedure r_Map_DrawPanel (p: TPanel);
-    var Texture: Integer; t: TGLMultiTexture;
+    var Texture: Integer; t: TGLMultiTexture; tex: TGLTexture; count, frame: LongInt; a: TAnimInfo;
   begin
     ASSERT(p <> nil);
     if p.FCurTexture >= 0 then
     begin
       Texture := p.TextureIDs[p.FCurTexture].Texture;
       t := RenTextures[Texture].tex;
-
       if (RenTextures[Texture].spec = 0) or (t <> nil) then
       begin
-        if t = nil then
-          r_Draw_TextureRepeat(nil, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255 - p.alpha, p.blending)
-        else if p.TextureIDs[p.FCurTexture].AnTex.IsValid() then
-          r_Draw_MultiTextureRepeat(t, p.TextureIDs[p.FCurTexture].AnTex, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255 - p.alpha, p.blending)
+        count := 0; frame := 0;
+        if p.AnimTime <= gTime then
+        begin
+          a := RenTextures[Texture].anim;
+          a.loop := p.AnimLoop;
+          g_Anim_GetFrameByTime(a, (gTime - p.AnimTime) DIV GAME_TICK, count, frame);
+        end;
+        if t <> nil then
+        begin
+          tex := t.GetTexture(frame);
+          r_Draw_TextureRepeat(tex, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255 - p.alpha, p.blending);
+        end
         else
-          r_Draw_TextureRepeat(t.GetTexture(0), p.x, p.y, p.width, p.height, false, 255, 255, 255, 255 - p.alpha, p.blending)
+          r_Draw_TextureRepeat(nil, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255, false);
       end;
 
       if t = nil then

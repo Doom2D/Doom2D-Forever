@@ -23,7 +23,7 @@ interface
     {$ELSE}
       GL, GLEXT,
     {$ENDIF}
-    g_base,  // TRectHW
+    g_base, g_animations,  // TRectHW, TAnimInfo
     utils,
     r_atlas, r_fonts
   ;
@@ -116,12 +116,20 @@ interface
         function GetSpace (): Integer;
     end;
 
+    TAnimTextInfo = record
+      name: AnsiString;
+      w, h: Integer;
+      anim: TAnimInfo;
+    end;
+
   procedure r_Textures_Initialize;
   procedure r_Textures_Finalize;
 
   function r_Textures_LoadFromFile (const filename: AnsiString; log: Boolean = True): TGLTexture;
   function r_Textures_LoadMultiFromFile (const filename: AnsiString; log: Boolean = True): TGLMultiTexture;
   function r_Textures_LoadMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; backanim: Boolean; log: Boolean = True): TGLMultiTexture;
+  function r_Textures_LoadMultiTextFromFile (const filename: AnsiString; var txt: TAnimTextInfo; log: Boolean = True): TGLMultiTexture;
+
   function r_Textures_LoadStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
 
   function r_Textures_LoadFontFromFile (const filename: AnsiString; constref f: TFontInfo; skipch: Integer; log: Boolean = true): TGLFont;
@@ -494,43 +502,57 @@ implementation
     end;
   end;
 
-  function r_Textures_LoadMultiFromWad (wad: TWADFile): TGLMultiTexture;
-    var data: Pointer; size: LongInt; TexRes: AnsiString; w, h, c: Integer; b: Boolean; cfg: TConfig; img: TImageData;
+  function r_Textures_LoadTextFromMemory (data: Pointer; size: LongInt; var txt: TAnimTextInfo): Boolean;
+    var cfg: TConfig;
+  begin
+    result := false;
+    if data <> nil then
+    begin
+      cfg := TConfig.CreateMem(data, size);
+      if cfg <> nil then
+      begin
+        txt.name := cfg.ReadStr('', 'resource', '');
+        txt.w := MAX(0, cfg.ReadInt('', 'framewidth', 0));
+        txt.h := MAX(0, cfg.ReadInt('', 'frameheight', 0));
+        txt.anim.loop := true;
+        txt.anim.delay := MAX(0, cfg.ReadInt('', 'waitcount', 0));
+        txt.anim.frames := MAX(0, cfg.ReadInt('', 'framecount', 0));
+        txt.anim.back := cfg.ReadBool('', 'backanim', false);
+        cfg.Free;
+        result := (txt.name <> '') and (txt.w > 0) and (txt.h > 0) and (txt.anim.delay > 0) and (txt.anim.frames > 0);
+      end;
+    end;
+  end;
+
+  function r_Textures_LoadMultiFromWad (wad: TWADFile; var txt: TAnimTextInfo): TGLMultiTexture;
+    var data: Pointer; size: LongInt; img: TImageData;
   begin
     ASSERT(wad <> nil);
     result := nil;
     if wad.GetResource('TEXT/ANIM', data, size) then
     begin
-      cfg := TConfig.CreateMem(data, size);
-      FreeMem(data);
-      if cfg <> nil then
+      if r_Textures_LoadTextFromMemory(data, size, txt) then
       begin
-        TexRes := cfg.ReadStr('', 'resource', '');
-        w := cfg.ReadInt('', 'framewidth', 0);
-        h := cfg.ReadInt('', 'frameheight', 0);
-        c := cfg.ReadInt('', 'framecount', 0);
-        b := cfg.ReadBool('', 'backanim', false);
-        if (TexRes <> '') and (w > 0) and (h > 0) and (c > 0) then
+        FreeMem(data);
+        if wad.GetResource('TEXTURES/' + txt.name, data, size) then
         begin
-          if wad.GetResource('TEXTURES/' + TexRes, data, size) then
-          begin
-            InitImage(img);
-            try
-              if LoadImageFromMemory(data, size, img) then
-                if r_Textures_FixImageData(img) then
-                  result := r_Textures_LoadMultiFromImageAndInfo(img, w, h, c, b)
-            finally
-              FreeMem(data);
-            end;
-            FreeImage(img);
-          end
+          InitImage(img);
+          try
+            if LoadImageFromMemory(data, size, img) then
+              if r_Textures_FixImageData(img) then
+                result := r_Textures_LoadMultiFromImageAndInfo(img, txt.w, txt.h, txt.anim.frames, txt.anim.back);
+          finally
+            FreeMem(data);
+          end;
+          FreeImage(img);
         end;
-        cfg.Free;
       end
+      else
+        FreeMem(data);
     end;
   end;
 
-  function r_Textures_LoadMultiFromMemory (data: Pointer; size: LongInt): TGLMultiTexture;
+  function r_Textures_LoadMultiFromMemory (data: Pointer; size: LongInt; var txt: TAnimTextInfo): TGLMultiTexture;
     var wad: TWADFile; t: TGLTexture; m: TGLMultiTexture;
   begin
     result := nil;
@@ -543,6 +565,13 @@ implementation
         SetLength(m.mTexture, 1);
         m.mTexture[0] := t;
         m.mBackanim := false;
+        txt.name := '';
+        txt.w := m.width;
+        txt.h := m.height;
+        txt.anim.loop := true;
+        txt.anim.delay := 1;
+        txt.anim.frames := 1;
+        txt.anim.back := false;
         result := m;
       end
       else if IsWadData(data, size) then
@@ -550,15 +579,15 @@ implementation
         wad := TWADFile.Create();
         if wad.ReadMemory(data, size) then
         begin
-          result := r_Textures_LoadMultiFromWad(wad);
+          result := r_Textures_LoadMultiFromWad(wad, txt);
           wad.Free;
         end
       end
     end
   end;
 
-  function r_Textures_LoadMultiFromFile (const filename: AnsiString; log: Boolean = True): TGLMultiTexture;
-    var wad: TWADFile; wadName, resName: AnsiString; data: Pointer; size: Integer; t: TGLTexture;
+  function r_Textures_LoadMultiTextFromFile (const filename: AnsiString; var txt: TAnimTextInfo; log: Boolean = True): TGLMultiTexture;
+    var wad: TWADFile; wadName, resName: AnsiString; data: Pointer; size: Integer;
   begin
     result := nil;
     wadName := g_ExtractWadName(filename);
@@ -568,11 +597,17 @@ implementation
       resName := g_ExtractFilePathName(filename);
       if wad.GetResource(resName, data, size, log) then
       begin
-        result := r_Textures_LoadMultiFromMemory(data, size);
+        result := r_Textures_LoadMultiFromMemory(data, size, txt);
         FreeMem(data);
       end;
       wad.Free
     end
+  end;
+
+  function r_Textures_LoadMultiFromFile (const filename: AnsiString; log: Boolean = True): TGLMultiTexture;
+    var txt: TAnimTextInfo;
+  begin
+    result := r_Textures_LoadMultiTextFromFile(filename, txt, log);
   end;
 
   function r_Textures_LoadMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; backanim: Boolean; log: Boolean = True): TGLMultiTexture;

@@ -26,7 +26,6 @@ type
   TLevelTexture = record
     TextureName: AnsiString; // as stored in wad
     FullName: AnsiString; // full path to texture // !!! merge it with TextureName
-    framesCount, speed: Byte;
   end;
 
   TLevelTextureArray = array of TLevelTexture;
@@ -37,7 +36,6 @@ type
 
   ATextureID = array of record
     Texture: Cardinal; // Textures[Texture]
-    AnTex: TAnimState;
   end;
 
   PPanel = ^TPanel;
@@ -49,6 +47,8 @@ type
     FAlpha:           Byte;
     FBlending:        Boolean;
     FTextureIDs:      ATextureID;
+    FAnimTime:        LongWord;
+    FAnimLoop:        Boolean;
     mMovingSpeed: TDFPoint;
     mMovingStart: TDFPoint;
     mMovingEnd: TDFPoint;
@@ -96,9 +96,7 @@ type
     procedure setSizeEndY (v: Integer); inline;
 
   public
-    FCurTexture:      Integer; // Номер текущей текстуры
-    FCurFrame:        Integer;
-    FCurFrameCount:   Byte;
+    FCurTexture:      Integer; // РќРѕРјРµСЂ С‚РµРєСѓС‰РµР№ С‚РµРєСЃС‚СѓСЂС‹
     FX, FY:           Integer;
     FOldX, FOldY:     Integer;
     FWidth, FHeight:  Word;
@@ -123,7 +121,7 @@ type
     destructor  Destroy(); override;
 
     procedure   Update();
-    procedure   SetFrame(Frame: Integer; Count: Byte);
+    procedure   SetFrame(StartTime: LongWord);
     procedure   NextTexture(AnimLoop: Byte = 0);
     procedure   SetTexture(ID: Integer; AnimLoop: Byte = 0);
     function    GetTextureID(): Cardinal;
@@ -196,10 +194,11 @@ type
     property isGLift: Boolean read getIsGLift;
     property isGBlockMon: Boolean read getIsGBlockMon;
 
-    (* private state *)
     property Alpha: Byte read FAlpha;
     property Blending: Boolean read FBlending;
     property TextureIDs: ATextureID read FTextureIDs;
+    property AnimTime: LongWord read FAnimTime;
+    property AnimLoop: Boolean read FAnimLoop;
 
   public
     property movingSpeed: TDFPoint read mMovingSpeed write mMovingSpeed;
@@ -282,8 +281,6 @@ begin
   FOldH := Height;
   FAlpha := 0;
   FBlending := False;
-  FCurFrame := 0;
-  FCurFrameCount := 0;
   LastAnimLoop := 0;
 
   mapId := PanelRec.id;
@@ -304,7 +301,7 @@ begin
 
   mNeedSend := false;
 
-// Тип панели:
+// РўРёРї РїР°РЅРµР»Рё:
   PanelType := PanelRec.PanelType;
   Enabled := True;
   Door := False;
@@ -320,14 +317,14 @@ begin
     PANEL_LIFTRIGHT: LiftType := LIFTTYPE_RIGHT;
   end;
 
-// Невидимая:
+// РќРµРІРёРґРёРјР°СЏ:
   if ByteBool(PanelRec.Flags and PANEL_FLAG_HIDE) then
   begin
     SetLength(FTextureIDs, 0);
     FCurTexture := -1;
     Exit;
   end;
-// Панели, не использующие текстуры:
+// РџР°РЅРµР»Рё, РЅРµ РёСЃРїРѕР»СЊР·СѓСЋС‰РёРµ С‚РµРєСЃС‚СѓСЂС‹:
   if ByteBool(PanelType and
     (PANEL_LIFTUP or
      PANEL_LIFTDOWN or
@@ -340,7 +337,7 @@ begin
     Exit;
   end;
 
-// Если это жидкость без текстуры - спецтекстуру:
+// Р•СЃР»Рё СЌС‚Рѕ Р¶РёРґРєРѕСЃС‚СЊ Р±РµР· С‚РµРєСЃС‚СѓСЂС‹ - СЃРїРµС†С‚РµРєСЃС‚СѓСЂСѓ:
   if WordBool(PanelType and (PANEL_WATER or PANEL_ACID1 or PANEL_ACID2)) and
      (not ByteBool(PanelRec.Flags and PANEL_FLAG_WATERTEXTURES)) then
   begin
@@ -364,22 +361,19 @@ begin
     else
       FCurTexture := CurTex;
 
-  for i := 0 to Length(FTextureIDs)-1 do
-  begin
+  for i := 0 to Length(FTextureIDs) - 1 do
     FTextureIDs[i].Texture := AddTextures[i].Texture;
-    if Textures[AddTextures[i].Texture].FramesCount > 0 then
-      FTextureIDs[i].AnTex := TAnimState.Create(True, Textures[AddTextures[i].Texture].Speed, Textures[AddTextures[i].Texture].FramesCount)
-    else
-      FTextureIDs[i].AnTex.Invalidate;
-  end;
 
-// Текстур несколько - нужно сохранять текущую:
+  FAnimTime := gTime;
+  FAnimLoop := true;
+
+// РўРµРєСЃС‚СѓСЂ РЅРµСЃРєРѕР»СЊРєРѕ - РЅСѓР¶РЅРѕ СЃРѕС…СЂР°РЅСЏС‚СЊ С‚РµРєСѓС‰СѓСЋ:
   //if Length(FTextureIDs) > 1 then SaveIt := True;
 
   if (PanelRec.TextureRec = nil) then tnum := -1 else tnum := PanelRec.tagInt;
   if (tnum < 0) then tnum := Length(Textures);
 
-// Если не спецтекстура, то задаем размеры:
+// Р•СЃР»Рё РЅРµ СЃРїРµС†С‚РµРєСЃС‚СѓСЂР°, С‚Рѕ Р·Р°РґР°РµРј СЂР°Р·РјРµСЂС‹:
   if ({PanelRec.TextureNum}tnum > High(Textures)) then
   begin
     e_WriteLog(Format('WTF?! tnum is out of limits! (%d : %d)', [tnum, High(Textures)]), TMsgType.Warning);
@@ -604,13 +598,6 @@ var
   actSizeTrig: Boolean;
 begin
   if (not Enabled) or (Width < 1) or (Height < 1) then exit;
-
-  if (FCurTexture >= 0) and (FTextureIDs[FCurTexture].AnTex.IsValid()) and (FAlpha < 255) then
-  begin
-    FTextureIDs[FCurTexture].AnTex.Update();
-    FCurFrame := FTextureIDs[FCurTexture].AnTex.CurrentFrame;
-    FCurFrameCount := FTextureIDs[FCurTexture].AnTex.CurrentCounter;
-  end;
 
   if not g_dbgpan_mplat_active then exit;
 
@@ -867,34 +854,21 @@ begin
   end;
 end;
 
-
-procedure TPanel.SetFrame(Frame: Integer; Count: Byte);
-
-  function ClampInt(X, A, B: Integer): Integer;
+  procedure TPanel.SetFrame (StartTime: LongWord);
   begin
-    Result := X;
-    if X < A then Result := A else if X > B then Result := B;
+    if Enabled and (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (FAlpha < 255) then
+      FAnimTime := StartTime;
   end;
-
-begin
-  if Enabled and (FCurTexture >= 0) and (FTextureIDs[FCurTexture].AnTex.IsValid()) and (Width > 0) and (Height > 0) and (FAlpha < 255) then
-  begin
-    FCurFrame := ClampInt(Frame, 0, FTextureIDs[FCurTexture].AnTex.TotalFrames - 1);
-    FCurFrameCount := Count;
-    FTextureIDs[FCurTexture].AnTex.CurrentFrame := FCurFrame;
-    FTextureIDs[FCurTexture].AnTex.CurrentCounter := FCurFrameCount;
-  end;
-end;
 
 procedure TPanel.NextTexture(AnimLoop: Byte = 0);
 begin
   Assert(FCurTexture >= -1, 'FCurTexture < -1');
 
-// Нет текстур:
+// РќРµС‚ С‚РµРєСЃС‚СѓСЂ:
   if Length(FTextureIDs) = 0 then
     FCurTexture := -1
   else
-  // Только одна текстура:
+  // РўРѕР»СЊРєРѕ РѕРґРЅР° С‚РµРєСЃС‚СѓСЂР°:
     if Length(FTextureIDs) = 1 then
       begin
         if FCurTexture = 0 then
@@ -903,23 +877,22 @@ begin
           FCurTexture := 0;
       end
     else
-    // Больше одной текстуры:
+    // Р‘РѕР»СЊС€Рµ РѕРґРЅРѕР№ С‚РµРєСЃС‚СѓСЂС‹:
       begin
-      // Следующая:
+      // РЎР»РµРґСѓСЋС‰Р°СЏ:
         Inc(FCurTexture);
-      // Следующей нет - возврат к началу:
+      // РЎР»РµРґСѓСЋС‰РµР№ РЅРµС‚ - РІРѕР·РІСЂР°С‚ Рє РЅР°С‡Р°Р»Сѓ:
         if FCurTexture >= Length(FTextureIDs) then
           FCurTexture := 0;
       end;
 
-// Переключились на видимую аним. текстуру:
-  if (FCurTexture >= 0) and FTextureIDs[FCurTexture].AnTex.IsValid() then
+  if FCurTexture >= 0 then
   begin
-    if AnimLoop = 1 then
-      FTextureIDs[FCurTexture].AnTex.Loop := True
-    else if AnimLoop = 2 then
-      FTextureIDs[FCurTexture].AnTex.Loop := False;
-    FTextureIDs[FCurTexture].AnTex.Reset();
+    case AnimLoop of
+      1: FAnimLoop := true;
+      2: FAnimLoop := false;
+    end;
+    FAnimTime := gTime;
   end;
 
   LastAnimLoop := AnimLoop;
@@ -930,14 +903,13 @@ begin
   if (ID >= -1) and (ID < Length(FTextureIDs)) then
     FCurTexture := ID;
 
-// Переключились на видимую аним. текстуру:
-  if (FCurTexture >= 0) and FTextureIDs[FCurTexture].AnTex.IsValid() then
+  if FCurTexture >= 0 then
   begin
-    if AnimLoop = 1 then
-      FTextureIDs[FCurTexture].AnTex.Loop := True
-    else if AnimLoop = 2 then
-      FTextureIDs[FCurTexture].AnTex.Loop := False;
-    FTextureIDs[FCurTexture].AnTex.Reset();
+    case AnimLoop of
+      1: FAnimLoop := true;
+      2: FAnimLoop := false;
+    end;
+    FAnimTime := gTime;
   end;
 
   LastAnimLoop := AnimLoop;
@@ -961,9 +933,8 @@ end;
 function TPanel.GetTextureCount(): Integer;
 begin
   Result := Length(FTextureIDs);
-  if Enabled and (FCurTexture >= 0) then
-    if (FTextureIDs[FCurTexture].AnTex.IsValid()) and (Width > 0) and (Height > 0) and (FAlpha < 255) then
-      Result := Result + 100;
+  if Enabled and (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (FAlpha < 255) then
+    Result := Result + 100; // ???
 end;
 
 function TPanel.CanChangeTexture(): Boolean;
@@ -975,30 +946,34 @@ const
   PAN_SAVE_VERSION = 1;
 
 procedure TPanel.SaveState (st: TStream);
-var
-  anim: Boolean;
+  var anim: Boolean; stub: TAnimState;
 begin
   if (st = nil) then exit;
 
-  // Сигнатура панели
+  // РЎРёРіРЅР°С‚СѓСЂР° РїР°РЅРµР»Рё
   utils.writeSign(st, 'PANL');
   utils.writeInt(st, Byte(PAN_SAVE_VERSION));
-  // Открыта/закрыта, если дверь
+  // РћС‚РєСЂС‹С‚Р°/Р·Р°РєСЂС‹С‚Р°, РµСЃР»Рё РґРІРµСЂСЊ
   utils.writeBool(st, FEnabled);
-  // Направление лифта, если лифт
+  // РќР°РїСЂР°РІР»РµРЅРёРµ Р»РёС„С‚Р°, РµСЃР»Рё Р»РёС„С‚
   utils.writeInt(st, Byte(FLiftType));
-  // Номер текущей текстуры
+  // РќРѕРјРµСЂ С‚РµРєСѓС‰РµР№ С‚РµРєСЃС‚СѓСЂС‹
   utils.writeInt(st, Integer(FCurTexture));
-  // Координаты и размер
+  // РљРѕРѕСЂРґРёРЅР°С‚С‹ Рё СЂР°Р·РјРµСЂ
   utils.writeInt(st, Integer(FX));
   utils.writeInt(st, Integer(FY));
   utils.writeInt(st, Word(FWidth));
   utils.writeInt(st, Word(FHeight));
-  // Анимирована ли текущая текстура
-  anim := (FCurTexture >= 0) and (FTextureIDs[FCurTexture].AnTex.IsValid());
+  // РђРЅРёРјРёСЂРѕРІР°РЅР° Р»Рё С‚РµРєСѓС‰Р°СЏ С‚РµРєСЃС‚СѓСЂР°
+  anim := FCurTexture >= 0;
   utils.writeBool(st, anim);
-  // Если да - сохраняем анимацию
-  if anim then FTextureIDs[FCurTexture].AnTex.SaveState(st, FAlpha, FBlending);
+  // Р•СЃР»Рё РґР° - СЃРѕС…СЂР°РЅСЏРµРј Р°РЅРёРјР°С†РёСЋ
+  if anim then
+  begin
+    stub := TAnimState.Create(FAnimLoop, 1, 1);
+    stub.SaveState(st, FAlpha, FBlending);
+    stub.Invalidate;
+  end;
 
   // moving platform state
   utils.writeInt(st, Integer(mMovingSpeed.X));
@@ -1022,19 +997,20 @@ end;
 
 
 procedure TPanel.LoadState (st: TStream);
+  var stub: TAnimState;
 begin
   if (st = nil) then exit;
 
-  // Сигнатура панели
+  // РЎРёРіРЅР°С‚СѓСЂР° РїР°РЅРµР»Рё
   if not utils.checkSign(st, 'PANL') then raise XStreamError.create('wrong panel signature');
   if (utils.readByte(st) <> PAN_SAVE_VERSION) then raise XStreamError.create('wrong panel version');
-  // Открыта/закрыта, если дверь
+  // РћС‚РєСЂС‹С‚Р°/Р·Р°РєСЂС‹С‚Р°, РµСЃР»Рё РґРІРµСЂСЊ
   FEnabled := utils.readBool(st);
-  // Направление лифта, если лифт
+  // РќР°РїСЂР°РІР»РµРЅРёРµ Р»РёС„С‚Р°, РµСЃР»Рё Р»РёС„С‚
   FLiftType := utils.readByte(st);
-  // Номер текущей текстуры
+  // РќРѕРјРµСЂ С‚РµРєСѓС‰РµР№ С‚РµРєСЃС‚СѓСЂС‹
   FCurTexture := utils.readLongInt(st);
-  // Координаты и размер
+  // РљРѕРѕСЂРґРёРЅР°С‚С‹ Рё СЂР°Р·РјРµСЂ
   FX := utils.readLongInt(st);
   FY := utils.readLongInt(st);
   FOldX := FX;
@@ -1043,12 +1019,14 @@ begin
   FHeight := utils.readWord(st);
   FOldW := FWidth;
   FOldH := FHeight;
-  // Анимированная ли текущая текстура
+  // РђРЅРёРјРёСЂРѕРІР°РЅРЅР°СЏ Р»Рё С‚РµРєСѓС‰Р°СЏ С‚РµРєСЃС‚СѓСЂР°
   if utils.readBool(st) then
   begin
-    // Если да - загружаем анимацию
-    Assert((FCurTexture >= 0) and (FTextureIDs[FCurTexture].AnTex.IsValid()), 'TPanel.LoadState: No animation object');
-    FTextureIDs[FCurTexture].AnTex.LoadState(st, FAlpha, FBlending);
+    // Р•СЃР»Рё РґР° - Р·Р°РіСЂСѓР¶Р°РµРј Р°РЅРёРјР°С†РёСЋ
+    Assert(FCurTexture >= 0, 'TPanel.LoadState: No animation object');
+    stub := TAnimState.Create(FAnimLoop, 1, 1);
+    stub.LoadState(st, FAlpha, FBlending);
+    stub.Invalidate;
   end;
 
   // moving platform state
