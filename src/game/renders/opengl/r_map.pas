@@ -177,35 +177,35 @@ implementation
     ShotAnim: array [0..WEAPON_LAST] of record
       name: AnsiString;
       w, h: Integer;
-      count: Integer;
+      anim: TAnimInfo;
     end = (
-      (name: '';            w: 0;  h: 0;  count: 0),  // 0  KASTET
-      (name: '';            w: 0;  h: 0;  count: 0),  // 1  SAW
-      (name: '';            w: 0;  h: 0;  count: 0),  // 2  PISTOL
-      (name: '';            w: 0;  h: 0;  count: 0),  // 3  SHOTGUN1
-      (name: '';            w: 0;  h: 0;  count: 0),  // 4  SHOTGUN2
-      (name: '';            w: 0;  h: 0;  count: 0),  // 5  CHAINGUN
-      (name: 'BROCKET';     w: 64; h: 32; count: 1),  // 6  ROCKETLAUNCHER
-      (name: 'BPLASMA';     w: 16; h: 16; count: 2),  // 7  PLASMA
-      (name: 'BBFG';        w: 64; h: 64; count: 2),  // 8  BFG
-      (name: '';            w: 0;  h: 0;  count: 0),  // 9  SUPERPULEMET
-      (name: 'FLAME';       w: 32; h: 32; count: 0{11}), // 10 FLAMETHROWER
-      (name: '';            w: 0;  h: 0;  count: 0),  // 11
-      (name: '';            w: 0;  h: 0;  count: 0),  // 12
-      (name: '';            w: 0;  h: 0;  count: 0),  // 13
-      (name: '';            w: 0;  h: 0;  count: 0),  // 14
-      (name: '';            w: 0;  h: 0;  count: 0),  // 15
-      (name: '';            w: 0;  h: 0;  count: 0),  // 16
-      (name: '';            w: 0;  h: 0;  count: 0),  // 17
-      (name: '';            w: 0;  h: 0;  count: 0),  // 18
-      (name: '';            w: 0;  h: 0;  count: 0),  // 19
-      (name: '';            w: 0;  h: 0;  count: 0),  // 20 ZOMPY_PISTOL
-      (name: 'BIMPFIRE';    w: 16; h: 16; count: 2),  // 21 IMP_FIRE
-      (name: 'BBSPFIRE';    w: 16; h: 16; count: 2),  // 22 BSP_FIRE
-      (name: 'BCACOFIRE';   w: 16; h: 16; count: 2),  // 23 CACO_FIRE
-      (name: 'BBARONFIRE';  w: 64; h: 16; count: 2),  // 24 BARON_FIRE
-      (name: 'BMANCUBFIRE'; w: 64; h: 32; count: 2),  // 25 MANCUB_FIRE
-      (name: 'BSKELFIRE';   w: 64; h: 64; count: 2)   // 26 SKEL_FIRE
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 0  KASTET
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 1  SAW
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 2  PISTOL
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 3  SHOTGUN1
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 4  SHOTGUN2
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 5  CHAINGUN
+      (name: 'BROCKET';     w: 64; h: 32; anim: (loop: true; delay: 1; frames: 1; back: false)),  // 6  ROCKETLAUNCHER
+      (name: 'BPLASMA';     w: 16; h: 16; anim: (loop: true; delay: 5; frames: 2; back: false)),  // 7  PLASMA
+      (name: 'BBFG';        w: 64; h: 64; anim: (loop: true; delay: 6; frames: 2; back: false)),  // 8  BFG
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 9  SUPERPULEMET
+      (name: 'FLAME';       w: 32; h: 32; anim: (loop: true; delay: 6; frames: 0{11}; back: false)), // 10 FLAMETHROWER
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 11
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 12
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 13
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 14
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 15
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 16
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 17
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 18
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 19
+      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 20 ZOMPY_PISTOL
+      (name: 'BIMPFIRE';    w: 16; h: 16; anim: (loop: true; delay: 4; frames: 2; back: false)),  // 21 IMP_FIRE
+      (name: 'BBSPFIRE';    w: 16; h: 16; anim: (loop: true; delay: 4; frames: 2; back: false)),  // 22 BSP_FIRE
+      (name: 'BCACOFIRE';   w: 16; h: 16; anim: (loop: true; delay: 4; frames: 2; back: false)),  // 23 CACO_FIRE
+      (name: 'BBARONFIRE';  w: 64; h: 16; anim: (loop: true; delay: 4; frames: 2; back: false)),  // 24 BARON_FIRE
+      (name: 'BMANCUBFIRE'; w: 64; h: 32; anim: (loop: true; delay: 4; frames: 2; back: false)),  // 25 MANCUB_FIRE
+      (name: 'BSKELFIRE';   w: 64; h: 64; anim: (loop: true; delay: 5; frames: 2; back: false))   // 26 SKEL_FIRE
     );
 
 {$IFDEF ENABLE_SHELLS}
@@ -260,9 +260,6 @@ implementation
 {$ENDIF}
     end;
 
-    StubShotAnim: TAnimState; // TODO remove this hack
-    FlagFrame: LongInt;
-
 {$IFDEF ENABLE_SHELLS}
     ShellTextures: array [0..SHELL_LAST] of TGLTexture;
 {$ENDIF}
@@ -278,6 +275,7 @@ implementation
     end = nil;
 {$ENDIF}
 
+    FlagFrame: LongInt;
     plist: TBinHeapPanelDraw = nil;
 
   class function TBinHeapPanelDrawCmp.less (const a, b: TPanel): Boolean; inline;
@@ -289,7 +287,6 @@ implementation
 
   procedure r_Map_Initialize;
   begin
-    StubShotAnim := TAnimState.Create(true, 1, 1);
     FlagFrame := 0;
     plist := TBinHeapPanelDraw.Create();
   end;
@@ -298,7 +295,6 @@ implementation
   begin
     plist.Free;
     FlagFrame := 0;
-    StubShotAnim.Invalidate;
   end;
 
   procedure r_Map_FreeModel (i: Integer);
@@ -447,8 +443,8 @@ implementation
     {$ENDIF}
     // --------- shots --------- //
     for i := 0 to WEAPON_LAST do
-      if ShotAnim[i].count > 0 then
-        ShotTextures[i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/' + ShotAnim[i].name, ShotAnim[i].w, ShotAnim[i].h, ShotAnim[i].count, false);
+      if ShotAnim[i].anim.frames > 0 then
+        ShotTextures[i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/' + ShotAnim[i].name, ShotAnim[i].w, ShotAnim[i].h, ShotAnim[i].anim.frames, ShotAnim[i].anim.back);
     // --------- flags --------- //
     FlagTextures[FLAG_NONE] := nil;
     FlagTextures[FLAG_RED]  := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGRED',  64, 64, 5, false);
@@ -1075,7 +1071,7 @@ implementation
 {$ENDIF}
 
   procedure r_Map_DrawShots (x, y, w, h: Integer);
-    var i, a, fX, fY, pX, pY, typ: Integer; tex: TGLMultiTexture; anim: ^TAnimState;
+    var i, a, fX, fY, pX, pY, typ: Integer; count, frame: LongInt; t: TGLMultiTexture; tex: TGLTexture;
   begin
     if Shots <> nil then
     begin
@@ -1084,8 +1080,8 @@ implementation
         typ := Shots[i].ShotType;
         if typ <> 0 then
         begin
-          tex := ShotTextures[typ];
-          if tex <> nil then
+          t := ShotTextures[typ];
+          if t <> nil then
           begin
             a := 0;
             case typ of
@@ -1095,9 +1091,9 @@ implementation
             Shots[i].Obj.Lerp(gLerpFactor, fX, fY);
             pX := Shots[i].Obj.Rect.Width div 2;
             pY := Shots[i].Obj.Rect.Height div 2;
-            // TODO fix this hack
-            if Shots[i].Animation.IsValid() then anim := @Shots[i].Animation else anim := @StubShotAnim;
-            r_Draw_MultiTextureRepeatRotate(tex, anim^, fX, fY, tex.width, tex.height, false, 255, 255, 255, 255, false, pX, pY, a);
+            g_Anim_GetFrameByTime(ShotAnim[typ].anim, (gTime - Shots[i].time) DIV GAME_TICK, count, frame);
+            tex := t.GetTexture(frame);
+            r_Draw_TextureRepeatRotate(tex, fX, fY, tex.width, tex.height, false, 255, 255, 255, 255, false, pX, pY, a);
           end;
         end;
       end;
