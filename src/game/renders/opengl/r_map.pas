@@ -221,6 +221,7 @@ implementation
 
     PunchAnim: TAnimInfo = (loop: false; delay: 1; frames: 4; back: false);
     FlagAnim: TAnimInfo = (loop: true; delay: 8; frames: 5; back: false);
+    VileFireAnim: TAnimInfo = (loop: true; delay:  2; frames: 8; back: false);
 
   type
     TBinHeapPanelDrawCmp = class
@@ -423,7 +424,7 @@ implementation
       for j := 0 to ANIM_LAST do
         for d := TDirection.D_LEFT to TDirection.D_RIGHT do
           r_Map_LoadMonsterAnim(i, j, d);
-    VileFire := r_Textures_LoadMultiFromFileAndInfo(GameWAD + ':TEXTURES/FIRE', 64, 128, 8, False, False);
+    VileFire := r_Textures_LoadMultiFromFileAndInfo(GameWAD + ':TEXTURES/FIRE', 64, 128, VileFireAnim.frames, VileFireAnim.back);
     // --------- player models --------- //
     if PlayerModelsArray <> nil then
     begin
@@ -689,12 +690,16 @@ implementation
   end;
 
   procedure r_Map_DrawMonsterAttack (constref mon: TMonster);
-    var o: TObj;
+    var o: TObj; count, frame: LongInt; tex: TGLTexture;
   begin
     if VileFire <> nil then
       if (mon.MonsterType = MONSTER_VILE) and (mon.MonsterState = MONSTATE_SHOOT) then
-        if mon.VileFireAnim.IsValid() and GetPos(mon.MonsterTargetUID, @o) then
-          r_Draw_MultiTextureRepeat(VileFire, mon.VileFireAnim, o.x + o.rect.x + (o.rect.width div 2) - VILEFIRE_DX, o.y + o.rect.y + o.rect.height - VILEFIRE_DY, VileFire.width, VileFire.height, False, 255, 255, 255, 255, false);
+        if (mon.VileFireTime <= gTime) and GetPos(mon.MonsterTargetUID, @o) then
+        begin
+          g_Anim_GetFrameByTime(VileFireAnim, (gTime - mon.VileFireTime) DIV GAME_TICK, count, frame);
+          tex := VileFire.GetTexture(frame);
+          r_Draw_TextureRepeat(tex, o.x + o.rect.x + (o.rect.width div 2) - VILEFIRE_DX, o.y + o.rect.y + o.rect.height - VILEFIRE_DY, tex.width, tex.height, False, 255, 255, 255, 255, false);
+        end;
   end;
 
   procedure r_Map_DrawMonster (constref mon: TMonster);

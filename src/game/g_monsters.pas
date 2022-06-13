@@ -93,7 +93,7 @@ type
     {$ENDIF}
     FFirePainTime: Integer;
     FFireAttacker: Word;
-    vilefire: TAnimState;
+    FVileFireTime: LongWord;
     mProxyId: Integer; // node in dyntree or -1
     mArrIdx: Integer; // in gMonsters
 
@@ -198,7 +198,7 @@ type
 
     property StartID: Integer read FStartID;
 
-    property VileFireAnim: TAnimState read vilefire;
+    property VileFireTime: LongWord read FVileFireTime;
     property DirAnim: ADirectedAnim read FAnim;
 
   published
@@ -1685,8 +1685,8 @@ begin
     FAnim[a, TDirection.D_RIGHT] := TAnimState.Create(ANIMTABLE[a].loop, MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a], MONSTER_ANIMTABLE[MonsterType].AnimCount[a]);
     FAnim[a, TDirection.D_LEFT] := TAnimState.Create(ANIMTABLE[a].loop, MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a], MONSTER_ANIMTABLE[MonsterType].AnimCount[a]);
   end;
-  if MonsterType = MONSTER_VILE then
-    vilefire := TAnimState.Create(True, 2, 8);
+
+  FVileFireTime := gTime;
 end;
 
 function TMonster.Damage(aDamage: Word; VelX, VelY: Integer; SpawnerUID: Word; t: Byte): Boolean;
@@ -1883,7 +1883,7 @@ begin
     FAnim[a, TDirection.D_RIGHT].Invalidate;
   end;
 
-  vilefire.Invalidate;
+  FVileFireTime := 0;
 
   if (mProxyId <> -1) then
   begin
@@ -2777,10 +2777,6 @@ _end:
       SetState(MONSTATE_GO);
     end;
 
-// Если есть анимация огня колдуна - пусть она идет:
-  if vilefire.IsValid() then
-    vilefire.Update();
-
 // Состояние - Умирает и текущая анимация проиграна:
   if (FState = MONSTATE_DIE) and
      (FAnim[FCurAnim, FDirection].IsValid()) and
@@ -3640,10 +3636,6 @@ _end:
       SetState(MONSTATE_GO);
     end;
 
-// Если есть анимация огня колдуна - пусть она идет:
-  if vilefire.IsValid() then
-    vilefire.Update();
-
 // Состояние - Умирает и текущая анимация проиграна:
   if (FState = MONSTATE_DIE) and
      (FAnim[FCurAnim, FDirection].IsValid()) and
@@ -4115,7 +4107,7 @@ begin
         ty := o^.Y+o^.Rect.Y;
         SetState(MONSTATE_SHOOT);
 
-        vilefire.Reset();
+        FVileFireTime := gTime;
 
         g_Sound_PlayExAt('SOUND_MONSTER_VILE_ATTACK', FObj.X, FObj.Y);
         g_Sound_PlayExAt('SOUND_FIRE', o^.X, o^.Y);
@@ -4178,6 +4170,7 @@ var
   i: Integer;
   b: Byte;
   anim: Boolean;
+  stub: TAnimState;
 begin
   assert(st <> nil);
 
@@ -4227,10 +4220,15 @@ begin
   // Объект монстра
   Obj_SaveState(st, @FObj);
   // Есть ли анимация огня колдуна
-  anim := (vilefire.IsValid());
+  anim := FMonsterType = MONSTER_VILE;
   utils.writeBool(st, anim);
   // Если есть - сохраняем:
-  if anim then vilefire.SaveState(st, 0, False);
+  if anim then
+  begin
+    stub := TAnimState.Create(true, 2, 8);
+    stub.SaveState(st, 0, False);
+    stub.Invalidate;
+  end;
   // Анимации
   for i := ANIM_SLEEP to ANIM_PAIN do
   begin
@@ -4253,6 +4251,7 @@ var
   i: Integer;
   b, alpha: Byte;
   anim, blending: Boolean;
+  stub: TAnimState;
 begin
   assert(st <> nil);
 
@@ -4311,9 +4310,11 @@ begin
   // Если есть - загружаем:
   if anim then
   begin
-    Assert(vilefire.IsValid(), 'TMonster.LoadState: no vilefire anim');
-    vilefire.LoadState(st, alpha, blending);
+    stub := TAnimState.Create(true, 2, 8);
+    stub.LoadState(st, alpha, blending);
+    stub.Invalidate;
   end;
+  FVileFireTime := gTime;
   // Анимации
   for i := ANIM_SLEEP to ANIM_PAIN do
   begin
