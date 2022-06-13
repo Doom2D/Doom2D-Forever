@@ -45,7 +45,7 @@ interface
 implementation
 
   uses
-    Math,
+    Math, SysUtils,
     {$IFDEF USE_GLES1}
       GLES11,
     {$ELSE}
@@ -67,7 +67,7 @@ implementation
     {$IFDEF ENABLE_GFX}
       g_gfx,
     {$ENDIF}
-    r_textures, r_draw
+    r_textures, r_draw, r_common
   ;
 
   const
@@ -219,6 +219,7 @@ implementation
     );
 {$ENDIF}
 
+    PunchAnim: TAnimInfo = (loop: false; delay: 1; frames: 4; back: false);
     FlagAnim: TAnimInfo = (loop: true; delay: 8; frames: 5; back: false);
 
   type
@@ -459,7 +460,7 @@ implementation
     for b := false to true do
     begin
       for i := 0 to 2 do
-        PunchTextures[b, i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':WEAPONS/' + PunchName[b] + WeapPos[i], 64, 64, 4, false);
+        PunchTextures[b, i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':WEAPONS/' + PunchName[b] + WeapPos[i], 64, 64, PunchAnim.frames, PunchAnim.back);
     end;
     // --------- other --------- //
     InvulPenta := r_Textures_LoadFromFile(GameWad + ':TEXTURES/PENTA');
@@ -815,7 +816,7 @@ implementation
   end;
 
   procedure r_Map_DrawPlayer (p, drawed: TPlayer);
-    var fX, fY, fSlope, ax, ay, w, h: Integer; b, flip: Boolean; t: TGLMultiTexture; alpha: Byte;
+    var fX, fY, fSlope, ax, ay, w, h: Integer; b, flip: Boolean; t: TGLMultiTexture; tex: TGLTexture; alpha: Byte; count, frame: LongInt;
   begin
     if p.alive then
     begin
@@ -825,21 +826,26 @@ implementation
       fSlope := nlerp(p.SlopeOld, p.obj.slopeUpLeft, gLerpFactor);
 
       (* punch effect *)
-      if p.PunchAnim.IsValid() and p.PunchAnim.enabled then
+      if p.PunchTime <= gTime then
       begin
-        b := R_BERSERK in p.FRulez;
-        if p.FKeys[KEY_DOWN].pressed then
-          t := PunchTextures[b, 2]
-        else if p.FKeys[KEY_UP].pressed then
-          t := PunchTextures[b, 1]
-        else
-          t := PunchTextures[b, 0];
-        if t <> nil then
+        g_Anim_GetFrameByTime(PunchAnim, (gTime - p.PunchTime) DIV GAME_TICK, count, frame);
+        if count < 1 then
         begin
-          flip := p.Direction = TDirection.D_LEFT;
-          ax := IfThen(flip, 15 - p.Obj.Rect.X, p.Obj.Rect.X - 15); // ???
-          ay := p.Obj.Rect.Y - 11;
-          r_Draw_MultiTextureRepeat(t, p.PunchAnim, fx + ax, fy + fSlope + ay, t.width, t.height, flip, 255, 255, 255, 255, false)
+          b := R_BERSERK in p.FRulez;
+          if p.FKeys[KEY_DOWN].pressed then
+            t := PunchTextures[b, 2]
+          else if p.FKeys[KEY_UP].pressed then
+            t := PunchTextures[b, 1]
+          else
+            t := PunchTextures[b, 0];
+          if t <> nil then
+          begin
+            flip := p.Direction = TDirection.D_LEFT;
+            ax := IfThen(flip, 15 - p.Obj.Rect.X, p.Obj.Rect.X - 15); // ???
+            ay := p.Obj.Rect.Y - 11;
+            tex := t.GetTexture(frame);
+            r_Draw_TextureRepeat(tex, fx + ax, fy + fSlope + ay, tex.width, tex.height, flip, 255, 255, 255, 255, false)
+          end;
         end;
       end;
 

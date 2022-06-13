@@ -21,7 +21,7 @@ interface
 uses
   SysUtils, Classes,
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-  g_base, g_playermodel, g_basic, g_animations,
+  g_base, g_playermodel, g_basic,
   g_weapons, g_phys, g_sound, g_saveload, MAPDEF,
   g_panel;
 
@@ -185,7 +185,7 @@ type
     FSavedStateNum:   Integer;
 
     FModel:     TPlayerModel;
-    FPunchAnim: TAnimState;
+    FPunchTime: LongWord;
     FActionPrior:    Byte;
     FActionAnim:     Byte;
     FActionForce:    Boolean;
@@ -414,7 +414,7 @@ type
     property    Berserk: Integer read FBerserk;
     property    Pain: Integer read FPain;
     property    Pickup: Integer read FPickup;
-    property    PunchAnim: TAnimState read FPunchAnim write FPunchAnim;
+    property    PunchTime: LongWord read FPunchTime;
     property    SpawnInvul: Integer read FSpawnInvul;
     property    Ghost: Boolean read FGhost;
 
@@ -1644,8 +1644,7 @@ begin
   FNetTime := 0;
 
   FWaitForFirstSpawn := false;
-  FPunchAnim := TAnimState.Create(False, 1, 4);
-  FPunchAnim.Disable;
+  FPunchTime := 0;
 
   resetWeaponQueue();
 end;
@@ -1799,15 +1798,14 @@ begin
   FJetSoundOn.Free();
   FJetSoundOff.Free();
   FModel.Free();
-  FPunchAnim.Invalidate;
+  FPunchTime := 0;
 
   inherited;
 end;
 
 procedure TPlayer.DoPunch();
 begin
-  FPunchAnim.Reset;
-  FPunchAnim.Enable;
+  FPunchTime := gTime;
 end;
 
 procedure TPlayer.Fire();
@@ -3868,11 +3866,6 @@ begin
       FPing := 0;
       FLoss := 0;
     end;
-
-  if FAlive then
-    FPunchAnim.Update;
-  if FPunchAnim.played then
-    FPunchAnim.Disable;
 
   if FAlive and (gFly or FJetpack) then
     FlySmoke();
