@@ -20,9 +20,17 @@ interface
 
 uses
   SysUtils, Classes,
-  MAPDEF, g_textures, xdynrec;
+  MAPDEF, g_animations, xdynrec;
 
 type
+  TLevelTexture = record
+    TextureName: AnsiString; // as stored in wad
+    FullName: AnsiString; // full path to texture // !!! merge it with TextureName
+    framesCount, speed: Byte;
+  end;
+
+  TLevelTextureArray = array of TLevelTexture;
+
   TAddTextureArray = array of record
     Texture: Cardinal; // Textures[Texture]
   end;

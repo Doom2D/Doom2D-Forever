@@ -17,7 +17,7 @@ unit r_animations;
 
 interface
 
-  uses g_base, g_textures, MAPDEF, Imaging; // TMirrorType, TAnimationState, TDFPoint, TDynImageDataArray
+  uses g_base, g_animations, MAPDEF, Imaging; // TMirrorType, TAnimationState, TDFPoint, TDynImageDataArray
 
   procedure r_AnimState_Draw (FID: DWORD; const t: TAnimState; x, y: Integer; alpha: Byte; mirror: TMirrorType; blending: Boolean);
   procedure r_AnimState_DrawEx (FID: DWORD; const t: TAnimState; x, y: Integer; alpha: Byte; mirror: TMirrorType; blending: Boolean; rpoint: TDFPoint; angle: SmallInt);

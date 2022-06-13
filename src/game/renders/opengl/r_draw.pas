@@ -18,7 +18,7 @@ unit r_draw;
 interface
 
   uses
-    g_textures,
+    g_animations,
     r_textures
   ;
 

@@ -38,7 +38,6 @@ interface
   procedure r_Map_DrawPlayerModel (pm: TPlayerModel; x, y: Integer; alpha: Byte);
 {$ENDIF}
 
-
   procedure r_Map_Update;
 
   procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer);
@@ -54,7 +53,7 @@ implementation
     {$ENDIF}
     e_log,
     binheap, MAPDEF, utils,
-    g_options, g_textures, g_basic, g_phys,
+    g_options, g_animations, g_basic, g_phys,
     g_game, g_map, g_panel, g_items, g_monsters, g_weapons,
     {$IFDEF ENABLE_CORPSES}
       g_corpses,
@@ -103,79 +102,75 @@ implementation
     ItemAnim: array [0..ITEM_LAST] of record
       name: AnsiString;
       w, h: Integer;
-      d: Integer; // delay
-      n: Integer; // count
-      b: Boolean; // backanim
+      anim: TAnimInfo;
     end = (
-      (name: '';             w: 0;  h: 0;  d: 0;  n: 0; b: False),
-      (name: 'MED1';         w: 16; h: 16; d: 0;  n: 1; b: False),
-      (name: 'MED2';         w: 32; h: 32; d: 0;  n: 1; b: False),
-      (name: 'BMED';         w: 32; h: 32; d: 0;  n: 1; b: False),
-      (name: 'ARMORGREEN';   w: 32; h: 16; d: 20; n: 3; b: True),
-      (name: 'ARMORBLUE';    w: 32; h: 16; d: 20; n: 3; b: True),
-      (name: 'SBLUE';        w: 32; h: 32; d: 15; n: 4; b: True),
-      (name: 'SWHITE';       w: 32; h: 32; d: 20; n: 4; b: True),
-      (name: 'SUIT';         w: 32; h: 64; d: 0;  n: 1; b: False),
-      (name: 'OXYGEN';       w: 16; h: 32; d: 0;  n: 1; b: False),
-      (name: 'INVUL';        w: 32; h: 32; d: 20; n: 4; b: True),
-      (name: 'SAW';          w: 64; h: 32; d: 0;  n: 1; b: False),
-      (name: 'SHOTGUN1';     w: 64; h: 16; d: 0;  n: 1; b: False),
-      (name: 'SHOTGUN2';     w: 64; h: 16; d: 0;  n: 1; b: False),
-      (name: 'MGUN';         w: 64; h: 16; d: 0;  n: 1; b: False),
-      (name: 'RLAUNCHER';    w: 64; h: 16; d: 0;  n: 1; b: False),
-      (name: 'PGUN';         w: 64; h: 16; d: 0;  n: 1; b: False),
-      (name: 'BFG';          w: 64; h: 64; d: 0;  n: 1; b: False),
-      (name: 'SPULEMET';     w: 64; h: 16; d: 0;  n: 1; b: False),
-      (name: 'CLIP';         w: 16; h: 16; d: 0;  n: 1; b: False),
-      (name: 'AMMO';         w: 32; h: 16; d: 0;  n: 1; b: False),
-      (name: 'SHELL1';       w: 16; h: 8;  d: 0;  n: 1; b: False),
-      (name: 'SHELL2';       w: 32; h: 16; d: 0;  n: 1; b: False),
-      (name: 'ROCKET';       w: 16; h: 32; d: 0;  n: 1; b: False),
-      (name: 'ROCKETS';      w: 64; h: 32; d: 0;  n: 1; b: False),
-      (name: 'CELL';         w: 16; h: 16; d: 0;  n: 1; b: False),
-      (name: 'CELL2';        w: 32; h: 32; d: 0;  n: 1; b: False),
-      (name: 'BPACK';        w: 32; h: 32; d: 0;  n: 1; b: False),
-      (name: 'KEYR';         w: 16; h: 16; d: 0;  n: 1; b: False),
-      (name: 'KEYG';         w: 16; h: 16; d: 0;  n: 1; b: False),
-      (name: 'KEYB';         w: 16; h: 16; d: 0;  n: 1; b: False),
-      (name: 'KASTET';       w: 64; h: 32; d: 0;  n: 1; b: False),
-      (name: 'PISTOL';       w: 64; h: 16; d: 0;  n: 1; b: False),
-      (name: 'BOTTLE';       w: 16; h: 32; d: 20; n: 4; b: True),
-      (name: 'HELMET';       w: 16; h: 16; d: 20; n: 4; b: True),
-      (name: 'JETPACK';      w: 32; h: 32; d: 15; n: 3; b: True),
-      (name: 'INVIS';        w: 32; h: 32; d: 20; n: 4; b: True),
-      (name: 'FLAMETHROWER'; w: 64; h: 32; d: 0;  n: 1; b: False),
-      (name: 'FUELCAN';      w: 16; h: 32; d: 0;  n: 1; b: False)
+      (name: 'NOTEXTURE';    w: 16; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'MED1';         w: 16; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'MED2';         w: 32; h: 32; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'BMED';         w: 32; h: 32; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'ARMORGREEN';   w: 32; h: 16; anim: (loop: true; delay: 20; frames: 3; back: true)),
+      (name: 'ARMORBLUE';    w: 32; h: 16; anim: (loop: true; delay: 20; frames: 3; back: true)),
+      (name: 'SBLUE';        w: 32; h: 32; anim: (loop: true; delay: 15; frames: 4; back: true)),
+      (name: 'SWHITE';       w: 32; h: 32; anim: (loop: true; delay: 20; frames: 4; back: true)),
+      (name: 'SUIT';         w: 32; h: 64; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'OXYGEN';       w: 16; h: 32; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'INVUL';        w: 32; h: 32; anim: (loop: true; delay: 20; frames: 4; back: true)),
+      (name: 'SAW';          w: 64; h: 32; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'SHOTGUN1';     w: 64; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'SHOTGUN2';     w: 64; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'MGUN';         w: 64; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'RLAUNCHER';    w: 64; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'PGUN';         w: 64; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'BFG';          w: 64; h: 64; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'SPULEMET';     w: 64; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'CLIP';         w: 16; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'AMMO';         w: 32; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'SHELL1';       w: 16; h: 8;  anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'SHELL2';       w: 32; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'ROCKET';       w: 16; h: 32; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'ROCKETS';      w: 64; h: 32; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'CELL';         w: 16; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'CELL2';        w: 32; h: 32; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'BPACK';        w: 32; h: 32; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'KEYR';         w: 16; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'KEYG';         w: 16; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'KEYB';         w: 16; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'KASTET';       w: 64; h: 32; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'PISTOL';       w: 64; h: 16; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'BOTTLE';       w: 16; h: 32; anim: (loop: true; delay: 20; frames: 4; back: true)),
+      (name: 'HELMET';       w: 16; h: 16; anim: (loop: true; delay: 20; frames: 4; back: true)),
+      (name: 'JETPACK';      w: 32; h: 32; anim: (loop: true; delay: 15; frames: 3; back: true)),
+      (name: 'INVIS';        w: 32; h: 32; anim: (loop: true; delay: 20; frames: 4; back: true)),
+      (name: 'FLAMETHROWER'; w: 64; h: 32; anim: (loop: true; delay: 1;  frames: 1; back: false)),
+      (name: 'FUELCAN';      w: 16; h: 32; anim: (loop: true; delay: 1;  frames: 1; back: false))
     );
 
 {$IFDEF ENABLE_GFX}
     GFXAnim: array [0..R_GFX_LAST] of record
       name: AnsiString;
       w, h: Integer;
-      count: Integer;
-      back: Boolean;
-      speed: Integer;
-      rspeed: Integer;
+      anim: TAnimInfo;
+      rdelay: Integer;
       alpha: Integer;
     end = (
-      (name: '';            w: 0;   h: 0;   count: 0;  back: false; speed: 0; rspeed: 0; alpha: 0),
-      (name: 'TELEPORT';    w: 64;  h: 64;  count: 10; back: false; speed: 6; rspeed: 0; alpha: 0),
-      (name: 'FLAME';       w: 32;  h: 32;  count: 11; back: false; speed: 3; rspeed: 0; alpha: 0),
-      (name: 'EROCKET';     w: 128; h: 128; count: 6;  back: false; speed: 6; rspeed: 0; alpha: 0),
-      (name: 'EBFG';        w: 128; h: 128; count: 6;  back: false; speed: 6; rspeed: 0; alpha: 0),
-      (name: 'BFGHIT';      w: 64;  h: 64;  count: 4;  back: false; speed: 4; rspeed: 0; alpha: 0),
-      (name: 'FIRE';        w: 64;  h: 128; count: 8;  back: false; speed: 4; rspeed: 2; alpha: 0),
-      (name: 'ITEMRESPAWN'; w: 32;  h: 32;  count: 5;  back: true;  speed: 4; rspeed: 0; alpha: 0),
-      (name: 'SMOKE';       w: 32;  h: 32;  count: 10; back: false; speed: 3; rspeed: 0; alpha: 0),
-      (name: 'ESKELFIRE';   w: 64;  h: 64;  count: 3;  back: false; speed: 8; rspeed: 0; alpha: 0),
-      (name: 'EPLASMA';     w: 32;  h: 32;  count: 4;  back: true;  speed: 3; rspeed: 0; alpha: 0),
-      (name: 'EBSPFIRE';    w: 32;  h: 32;  count: 5;  back: false; speed: 3; rspeed: 0; alpha: 0),
-      (name: 'EIMPFIRE';    w: 64;  h: 64;  count: 3;  back: false; speed: 6; rspeed: 0; alpha: 0),
-      (name: 'ECACOFIRE';   w: 64;  h: 64;  count: 3;  back: false; speed: 6; rspeed: 0; alpha: 0),
-      (name: 'EBARONFIRE';  w: 64;  h: 64;  count: 3;  back: false; speed: 6; rspeed: 0; alpha: 0),
-      (name: 'TELEPORT';    w: 64;  h: 64;  count: 10; back: false; speed: 3; rspeed: 0; alpha: 0),   // fast
-      (name: 'SMOKE';       w: 32;  h: 32;  count: 10; back: false; speed: 3; rspeed: 0; alpha: 150), // transparent
-      (name: 'FLAME';       w: 32;  h: 32;  count: 11; back: false; speed: 3; rspeed: 2; alpha: 0)    // random
+      (name: '';            w: 0;   h: 0;   anim: (loop: false; delay: 0; frames: 0;  back: false); rdelay: 0; alpha: 0),
+      (name: 'TELEPORT';    w: 64;  h: 64;  anim: (loop: false; delay: 6; frames: 10; back: false); rdelay: 0; alpha: 0),
+      (name: 'FLAME';       w: 32;  h: 32;  anim: (loop: false; delay: 3; frames: 11; back: false); rdelay: 0; alpha: 0),
+      (name: 'EROCKET';     w: 128; h: 128; anim: (loop: false; delay: 6; frames: 6;  back: false); rdelay: 0; alpha: 0),
+      (name: 'EBFG';        w: 128; h: 128; anim: (loop: false; delay: 6; frames: 6;  back: false); rdelay: 0; alpha: 0),
+      (name: 'BFGHIT';      w: 64;  h: 64;  anim: (loop: false; delay: 4; frames: 4;  back: false); rdelay: 0; alpha: 0),
+      (name: 'FIRE';        w: 64;  h: 128; anim: (loop: false; delay: 4; frames: 8;  back: false); rdelay: 2; alpha: 0),
+      (name: 'ITEMRESPAWN'; w: 32;  h: 32;  anim: (loop: false; delay: 4; frames: 5;  back: true);  rdelay: 0; alpha: 0),
+      (name: 'SMOKE';       w: 32;  h: 32;  anim: (loop: false; delay: 3; frames: 10; back: false); rdelay: 0; alpha: 0),
+      (name: 'ESKELFIRE';   w: 64;  h: 64;  anim: (loop: false; delay: 8; frames: 3;  back: false); rdelay: 0; alpha: 0),
+      (name: 'EPLASMA';     w: 32;  h: 32;  anim: (loop: false; delay: 3; frames: 4;  back: true);  rdelay: 0; alpha: 0),
+      (name: 'EBSPFIRE';    w: 32;  h: 32;  anim: (loop: false; delay: 3; frames: 5;  back: false); rdelay: 0; alpha: 0),
+      (name: 'EIMPFIRE';    w: 64;  h: 64;  anim: (loop: false; delay: 6; frames: 3;  back: false); rdelay: 0; alpha: 0),
+      (name: 'ECACOFIRE';   w: 64;  h: 64;  anim: (loop: false; delay: 6; frames: 3;  back: false); rdelay: 0; alpha: 0),
+      (name: 'EBARONFIRE';  w: 64;  h: 64;  anim: (loop: false; delay: 6; frames: 3;  back: false); rdelay: 0; alpha: 0),
+      (name: 'TELEPORT';    w: 64;  h: 64;  anim: (loop: false; delay: 3; frames: 10; back: false); rdelay: 0; alpha: 0),   // fast
+      (name: 'SMOKE';       w: 32;  h: 32;  anim: (loop: false; delay: 3; frames: 10; back: false); rdelay: 0; alpha: 150), // transparent
+      (name: 'FLAME';       w: 32;  h: 32;  anim: (loop: false; delay: 3; frames: 11; back: false); rdelay: 2; alpha: 0)    // random
     );
 {$ENDIF}
 
@@ -224,6 +219,8 @@ implementation
     );
 {$ENDIF}
 
+    FlagAnim: TAnimInfo = (loop: true; delay: 8; frames: 5; back: false);
+
   type
     TBinHeapPanelDrawCmp = class
       public
@@ -242,7 +239,7 @@ implementation
     end;
     Items: array [0..ITEM_LAST] of record
       tex: TGLMultiTexture;
-      anim: TAnimState;
+      frame: Integer;
     end;
     MonTextures: array [0..MONSTER_MAN] of TMonsterAnims;
     WeapTextures: array [0..WP_LAST, 0..W_POS_LAST, 0..W_ACT_LAST] of TGLTexture;
@@ -264,7 +261,7 @@ implementation
     end;
 
     StubShotAnim: TAnimState; // TODO remove this hack
-    FlagAnim: TAnimState;
+    FlagFrame: LongInt;
 
 {$IFDEF ENABLE_SHELLS}
     ShellTextures: array [0..SHELL_LAST] of TGLTexture;
@@ -273,10 +270,11 @@ implementation
     GFXTextures: array [0..R_GFX_LAST] of TGLMultiTexture;
     gfxlist: array of record
       typ: Byte;
-      alpha: Byte;
       x, y: Integer;
       oldX, oldY: Integer;
-      anim: TAnimState;
+      anim: TAnimInfo;
+      time: LongWord;
+      frame: LongInt;
     end = nil;
 {$ENDIF}
 
@@ -292,13 +290,14 @@ implementation
   procedure r_Map_Initialize;
   begin
     StubShotAnim := TAnimState.Create(true, 1, 1);
-    FlagAnim := TAnimState.Create(true, 8, 5);
+    FlagFrame := 0;
     plist := TBinHeapPanelDraw.Create();
   end;
 
   procedure r_Map_Finalize;
   begin
     plist.Free;
+    FlagFrame := 0;
     StubShotAnim.Invalidate;
   end;
 
@@ -412,19 +411,15 @@ implementation
     // --------- items --------- //
     for i := 0 to ITEM_LAST do
     begin
-      if ItemAnim[i].n > 0 then
-      begin
-        Items[i].tex := r_Textures_LoadMultiFromFileAndInfo(
-          GameWAD + ':TEXTURES/' + ItemAnim[i].name,
-          ItemAnim[i].w,
-          ItemAnim[i].h,
-          ItemAnim[i].n,
-          ItemAnim[i].b,
-          false
-        );
-        k := IfThen(ItemAnim[i].b, ItemAnim[i].n * 2 - 2, ItemAnim[i].n);
-        Items[i].anim := TAnimState.Create(True, ItemAnim[i].d, k);
-      end;
+      Items[i].tex := r_Textures_LoadMultiFromFileAndInfo(
+        GameWAD + ':TEXTURES/' + ItemAnim[i].name,
+        ItemAnim[i].w,
+        ItemAnim[i].h,
+        ItemAnim[i].anim.frames,
+        ItemAnim[i].anim.back,
+        false
+      );
+      Items[i].frame := 0;
     end;
     // --------- monsters --------- //
     for i := MONSTER_DEMON to MONSTER_MAN do
@@ -447,8 +442,8 @@ implementation
     // --------- gfx animations --------- //
     {$IFDEF ENABLE_GFX}
       for i := 1 to R_GFX_LAST do
-        if GFXAnim[i].count > 0 then
-          GFXTextures[i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/' + GFXAnim[i].name, GFXAnim[i].w, GFXAnim[i].h, GFXAnim[i].count, GFXAnim[i].back);
+        if GFXAnim[i].anim.frames > 0 then
+          GFXTextures[i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/' + GFXAnim[i].name, GFXAnim[i].w, GFXAnim[i].h, GFXAnim[i].anim.frames, GFXAnim[i].anim.back);
     {$ENDIF}
     // --------- shots --------- //
     for i := 0 to WEAPON_LAST do
@@ -548,11 +543,8 @@ implementation
     for i := 0 to ITEM_LAST do
     begin
       if Items[i].tex <> nil then
-      begin
         Items[i].tex.Free;
-        Items[i].tex := nil;
-      end;
-      Items[i].anim.Invalidate;
+      Items[i].tex := nil;
     end;
   end;
 
@@ -644,7 +636,7 @@ implementation
   end;
 
   procedure r_Map_DrawItems (x, y, w, h: Integer; drop: Boolean);
-    var i, fX, fY: Integer; it: PItem; t: TGLMultiTexture;
+    var i, fX, fY: Integer; it: PItem; t: TGLMultiTexture; tex: TGLTexture;
   begin
     if ggItems <> nil then
     begin
@@ -657,7 +649,8 @@ implementation
           if g_Collide(it.obj.x, it.obj.y, t.width, t.height, x, y, w, h) then
           begin
             it.obj.Lerp(gLerpFactor, fX, fY);
-            r_Draw_MultiTextureRepeat(t, Items[it.ItemType].anim, fX, fY, t.width, t.height, false, 255, 255, 255, 255, false);
+            tex := t.GetTexture(Items[it.ItemType].frame);
+            r_Draw_TextureRepeat(tex, fX, fY, tex.width, tex.height, false, 255, 255, 255, 255, false);
           end;
         end;
       end;
@@ -767,13 +760,13 @@ implementation
       angle := PlayerModelsArray[pm.id].FlagAngle;
       xx := PlayerModelsArray[pm.id].FlagPoint.X;
       yy := PlayerModelsArray[pm.id].FlagPoint.Y;
-      r_Draw_MultiTextureRepeatRotate(
-        t,
-        FlagAnim,
+      tex := t.GetTexture(FlagFrame);
+      r_Draw_TextureRepeatRotate(
+        tex,
         x + IfThen(flip, 2 * FLAG_BASEPOINT.X - xx + 1, xx - 1) - FLAG_BASEPOINT.X,
         y + yy - FLAG_BASEPOINT.Y + 1,
-        t.width,
-        t.height,
+        tex.width,
+        tex.height,
         flip,
         255, 255, 255, 255, false,
         IfThen(flip, 64 - FLAG_BASEPOINT.X, FLAG_BASEPOINT.X),
@@ -961,7 +954,7 @@ implementation
     i := 0;
     if gfxlist <> nil then
     begin
-      while (i < Length(gfxlist)) and gfxlist[i].anim.IsValid() do
+      while (i < Length(gfxlist)) and (gfxlist[i].typ > 0) do
         Inc(i);
       if i >= Length(gfxlist) then
         SetLength(gfxlist, Length(gfxlist) + 1)
@@ -969,7 +962,6 @@ implementation
     else
       SetLength(gfxlist, 1);
     gfxlist[i].typ := R_GFX_NONE;
-    gfxlist[i].anim.Invalidate;
     result := i
   end;
 
@@ -986,37 +978,63 @@ implementation
         gfxlist[i].y := y;
         gfxlist[i].oldX := x;
         gfxlist[i].oldY := y;
-        gfxlist[i].anim := TAnimState.Create(false, GFXAnim[typ].speed + Random(GFXAnim[typ].rspeed), GFXAnim[typ].count);
-        gfxlist[i].anim.Reset();
-        gfxlist[i].anim.Enable();
+        gfxlist[i].anim := GFXAnim[typ].anim;
+        gfxlist[i].time := gTime DIV GAME_TICK;
+        gfxlist[i].frame := 0;
+        INC(gfxlist[i].anim.delay, Random(GFXAnim[typ].rdelay));
       end;
     end;
   end;
 
-  procedure r_Map_UpdateGFX;
-    var i: Integer;
+  procedure r_Map_UpdateGFX (tick: LongWord);
+    var i: Integer; count: LongInt;
   begin
     if gfxlist <> nil then
     begin
       for i := 0 to High(gfxlist) do
       begin
-        if gfxlist[i].anim.IsValid() then
+        if (gfxlist[i].typ > 0) and (tick >= gfxlist[i].time) then
         begin
-          gfxlist[i].oldX := gfxlist[i].x;
-          gfxlist[i].oldY := gfxlist[i].y;
-          case gfxlist[i].typ of
-            R_GFX_FLAME, R_GFX_SMOKE:
-            begin
-              if Random(3) = 0 then
-                gfxlist[i].x := gfxlist[i].x - 1 + Random(3);
-              if Random(2) = 0 then
-                gfxlist[i].y := gfxlist[i].y - Random(2);
+          g_Anim_GetFrameByTime(gfxlist[i].anim, tick - gfxlist[i].time, count, gfxlist[i].frame);
+          if count < 1 then
+          begin
+            gfxlist[i].oldX := gfxlist[i].x;
+            gfxlist[i].oldY := gfxlist[i].y;
+            case gfxlist[i].typ of
+              R_GFX_FLAME, R_GFX_SMOKE:
+              begin
+                if Random(3) = 0 then
+                  gfxlist[i].x := gfxlist[i].x - 1 + Random(3);
+                if Random(2) = 0 then
+                  gfxlist[i].y := gfxlist[i].y - Random(2);
+              end;
             end;
-          end;
-          if gfxlist[i].anim.played then
-            gfxlist[i].anim.Invalidate
+          end
           else
-            gfxlist[i].anim.Update
+            gfxlist[i].typ := R_GFX_NONE;
+        end;
+      end;
+    end;
+  end;
+
+  procedure r_Map_DrawGFX (x, y, w, h: Integer);
+    var i, fx, fy, typ: Integer; t: TGLMultiTexture; tex: TGLTexture;
+  begin
+    if gfxlist <> nil then
+    begin
+      for i := 0 to High(gfxlist) do
+      begin
+        if gfxlist[i].typ > 0 then
+        begin
+          typ := gfxlist[i].typ;
+          t := GFXTextures[typ];
+          if t <> nil then
+          begin
+            fx := nlerp(gfxlist[i].oldX, gfxlist[i].x, gLerpFactor);
+            fy := nlerp(gfxlist[i].oldY, gfxlist[i].y, gLerpFactor);
+            tex := t.GetTexture(gfxlist[i].frame);
+            r_Draw_TextureRepeat(tex, fx, fy, tex.width, tex.height, false, 255, 255, 255, 255 - GFXAnim[typ].alpha, false);
+          end;
         end;
       end;
     end;
@@ -1054,28 +1072,6 @@ implementation
       glDisable(GL_BLEND);
     end;
   end;
-
-  procedure r_Map_DrawGFX (x, y, w, h: Integer);
-    var i, fx, fy, typ: Integer; tex: TGLMultiTexture;
-  begin
-    if gfxlist <> nil then
-    begin
-      for i := 0 to High(gfxlist) do
-      begin
-        if gfxlist[i].anim.IsValid() then
-        begin
-          typ := gfxlist[i].typ;
-          tex := GFXTextures[typ];
-          if tex <> nil then
-          begin
-            fx := nlerp(gfxlist[i].oldX, gfxlist[i].x, gLerpFactor);
-            fy := nlerp(gfxlist[i].oldY, gfxlist[i].y, gLerpFactor);
-            r_Draw_MultiTextureRepeat(tex, gfxlist[i].anim, fx, fy, tex.width, tex.height, false, 255, 255, 255, 255 - GFXAnim[typ].alpha, false);
-          end;
-        end;
-      end;
-    end;
-  end;
 {$ENDIF}
 
   procedure r_Map_DrawShots (x, y, w, h: Integer);
@@ -1110,7 +1106,7 @@ implementation
   end;
 
   procedure r_Map_DrawFlags (x, y, w, h: Integer);
-    var i, dx, fx, fy: Integer; flip: Boolean; tex: TGLMultiTexture;
+    var i, dx, fx, fy: Integer; flip: Boolean; t: TGLMultiTexture; tex: TGLTexture;
   begin
     if gGameSettings.GameMode = GM_CTF then
     begin
@@ -1121,8 +1117,9 @@ implementation
           gFlags[i].Obj.Lerp(gLerpFactor, fx, fy);
           flip := gFlags[i].Direction = TDirection.D_LEFT;
           if flip then dx := -1 else dx := +1;
-          tex := FlagTextures[i];
-          r_Draw_MultiTextureRepeat(tex, FlagAnim, fx + dx, fy + 1, tex.width, tex.height, flip, 255, 255, 255, 255, false)
+          t := FlagTextures[i];
+          tex := t.GetTexture(FlagFrame);
+          r_Draw_TextureRepeat(tex, fx + dx, fy + 1, tex.width, tex.height, flip, 255, 255, 255, 255, false)
         end;
       end;
     end;
@@ -1325,12 +1322,13 @@ implementation
   end;
 
   procedure r_Map_Update;
-    var i: Integer;
+    var i, count, tick: LongInt;
   begin
+    tick := gTime div GAME_TICK;
     for i := 0 to ITEM_LAST do
-      Items[i].anim.Update;
-    r_Map_UpdateGFX;
-    FlagAnim.Update;
+      g_Anim_GetFrameByTime(ItemAnim[i].anim, tick, count, Items[i].frame);
+    r_Map_UpdateGFX(tick);
+    g_Anim_GetFrameByTime(FlagAnim, tick, count, FlagFrame);
   end;
 
 end.

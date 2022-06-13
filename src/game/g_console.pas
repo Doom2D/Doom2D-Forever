@@ -120,7 +120,7 @@ uses
   {$IFDEF ENABLE_CORPSES}
     g_corpses,
   {$ENDIF}
-  g_textures, e_input, g_game, g_player, g_items,
+  e_input, g_game, g_player, g_items,
   SysUtils, g_basic, g_options, Math, e_res,
   g_language, g_net, g_netmsg, e_log, conbuf, g_weapons,
   Keyboard;

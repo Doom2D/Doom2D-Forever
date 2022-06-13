@@ -85,7 +85,7 @@ implementation
     {$ENDIF}
     Math,
     utils, g_saveload, xstreams,
-    g_game, g_textures, g_map
+    g_game, g_animations, g_map
   ;
 
   var

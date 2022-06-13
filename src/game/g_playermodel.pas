@@ -18,7 +18,7 @@ unit g_playermodel;
 
 interface
 
-  uses MAPDEF, g_textures, g_base, g_basic, g_weapons, utils;
+  uses MAPDEF, g_animations, g_base, g_basic, g_weapons, utils;
 
 const
   A_STAND      = 0;
@@ -66,8 +66,6 @@ const
 
 type
   TWeaponPoints = Array [WP_FIRST + 1..WP_LAST, A_STAND..A_LAST, TDirection.D_LEFT..TDirection.D_RIGHT] of Array of TDFPoint;
-
-  TModelMatrix = Array [TDirection.D_LEFT..TDirection.D_RIGHT, A_STAND..A_LAST] of TAnimState;
 
   TModelTextures = Array [TDirection.D_LEFT..TDirection.D_RIGHT, A_STAND..A_LAST] of record
     Resource: String;
@@ -661,16 +659,16 @@ end;
 { TPlayerModel }
 
   procedure TPlayerModel.ChangeAnimation (Animation: Byte; Force: Boolean = False);
-    var once: Boolean; speed, count: Integer;
+    var loop: Boolean; speed, count: Integer;
   begin
     if not Force then
       if FCurrentAnimation = Animation then
         Exit;
     FCurrentAnimation := Animation;
-    once := FCurrentAnimation in [A_STAND, A_WALK];
+    loop := FCurrentAnimation in [A_STAND, A_WALK];
     speed := PlayerModelsArray[FID].ModelSpeed[FCurrentAnimation];
     count := PlayerModelsArray[FID].Anim[FDirection, FCurrentAnimation].Frames;
-    FAnimState := TAnimState.Create(once, speed, count);
+    FAnimState := TAnimState.Create(loop, speed, count);
   end;
 
 destructor TPlayerModel.Destroy();

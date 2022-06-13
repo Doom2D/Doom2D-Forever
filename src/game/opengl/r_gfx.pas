@@ -39,7 +39,7 @@ implementation
     SysUtils, Classes, Math,
     utils,
     g_base, r_graphics, g_options, r_animations,
-    g_game, g_textures,
+    g_game, g_animations,
     g_gfx
   ;
 

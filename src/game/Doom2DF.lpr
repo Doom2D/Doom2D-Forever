@@ -144,7 +144,7 @@ uses
   g_playermodel in 'g_playermodel.pas',
   g_saveload in 'g_saveload.pas',
   g_sound in 'g_sound.pas',
-  g_textures in 'g_textures.pas',
+  g_animations in 'g_animations.pas',
   g_triggers in 'g_triggers.pas',
   g_weapons in 'g_weapons.pas',
   g_window in 'g_window.pas',

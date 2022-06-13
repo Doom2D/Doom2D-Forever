@@ -488,6 +488,7 @@ implementation
 
   procedure r_Render_DrawLoading (force: Boolean);
   begin
+    // TODO draw loading screen
   end;
 
 end.

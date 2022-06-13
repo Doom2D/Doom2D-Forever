@@ -20,7 +20,7 @@ interface
 
 uses
   SysUtils, Classes, mempool,
-  g_base, g_basic, MAPDEF, g_textures,
+  g_base, g_basic, MAPDEF,
   g_phys, utils, g_panel, g_grid, md5, binheap, xprofiler, xparser, xdynrec;
 
 type

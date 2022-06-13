@@ -20,7 +20,7 @@ interface
 
 uses
   SysUtils, Classes, mempool,
-  g_textures, g_basic, g_phys, xprofiler;
+  g_animations, g_basic, g_phys, xprofiler;
 
 
 type

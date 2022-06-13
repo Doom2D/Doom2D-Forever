@@ -19,8 +19,7 @@ unit g_gfx;
 
 interface
 
-uses
-  e_log, g_textures;
+uses e_log;
 
 const
   BLOOD_NORMAL = 0;

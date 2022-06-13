@@ -54,7 +54,7 @@ implementation
   uses
     {$INCLUDE ../nogl/noGLuses.inc}
     SysUtils, Classes, Math, e_log, wadreader, CONFIG, utils, g_language,
-    r_graphics, r_animations, r_textures, g_textures,
+    r_graphics, r_animations, r_textures, g_animations,
     g_base, g_basic, g_game, g_options,
     g_map
   ;

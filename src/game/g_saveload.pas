@@ -18,7 +18,7 @@ unit g_saveload;
 interface
 
 uses
-  SysUtils, Classes, g_phys, g_textures;
+  SysUtils, Classes, g_phys;
 
 
 function g_GetSaveName (n: Integer; out valid: Boolean): AnsiString;

@@ -41,7 +41,7 @@ implementation
     MAPDEF, utils, e_log, wadreader,
     ImagingTypes, Imaging, ImagingUtility,
     r_graphics, g_options, r_animations, r_textures,
-    g_basic, g_map, g_weapons, g_textures, g_player, g_phys, g_game
+    g_basic, g_map, g_weapons, g_animations, g_player, g_phys, g_game
   ;
 
   const

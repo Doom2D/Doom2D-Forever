@@ -30,7 +30,7 @@ implementation
   uses
     SysUtils, Classes, Math,
     r_graphics, r_animations, r_textures,
-    g_base, g_basic, g_game, g_options, g_textures,
+    g_base, g_basic, g_game, g_options, g_animations,
     g_items
   ;
 
