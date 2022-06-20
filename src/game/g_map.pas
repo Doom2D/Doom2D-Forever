@@ -1004,8 +1004,8 @@ end;
               Textures[High(Textures)].TextureName := RecName;
               Result := High(Textures);
               TextNameHash.put(HName, result);
+              FreeMem(ResData);
             end;
-            FreeMem(ResData);
           end;
           WAD.Free;
         end
