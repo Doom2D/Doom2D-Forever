@@ -1,0 +1,4 @@
+If you want to convert this txt to man, you need a k8ttman (see https://repo.or.cz/k8ttman.git).
+Build them, copy txt file to program directory and run:
+
+  ./ttman d2df.txt d2df.1
