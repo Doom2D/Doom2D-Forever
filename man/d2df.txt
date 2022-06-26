@@ -65,20 +65,20 @@ By default, the game checks the entire disc for game files. (The editor can't se
 
 @h1 URLS
 Our site:@br
-http://doom2d.org
+https://doom2d.org
 
 Our forum:@br
-http://doom2d.org/forum/index.php
+https://doom2d.org/forum/index.php
 
 Our IRC:@br
 irc.wenet.ru:6677 #doom2d
 
 Our Telegram:@br
-http://https://t.me/doom2d_channel - Channel@br
-http://t.me/doom2d - Chat
+https://t.me/doom2d_channel - Channel@br
+https://t.me/doom2d - Chat
 
 Our Discord:@br
-http://discord.gg/sGpJwMy
+https://discord.gg/sGpJwMy
 
 
 @h1 AUTHOR
