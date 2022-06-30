@@ -22,7 +22,7 @@ interface
   type
     TAnimState = record
       private
-        mCounter: Byte;         // delay counter (normally [0..mSpeed])
+        mCounter: Byte;         // delay counter (normally [0..mSpeed - 1])
         mSpeed: Byte;           // delay between frames
         mCurrentFrame: Integer; // current frame (normally [0..mLength - 1])
         mLoop: Boolean;         // looped animation
@@ -78,6 +78,7 @@ interface
   procedure g_Anim_GetState (const anim: TAnimInfo; time: LongWord; out state: TAnimState);
 
   procedure g_Anim_GetFrameFromState (const s: TAnimState; backanim: Boolean; out frame: LongInt);
+  procedure g_Anim_GetInterplatedFrameFromState (const s: TAnimState; newlength: LongInt; out frame: LongInt);
 
 implementation
 
@@ -301,6 +302,25 @@ implementation
       if frame >= total then
         frame := s.length - frame - 1;
     end;
+  end;
+
+  procedure g_Anim_GetInterplatedFrameFromState (const s: TAnimState; newlength: LongInt; out frame: LongInt);
+    var delay, curframe, curcount, fulltime, curtime, newtime: LongInt;
+  begin
+    ASSERT(s.length > 0);
+    ASSERT(newlength > 0);
+    (* 1. normalize state values *)
+    delay := MAX(1, s.speed);
+    curframe := MIN(MAX(s.CurrentFrame, 0), s.length - 1);
+    curcount := MIN(MAX(s.CurrentCounter, 0), delay - 1);
+    (* 2. calc current time (normalized) *)
+    fulltime := s.length * delay;
+    curtime := MIN(curframe * delay + curcount, fulltime);
+    (* 3. calc interpolated frame *)
+    newtime := curtime * newlength div s.length;
+    frame := newtime div delay;
+    ASSERT(frame >= 0);
+    ASSERT(frame < newlength);
   end;
 
 end.
