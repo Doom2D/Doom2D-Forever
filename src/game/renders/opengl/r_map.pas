@@ -343,9 +343,9 @@ implementation
         Models[i].anim[d, a].base := nil;
         Models[i].anim[d, a].mask := nil;
         if m.anim[d, a].resource <> '' then
-          Models[i].anim[d, a].base := r_Textures_LoadMultiFromFileAndInfo(prefix + m.anim[d, a].resource, 64, 64, m.anim[d, a].frames, m.anim[d, a].back, true);
+          Models[i].anim[d, a].base := r_Textures_LoadMultiFromFileAndInfo(prefix + m.anim[d, a].resource, 64, 64, m.anim[d, a].frames, true);
         if m.anim[d, a].mask <> '' then
-          Models[i].anim[d, a].mask := r_Textures_LoadMultiFromFileAndInfo(prefix + m.anim[d, a].mask, 64, 64, m.anim[d, a].frames, m.anim[d, a].back, true);
+          Models[i].anim[d, a].mask := r_Textures_LoadMultiFromFileAndInfo(prefix + m.anim[d, a].mask, 64, 64, m.anim[d, a].frames, true);
       end
     end;
     {$IFDEF ENABLE_GIBS}
@@ -390,7 +390,6 @@ implementation
         w,
         h,
         count,
-        False,
         False
       );
     end
@@ -415,7 +414,6 @@ implementation
         ItemAnim[i].w,
         ItemAnim[i].h,
         ItemAnim[i].anim.frames,
-        ItemAnim[i].anim.back,
         false
       );
       Items[i].frame := 0;
@@ -425,7 +423,7 @@ implementation
       for j := 0 to ANIM_LAST do
         for d := TDirection.D_LEFT to TDirection.D_RIGHT do
           r_Map_LoadMonsterAnim(i, j, d);
-    VileFire := r_Textures_LoadMultiFromFileAndInfo(GameWAD + ':TEXTURES/FIRE', 64, 128, VileFireAnim.frames, VileFireAnim.back);
+    VileFire := r_Textures_LoadMultiFromFileAndInfo(GameWAD + ':TEXTURES/FIRE', 64, 128, VileFireAnim.frames);
     // --------- player models --------- //
     if PlayerModelsArray <> nil then
     begin
@@ -442,17 +440,17 @@ implementation
     {$IFDEF ENABLE_GFX}
       for i := 1 to R_GFX_LAST do
         if GFXAnim[i].anim.frames > 0 then
-          GFXTextures[i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/' + GFXAnim[i].name, GFXAnim[i].w, GFXAnim[i].h, GFXAnim[i].anim.frames, GFXAnim[i].anim.back);
+          GFXTextures[i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/' + GFXAnim[i].name, GFXAnim[i].w, GFXAnim[i].h, GFXAnim[i].anim.frames);
     {$ENDIF}
     // --------- shots --------- //
     for i := 0 to WEAPON_LAST do
       if ShotAnim[i].anim.frames > 0 then
-        ShotTextures[i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/' + ShotAnim[i].name, ShotAnim[i].w, ShotAnim[i].h, ShotAnim[i].anim.frames, ShotAnim[i].anim.back);
+        ShotTextures[i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/' + ShotAnim[i].name, ShotAnim[i].w, ShotAnim[i].h, ShotAnim[i].anim.frames);
     // --------- flags --------- //
     FlagTextures[FLAG_NONE] := nil;
-    FlagTextures[FLAG_RED]  := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGRED',  64, 64, 5, false);
-    FlagTextures[FLAG_BLUE] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGBLUE', 64, 64, 5, false);
-    // FlagTextures[FLAG_DOM]  := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGDOM',  64, 64, 8, false);
+    FlagTextures[FLAG_RED]  := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGRED',  64, 64, 5);
+    FlagTextures[FLAG_BLUE] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGBLUE', 64, 64, 5);
+    // FlagTextures[FLAG_DOM]  := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGDOM',  64, 64, 8);
     // --------- shells --------- //
     {$IFDEF ENABLE_SHELLS}
       for i := 0 to SHELL_LAST do
@@ -462,7 +460,7 @@ implementation
     for b := false to true do
     begin
       for i := 0 to 2 do
-        PunchTextures[b, i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':WEAPONS/' + PunchName[b] + WeapPos[i], 64, 64, PunchAnim.frames, PunchAnim.back);
+        PunchTextures[b, i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':WEAPONS/' + PunchName[b] + WeapPos[i], 64, 64, PunchAnim.frames);
     end;
     // --------- other --------- //
     InvulPenta := r_Textures_LoadFromFile(GameWad + ':TEXTURES/PENTA');
@@ -725,7 +723,7 @@ implementation
     mon.obj.Lerp(gLerpFactor, fX, fY);
 
     if r_Map_GetMonsterTexture(m, a, d, t, dx, dy, flip) then
-      r_Draw_MultiTextureRepeat(t, mon.DirAnim[a, d], fX + dx, fY + dy, t.width, t.height, flip, 255, 255, 255, 255, false);
+      r_Draw_MultiTextureRepeat(t, mon.DirAnim[a, d], false, fX + dx, fY + dy, t.width, t.height, flip, 255, 255, 255, 255, false);
 
     // TODO draw g_debug_frames
   end;
@@ -762,7 +760,7 @@ implementation
   end;
 
   procedure r_Map_DrawPlayerModel (pm: TPlayerModel; x, y: Integer; alpha: Byte);
-    var a, pos, act, xx, yy, angle: Integer; d: TDirection; flip: Boolean; t: TGLMultiTexture; tex: TGLTexture; c: TRGB;
+    var a, pos, act, xx, yy, angle: Integer; d: TDirection; flip, back: Boolean; t: TGLMultiTexture; tex: TGLTexture; c: TRGB;
   begin
     a := pm.CurrentAnimation;
     d := pm.Direction;
@@ -823,12 +821,13 @@ implementation
     if r_Map_GetPlayerModelTex(pm.id, a, d, flip) then
     begin
       t := Models[pm.id].anim[d, a].base;
-      r_Draw_MultiTextureRepeat(t, pm.AnimState, x, y, t.width, t.height, flip, 255, 255, 255, alpha, false);
+      back := PlayerModelsArray[pm.id].anim[d, a].back;
+      r_Draw_MultiTextureRepeat(t, pm.AnimState, back, x, y, t.width, t.height, flip, 255, 255, 255, alpha, false);
       t := Models[pm.id].anim[d, a].mask;
       if t <> nil then
       begin
         c := pm.Color;
-        r_Draw_MultiTextureRepeat(t, pm.AnimState, x, y, t.width, t.height, flip, c.r, c.g, c.b, alpha, false);
+        r_Draw_MultiTextureRepeat(t, pm.AnimState, back, x, y, t.width, t.height, flip, c.r, c.g, c.b, alpha, false);
       end;
     end;
   end;

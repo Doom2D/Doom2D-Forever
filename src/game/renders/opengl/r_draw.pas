@@ -26,8 +26,8 @@ interface
   procedure r_Draw_TextureRepeat (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
   procedure r_Draw_TextureRepeatRotate (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean; rx, ry, angle: Integer);
 
-  procedure r_Draw_MultiTextureRepeat (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
-  procedure r_Draw_MultiTextureRepeatRotate (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean; rx, ry, angle: Integer);
+  procedure r_Draw_MultiTextureRepeat (m: TGLMultiTexture; const anim: TAnimState; backanim: Boolean; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
+  procedure r_Draw_MultiTextureRepeatRotate (m: TGLMultiTexture; const anim: TAnimState; backanim: Boolean; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean; rx, ry, angle: Integer);
 
   procedure r_Draw_Filter (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
   procedure r_Draw_FillRect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
@@ -172,28 +172,23 @@ implementation
       r_Draw_TextureRepeat(img, x, y, w, h, flip, r, g, b, a, blend);
   end;
 
-  procedure r_Draw_MultiTextureRepeat (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
-    var img: TGLTexture; cur, total, i: Integer;
+  procedure r_Draw_MultiTextureRepeat (m: TGLMultiTexture; const anim: TAnimState; backanim: Boolean; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
+    var img: TGLTexture; frame: LongInt;
   begin
     ASSERT(anim.IsValid());
     if m = nil then
       r_Draw_TextureRepeat(nil, x, y, w, h, flip, NTR, NTG, NTB, NTB, blend)
     else
     begin
-      if m.BackAnim then
-      begin
-        total := m.count * 2 - 1;
-        cur := anim.CurrentFrame mod total;
-        if cur < m.count then i := cur else i := total - cur - 1;
-      end
-      else
-        i := anim.CurrentFrame mod m.count;
-      img := m.GetTexture(i);
+      g_Anim_GetFrameFromState(anim, backanim, frame);
+      ASSERT(frame >= 0);
+      ASSERT(frame < m.count);
+      img := m.GetTexture(frame);
       r_Draw_TextureRepeat(img, x, y, w, h, flip, r, g, b, a, blend);
     end
   end;
 
-  procedure r_Draw_MultiTextureRepeatRotate (m: TGLMultiTexture; const anim: TAnimState; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean; rx, ry, angle: Integer);
+  procedure r_Draw_MultiTextureRepeatRotate (m: TGLMultiTexture; const anim: TAnimState; backanim: Boolean; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean; rx, ry, angle: Integer);
   begin
     ASSERT(w >= 0);
     ASSERT(h >= 0);
@@ -203,11 +198,11 @@ implementation
       glTranslatef(x + rx, y + ry, 0);
       glRotatef(angle, 0, 0, 1);
       glTranslatef(-(x + rx), -(y + ry), 0);
-      r_Draw_MultiTextureRepeat(m, anim, x, y, w, h, flip, r, g, b, a, blend);
+      r_Draw_MultiTextureRepeat(m, anim, backanim, x, y, w, h, flip, r, g, b, a, blend);
       glPopMatrix;
     end
     else
-      r_Draw_MultiTextureRepeat(m, anim, x, y, w, h, flip, r, g, b, a, blend);
+      r_Draw_MultiTextureRepeat(m, anim, backanim, x, y, w, h, flip, r, g, b, a, blend);
   end;
 
   procedure r_Draw_Filter (l, t, r, b: Integer; rr, gg, bb, aa: Byte);

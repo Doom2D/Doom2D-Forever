@@ -82,7 +82,6 @@ interface
     TGLMultiTexture = class
       private
         mTexture: array of TGLTexture;
-        mBackanim: Boolean;
 
       public
         destructor Destroy; override;
@@ -95,7 +94,6 @@ interface
         property width: Integer read GetWidth;
         property height: Integer read GetHeight;
         property count: Integer read GetCount;
-        property backAnim: Boolean read mBackanim; (* this property must be located at TAnimState? *)
     end;
 
     TGLTextureArray = array of TGLTexture;
@@ -127,7 +125,7 @@ interface
 
   function r_Textures_LoadFromFile (const filename: AnsiString; log: Boolean = True): TGLTexture;
   function r_Textures_LoadMultiFromFile (const filename: AnsiString; log: Boolean = True): TGLMultiTexture;
-  function r_Textures_LoadMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; backanim: Boolean; log: Boolean = True): TGLMultiTexture;
+  function r_Textures_LoadMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; log: Boolean = True): TGLMultiTexture;
   function r_Textures_LoadMultiTextFromFile (const filename: AnsiString; var txt: TAnimTextInfo; log: Boolean = True): TGLMultiTexture;
 
   function r_Textures_LoadStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
@@ -458,7 +456,7 @@ implementation
     end
   end;
 
-  function r_Textures_LoadMultiFromImageAndInfo (var img: TImageData; w, h, c: Integer; b: Boolean): TGLMultiTexture;
+  function r_Textures_LoadMultiFromImageAndInfo (var img: TImageData; w, h, c: Integer): TGLMultiTexture;
     var t: TImageData; a: array of TGLTexture; i: Integer; m: TGLMultiTexture;
   begin
     ASSERT(w >= 0);
@@ -477,12 +475,11 @@ implementation
     end;
     m := TGLMultiTexture.Create();
     m.mTexture := a;
-    m.mBackanim := b;
     ASSERT(m.mTexture <> nil);
     result := m;
   end;
 
-  function r_Textures_LoadMultiFromDataAndInfo (data: Pointer; size: LongInt; w, h, c: Integer; b: Boolean): TGLMultiTexture;
+  function r_Textures_LoadMultiFromDataAndInfo (data: Pointer; size: LongInt; w, h, c: Integer): TGLMultiTexture;
     var img: TImageData;
   begin
     ASSERT(w > 0);
@@ -495,7 +492,7 @@ implementation
       try
         if LoadImageFromMemory(data, size, img) then
           if r_Textures_FixImageData(img) then
-            result := r_Textures_LoadMultiFromImageAndInfo(img, w, h, c, b)
+            result := r_Textures_LoadMultiFromImageAndInfo(img, w, h, c)
       except
       end;
       FreeImage(img);
@@ -540,7 +537,7 @@ implementation
           try
             if LoadImageFromMemory(data, size, img) then
               if r_Textures_FixImageData(img) then
-                result := r_Textures_LoadMultiFromImageAndInfo(img, txt.w, txt.h, txt.anim.frames, txt.anim.back);
+                result := r_Textures_LoadMultiFromImageAndInfo(img, txt.w, txt.h, txt.anim.frames);
           finally
             FreeMem(data);
           end;
@@ -564,7 +561,6 @@ implementation
         m := TGLMultiTexture.Create();
         SetLength(m.mTexture, 1);
         m.mTexture[0] := t;
-        m.mBackanim := false;
         txt.name := '';
         txt.w := m.width;
         txt.h := m.height;
@@ -610,7 +606,7 @@ implementation
     result := r_Textures_LoadMultiTextFromFile(filename, txt, log);
   end;
 
-  function r_Textures_LoadMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; backanim: Boolean; log: Boolean = True): TGLMultiTexture;
+  function r_Textures_LoadMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; log: Boolean = True): TGLMultiTexture;
     var wad: TWADFile; wadName, resName: AnsiString; data: Pointer; size: Integer;
   begin
     ASSERT(w > 0);
@@ -624,7 +620,7 @@ implementation
       resName := g_ExtractFilePathName(filename);
       if wad.GetResource(resName, data, size, log) then
       begin
-        result := r_Textures_LoadMultiFromDataAndInfo(data, size, w, h, count, backanim);
+        result := r_Textures_LoadMultiFromDataAndInfo(data, size, w, h, count);
         FreeMem(data);
       end;
       wad.Free

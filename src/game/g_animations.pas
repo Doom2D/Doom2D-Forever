@@ -70,11 +70,14 @@ interface
       back: Boolean; (* back animation normalization *)
     end;
 
+
   function g_Anim_GetTotalFrames (const a: TAnimInfo): LongWord;
   function g_Anim_GetTotalTime (const a: TAnimInfo): LongWord;
   function g_Anim_GetCountByTime (const a: TAnimInfo; time: LongWord): LongInt;
   procedure g_Anim_GetFrameByTime (const a: TAnimInfo; time: LongWord; out count, frame: LongInt);
   procedure g_Anim_GetState (const anim: TAnimInfo; time: LongWord; out state: TAnimState);
+
+  procedure g_Anim_GetFrameFromState (const s: TAnimState; backanim: Boolean; out frame: LongInt);
 
 implementation
 
@@ -285,6 +288,19 @@ implementation
     state.mCounter := time MOD a.delay;
     state.mCurrentFrame := frame;
     state.mPlayed := count >= 1;
+  end;
+
+  procedure g_Anim_GetFrameFromState (const s: TAnimState; backanim: Boolean; out frame: LongInt);
+    var total: LongInt;
+  begin
+    ASSERT(s.length > 0);
+    frame := s.CurrentFrame mod s.length;
+    if backanim then
+    begin
+      total := (s.length + 1) div 2;
+      if frame >= total then
+        frame := s.length - frame - 1;
+    end;
   end;
 
 end.
