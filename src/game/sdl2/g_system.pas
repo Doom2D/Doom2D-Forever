@@ -134,17 +134,17 @@ implementation
     {$ENDIF}
   end;
 
-  function GetTitle (): PChar;
+  function GetTitle (): AnsiString;
     var info: AnsiString;
   begin
     info := g_GetBuildHash(false);
     if info = 'custom build' then
       info := info + ' by ' + g_GetBuilderName() + ' ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME;
-    result := PChar(Format(GameTitle, [info]))
+    result := Format(GameTitle, [info]);
   end;
 
   function InitWindow (w, h, bpp: Integer; fullScreen, maximized: Boolean): Boolean;
-    var flags: UInt32; x, y: cint;
+    var flags: UInt32; x, y: cint; title: AnsiString;
   begin
     // note: on window close make: if assigned(oglDeinitCB) then oglDeinitCB;
     e_LogWritefln('InitWindow %s %s %s %s', [w, h, bpp, fullScreen]);
@@ -178,7 +178,8 @@ implementation
         x := wx;
         y := wy
       end;
-      window := SDL_CreateWindow(GetTitle(), x, y, w, h, flags);
+      title := GetTitle();
+      window := SDL_CreateWindow(PChar(title), x, y, w, h, flags);
       if window <> nil then
       begin
         context := SDL_GL_CreateContext(window);

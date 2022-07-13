@@ -124,17 +124,17 @@ implementation
     g_Game_ClearLoading;
   end;
 
-  function GetTitle (): PChar;
+  function GetTitle (): AnsiString;
     var info: AnsiString;
   begin
     info := g_GetBuildHash(false);
     if info = 'custom build' then
       info := info + ' by ' + g_GetBuilderName() + ' ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME;
-    result := PChar(Format(GameTitle, [info]))
+    result := Format(GameTitle, [info]);
   end;
 
   function InitWindow (w, h, bpp: Integer; fullScreen: Boolean): Boolean;
-    var flags: Uint32;
+    var flags: Uint32; title: AnsiString;
   begin
     e_LogWritefln('InitWindow %s %s %s %s', [w, h, bpp, fullScreen]);
     result := false;
@@ -158,7 +158,8 @@ implementation
           e_LogWriteln('GL: unable to load OpenGL functions', TMsgType.Fatal);
           exit;
         end;
-        SDL_WM_SetCaption(GetTitle(), nil);
+        title := GetTitle();
+        SDL_WM_SetCaption(PChar(title), nil);
         gFullScreen := fullscreen;
         gRC_FullScreen := fullscreen;
         UpdateSize(w, h);
@@ -184,7 +185,7 @@ implementation
   function sys_GetDisplayModes (bpp: Integer): SSArray;
     var m: PPSDL_Rect; f: TSDL_PixelFormat; i, count: Integer;
   begin
-    SetLength(result, 0);
+    result := nil;
     FillChar(f, sizeof(f), 0);
     f.palette := nil;
     f.BitsPerPixel := bpp;
