@@ -41,9 +41,9 @@ uses
 {$ENDIF}
 
 {$IFDEF USE_SDL}
-  SDL,
+  SDL in '../lib/sdl/sdl.pas',
   {$IFDEF USE_SDLMIXER}
-    SDL_mixer,
+    SDL_mixer in '../lib/sdl/sdl_mixer.pas',
   {$ENDIF}
 {$ENDIF}
 {$IFDEF USE_SDL2}

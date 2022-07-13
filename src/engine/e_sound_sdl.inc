@@ -16,8 +16,16 @@ interface
 
 uses
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-  SDL2, SDL2_mixer, envvars,
-  e_log, SysUtils;
+  {$IFDEF USE_SDL}
+    SDL, SDL_mixer,
+    {$DEFINE SDL1MIXER}
+    {$UNDEF  SDL2MIXER}
+  {$ELSE}
+    SDL2, SDL2_mixer,
+    {$UNDEF  SDL1MIXER}
+    {$DEFINE SDL2MIXER}
+  {$ENDIF}
+  envvars, e_log, SysUtils;
 
 type
   TSoundRec = record
@@ -172,6 +180,7 @@ var
   rfreq: Integer;
   rformat: UInt16;
   rchans: Integer;
+  flags: Integer;
 begin
   if SoundInitialized then begin Result := true; Exit end;
 
@@ -187,17 +196,23 @@ begin
 
   // wow, this is actually MIDI player!
   // we need module player
-  res := Mix_Init(MIX_INIT_FLAC or MIX_INIT_MOD or MIX_INIT_MODPLUG or MIX_INIT_MP3 or MIX_INIT_OGG or MIX_INIT_FLUIDSYNTH);
+  flags := MIX_INIT_FLAC or MIX_INIT_MOD or MIX_INIT_MP3 or MIX_INIT_OGG or MIX_INIT_FLUIDSYNTH;
+  {$IFDEF SDL2MIXER}
+    flags := flags or MIX_INIT_MODPLUG;
+  {$ENDIF}
+  res := Mix_Init(flags);
   e_WriteLog(Format('SDL: res=0x%x', [res]), TMsgType.Notify);
   if (res and MIX_INIT_FLAC) <> 0 then e_WriteLog('SDL: FLAC playback is active', TMsgType.Notify);
   if (res and MIX_INIT_MOD) <> 0 then e_WriteLog('SDL: MOD playback is active', TMsgType.Notify);
-  if (res and MIX_INIT_MODPLUG) <> 0 then e_WriteLog('SDL: MODPLUG playback is active', TMsgType.Notify);
+  {$IFDEF SDL2MIXER}
+    if (res and MIX_INIT_MODPLUG) <> 0 then e_WriteLog('SDL: MODPLUG playback is active', TMsgType.Notify);
+  {$ENDIF}
   if (res and MIX_INIT_MP3) <> 0 then e_WriteLog('SDL: MP3 playback is active', TMsgType.Notify);
   if (res and MIX_INIT_OGG) <> 0 then e_WriteLog('SDL: OGG playback is active', TMsgType.Notify);
   if (res and MIX_INIT_FLUIDSYNTH) <> 0 then e_WriteLog('SDL: FLUIDSYNTH playback is active', TMsgType.Notify);
 
   e_WriteLog(Format('SDL: initializing mixer at %d with buffer %d', [gsSDLSampleRate, gsSDLBufferSize]), TMsgType.Notify);
-  res := Mix_OpenAudio(gsSDLSampleRate, {$IFDEF FPC_LITTLE_ENDIAN}AUDIO_S16LSB{$ELSE}AUDIO_S16MSB{$ENDIF}, 2, gsSDLBufferSize);
+  res := Mix_OpenAudio(gsSDLSampleRate, MIX_DEFAULT_FORMAT, 2, gsSDLBufferSize);
   if res = -1 then
   begin
     e_WriteLog('Error initializing SDL mixer:', TMsgType.Fatal);
@@ -382,7 +397,11 @@ begin
   if isMusic then
   begin
     e_WriteLog(Format('  MUSIC SLOT: %u', [find_id]), TMsgType.Notify);
-    e_SoundsArray[find_id].Music := Mix_LoadMUS_RW(rw, 0);
+    {$IFDEF SDL1MIXER}
+      e_SoundsArray[find_id].Music := Mix_LoadMUS_RW(rw);
+    {$ELSE}
+      e_SoundsArray[find_id].Music := Mix_LoadMUS_RW(rw, 0);
+    {$ENDIF}
     if e_SoundsArray[find_id].Music = nil then
     begin
       e_WriteLog(Format('ERROR LOADING MUSIC:', [find_id]), TMsgType.Warning);

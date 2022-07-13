@@ -27,7 +27,7 @@ Additionally you can add following options:
     * -dUSE_GLSTUB      Disable rendering
   Sound driver:
     * -dUSE_FMOD        Build with FMODEx 4.26.x
-    * -dUSE_SDLMIXER    Build with SDL2_mixer 2.0.x
+    * -dUSE_SDLMIXER    Build with SDL_mixer
     * -dUSE_OPENAL      Build with OpenAL 1.1
     * -dUSE_SOUNDSTUB   Disable sound management
   Sound file drivers (OpenAL only):

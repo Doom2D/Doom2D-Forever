@@ -115,9 +115,6 @@
   {$IF DEFINED(USE_SYSSTUB) OR DEFINED(USE_SDL2)}
     {$ERROR Only one system driver must be selected!}
   {$ENDIF}
-  {$IFDEF USE_SDLMIXER}
-    {$ERROR SDL_mixer not supported with SDL 1.2.x}
-  {$ENDIF}
 {$ELSEIF DEFINED(USE_SDL2)}
   {$IF DEFINED(USE_SYSSTUB) OR DEFINED(USE_SDL)}
     {$ERROR Only one system driver must be selected!}
