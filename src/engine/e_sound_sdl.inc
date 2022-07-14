@@ -98,6 +98,8 @@ procedure e_SoundUpdate();
 var
   e_SoundsArray: array of TSoundRec = nil;
 
+  e_TimidityDecoder: Boolean; (* sdl_mixer special *)
+
 implementation
 
 uses
@@ -229,8 +231,13 @@ begin
   begin
     e_WriteLog(Format('SDL: chunk decoder %s is avalable', [Mix_GetChunkDecoder(i)]), TMsgType.Notify);
   end;
+
+  e_TimidityDecoder := false;
   for i := 0 to Mix_GetNumMusicDecoders()-1 do
   begin
+    case AnsiString(Mix_GetMusicDecoder(i)) of
+      'TIMIDITY': e_TimidityDecoder := true;
+    end;
     e_WriteLog(Format('SDL: music decoder %s is avalable', [Mix_GetMusicDecoder(i)]), TMsgType.Notify);
   end;
 

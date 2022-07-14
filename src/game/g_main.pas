@@ -79,6 +79,9 @@ var
   charbuff: packed array [0..15] of AnsiChar;
   binPath: AnsiString = '';
   forceBinDir: Boolean;
+  {$IFDEF USE_SDLMIXER}
+    UseNativeMusic: Boolean;
+  {$ENDIF}
 
 function GetBinaryPath (): AnsiString;
 {$IFDEF LINUX}
@@ -433,9 +436,6 @@ begin
 end;
 
 procedure InitPrep;
-  {$IF DEFINED(ANDROID) AND DEFINED(USE_SDLMIXER)}
-    var timiditycfg: AnsiString;
-  {$ENDIF}
   var i: Integer;
 begin
   {$IFDEF HEADLESS}
@@ -491,16 +491,6 @@ begin
     e_DeinitLog;
     Halt(1);
   end;
-
-  {$IF DEFINED(ANDROID) AND DEFINED(USE_SDLMIXER)}
-    timiditycfg := 'timidity.cfg';
-    if e_FindResource(ConfigDirs, timiditycfg) = true then
-    begin
-      timiditycfg := ExpandFileName(timiditycfg);
-      SetEnvVar('TIMIDITY_CFG', timiditycfg);
-      e_LogWritefln('Set TIMIDITY_CFG = "%s"', [timiditycfg]);
-    end;
-  {$ENDIF}
 end;
 
 procedure Main();
@@ -592,8 +582,11 @@ begin
 end;
 
 procedure Init();
-var
-  NoSound: Boolean;
+  {$IFDEF USE_SDLMIXER}
+    var timiditycfg: AnsiString;
+    var oldcwd, newcwd: RawByteString;
+  {$ENDIF}
+  var NoSound: Boolean;
 begin
   Randomize;
 
@@ -616,10 +609,43 @@ begin
     e_WriteLog('Input: No Joysticks.', TMsgType.Notify);
 *)
 
-  if (not gNoSound) then
+  if gNoSound = false then
   begin
     e_WriteLog('Initializing sound system', TMsgType.Notify);
+    {$IFDEF USE_SDLMIXER}
+      newcwd := '';
+      if UseNativeMusic then
+        SetEnvVar('SDL_NATIVE_MUSIC', '1');
+      timiditycfg := GetEnvironmentVariable('TIMIDITY_CFG');
+      if timiditycfg = '' then
+      begin
+        timiditycfg := 'timidity.cfg';
+        if e_FindResource(ConfigDirs, timiditycfg) OR e_FindResource(DataDirs, timiditycfg) then
+        begin
+          timiditycfg := ExpandFileName(timiditycfg);
+          newcwd := ExtractFileDir(timiditycfg);
+          SetEnvVar('TIMIDITY_CFG', timiditycfg);
+        end
+        else
+          timiditycfg := '';
+      end;
+      e_LogWritefln('TIMIDITY_CFG = "%s"', [timiditycfg]);
+      e_LogWritefln('SDL_NATIVE_MUSIC = "%s"', [GetEnvironmentVariable('SDL_NATIVE_MUSIC')]);
+    {$ENDIF}
     e_InitSoundSystem(NoSound);
+    {$IFDEF USE_SDLMIXER}
+      if e_TimidityDecoder and (newcwd <> '') then
+      begin
+        (* HACK: Set CWD to load GUS patches relatively to cfg file. *)
+        (*       CWD not restored after sound init because timidity  *)
+        (*       store relative pathes internally and load patches   *)
+        (*       later. I hope game never relies on CWD.             *)
+        oldcwd := '';
+        GetDir(0, oldcwd);
+        ChDir(newcwd);
+        e_logwritefln('WARNING: USED TIMIDITY CONFIG HACK, CWD SWITCHED "%s" -> "%s"', [oldcwd, newcwd]);
+      end;
+    {$ENDIF}
   end;
 
   e_WriteLog('Init game', TMsgType.Notify);
@@ -1008,4 +1034,13 @@ begin
   end;
 end;
 
+initialization
+{$IFDEF USE_SDLMIXER}
+  conRegVar('sdl_native_music', @UseNativeMusic, 'use native midi music output when possible', 'use native midi');
+  {$IFDEF DARWIN}
+    UseNativeMusic := true; (* OSX have a good midi support, so why not? *)
+  {$ELSE}
+    UseNativeMusic := false;
+  {$ENDIF}
+{$ENDIF}
 end.
