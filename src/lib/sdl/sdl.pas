@@ -283,51 +283,43 @@ uses
 {$IFDEF __GPC__}
   system,
   {$IFDEF WINDOWS}
-  wintypes,
-  {$ELSE}
+    wintypes,
   {$ENDIF}
-  gpc;
+  gpc,
 {$ENDIF}
 
 {$IFDEF HAS_TYPES}
-  Types{$IFNDEF NDS},{$ELSE};{$ENDIF}
+  Types,
 {$ENDIF}
 
 {$IFDEF WINDOWS}
-  Windows;
+  Windows,
 {$ENDIF}
 
 {$IFDEF OS2}
-  doscalls;
+  doscalls,
 {$ENDIF OS2}
 
 {$IFDEF UNIX}
-  {$IFDEF FPC}
   pthreads,
   unixtype,
   baseunix,
-  {$IFNDEF GP2X}    
   unix,
-  {$ELSE}
-  unix;
-  {$ENDIF}
-  {$IFNDEF GP2X}
-  x,
-  xlib;
-  {$ENDIF}
-  {$ELSE}
-  Libc,
-  Xlib;
+  {$IF NOT DEFINED(GP2X) AND NOT DEFINED(DARWIN)}
+    x,
+    xlib,
   {$ENDIF}
 {$ENDIF}
 
 {$IFDEF __MACH__}
-  GPCMacOSAll;
+  GPCMacOSAll,
 {$ENDIF}
 
 {$IFDEF MORPHOS}
-  exec;
+  exec,
 {$ENDIF}
+
+  ctypes;
 
 const
 {$IFDEF WINDOWS}
@@ -339,19 +331,15 @@ const
 {$ENDIF OS2}
 
 {$IFDEF UNIX}
-{$IFDEF DARWIN}
-  SDLLibName = 'libSDL-1.2.0.dylib';
-  {$linklib libSDL-1.2.0}
-  {$linklib SDLmain}
-  {$linkframework Cocoa}
-  {$PASCALMAINNAME SDL_main}
-{$ELSE}
-  {$IFDEF FPC}
-  SDLLibName = 'libSDL.so';
+  {$IFDEF DARWIN}
+    SDLLibName = 'libSDL-1.2.0.dylib';
+    {$linklib libSDL-1.2.0}
+    {$linklib SDLmain}
+    {$linkframework Cocoa}
+    {$PASCALMAINNAME SDL_main}
   {$ELSE}
-  SDLLibName = 'libSDL-1.2.so.0';
+    SDLLibName = 'libSDL.so';
   {$ENDIF}
-{$ENDIF}
 {$ENDIF}
 
 {$IFDEF MACOS}
@@ -1785,46 +1773,34 @@ type
     type_ : Uint8;        // SDL_VIDEOEXPOSE
   end;
 
- {$IFDEF Unix}
- //These are the various supported subsystems under UNIX
-  TSDL_SysWm = ( SDL_SYSWM_X11 ) ;
- {$ENDIF}
+{$IFDEF Unix}
+   TSDL_SysWm = ( SDL_SYSWM_X11 ) ;
+{$ENDIF}
 
-// The windows custom event structure
 {$IFDEF WINDOWS}
   PSDL_SysWMmsg = ^TSDL_SysWMmsg;
   TSDL_SysWMmsg = record
     version: TSDL_version;
-    h_wnd: HWND; // The window for the message
-    msg: UInt; // The type of message
+    h_wnd: HWND;     // The window for the message
+    msg: UInt;       // The type of message
     w_Param: WPARAM; // WORD message parameter
-    lParam: LPARAM; // LONG message parameter
+    lParam: LPARAM;  // LONG message parameter
   end;
-{$ELSE}
-
-{$IFDEF Unix}
-{ The Linux custom event structure }
+{$ELSIF DEFINED(Unix)}
   PSDL_SysWMmsg = ^TSDL_SysWMmsg;
   TSDL_SysWMmsg = record
     version : TSDL_version;
     subsystem : TSDL_SysWm;
-    {$IFDEF FPC}
-    {$IFNDEF GP2X}
-    event : TXEvent;
-    {$ENDIF}
-    {$ELSE}
-    event : XEvent;
+    {$IF NOT DEFINED(DARWIN) AND NOT DEFINED(GP2X)}
+      event : TXEvent;
     {$ENDIF}
   end;
 {$ELSE}
-{ The generic custom event structure }
   PSDL_SysWMmsg = ^TSDL_SysWMmsg;
   TSDL_SysWMmsg = record
     version: TSDL_version;
     data: Integer;
   end;
-{$ENDIF}
-
 {$ENDIF}
 
 // The Windows custom window manager information structure
@@ -1838,30 +1814,30 @@ type
 
 // The Linux custom window manager information structure
 {$IFDEF Unix}
-  {$IFNDEF GP2X}
-  TX11 = record
-    display : PDisplay;	// The X11 display
-    window : TWindow ;		// The X11 display window */
-    {* These locking functions should be called around
-       any X11 functions using the display variable.
-       They lock the event thread, so should not be
-       called around event functions or from event filters.
-     *}
-    lock_func : Pointer;
-    unlock_func : Pointer;
+  {$IF NOT DEFINED(DARWIN) AND NOT DEFINED(GP2X)}
+    TX11 = record
+      display : PDisplay;	// The X11 display
+      window : TWindow ;		// The X11 display window */
+      {* These locking functions should be called around
+         any X11 functions using the display variable.
+         They lock the event thread, so should not be
+         called around event functions or from event filters.
+       *}
+      lock_func : Pointer;
+      unlock_func : Pointer;
 
-    // Introduced in SDL 1.0.2
-    fswindow : TWindow ;	// The X11 fullscreen window */
-    wmwindow : TWindow ;	// The X11 managed input window */
-  end;
+      // Introduced in SDL 1.0.2
+      fswindow : TWindow ;	// The X11 fullscreen window */
+      wmwindow : TWindow ;	// The X11 managed input window */
+    end;
   {$ENDIF}
   
   PSDL_SysWMinfo = ^TSDL_SysWMinfo;
   TSDL_SysWMinfo = record
      version : TSDL_version ;
      subsystem : TSDL_SysWm;
-     {$IFNDEF GP2X}
-     X11 : TX11;
+     {$IF NOT DEFINED(DARWIN) AND NOT DEFINED(GP2X)}
+       X11 : TX11;
      {$ENDIF}
   end;
 {$ELSE}
