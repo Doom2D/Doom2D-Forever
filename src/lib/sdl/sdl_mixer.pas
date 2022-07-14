@@ -467,7 +467,7 @@ type
       3 : ( midi : TMidiSong );
       4 : ( ogg : POGG_music );
       {$IFNDEF DARWIN}
-      5 : ( mp3 : PSMPEG );
+      //5 : ( mp3 : PSMPEG );
       {$ENDIF}
   end;
 
