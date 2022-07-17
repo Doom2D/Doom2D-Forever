@@ -79,6 +79,7 @@ interface
 
   procedure g_Anim_GetFrameFromState (const s: TAnimState; backanim: Boolean; out frame: LongInt);
   procedure g_Anim_GetInterplatedFrameFromState (const s: TAnimState; newlength: LongInt; out frame: LongInt);
+  procedure g_Anim_GetTimeFromState (const s: TAnimState; out curtime, fulltime: LongInt);
 
 implementation
 
@@ -321,6 +322,19 @@ implementation
     frame := newtime div delay;
     ASSERT(frame >= 0);
     ASSERT(frame < newlength);
+  end;
+
+  procedure g_Anim_GetTimeFromState (const s: TAnimState; out curtime, fulltime: LongInt);
+    var delay, curframe, curcount: LongInt;
+  begin
+    ASSERT(s.length > 0);
+    (* 1. normalize state values *)
+    delay := MAX(1, s.speed);
+    curframe := MIN(MAX(s.CurrentFrame, 0), s.length - 1);
+    curcount := MIN(MAX(s.CurrentCounter, 0), delay - 1);
+    (* 2. calc current time (normalized) *)
+    fulltime := s.length * delay;
+    curtime := MIN(curframe * delay + curcount, fulltime);
   end;
 
 end.
