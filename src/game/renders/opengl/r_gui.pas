@@ -42,12 +42,6 @@ implementation
   const
     EDIT_CURSORLEN = 10;
 
-  type
-    THereTexture = record
-      name: AnsiString;
-      id: TGLTexture;
-    end;
-
   var
     Box: Array [0..8] of TGLTexture;
     MarkerID: array [Boolean] of TGLTexture;
@@ -62,22 +56,6 @@ implementation
 
     Background: THereTexture;
     ImageControl: THereTexture;
-
-  procedure r_GUI_FreeThis (var here: THereTexture);
-  begin
-    here.name := '';
-    if here.id <> nil then
-      here.id.Free;
-    here.id := nil;
-  end;
-
-  function r_GUI_LoadThis (const name: AnsiString; var here: THereTexture): Boolean;
-  begin
-    r_GUI_FreeThis(here);
-    if (name <> '') and (here.name <> name) then
-      here.id := r_Textures_LoadFromFile(name);
-    result := here.id <> nil;
-  end;
 
   procedure r_GUI_Load;
     var i: Integer;
@@ -140,8 +118,8 @@ implementation
     LogoTex.Free;
     nopic.Free;
 
-    r_GUI_FreeThis(Background);
-    r_GUI_FreeThis(ImageControl);
+    r_Common_FreeThis(Background);
+    r_Common_FreeThis(ImageControl);
   end;
 
   procedure r_GUI_GetMaxFontSize (BigFont: Boolean; out w, h: Integer);
@@ -412,7 +390,7 @@ implementation
   begin
     pic := nopic;
     if ctrl.ImageRes <> '' then
-      if r_GUI_LoadThis(ctrl.ImageRes, ImageControl) then
+      if r_Common_LoadThis(ctrl.ImageRes, ImageControl) then
         pic := ImageControl.id;
     if pic <> nil then
       r_Draw_Texture(pic, ctrl.x, ctrl.y, pic.width, pic.height, false, 255, 255, 255, 255, false);
@@ -573,7 +551,7 @@ implementation
   begin
     // Here goes code duplication from g_game.pas:DrawMenuBackground()
     if win.BackTexture <> '' then
-      if r_GUI_LoadThis(win.BackTexture, Background) then
+      if r_Common_LoadThis(win.BackTexture, Background) then
       begin
         r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 255);
         tw := Background.id.width;

@@ -95,7 +95,7 @@ implementation
     );
 
   var
-    menuBG: TGLTexture;
+    BackgroundTexture: THereTexture;
 
     hud, hudbg: TGLTexture;
     hudhp: array [Boolean] of TGLTexture;
@@ -122,7 +122,7 @@ implementation
       i: Integer;
   begin
     r_Common_Load;
-    menuBG := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/TITLE');
+    BackgroundTexture := DEFAULT(THereTexture);
     hud :=  r_Textures_LoadFromFile(GameWAD + ':TEXTURES/HUD');
     hudbg :=  r_Textures_LoadFromFile(GameWAD + ':TEXTURES/HUDBG');
     hudhp[false] := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/MED2');
@@ -166,7 +166,7 @@ implementation
     hudhp[false].Free;
     hudbg.Free;
     hud.Free;
-    menuBG.Free;
+    r_Common_FreeThis(BackgroundTexture);
     r_Common_Free;
   end;
 
@@ -350,6 +350,24 @@ implementation
     r_Draw_SetRect(l, t, r, b);
   end;
 
+  procedure r_Render_DrawBackgroundImage (img: TGLTexture);
+    var fw, w, h: LongInt;
+  begin
+    if img <> nil then
+    begin
+      img := BackgroundTexture.id;
+      fw := img.width * 4 div 3; // fix aspect 4:3
+      r_Common_CalcAspect(fw, img.height, gScreenWidth, gScreenHeight, false, w, h);
+      r_Draw_Texture(img, gScreenWidth div 2 - w div 2, 0, w, h, false, 255, 255, 255, 255, false);
+    end
+  end;
+
+  procedure r_Render_DrawBackground (const name: AnsiString);
+  begin
+    if r_Common_LoadThis(name, BackgroundTexture) then
+      r_Render_DrawBackgroundImage(BackgroundTexture.id)
+  end;
+
   procedure r_Render_Draw;
   begin
     if gExit = EXIT_QUIT then
@@ -366,16 +384,13 @@ implementation
 
     //e_LogWritefln('r_render_draw: %sx%s', [gScreenWidth, gScreenHeight]);
 
-    if gGameOn or (gState = STATE_FOLD) then
+    if gGameOn or ((gState in [STATE_FOLD]) and (EndingGameCounter < 255)) then
     begin
-      // TODO setup player view
       // TODO setup sectator mode
       // TODO setup player hear point
-      // TODO setup player view siz
 
-      // TODO draw player view + setup screen coords
       if (gPlayer1 <> nil) and (gPlayer2 <> nil) then
-      begin
+       begin
         r_Render_DrawPlayerView(0, 0, gScreenWidth, gScreenHeight div 2 - 2, gPlayer1);
         r_Render_DrawPlayerView(0, gScreenHeight div 2 + 2, gScreenWidth, gScreenHeight div 2, gPlayer2);
       end
@@ -399,12 +414,61 @@ implementation
     if not gGameOn then
     begin
       case gState of
-        STATE_MENU: ; // TODO draw menu bg
-        STATE_FOLD: ;
-        STATE_INTERCUSTOM: ;
-        STATE_INTERSINGLE: ;
-        STATE_ENDPIC: ;
-        STATE_SLIST: ;
+        STATE_NONE: (* do nothing *) ;
+        STATE_MENU: r_Render_DrawBackground(GameWad + ':TEXTURES/TITLE');
+        STATE_FOLD:
+        begin
+          if EndingGameCounter > 0 then
+            r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, MIN(MAX(255 - EndingGameCounter, 0), 255));
+        end;
+        STATE_INTERCUSTOM:
+        begin
+          if gLastMap and (gGameSettings.GameMode = GM_COOP) then
+            if EndPicPath <> '' then
+              r_Render_DrawBackground(EndPicPath)
+            else
+              r_Render_DrawBackground(GameWad + ':TEXTURES/' + _lc[I_TEXTURE_ENDPIC])
+          else
+            r_Render_DrawBackground(GameWad + ':TEXTURES/INTER');
+          // TODO draw custom stata
+          {$IFDEF ENABLE_MENU}
+            if g_ActiveWindow <> nil then
+              r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
+          {$ENDIF}
+        end;
+        STATE_INTERSINGLE, STATE_INTERTEXT, STATE_INTERPIC:
+        begin
+          if EndingGameCounter > 0 then
+          begin
+            r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, MIN(MAX(255 - EndingGameCounter, 0), 255));
+          end
+          else
+          begin
+            r_Render_DrawBackground(GameWad + ':TEXTURES/INTER');
+            // TODO darw single stats
+            {$IFDEF ENABLE_MENU}
+              if g_ActiveWindow <> nil then
+                r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
+            {$ENDIF}
+          end;
+        end;
+        STATE_ENDPIC:
+        begin
+          if EndPicPath <> '' then
+            r_Render_DrawBackground(EndPicPath)
+          else
+            r_Render_DrawBackground(GameWad + ':TEXTURES/' + _lc[I_TEXTURE_ENDPIC]);
+          {$IFDEF ENABLE_MENU}
+            if g_ActiveWindow <> nil then
+              r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
+          {$ENDIF}
+        end;
+        STATE_SLIST:
+        begin
+          r_Render_DrawBackground(GameWad + ':TEXTURES/TITLE');
+          r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
+          // TODO draw serverlist
+        end;
       end;
     end;
 

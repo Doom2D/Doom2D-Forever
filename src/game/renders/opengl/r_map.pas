@@ -1177,20 +1177,6 @@ implementation
   end;
 {$ENDIF}
 
-  procedure r_Map_CalcAspect (ow, oh, nw, nh: LongInt; horizontal: Boolean; out ww, hh: LongInt);
-  begin
-    if horizontal then
-    begin
-      ww := nw;
-      hh := nw * oh div ow;
-    end
-    else
-    begin
-      ww := nh * ow div oh;
-      hh := nh;
-    end;
-  end;
-
   procedure r_Map_CalcSkyParallax (cx, cy, vw, vh, sw, sh, mw, mh: LongInt; out x, y, w, h: LongInt);
     const
       factor = 120; (* size ratio between view and sky (120%) *)
@@ -1200,7 +1186,7 @@ implementation
   begin
     msw := vw * factor div 100;
     msh := vh * factor div 100;
-    r_Map_CalcAspect(sw, sh, msw, msh, (sw / sh) <= (msw / msh), w, h);
+    r_Common_CalcAspect(sw, sh, msw, msh, (sw / sh) <= (msw / msh), w, h);
 
     (* calc x parallax or sky center on speed limit *)
     mvw := MAX(1, mw - vw);

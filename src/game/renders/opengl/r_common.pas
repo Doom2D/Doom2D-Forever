@@ -19,10 +19,21 @@ interface
 
   uses r_textures;
 
+  type
+    THereTexture = record
+      name: AnsiString;
+      id: TGLTexture;
+    end;
+
   var
     stdfont: TGLFont;
     smallfont: TGLFont;
     menufont: TGLFont;
+
+  function  r_Common_LoadThis (const name: AnsiString; var here: THereTexture): Boolean;
+  procedure r_Common_FreeThis (var here: THereTexture);
+
+  procedure r_Common_CalcAspect (ow, oh, nw, nh: LongInt; horizontal: Boolean; out ww, hh: LongInt);
 
   procedure r_Common_Load;
   procedure r_Common_Free;
@@ -30,6 +41,41 @@ interface
 implementation
 
   uses e_log, r_fonts, g_options;
+
+  procedure r_Common_FreeThis (var here: THereTexture);
+  begin
+    here.name := '';
+    if here.id <> nil then
+      here.id.Free;
+    here.id := nil;
+  end;
+
+  function r_Common_LoadThis (const name: AnsiString; var here: THereTexture): Boolean;
+  begin
+    if name <> here.name then
+      r_Common_FreeThis(here);
+    if (name <> '') and (here.name <> name) then
+      here.id := r_Textures_LoadFromFile(name);
+
+    result := here.id <> nil;
+
+    if result then
+      here.name := name;
+  end;
+
+  procedure r_Common_CalcAspect (ow, oh, nw, nh: LongInt; horizontal: Boolean; out ww, hh: LongInt);
+  begin
+    if horizontal then
+    begin
+      ww := nw;
+      hh := nw * oh div ow;
+    end
+    else
+    begin
+      ww := nh * ow div oh;
+      hh := nh;
+    end;
+  end;
 
   function r_Common_LoadFont (const name: AnsiString): TGLFont;
     var info: TFontInfo; skiphack: Integer;
