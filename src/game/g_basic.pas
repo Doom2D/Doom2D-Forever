@@ -40,6 +40,7 @@ type
 
 function g_GetBuilderName (): AnsiString;
 function g_GetBuildHash (full: Boolean = True): AnsiString;
+function g_GetBuildArch (): AnsiString;
 
 function g_CreateUID(UIDType: Byte): Word;
 function g_GetUIDType(UID: Word): Byte;
@@ -129,6 +130,90 @@ begin
     result := 'custom build'
 end;
 {$POP}
+
+function g_GetBuildArch (): AnsiString;
+  var cpu, mode, fpu: AnsiString;
+begin
+  {$IF DEFINED(CPUX86_64) OR DEFINED(CPUAMD64) OR DEFINED(CPUX64)}
+    cpu := 'x86_64';
+  {$ELSEIF DEFINED(CPUI386) OR DEFINED(CPU386)}
+    cpu := 'x86';
+  {$ELSEIF DEFINED(CPUI8086)}
+    cpu := 'i8086';
+  {$ELSEIF DEFINED(CPUI64)}
+    cpu := 'Itanium64';
+  {$ELSEIF DEFINED(CPUARM)}
+    cpu := 'ARM';
+  {$ELSEIF DEFINED(CPUAVR)}
+    cpu := 'AVR';
+  {$ELSEIF DEFINED(CPUPOWERPC32)}
+    cpu := 'PowerPC_32';
+  {$ELSEIF DEFINED(CPUPOWERPC64)}
+    cpu := 'PowerPC_64';
+  {$ELSEIF DEFINED(CPUALPHA)}}
+    cpu := 'Alpha';
+  {$ELSEIF DEFINED(CPUSPARC32)}
+    cpu := 'Sparc32';
+  {$ELSEIF DEFINED(CPUM68020)}
+    cpu := 'M68020"
+  {$ELSEIF DEFINED(CPU68K) OR DEFINED(CPUM68K)}
+    cpu := 'm68k"
+  {$ELSEIF DEFINED(CPUSPARC)}
+    cpu := 'unknown-sparc';
+  {$ELSEIF DEFINED(CPUPOWERPC)}
+    cpu := 'unknown-ppc';
+  {$ELSEIF DEFINED(CPU86) OR DEFINED(CPU87)}
+    cpu := 'unknown-intel';
+  {$ELSE}
+    cpu := 'unknown-arch"
+  {$ENDIF}
+
+  {$IF DEFINED(CPU64)}
+    mode := '64-bit';
+  {$ELSEIF DEFINED(CPU32)}
+    mode := '32-bit';
+  {$ELSEIF DEFINED(CPU16)}
+    mode := '16-bit';
+  {$ELSE}
+    mode := 'unknown-mode';
+  {$ENDIF}
+
+  {$IF DEFINED(FPUSOFT)}
+    fpu := 'soft';
+  {$ELSEIF DEFINED(FPUSSE3)}
+    fpu := 'sse3';
+  {$ELSEIF DEFINED(FPUSSE2)}
+    fpu := 'sse2';
+  {$ELSEIF DEFINED(FPUSSE)}
+    fpu := 'sse';
+  {$ELSEIF DEFINED(FPUSSE64)}
+    fpu := 'sse64';
+  {$ELSEIF DEFINED(FPULIBGCC)}
+    fpu := 'libgcc';
+  {$ELSEIF DEFINED(FPU68881)}
+    fpu := '68881';
+  {$ELSEIF DEFINED(FPUVFP)}
+    fpu := 'vfp';
+  {$ELSEIF DEFINED(FPUFPA11)}
+    fpu := 'fpa11';
+  {$ELSEIF DEFINED(FPUFPA10)}
+    fpu := 'fpa10';
+  {$ELSEIF DEFINED(FPUFPA)}
+    fpu := 'fpa';
+  {$ELSEIF DEFINED(FPUX87)}
+    fpu := 'x87';
+  {$ELSEIF DEFINED(FPUITANIUM)}
+    fpu := 'itanium';
+  {$ELSEIF DEFINED(FPUSTANDARD)}
+    fpu := 'standard';
+  {$ELSEIF DEFINED(FPUHARD)}
+    fpu := 'hard';
+  {$ELSE}
+    fpu := 'unknown-fpu';
+  {$ENDIF}
+
+  result := cpu + ' ' + mode + ' ' + fpu;
+end;
 
 function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
 begin
