@@ -155,9 +155,9 @@ begin
   {$ELSEIF DEFINED(CPUSPARC32)}
     cpu := 'Sparc32';
   {$ELSEIF DEFINED(CPUM68020)}
-    cpu := 'M68020"
+    cpu := 'M68020';
   {$ELSEIF DEFINED(CPU68K) OR DEFINED(CPUM68K)}
-    cpu := 'm68k"
+    cpu := 'm68k';
   {$ELSEIF DEFINED(CPUSPARC)}
     cpu := 'unknown-sparc';
   {$ELSEIF DEFINED(CPUPOWERPC)}
@@ -165,7 +165,7 @@ begin
   {$ELSEIF DEFINED(CPU86) OR DEFINED(CPU87)}
     cpu := 'unknown-intel';
   {$ELSE}
-    cpu := 'unknown-arch"
+    cpu := 'unknown-arch';
   {$ENDIF}
 
   {$IF DEFINED(CPU64)}
