@@ -82,8 +82,9 @@ implementation
     {$ENDIF}
     SysUtils, Classes, Math,
     e_log, utils,
+    g_basic,
     g_game, g_options, g_console, g_player, g_weapons, g_language,
-    g_net,
+    g_net, g_netmaster,
     r_draw, r_textures, r_fonts, r_common, r_console, r_map
   ;
 
@@ -368,6 +369,114 @@ implementation
       r_Render_DrawBackgroundImage(BackgroundTexture.id)
   end;
 
+  procedure r_Render_DrawServerList (var SL: TNetServerList; var ST: TNetServerTable);
+    var ip: AnsiString; ww, hh, cw, ch, mw, mh, motdh, scrx, scry, i, mx, y: Integer; msg: SSArray; Srv: TNetServer;
+  begin
+    scrx := gScreenWidth div 2;
+    scry := gScreenHeight div 2;
+
+    r_Draw_GetTextSize(_lc[I_NET_SLIST], menufont, ww, hh);
+    r_Render_DrawText(_lc[I_NET_SLIST], gScreenWidth div 2, 16, 255, 255, 255, 255, menufont, TBasePoint.BP_UP);
+
+    r_Draw_GetTextSize('W', stdfont, cw, ch);
+    motdh := gScreenHeight - 49 - ch * b_Text_LineCount(slMOTD);
+
+    r_Draw_FillRect(16, 64, gScreenWidth - 16, motdh, 64, 64, 64, 145);
+    r_Draw_Rect(16, 64, gScreenWidth - 16, motdh, 255, 127, 0, 255);
+
+    r_Render_DrawText(_lc[I_NET_SLIST_HELP], gScreenWidth div 2, gScreenHeight - 8, 255, 255, 255, 255, stdfont, TBasePoint.BP_DOWN);
+
+    if slMOTD <> '' then
+    begin
+      r_Draw_FillRect(16, motdh, gScreenWidth - 16, gScreenHeight - 44, 64, 64, 64, 110);
+      r_Draw_Rect(16, motdh, gScreenWidth - 16, gScreenHeight - 44, 255, 127, 0, 255);
+      msg := Parse2(slMOTD, #10);
+      for i := 0 to High(msg) do
+        r_Render_DrawText(msg[i], 20, motdh + 3 + ch * i, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+    end;
+
+    if not slReadUrgent and (slUrgent <> '') then
+    begin
+      r_Draw_FillRect(17, 65, gScreenWidth - 17, motdh - 1, 64, 64, 64, 127);
+      r_Draw_FillRect(scrx - 256, scry - 60, scrx + 256, scry + 60, 64, 64, 64, 127);
+      r_Draw_Rect(scrx - 256, scry - 60, scrx + 256, scry + 60, 255, 127, 0, 255);
+      r_Draw_FillRect(scrx - 256, scry - 40, scrx + 256, scry - 40, 255, 127, 0, 255);
+      r_Render_DrawText(_lc[I_NET_SLIST_URGENT], scrx, scry - 58, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
+      msg := Parse2(slUrgent, #10);
+      for i := 0 to High(msg) do
+        r_Render_DrawText(msg[i], scrx - 253, scry - 38 + ch * i, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText(_lc[I_NET_SLIST_URGENT_CONT], scrx, scry + 41, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
+      r_Draw_FillRect(scrx - 256, scry + 40, scrx + 256, scry + 40, 255, 127, 0, 255);
+    end
+    else if SL = nil then
+    begin
+      r_Draw_FillRect(17, 65, gScreenWidth - 17, motdh - 1, 64, 64, 64, 127);
+      r_Draw_Rect(scrx - 192, scry - 10, scrx + 192, scry + 11, 255, 127, 0, 255);
+      r_Render_DrawText(slWaitStr, scrx, scry, 255, 255, 255, 255, stdfont, TBasePoint.BP_CENTER);
+    end
+    else
+    begin
+      y := 90;
+      if slSelection < Length(ST) then
+      begin
+        sy := y + 42 * slSelection - 4;
+        Srv := GetServerFromTable(slSelection, SL, ST);
+        ip := _lc[I_NET_ADDRESS] + ' ' + Srv.IP + ':' + IntToStr(Srv.Port);
+        ip := ip + '  ' + _lc[I_NET_SERVER_PASSWORD] + ' ';
+        if Srv.Password then ip := ip + _lc[I_MENU_YES] else ip := ip +_lc[I_MENU_NO];
+      end;
+
+      mw := gScreenWidth - 188;
+      mx := 16 + mw;
+
+      r_Draw_FillRect(16 + 1, sy, gScreenWidth - 16 - 1, sy + 40, 64, 64, 64, 255);
+      r_Draw_FillRect(16 + 1, sy, gScreenWidth - 16 - 1, sy, 205, 205, 205, 255);
+      r_Draw_FillRect(16 + 1, sy + 41, gScreenWidth - 16 - 1, sy + 41, 255, 255, 255, 255);
+
+      r_Draw_FillRect(16, 85, gScreenWidth - 16, 85, 255, 127, 0, 255);
+      r_Draw_FillRect(16, motdh - 20, gScreenWidth - 16, motdh - 20, 255, 127, 0, 255);
+
+      r_Draw_FillRect(mx - 70, 64, mx - 70, motdh, 255, 127, 0, 255);
+      r_Draw_FillRect(mx, 64, mx, motdh - 20, 255, 127, 0, 255);
+      r_Draw_FillRect(mx + 52, 64, mx + 52, motdh - 20, 255, 127, 0, 255);
+      r_Draw_FillRect(mx + 104, 64, mx + 104, motdh - 20, 255, 127, 0, 255);
+
+      r_Render_DrawText('NAME/MAP', 18, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText('PING', mx - 68, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText('MODE', mx + 2, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText('PLRS', mx + 54, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText('VER', mx + 106, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+
+      for i := 0 to High(ST) do
+      begin
+        Srv := GetServerFromTable(i, SL, ST);
+        r_Render_DrawText(Srv.Name, 18, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+        r_Render_DrawText(Srv.Map,  18, y + 16, 210, 210, 210, 255, stdfont, TBasePoint.BP_LEFTUP);
+
+        if Srv.Ping = 0 then
+          r_Render_DrawText('<1' + _lc[I_NET_SLIST_PING_MS], mx - 68, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP)
+        else if (Srv.Ping >= 0) and (Srv.Ping <= 999) then
+          r_Render_DrawText(IntToStr(Srv.Ping) + _lc[I_NET_SLIST_PING_MS], mx - 68, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP)
+        else
+          r_Render_DrawText(_lc[I_NET_SLIST_NO_ACCESS], mx - 68, y, 255, 0, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+        if Length(ST[I].Indices) > 1 then
+          r_Render_DrawText('<' + IntToStr(Length(ST[I].Indices)) + '>', mx - 68, y + 16, 210, 210, 210, 255, stdfont, TBasePoint.BP_LEFTUP);
+
+        r_Render_DrawText(g_Game_ModeToText(Srv.GameMode), mx + 2, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+
+        r_Render_DrawText(IntToStr(Srv.Players) + '/' + IntToStr(Srv.MaxPlayers), mx + 54, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+        r_Render_DrawText(IntToStr(Srv.LocalPl) + '+' + IntToStr(Srv.Bots), mx + 54, y + 16, 210, 210, 210, 255, stdfont, TBasePoint.BP_LEFTUP);
+
+        r_Render_DrawText(IntToStr(Srv.Protocol), mx + 106, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+
+        y := y + 42;
+      end;
+
+      r_Render_DrawText(ip, 20, motdh - 20 + 3, 205, 205, 205, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText(IntToStr(Length(ST)) + _lc[I_NET_SLIST_SERVERS], gScreenWidth - 48, motdh - 20 + 3, 255, 255, 255, 255, stdfont, TBasePoint.BP_RIGHTUP);
+    end;
+  end;
+
   procedure r_Render_Draw;
   begin
     if gExit = EXIT_QUIT then
@@ -467,7 +576,7 @@ implementation
         begin
           r_Render_DrawBackground(GameWad + ':TEXTURES/TITLE');
           r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
-          // TODO draw serverlist
+          r_Render_DrawServerList(slCurrent, slTable);
         end;
       end;
     end;

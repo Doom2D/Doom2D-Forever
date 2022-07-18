@@ -265,10 +265,16 @@ implementation
     glDisable(GL_TEXTURE_2D);
     glColor4ub(rr, gg, bb, aa);
     glBegin(GL_QUADS);
+{
       glVertex2i(l, t);
       glVertex2i(r, t);
       glVertex2i(r, b);
       glVertex2i(l, b);
+}
+      glVertex2f(l + 0.5, t + 0.5);
+      glVertex2f(r - 0.5, t + 0.5);
+      glVertex2f(r - 0.5, b - 0.5);
+      glVertex2f(l + 0.5, b - 0.5);
     glEnd;
   end;
 
