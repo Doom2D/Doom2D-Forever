@@ -212,17 +212,6 @@ implementation
     r_Map_Update;
   end;
 
-  procedure SetupMatrix;
-  begin
-    glViewport(0, 0, gScreenWidth, gScreenHeight);
-    glScissor(0, 0, gScreenWidth, gScreenHeight);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity;
-    glOrtho(0, gScreenWidth, gScreenHeight, 0, 0, 1);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity;
-  end;
-
   procedure r_Render_GetBasePoint (x, y, w, h: Integer; p: TBasePoint; out xx, yy: Integer);
   begin
     case p of
@@ -330,7 +319,11 @@ implementation
   end;
 
   procedure r_Render_DrawView (x, y, w, h: Integer; p: TPlayer);
+    var l, t, r, b: Integer;
   begin
+    r_Draw_GetRect(l, t, r, b);
+    r_Draw_SetRect(x, y, x + w, y + h);
+
     if p <> nil then
       r_Map_Draw(x, y, w, h, p.obj.x + PLAYER_RECT_CX, p.obj.y + PLAYER_RECT_CY, p)
     else
@@ -343,12 +336,18 @@ implementation
       if p.Spectator and p.NoRespawn then
         r_Render_DrawText(_lc[I_PLAYER_SPECT4], x div 2 + w div 2, y div 2 + h div 2, 255, 255, 255, 255, stdfont, TBasePoint.BP_CENTER);
     end;
+
+    r_Draw_SetRect(l, t, r, b);
   end;
 
   procedure r_Render_DrawPlayerView (x, y, w, h: Integer; p: TPlayer);
+    var l, t, r, b: Integer;
   begin
+    r_Draw_GetRect(l, t, r, b);
+    r_Draw_SetRect(x, y, x + w, y + h);
     r_Render_DrawView(x, y, w - 196, h, p);
     r_Render_DrawHUDArea(x + w - 196, y, 196, h, p);
+    r_Draw_SetRect(l, t, r, b);
   end;
 
   procedure r_Render_Draw;
@@ -356,12 +355,14 @@ implementation
     if gExit = EXIT_QUIT then
       exit;
 
-    SetupMatrix;
+    r_Draw_Setup(gScreenWidth, gScreenHeight);
 
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT);
 
     glColor4ub(255, 255, 255, 255);
+    glEnable(GL_SCISSOR_TEST);
+    r_Draw_SetRect(0, 0, gScreenWidth, gScreenHeight);
 
     //e_LogWritefln('r_render_draw: %sx%s', [gScreenWidth, gScreenHeight]);
 
@@ -373,7 +374,15 @@ implementation
       // TODO setup player view siz
 
       // TODO draw player view + setup screen coords
-      r_Render_DrawPlayerView(0, 0, gScreenWidth, gScreenHeight, gPlayer1);
+      if (gPlayer1 <> nil) and (gPlayer2 <> nil) then
+      begin
+        r_Render_DrawPlayerView(0, 0, gScreenWidth, gScreenHeight div 2 - 2, gPlayer1);
+        r_Render_DrawPlayerView(0, gScreenHeight div 2 + 2, gScreenWidth, gScreenHeight div 2, gPlayer2);
+      end
+      else
+      begin
+        r_Render_DrawPlayerView(0, 0, gScreenWidth, gScreenHeight, gPlayer1);
+      end;
 
       // TODO draw holmes inspector
 

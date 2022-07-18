@@ -30,11 +30,16 @@ interface
   procedure r_Draw_MultiTextureRepeatRotate (m: TGLMultiTexture; const anim: TAnimState; backanim: Boolean; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean; rx, ry, angle: Integer);
 
   procedure r_Draw_Filter (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
+  procedure r_Draw_Rect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
   procedure r_Draw_FillRect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
   procedure r_Draw_InvertRect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
 
   procedure r_Draw_Text (const text: AnsiString; x, y: Integer; r, g, b, a: Byte; f: TGLFont);
   procedure r_Draw_GetTextSize (const text: AnsiString; f: TGLFont; out w, h: Integer);
+
+  procedure r_Draw_Setup (w, h: Integer);
+  procedure r_Draw_SetRect (l, t, r, b: Integer);
+  procedure r_Draw_GetRect (out l, t, r, b: Integer);
 
 implementation
 
@@ -45,8 +50,7 @@ implementation
       GL, GLEXT,
     {$ENDIF}
     SysUtils, Classes, Math,
-    e_log, utils,
-    g_game // gScreenWidth, gScreenHeight
+    e_log, utils
   ;
 
   const
@@ -55,15 +59,24 @@ implementation
     NTB = $00;
     NTA = $FF;
 
-  procedure SetupMatrix;
+  var
+    sl, st, sr, sb: Integer;
+    ScreenWidth, ScreenHeight: Integer;
+
+  procedure r_Draw_Setup (w, h: Integer);
   begin
-    glScissor(0, 0, gScreenWidth, gScreenHeight);
-    glViewport(0, 0, gScreenWidth, gScreenHeight);
+    ASSERT(w >= 0);
+    ASSERT(h >= 0);
+    ScreenWidth := w;
+    ScreenHeight := h;
+    glScissor(0, 0, w, h);
+    glViewport(0, 0, w, h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity;
-    glOrtho(0, gScreenWidth, gScreenHeight, 0, 0, 1);
+    glOrtho(0, w, h, 0, 0, 1);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity;
+//    glTranslatef(0.5, 0.5, 0);
   end;
 
   procedure DrawQuad (x, y, w, h: Integer);
@@ -221,6 +234,28 @@ implementation
     glEnd;
   end;
 
+  procedure r_Draw_Rect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
+  begin
+    ASSERT(r >= l);
+    ASSERT(b >= t);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_TEXTURE_2D);
+    glColor4ub(rr, gg, bb, aa);
+    glBegin(GL_LINE_LOOP);
+{
+      glVertex2i(l, t);
+      glVertex2i(r, t);
+      glVertex2i(r, b);
+      glVertex2i(l, b);
+}
+      glVertex2f(l + 0.5, t + 0.5);
+      glVertex2f(r - 0.5, t + 0.5);
+      glVertex2f(r - 0.5, b - 0.5);
+      glVertex2f(l + 0.5, b - 0.5);
+    glEnd;
+  end;
+
   procedure r_Draw_FillRect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
   begin
     ASSERT(r >= l);
@@ -280,6 +315,22 @@ implementation
         Inc(w, f.GetWidth(text[i]) + spc);
       Inc(w, f.GetWidth(text[len]));
     end;
+  end;
+
+  procedure r_Draw_SetRect (l, t, r, b: Integer);
+    var w, h: Integer;
+  begin
+    ASSERT(l <= r);
+    ASSERT(t <= b);
+    w := r - l + 1;
+    h := b - t + 1;
+    glScissor(l, ScreenHeight - h - t, w, h);
+    sl := l; st := t; sr := r; sb := b;
+  end;
+
+  procedure r_Draw_GetRect (out l, t, r, b: Integer);
+  begin
+    l := sl; t := st; r := sr; b := sb;
   end;
 
 end.

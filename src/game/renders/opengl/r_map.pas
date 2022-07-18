@@ -55,6 +55,7 @@ implementation
     binheap, MAPDEF, utils,
     g_options, g_animations, g_basic, g_phys,
     g_game, g_map, g_panel, g_items, g_monsters, g_weapons,
+    g_console,
     {$IFDEF ENABLE_CORPSES}
       g_corpses,
     {$ENDIF}
@@ -234,6 +235,7 @@ implementation
     TMonsterAnims = array [0..ANIM_LAST, TDirection] of TGLMultiTexture;
 
   var
+    DebugCameraScale: Single;
     SkyTexture: TGLTexture;
     RenTextures: array of record
       spec: LongInt;
@@ -1264,34 +1266,44 @@ implementation
   end;
 
   procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer);
-    var iter: TPanelGrid.Iter; p: PPanel; cx, cy, xx, yy, ww, hh: Integer; sx, sy, sw, sh: LongInt;
+    var iter: TPanelGrid.Iter; p: PPanel; cx, cy, cw, ch, xx, yy, ww, hh: Integer; sx, sy, sw, sh: LongInt; l, t, r, b: Integer;
   begin
-    cx := camx - w div 2;
-    cy := camy - h div 2;
-    xx := x + cx;
-    yy := y + cy;
-    ww := w;
-    hh := h;
+    r_Draw_GetRect(l, t, r, b);
+    r_Draw_SetRect(x, y, x + w, y + h);
+    glTranslatef(x, y, 0);
 
+    (* camera rect *)
+    cx := (camx - w) + w div 2;
+    cy := (camy - h) + h div 2;
+    cw := w;
+    ch := h;
+
+    (* camera bounds *)
     if g_dbg_ignore_bounds = false then
     begin
-      if xx + ww > gMapInfo.Width then
-        xx := gMapInfo.Width - ww;
-      if yy + hh > gMapInfo.Height then
-        yy := gMapInfo.Height - hh;
-      if xx < 0 then
-        xx := 0;
-      if yy < 0 then
-        yy := 0;
-      cx := xx - x;
-      cy := yy - y;
+      if cx + cw > gMapInfo.Width then
+        cx := gMapInfo.Width - cw;
+      if cy + ch > gMapInfo.Height then
+        cy := gMapInfo.Height - ch;
+      if cx < 0 then
+        cx := 0;
+      if cy < 0 then
+        cy := 0;
     end;
 
-    if SkyTexture <> nil then
-    begin
-      r_Map_CalcSkyParallax(cx, cy, ww, hh, SkyTexture.width, SkyTexture.height, gMapInfo.Width, gMapInfo.Height, sx, sy, sw, sh);
-      r_Draw_Texture(SkyTexture, x + sx, y + sy, sw, sh, false, 255, 255, 255, 255, false);
-    end;
+    (* map bounds *)
+    xx := cx;
+    yy := cy;
+    ww := cw;
+    hh := ch;
+    if xx + ww > gMapInfo.Width then
+      xx := gMapInfo.Width - ww;
+    if yy + hh > gMapInfo.Height then
+      yy := gMapInfo.Height - hh;
+    if xx < 0 then
+      xx := 0;
+    if yy < 0 then
+      yy := 0;
 
     plist.Clear;
     iter := mapGrid.ForEachInAABB(xx, yy, ww, hh, GridDrawableMask);
@@ -1301,6 +1313,19 @@ implementation
     iter.Release;
 
     glPushMatrix;
+    if DebugCameraScale <> 1.0 then
+    begin
+      glTranslatef(cw div 2, ch div 2, 0);
+      glScalef(DebugCameraScale, DebugCameraScale, 1);
+      glTranslatef(-w div 2, -h div 2, 0);
+    end;
+
+    if SkyTexture <> nil then
+    begin
+      r_Map_CalcSkyParallax(cx, cy, w, h, SkyTexture.width, SkyTexture.height, gMapInfo.Width, gMapInfo.Height, sx, sy, sw, sh);
+      r_Draw_Texture(SkyTexture, sx, sy, sw, sh, false, 255, 255, 255, 255, false);
+    end;
+
     glTranslatef(-cx, -cy, 0);
     r_Map_DrawPanelType(PANEL_BACK);
     r_Map_DrawPanelType(PANEL_STEP);
@@ -1332,12 +1357,20 @@ implementation
     // TODO draw monsters health bar
     // TODO draw players health bar
     // TODO draw players indicators
+    if DebugCameraScale <> 1.0 then
+    begin
+      r_Draw_Rect (cx, cy, cx + cw, cy + ch, 0, 255, 0, 255);
+      r_Draw_Rect (xx, yy, xx + ww, yy + hh, 255, 0, 0, 255);
+    end;
     glPopMatrix;
 
     r_Map_DrawScreenEffects(x, y, w, h, player);
 
     // TODO draw minimap (gShowMap)
     // TODO draw g_debug_player
+
+    glTranslatef(-x, -y, 0);
+    r_Draw_SetRect(l, t, r, b);
   end;
 
   procedure r_Map_Update;
@@ -1350,4 +1383,7 @@ implementation
     g_Anim_GetFrameByTime(FlagAnim, tick, count, FlagFrame);
   end;
 
+initialization
+  conRegVar('r_debug_camera_scale', @DebugCameraScale, 0.0001, 1000.0, '', '');
+  DebugCameraScale := 1.0;
 end.
