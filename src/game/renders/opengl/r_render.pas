@@ -485,8 +485,8 @@ implementation
 
     // TODO draw holmes interface
 
-    glFinish();
     glFlush();
+    glFinish();
     sys_Repaint;
   end;
 

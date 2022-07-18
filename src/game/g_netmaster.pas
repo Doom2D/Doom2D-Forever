@@ -1793,9 +1793,6 @@ begin
       {$IFDEF ENABLE_RENDER}
         r_Render_Draw;
       {$ENDIF}
-      {$IFDEF ENABLE_SYSTEM}
-        sys_Repaint;
-      {$ENDIF}
 
       if g_Net_Slist_Fetch(SL) then
       begin

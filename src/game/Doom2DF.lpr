@@ -343,9 +343,6 @@ begin
     {$IFDEF ENABLE_RENDER}
       r_Render_Draw;
     {$ENDIF}
-    {$IFDEF ENABLE_SYSTEM}
-      sys_Repaint;
-    {$ENDIF}
     Frame := Time
   end
   else
