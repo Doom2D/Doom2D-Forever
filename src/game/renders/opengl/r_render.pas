@@ -83,7 +83,7 @@ implementation
     SysUtils, Classes, Math,
     e_log, utils,
     g_basic,
-    g_game, g_options, g_console, g_player, g_weapons, g_language,
+    g_game, g_map, g_options, g_console, g_player, g_weapons, g_language,
     g_net, g_netmaster,
     r_draw, r_textures, r_fonts, r_common, r_console, r_map
   ;
@@ -105,6 +105,8 @@ implementation
     hudkey: array [0..2] of TGLTexture;
     hudair: TGLTexture;
     hudjet: TGLTexture;
+    hudrflag, hudrflags, hudrflagd: TGLTexture;
+    hudbflag, hudbflags, hudbflagd: TGLTexture;
 
   procedure r_Render_LoadTextures;
   begin
@@ -136,6 +138,12 @@ implementation
     hudkey[2] := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/KEYB');
     hudair := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/AIRBAR');
     hudjet := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/JETBAR');
+    hudrflag := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/FLAGHUD_R_BASE');
+    hudrflags := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/FLAGHUD_R_STOLEN');
+    hudrflagd := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/FLAGHUD_R_DROP');
+    hudbflag := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/FLAGHUD_B_BASE');
+    hudbflags := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/FLAGHUD_B_STOLEN');
+    hudbflagd := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/FLAGHUD_B_DROP');
     r_Console_Load;
     r_Map_Load;
     {$IFDEF ENABLE_MENU}
@@ -151,6 +159,12 @@ implementation
     {$ENDIF}
     r_Map_Free;
     r_Console_Free;
+    hudbflagd.Free;
+    hudbflags.Free;
+    hudbflag.Free;
+    hudrflagd.Free;
+    hudrflags.Free;
+    hudrflag.Free;
     hudjet.Free;
     hudair.Free;
     hudkey[0].Free;
@@ -319,6 +333,87 @@ implementation
     end;
   end;
 
+  procedure r_Render_DrawStatsView (x, y, w, h: Integer; p: TPlayer);
+    var fw, i, maxFrags, top, totalPlayers: Integer; sign: Char; stat: TPlayerStatArray; f: TGLTexture;
+  begin
+    ASSERT(p <> nil);
+
+    if gShowScore and (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
+    begin
+      (* RED TEAM GOALS *)
+      fw := 0;
+      if gGameSettings.GameMode = GM_CTF then
+      begin
+        case gFlags[FLAG_RED].State of
+          FLAG_STATE_CAPTURED: f := hudrflags;
+          FLAG_STATE_DROPPED:  f := hudrflagd;
+          otherwise            f := hudrflag;
+        end;
+        if f <> nil then
+        begin
+          fw := f.width + 8; (* + space *)
+          r_Render_DrawTexture(f, x + w - 16, y + 240 - 72 - 4, f.width, f.height, TBasePoint.BP_RIGHTUP);
+        end;
+      end;
+      r_Render_DrawText(IntToStr(gTeamStat[TEAM_RED].Score), x + w - 16 - fw, y + 240 - 72 - 4, TEAMCOLOR[TEAM_RED].R, TEAMCOLOR[TEAM_RED].G, TEAMCOLOR[TEAM_RED].B, 255, menufont, TBasePoint.BP_RIGHTUP);
+
+      (* BLUE TEAM GOALS *)
+      fw := 0;
+      if gGameSettings.GameMode = GM_CTF then
+      begin
+        case gFlags[FLAG_BLUE].State of
+          FLAG_STATE_CAPTURED: f := hudbflags;
+          FLAG_STATE_DROPPED:  f := hudbflagd;
+          otherwise            f := hudbflag;
+        end;
+        if f <> nil then
+        begin
+          fw := f.width + 8; (* + space *)
+          r_Render_DrawTexture(f, x + w - 16, y + 240 - 32 - 4, f.width, f.height, TBasePoint.BP_RIGHTUP);
+        end;
+      end;
+      r_Render_DrawText(IntToStr(gTeamStat[TEAM_BLUE].Score), x + w - 16 - fw, y + 240 - 32 - 4, TEAMCOLOR[TEAM_RED].R, TEAMCOLOR[TEAM_RED].G, TEAMCOLOR[TEAM_RED].B, 255, menufont, TBasePoint.BP_RIGHTUP);
+    end;
+
+    if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
+    begin
+      if gShowStat then
+      begin
+        r_Render_DrawText(IntToStr(p.Frags), x + w - 16, y, 255, 0, 0, 255, menufont, TBasePoint.BP_RIGHTUP);
+
+        top := 1;
+        maxFrags := 0;
+        totalPlayers := 0;
+        stat := g_Player_GetStats();
+        if stat <> nil then
+        begin
+          totalPlayers := Length(stat);
+          for i := 0 to High(stat) do
+          begin
+            if stat[i].Name <> p.Name then
+            begin
+              maxFrags := MAX(maxFrags, stat[i].Frags);
+              if stat[i].Frags > p.Frags then
+                top := top + 1;
+            end;
+          end;
+        end;
+        if p.Frags >= maxFrags then sign := '+' else sign := '-';
+        r_Render_DrawText(IntToStr(top) + ' / ' + IntToStr(totalPlayers) + ' ' + sign + IntToStr(ABS(p.Frags - maxFrags)), x + w - 16, y + 32, 255, 0, 0, 255, smallfont, TBasePoint.BP_RIGHTUP);
+      end;
+
+      if gLMSRespawn > LMS_RESPAWN_NONE then
+      begin
+        r_Render_DrawText(_lc[I_GAME_WARMUP], x + w - 16 - 64, y + h, 0, 255, 0, 255, menufont, TBasePoint.BP_RIGHTDOWN);
+        r_Render_DrawText(': ' + IntToStr((gLMSRespawnTime - gTime) div 1000), x + w - 16 - 64, y + h, 0, 255, 0, 255, menufont, TBasePoint.BP_LEFTDOWN);
+      end
+      else if gShowLives and (gGameSettings.MaxLives > 0) then
+      begin
+        r_Render_DrawText(IntToStr(p.Lives), x + w - 16, y + h, 0, 255, 0, 255, menufont, TBasePoint.BP_RIGHTDOWN);
+      end;
+    end;
+  end;
+
   procedure r_Render_DrawView (x, y, w, h: Integer; p: TPlayer);
     var l, t, r, b: Integer;
   begin
@@ -326,16 +421,15 @@ implementation
     r_Draw_SetRect(x, y, x + w, y + h);
 
     if p <> nil then
-      r_Map_Draw(x, y, w, h, p.obj.x + PLAYER_RECT_CX, p.obj.y + PLAYER_RECT_CY, p)
-    else
-      r_Map_Draw(x, y, w, h, 0, 0, nil);
-
-    // TODO draw stats
-
-    if p <> nil then
     begin
+      r_Map_Draw(x, y, w, h, p.obj.x + PLAYER_RECT_CX, p.obj.y + PLAYER_RECT_CY, p);
+      r_Render_DrawStatsView(x, y, w, h, p);
       if p.Spectator and p.NoRespawn then
         r_Render_DrawText(_lc[I_PLAYER_SPECT4], x div 2 + w div 2, y div 2 + h div 2, 255, 255, 255, 255, stdfont, TBasePoint.BP_CENTER);
+    end
+    else
+    begin
+      r_Map_Draw(x, y, w, h, 0, 0, nil);
     end;
 
     r_Draw_SetRect(l, t, r, b);
