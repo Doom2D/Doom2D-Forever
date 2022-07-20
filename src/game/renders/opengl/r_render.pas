@@ -81,9 +81,9 @@ implementation
       g_system,
     {$ENDIF}
     SysUtils, Classes, Math,
-    e_log, utils,
     g_basic,
-    g_game, g_map, g_options, g_console, g_player, g_weapons, g_language,
+    e_log, utils, wadreader,
+    g_game, g_map, g_options, g_console, g_player, g_weapons, g_language, g_triggers,
     g_net, g_netmaster,
     r_draw, r_textures, r_fonts, r_common, r_console, r_map
   ;
@@ -372,7 +372,7 @@ implementation
           r_Render_DrawTexture(f, x + w - 16, y + 240 - 32 - 4, f.width, f.height, TBasePoint.BP_RIGHTUP);
         end;
       end;
-      r_Render_DrawText(IntToStr(gTeamStat[TEAM_BLUE].Score), x + w - 16 - fw, y + 240 - 32 - 4, TEAMCOLOR[TEAM_RED].R, TEAMCOLOR[TEAM_RED].G, TEAMCOLOR[TEAM_RED].B, 255, menufont, TBasePoint.BP_RIGHTUP);
+      r_Render_DrawText(IntToStr(gTeamStat[TEAM_BLUE].Score), x + w - 16 - fw, y + 240 - 32 - 4, TEAMCOLOR[TEAM_BLUE].R, TEAMCOLOR[TEAM_BLUE].G, TEAMCOLOR[TEAM_BLUE].B, 255, menufont, TBasePoint.BP_RIGHTUP);
     end;
 
     if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
@@ -571,6 +571,169 @@ implementation
     end;
   end;
 
+  function r_Render_TimeToStr (t: LongWord): AnsiString;
+    var h, m, s: Integer;
+  begin
+    h := t div 1000 div 3600;
+    m := t div 1000 div 60 mod 60;
+    s := t div 1000 mod 60;
+    result := Format('%d:%.2d:%.2d', [h, m, s]);
+  end;
+
+  procedure r_Render_DrawStatsColumns (stat: TPlayerStatArray; x, y, w, w1, w2, w3, w4: Integer);
+    var i, cw, ch, yy, team: Integer; r, g, b, rr, gg, bb: Byte; s: AnsiString;
+  begin
+    ASSERT(stat <> nil);
+    r_Draw_GetTextSize('W', stdfont, cw, ch);
+    yy := y;
+    if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
+    begin
+      for team := TEAM_RED to TEAM_BLUE do
+      begin
+        case team of
+          TEAM_RED:
+            begin
+              s := _lc[I_GAME_TEAM_RED];
+              r := 255; g := 0; b := 0;
+            end;
+          TEAM_BLUE:
+            begin
+              s := _lc[I_GAME_TEAM_BLUE];
+              r := 0; g := 0; b := 255;
+            end;
+         end;
+         r_Render_DrawText(s, x, yy, r, g, b, 255, stdfont, TBasePoint.BP_LEFTUP);
+         r_Render_DrawText(IntToStr(gTeamStat[team].Score), x + w1, yy, r, g, b, 255, stdfont, TBasePoint.BP_LEFTUP);
+         INC(yy, ch);
+
+         INC(yy, ch div 4);
+         r_Draw_FillRect(x, yy, x + w - 1, yy, r, g, b, 255);
+         INC(yy, ch div 4);
+
+         for i := 0 to High(stat) do
+         begin
+           if stat[i].Team = team then
+           begin
+             rr := r; gg := g; bb := b;
+             if stat[i].Spectator then
+             begin
+               rr := r div 2; gg := g div 2; bb := b div 2;
+             end;
+
+             // Player name
+             if gShowPIDs then s := Format('[%5d] %s', [stat[i].UID, stat[i].Name]) else s := stat[i].Name;
+             r_Render_DrawText(s, x, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+             // Player ping/loss
+             s := Format(_lc[I_GAME_PING_MS], [stat[i].Ping, stat[i].Loss]);
+             r_Render_DrawText(s, x + w1, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+             // Player frags
+             s := IntToStr(stat[i].Frags);
+             r_Render_DrawText(s, x + w1 + w2, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+             // Player deaths
+             s := IntToStr(stat[i].Deaths);
+             r_Render_DrawText(s, x + w1 + w2 + w3, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+
+             INC(yy, ch);
+           end;
+         end;
+         INC(yy, ch);
+      end;
+    end
+    else if gGameSettings.GameMode in [GM_DM, GM_COOP] then
+    begin
+      r_Render_DrawText(_lc[I_GAME_PLAYER_NAME], x, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText(_lc[I_GAME_PING], x + w1, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText(_lc[I_GAME_FRAGS], x + w1 + w2, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText(_lc[I_GAME_DEATHS], x + w1 + w2 + w3, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      INC(yy, ch + 8);
+      for i := 0 to High(stat) do
+      begin
+        rr := 255; gg := 127; bb := 0;
+        if stat[i].Spectator then
+        begin
+          rr := 127; gg := 63; bb := 0;
+        end;
+
+        // Player color
+        r_Draw_Rect(x, yy, x + 16 - 1, yy + 16 - 1, 192, 192, 192, 255);
+        r_Draw_FillRect(x + 1, yy + 1, x + 16 - 1, yy + 16 - 1, stat[i].Color.R, stat[i].Color.G, stat[i].Color.B, 255);
+        // Player name
+        if gShowPIDs then s := Format('[%5d] %s', [stat[i].UID, stat[i].Name]) else s := stat[i].Name;
+        r_Render_DrawText(s, x + 16 + 8, yy, 192, 192, 192, 255, stdfont, TBasePoint.BP_LEFTUP);
+        // Player ping/loss
+        s := Format(_lc[I_GAME_PING_MS], [stat[i].Ping, stat[i].Loss]);
+        r_Render_DrawText(s, x + w1, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+        // Player frags
+        s := IntToStr(stat[i].Frags);
+        r_Render_DrawText(s, x + w1 + w2, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+        // Player deaths
+        s := IntToStr(stat[i].Deaths);
+        r_Render_DrawText(s, x + w1 + w2 + w3, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+
+        INC(yy, ch + 8);
+      end;
+    end;
+  end;
+
+  procedure r_Render_DrawStats;
+    var x, y, w, h, cw, ch, players, w1, w2, w3, w4: Integer; s: AnsiString; stat: TPlayerStatArray;
+  begin
+    players := g_Player_GetCount();
+    r_Draw_GetTextSize('W', stdfont, cw, ch);
+    w := gScreenWidth - (gScreenWidth div 5);
+    h := IfThen(gGameSettings.GameMode in [GM_TDM, GM_CTF], 32 + ch * (11 + players), 40 + ch * 5 + (ch + 8) * players);
+    x := (gScreenWidth div 2) - (w div 2);
+    y := (gScreenHeight div 2) - (h div 2);
+
+    r_Draw_FillRect(x, y, x + w - 1, y + h - 1, 64, 64, 64, 224);
+    r_Draw_Rect(x, y, x + w - 1, y + h - 1, 255, 127, 0, 255);
+
+    case NetMode of
+      NET_SERVER: s := _lc[I_NET_SERVER];
+      NET_CLIENT: s := NetClientIP + ':' + IntToStr(NetClientPort);
+      otherwise   s := '';
+    end;
+    r_Render_DrawText(s, x + 16, y + 8, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+    case gGameSettings.GameMode of
+      GM_DM:    if gGameSettings.MaxLives = 0 then s := _lc[I_GAME_DM] else s := _lc[I_GAME_LMS];
+      GM_TDM:   if gGameSettings.MaxLives = 0 then s := _lc[I_GAME_TDM] else s := _lc[I_GAME_TLMS];
+      GM_CTF:   s := _lc[I_GAME_CTF];
+      GM_COOP:  if gGameSettings.MaxLives = 0 then s := _lc[I_GAME_COOP] else s := _lc[I_GAME_SURV];
+      otherwise s := 'Game mode ' + IntToStr(gGameSettings.GameMode);
+    end;
+    r_Render_DrawText(s, x + w div 2, y + 8, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
+    r_Render_DrawText(r_Render_TimeToStr(gTime), x + w - 16, y + 8, 255, 255, 255, 255, stdfont, TBasePoint.BP_RIGHTUP);
+
+    s := g_ExtractWadNameNoPath(gMapInfo.Map) + ':\' + g_ExtractFileName(gMapInfo.Map) + ' - ' + gMapInfo.Name;
+    r_Render_DrawText(s, x + w div 2, y + 8 + 24, 200, 200, 200, 255, stdfont, TBasePoint.BP_UP);
+
+    case gGameSettings.GameMode of
+      GM_DM, GM_TDM: s := Format(_lc[I_GAME_FRAG_LIMIT], [gGameSettings.ScoreLimit]);
+      GM_CTF:        s := Format(_lc[I_GAME_SCORE_LIMIT], [gGameSettings.ScoreLimit]);
+      GM_COOP:       s := _lc[I_GAME_MONSTERS] + ' ' + IntToStr(gCoopMonstersKilled) + '/' + IntToStr(gTotalMonsters);
+      otherwise      s := '';
+    end;
+    r_Render_DrawText(s, x + 16, y + 8 + 48, 200, 200, 200, 255, stdfont, TBasePoint.BP_LEFTUP);
+
+    case gGameSettings.GameMode of
+      GM_DM, GM_TDM, GM_CTF: s := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600, (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
+      GM_COOP:               s := _lc[I_GAME_SECRETS] + ' ' + IntToStr(gCoopSecretsFound) + '/' + IntToStr(gSecretsCount);
+      otherwise              s := '';
+    end;
+    r_Render_DrawText(s, x + w - 16, y + 8 + 48, 200, 200, 200, 255, stdfont, TBasePoint.BP_RIGHTUP);
+
+    if players > 0 then
+    begin
+      stat := g_Player_GetStats();
+      SortGameStat(stat);
+      w2 := (w - 16) div 6 + 48;
+      w3 := (w - 16) div 6;
+      w4 := w3;
+      w1 := w - 16 - w2 - w3 - w4;
+      r_Render_DrawStatsColumns(stat, x + 16, y + 8 + 80, w - 16, w1, w2, w3, w4);
+    end;
+  end;
+
   procedure r_Render_Draw;
   begin
     if gExit = EXIT_QUIT then
@@ -605,7 +768,8 @@ implementation
       // TODO draw holmes inspector
 
       // TODO draw messages
-      // TODO draw stats (?)
+      if IsDrawStat or (gSpectMode = SPECT_STATS) then
+        r_Render_DrawStats;
       // TODO draw spectator hud
     end;
 
