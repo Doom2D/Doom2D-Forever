@@ -451,7 +451,7 @@ implementation
     if img <> nil then
     begin
       img := BackgroundTexture.id;
-      fw := img.width * 4 div 3; // fix aspect 4:3
+      if img.width = img.height then fw := img.width * 4 div 3 else fw := img.width; // fix aspect 4:3
       r_Common_CalcAspect(fw, img.height, gScreenWidth, gScreenHeight, false, w, h);
       r_Draw_Texture(img, gScreenWidth div 2 - w div 2, 0, w, h, false, 255, 255, 255, 255, false);
     end
