@@ -19,13 +19,28 @@ interface
 
   uses Utils;
 
+  type
+    TGLProfile = (Core, Compat, Common, CommonLite);
+
+    TGLDisplayInfo = record
+      w, h, bpp: Integer;
+      fullscreen: Boolean;
+      maximized: Boolean;
+      major, minor: Integer;
+      profile: TGLProfile;
+    end;
+
   (* --- Graphics --- *)
+
   function sys_GetDisplayModes (bpp: Integer): SSArray;
   function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
   procedure sys_EnableVSync (yes: Boolean);
   procedure sys_Repaint;
 
+  function sys_SetDisplayModeGL (const info: TGLDisplayInfo): Boolean;
+
   (* --- Input --- *)
+
   function sys_HandleInput (): Boolean;
   procedure sys_RequestQuit;
 
@@ -153,6 +168,14 @@ implementation
   function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
   begin
     result := InitWindow(w, h, bpp, fullscreen)
+  end;
+
+  function sys_SetDisplayModeGL (const info: TGLDisplayInfo): Boolean;
+  begin
+    result := false;
+    case info.profile of
+      TGLProfile.Compat: result := InitWindow(info.w, info.h, info.bpp, info.fullscreen);
+    end;
   end;
 
   (* --------- Joystick --------- *)
