@@ -1972,7 +1972,22 @@ begin
 
 // Статистика по Tab:
   if gGameOn then
+  begin
     IsDrawStat := (not gConsoleShow) and (not gChatShow) and (gGameSettings.GameType <> GT_SINGLE) and g_Console_Action(ACTION_SCORES);
+  end
+  else
+  begin
+    if g_Console_Action(ACTION_SCORES) then
+    begin
+      if not gStatsPressed then
+      begin
+        gStatsOff := not gStatsOff;
+        gStatsPressed := True;
+      end;
+    end
+    else
+      gStatsPressed := False;
+  end;
 
 // Игра идет:
   if gGameOn and not gPause and (gState <> STATE_FOLD) then

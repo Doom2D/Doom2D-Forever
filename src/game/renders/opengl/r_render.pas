@@ -580,13 +580,18 @@ implementation
     result := Format('%d:%.2d:%.2d', [h, m, s]);
   end;
 
-  procedure r_Render_DrawStatsColumns (stat: TPlayerStatArray; x, y, w, w1, w2, w3, w4: Integer);
-    var i, cw, ch, yy, team: Integer; r, g, b, rr, gg, bb: Byte; s: AnsiString;
+  procedure r_Render_DrawStatsColumns (constref cs: TEndCustomGameStat; x, y, w: Integer; endview: Boolean);
+    var i, cw, ch, yy, team, players, w1, w2, w3, w4, tw: Integer; r, g, b, rr, gg, bb: Byte; s: AnsiString;
   begin
-    ASSERT(stat <> nil);
     r_Draw_GetTextSize('W', stdfont, cw, ch);
+    w4 := cw * 6;           (* deaths width *)
+    w3 := cw * 8;           (* frags width *)
+    w2 := cw * 12;          (* ping/loss width *)
+    w1 := w - w2 - w3 - w4; (* name width *)
+    tw := w1 - cw * 2 - w2; (* team goals *)
+    if cs.PlayerStat = nil then players := 0 else players := Length(cs.PlayerStat);
     yy := y;
-    if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
+    if cs.GameMode in [GM_TDM, GM_CTF] then
     begin
       for team := TEAM_RED to TEAM_BLUE do
       begin
@@ -603,35 +608,43 @@ implementation
             end;
          end;
          r_Render_DrawText(s, x, yy, r, g, b, 255, stdfont, TBasePoint.BP_LEFTUP);
-         r_Render_DrawText(IntToStr(gTeamStat[team].Score), x + w1, yy, r, g, b, 255, stdfont, TBasePoint.BP_LEFTUP);
+         r_Render_DrawText(IntToStr(cs.TeamStat[team].Score), x + tw, yy, r, g, b, 255, stdfont, TBasePoint.BP_UP);
+         if endview = false then
+           r_Render_DrawText(_lc[I_GAME_PING], x + w1, yy, r, g, b, 255, stdfont, TBasePoint.BP_UP);
+         r_Render_DrawText(_lc[I_GAME_FRAGS], x + w1 + w2, yy, r, g, b, 255, stdfont, TBasePoint.BP_UP);
+         r_Render_DrawText(_lc[I_GAME_DEATHS], x + w1 + w2 + w3, yy, r, g, b, 255, stdfont, TBasePoint.BP_UP);
          INC(yy, ch);
 
          INC(yy, ch div 4);
          r_Draw_FillRect(x, yy, x + w - 1, yy, r, g, b, 255);
          INC(yy, ch div 4);
 
-         for i := 0 to High(stat) do
+         for i := 0 to players - 1 do
          begin
-           if stat[i].Team = team then
+           if cs.PlayerStat[i].Team = team then
            begin
              rr := r; gg := g; bb := b;
-             if stat[i].Spectator then
+             if cs.PlayerStat[i].Spectator then
              begin
                rr := r div 2; gg := g div 2; bb := b div 2;
              end;
 
              // Player name
-             if gShowPIDs then s := Format('[%5d] %s', [stat[i].UID, stat[i].Name]) else s := stat[i].Name;
+             if gShowPIDs then s := Format('[%5d] %s', [cs.PlayerStat[i].UID, cs.PlayerStat[i].Name]) else s := cs.PlayerStat[i].Name;
+             if (gPlayers[cs.PlayerStat[i].Num] <> nil) and (gPlayers[cs.PlayerStat[i].Num].FReady) then s := s + ' *';
              r_Render_DrawText(s, x, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
-             // Player ping/loss
-             s := Format(_lc[I_GAME_PING_MS], [stat[i].Ping, stat[i].Loss]);
-             r_Render_DrawText(s, x + w1, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+             if endview = false then
+             begin
+               // Player ping/loss
+               s := Format(_lc[I_GAME_PING_MS], [cs.PlayerStat[i].Ping, cs.PlayerStat[i].Loss]);
+               r_Render_DrawText(s, x + w1, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
+             end;
              // Player frags
-             s := IntToStr(stat[i].Frags);
-             r_Render_DrawText(s, x + w1 + w2, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+             s := IntToStr(cs.PlayerStat[i].Frags);
+             r_Render_DrawText(s, x + w1 + w2, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
              // Player deaths
-             s := IntToStr(stat[i].Deaths);
-             r_Render_DrawText(s, x + w1 + w2 + w3, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+             s := IntToStr(cs.PlayerStat[i].Deaths);
+             r_Render_DrawText(s, x + w1 + w2 + w3, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
 
              INC(yy, ch);
            end;
@@ -639,98 +652,224 @@ implementation
          INC(yy, ch);
       end;
     end
-    else if gGameSettings.GameMode in [GM_DM, GM_COOP] then
+    else if cs.GameMode in [GM_DM, GM_COOP] then
     begin
       r_Render_DrawText(_lc[I_GAME_PLAYER_NAME], x, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText(_lc[I_GAME_PING], x + w1, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText(_lc[I_GAME_FRAGS], x + w1 + w2, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText(_lc[I_GAME_DEATHS], x + w1 + w2 + w3, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
-      INC(yy, ch + 8);
-      for i := 0 to High(stat) do
+      if endview = false then
+        r_Render_DrawText(_lc[I_GAME_PING], x + w1, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_UP);
+      r_Render_DrawText(_lc[I_GAME_FRAGS], x + w1 + w2, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_UP);
+      r_Render_DrawText(_lc[I_GAME_DEATHS], x + w1 + w2 + w3, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_UP);
+      INC(yy, ch + ch div 2);
+      for i := 0 to players - 1 do
       begin
-        rr := 255; gg := 127; bb := 0;
-        if stat[i].Spectator then
+        // rr := 255; gg := 127; bb := 0;
+        rr := 255; gg := 255; bb := 255;
+        if cs.PlayerStat[i].Spectator then
         begin
-          rr := 127; gg := 63; bb := 0;
+          rr := rr div 2; gg := gg div 2; bb := bb div 2;
         end;
 
         // Player color
         r_Draw_Rect(x, yy, x + 16 - 1, yy + 16 - 1, 192, 192, 192, 255);
-        r_Draw_FillRect(x + 1, yy + 1, x + 16 - 1, yy + 16 - 1, stat[i].Color.R, stat[i].Color.G, stat[i].Color.B, 255);
+        r_Draw_FillRect(x + 1, yy + 1, x + 16 - 1, yy + 16 - 1, cs.PlayerStat[i].Color.R, cs.PlayerStat[i].Color.G, cs.PlayerStat[i].Color.B, 255);
         // Player name
-        if gShowPIDs then s := Format('[%5d] %s', [stat[i].UID, stat[i].Name]) else s := stat[i].Name;
-        r_Render_DrawText(s, x + 16 + 8, yy, 192, 192, 192, 255, stdfont, TBasePoint.BP_LEFTUP);
-        // Player ping/loss
-        s := Format(_lc[I_GAME_PING_MS], [stat[i].Ping, stat[i].Loss]);
-        r_Render_DrawText(s, x + w1, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+        if gShowPIDs then s := Format('[%5d] %s', [cs.PlayerStat[i].UID, cs.PlayerStat[i].Name]) else s := cs.PlayerStat[i].Name;
+        if (gPlayers[cs.PlayerStat[i].Num] <> nil) and (gPlayers[cs.PlayerStat[i].Num].FReady) then s := s + ' *';
+        r_Render_DrawText(s, x + 16 + 8, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+        if endview = false then
+        begin
+          // Player ping/loss
+          s := Format(_lc[I_GAME_PING_MS], [cs.PlayerStat[i].Ping, cs.PlayerStat[i].Loss]);
+          r_Render_DrawText(s, x + w1, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
+        end;
         // Player frags
-        s := IntToStr(stat[i].Frags);
-        r_Render_DrawText(s, x + w1 + w2, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+        s := IntToStr(cs.PlayerStat[i].Frags);
+        r_Render_DrawText(s, x + w1 + w2, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
         // Player deaths
-        s := IntToStr(stat[i].Deaths);
-        r_Render_DrawText(s, x + w1 + w2 + w3, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+        s := IntToStr(cs.PlayerStat[i].Deaths);
+        r_Render_DrawText(s, x + w1 + w2 + w3, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
 
-        INC(yy, ch + 8);
+        INC(yy, ch + ch div 2);
       end;
     end;
   end;
 
-  procedure r_Render_DrawStats;
-    var x, y, w, h, cw, ch, players, w1, w2, w3, w4: Integer; s: AnsiString; stat: TPlayerStatArray;
+  procedure r_Render_DrawStatsWindow (x, y, w, h: Integer; cs: TEndCustomGameStat; endview: Boolean);
+    var xoff, yoff, cw, ch: Integer; s: AnsiString;
   begin
-    players := g_Player_GetCount();
+    xoff := 0; yoff := 8;
     r_Draw_GetTextSize('W', stdfont, cw, ch);
-    w := gScreenWidth - (gScreenWidth div 5);
-    h := IfThen(gGameSettings.GameMode in [GM_TDM, GM_CTF], 32 + ch * (11 + players), 40 + ch * 5 + (ch + 8) * players);
-    x := (gScreenWidth div 2) - (w div 2);
-    y := (gScreenHeight div 2) - (h div 2);
-
     r_Draw_FillRect(x, y, x + w - 1, y + h - 1, 64, 64, 64, 224);
     r_Draw_Rect(x, y, x + w - 1, y + h - 1, 255, 127, 0, 255);
 
-    case NetMode of
-      NET_SERVER: s := _lc[I_NET_SERVER];
-      NET_CLIENT: s := NetClientIP + ':' + IntToStr(NetClientPort);
-      otherwise   s := '';
+    (* LINE 1 *)
+
+    if endview = false then
+    begin
+      case NetMode of
+        NET_SERVER: s := _lc[I_NET_SERVER];
+        NET_CLIENT: s := NetClientIP + ':' + IntToStr(NetClientPort);
+        otherwise   s := '';
+      end;
+      r_Render_DrawText(s, x + 16, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
     end;
-    r_Render_DrawText(s, x + 16, y + 8, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
-    case gGameSettings.GameMode of
+
+    case cs.GameMode of
       GM_DM:    if gGameSettings.MaxLives = 0 then s := _lc[I_GAME_DM] else s := _lc[I_GAME_LMS];
       GM_TDM:   if gGameSettings.MaxLives = 0 then s := _lc[I_GAME_TDM] else s := _lc[I_GAME_TLMS];
       GM_CTF:   s := _lc[I_GAME_CTF];
       GM_COOP:  if gGameSettings.MaxLives = 0 then s := _lc[I_GAME_COOP] else s := _lc[I_GAME_SURV];
-      otherwise s := 'Game mode ' + IntToStr(gGameSettings.GameMode);
+      otherwise s := 'GAME MODE ' + IntToStr(gGameSettings.GameMode);
     end;
-    r_Render_DrawText(s, x + w div 2, y + 8, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
-    r_Render_DrawText(r_Render_TimeToStr(gTime), x + w - 16, y + 8, 255, 255, 255, 255, stdfont, TBasePoint.BP_RIGHTUP);
+    r_Render_DrawText(s, x + w div 2, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
 
-    s := g_ExtractWadNameNoPath(gMapInfo.Map) + ':\' + g_ExtractFileName(gMapInfo.Map) + ' - ' + gMapInfo.Name;
-    r_Render_DrawText(s, x + w div 2, y + 8 + 24, 200, 200, 200, 255, stdfont, TBasePoint.BP_UP);
-
-    case gGameSettings.GameMode of
-      GM_DM, GM_TDM: s := Format(_lc[I_GAME_FRAG_LIMIT], [gGameSettings.ScoreLimit]);
-      GM_CTF:        s := Format(_lc[I_GAME_SCORE_LIMIT], [gGameSettings.ScoreLimit]);
-      GM_COOP:       s := _lc[I_GAME_MONSTERS] + ' ' + IntToStr(gCoopMonstersKilled) + '/' + IntToStr(gTotalMonsters);
-      otherwise      s := '';
-    end;
-    r_Render_DrawText(s, x + 16, y + 8 + 48, 200, 200, 200, 255, stdfont, TBasePoint.BP_LEFTUP);
-
-    case gGameSettings.GameMode of
-      GM_DM, GM_TDM, GM_CTF: s := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600, (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
-      GM_COOP:               s := _lc[I_GAME_SECRETS] + ' ' + IntToStr(gCoopSecretsFound) + '/' + IntToStr(gSecretsCount);
-      otherwise              s := '';
-    end;
-    r_Render_DrawText(s, x + w - 16, y + 8 + 48, 200, 200, 200, 255, stdfont, TBasePoint.BP_RIGHTUP);
-
-    if players > 0 then
+    if endview = false then
     begin
-      stat := g_Player_GetStats();
-      SortGameStat(stat);
-      w2 := (w - 16) div 6 + 48;
-      w3 := (w - 16) div 6;
-      w4 := w3;
-      w1 := w - 16 - w2 - w3 - w4;
-      r_Render_DrawStatsColumns(stat, x + 16, y + 8 + 80, w - 16, w1, w2, w3, w4);
+      s := r_Render_TimeToStr(cs.GameTime);
+      r_Render_DrawText(s, x + w - 16, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_RIGHTUP);
+    end;
+
+    INC(yoff, ch + ch div 2);
+
+    (* LINE 2/3 *)
+
+    s := cs.Map;
+    if cs.MapName <> '' then
+      s := s + ' - ' + cs.MapName;
+
+    if endview = false then
+    begin
+      r_Render_DrawText(s, x + w div 2, y + yoff, 200, 200, 200, 255, stdfont, TBasePoint.BP_UP);
+      INC(yoff, ch + ch div 2);
+      case cs.GameMode of
+        GM_DM, GM_TDM: s := Format(_lc[I_GAME_FRAG_LIMIT], [gGameSettings.ScoreLimit]);
+        GM_CTF:        s := Format(_lc[I_GAME_SCORE_LIMIT], [gGameSettings.ScoreLimit]);
+        GM_COOP:       s := _lc[I_GAME_MONSTERS] + ' ' + IntToStr(gCoopMonstersKilled) + '/' + IntToStr(gTotalMonsters);
+        otherwise      s := '';
+      end;
+      r_Render_DrawText(s, x + 16, y + yoff, 200, 200, 200, 255, stdfont, TBasePoint.BP_LEFTUP);
+      case cs.GameMode of
+        GM_DM, GM_TDM, GM_CTF: s := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600, (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
+        GM_COOP:               s := _lc[I_GAME_SECRETS] + ' ' + IntToStr(gCoopSecretsFound) + '/' + IntToStr(gSecretsCount);
+        otherwise              s := '';
+      end;
+      r_Render_DrawText(s, x + w - 16, y + yoff, 200, 200, 200, 255, stdfont, TBasePoint.BP_RIGHTUP);
+      INC(yoff, ch);
+    end
+    else
+    begin
+      xoff := MAX(Length(_lc[I_MENU_MAP]) + 1, Length(_lc[I_GAME_GAME_TIME]) + 1) * cw;
+      r_Render_DrawText(_lc[I_MENU_MAP], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText(s, x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      INC(yoff, ch);
+      r_Render_DrawText(_lc[I_GAME_GAME_TIME], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText(r_Render_TimeToStr(cs.GameTime), x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      INC(yoff, ch);
+    end;
+
+    INC(yoff, ch);
+
+    (* LINE 4/5 *)
+
+    if endview and (cs.GameMode = GM_COOP) then
+    begin
+      xoff := MAX(Length(_lc[I_GAME_MONSTERS]) + 1, Length(_lc[I_GAME_SECRETS]) + 1) * cw;
+      r_Render_DrawText(_lc[I_GAME_MONSTERS], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText(IntToStr(gCoopMonstersKilled) + '/' + IntToStr(gTotalMonsters), x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      INC(yoff, ch);
+      r_Render_DrawText(_lc[I_GAME_SECRETS], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText(IntToStr(gCoopSecretsFound) + '/' + IntToStr(gSecretsCount), x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);      
+      INC(yoff, ch);
+      INC(yoff, ch);
+    end;
+
+    (* LINE 6/7 *)
+
+    if endview and (cs.GameMode = GM_COOP) and gLastMap then
+    begin
+      xoff := MAX(Length(_lc[I_GAME_MONSTERS_TOTAL]) + 1, Length(_lc[I_GAME_SECRETS_TOTAL]) + 1) * cw;
+      r_Render_DrawText(_lc[I_GAME_MONSTERS_TOTAL], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText(IntToStr(gCoopTotalMonstersKilled) + '/' + IntToStr(gCoopTotalMonsters), x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      INC(yoff, ch);
+      r_Render_DrawText(_lc[I_GAME_SECRETS_TOTAL], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawText(IntToStr(gCoopTotalSecretsFound) + '/' + IntToStr(gCoopTotalSecrets), x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      INC(yoff, ch);
+      INC(yoff, ch);
+    end;
+
+    (* LINE *)
+
+    if endview and (cs.GameMode in [GM_TDM, GM_CTF]) then
+    begin
+      if cs.TeamStat[TEAM_RED].Score > cs.TeamStat[TEAM_BLUE].Score then s := _lc[I_GAME_WIN_RED]
+      else if cs.TeamStat[TEAM_BLUE].Score > cs.TeamStat[TEAM_RED].Score then s := _lc[I_GAME_WIN_BLUE]
+      else s := _lc[I_GAME_WIN_DRAW];
+      r_Render_DrawText(s, x + w div 2, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
+      INC(yoff, ch);
+      INC(yoff, ch);
+    end;
+
+    (* LINE n *)
+
+    r_Render_DrawStatsColumns(cs, x + 16, y + yoff, w - 16 - 16, endview);
+  end;
+
+  function r_Render_StatsHeight (players: Integer): Integer;
+    var cw, ch: Integer;
+  begin
+    ASSERT(players >= 0);
+    r_Draw_GetTextSize('W', stdfont, cw, ch);
+    case gGameSettings.GameMode of
+      GM_TDM, GM_CTF: result := 32 + ch * (11 + players);
+      otherwise       result := 40 + ch * 5 + (ch + 8) * players;
+    end;
+  end;
+
+  procedure r_Render_DrawStats;
+    var x, y, w, h, players: Integer; cs: TEndCustomGameStat;
+  begin
+    cs.PlayerStat := g_Player_GetStats();
+    SortGameStat(cs.PlayerStat);
+    cs.TeamStat := gTeamStat;
+    cs.GameTime := gTime;
+    cs.GameMode := gGameSettings.GameMode;
+    cs.Map := g_ExtractWadNameNoPath(gMapInfo.Map) + ':' + g_ExtractFileName(gMapInfo.Map);
+    cs.MapName := gMapInfo.Name;
+    if cs.PlayerStat = nil then players := 0 else players := Length(cs.PlayerStat);
+    w := gScreenWidth - (gScreenWidth div 5);
+    h := r_Render_StatsHeight(players);
+    x := (gScreenWidth div 2) - (w div 2);
+    y := (gScreenHeight div 2) - (h div 2);
+    r_Render_DrawStatsWindow(x, y, w, h, cs, false);
+  end;
+
+  procedure r_Render_DrawCustomStats;
+    var cw, ch, s: AnsiString;
+  begin
+    if gStatsOff then
+    begin
+      r_Render_DrawText(_lc[I_MENU_INTER_NOTICE_TAB], gScreenWidth div 2, 8, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
+    end
+    else
+    begin
+      case gGameSettings.GameMode of
+        GM_COOP: if gMissionFailed then s := _lc[I_MENU_INTER_MISSION_FAIL] else s := _lc[I_MENU_INTER_LEVEL_COMPLETE];
+        otherwise s := _lc[I_MENU_INTER_ROUND_OVER];
+      end;
+      r_Render_DrawText(s, gScreenWidth div 2, 16, 255, 255, 255, 255, menufont, TBasePoint.BP_UP);
+
+      if gChatShow = false then
+      begin
+        if g_Game_IsClient then s := _lc[I_MENU_INTER_NOTICE_MAP] else s := _lc[I_MENU_INTER_NOTICE_SPACE];
+        r_Render_DrawText(s, gScreenWidth div 2, gScreenHeight - 4, 255, 255, 255, 255, stdfont, TBasePoint.BP_DOWN);
+        if g_Game_IsNet then
+        begin
+          s := Format(_lc[I_MENU_INTER_NOTICE_TIME], [gServInterTime]);
+          r_Render_DrawText(s, gScreenWidth div 2, gScreenHeight - 16 - 4, 255, 255, 255, 255, stdfont, TBasePoint.BP_DOWN);
+        end;
+      end;
+
+      r_Render_DrawStatsWindow(32, 64, gScreenWidth - 32 * 2, gScreenHeight - 64 * 2, CustomStat, true);
     end;
   end;
 
@@ -797,7 +936,9 @@ implementation
               r_Render_DrawBackground(GameWad + ':TEXTURES/' + _lc[I_TEXTURE_ENDPIC])
           else
             r_Render_DrawBackground(GameWad + ':TEXTURES/INTER');
-          // TODO draw custom stata
+
+          r_Render_DrawCustomStats;
+
           {$IFDEF ENABLE_MENU}
             if g_ActiveWindow <> nil then
               r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
