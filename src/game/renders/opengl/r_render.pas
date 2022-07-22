@@ -873,6 +873,59 @@ implementation
     end;
   end;
 
+  procedure r_Render_DrawValueOf (a, b, x, y: Integer; f: TGLFont);
+    var wa, wb, ch: Integer; sa, sb: AnsiString;
+  begin
+    sa := IntToStr(a);
+    sb := IntToStr(b);
+    r_Draw_GetTextSize(sa, f, wa, ch);
+    r_Draw_GetTextSize(sa + ' / ', f, wb, ch);
+    r_Render_DrawText(sa, x, y, 255, 0, 0, 255, f, TBasePoint.BP_LEFTUP);
+    r_Render_DrawText(' / ', x + wa, y, 255, 255, 255, 255, f, TBasePoint.BP_LEFTUP);
+    r_Render_DrawText(sb, x + wb, y, 255, 0, 0, 255, f, TBasePoint.BP_LEFTUP);
+  end;
+
+  procedure r_Render_DrawSinglStatsPlayer (player, x, y, w1: Integer);
+    var time, kpm: Single;
+  begin
+    r_Render_DrawText(_lc[I_MENU_INTER_KILLS], x, y, 255, 255, 255, 255, menufont, TBasePoint.BP_LEFTUP);
+    r_Render_DrawValueOf(SingleStat.PlayerStat[player].Kills, gTotalMonsters, x + w1, y, MenuFont);
+    r_Render_DrawText(_lc[I_MENU_INTER_KPM], x, y + 32, 255, 255, 255, 255, menufont, TBasePoint.BP_LEFTUP);
+    time := SingleStat.GameTime / 1000;
+    kpm := SingleStat.PlayerStat[player].Kills;
+    if time > 0 then kpm := kpm / time * 60;
+    r_Render_DrawText(Format('%.1f', [kpm]), x + w1, y + 32, 255, 0, 0, 255, menufont, TBasePoint.BP_LEFTUP);
+    r_Render_DrawText(_lc[I_MENU_INTER_SECRETS], x, y + 64, 255, 255, 255, 255, menufont, TBasePoint.BP_LEFTUP);
+    r_Render_DrawValueOf(SingleStat.PlayerStat[player].Secrets, SingleStat.TotalSecrets, x + w1, y + 64, MenuFont);
+  end;
+
+  procedure r_Render_DrawSingleStats;
+    var xx, wa, wb, ww, ch: Integer; s: AnsiString;
+  begin
+    r_Render_DrawText(_lc[I_MENU_INTER_LEVEL_COMPLETE], gScreenWidth div 2, 32, 255, 255, 255, 255, menufont, TBasePoint.BP_UP);
+
+    r_Draw_GetTextSize(_lc[I_MENU_INTER_KPM] + '  ', menufont, wa, ch);
+    r_Draw_GetTextSize(' 9999.9', menufont, wb, ch);
+    ww := wa + wb;
+    xx := gScreenWidth div 2 - ww div 2;
+
+    s := r_Render_TimeToStr(SingleStat.GameTime);
+    r_Render_DrawText(_lc[I_MENU_INTER_TIME], xx, 80, 255, 255, 255, 255, menufont, TBasePoint.BP_LEFTUP);
+    r_Render_DrawText(s, xx + wa, 80, 255, 0, 0, 255, menufont, TBasePoint.BP_LEFTUP);
+
+    if SingleStat.TwoPlayers then
+    begin
+      r_Render_DrawText(_lc[I_MENU_PLAYER_1], gScreenWidth div 2, 128, 255, 255, 255, 255, menufont, TBasePoint.BP_UP);
+      r_Render_DrawSinglStatsPlayer(0, xx, 176, wa);
+      r_Render_DrawText(_lc[I_MENU_PLAYER_2], gScreenWidth div 2, 288, 255, 255, 255, 255, menufont, TBasePoint.BP_UP);
+      r_Render_DrawSinglStatsPlayer(1, xx, 336, wa);
+    end
+    else
+    begin
+      r_Render_DrawSinglStatsPlayer(0, xx, 128, wa);
+    end;
+  end;
+
   procedure r_Render_Draw;
   begin
     if gExit = EXIT_QUIT then
@@ -953,7 +1006,7 @@ implementation
           else
           begin
             r_Render_DrawBackground(GameWad + ':TEXTURES/INTER');
-            // TODO darw single stats
+            r_Render_DrawSingleStats;
             {$IFDEF ENABLE_MENU}
               if g_ActiveWindow <> nil then
                 r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
