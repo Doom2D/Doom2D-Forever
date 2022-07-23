@@ -2237,6 +2237,17 @@ begin
       end;
     end;
 
+    (* spectator state check from render *)
+
+    if (gPlayer1 = nil) and (gPlayer2 = nil) and (gSpectMode = SPECT_NONE) then
+      gSpectMode := SPECT_STATS;
+
+    if IsActivePlayer(g_Player_Get(gSpectPID1)) = false then
+      gSpectPID1 := GetActivePlayerID_Next();
+
+    if IsActivePlayer(g_Player_Get(gSpectPID2)) = false then
+      gSpectPID2 := GetActivePlayerID_Next();
+
   // Обновляем все остальное:
     g_Map_Update();
     g_Items_Update();

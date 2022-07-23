@@ -315,21 +315,22 @@ implementation
     r_Render_DrawTexture(hudbg, x, y, w, h, TBasePoint.BP_LEFTUP);
 
     if p <> nil then
+    begin
       r_Render_DrawHUD(x + w - 196 + 2, y, p);
+      if p.Spectator then
+      begin
+        r_Render_DrawText(_lc[I_PLAYER_SPECT], x + 4, y + 242, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+        r_Render_DrawText(_lc[I_PLAYER_SPECT2], x + 4, y + 258, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+        r_Render_DrawText(_lc[I_PLAYER_SPECT1], x + 4, y + 274, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+        if p.NoRespawn then
+          r_Render_DrawText(_lc[I_PLAYER_SPECT1S], x + 4, y + 290, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      end;
+    end;
 
     if gShowPing and g_Game_IsClient then
     begin
       s := _lc[I_GAME_PING_HUD] + IntToStr(NetPeer.lastRoundTripTime) + _lc[I_NET_SLIST_PING_MS];
       r_Render_DrawText(s, x + 4, y + 242, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
-    end;
-
-    if p.Spectator then
-    begin
-      r_Render_DrawText(_lc[I_PLAYER_SPECT], x + 4, y + 242, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText(_lc[I_PLAYER_SPECT2], x + 4, y + 258, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText(_lc[I_PLAYER_SPECT1], x + 4, y + 274, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
-      if p.NoRespawn then
-        r_Render_DrawText(_lc[I_PLAYER_SPECT1S], x + 4, y + 290, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
     end;
   end;
 
@@ -432,6 +433,15 @@ implementation
       r_Map_Draw(x, y, w, h, 0, 0, nil);
     end;
 
+    r_Draw_SetRect(l, t, r, b);
+  end;
+
+  procedure r_Render_DrawMapView (x, y, w, h, camx, camy: Integer);
+    var l, t, r, b: Integer;
+  begin
+    r_Draw_GetRect(l, t, r, b);
+    r_Draw_SetRect(x, y, x + w, y + h);
+    r_Map_Draw(x, y, w, h, camx, camy, nil);
     r_Draw_SetRect(l, t, r, b);
   end;
 
@@ -926,7 +936,57 @@ implementation
     end;
   end;
 
+  procedure r_Render_DrawSpectHud;
+    var xoff: Integer; s: AnsiString;
+
+    procedure AddText (s1, s2: AnsiString);
+      var w1, w2, ww, ch: Integer;
+    begin
+      r_Draw_GetTextSize(s1, stdfont, w1, ch);
+      r_Draw_GetTextSize(s2, stdfont, w2, ch);
+      ww := MAX(w1, w2);
+      r_Render_DrawText(s1, xoff + ww div 2, gScreenHeight - ch, 255, 255, 255, 255, stdfont, TBasePoint.BP_DOWN);
+      r_Render_DrawText(s2, xoff + ww div 2, gScreenHeight - ch, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
+      xoff := xoff + ww + 16;
+    end;
+
+  begin
+    xoff := 0;
+    case gSpectMode of
+      SPECT_STATS:   s := 'MODE: Stats';
+      SPECT_MAPVIEW: s := 'MODE: Observe Map';
+      SPECT_PLAYERS: s := 'MODE: Watch Players';
+      otherwise      s := 'MODE: ' + IntToStr(gSpectMode);
+    end;
+    AddText(s, '< jump >');
+    if gSpectMode = SPECT_STATS then
+      AddText('Autoview', '< fire >');
+    if gSpectMode = SPECT_MAPVIEW then
+      AddText('[-] Step ' + IntToStr(gSpectStep) + ' [+]', '<prev weap> <next weap>');
+    if gSpectMode = SPECT_PLAYERS then
+    begin
+      AddText('Player 1', '<left/right>');
+      if gSpectViewTwo then
+        AddText('Player 2', '<prev w/next w>');
+      AddText('2x View', '<up/down>');
+    end;
+  end;
+
+  function GetActivePlayer_ByID (id: Integer): TPlayer;
+    var i, len: Integer; p: TPlayer;
+  begin
+    p := nil;
+    if (id >= 0) and (gPlayers <> nil) then
+    begin
+      i := 0; len := Length(gPlayers);
+      while (i < len) and ((IsActivePlayer(gPlayers[i]) = false) or (gPlayers[i].UID <> id)) do INC(i);
+      if i < len then p := gPlayers[i];
+    end;
+    result := p;
+  end;
+
   procedure r_Render_Draw;
+    var p1, p2: TPlayer;
   begin
     if gExit = EXIT_QUIT then
       exit;
@@ -942,19 +1002,65 @@ implementation
 
     //e_LogWritefln('r_render_draw: %sx%s', [gScreenWidth, gScreenHeight]);
 
+    p1 := nil;
+    p2 := nil;
+    if gGameOn or (gState = STATE_FOLD) then
+    begin
+      if (gPlayer1 <> nil) and (gPlayer2 <> nil) then
+      begin
+        if gRevertPlayers then
+        begin
+          p1 := gPlayer2;
+          p2 := gPlayer1;
+        end
+        else
+        begin
+          p1 := gPlayer1;
+          p2 := gPlayer2;
+        end;
+      end
+      else if gPlayer1 <> nil then
+      begin
+        p1 := gPlayer1;
+      end
+      else if gPlayer2 <> nil then
+      begin
+        p1 := gPlayer2;
+      end;
+      if (gSpectMode = SPECT_PLAYERS) and (gPlayers <> nil) then
+      begin
+        p1 := GetActivePlayer_ByID(gSpectPID1);
+        if p1 = nil then
+          p1 := GetActivePlayer_ByID(GetActivePlayerID_Next());
+        if gSpectViewTwo then
+        begin
+          p2 := GetActivePlayer_ByID(gSpectPID2);
+          if p2 = nil then
+            p2 := GetActivePlayer_ByID(GetActivePlayerID_Next());
+        end;
+      end;
+    end;
+
     if gGameOn or ((gState in [STATE_FOLD]) and (EndingGameCounter < 255)) then
     begin
-      // TODO setup sectator mode
       // TODO setup player hear point
 
-      if (gPlayer1 <> nil) and (gPlayer2 <> nil) then
-       begin
-        r_Render_DrawPlayerView(0, 0, gScreenWidth, gScreenHeight div 2 - 2, gPlayer1);
-        r_Render_DrawPlayerView(0, gScreenHeight div 2 + 2, gScreenWidth, gScreenHeight div 2, gPlayer2);
-      end
-      else
+      if gSpectMode = SPECT_MAPVIEW then
       begin
-        r_Render_DrawPlayerView(0, 0, gScreenWidth, gScreenHeight, gPlayer1);
+        r_Render_DrawMapView(0, 0, gScreenWidth, gScreenHeight, gSpectX + gScreenWidth div 2, gSpectY + gScreenHeight div 2);
+      end
+      else if (p1 <> nil) and (p2 <> nil) then
+      begin
+        r_Render_DrawPlayerView(0, 0, gScreenWidth, gScreenHeight div 2 - 2, p1);
+        r_Render_DrawPlayerView(0, gScreenHeight div 2 + 2, gScreenWidth, gScreenHeight div 2, p2);
+      end
+      else if p1 <> nil then
+      begin
+        r_Render_DrawPlayerView(0, 0, gScreenWidth, gScreenHeight, p1);
+      end
+      else if p2 <> nil then
+      begin
+        r_Render_DrawPlayerView(0, 0, gScreenWidth, gScreenHeight, p2);
       end;
 
       // TODO draw holmes inspector
@@ -962,7 +1068,9 @@ implementation
       // TODO draw messages
       if IsDrawStat or (gSpectMode = SPECT_STATS) then
         r_Render_DrawStats;
-      // TODO draw spectator hud
+
+      if gSpectHUD and (gChatShow = false) and (gSpectMode <> SPECT_NONE) and (gSpectAuto = false) then
+        r_Render_DrawSpectHud;
     end;
 
     if gPauseMain and gGameOn {$IFDEF ENABLE_MENU}and (g_ActiveWindow = nil){$ENDIF} then
