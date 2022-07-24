@@ -254,6 +254,7 @@ implementation
     VileFire: TGLMultiTexture;
     InvulPenta: TGLTexture;
     IndicatorTexture: TGLTexture;
+    TalkTexture: TGLTexture;
     Models: array of record
       anim: array [TDirection, 0..A_LAST] of record
         base, mask: TGLMultiTexture;
@@ -468,11 +469,14 @@ implementation
     // --------- other --------- //
     InvulPenta := r_Textures_LoadFromFile(GameWad + ':TEXTURES/PENTA');
     IndicatorTexture := r_Textures_LoadFromFile(GameWad + ':TEXTURES/PLRIND');
+    TalkTexture := r_Textures_LoadFromFile(GameWad + ':TEXTURES/TALKBUBBLE');
   end;
 
   procedure r_Map_Free;
     var i, j, k: Integer; d: TDirection; b: Boolean;
   begin
+    if TalkTexture <> nil then
+      TalkTexture.Free;
     if IndicatorTexture <> nil then
       IndicatorTexture.Free;
     if InvulPenta <> nil then
@@ -838,6 +842,70 @@ implementation
     end;
   end;
 
+  procedure r_Map_DrawBubble (x, y: Integer; cb, cf: TRGB);
+    var dot: Integer;
+  begin
+    // Outer borders
+    r_Draw_Rect(x + 1, y,     x + 18, y + 13, cb.R, cb.G, cb.B, 255);
+    r_Draw_Rect(x,     y + 1, x + 19, y + 12, cb.R, cb.G, cb.B, 255);
+    // Inner box
+    r_Draw_FillRect(x + 1, y + 1, x + 18, y + 12, cf.R, cf.G, cf.B, 255);
+    // TODO Tail
+    // Dots
+    dot := 6;
+    r_Draw_FillRect(x + dot + 0, y + 8, x + dot + 0 + 1 + 1, y + 9 + 1, cb.R, cb.G, cb.B, 255);
+    r_Draw_FillRect(x + dot + 3, y + 8, x + dot + 3 + 1 + 1, y + 9 + 1, cb.R, cb.G, cb.B, 255);
+    r_Draw_FillRect(x + dot + 6, y + 8, x + dot + 6 + 1 + 1, y + 9 + 1, cb.R, cb.G, cb.B, 255);
+  end;
+
+  procedure r_Map_DrawTalkBubble (p: TPlayer);
+    var cobj: TObj; fx, fy, x, y: Integer; cb, cf: TRGB;
+  begin
+    {$IFDEF ENABLE_CORPSES}
+      cobj := g_Corpses_GetCameraObj(p);
+    {$ELSE}
+      cobj := p.Obj;
+    {$ENDIF}
+    cobj.Lerp(gLerpFactor, fx, fy);
+    x := fx + p.obj.rect.x + p.obj.rect.width div 2;
+    y := fy;
+    cb := _RGB(63, 63, 63);
+    cf := _RGB(240, 240, 240);
+    case gChatBubble of
+      1: // simple text
+      begin
+        r_Common_DrawText('[...]', x, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_DOWN);
+      end;
+      2: // adv team color
+      begin
+        case p.Team of
+          TEAM_RED:  cb := _RGB(255, 63, 63);
+          TEAM_BLUE: cb := _RGB(63, 63, 255);
+        end;
+        r_Map_DrawBubble(x, y - 18, cb, cf);
+      end;
+      3: // adv player color
+      begin
+        cb := p.Model.Color;
+        cf.R := MIN(cb.R * 2 + 64, 255);
+        cf.G := MIN(cb.G * 2 + 64, 255);
+        cf.B := MIN(cb.B * 2 + 64, 255);
+        if (ABS(cf.R - cb.R) < 32) or (ABS(cf.G - cb.G) < 32) or (ABS(cf.B - cb.B) < 32) then
+        begin
+          cb.R := MAX(cf.R div 2 - 16, 0);
+          cb.G := MAX(cf.G div 2 - 16, 0);
+          cb.B := MAX(cf.B div 2 - 16, 0);
+        end;
+        r_Map_DrawBubble(x, y - 18, cb, cf);
+      end;
+      4: // textured
+      if TalkTexture <> nil then
+      begin
+        r_Common_DrawTexture(TalkTexture, x + 5, y, TalkTexture.width, TalkTexture.height, TBasePoint.BP_DOWN);
+      end;
+    end;
+  end;
+
   procedure r_Map_DrawPlayer (p, drawed: TPlayer);
     var fX, fY, fSlope, ax, ay, w, h: Integer; b, flip: Boolean; t: TGLMultiTexture; tex: TGLTexture; alpha: Byte; count, frame: LongInt;
   begin
@@ -898,7 +966,11 @@ implementation
       r_Map_DrawPlayerModel(p.Model, fX, fY + fSlope, alpha);
     end;
     // TODO draw g_debug_frames
-    // TODO draw chat bubble
+
+    if (gChatBubble > 0) and p.FKeys[KEY_CHAT].Pressed and (p.Ghost = false) then
+      if (p.FMegaRulez[MR_INVIS] <= gTime) or ((drawed <> nil) and ((p = drawed) or (p.Team = drawed.Team) and (gGameSettings.GameMode <> GM_DM))) then
+        r_Map_DrawTalkBubble(p);
+
     // TODO draw aim
   end;
 
