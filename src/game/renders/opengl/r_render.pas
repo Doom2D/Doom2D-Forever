@@ -88,13 +88,6 @@ implementation
     r_draw, r_textures, r_fonts, r_common, r_console, r_map
   ;
 
-  type
-    TBasePoint = (
-      BP_LEFTUP,   BP_UP,     BP_RIGHTUP,
-      BP_LEFT,     BP_CENTER, BP_RIGHT,
-      BP_LEFTDOWN, BP_DOWN,   BP_RIGHTDOWN
-    );
-
   var
     BackgroundTexture: THereTexture;
 
@@ -227,157 +220,52 @@ implementation
     r_Map_Update;
   end;
 
-  procedure r_Render_GetBasePoint (x, y, w, h: Integer; p: TBasePoint; out xx, yy: Integer);
-  begin
-    case p of
-      TBasePoint.BP_LEFTUP,  TBasePoint.BP_LEFT,   TBasePoint.BP_LEFTDOWN:  xx := x;
-      TBasePoint.BP_UP,      TBasePoint.BP_CENTER, TBasePoint.BP_DOWN:      xx := x - w div 2;
-      TBasePoint.BP_RIGHTUP, TBasePoint.BP_RIGHT,  TBasePoint.BP_RIGHTDOWN: xx := x - w;
-    end;
-    case p of
-      TBasePoint.BP_LEFTUP,   TBasePoint.BP_UP,     TBasePoint.BP_RIGHTUP:   yy := y;
-      TBasePoint.BP_LEFT,     TBasePoint.BP_CENTER, TBasePoint.BP_RIGHT:     yy := y - h div 2;
-      TBasePoint.BP_LEFTDOWN, TBasePoint.BP_DOWN,   TBasePoint.BP_RIGHTDOWN: yy := y - h;
-    end;
-  end;
-
-  procedure r_Render_DrawText (const text: AnsiString; x, y: Integer; r, g, b, a: Byte; f: TGLFont; p: TBasePoint);
-    var xx, yy, w, h: Integer;
-  begin
-    xx := x; yy := y;
-    if p <> TBasePoint.BP_LEFTUP then
-    begin
-      r_Draw_GetTextSize(text, f, w, h);
-      r_Render_GetBasePoint(x, y, w, h, p, xx, yy);
-    end;
-    r_Draw_Text(text, xx, yy, r, g, b, a, f);
-  end;
-
-  procedure r_Render_DrawTexture (img: TGLTexture; x, y, w, h: Integer; p: TBasePoint);
-  begin
-    r_Render_GetBasePoint(x, y, w, h, p, x, y);
-    r_Draw_TextureRepeat(img, x, y, w, h, false, 255, 255, 255, 255, false);
-  end;
-
-  procedure r_Render_GetFormatTextSize (const text: AnsiString; f: TGLFont; out w, h: Integer);
-    var i, cw, ch, cln, curw, curh, maxw, maxh: Integer;
-  begin
-    curw := 0; curh := 0; maxw := 0; maxh := 0;
-    r_Draw_GetTextSize('W', f, cw, cln);
-    for i := 1 to Length(text) do
-    begin
-      case text[i] of
-        #10:
-        begin
-          maxw := MAX(maxw, curw);
-          curh := curh + cln;
-          curw := 0;
-        end;
-        #1, #2, #3, #4, #18, #19, #20, #21:
-        begin
-          // skip color modifiers
-        end;
-        otherwise
-        begin
-          r_Draw_GetTextSize(text[i], f, cw, ch);
-          maxh := MAX(maxh, curh + ch);
-          curw := curw + cw;
-        end;
-      end;
-    end;
-    w := MAX(maxw, curw);
-    h := MAX(maxh, curh);
-  end;
-
-  procedure r_Render_DrawFormatText (const text: AnsiString; x, y: Integer; a: Byte; f: TGLFont; p: TBasePoint);
-    const
-      colors: array [boolean, 0..5] of TRGB = (
-        ((R:$00; G:$00; B:$00), (R:$FF; G:$00; B:$00), (R:$00; G:$FF; B:$00), (R:$FF; G:$FF; B:$00), (R:$00; G:$00; B:$FF), (R:$FF; G:$FF; B:$FF)),
-        ((R:$00; G:$00; B:$00), (R:$7F; G:$00; B:$00), (R:$00; G:$7F; B:$00), (R:$FF; G:$7F; B:$00), (R:$00; G:$00; B:$7F), (R:$7F; G:$7F; B:$7F))
-      );
-    var
-      i, xx, yy, cx, cy, w, h, cw, ch, cln, color: Integer; dark: Boolean;
-  begin
-    xx := x; yy := y;
-    if p <> TBasePoint.BP_LEFTUP then
-    begin
-      r_Render_GetFormatTextSize(text, f, w, h);
-      r_Render_GetBasePoint(x, y, w, h, p, xx, yy);
-    end;
-    cx := xx; cy := yy; color := 5; dark := false;
-    r_Draw_GetTextSize('W', f, cw, cln);
-    for i := 1 to Length(text) do
-    begin
-      case text[i] of
-        #10:
-        begin
-          cx := xx;
-          INC(cy, cln);
-        end;
-        #1: color := 0;
-        #2: color := 5;
-        #3: dark := true;
-        #4: dark := false;
-        #18: color := 1;
-        #19: color := 2;
-        #20: color := 4;
-        #21: color := 3;
-        otherwise
-        begin
-          r_Draw_GetTextSize(text[i], f, cw, ch);
-          r_Draw_Text(text[i], cx, cy, colors[dark, color].R, colors[dark, color].G, colors[dark, color].B, a, f);
-          INC(cx, cw);
-        end;
-      end;
-    end;
-  end;
-
   procedure r_Render_DrawHUD (x, y: Integer; p: TPlayer);
     var t: TGLTexture; s: AnsiString;
   begin
     ASSERT(p <> nil);
 
     // hud area is 196 x 240 pixels
-    r_Render_DrawTexture(hud, x, y, hud.width, hud.height, TBasePoint.BP_LEFTUP);
-    r_Render_DrawText(p.name, x + 98, y + 16, 255, 0, 0, 255, smallfont, TBasePoint.BP_CENTER);
+    r_Common_DrawTexture(hud, x, y, hud.width, hud.height, TBasePoint.BP_LEFTUP);
+    r_Common_DrawText(p.name, x + 98, y + 16, 255, 0, 0, 255, smallfont, TBasePoint.BP_CENTER);
 
     t := hudhp[R_BERSERK in p.FRulez];
-    r_Render_DrawTexture(t, x + 51, y + 61, t.width, t.height, TBasePoint.BP_CENTER);
-    r_Render_DrawTexture(hudap, x + 50, y + 85, hudap.width, hudap.height, TBasePoint.BP_CENTER);
+    r_Common_DrawTexture(t, x + 51, y + 61, t.width, t.height, TBasePoint.BP_CENTER);
+    r_Common_DrawTexture(hudap, x + 50, y + 85, hudap.width, hudap.height, TBasePoint.BP_CENTER);
 
-    r_Render_DrawText(IntToStr(MAX(0, p.health)), x + 174, y + 56, 255, 0, 0, 255, menufont, TBasePoint.BP_RIGHT);
-    r_Render_DrawText(IntToStr(MAX(0, p.armor)), x + 174, y + 84, 255, 0, 0, 255, menufont, TBasePoint.BP_RIGHT);
+    r_Common_DrawText(IntToStr(MAX(0, p.health)), x + 174, y + 56, 255, 0, 0, 255, menufont, TBasePoint.BP_RIGHT);
+    r_Common_DrawText(IntToStr(MAX(0, p.armor)), x + 174, y + 84, 255, 0, 0, 255, menufont, TBasePoint.BP_RIGHT);
 
     case p.CurrWeap of
       WEAPON_KASTET, WEAPON_SAW: s := '--';
       else s := IntToStr(p.GetAmmoByWeapon(p.CurrWeap));
     end;
-    r_Render_DrawText(s, x + 174, y + 174, 255, 0, 0, 255, menufont, TBasePoint.BP_RIGHT);
+    r_Common_DrawText(s, x + 174, y + 174, 255, 0, 0, 255, menufont, TBasePoint.BP_RIGHT);
 
     if p.CurrWeap <= WP_LAST then
     begin
       t := hudwp[p.CurrWeap];
-      r_Render_DrawTexture(t, x + 18, y + 160, t.width, t.height, TBasePoint.BP_LEFTUP);
+      r_Common_DrawTexture(t, x + 18, y + 160, t.width, t.height, TBasePoint.BP_LEFTUP);
     end;
 
     if R_KEY_RED in p.FRulez then
-      r_Render_DrawTexture(hudkey[0], x + 76, y + 214, 16, 16, TBasePoint.BP_LEFTUP);
+      r_Common_DrawTexture(hudkey[0], x + 76, y + 214, 16, 16, TBasePoint.BP_LEFTUP);
     if R_KEY_GREEN in p.FRulez then
-      r_Render_DrawTexture(hudkey[1], x + 93, y + 214, 16, 16, TBasePoint.BP_LEFTUP);
+      r_Common_DrawTexture(hudkey[1], x + 93, y + 214, 16, 16, TBasePoint.BP_LEFTUP);
     if R_KEY_BLUE in p.FRulez then
-      r_Render_DrawTexture(hudkey[2], x + 110, y + 214, 16, 16, TBasePoint.BP_LEFTUP);
+      r_Common_DrawTexture(hudkey[2], x + 110, y + 214, 16, 16, TBasePoint.BP_LEFTUP);
 
     if p.JetFuel > 0 then
     begin
-      r_Render_DrawTexture(hudair, x, y + 116, hudair.width, hudair.height, TBasePoint.BP_LEFTUP);
+      r_Common_DrawTexture(hudair, x, y + 116, hudair.width, hudair.height, TBasePoint.BP_LEFTUP);
       if p.air > 0 then
         r_Draw_FillRect(x + 14, y + 116 + 4, x + 14 + 168 * p.air div AIR_MAX, y + 116 + 4 + 4, 0, 0, 196, 255);
-      r_Render_DrawTexture(hudjet, x, y + 126, hudjet.width, hudjet.height, TBasePoint.BP_LEFTUP);
+      r_Common_DrawTexture(hudjet, x, y + 126, hudjet.width, hudjet.height, TBasePoint.BP_LEFTUP);
       r_Draw_FillRect(x + 14, y + 126 + 4, x + 14 + 168 * p.JetFuel div JET_MAX, y + 126 + 4 + 4, 208, 0, 0, 255);
     end
     else
     begin
-      r_Render_DrawTexture(hudair, x, y + 124, hudair.width, hudair.height, TBasePoint.BP_LEFTUP);
+      r_Common_DrawTexture(hudair, x, y + 124, hudair.width, hudair.height, TBasePoint.BP_LEFTUP);
       if p.air > 0 then
         r_Draw_FillRect(x + 14, y + 124 + 4, x + 14 + 168 * p.air div AIR_MAX, y + 124 + 4 + 4, 0, 0, 196, 255);
     end;
@@ -386,25 +274,25 @@ implementation
   procedure r_Render_DrawHUDArea (x, y, w, h: Integer; p: TPlayer);
     var s: AnsiString;
   begin
-    r_Render_DrawTexture(hudbg, x, y, w, h, TBasePoint.BP_LEFTUP);
+    r_Common_DrawTexture(hudbg, x, y, w, h, TBasePoint.BP_LEFTUP);
 
     if p <> nil then
     begin
       r_Render_DrawHUD(x + w - 196 + 2, y, p);
       if p.Spectator then
       begin
-        r_Render_DrawText(_lc[I_PLAYER_SPECT], x + 4, y + 242, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
-        r_Render_DrawText(_lc[I_PLAYER_SPECT2], x + 4, y + 258, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
-        r_Render_DrawText(_lc[I_PLAYER_SPECT1], x + 4, y + 274, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+        r_Common_DrawText(_lc[I_PLAYER_SPECT], x + 4, y + 242, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+        r_Common_DrawText(_lc[I_PLAYER_SPECT2], x + 4, y + 258, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+        r_Common_DrawText(_lc[I_PLAYER_SPECT1], x + 4, y + 274, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
         if p.NoRespawn then
-          r_Render_DrawText(_lc[I_PLAYER_SPECT1S], x + 4, y + 290, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+          r_Common_DrawText(_lc[I_PLAYER_SPECT1S], x + 4, y + 290, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
       end;
     end;
 
     if gShowPing and g_Game_IsClient then
     begin
       s := _lc[I_GAME_PING_HUD] + IntToStr(NetPeer.lastRoundTripTime) + _lc[I_NET_SLIST_PING_MS];
-      r_Render_DrawText(s, x + 4, y + 242, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(s, x + 4, y + 242, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
     end;
   end;
 
@@ -427,10 +315,10 @@ implementation
         if f <> nil then
         begin
           fw := f.width + 8; (* + space *)
-          r_Render_DrawTexture(f, x + w - 16, y + 240 - 72 - 4, f.width, f.height, TBasePoint.BP_RIGHTUP);
+          r_Common_DrawTexture(f, x + w - 16, y + 240 - 72 - 4, f.width, f.height, TBasePoint.BP_RIGHTUP);
         end;
       end;
-      r_Render_DrawText(IntToStr(gTeamStat[TEAM_RED].Score), x + w - 16 - fw, y + 240 - 72 - 4, TEAMCOLOR[TEAM_RED].R, TEAMCOLOR[TEAM_RED].G, TEAMCOLOR[TEAM_RED].B, 255, menufont, TBasePoint.BP_RIGHTUP);
+      r_Common_DrawText(IntToStr(gTeamStat[TEAM_RED].Score), x + w - 16 - fw, y + 240 - 72 - 4, TEAMCOLOR[TEAM_RED].R, TEAMCOLOR[TEAM_RED].G, TEAMCOLOR[TEAM_RED].B, 255, menufont, TBasePoint.BP_RIGHTUP);
 
       (* BLUE TEAM GOALS *)
       fw := 0;
@@ -444,17 +332,17 @@ implementation
         if f <> nil then
         begin
           fw := f.width + 8; (* + space *)
-          r_Render_DrawTexture(f, x + w - 16, y + 240 - 32 - 4, f.width, f.height, TBasePoint.BP_RIGHTUP);
+          r_Common_DrawTexture(f, x + w - 16, y + 240 - 32 - 4, f.width, f.height, TBasePoint.BP_RIGHTUP);
         end;
       end;
-      r_Render_DrawText(IntToStr(gTeamStat[TEAM_BLUE].Score), x + w - 16 - fw, y + 240 - 32 - 4, TEAMCOLOR[TEAM_BLUE].R, TEAMCOLOR[TEAM_BLUE].G, TEAMCOLOR[TEAM_BLUE].B, 255, menufont, TBasePoint.BP_RIGHTUP);
+      r_Common_DrawText(IntToStr(gTeamStat[TEAM_BLUE].Score), x + w - 16 - fw, y + 240 - 32 - 4, TEAMCOLOR[TEAM_BLUE].R, TEAMCOLOR[TEAM_BLUE].G, TEAMCOLOR[TEAM_BLUE].B, 255, menufont, TBasePoint.BP_RIGHTUP);
     end;
 
     if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
     begin
       if gShowStat then
       begin
-        r_Render_DrawText(IntToStr(p.Frags), x + w - 16, y, 255, 0, 0, 255, menufont, TBasePoint.BP_RIGHTUP);
+        r_Common_DrawText(IntToStr(p.Frags), x + w - 16, y, 255, 0, 0, 255, menufont, TBasePoint.BP_RIGHTUP);
 
         top := 1;
         maxFrags := 0;
@@ -474,17 +362,17 @@ implementation
           end;
         end;
         if p.Frags >= maxFrags then sign := '+' else sign := '-';
-        r_Render_DrawText(IntToStr(top) + ' / ' + IntToStr(totalPlayers) + ' ' + sign + IntToStr(ABS(p.Frags - maxFrags)), x + w - 16, y + 32, 255, 0, 0, 255, smallfont, TBasePoint.BP_RIGHTUP);
+        r_Common_DrawText(IntToStr(top) + ' / ' + IntToStr(totalPlayers) + ' ' + sign + IntToStr(ABS(p.Frags - maxFrags)), x + w - 16, y + 32, 255, 0, 0, 255, smallfont, TBasePoint.BP_RIGHTUP);
       end;
 
       if gLMSRespawn > LMS_RESPAWN_NONE then
       begin
-        r_Render_DrawText(_lc[I_GAME_WARMUP], x + w - 16 - 64, y + h, 0, 255, 0, 255, menufont, TBasePoint.BP_RIGHTDOWN);
-        r_Render_DrawText(': ' + IntToStr((gLMSRespawnTime - gTime) div 1000), x + w - 16 - 64, y + h, 0, 255, 0, 255, menufont, TBasePoint.BP_LEFTDOWN);
+        r_Common_DrawText(_lc[I_GAME_WARMUP], x + w - 16 - 64, y + h, 0, 255, 0, 255, menufont, TBasePoint.BP_RIGHTDOWN);
+        r_Common_DrawText(': ' + IntToStr((gLMSRespawnTime - gTime) div 1000), x + w - 16 - 64, y + h, 0, 255, 0, 255, menufont, TBasePoint.BP_LEFTDOWN);
       end
       else if gShowLives and (gGameSettings.MaxLives > 0) then
       begin
-        r_Render_DrawText(IntToStr(p.Lives), x + w - 16, y + h, 0, 255, 0, 255, menufont, TBasePoint.BP_RIGHTDOWN);
+        r_Common_DrawText(IntToStr(p.Lives), x + w - 16, y + h, 0, 255, 0, 255, menufont, TBasePoint.BP_RIGHTDOWN);
       end;
     end;
   end;
@@ -500,7 +388,7 @@ implementation
       r_Map_Draw(x, y, w, h, p.obj.x + PLAYER_RECT_CX, p.obj.y + PLAYER_RECT_CY, p);
       r_Render_DrawStatsView(x, y, w, h, p);
       if p.Spectator and p.NoRespawn then
-        r_Render_DrawText(_lc[I_PLAYER_SPECT4], x div 2 + w div 2, y div 2 + h div 2, 255, 255, 255, 255, stdfont, TBasePoint.BP_CENTER);
+        r_Common_DrawText(_lc[I_PLAYER_SPECT4], x div 2 + w div 2, y div 2 + h div 2, 255, 255, 255, 255, stdfont, TBasePoint.BP_CENTER);
     end
     else
     begin
@@ -554,7 +442,7 @@ implementation
     scry := gScreenHeight div 2;
 
     r_Draw_GetTextSize(_lc[I_NET_SLIST], menufont, ww, hh);
-    r_Render_DrawText(_lc[I_NET_SLIST], gScreenWidth div 2, 16, 255, 255, 255, 255, menufont, TBasePoint.BP_UP);
+    r_Common_DrawText(_lc[I_NET_SLIST], gScreenWidth div 2, 16, 255, 255, 255, 255, menufont, TBasePoint.BP_UP);
 
     r_Draw_GetTextSize('W', stdfont, cw, ch);
     motdh := gScreenHeight - 49 - ch * b_Text_LineCount(slMOTD);
@@ -562,13 +450,13 @@ implementation
     r_Draw_FillRect(16, 64, gScreenWidth - 16, motdh, 64, 64, 64, 145);
     r_Draw_Rect(16, 64, gScreenWidth - 16, motdh, 255, 127, 0, 255);
 
-    r_Render_DrawText(_lc[I_NET_SLIST_HELP], gScreenWidth div 2, gScreenHeight - 8, 255, 255, 255, 255, stdfont, TBasePoint.BP_DOWN);
+    r_Common_DrawText(_lc[I_NET_SLIST_HELP], gScreenWidth div 2, gScreenHeight - 8, 255, 255, 255, 255, stdfont, TBasePoint.BP_DOWN);
 
     if slMOTD <> '' then
     begin
       r_Draw_FillRect(16, motdh, gScreenWidth - 16, gScreenHeight - 44, 64, 64, 64, 110);
       r_Draw_Rect(16, motdh, gScreenWidth - 16, gScreenHeight - 44, 255, 127, 0, 255);
-      r_Render_DrawFormatText(slMOTD, 20, motdh + 3 + ch * i, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawFormatText(slMOTD, 20, motdh + 3 + ch * i, 255, stdfont, TBasePoint.BP_LEFTUP);
     end;
 
     if not slReadUrgent and (slUrgent <> '') then
@@ -577,16 +465,16 @@ implementation
       r_Draw_FillRect(scrx - 256, scry - 60, scrx + 256, scry + 60, 64, 64, 64, 127);
       r_Draw_Rect(scrx - 256, scry - 60, scrx + 256, scry + 60, 255, 127, 0, 255);
       r_Draw_FillRect(scrx - 256, scry - 40, scrx + 256, scry - 40, 255, 127, 0, 255);
-      r_Render_DrawText(_lc[I_NET_SLIST_URGENT], scrx, scry - 58, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
-      r_Render_DrawFormatText(slUrgent, scrx - 253, scry - 38 + ch * i, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText(_lc[I_NET_SLIST_URGENT_CONT], scrx, scry + 41, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
+      r_Common_DrawText(_lc[I_NET_SLIST_URGENT], scrx, scry - 58, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
+      r_Common_DrawFormatText(slUrgent, scrx - 253, scry - 38 + ch * i, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(_lc[I_NET_SLIST_URGENT_CONT], scrx, scry + 41, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
       r_Draw_FillRect(scrx - 256, scry + 40, scrx + 256, scry + 40, 255, 127, 0, 255);
     end
     else if SL = nil then
     begin
       r_Draw_FillRect(17, 65, gScreenWidth - 17, motdh - 1, 64, 64, 64, 127);
       r_Draw_Rect(scrx - 192, scry - 10, scrx + 192, scry + 11, 255, 127, 0, 255);
-      r_Render_DrawText(slWaitStr, scrx, scry, 255, 255, 255, 255, stdfont, TBasePoint.BP_CENTER);
+      r_Common_DrawText(slWaitStr, scrx, scry, 255, 255, 255, 255, stdfont, TBasePoint.BP_CENTER);
     end
     else
     begin
@@ -615,49 +503,40 @@ implementation
       r_Draw_FillRect(mx + 52, 64, mx + 52, motdh - 20, 255, 127, 0, 255);
       r_Draw_FillRect(mx + 104, 64, mx + 104, motdh - 20, 255, 127, 0, 255);
 
-      r_Render_DrawText('NAME/MAP', 18, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText('PING', mx - 68, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText('MODE', mx + 2, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText('PLRS', mx + 54, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText('VER', mx + 106, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText('NAME/MAP', 18, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText('PING', mx - 68, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText('MODE', mx + 2, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText('PLRS', mx + 54, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText('VER', mx + 106, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
 
       for i := 0 to High(ST) do
       begin
         Srv := GetServerFromTable(i, SL, ST);
-        r_Render_DrawText(Srv.Name, 18, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
-        r_Render_DrawText(Srv.Map,  18, y + 16, 210, 210, 210, 255, stdfont, TBasePoint.BP_LEFTUP);
+        r_Common_DrawText(Srv.Name, 18, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+        r_Common_DrawText(Srv.Map,  18, y + 16, 210, 210, 210, 255, stdfont, TBasePoint.BP_LEFTUP);
 
         if Srv.Ping = 0 then
-          r_Render_DrawText('<1' + _lc[I_NET_SLIST_PING_MS], mx - 68, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP)
+          r_Common_DrawText('<1' + _lc[I_NET_SLIST_PING_MS], mx - 68, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP)
         else if (Srv.Ping >= 0) and (Srv.Ping <= 999) then
-          r_Render_DrawText(IntToStr(Srv.Ping) + _lc[I_NET_SLIST_PING_MS], mx - 68, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP)
+          r_Common_DrawText(IntToStr(Srv.Ping) + _lc[I_NET_SLIST_PING_MS], mx - 68, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP)
         else
-          r_Render_DrawText(_lc[I_NET_SLIST_NO_ACCESS], mx - 68, y, 255, 0, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+          r_Common_DrawText(_lc[I_NET_SLIST_NO_ACCESS], mx - 68, y, 255, 0, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
         if Length(ST[I].Indices) > 1 then
-          r_Render_DrawText('<' + IntToStr(Length(ST[I].Indices)) + '>', mx - 68, y + 16, 210, 210, 210, 255, stdfont, TBasePoint.BP_LEFTUP);
+          r_Common_DrawText('<' + IntToStr(Length(ST[I].Indices)) + '>', mx - 68, y + 16, 210, 210, 210, 255, stdfont, TBasePoint.BP_LEFTUP);
 
-        r_Render_DrawText(g_Game_ModeToText(Srv.GameMode), mx + 2, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+        r_Common_DrawText(g_Game_ModeToText(Srv.GameMode), mx + 2, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
 
-        r_Render_DrawText(IntToStr(Srv.Players) + '/' + IntToStr(Srv.MaxPlayers), mx + 54, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
-        r_Render_DrawText(IntToStr(Srv.LocalPl) + '+' + IntToStr(Srv.Bots), mx + 54, y + 16, 210, 210, 210, 255, stdfont, TBasePoint.BP_LEFTUP);
+        r_Common_DrawText(IntToStr(Srv.Players) + '/' + IntToStr(Srv.MaxPlayers), mx + 54, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+        r_Common_DrawText(IntToStr(Srv.LocalPl) + '+' + IntToStr(Srv.Bots), mx + 54, y + 16, 210, 210, 210, 255, stdfont, TBasePoint.BP_LEFTUP);
 
-        r_Render_DrawText(IntToStr(Srv.Protocol), mx + 106, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+        r_Common_DrawText(IntToStr(Srv.Protocol), mx + 106, y, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
 
         y := y + 42;
       end;
 
-      r_Render_DrawText(ip, 20, motdh - 20 + 3, 205, 205, 205, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText(IntToStr(Length(ST)) + _lc[I_NET_SLIST_SERVERS], gScreenWidth - 48, motdh - 20 + 3, 255, 255, 255, 255, stdfont, TBasePoint.BP_RIGHTUP);
+      r_Common_DrawText(ip, 20, motdh - 20 + 3, 205, 205, 205, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(IntToStr(Length(ST)) + _lc[I_NET_SLIST_SERVERS], gScreenWidth - 48, motdh - 20 + 3, 255, 255, 255, 255, stdfont, TBasePoint.BP_RIGHTUP);
     end;
-  end;
-
-  function r_Render_TimeToStr (t: LongWord): AnsiString;
-    var h, m, s: Integer;
-  begin
-    h := t div 1000 div 3600;
-    m := t div 1000 div 60 mod 60;
-    s := t div 1000 mod 60;
-    result := Format('%d:%.2d:%.2d', [h, m, s]);
   end;
 
   procedure r_Render_DrawStatsColumns (constref cs: TEndCustomGameStat; x, y, w: Integer; endview: Boolean);
@@ -687,12 +566,12 @@ implementation
               r := 0; g := 0; b := 255;
             end;
          end;
-         r_Render_DrawText(s, x, yy, r, g, b, 255, stdfont, TBasePoint.BP_LEFTUP);
-         r_Render_DrawText(IntToStr(cs.TeamStat[team].Score), x + tw, yy, r, g, b, 255, stdfont, TBasePoint.BP_UP);
+         r_Common_DrawText(s, x, yy, r, g, b, 255, stdfont, TBasePoint.BP_LEFTUP);
+         r_Common_DrawText(IntToStr(cs.TeamStat[team].Score), x + tw, yy, r, g, b, 255, stdfont, TBasePoint.BP_UP);
          if endview = false then
-           r_Render_DrawText(_lc[I_GAME_PING], x + w1, yy, r, g, b, 255, stdfont, TBasePoint.BP_UP);
-         r_Render_DrawText(_lc[I_GAME_FRAGS], x + w1 + w2, yy, r, g, b, 255, stdfont, TBasePoint.BP_UP);
-         r_Render_DrawText(_lc[I_GAME_DEATHS], x + w1 + w2 + w3, yy, r, g, b, 255, stdfont, TBasePoint.BP_UP);
+           r_Common_DrawText(_lc[I_GAME_PING], x + w1, yy, r, g, b, 255, stdfont, TBasePoint.BP_UP);
+         r_Common_DrawText(_lc[I_GAME_FRAGS], x + w1 + w2, yy, r, g, b, 255, stdfont, TBasePoint.BP_UP);
+         r_Common_DrawText(_lc[I_GAME_DEATHS], x + w1 + w2 + w3, yy, r, g, b, 255, stdfont, TBasePoint.BP_UP);
          INC(yy, ch);
 
          INC(yy, ch div 4);
@@ -712,19 +591,19 @@ implementation
              // Player name
              if gShowPIDs then s := Format('[%5d] %s', [cs.PlayerStat[i].UID, cs.PlayerStat[i].Name]) else s := cs.PlayerStat[i].Name;
              if (gPlayers[cs.PlayerStat[i].Num] <> nil) and (gPlayers[cs.PlayerStat[i].Num].FReady) then s := s + ' *';
-             r_Render_DrawText(s, x, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+             r_Common_DrawText(s, x, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
              if endview = false then
              begin
                // Player ping/loss
                s := Format(_lc[I_GAME_PING_MS], [cs.PlayerStat[i].Ping, cs.PlayerStat[i].Loss]);
-               r_Render_DrawText(s, x + w1, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
+               r_Common_DrawText(s, x + w1, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
              end;
              // Player frags
              s := IntToStr(cs.PlayerStat[i].Frags);
-             r_Render_DrawText(s, x + w1 + w2, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
+             r_Common_DrawText(s, x + w1 + w2, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
              // Player deaths
              s := IntToStr(cs.PlayerStat[i].Deaths);
-             r_Render_DrawText(s, x + w1 + w2 + w3, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
+             r_Common_DrawText(s, x + w1 + w2 + w3, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
 
              INC(yy, ch);
            end;
@@ -734,11 +613,11 @@ implementation
     end
     else if cs.GameMode in [GM_DM, GM_COOP] then
     begin
-      r_Render_DrawText(_lc[I_GAME_PLAYER_NAME], x, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(_lc[I_GAME_PLAYER_NAME], x, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
       if endview = false then
-        r_Render_DrawText(_lc[I_GAME_PING], x + w1, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_UP);
-      r_Render_DrawText(_lc[I_GAME_FRAGS], x + w1 + w2, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_UP);
-      r_Render_DrawText(_lc[I_GAME_DEATHS], x + w1 + w2 + w3, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_UP);
+        r_Common_DrawText(_lc[I_GAME_PING], x + w1, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_UP);
+      r_Common_DrawText(_lc[I_GAME_FRAGS], x + w1 + w2, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_UP);
+      r_Common_DrawText(_lc[I_GAME_DEATHS], x + w1 + w2 + w3, yy, 255, 127, 0, 255, stdfont, TBasePoint.BP_UP);
       INC(yy, ch + ch div 2);
       for i := 0 to players - 1 do
       begin
@@ -755,19 +634,19 @@ implementation
         // Player name
         if gShowPIDs then s := Format('[%5d] %s', [cs.PlayerStat[i].UID, cs.PlayerStat[i].Name]) else s := cs.PlayerStat[i].Name;
         if (gPlayers[cs.PlayerStat[i].Num] <> nil) and (gPlayers[cs.PlayerStat[i].Num].FReady) then s := s + ' *';
-        r_Render_DrawText(s, x + 16 + 8, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
+        r_Common_DrawText(s, x + 16 + 8, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_LEFTUP);
         if endview = false then
         begin
           // Player ping/loss
           s := Format(_lc[I_GAME_PING_MS], [cs.PlayerStat[i].Ping, cs.PlayerStat[i].Loss]);
-          r_Render_DrawText(s, x + w1, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
+          r_Common_DrawText(s, x + w1, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
         end;
         // Player frags
         s := IntToStr(cs.PlayerStat[i].Frags);
-        r_Render_DrawText(s, x + w1 + w2, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
+        r_Common_DrawText(s, x + w1 + w2, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
         // Player deaths
         s := IntToStr(cs.PlayerStat[i].Deaths);
-        r_Render_DrawText(s, x + w1 + w2 + w3, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
+        r_Common_DrawText(s, x + w1 + w2 + w3, yy, rr, gg, bb, 255, stdfont, TBasePoint.BP_UP);
 
         INC(yy, ch + ch div 2);
       end;
@@ -791,7 +670,7 @@ implementation
         NET_CLIENT: s := NetClientIP + ':' + IntToStr(NetClientPort);
         otherwise   s := '';
       end;
-      r_Render_DrawText(s, x + 16, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(s, x + 16, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
     end;
 
     case cs.GameMode of
@@ -801,12 +680,12 @@ implementation
       GM_COOP:  if gGameSettings.MaxLives = 0 then s := _lc[I_GAME_COOP] else s := _lc[I_GAME_SURV];
       otherwise s := 'GAME MODE ' + IntToStr(gGameSettings.GameMode);
     end;
-    r_Render_DrawText(s, x + w div 2, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
+    r_Common_DrawText(s, x + w div 2, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
 
     if endview = false then
     begin
-      s := r_Render_TimeToStr(cs.GameTime);
-      r_Render_DrawText(s, x + w - 16, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_RIGHTUP);
+      s := r_Common_TimeToStr(cs.GameTime);
+      r_Common_DrawText(s, x + w - 16, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_RIGHTUP);
     end;
 
     INC(yoff, ch + ch div 2);
@@ -819,7 +698,7 @@ implementation
 
     if endview = false then
     begin
-      r_Render_DrawText(s, x + w div 2, y + yoff, 200, 200, 200, 255, stdfont, TBasePoint.BP_UP);
+      r_Common_DrawText(s, x + w div 2, y + yoff, 200, 200, 200, 255, stdfont, TBasePoint.BP_UP);
       INC(yoff, ch + ch div 2);
       case cs.GameMode of
         GM_DM, GM_TDM: s := Format(_lc[I_GAME_FRAG_LIMIT], [gGameSettings.ScoreLimit]);
@@ -827,23 +706,23 @@ implementation
         GM_COOP:       s := _lc[I_GAME_MONSTERS] + ' ' + IntToStr(gCoopMonstersKilled) + '/' + IntToStr(gTotalMonsters);
         otherwise      s := '';
       end;
-      r_Render_DrawText(s, x + 16, y + yoff, 200, 200, 200, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(s, x + 16, y + yoff, 200, 200, 200, 255, stdfont, TBasePoint.BP_LEFTUP);
       case cs.GameMode of
         GM_DM, GM_TDM, GM_CTF: s := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600, (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
         GM_COOP:               s := _lc[I_GAME_SECRETS] + ' ' + IntToStr(gCoopSecretsFound) + '/' + IntToStr(gSecretsCount);
         otherwise              s := '';
       end;
-      r_Render_DrawText(s, x + w - 16, y + yoff, 200, 200, 200, 255, stdfont, TBasePoint.BP_RIGHTUP);
+      r_Common_DrawText(s, x + w - 16, y + yoff, 200, 200, 200, 255, stdfont, TBasePoint.BP_RIGHTUP);
       INC(yoff, ch);
     end
     else
     begin
       xoff := MAX(Length(_lc[I_MENU_MAP]) + 1, Length(_lc[I_GAME_GAME_TIME]) + 1) * cw;
-      r_Render_DrawText(_lc[I_MENU_MAP], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText(s, x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(_lc[I_MENU_MAP], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(s, x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
       INC(yoff, ch);
-      r_Render_DrawText(_lc[I_GAME_GAME_TIME], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText(r_Render_TimeToStr(cs.GameTime), x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(_lc[I_GAME_GAME_TIME], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(r_Common_TimeToStr(cs.GameTime), x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
       INC(yoff, ch);
     end;
 
@@ -854,11 +733,11 @@ implementation
     if endview and (cs.GameMode = GM_COOP) then
     begin
       xoff := MAX(Length(_lc[I_GAME_MONSTERS]) + 1, Length(_lc[I_GAME_SECRETS]) + 1) * cw;
-      r_Render_DrawText(_lc[I_GAME_MONSTERS], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText(IntToStr(gCoopMonstersKilled) + '/' + IntToStr(gTotalMonsters), x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(_lc[I_GAME_MONSTERS], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(IntToStr(gCoopMonstersKilled) + '/' + IntToStr(gTotalMonsters), x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
       INC(yoff, ch);
-      r_Render_DrawText(_lc[I_GAME_SECRETS], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText(IntToStr(gCoopSecretsFound) + '/' + IntToStr(gSecretsCount), x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);      
+      r_Common_DrawText(_lc[I_GAME_SECRETS], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(IntToStr(gCoopSecretsFound) + '/' + IntToStr(gSecretsCount), x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);      
       INC(yoff, ch);
       INC(yoff, ch);
     end;
@@ -868,11 +747,11 @@ implementation
     if endview and (cs.GameMode = GM_COOP) and gLastMap then
     begin
       xoff := MAX(Length(_lc[I_GAME_MONSTERS_TOTAL]) + 1, Length(_lc[I_GAME_SECRETS_TOTAL]) + 1) * cw;
-      r_Render_DrawText(_lc[I_GAME_MONSTERS_TOTAL], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText(IntToStr(gCoopTotalMonstersKilled) + '/' + IntToStr(gCoopTotalMonsters), x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(_lc[I_GAME_MONSTERS_TOTAL], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(IntToStr(gCoopTotalMonstersKilled) + '/' + IntToStr(gCoopTotalMonsters), x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
       INC(yoff, ch);
-      r_Render_DrawText(_lc[I_GAME_SECRETS_TOTAL], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
-      r_Render_DrawText(IntToStr(gCoopTotalSecretsFound) + '/' + IntToStr(gCoopTotalSecrets), x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(_lc[I_GAME_SECRETS_TOTAL], x + 16, y + yoff, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText(IntToStr(gCoopTotalSecretsFound) + '/' + IntToStr(gCoopTotalSecrets), x + 16 + xoff, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
       INC(yoff, ch);
       INC(yoff, ch);
     end;
@@ -884,7 +763,7 @@ implementation
       if cs.TeamStat[TEAM_RED].Score > cs.TeamStat[TEAM_BLUE].Score then s := _lc[I_GAME_WIN_RED]
       else if cs.TeamStat[TEAM_BLUE].Score > cs.TeamStat[TEAM_RED].Score then s := _lc[I_GAME_WIN_BLUE]
       else s := _lc[I_GAME_WIN_DRAW];
-      r_Render_DrawText(s, x + w div 2, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
+      r_Common_DrawText(s, x + w div 2, y + yoff, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
       INC(yoff, ch);
       INC(yoff, ch);
     end;
@@ -928,7 +807,7 @@ implementation
   begin
     if gStatsOff then
     begin
-      r_Render_DrawText(_lc[I_MENU_INTER_NOTICE_TAB], gScreenWidth div 2, 8, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
+      r_Common_DrawText(_lc[I_MENU_INTER_NOTICE_TAB], gScreenWidth div 2, 8, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
     end
     else
     begin
@@ -936,16 +815,16 @@ implementation
         GM_COOP: if gMissionFailed then s := _lc[I_MENU_INTER_MISSION_FAIL] else s := _lc[I_MENU_INTER_LEVEL_COMPLETE];
         otherwise s := _lc[I_MENU_INTER_ROUND_OVER];
       end;
-      r_Render_DrawText(s, gScreenWidth div 2, 16, 255, 255, 255, 255, menufont, TBasePoint.BP_UP);
+      r_Common_DrawText(s, gScreenWidth div 2, 16, 255, 255, 255, 255, menufont, TBasePoint.BP_UP);
 
       if gChatShow = false then
       begin
         if g_Game_IsClient then s := _lc[I_MENU_INTER_NOTICE_MAP] else s := _lc[I_MENU_INTER_NOTICE_SPACE];
-        r_Render_DrawText(s, gScreenWidth div 2, gScreenHeight - 4, 255, 255, 255, 255, stdfont, TBasePoint.BP_DOWN);
+        r_Common_DrawText(s, gScreenWidth div 2, gScreenHeight - 4, 255, 255, 255, 255, stdfont, TBasePoint.BP_DOWN);
         if g_Game_IsNet then
         begin
           s := Format(_lc[I_MENU_INTER_NOTICE_TIME], [gServInterTime]);
-          r_Render_DrawText(s, gScreenWidth div 2, gScreenHeight - 16 - 4, 255, 255, 255, 255, stdfont, TBasePoint.BP_DOWN);
+          r_Common_DrawText(s, gScreenWidth div 2, gScreenHeight - 16 - 4, 255, 255, 255, 255, stdfont, TBasePoint.BP_DOWN);
         end;
       end;
 
@@ -960,44 +839,44 @@ implementation
     sb := IntToStr(b);
     r_Draw_GetTextSize(sa, f, wa, ch);
     r_Draw_GetTextSize(sa + ' / ', f, wb, ch);
-    r_Render_DrawText(sa, x, y, 255, 0, 0, 255, f, TBasePoint.BP_LEFTUP);
-    r_Render_DrawText(' / ', x + wa, y, 255, 255, 255, 255, f, TBasePoint.BP_LEFTUP);
-    r_Render_DrawText(sb, x + wb, y, 255, 0, 0, 255, f, TBasePoint.BP_LEFTUP);
+    r_Common_DrawText(sa, x, y, 255, 0, 0, 255, f, TBasePoint.BP_LEFTUP);
+    r_Common_DrawText(' / ', x + wa, y, 255, 255, 255, 255, f, TBasePoint.BP_LEFTUP);
+    r_Common_DrawText(sb, x + wb, y, 255, 0, 0, 255, f, TBasePoint.BP_LEFTUP);
   end;
 
   procedure r_Render_DrawSinglStatsPlayer (player, x, y, w1: Integer);
     var time, kpm: Single;
   begin
-    r_Render_DrawText(_lc[I_MENU_INTER_KILLS], x, y, 255, 255, 255, 255, menufont, TBasePoint.BP_LEFTUP);
+    r_Common_DrawText(_lc[I_MENU_INTER_KILLS], x, y, 255, 255, 255, 255, menufont, TBasePoint.BP_LEFTUP);
     r_Render_DrawValueOf(SingleStat.PlayerStat[player].Kills, gTotalMonsters, x + w1, y, MenuFont);
-    r_Render_DrawText(_lc[I_MENU_INTER_KPM], x, y + 32, 255, 255, 255, 255, menufont, TBasePoint.BP_LEFTUP);
+    r_Common_DrawText(_lc[I_MENU_INTER_KPM], x, y + 32, 255, 255, 255, 255, menufont, TBasePoint.BP_LEFTUP);
     time := SingleStat.GameTime / 1000;
     kpm := SingleStat.PlayerStat[player].Kills;
     if time > 0 then kpm := kpm / time * 60;
-    r_Render_DrawText(Format('%.1f', [kpm]), x + w1, y + 32, 255, 0, 0, 255, menufont, TBasePoint.BP_LEFTUP);
-    r_Render_DrawText(_lc[I_MENU_INTER_SECRETS], x, y + 64, 255, 255, 255, 255, menufont, TBasePoint.BP_LEFTUP);
+    r_Common_DrawText(Format('%.1f', [kpm]), x + w1, y + 32, 255, 0, 0, 255, menufont, TBasePoint.BP_LEFTUP);
+    r_Common_DrawText(_lc[I_MENU_INTER_SECRETS], x, y + 64, 255, 255, 255, 255, menufont, TBasePoint.BP_LEFTUP);
     r_Render_DrawValueOf(SingleStat.PlayerStat[player].Secrets, SingleStat.TotalSecrets, x + w1, y + 64, MenuFont);
   end;
 
   procedure r_Render_DrawSingleStats;
     var xx, wa, wb, ww, ch: Integer; s: AnsiString;
   begin
-    r_Render_DrawText(_lc[I_MENU_INTER_LEVEL_COMPLETE], gScreenWidth div 2, 32, 255, 255, 255, 255, menufont, TBasePoint.BP_UP);
+    r_Common_DrawText(_lc[I_MENU_INTER_LEVEL_COMPLETE], gScreenWidth div 2, 32, 255, 255, 255, 255, menufont, TBasePoint.BP_UP);
 
     r_Draw_GetTextSize(_lc[I_MENU_INTER_KPM] + '  ', menufont, wa, ch);
     r_Draw_GetTextSize(' 9999.9', menufont, wb, ch);
     ww := wa + wb;
     xx := gScreenWidth div 2 - ww div 2;
 
-    s := r_Render_TimeToStr(SingleStat.GameTime);
-    r_Render_DrawText(_lc[I_MENU_INTER_TIME], xx, 80, 255, 255, 255, 255, menufont, TBasePoint.BP_LEFTUP);
-    r_Render_DrawText(s, xx + wa, 80, 255, 0, 0, 255, menufont, TBasePoint.BP_LEFTUP);
+    s := r_Common_TimeToStr(SingleStat.GameTime);
+    r_Common_DrawText(_lc[I_MENU_INTER_TIME], xx, 80, 255, 255, 255, 255, menufont, TBasePoint.BP_LEFTUP);
+    r_Common_DrawText(s, xx + wa, 80, 255, 0, 0, 255, menufont, TBasePoint.BP_LEFTUP);
 
     if SingleStat.TwoPlayers then
     begin
-      r_Render_DrawText(_lc[I_MENU_PLAYER_1], gScreenWidth div 2, 128, 255, 255, 255, 255, menufont, TBasePoint.BP_UP);
+      r_Common_DrawText(_lc[I_MENU_PLAYER_1], gScreenWidth div 2, 128, 255, 255, 255, 255, menufont, TBasePoint.BP_UP);
       r_Render_DrawSinglStatsPlayer(0, xx, 176, wa);
-      r_Render_DrawText(_lc[I_MENU_PLAYER_2], gScreenWidth div 2, 288, 255, 255, 255, 255, menufont, TBasePoint.BP_UP);
+      r_Common_DrawText(_lc[I_MENU_PLAYER_2], gScreenWidth div 2, 288, 255, 255, 255, 255, menufont, TBasePoint.BP_UP);
       r_Render_DrawSinglStatsPlayer(1, xx, 336, wa);
     end
     else
@@ -1015,8 +894,8 @@ implementation
       r_Draw_GetTextSize(s1, stdfont, w1, ch);
       r_Draw_GetTextSize(s2, stdfont, w2, ch);
       ww := MAX(w1, w2);
-      r_Render_DrawText(s1, xoff + ww div 2, gScreenHeight - ch, 255, 255, 255, 255, stdfont, TBasePoint.BP_DOWN);
-      r_Render_DrawText(s2, xoff + ww div 2, gScreenHeight - ch, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
+      r_Common_DrawText(s1, xoff + ww div 2, gScreenHeight - ch, 255, 255, 255, 255, stdfont, TBasePoint.BP_DOWN);
+      r_Common_DrawText(s2, xoff + ww div 2, gScreenHeight - ch, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
       xoff := xoff + ww + 16;
     end;
 
@@ -1136,7 +1015,7 @@ implementation
       // TODO draw holmes inspector
 
       if MessageText <> '' then
-        r_Render_DrawFormatText(MessageText, (gScreenWidth - 196) div 2, gScreenHeight div 2, 255, menufont, TBasePoint.BP_CENTER);
+        r_Common_DrawFormatText(MessageText, (gScreenWidth - 196) div 2, gScreenHeight div 2, 255, menufont, TBasePoint.BP_CENTER);
 
       if IsDrawStat or (gSpectMode = SPECT_STATS) then
         r_Render_DrawStats;

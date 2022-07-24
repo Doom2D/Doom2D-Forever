@@ -253,6 +253,7 @@ implementation
     PunchTextures: array [Boolean, 0..2] of TGLMultiTexture; // [berserk, center/up/down]
     VileFire: TGLMultiTexture;
     InvulPenta: TGLTexture;
+    IndicatorTexture: TGLTexture;
     Models: array of record
       anim: array [TDirection, 0..A_LAST] of record
         base, mask: TGLMultiTexture;
@@ -466,11 +467,14 @@ implementation
     end;
     // --------- other --------- //
     InvulPenta := r_Textures_LoadFromFile(GameWad + ':TEXTURES/PENTA');
+    IndicatorTexture := r_Textures_LoadFromFile(GameWad + ':TEXTURES/PLRIND');
   end;
 
   procedure r_Map_Free;
     var i, j, k: Integer; d: TDirection; b: Boolean;
   begin
+    if IndicatorTexture <> nil then
+      IndicatorTexture.Free;
     if InvulPenta <> nil then
       InvulPenta.Free;
     InvulPenta := nil;
@@ -1251,6 +1255,92 @@ implementation
     end;
   end;
 
+  procedure r_Map_DrawIndicator (p: TPlayer; color: TRGB; cx, cy, cw, ch: Integer);
+    var a, ax, ay, fx, fy, fSlope, xx, yy: Integer;
+  begin
+    if (p <> nil) and p.Alive then
+    begin
+      p.obj.Lerp(gLerpFactor, fx, fy);
+      fSlope := nlerp(p.SlopeOld, p.obj.slopeUpLeft, gLerpFactor);
+      case gPlayerIndicatorStyle of
+        0:
+        if IndicatorTexture <> nil then
+        begin
+          ax := IndicatorTexture.width div 2;
+          ay := IndicatorTexture.height div 2;
+          if (p.obj.x + p.obj.rect.x) < cx then
+          begin
+            a := 90;
+            xx := fx + p.obj.rect.x + p.obj.rect.width;
+            yy := fy + p.obj.rect.y + (p.obj.rect.height - IndicatorTexture.width) div 2;
+          end
+          else if (p.obj.x + p.obj.rect.x + p.obj.rect.width) > (cx + cw) then
+          begin
+            a := 270;
+            xx := fx + p.obj.rect.x - IndicatorTexture.height;
+            yy := fy + p.obj.rect.y - (p.obj.rect.height - IndicatorTexture.width) div 2;
+          end
+          else if (p.obj.y - IndicatorTexture.height) < cy then
+          begin
+            a := 180;
+            xx := fx + p.obj.rect.x + (p.obj.rect.width - IndicatorTexture.width) div 2;
+            yy := fy + p.obj.rect.y + p.obj.rect.height;
+          end
+          else
+          begin
+            a := 0;
+            xx := fx + p.obj.rect.x + (p.obj.rect.width - IndicatorTexture.width) div 2;
+            yy := fy - IndicatorTexture.height;
+          end;
+          yy := yy + fSlope;
+          xx := MIN(MAX(xx, cx), cx + cw - IndicatorTexture.width);
+          yy := MIN(MAX(yy, cy), cy + ch - IndicatorTexture.height);
+          r_Draw_TextureRepeatRotate(IndicatorTexture, xx, yy, IndicatorTexture.width, IndicatorTexture.height, false, color.r, color.g, color.b, 255, false, ax, ay, a);
+        end;
+        1:
+        begin
+          xx := fx + p.obj.rect.x + p.obj.rect.width div 2;
+          yy := fy + fSlope;
+          r_Common_DrawText(p.Name, xx, yy, color.r, color.g, color.b, 255, stdfont, TBasePoint.BP_DOWN);
+        end;
+      end;
+    end;
+  end;
+
+  procedure r_Map_DrawPlayerIndicators (player: TPlayer; cx, cy, cw, ch: Integer);
+    var i: Integer; p: TPlayer;
+  begin
+    case gPlayerIndicator of
+      1:
+      if player <> nil then
+      begin
+        r_Map_DrawIndicator(player, _RGB(255, 255, 255), cx, cy, cw, ch);
+      end;
+      2:
+      if gPlayers <> nil then
+      begin
+        for i := 0 to HIGH(gPlayers) do
+        begin
+          p := gPlayers[i];
+          if p <> nil then
+          begin
+            if (player <> nil) and (p = player) then
+            begin
+              r_Map_DrawIndicator(p, _RGB(255, 255, 255), cx, cy, cw, ch);
+            end
+            else if (player = nil) or ((p.Team = player.Team) and (p.Team <> TEAM_NONE)) then
+            begin
+              case gPlayerIndicatorStyle of
+                0: r_Map_DrawIndicator(p, p.GetColor(), cx, cy, cw, ch);
+                1: r_Map_DrawIndicator(p, _RGB(192, 192, 192), cx, cy, cw, ch);
+              end;
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
+
   procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer);
     var iter: TPanelGrid.Iter; p: PPanel; cx, cy, cw, ch, xx, yy, ww, hh: Integer; sx, sy, sw, sh: LongInt; l, t, r, b: Integer;
   begin
@@ -1342,7 +1432,8 @@ implementation
     r_Map_DrawPanelType(PANEL_FORE);
     // TODO draw monsters health bar
     // TODO draw players health bar
-    // TODO draw players indicators
+    if gGameSettings.GameMode <> GM_SINGLE then
+      r_Map_DrawPlayerIndicators(player, cx, cy, cw, ch);
     if DebugCameraScale <> 1.0 then
     begin
       r_Draw_Rect (cx, cy, cx + cw, cy + ch, 0, 255, 0, 255);
