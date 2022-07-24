@@ -242,20 +242,94 @@ implementation
   end;
 
   procedure r_Render_DrawText (const text: AnsiString; x, y: Integer; r, g, b, a: Byte; f: TGLFont; p: TBasePoint);
-    var w, h: Integer;
+    var xx, yy, w, h: Integer;
   begin
+    xx := x; yy := y;
     if p <> TBasePoint.BP_LEFTUP then
     begin
       r_Draw_GetTextSize(text, f, w, h);
-      r_Render_GetBasePoint(x, y, w, h, p, x, y);
+      r_Render_GetBasePoint(x, y, w, h, p, xx, yy);
     end;
-    r_Draw_Text(text, x, y, r, g, b, a, f);
+    r_Draw_Text(text, xx, yy, r, g, b, a, f);
   end;
 
   procedure r_Render_DrawTexture (img: TGLTexture; x, y, w, h: Integer; p: TBasePoint);
   begin
     r_Render_GetBasePoint(x, y, w, h, p, x, y);
     r_Draw_TextureRepeat(img, x, y, w, h, false, 255, 255, 255, 255, false);
+  end;
+
+  procedure r_Render_GetFormatTextSize (const text: AnsiString; f: TGLFont; out w, h: Integer);
+    var i, cw, ch, cln, curw, curh, maxw, maxh: Integer;
+  begin
+    curw := 0; curh := 0; maxw := 0; maxh := 0;
+    r_Draw_GetTextSize('W', f, cw, cln);
+    for i := 1 to Length(text) do
+    begin
+      case text[i] of
+        #10:
+        begin
+          maxw := MAX(maxw, curw);
+          curh := curh + cln;
+          curw := 0;
+        end;
+        #1, #2, #3, #4, #18, #19, #20, #21:
+        begin
+          // skip color modifiers
+        end;
+        otherwise
+        begin
+          r_Draw_GetTextSize(text[i], f, cw, ch);
+          maxh := MAX(maxh, curh + ch);
+          curw := curw + cw;
+        end;
+      end;
+    end;
+    w := MAX(maxw, curw);
+    h := MAX(maxh, curh);
+  end;
+
+  procedure r_Render_DrawFormatText (const text: AnsiString; x, y: Integer; a: Byte; f: TGLFont; p: TBasePoint);
+    const
+      colors: array [boolean, 0..5] of TRGB = (
+        ((R:$00; G:$00; B:$00), (R:$FF; G:$00; B:$00), (R:$00; G:$FF; B:$00), (R:$FF; G:$FF; B:$00), (R:$00; G:$00; B:$FF), (R:$FF; G:$FF; B:$FF)),
+        ((R:$00; G:$00; B:$00), (R:$7F; G:$00; B:$00), (R:$00; G:$7F; B:$00), (R:$FF; G:$7F; B:$00), (R:$00; G:$00; B:$7F), (R:$7F; G:$7F; B:$7F))
+      );
+    var
+      i, xx, yy, cx, cy, w, h, cw, ch, cln, color: Integer; dark: Boolean;
+  begin
+    xx := x; yy := y;
+    if p <> TBasePoint.BP_LEFTUP then
+    begin
+      r_Render_GetFormatTextSize(text, f, w, h);
+      r_Render_GetBasePoint(x, y, w, h, p, xx, yy);
+    end;
+    cx := xx; cy := yy; color := 5; dark := false;
+    r_Draw_GetTextSize('W', f, cw, cln);
+    for i := 1 to Length(text) do
+    begin
+      case text[i] of
+        #10:
+        begin
+          cx := xx;
+          INC(cy, cln);
+        end;
+        #1: color := 0;
+        #2: color := 5;
+        #3: dark := true;
+        #4: dark := false;
+        #18: color := 1;
+        #19: color := 2;
+        #20: color := 4;
+        #21: color := 3;
+        otherwise
+        begin
+          r_Draw_GetTextSize(text[i], f, cw, ch);
+          r_Draw_Text(text[i], cx, cy, colors[dark, color].R, colors[dark, color].G, colors[dark, color].B, a, f);
+          INC(cx, cw);
+        end;
+      end;
+    end;
   end;
 
   procedure r_Render_DrawHUD (x, y: Integer; p: TPlayer);
@@ -494,9 +568,7 @@ implementation
     begin
       r_Draw_FillRect(16, motdh, gScreenWidth - 16, gScreenHeight - 44, 64, 64, 64, 110);
       r_Draw_Rect(16, motdh, gScreenWidth - 16, gScreenHeight - 44, 255, 127, 0, 255);
-      msg := Parse2(slMOTD, #10);
-      for i := 0 to High(msg) do
-        r_Render_DrawText(msg[i], 20, motdh + 3 + ch * i, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawFormatText(slMOTD, 20, motdh + 3 + ch * i, 255, stdfont, TBasePoint.BP_LEFTUP);
     end;
 
     if not slReadUrgent and (slUrgent <> '') then
@@ -506,9 +578,7 @@ implementation
       r_Draw_Rect(scrx - 256, scry - 60, scrx + 256, scry + 60, 255, 127, 0, 255);
       r_Draw_FillRect(scrx - 256, scry - 40, scrx + 256, scry - 40, 255, 127, 0, 255);
       r_Render_DrawText(_lc[I_NET_SLIST_URGENT], scrx, scry - 58, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
-      msg := Parse2(slUrgent, #10);
-      for i := 0 to High(msg) do
-        r_Render_DrawText(msg[i], scrx - 253, scry - 38 + ch * i, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Render_DrawFormatText(slUrgent, scrx - 253, scry - 38 + ch * i, 255, stdfont, TBasePoint.BP_LEFTUP);
       r_Render_DrawText(_lc[I_NET_SLIST_URGENT_CONT], scrx, scry + 41, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
       r_Draw_FillRect(scrx - 256, scry + 40, scrx + 256, scry + 40, 255, 127, 0, 255);
     end
@@ -1065,7 +1135,9 @@ implementation
 
       // TODO draw holmes inspector
 
-      // TODO draw messages
+      if MessageText <> '' then
+        r_Render_DrawFormatText(MessageText, (gScreenWidth - 196) div 2, gScreenHeight div 2, 255, menufont, TBasePoint.BP_CENTER);
+
       if IsDrawStat or (gSpectMode = SPECT_STATS) then
         r_Render_DrawStats;
 
