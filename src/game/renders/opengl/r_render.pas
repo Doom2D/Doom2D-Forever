@@ -1026,7 +1026,8 @@ implementation
 
     if gPauseMain and gGameOn {$IFDEF ENABLE_MENU}and (g_ActiveWindow = nil){$ENDIF} then
     begin
-      // TODO draw pause screen
+      r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
+      r_Common_DrawText(_lc[I_MENU_PAUSE], gScreenWidth div 2, gScreenHeight div 2, 255, 255, 255, 255, menufont, TBasePoint.BP_CENTER);
     end;
 
     if not gGameOn then
