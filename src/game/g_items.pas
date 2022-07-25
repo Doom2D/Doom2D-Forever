@@ -85,9 +85,6 @@ type
 function g_Items_ForEachAlive (cb: TItemEachAliveCB; backwards: Boolean=false): Boolean;
 function g_Items_NextAlive (startIdx: Integer): PItem;
 
-var
-  gMaxDist: Integer = 1; // for sounds
-
   var (* private state *)
     ggItems: Array of TItem = nil;
 
@@ -309,12 +306,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure g_Items_Init ();
-var
-  a, b: Integer;
 begin
-  if gMapInfo.Height > gPlayerScreenSize.Y then a := gMapInfo.Height-gPlayerScreenSize.Y else a := gMapInfo.Height;
-  if gMapInfo.Width > gPlayerScreenSize.X then b := gMapInfo.Width-gPlayerScreenSize.X else b := gMapInfo.Width;
-  gMaxDist := Trunc(Hypot(a, b));
 end;
 
 

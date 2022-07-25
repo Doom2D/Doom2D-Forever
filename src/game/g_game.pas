@@ -255,15 +255,13 @@ var
   gPlayer2Settings: TPlayerSettings;
   gGameOn: Boolean;
   gPlayerScreenSize: TDFPoint;
-  gPlayer1ScreenCoord: TDFPoint;
-  gPlayer2ScreenCoord: TDFPoint;
   gPlayer1: TPlayer = nil;
   gPlayer2: TPlayer = nil;
-  gPlayerDrawn: TPlayer = nil;
   gTime: LongWord;
   gLerpFactor: Single = 1.0;
   gSwitchGameMode: Byte = GM_DM;
   gHearPoint1, gHearPoint2: THearPoint;
+  gMaxDist: Integer = 1; // for sound
   gSoundEffectsDF: Boolean = False;
   gSoundTriggerTime: Word = 0;
   gAnnouncer: Integer = ANNOUNCE_NONE;
@@ -1753,6 +1751,60 @@ begin
   g_Weapon_PreUpdate();
 end;
 
+  procedure g_Game_SetupHearPoints;
+    var p1, p2: TPlayer; a, b: Integer;
+  begin
+    p1 := nil;
+    p2 := nil;
+    gHearPoint1.Active := false;
+    gHearPoint2.Active := false;
+    if gSpectMode = SPECT_MAPVIEW then
+    begin
+      // TODO something better (render dependency)
+      gHearPoint1.Active := true;
+      gHearPoint1.Coords.X := gSpectX + gScreenWidth div 2;
+      gHearPoint1.Coords.Y := gSpectY + gScreenHeight div 2;
+    end
+    else if gSpectMode = SPECT_PLAYERS then
+    begin
+      p1 := g_Player_Get(gSpectPID1);
+      if gSpectViewTwo then
+        p2 := g_Player_Get(gSpectPID2);
+    end
+    else if gSpectMode = SPECT_NONE then
+    begin
+      p1 := gPlayer1;
+      p2 := gPlayer2;
+    end;
+    if p1 <> nil then
+    begin
+      gHearPoint1.Active := true;
+      gHearPoint1.Coords.X := p1.obj.x + p1.obj.rect.width div 2;
+      gHearPoint1.Coords.Y := p1.obj.y + p1.obj.rect.height div 2;
+    end;
+    if (p2 <> nil) and (p1 <> p2) then
+    begin
+      gHearPoint2.Active := true;
+      gHearPoint2.Coords.X := p2.obj.x + p2.obj.rect.width div 2;
+      gHearPoint2.Coords.Y := p2.obj.y + p2.obj.rect.height div 2;
+    end;
+    // TODO something better (render dependency)
+    if (p1 <> nil) and (p2 <> nil) then
+    begin
+      gPlayerScreenSize.X := gScreenWidth - 196;
+      gPlayerScreenSize.Y := gScreenHeight div 2;
+    end
+    else
+    begin
+      gPlayerScreenSize.X := gScreenWidth - 196;
+      gPlayerScreenSize.Y := gScreenHeight;
+    end;
+    // sound distance
+    if gMapInfo.Height > gPlayerScreenSize.Y then a := gMapInfo.Height - gPlayerScreenSize.Y else a := gMapInfo.Height;
+    if gMapInfo.Width > gPlayerScreenSize.X then b := gMapInfo.Width - gPlayerScreenSize.X else b := gMapInfo.Width;
+    gMaxDist := Trunc(Hypot(a, b));
+  end;
+
 procedure g_Game_Update();
   var
     {$IFDEF ENABLE_MENU}
@@ -2247,6 +2299,8 @@ begin
 
     if IsActivePlayer(g_Player_Get(gSpectPID2)) = false then
       gSpectPID2 := GetActivePlayerID_Next();
+
+    g_Game_SetupHearPoints;
 
   // Обновляем все остальное:
     g_Map_Update();
