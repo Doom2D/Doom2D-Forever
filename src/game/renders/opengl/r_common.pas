@@ -17,7 +17,7 @@ unit r_common;
 
 interface
 
-  uses r_textures;
+  uses r_textures, g_player, g_phys;
 
   type
     TBasePoint = (
@@ -49,12 +49,114 @@ interface
 
   function r_Common_TimeToStr (t: LongWord): AnsiString;
 
+  procedure r_Common_GetObjectPos (const obj: TObj; out x, y: Integer);
+  procedure r_Common_GetPlayerPos (const p: TPlayer; out x, y: Integer);
+  procedure r_Common_GetCameraPos (const p: TPlayer; center: Boolean; out x, y: Integer);
+  function  r_Common_GetPosByUID (uid: WORD; out obj: TObj; out x, y: Integer): Boolean;
+
   procedure r_Common_Load;
   procedure r_Common_Free;
 
 implementation
 
-  uses Math, SysUtils, g_base, e_log, utils, r_draw, r_fonts, g_options;
+  uses
+    Math, SysUtils,
+    e_log, utils,
+    g_base, g_basic, g_options, g_game, g_map,
+    {$IFDEF ENABLE_CORPSES}
+      g_corpses,
+    {$ENDIF}
+    r_draw, r_fonts
+  ;
+
+  procedure r_Common_GetObjectPos (const obj: TObj; out x, y: Integer);
+    var fx, fy: Integer;
+  begin
+    obj.Lerp(gLerpFactor, fx, fy);
+    x := fx;
+    y := fy + obj.slopeUpLeft;
+  end;
+
+  procedure r_Common_GetPlayerPos (const p: TPlayer; out x, y: Integer);
+    var fx, fy, fSlope: Integer;
+  begin
+    ASSERT(p <> nil);
+    p.obj.Lerp(gLerpFactor, fx, fy);
+    fSlope := nlerp(p.SlopeOld, p.obj.slopeUpLeft, gLerpFactor);
+    x := fx;
+    y := fy + fSlope;
+  end;
+
+{$IFDEF ENABLE_CORPSES}
+  function r_Common_GetPlayerCorpse (const p: TPlayer): TCorpse;
+  begin
+    result := nil;
+    if (p <> nil) and (p.Alive = false) and (p.Spectator = false) and (p.Corpse >= 0) then
+      if (gCorpses <> nil) and (gCorpses[p.Corpse] <> nil) and (gCorpses[p.Corpse].PlayerUID = p.UID) then
+        result := gCorpses[p.Corpse];
+  end;
+{$ENDIF}
+
+  procedure r_Common_GetCameraPos (const p: TPlayer; center: Boolean; out x, y: Integer);
+    {$IFDEF ENABLE_CORPSES}
+      var corpse: TCorpse;
+    {$ENDIF}
+  begin
+{$IFDEF ENABLE_CORPSES}
+    corpse := r_Common_GetPlayerCorpse(p);
+    if corpse <> nil then
+    begin
+      r_Common_GetObjectPos(corpse.obj, x, y);
+      if center then
+      begin
+        x := x + corpse.obj.rect.width div 2;
+        y := y + corpse.obj.rect.height div 2;
+      end;
+    end
+    else
+{$ENDIF}
+    if p <> nil then
+    begin
+      r_Common_GetPlayerPos(p, x, y);
+      if center then
+      begin
+        x := x + p.obj.rect.width div 2;
+        y := y + p.obj.rect.height div 2;
+      end;
+    end
+    else
+    begin
+      x := 0;
+      y := 0;
+      if center then
+      begin
+        x := x + gMapInfo.Width div 2;
+        y := y + gMapInfo.Height div 2;
+      end;
+    end;
+  end;
+
+  function r_Common_GetPosByUID (uid: WORD; out obj: TObj; out x, y: Integer): Boolean;
+    var p: TPlayer; found: Boolean;
+  begin
+    found := false;
+    if g_GetUIDType(uid) = UID_PLAYER then
+    begin
+      p := g_Player_Get(uid);
+      found := p <> nil;
+      if found then
+      begin
+        r_Common_GetPlayerPos(p, x, y);
+        obj := p.obj;
+      end;
+    end
+    else if GetPos(uid, @obj) then
+    begin
+      found := true;
+      r_Common_GetObjectPos(obj, x, y);
+    end;
+    result := found;
+  end;
 
   procedure r_Common_GetBasePoint (x, y, w, h: Integer; p: TBasePoint; out xx, yy: Integer);
   begin

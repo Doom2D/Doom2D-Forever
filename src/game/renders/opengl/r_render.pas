@@ -378,21 +378,22 @@ implementation
   end;
 
   procedure r_Render_DrawView (x, y, w, h: Integer; p: TPlayer);
-    var l, t, r, b: Integer;
+    var l, t, r, b, xx, yy: Integer;
   begin
     r_Draw_GetRect(l, t, r, b);
     r_Draw_SetRect(x, y, x + w, y + h);
 
+    r_Common_GetCameraPos(p, true, xx, yy);
     if p <> nil then
     begin
-      r_Map_Draw(x, y, w, h, p.obj.x + PLAYER_RECT_CX, p.obj.y + PLAYER_RECT_CY, p);
+      r_Map_Draw(x, y, w, h, xx, yy, p);
       r_Render_DrawStatsView(x, y, w, h, p);
       if p.Spectator and p.NoRespawn then
         r_Common_DrawText(_lc[I_PLAYER_SPECT4], x div 2 + w div 2, y div 2 + h div 2, 255, 255, 255, 255, stdfont, TBasePoint.BP_CENTER);
     end
     else
     begin
-      r_Map_Draw(x, y, w, h, 0, 0, nil);
+      r_Map_Draw(x, y, w, h, xx, yy, nil);
     end;
 
     r_Draw_SetRect(l, t, r, b);

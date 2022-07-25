@@ -655,7 +655,7 @@ implementation
   end;
 
   procedure r_Map_DrawItems (x, y, w, h: Integer; drop: Boolean);
-    var i, fX, fY: Integer; it: PItem; t: TGLMultiTexture; tex: TGLTexture;
+    var i, xx, yy: Integer; it: PItem; t: TGLMultiTexture; tex: TGLTexture;
   begin
     if ggItems <> nil then
     begin
@@ -667,9 +667,9 @@ implementation
           t := Items[it.ItemType].tex;
           if g_Collide(it.obj.x, it.obj.y, t.width, t.height, x, y, w, h) then
           begin
-            it.obj.Lerp(gLerpFactor, fX, fY);
+            r_Common_GetObjectPos(it.obj, xx, yy);
             tex := t.GetTexture(Items[it.ItemType].frame);
-            r_Draw_TextureRepeat(tex, fX, fY, tex.width, tex.height, false, 255, 255, 255, 255, false);
+            r_Draw_TextureRepeat(tex, xx, yy, tex.width, tex.height, false, 255, 255, 255, 255, false);
           end;
         end;
       end;
@@ -711,29 +711,34 @@ implementation
   end;
 
   procedure r_Map_DrawMonsterAttack (constref mon: TMonster);
-    var o: TObj; count, frame: LongInt; tex: TGLTexture;
+    var o: TObj; count, frame, xx, yy: LongInt; tex: TGLTexture;
   begin
     if VileFire <> nil then
-      if (mon.MonsterType = MONSTER_VILE) and (mon.MonsterState = MONSTATE_SHOOT) then
-        if (mon.VileFireTime <= gTime) and GetPos(mon.MonsterTargetUID, @o) then
+    begin
+      if (mon.MonsterType = MONSTER_VILE) and (mon.MonsterState = MONSTATE_SHOOT) and (mon.VileFireTime <= gTime) then
+      begin
+        if r_Common_GetPosByUID(mon.MonsterTargetUID, o, xx, yy) then
         begin
           g_Anim_GetFrameByTime(VileFireAnim, (gTime - mon.VileFireTime) DIV GAME_TICK, count, frame);
           tex := VileFire.GetTexture(frame);
-          r_Draw_TextureRepeat(tex, o.x + o.rect.x + (o.rect.width div 2) - VILEFIRE_DX, o.y + o.rect.y + o.rect.height - VILEFIRE_DY, tex.width, tex.height, False, 255, 255, 255, 255, false);
+          r_Draw_TextureRepeat(tex, xx + o.rect.x + (o.rect.width div 2) - VILEFIRE_DX, yy + o.rect.y + o.rect.height - VILEFIRE_DY, tex.width, tex.height, False, 255, 255, 255, 255, false);
         end;
+      end;
+    end;
   end;
 
   procedure r_Map_DrawMonster (constref mon: TMonster);
-    var m, a, fX, fY, dx, dy: Integer; d: TDirection; flip: Boolean; t: TGLMultiTexture;
+    var m, a, xx, yy, dx, dy: Integer; d: TDirection; flip: Boolean; t: TGLMultiTexture;
   begin
     m := mon.MonsterType;
     a := mon.MonsterAnim;
     d := mon.GameDirection;
 
-    mon.obj.Lerp(gLerpFactor, fX, fY);
-
     if r_Map_GetMonsterTexture(m, a, d, t, dx, dy, flip) then
-      r_Draw_MultiTextureRepeat(t, mon.DirAnim[a, d], false, fX + dx, fY + dy, t.width, t.height, flip, 255, 255, 255, 255, false);
+    begin
+      r_Common_GetObjectPos(mon.obj, xx, yy);
+      r_Draw_MultiTextureRepeat(t, mon.DirAnim[a, d], false, xx + dx, yy + dy, t.width, t.height, flip, 255, 255, 255, 255, false);
+    end;
 
     // TODO draw g_debug_frames
   end;
@@ -859,16 +864,11 @@ implementation
   end;
 
   procedure r_Map_DrawTalkBubble (p: TPlayer);
-    var cobj: TObj; fx, fy, x, y: Integer; cb, cf: TRGB;
+    var xx, yy, x, y: Integer; cb, cf: TRGB;
   begin
-    {$IFDEF ENABLE_CORPSES}
-      cobj := g_Corpses_GetCameraObj(p);
-    {$ELSE}
-      cobj := p.Obj;
-    {$ENDIF}
-    cobj.Lerp(gLerpFactor, fx, fy);
-    x := fx + p.obj.rect.x + p.obj.rect.width div 2;
-    y := fy;
+    r_Common_GetPlayerPos(p, xx, yy);
+    x := xx + p.obj.rect.x + p.obj.rect.width div 2;
+    y := yy;
     cb := _RGB(63, 63, 63);
     cf := _RGB(240, 240, 240);
     case gChatBubble of
@@ -907,14 +907,11 @@ implementation
   end;
 
   procedure r_Map_DrawPlayer (p, drawed: TPlayer);
-    var fX, fY, fSlope, ax, ay, w, h: Integer; b, flip: Boolean; t: TGLMultiTexture; tex: TGLTexture; alpha: Byte; count, frame: LongInt;
+    var x, y, ax, ay, w, h: Integer; b, flip: Boolean; t: TGLMultiTexture; tex: TGLTexture; alpha: Byte; count, frame: LongInt;
   begin
     if p.alive then
     begin
-      fX := p.obj.x; fY := p.obj.y;
-      // TODO fix lerp
-      //p.obj.Lerp(gLerpFactor, fX, fY);
-      fSlope := nlerp(p.SlopeOld, p.obj.slopeUpLeft, gLerpFactor);
+      r_Common_GetPlayerPos(p, x, y);
 
       (* punch effect *)
       if p.PunchTime <= gTime then
@@ -935,7 +932,7 @@ implementation
             ax := IfThen(flip, 15 - p.Obj.Rect.X, p.Obj.Rect.X - 15); // ???
             ay := p.Obj.Rect.Y - 11;
             tex := t.GetTexture(frame);
-            r_Draw_TextureRepeat(tex, fx + ax, fy + fSlope + ay, tex.width, tex.height, flip, 255, 255, 255, 255, false)
+            r_Draw_TextureRepeat(tex, x + ax, y + ay, tex.width, tex.height, flip, 255, 255, 255, 255, false)
           end;
         end;
       end;
@@ -947,7 +944,7 @@ implementation
         h := InvulPenta.height;
         ax := p.Obj.Rect.X + (p.Obj.Rect.Width div 2) - (w div 2); // + IfThen(flip, +4, -2) // ???
         ay := p.Obj.Rect.Y + (p.Obj.Rect.Height div 2) - (h div 2) - 7; // ???
-        r_Draw_Texture(InvulPenta, fx + ax, fy + ay + fSlope, w, h, false, 255, 255, 255, 255, false);
+        r_Draw_Texture(InvulPenta, x + ax, y + ay, w, h, false, 255, 255, 255, 255, false);
       end;
 
       (* invisibility effect *)
@@ -963,7 +960,7 @@ implementation
           alpha := 1; // ???
       end;
 
-      r_Map_DrawPlayerModel(p.Model, fX, fY + fSlope, alpha);
+      r_Map_DrawPlayerModel(p.Model, x, y, alpha);
     end;
     // TODO draw g_debug_frames
 
@@ -990,7 +987,7 @@ implementation
   end;
 
   procedure r_Map_DrawGibs (x, y, w, h: Integer);
-    var i, fx, fy, m, id, rx, ry, ra: Integer; p: PObj; t: TGLTexture;
+    var i, xx, yy, m, id, rx, ry, ra: Integer; p: PObj; t: TGLTexture;
   begin
     if gGibs <> nil then
     begin
@@ -1001,7 +998,7 @@ implementation
           p := @gGibs[i].Obj;
           if g_Obj_Collide(x, y, w, h, p) then
           begin
-            p.Lerp(gLerpFactor, fx, fy);
+            r_Common_GetObjectPos(p^, xx, yy);
             id := gGibs[i].GibID;
             m := gGibs[i].ModelID;
             t := Models[m].gibs.base[id];
@@ -1010,11 +1007,11 @@ implementation
               rx := p.Rect.X + p.Rect.Width div 2;
               ry := p.Rect.Y + p.Rect.Height div 2;
               ra := gGibs[i].RAngle;
-              r_Draw_TextureRepeatRotate(t, fx, fy, t.width, t.height, false, 255, 255, 255, 255, false, rx, ry, ra);
+              r_Draw_TextureRepeatRotate(t, xx, yy, t.width, t.height, false, 255, 255, 255, 255, false, rx, ry, ra);
               t := Models[m].gibs.mask[id];
               if t <> nil then
-                r_Draw_TextureRepeatRotate(t, fx, fy, t.width, t.height, false, gGibs[i].Color.R, gGibs[i].Color.G, gGibs[i].Color.B, 255, false, rx, ry, ra);
-              // r_Draw_TextureRepeatRotate(nil, fx + p.Rect.X, fy + p.Rect.Y, p.Rect.Width, p.Rect.Height, false, 255, 255, 255, 255, false, p.Rect.Width div 2, p.Rect.Height div 2, ra);
+                r_Draw_TextureRepeatRotate(t, xx, yy, t.width, t.height, false, gGibs[i].Color.R, gGibs[i].Color.G, gGibs[i].Color.B, 255, false, rx, ry, ra);
+              // r_Draw_TextureRepeatRotate(nil, xx + p.Rect.X, yy + p.Rect.Y, p.Rect.Width, p.Rect.Height, false, 255, 255, 255, 255, false, p.Rect.Width div 2, p.Rect.Height div 2, ra);
             end;
           end;
         end;
@@ -1026,7 +1023,7 @@ implementation
 
 {$IFDEF ENABLE_CORPSES}
   procedure r_Map_DrawCorpses (x, y, w, h: Integer);
-    var i, fX, fY: Integer; p: TCorpse;
+    var i, xx, yy: Integer; p: TCorpse;
   begin
     if gCorpses <> nil then
     begin
@@ -1035,8 +1032,8 @@ implementation
         p := gCorpses[i];
         if (p <> nil) and (p.state <> CORPSE_STATE_REMOVEME) and (p.model <> nil) then
         begin
-          p.obj.Lerp(gLerpFactor, fX, fY);
-          r_Map_DrawPlayerModel(p.model, fX, fY, 255);
+          r_Common_GetObjectPos(p.obj, xx, yy);
+          r_Map_DrawPlayerModel(p.model, xx, yy, 255);
         end;
       end;
     end;
@@ -1172,7 +1169,7 @@ implementation
 {$ENDIF}
 
   procedure r_Map_DrawShots (x, y, w, h: Integer);
-    var i, a, fX, fY, pX, pY, typ: Integer; count, frame: LongInt; t: TGLMultiTexture; tex: TGLTexture;
+    var i, a, xx, yy, pX, pY, typ: Integer; count, frame: LongInt; t: TGLMultiTexture; tex: TGLTexture;
   begin
     if Shots <> nil then
     begin
@@ -1189,12 +1186,12 @@ implementation
               WEAPON_ROCKETLAUNCHER, WEAPON_BARON_FIRE, WEAPON_MANCUB_FIRE, WEAPON_SKEL_FIRE:
                 a := -GetAngle2(Shots[i].Obj.Vel.X, Shots[i].Obj.Vel.Y)
             end;
-            Shots[i].Obj.Lerp(gLerpFactor, fX, fY);
+            r_Common_GetObjectPos(Shots[i].Obj, xx, yy);
             pX := Shots[i].Obj.Rect.Width div 2;
             pY := Shots[i].Obj.Rect.Height div 2;
             g_Anim_GetFrameByTime(ShotAnim[typ].anim, (gTime - Shots[i].time) DIV GAME_TICK, count, frame);
             tex := t.GetTexture(frame);
-            r_Draw_TextureRepeatRotate(tex, fX, fY, tex.width, tex.height, false, 255, 255, 255, 255, false, pX, pY, a);
+            r_Draw_TextureRepeatRotate(tex, xx, yy, tex.width, tex.height, false, 255, 255, 255, 255, false, pX, pY, a);
           end;
         end;
       end;
@@ -1203,7 +1200,7 @@ implementation
   end;
 
   procedure r_Map_DrawFlags (x, y, w, h: Integer);
-    var i, dx, fx, fy: Integer; flip: Boolean; t: TGLMultiTexture; tex: TGLTexture;
+    var i, dx, xx, yy: Integer; flip: Boolean; t: TGLMultiTexture; tex: TGLTexture;
   begin
     if gGameSettings.GameMode = GM_CTF then
     begin
@@ -1211,12 +1208,12 @@ implementation
       begin
         if not (gFlags[i].state in [FLAG_STATE_NONE, FLAG_STATE_CAPTURED]) then
         begin
-          gFlags[i].Obj.Lerp(gLerpFactor, fx, fy);
+          r_Common_GetObjectPos(gFlags[i].Obj, xx, yy);
           flip := gFlags[i].Direction = TDirection.D_LEFT;
           if flip then dx := -1 else dx := +1;
           t := FlagTextures[i];
           tex := t.GetTexture(FlagFrame);
-          r_Draw_TextureRepeat(tex, fx + dx, fy + 1, tex.width, tex.height, flip, 255, 255, 255, 255, false)
+          r_Draw_TextureRepeat(tex, xx + dx, yy + 1, tex.width, tex.height, flip, 255, 255, 255, 255, false)
         end;
       end;
     end;
@@ -1225,7 +1222,7 @@ implementation
 
 {$IFDEF ENABLE_SHELLS}
   procedure r_Map_DrawShells (x, y, w, h: Integer);
-    var i, fx, fy, typ: Integer; t: TGLTexture; p: PObj;
+    var i, xx, yy, typ: Integer; t: TGLTexture; p: PObj;
   begin
     if gShells <> nil then
     begin
@@ -1242,8 +1239,8 @@ implementation
               t := ShellTextures[typ];
               if t <> nil then
               begin
-                p.Lerp(gLerpFactor, fx, fy);
-                r_Draw_TextureRepeatRotate(t, fx, fy, t.width, t.height, false, 255, 255, 255, 255, false, ShellAnim[typ].dx, ShellAnim[typ].dy, gShells[i].RAngle);
+                r_Common_GetObjectPos(p^, xx, yy);
+                r_Draw_TextureRepeatRotate(t, xx, yy, t.width, t.height, false, 255, 255, 255, 255, false, ShellAnim[typ].dx, ShellAnim[typ].dy, gShells[i].RAngle);
               end;
             end;
           end;
@@ -1328,12 +1325,11 @@ implementation
   end;
 
   procedure r_Map_DrawIndicator (p: TPlayer; color: TRGB; cx, cy, cw, ch: Integer);
-    var a, ax, ay, fx, fy, fSlope, xx, yy: Integer;
+    var a, ax, ay, fx, fy, xx, yy: Integer;
   begin
-    if (p <> nil) and p.Alive then
+    if (p <> nil) and p.Alive and (p.Spectator = false) then
     begin
-      p.obj.Lerp(gLerpFactor, fx, fy);
-      fSlope := nlerp(p.SlopeOld, p.obj.slopeUpLeft, gLerpFactor);
+      r_Common_GetPlayerPos(p, fx, fy);
       case gPlayerIndicatorStyle of
         0:
         if IndicatorTexture <> nil then
@@ -1364,7 +1360,6 @@ implementation
             xx := fx + p.obj.rect.x + (p.obj.rect.width - IndicatorTexture.width) div 2;
             yy := fy - IndicatorTexture.height;
           end;
-          yy := yy + fSlope;
           xx := MIN(MAX(xx, cx), cx + cw - IndicatorTexture.width);
           yy := MIN(MAX(yy, cy), cy + ch - IndicatorTexture.height);
           r_Draw_TextureRepeatRotate(IndicatorTexture, xx, yy, IndicatorTexture.width, IndicatorTexture.height, false, color.r, color.g, color.b, 255, false, ax, ay, a);
@@ -1372,7 +1367,7 @@ implementation
         1:
         begin
           xx := fx + p.obj.rect.x + p.obj.rect.width div 2;
-          yy := fy + fSlope;
+          yy := fy;
           r_Common_DrawText(p.Name, xx, yy, color.r, color.g, color.b, 255, stdfont, TBasePoint.BP_DOWN);
         end;
       end;
