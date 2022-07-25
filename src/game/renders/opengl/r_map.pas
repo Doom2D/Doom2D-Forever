@@ -1510,7 +1510,6 @@ implementation
 
     r_Map_DrawScreenEffects(x, y, w, h, player);
 
-    // TODO draw minimap (gShowMap)
     // TODO draw g_debug_player
 
     glTranslatef(-x, -y, 0);

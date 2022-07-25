@@ -271,10 +271,16 @@ implementation
       glVertex2i(r, b);
       glVertex2i(l, b);
 }
+{
       glVertex2f(l + 0.5, t + 0.5);
       glVertex2f(r - 0.5, t + 0.5);
       glVertex2f(r - 0.5, b - 0.5);
       glVertex2f(l + 0.5, b - 0.5);
+}
+      glVertex2f(l + 0, t + 0);
+      glVertex2f(r + 0.75, t + 0);
+      glVertex2f(r + 0.75, b + 0.75);
+      glVertex2f(l + 0, b + 0.75);
     glEnd;
   end;
 

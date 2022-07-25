@@ -82,8 +82,8 @@ implementation
     {$ENDIF}
     SysUtils, Classes, Math,
     g_basic,
-    e_log, utils, wadreader,
-    g_game, g_map, g_options, g_console, g_player, g_weapons, g_language, g_triggers,
+    e_log, utils, wadreader, mapdef,
+    g_game, g_map, g_panel, g_options, g_console, g_player, g_weapons, g_language, g_triggers, g_monsters,
     g_net, g_netmaster,
     r_draw, r_textures, r_fonts, r_common, r_console, r_map
   ;
@@ -935,6 +935,109 @@ implementation
     result := p;
   end;
 
+  procedure r_Render_DrawMinimap (x, y: Integer; alpha: Byte);
+    const scale = 16;
+
+    function IsMinimapPanel (const p: TPanel): Boolean;
+    begin
+      result := (p <> nil) and p.Enabled;
+      if result then
+      begin
+        case p.PanelType of
+          PANEL_WALL, PANEL_WATER, PANEL_ACID1, PANEL_ACID2,
+          PANEL_STEP, PANEL_OPENDOOR, PANEL_CLOSEDOOR,
+          PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT:
+            result := true;
+          otherwise
+            result := false;
+        end;
+      end;
+    end;
+
+    procedure DrawObject (xx, yy, ww, hh: Integer; r, g, b: Byte);
+      var x0, y0, x1, y1: Integer;
+    begin
+      x0 := x + xx div scale;
+      y0 := y + yy div scale;
+      x1 := x + (xx + ww - 1) div scale;
+      y1 := y + (yy + hh - 1) div scale;
+      r_Draw_FillRect(x0, y0, x1, y1, r, g, b, alpha);
+    end;
+
+    procedure DrawPanels (const a: TPanelArray);
+      var i: Integer; p: TPanel; c: TRGB;
+    begin
+      if a <> nil then
+      begin
+        for i := 0 to HIGH(a) do
+        begin
+          p := a[i];
+          if IsMinimapPanel(p) then
+          begin
+            case p.PanelType of
+              PANEL_WALL:       c := _RGB(208, 208, 208);
+              PANEL_OPENDOOR:   c := _RGB(160, 160, 160);
+              PANEL_CLOSEDOOR:  c := _RGB(160, 160, 160);
+              PANEL_STEP:       c := _RGB(128, 128, 128);
+              PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT:
+              case p.LiftType of
+                LIFTTYPE_UP:    c := _RGB(116, 72, 36);
+                LIFTTYPE_DOWN:  c := _RGB(116, 124, 96);
+                LIFTTYPE_LEFT:  c := _RGB(116, 200, 80);
+                LIFTTYPE_RIGHT: c := _RGB(116, 252, 140);
+                otherwise       c := _RGB(255, 0, 0);
+              end;
+              PANEL_WATER:      c := _RGB(0, 0, 192);
+              PANEL_ACID1:      c := _RGB(0, 176, 0);
+              PANEL_ACID2:      c := _RGB(176, 0, 0);
+              otherwise         c := _RGB(255, 0, 0);
+            end;
+            DrawObject(p.x, p.y, p.width, p.height, c.r, c.g, c.b);
+          end;
+        end;
+      end;
+    end;
+
+    procedure DrawPlayers;
+      var i: Integer; p: TPlayer; c: TRGB;
+    begin
+      if gPlayers <> nil then
+      begin
+        for i := 0 to HIGH(gPlayers) do
+        begin
+          p := gPlayers[i];
+          if p.Alive then
+          begin
+            case p.Team of
+              TEAM_RED:  c := _RGB(255, 0, 0);
+              TEAM_BLUE: c := _RGB(0, 0, 255);
+              otherwise  c := _RGB(255, 128, 0);
+            end;
+            DrawObject(p.obj.x, p.obj.y, p.obj.rect.width, p.obj.rect.height, c.r, c.g, c.b);
+          end;
+        end;
+      end;
+    end;
+
+    function DrawMonster (m: TMonster): Boolean;
+    begin
+      result := false; // don't stop
+      if m.alive then
+        DrawObject(m.obj.x, m.obj.y, m.obj.rect.width, m.obj.rect.height, 255, 255, 0);
+    end;
+
+  begin
+    r_Draw_FillRect(x, y, (x + gMapInfo.Width - 1) div scale, (y + gMapInfo.Height - 1) div scale, 0, 0, 0, alpha);
+    DrawPanels(gSteps);
+    DrawPanels(gLifts);
+    DrawPanels(gWater);
+    DrawPanels(gAcid1);
+    DrawPanels(gAcid2);
+    DrawPanels(gWalls);
+    g_Mons_ForEach(DrawMonster);
+    DrawPlayers;
+  end;
+
   procedure r_Render_Draw;
     var p1, p2: TPlayer;
   begin
@@ -1012,6 +1115,9 @@ implementation
       begin
         r_Render_DrawPlayerView(0, 0, gScreenWidth, gScreenHeight, p2);
       end;
+
+      if gShowMap then
+        r_Render_DrawMiniMap(0, 0, 160);
 
       // TODO draw holmes inspector
 
