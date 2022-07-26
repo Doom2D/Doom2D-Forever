@@ -137,10 +137,12 @@ implementation
   uses
     SysUtils, Classes,
     e_log, e_res, WADReader, Config,
+    g_console, // cvar declaration
     Imaging, ImagingTypes, ImagingUtility
   ;
 
   var
+    r_GL_MaxTexSize: WORD;
     maxTileSize: Integer;
     atl: array of TGLAtlas;
 
@@ -357,19 +359,47 @@ implementation
 
   (* --------- Init / Fin --------- *)
 
+  function IsPOT (v: LongWord): Boolean;
+  begin
+    result := (v <> 0) and ((v and (v - 1)) = 0)
+  end;
+
+  function NextPOT (v: LongWord): LongWord;
+  begin
+    DEC(v);
+    v := v or (v >> 1);
+    v := v or (v >> 2);
+    v := v or (v >> 4);
+    v := v or (v >> 8);
+    v := v or (v >> 16);
+    INC(v);
+    result := v;
+  end;
+
   function r_Textures_GetMaxHardwareSize (): Integer;
     var size: GLint = 0;
   begin
-    glGetIntegerv(GL_MAX_TEXTURE_SIZE, @size);
-    if size < 64 then size := 64;
-    //if size > 512 then size := 512;
-    //size := 64; // !!!
+    if r_GL_MaxTexSize <= 0 then
+    begin
+      // auto, max possible reccomended by driver
+      glGetIntegerv(GL_MAX_TEXTURE_SIZE, @size);
+      if size < 1 then size := 64;
+    end
+    else
+    begin
+      // selected by user
+      if IsPOT(r_GL_MaxTexSize) then
+        size := r_GL_MaxTexSize
+      else
+        size := NextPOT(r_GL_MaxTexSize);
+    end;
     result := size;
   end;
 
   procedure r_Textures_Initialize;
   begin
     maxTileSize := r_Textures_GetMaxHardwareSize();
+    e_LogWritefln('TEXTURE SIZE: %s', [maxTileSize]);
   end;
 
   procedure r_Textures_Finalize;
@@ -831,4 +861,7 @@ implementation
     result := self.info.kern;
   end;
 
+initialization
+  conRegVar('r_gl_maxtexsize', @r_GL_MaxTexSize, '', '');
+  r_GL_MaxTexSize := 0; // default is automatic value
 end.
