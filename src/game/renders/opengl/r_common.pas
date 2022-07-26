@@ -117,6 +117,7 @@ implementation
 {$ENDIF}
     if p <> nil then
     begin
+      // TODO look up/down
       r_Common_GetPlayerPos(p, x, y);
       if center then
       begin

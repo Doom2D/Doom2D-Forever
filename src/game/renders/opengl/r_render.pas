@@ -101,6 +101,8 @@ implementation
     hudrflag, hudrflags, hudrflagd: TGLTexture;
     hudbflag, hudbflags, hudbflagd: TGLTexture;
 
+    FPS, FPSCounter, FPSTime: LongWord;
+
   procedure r_Render_LoadTextures;
   begin
     r_Map_LoadTextures;
@@ -1039,10 +1041,19 @@ implementation
   end;
 
   procedure r_Render_Draw;
-    var p1, p2: TPlayer;
+    var p1, p2: TPlayer; time: LongWord;
   begin
     if gExit = EXIT_QUIT then
       exit;
+
+    INC(FPSCounter);
+    time := GetTickCount64();
+    if time - FPSTime >= 1000 then
+    begin
+      FPS := FPSCounter;
+      FPSCounter := 0;
+      FPSTime := time;
+    end;
 
     r_Draw_Setup(gScreenWidth, gScreenHeight);
 
@@ -1096,8 +1107,6 @@ implementation
 
     if gGameOn or ((gState in [STATE_FOLD]) and (EndingGameCounter < 255)) then
     begin
-      // TODO setup player hear point
-
       if gSpectMode = SPECT_MAPVIEW then
       begin
         r_Render_DrawMapView(0, 0, gScreenWidth, gScreenHeight, gSpectX + gScreenWidth div 2, gSpectY + gScreenHeight div 2);
@@ -1139,6 +1148,7 @@ implementation
 
     if not gGameOn then
     begin
+      // TODO F key handle
       case gState of
         STATE_NONE: (* do nothing *) ;
         STATE_MENU: r_Render_DrawBackground(GameWad + ':TEXTURES/TITLE');
@@ -1211,7 +1221,20 @@ implementation
 
     r_Console_Draw(false);
 
+    // TODO g_debug_Sounds
+
+    if gShowFPS then
+    begin
+      r_Common_DrawText('FPS: ' + IntToStr(FPS), 0, 0, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawText('UPS: ' + IntToStr(UPS), 0, 16, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
+    end;
+
+    // TODO gShowTime
+    // TODO draw profilers
+
     // TODO draw holmes interface
+
+    // TODO draw touch screen controls
 
     glFlush();
     glFinish();
@@ -1241,6 +1264,7 @@ implementation
 
   function r_Render_WriteScreenShot (filename: String): Boolean;
   begin
+    // TODO write screenshot file
     Result := False;
   end;
 
@@ -1261,6 +1285,7 @@ implementation
 {$IFDEF ENABLE_TOUCH}
   procedure r_Render_GetKeyRect (key: Integer; out x, y, w, h: Integer; out founded: Boolean);
   begin
+    // TODO implement touchscreen
     founded := False;
   end;
 {$ENDIF}
