@@ -1229,7 +1229,11 @@ implementation
       r_Common_DrawText('UPS: ' + IntToStr(UPS), 0, 16, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
     end;
 
-    // TODO gShowTime
+    if gGameOn and gShowTime then
+    begin
+      r_Common_DrawText(r_Common_TimeToStr(gTime), gScreenWidth - 4, gScreenHeight - 1, 255, 255, 255, 255, stdfont, TBasePoint.BP_RIGHTDOWN);
+    end;
+
     // TODO draw profilers
 
     // TODO draw holmes interface
