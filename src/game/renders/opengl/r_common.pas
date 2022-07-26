@@ -117,8 +117,8 @@ implementation
 {$ENDIF}
     if p <> nil then
     begin
-      // TODO look up/down
       r_Common_GetPlayerPos(p, x, y);
+      y := y - nlerp(p.IncCamOld, p.IncCam, gLerpFactor);
       if center then
       begin
         x := x + p.obj.rect.width div 2;
