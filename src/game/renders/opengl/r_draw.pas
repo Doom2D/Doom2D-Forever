@@ -76,7 +76,8 @@ implementation
     glOrtho(0, w, h, 0, 0, 1);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity;
-//    glTranslatef(0.5, 0.5, 0);
+    glEnable(GL_SCISSOR_TEST);
+    r_Draw_SetRect(0, 0, w - 1, h - 1);
   end;
 
   procedure DrawQuad (x, y, w, h: Integer);

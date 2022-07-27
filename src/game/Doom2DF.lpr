@@ -206,6 +206,7 @@ uses
     r_common in 'renders/opengl/r_common.pas',
     r_console in 'renders/opengl/r_console.pas',
     r_gui in 'renders/opengl/r_gui.pas',
+    r_loadscreen in 'renders/opengl/r_loadscreen.pas',
   {$ELSE}
     {$FATAL render driver not selected}
   {$ENDIF}
@@ -1011,6 +1012,26 @@ end;
     {$ENDIF}
   end;
 
+  procedure ProcessLoading;
+    var update: Boolean;
+  begin
+    {$IFDEF ENABLE_SYSTEM}
+      update := sys_HandleInput() = False;
+    {$ELSE}
+      update := True;
+    {$ENDIF}
+    if update then
+    begin
+      e_SoundUpdate;
+      // TODO: At the moment, I left here only host network processing, because the client code must
+      // handle network events on its own. Otherwise separate network cases that use different calls to
+      // enet_host_service() WILL lose their packets (for example, resource downloading). So they have
+      // to handle everything by themselves. But in general, this MUST be removed completely, since
+      // updating the window should never affect the network. Use single enet_host_service(), period.
+      if NetMode = NET_SERVER then g_Net_Host_Update();
+    end
+  end;
+
   procedure Startup;
   begin
     Randomize;
@@ -1035,6 +1056,11 @@ end;
     DebugOptions;
     g_Net_InitLowLevel;
     // TODO init serverlist
+    {$IFDEF ENABLE_RENDER}
+      r_Render_SetProcessLoadingCallback(@ProcessLoading);
+    {$ENDIF}
+    g_Game_SetLoadingText(Format('Doom 2D: Forever %s', [GAME_VERSION]), 0, False);
+    g_Game_SetLoadingText('', 0, False);
     {$IFDEF ENABLE_HOLMES}
       InitHolmes;
     {$ENDIF}
@@ -1057,6 +1083,9 @@ end;
     {$ENDIF}
     Time_Old := GetTickCount64();
     while not ProcessMessage() do begin end;
+    {$IFDEF ENABLE_RENDER}
+      r_Render_SetProcessLoadingCallback(nil);
+    {$ENDIF}
     g_Console_WriteGameConfig;
     {$IFDEF ENABLE_MENU}
       g_GUI_Destroy;

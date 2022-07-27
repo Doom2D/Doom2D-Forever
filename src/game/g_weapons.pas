@@ -124,7 +124,7 @@ implementation
     Math, g_map, g_player, g_sound, g_panel,
     g_console, g_options, g_game,
     g_triggers, MAPDEF, e_log, g_monsters, g_saveload,
-    g_language, g_netmsg, g_grid,
+    g_language, g_netmsg, g_grid, g_window,
     geom, binheap, hashtable, utils, xstreams
   ;
 
@@ -1112,6 +1112,7 @@ end;
 procedure g_Weapon_LoadData();
 begin
   e_WriteLog('Loading weapons data...', TMsgType.Notify);
+  g_Game_SetLoadingText(_lc[I_LOAD_WEAPONS_DATA], 0, False);
 
   g_Sound_CreateWADEx('SOUND_WEAPON_HITPUNCH', GameWAD+':SOUNDS\HITPUNCH');
   g_Sound_CreateWADEx('SOUND_WEAPON_MISSPUNCH', GameWAD+':SOUNDS\MISSPUNCH');

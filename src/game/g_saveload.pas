@@ -45,7 +45,7 @@ uses
   MAPDEF, utils, xstreams,
   g_game, g_items, g_map, g_monsters, g_triggers,
   g_basic, Math, wadreader,
-  g_weapons, g_player, g_console,
+  g_weapons, g_player, g_console, g_window,
   e_log, e_res, g_language, g_options;
 
 const

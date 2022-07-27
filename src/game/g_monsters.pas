@@ -542,7 +542,7 @@ uses
     g_corpses,
   {$ENDIF}
   e_log, g_sound, g_player, g_game,
-  g_weapons, g_triggers, g_items, g_options,
+  g_weapons, g_triggers, g_items, g_options, g_window,
   g_console, g_map, Math, wadreader,
   g_language, g_netmsg, idpool, utils, xstreams;
 
@@ -896,10 +896,6 @@ end;
 procedure g_Monsters_LoadData();
 begin
   e_WriteLog('Loading monsters data...', TMsgType.Notify);
-
-  g_Game_SetLoadingText(_lc[I_LOAD_MONSTER_TEXTURES], 133, False);
-  g_Game_StepLoading(133);
-
   g_Game_SetLoadingText(_lc[I_LOAD_MONSTER_SOUNDS], 0, False);
 
   g_Sound_CreateWADEx('SOUND_MONSTER_BARREL_DIE', GameWAD+':MSOUNDS\BARREL_DIE');

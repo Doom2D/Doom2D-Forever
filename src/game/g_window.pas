@@ -17,6 +17,10 @@ unit g_window;
 
 interface
 
+  procedure g_Game_ClearLoading;
+  procedure g_Game_SetLoadingText (const text: String; maxval: Integer; rewrite: Boolean);
+  procedure g_Game_StepLoading (value: Integer = -1);
+
   procedure ProcessLoading (forceUpdate: Boolean=false);
 
 implementation
@@ -32,26 +36,33 @@ implementation
   ;
 
   procedure ProcessLoading (forceUpdate: Boolean = False);
-    var update: Boolean;
   begin
-    {$IFDEF ENABLE_SYSTEM}
-      update := sys_HandleInput() = False;
-    {$ELSE}
-      update := True;
+    {$IFDEF ENABLE_RENDER}
+      r_Render_DrawLoading(forceUpdate);
     {$ENDIF}
-    if update then
-    begin
-      {$IFDEF ENABLE_RENDER}
-        r_Render_DrawLoading(forceUpdate);
-      {$ENDIF}
-      e_SoundUpdate();
-      // TODO: At the moment, I left here only host network processing, because the client code must
-      // handle network events on its own. Otherwise separate network cases that use different calls to
-      // enet_host_service() WILL lose their packets (for example, resource downloading). So they have
-      // to handle everything by themselves. But in general, this MUST be removed completely, since
-      // updating the window should never affect the network. Use single enet_host_service(), period.
-      if NetMode = NET_SERVER then g_Net_Host_Update();
-    end
+  end;
+
+  procedure g_Game_ClearLoading;
+  begin
+    {$IFDEF ENABLE_RENDER}
+      r_Render_ClearLoading;
+    {$ENDIF}
+  end;
+
+  procedure g_Game_SetLoadingText (const text: String; maxval: Integer; rewrite: Boolean);
+  begin
+    {$IFDEF ENABLE_RENDER}
+      if maxval < 0 then maxval := 0;
+      r_Render_SetLoading(text, maxval);
+    {$ENDIF}
+  end;
+
+  procedure g_Game_StepLoading (value: Integer = -1);
+  begin
+    {$IFDEF ENABLE_RENDER}
+      if value < 0 then value := 1;
+      r_Render_StepLoading(value);
+    {$ENDIF}
   end;
 
 end.

@@ -35,7 +35,7 @@ procedure g_Res_CreateDatabases (allowRescan: Boolean=false);
 
 implementation
 
-uses g_language, sfs, utils, wadreader, g_game, hashtable, fhashdb, e_res, g_options;
+uses g_language, sfs, utils, wadreader, g_game, hashtable, fhashdb, e_res, g_options, g_window;
 
 var
   // cvars

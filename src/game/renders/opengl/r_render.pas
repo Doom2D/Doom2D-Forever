@@ -24,6 +24,9 @@ interface
     g_base // TRectWH
   ;
 
+  type
+    TProcedure = procedure;
+
   (* render startup *)
   procedure r_Render_Initialize;
   procedure r_Render_Finalize;
@@ -64,7 +67,11 @@ interface
     procedure r_Render_GetStringSize (BigFont: Boolean; str: String; out w, h: Integer);
   {$ENDIF}
 
-  procedure r_Render_DrawLoading (force: Boolean); // !!! remove it
+  procedure r_Render_SetProcessLoadingCallback (p: TProcedure);
+  procedure r_Render_ClearLoading;
+  procedure r_Render_SetLoading (const text: String; maxval: Integer);
+  procedure r_Render_StepLoading (incval: Integer);
+  procedure r_Render_DrawLoading (force: Boolean);
 
 implementation
 
@@ -85,12 +92,10 @@ implementation
     e_log, utils, wadreader, mapdef,
     g_game, g_map, g_panel, g_options, g_console, g_player, g_weapons, g_language, g_triggers, g_monsters,
     g_net, g_netmaster,
-    r_draw, r_textures, r_fonts, r_common, r_console, r_map
+    r_draw, r_textures, r_fonts, r_common, r_console, r_map, r_loadscreen
   ;
 
   var
-    BackgroundTexture: THereTexture;
-
     hud, hudbg: TGLTexture;
     hudhp: array [Boolean] of TGLTexture;
     hudap: TGLTexture;
@@ -119,26 +124,27 @@ implementation
     var
       i: Integer;
   begin
+    r_LoadScreen_Load;
     r_Common_Load;
-    BackgroundTexture := DEFAULT(THereTexture);
-    hud :=  r_Textures_LoadFromFile(GameWAD + ':TEXTURES/HUD');
-    hudbg :=  r_Textures_LoadFromFile(GameWAD + ':TEXTURES/HUDBG');
-    hudhp[false] := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/MED2');
-    hudhp[true] := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/BMED');
-    hudap := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/ARMORHUD');
+    r_Common_SetLoading('HUD Textures', 5 + (WP_LAST + 1) + 11);
+    hud :=  r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/HUD');
+    hudbg :=  r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/HUDBG');
+    hudhp[false] := r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/MED2');
+    hudhp[true] := r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/BMED');
+    hudap := r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/ARMORHUD');
     for i := 0 to WP_LAST do
-      hudwp[i] := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/' + WeapName[i]);
-    hudkey[0] := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/KEYR');
-    hudkey[1] := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/KEYG');
-    hudkey[2] := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/KEYB');
-    hudair := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/AIRBAR');
-    hudjet := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/JETBAR');
-    hudrflag := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/FLAGHUD_R_BASE');
-    hudrflags := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/FLAGHUD_R_STOLEN');
-    hudrflagd := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/FLAGHUD_R_DROP');
-    hudbflag := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/FLAGHUD_B_BASE');
-    hudbflags := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/FLAGHUD_B_STOLEN');
-    hudbflagd := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/FLAGHUD_B_DROP');
+      hudwp[i] := r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/' + WeapName[i]);
+    hudkey[0] := r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/KEYR');
+    hudkey[1] := r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/KEYG');
+    hudkey[2] := r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/KEYB');
+    hudair := r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/AIRBAR');
+    hudjet := r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/JETBAR');
+    hudrflag := r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/FLAGHUD_R_BASE');
+    hudrflags := r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/FLAGHUD_R_STOLEN');
+    hudrflagd := r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/FLAGHUD_R_DROP');
+    hudbflag := r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/FLAGHUD_B_BASE');
+    hudbflags := r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/FLAGHUD_B_STOLEN');
+    hudbflagd := r_Common_LoadTextureFromFile(GameWAD + ':TEXTURES/FLAGHUD_B_DROP');
     r_Console_Load;
     r_Map_Load;
     {$IFDEF ENABLE_MENU}
@@ -176,7 +182,6 @@ implementation
     hudhp[false].Free;
     hudbg.Free;
     hud.Free;
-    r_Common_FreeThis(BackgroundTexture);
     r_Common_Free;
   end;
 
@@ -204,6 +209,7 @@ implementation
         raise Exception.Create('Failed to set videomode on startup.');
       sys_EnableVSync(gVSync);
     {$ENDIF}
+    r_LoadScreen_Initialize;
     r_Textures_Initialize;
     r_Console_Initialize;
     r_Map_Initialize;
@@ -214,6 +220,7 @@ implementation
     r_Map_Finalize;
     r_Console_Finalize;
     r_Textures_Finalize;
+    r_LoadScreen_Finalize;
   end;
 
   procedure r_Render_Update;
@@ -420,24 +427,6 @@ implementation
     r_Draw_SetRect(l, t, r, b);
   end;
 
-  procedure r_Render_DrawBackgroundImage (img: TGLTexture);
-    var fw, w, h: LongInt;
-  begin
-    if img <> nil then
-    begin
-      img := BackgroundTexture.id;
-      if img.width = img.height then fw := img.width * 4 div 3 else fw := img.width; // fix aspect 4:3
-      r_Common_CalcAspect(fw, img.height, gScreenWidth, gScreenHeight, false, w, h);
-      r_Draw_Texture(img, gScreenWidth div 2 - w div 2, 0, w, h, false, 255, 255, 255, 255, false);
-    end
-  end;
-
-  procedure r_Render_DrawBackground (const name: AnsiString);
-  begin
-    if r_Common_LoadThis(name, BackgroundTexture) then
-      r_Render_DrawBackgroundImage(BackgroundTexture.id)
-  end;
-
   procedure r_Render_DrawServerList (var SL: TNetServerList; var ST: TNetServerTable);
     var ip: AnsiString; ww, hh, cw, ch, mw, mh, motdh, scrx, scry, i, mx, y: Integer; msg: SSArray; Srv: TNetServer;
   begin
@@ -459,7 +448,7 @@ implementation
     begin
       r_Draw_FillRect(16, motdh, gScreenWidth - 16, gScreenHeight - 44, 64, 64, 64, 110);
       r_Draw_Rect(16, motdh, gScreenWidth - 16, gScreenHeight - 44, 255, 127, 0, 255);
-      r_Common_DrawFormatText(slMOTD, 20, motdh + 3 + ch * i, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawFormatText(slMOTD, 20, motdh + 3, 255, stdfont, TBasePoint.BP_LEFTUP);
     end;
 
     if not slReadUrgent and (slUrgent <> '') then
@@ -469,7 +458,7 @@ implementation
       r_Draw_Rect(scrx - 256, scry - 60, scrx + 256, scry + 60, 255, 127, 0, 255);
       r_Draw_FillRect(scrx - 256, scry - 40, scrx + 256, scry - 40, 255, 127, 0, 255);
       r_Common_DrawText(_lc[I_NET_SLIST_URGENT], scrx, scry - 58, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
-      r_Common_DrawFormatText(slUrgent, scrx - 253, scry - 38 + ch * i, 255, stdfont, TBasePoint.BP_LEFTUP);
+      r_Common_DrawFormatText(slUrgent, scrx - 253, scry - 38, 255, stdfont, TBasePoint.BP_LEFTUP);
       r_Common_DrawText(_lc[I_NET_SLIST_URGENT_CONT], scrx, scry + 41, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
       r_Draw_FillRect(scrx - 256, scry + 40, scrx + 256, scry + 40, 255, 127, 0, 255);
     end
@@ -1060,12 +1049,6 @@ implementation
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT);
 
-    glColor4ub(255, 255, 255, 255);
-    glEnable(GL_SCISSOR_TEST);
-    r_Draw_SetRect(0, 0, gScreenWidth, gScreenHeight);
-
-    //e_LogWritefln('r_render_draw: %sx%s', [gScreenWidth, gScreenHeight]);
-
     p1 := nil;
     p2 := nil;
     if gGameOn or (gState = STATE_FOLD) then
@@ -1151,7 +1134,7 @@ implementation
       // TODO F key handle
       case gState of
         STATE_NONE: (* do nothing *) ;
-        STATE_MENU: r_Render_DrawBackground(GameWad + ':TEXTURES/TITLE');
+        STATE_MENU: r_Common_DrawBackground(GameWad + ':TEXTURES/TITLE');
         STATE_FOLD:
         begin
           if EndingGameCounter > 0 then
@@ -1161,11 +1144,11 @@ implementation
         begin
           if gLastMap and (gGameSettings.GameMode = GM_COOP) then
             if EndPicPath <> '' then
-              r_Render_DrawBackground(EndPicPath)
+              r_Common_DrawBackground(EndPicPath)
             else
-              r_Render_DrawBackground(GameWad + ':TEXTURES/' + _lc[I_TEXTURE_ENDPIC])
+              r_Common_DrawBackground(GameWad + ':TEXTURES/' + _lc[I_TEXTURE_ENDPIC])
           else
-            r_Render_DrawBackground(GameWad + ':TEXTURES/INTER');
+            r_Common_DrawBackground(GameWad + ':TEXTURES/INTER');
 
           r_Render_DrawCustomStats;
 
@@ -1182,7 +1165,7 @@ implementation
           end
           else
           begin
-            r_Render_DrawBackground(GameWad + ':TEXTURES/INTER');
+            r_Common_DrawBackground(GameWad + ':TEXTURES/INTER');
             r_Render_DrawSingleStats;
             {$IFDEF ENABLE_MENU}
               if g_ActiveWindow <> nil then
@@ -1193,9 +1176,9 @@ implementation
         STATE_ENDPIC:
         begin
           if EndPicPath <> '' then
-            r_Render_DrawBackground(EndPicPath)
+            r_Common_DrawBackground(EndPicPath)
           else
-            r_Render_DrawBackground(GameWad + ':TEXTURES/' + _lc[I_TEXTURE_ENDPIC]);
+            r_Common_DrawBackground(GameWad + ':TEXTURES/' + _lc[I_TEXTURE_ENDPIC]);
           {$IFDEF ENABLE_MENU}
             if g_ActiveWindow <> nil then
               r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
@@ -1203,7 +1186,7 @@ implementation
         end;
         STATE_SLIST:
         begin
-          r_Render_DrawBackground(GameWad + ':TEXTURES/TITLE');
+          r_Common_DrawBackground(GameWad + ':TEXTURES/TITLE');
           r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
           r_Render_DrawServerList(slCurrent, slTable);
         end;
@@ -1240,8 +1223,6 @@ implementation
 
     // TODO draw touch screen controls
 
-    glFlush();
-    glFinish();
     sys_Repaint;
   end;
 
@@ -1316,9 +1297,29 @@ implementation
   end;
 {$ENDIF}
 
+  procedure r_Render_SetProcessLoadingCallback (p: TProcedure);
+  begin
+    r_Common_ProcessLoadingCallback := p;
+  end;
+
+  procedure r_Render_ClearLoading;
+  begin
+    r_Common_ClearLoading;
+  end;
+
+  procedure r_Render_SetLoading (const text: String; maxval: Integer);
+  begin
+    r_Common_SetLoading(text, maxval);
+  end;
+
+  procedure r_Render_StepLoading (incval: Integer);
+  begin
+    r_Common_StepLoading(incval);
+  end;
+
   procedure r_Render_DrawLoading (force: Boolean);
   begin
-    // TODO draw loading screen
+    r_Common_DrawLoading(force);
   end;
 
 end.

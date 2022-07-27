@@ -97,7 +97,7 @@ implementation
     Math,
     g_basic, g_sound, g_map,
     g_game, g_triggers, g_console, g_player, g_net, g_netmsg,
-    e_log, g_options,
+    e_log, g_options, g_language, g_window,
     g_grid, binheap, idpool, utils, xstreams
   ;
 
@@ -203,6 +203,7 @@ const
 procedure g_Items_LoadData();
 begin
   e_WriteLog('Loading items data...', TMsgType.Notify);
+  g_Game_SetLoadingText(_lc[I_LOAD_ITEMS_DATA], 0, False);
 
   g_Sound_CreateWADEx('SOUND_ITEM_RESPAWNITEM', GameWAD+':SOUNDS\RESPAWNITEM');
   g_Sound_CreateWADEx('SOUND_ITEM_GETRULEZ', GameWAD+':SOUNDS\GETRULEZ');

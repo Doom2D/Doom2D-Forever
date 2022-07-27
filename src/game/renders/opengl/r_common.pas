@@ -17,7 +17,7 @@ unit r_common;
 
 interface
 
-  uses r_textures, g_player, g_phys;
+  uses r_textures, r_fonts, g_player, g_phys;
 
   type
     TBasePoint = (
@@ -35,6 +35,9 @@ interface
     stdfont: TGLFont;
     smallfont: TGLFont;
     menufont: TGLFont;
+
+  var
+    r_Common_ProcessLoadingCallback: TProcedure;
 
   function  r_Common_LoadThis (const name: AnsiString; var here: THereTexture): Boolean;
   procedure r_Common_FreeThis (var here: THereTexture);
@@ -54,6 +57,21 @@ interface
   procedure r_Common_GetCameraPos (const p: TPlayer; center: Boolean; out x, y: Integer);
   function  r_Common_GetPosByUID (uid: WORD; out obj: TObj; out x, y: Integer): Boolean;
 
+  procedure r_Common_DrawBackgroundImage (img: TGLTexture);
+  procedure r_Common_DrawBackground (const name: AnsiString);
+
+  procedure r_Common_ClearLoading;
+  procedure r_Common_SetLoading (const text: String; maxval: Integer);
+  procedure r_Common_StepLoading (incval: Integer);
+  procedure r_Common_DrawLoading (force: Boolean);
+
+  function r_Common_LoadTextureFromFile (const filename: AnsiString; log: Boolean = True): TGLTexture;
+  function r_Common_LoadTextureMultiFromFile (const filename: AnsiString; log: Boolean = True): TGLMultiTexture;
+  function r_Common_LoadTextureMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; log: Boolean = True): TGLMultiTexture;
+  function r_Common_LoadTextureMultiTextFromFile (const filename: AnsiString; var txt: TAnimTextInfo; log: Boolean = True): TGLMultiTexture;
+  function r_Common_LoadTextureStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
+  function r_Common_LoadTextureFontFromFile (const filename: AnsiString; constref f: TFontInfo; skipch: Integer; log: Boolean = true): TGLFont;
+
   procedure r_Common_Load;
   procedure r_Common_Free;
 
@@ -66,8 +84,11 @@ implementation
     {$IFDEF ENABLE_CORPSES}
       g_corpses,
     {$ENDIF}
-    r_draw, r_fonts
+    r_draw, r_loadscreen
   ;
+
+  var
+    BackgroundTexture: THereTexture;
 
   procedure r_Common_GetObjectPos (const obj: TObj; out x, y: Integer);
     var fx, fy: Integer;
@@ -310,29 +331,118 @@ implementation
     end;
   end;
 
+  procedure r_Common_DrawBackgroundImage (img: TGLTexture);
+    var fw, w, h: LongInt;
+  begin
+    if img <> nil then
+    begin
+      img := BackgroundTexture.id;
+      if img.width = img.height then fw := img.width * 4 div 3 else fw := img.width; // fix aspect 4:3
+      r_Common_CalcAspect(fw, img.height, gScreenWidth, gScreenHeight, false, w, h);
+      r_Draw_Texture(img, gScreenWidth div 2 - w div 2, 0, w, h, false, 255, 255, 255, 255, false);
+    end
+  end;
+
+  procedure r_Common_DrawBackground (const name: AnsiString);
+  begin
+    if r_Common_LoadThis(name, BackgroundTexture) then
+      r_Common_DrawBackgroundImage(BackgroundTexture.id)
+  end;
+
   function r_Common_LoadFont (const name: AnsiString): TGLFont;
     var info: TFontInfo; skiphack: Integer;
   begin
     result := nil;
     if name = 'STD' then skiphack := 144 else skiphack := 0;
     if r_Font_LoadInfoFromFile(GameWad + ':FONTS/' + name + 'TXT', info) then
-      result := r_Textures_LoadFontFromFile(GameWad + ':FONTS/' + name + 'FONT', info, skiphack, true);
+      result := r_Common_LoadTextureFontFromFile(GameWad + ':FONTS/' + name + 'FONT', info, skiphack, true);
     if result = nil then
       e_logwritefln('failed to load font %s', [name]);
   end;
 
   procedure r_Common_Load;
   begin
-    stdfont := r_Common_LoadFont('STD');
-    smallfont := r_Common_LoadFont('SMALL');
+    r_Common_SetLoading('Fonts', 3);
     menufont := r_Common_LoadFont('MENU');
+    smallfont := r_Common_LoadFont('SMALL');
+    stdfont := r_Common_LoadFont('STD');
+    BackgroundTexture := DEFAULT(THereTexture);
   end;
 
   procedure r_Common_Free;
   begin
+    r_Common_FreeThis(BackgroundTexture);
     menufont.Free;
     smallfont.Free;
     stdfont.Free;
+  end;
+
+  (* --------- Loading screen helpers --------- *)
+
+  procedure r_Common_ProcessLoading;
+  begin
+    if @r_Common_ProcessLoadingCallback <> nil then
+      r_Common_ProcessLoadingCallback;
+  end;
+
+  procedure r_Common_DrawLoading (force: Boolean);
+  begin
+    r_LoadScreen_Draw(force);
+    r_Common_ProcessLoading;
+  end;
+
+  procedure r_Common_ClearLoading;
+  begin
+    r_LoadScreen_Clear;
+    r_Common_DrawLoading(true);
+  end;
+
+  procedure r_Common_SetLoading (const text: String; maxval: Integer);
+  begin
+    r_LoadScreen_Set(text, maxval);
+    r_Common_DrawLoading(true);
+  end;
+
+  procedure r_Common_StepLoading (incval: Integer);
+  begin
+    r_LoadScreen_Step(incval);
+    r_Common_DrawLoading(false);
+  end;
+
+  function r_Common_LoadTextureFromFile (const filename: AnsiString; log: Boolean = True): TGLTexture;
+  begin
+    result := r_Textures_LoadFromFile(filename, log);
+    r_Common_StepLoading(1);
+  end;
+
+  function r_Common_LoadTextureMultiFromFile (const filename: AnsiString; log: Boolean = True): TGLMultiTexture;
+  begin
+    result := r_Textures_LoadMultiFromFile(filename, log);
+    r_Common_StepLoading(1);
+  end;
+
+  function r_Common_LoadTextureMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; log: Boolean = True): TGLMultiTexture;
+  begin
+    result := r_Textures_LoadMultiFromFileAndInfo(filename, w, h, count, log);
+    r_Common_StepLoading(1);
+  end;
+
+  function r_Common_LoadTextureMultiTextFromFile (const filename: AnsiString; var txt: TAnimTextInfo; log: Boolean = True): TGLMultiTexture;
+  begin
+    result := r_Textures_LoadMultiTextFromFile(filename, txt, log);
+    r_Common_StepLoading(1);
+  end;
+
+  function r_Common_LoadTextureStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
+  begin
+    r_Textures_LoadStreamFromFile(filename, w, h, count, cw, st, rs, log);
+    r_Common_StepLoading(1);
+  end;
+
+  function r_Common_LoadTextureFontFromFile (const filename: AnsiString; constref f: TFontInfo; skipch: Integer; log: Boolean = true): TGLFont;
+  begin
+    result := r_Textures_LoadFontFromFile (filename, f, skipch, log);
+    r_Common_StepLoading(1);
   end;
 
 end.

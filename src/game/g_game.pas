@@ -146,9 +146,6 @@ procedure GameCommands(P: SSArray);
 procedure GameCheats(P: SSArray);
 procedure DebugCommands(P: SSArray);
 procedure g_Game_Process_Params;
-procedure g_Game_SetLoadingText(Text: String; Max: Integer; reWrite: Boolean);
-procedure g_Game_StepLoading(Value: Integer = -1);
-procedure g_Game_ClearLoading();
 procedure g_Game_SetDebugMode();
 
 function IsActivePlayer(p: TPlayer): Boolean;
@@ -169,9 +166,6 @@ procedure SortGameStat(var stat: TPlayerStatArray);
 
 const
   GAME_TICK = 28;
-
-  LOADING_SHOW_STEP = 100;
-  LOADING_INTERLINE = 20;
 
   GT_NONE   = 0;
   GT_SINGLE = 1;
@@ -416,15 +410,6 @@ function gPause (): Boolean; inline;
       TotalSecrets: Integer;
     end;
 
-    TLoadingStat = record
-      CurValue: Integer;
-      MaxValue: Integer;
-      ShowCount: Integer;
-      Msgs: Array of String;
-      NextMsg: Word;
-      PBarWasHere: Boolean; // did we draw a progress bar for this message?
-    end;
-
     TDynLight = record
       x, y, radius: Integer;
       r, g, b, a: Single;
@@ -437,7 +422,6 @@ function gPause (): Boolean; inline;
     StatShotDone: Boolean;
     StatFilename: string = ''; // used by stat screenshot to save with the same name as the csv
     SingleStat: TEndSingleGameStat;
-    LoadingStat: TLoadingStat;
     MessageText: String;
     IsDrawStat: Boolean;
     EndingGameCounter: Byte;
@@ -1454,12 +1438,6 @@ begin
   sfsGCDisable(); // temporary disable removing of temporary volumes
 
   try
-    g_Game_ClearLoading();
-    g_Game_SetLoadingText(Format('Doom 2D: Forever %s', [GAME_VERSION]), 0, False);
-    g_Game_SetLoadingText('', 0, False);
-
-//    g_Game_SetLoadingText(_lc[I_LOAD_MODELS], 0, False);
-
     gGameOn := false;
     gPauseMain := false;
     gPauseHolmes := false;
@@ -1467,7 +1445,6 @@ begin
 
     {e_MouseInfo.Accel := 1.0;}
 
-    g_Game_SetLoadingText(_lc[I_LOAD_GAME_DATA], 0, False);
     g_Game_LoadData();
 
     g_Game_SetLoadingText(_lc[I_LOAD_MUSIC], 0, False);
@@ -2568,6 +2545,7 @@ begin
   if DataLoaded then Exit;
 
   e_WriteLog('Loading game data...', TMsgType.Notify);
+  g_Game_SetLoadingText(_lc[I_LOAD_GAME_DATA], 0, False);
 
   g_Sound_CreateWADEx('SOUND_GAME_TELEPORT', GameWAD+':SOUNDS\TELEPORT');
   g_Sound_CreateWADEx('SOUND_GAME_NOTELEPORT', GameWAD+':SOUNDS\NOTELEPORT');
@@ -2650,10 +2628,8 @@ begin
 
   g_Game_LoadChatSounds(GameWAD+':CHATSND\SNDCFG');
 
-  g_Game_SetLoadingText(_lc[I_LOAD_ITEMS_DATA], 0, False);
   g_Items_LoadData();
 
-  g_Game_SetLoadingText(_lc[I_LOAD_WEAPONS_DATA], 0, False);
   g_Weapon_LoadData();
 
   g_Monsters_LoadData();
@@ -6810,81 +6786,6 @@ begin
   gDebugMode := True;
 // Читы (даже в своей игре):
   gCheats := True;
-end;
-
-procedure g_Game_SetLoadingText(Text: String; Max: Integer; reWrite: Boolean);
-var
-  i: Word;
-begin
-  if Length(LoadingStat.Msgs) = 0 then
-    Exit;
-
-  with LoadingStat do
-  begin
-    if not reWrite then
-    begin // Переходим на следующую строку или скроллируем:
-      if NextMsg = Length(Msgs) then
-        begin // scroll
-          for i := 0 to High(Msgs)-1 do
-            Msgs[i] := Msgs[i+1];
-        end
-      else
-        Inc(NextMsg);
-    end else
-      if NextMsg = 0 then
-        Inc(NextMsg);
-
-    Msgs[NextMsg-1] := Text;
-    CurValue := 0;
-    MaxValue := Max;
-    ShowCount := 0;
-    PBarWasHere := false;
-  end;
-
-  {$IFDEF ENABLE_MENU}
-    g_ActiveWindow := nil;
-  {$ENDIF}
-
-  ProcessLoading(true);
-end;
-
-procedure g_Game_StepLoading(Value: Integer = -1);
-begin
-  with LoadingStat do
-  begin
-    if Value = -1 then
-    begin
-      Inc(CurValue);
-      Inc(ShowCount);
-    end
-    else
-      CurValue := Value;
-
-    if (ShowCount > LOADING_SHOW_STEP) or (Value > -1) then
-    begin
-      ShowCount := 0;
-      ProcessLoading(False);
-    end;
-  end;
-end;
-
-procedure g_Game_ClearLoading();
-var
-  len: Word;
-begin
-  with LoadingStat do
-  begin
-    CurValue := 0;
-    MaxValue := 0;
-    ShowCount := 0;
-    len := ((gScreenHeight div 3)*2 - 50) div LOADING_INTERLINE;
-    if len < 1 then len := 1;
-    SetLength(Msgs, len);
-    for len := Low(Msgs) to High(Msgs) do
-      Msgs[len] := '';
-    NextMsg := 0;
-    PBarWasHere := false;
-  end;
 end;
 
 procedure Parse_Params(var pars: TParamStrValues);

@@ -55,7 +55,7 @@ implementation
     binheap, MAPDEF, utils,
     g_options, g_animations, g_basic, g_phys,
     g_game, g_map, g_panel, g_items, g_monsters, g_weapons,
-    g_console,
+    g_console, g_language,
     {$IFDEF ENABLE_CORPSES}
       g_corpses,
     {$ENDIF}
@@ -411,9 +411,10 @@ implementation
       i, j, k: Integer; d: TDirection; b: Boolean;
   begin
     // --------- items --------- //
+    r_Common_SetLoading(_lc[I_LOAD_ITEMS_DATA], ITEM_LAST + 1);
     for i := 0 to ITEM_LAST do
     begin
-      Items[i].tex := r_Textures_LoadMultiFromFileAndInfo(
+      Items[i].tex := r_Common_LoadTextureMultiFromFileAndInfo(
         GameWAD + ':TEXTURES/' + ItemAnim[i].name,
         ItemAnim[i].w,
         ItemAnim[i].h,
@@ -423,53 +424,73 @@ implementation
       Items[i].frame := 0;
     end;
     // --------- monsters --------- //
+    r_Common_SetLoading(_lc[I_LOAD_MONSTER_TEXTURES], MONSTER_MAN - MONSTER_DEMON + 1);
     for i := MONSTER_DEMON to MONSTER_MAN do
+    begin
       for j := 0 to ANIM_LAST do
         for d := TDirection.D_LEFT to TDirection.D_RIGHT do
           r_Map_LoadMonsterAnim(i, j, d);
+      r_Common_StepLoading(1);
+    end;
     VileFire := r_Textures_LoadMultiFromFileAndInfo(GameWAD + ':TEXTURES/FIRE', 64, 128, VileFireAnim.frames);
     // --------- player models --------- //
     if PlayerModelsArray <> nil then
     begin
+      r_Common_SetLoading(_lc[I_LOAD_MODELS], Length(PlayerModelsArray));
       SetLength(Models, Length(PlayerModelsArray));
       for i := 0 to High(PlayerModelsArray) do
+      begin
         r_Map_LoadModel(i);
+        r_Common_StepLoading(1);
+      end;
     end;
     // --------- player weapons --------- //
+    r_Common_SetLoading(_lc[I_LOAD_WEAPONS_DATA], WP_LAST);
     for i := 1 to WP_LAST do
+    begin
       for j := 0 to W_POS_LAST do
         for k := 0 to W_ACT_LAST do
           WeapTextures[i, j, k] := r_Textures_LoadFromFile(GameWAD + ':WEAPONS\' + WeapName[i] + WeapPos[j] + WeapAct[k]);
+      r_Common_StepLoading(1);
+    end;
     // --------- gfx animations --------- //
     {$IFDEF ENABLE_GFX}
+      r_Common_SetLoading('GFX Effects', R_GFX_LAST);
       for i := 1 to R_GFX_LAST do
+      begin
         if GFXAnim[i].anim.frames > 0 then
-          GFXTextures[i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/' + GFXAnim[i].name, GFXAnim[i].w, GFXAnim[i].h, GFXAnim[i].anim.frames);
+          GFXTextures[i] := r_Common_LoadTextureMultiFromFileAndInfo(GameWad + ':TEXTURES/' + GFXAnim[i].name, GFXAnim[i].w, GFXAnim[i].h, GFXAnim[i].anim.frames);
+      end;
     {$ENDIF}
     // --------- shots --------- //
+    r_Common_SetLoading('Weapon splahses', WEAPON_LAST + 1);
     for i := 0 to WEAPON_LAST do
+    begin
       if ShotAnim[i].anim.frames > 0 then
-        ShotTextures[i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/' + ShotAnim[i].name, ShotAnim[i].w, ShotAnim[i].h, ShotAnim[i].anim.frames);
+        ShotTextures[i] := r_Common_LoadTextureMultiFromFileAndInfo(GameWad + ':TEXTURES/' + ShotAnim[i].name, ShotAnim[i].w, ShotAnim[i].h, ShotAnim[i].anim.frames);
+    end;
     // --------- flags --------- //
+    r_Common_SetLoading('Flags', 2);
     FlagTextures[FLAG_NONE] := nil;
-    FlagTextures[FLAG_RED]  := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGRED',  64, 64, 5);
-    FlagTextures[FLAG_BLUE] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGBLUE', 64, 64, 5);
-    // FlagTextures[FLAG_DOM]  := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGDOM',  64, 64, 8);
+    FlagTextures[FLAG_RED]  := r_Common_LoadTextureMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGRED',  64, 64, 5);
+    FlagTextures[FLAG_BLUE] := r_Common_LoadTextureMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGBLUE', 64, 64, 5);
+    // FlagTextures[FLAG_DOM]  := r_Common_LoadTextureMultiFromFileAndInfo(GameWad + ':TEXTURES/FLAGDOM',  64, 64, 8);
     // --------- shells --------- //
     {$IFDEF ENABLE_SHELLS}
+      r_Common_SetLoading('Shells', SHELL_LAST + 1);
       for i := 0 to SHELL_LAST do
-        ShellTextures[i] := r_Textures_LoadFromFile(GameWad + ':TEXTURES/' + ShellAnim[i].name);
+        ShellTextures[i] := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/' + ShellAnim[i].name);
     {$ENDIF}
-    // --------- punch --------- //
+    // --------- other --------- //
+    r_Common_SetLoading('Effects', 3 * 2 + 3);
     for b := false to true do
     begin
       for i := 0 to 2 do
-        PunchTextures[b, i] := r_Textures_LoadMultiFromFileAndInfo(GameWad + ':WEAPONS/' + PunchName[b] + WeapPos[i], 64, 64, PunchAnim.frames);
+        PunchTextures[b, i] := r_Common_LoadTextureMultiFromFileAndInfo(GameWad + ':WEAPONS/' + PunchName[b] + WeapPos[i], 64, 64, PunchAnim.frames);
     end;
-    // --------- other --------- //
-    InvulPenta := r_Textures_LoadFromFile(GameWad + ':TEXTURES/PENTA');
-    IndicatorTexture := r_Textures_LoadFromFile(GameWad + ':TEXTURES/PLRIND');
-    TalkTexture := r_Textures_LoadFromFile(GameWad + ':TEXTURES/TALKBUBBLE');
+    InvulPenta := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/PENTA');
+    IndicatorTexture := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/PLRIND');
+    TalkTexture := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/TALKBUBBLE');
   end;
 
   procedure r_Map_Free;
@@ -563,6 +584,7 @@ implementation
     begin
       n := Length(Textures);
       SetLength(RenTextures, n);
+      r_Common_SetLoading(_lc[I_LOAD_TEXTURES], n);
       for i := 0 to n - 1 do
       begin
         txt.anim := DefaultAnimInfo;
@@ -573,17 +595,20 @@ implementation
           TEXTURE_NAME_ACID2: RenTextures[i].spec := TEXTURE_SPECIAL_ACID2;
           else
             RenTextures[i].spec := 0;
-            e_LogWritefln('r_Map_LoadTextures: begin load texture: %s', [Textures[i].FullName]);
             RenTextures[i].tex := r_Textures_LoadMultiTextFromFile(Textures[i].FullName, txt);
-            e_LogWritefln('r_Map_LoadTextures: end load texture: %s', [Textures[i].FullName]);
             if RenTextures[i].tex = nil then
-              e_LogWritefln('r_Map_LoadTextures: failed to load texture: %s', [Textures[i].FullName]);
+              e_LogWritefln('r_Map_LoadTextures: failed to load texture: %s', [Textures[i].FullName])
+            else
+              r_Common_StepLoading(1);
         end;
         RenTextures[i].anim := txt.anim;
       end;
     end;
     if gMapInfo.SkyFullName <> '' then
-      SkyTexture := r_Textures_LoadFromFile(gMapInfo.SkyFullName);
+    begin
+      r_Common_SetLoading(_lc[I_LOAD_SKY], 1);
+      SkyTexture := r_Common_LoadTextureFromFile(gMapInfo.SkyFullName);
+    end;
     plist.Clear;
   end;
 

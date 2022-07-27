@@ -30,7 +30,7 @@ implementation
 
   uses
     Math, utils, conbuf,
-    g_game, g_options, g_console,
+    g_game, g_options, g_console, g_language,
     r_draw, r_textures, r_fonts, r_common
   ;
 
@@ -56,6 +56,7 @@ implementation
 
   procedure r_Console_Load;
   begin
+    r_Common_SetLoading(_lc[I_LOAD_CONSOLE], 1);
     Background := r_Textures_LoadFromFile(GameWad + ':TEXTURES/CONSOLE');
   end;
 
