@@ -7810,7 +7810,7 @@ begin
     name := e_CatPath(dir, Filename + '.png');
     s := createDiskFile(name);
     try
-      e_MakeScreenshot(s, gWinSizeX, gWinSizeX);
+      e_MakeScreenshot(s, gWinSizeX, gWinSizeY);
       s.Free;
       g_Console_Add(Format(_lc[I_CONSOLE_SCREENSHOT], [name]))
     except
