@@ -1,3 +1,4 @@
+{$ASSERTIONS ON}
 unit g_resources;
 
 interface
@@ -5,10 +6,11 @@ interface
   (**
     g_GetResourceSection
       Parse path in form 'path/to/file.wad:some/section/resouce' to
-      wad = 'path/to/file.wa', section = 'some/section', name = 'resource'
+      wad = 'path/to/file.wad', section = 'some/section', name = 'resource'
 
     g_DeleteFile
       Delete file if it exists. Make backup if enabled.
+      return true when file not exists.
 
     g_ReadResource
       Read whole file from wad
@@ -39,7 +41,7 @@ interface
     Backup: Boolean;
 
   procedure g_GetResourceSection (path: String; out wad, section, name: String);
-  procedure g_DeleteFile(wad: String; backupPostfix: String = '.bak');
+  function  g_DeleteFile(wad: String; backupPostfix: String = '.bak'): Boolean;
 
   procedure g_ReadResource (wad, section, name: String; out data: PByte; out len: Integer);
   procedure g_ReadSubResource (wad, section0, name0, section1, name1: String; out data: PByte; out len: Integer);
@@ -97,27 +99,25 @@ implementation
     wad := Copy(path, 1, i - 1);
   end;
 
-  procedure g_DeleteFile (wad: String; backupPostfix: String = '.bak');
-    var newwad: String;
+  function g_DeleteFile (wad: String; backupPostfix: String = '.bak'): Boolean;
+    var newwad: String; ok: Boolean;
   begin
     SFSGCCollect;
     SFSGCCollect;
     SFSGCCollect;
-    if Backup then
+    ok := true;
+    if FileExists(wad) then
     begin
-      if FileExists(wad) then
+      if Backup then
       begin
         newwad := wad + backupPostfix;
-        if FileExists(newwad) then
-          ASSERT(DeleteFile(newwad), 'Can''t delete file ' + newwad);
-        ASSERT(RenameFile(wad, newwad), 'Can''t rename file ' + wad + ' -> ' + newwad)
+        if FileExists(newwad) then ok := DeleteFile(newwad);
+        if ok then ok := RenameFile(wad, newwad);
       end
-    end
-    else
-    begin
-      if FileExists(wad) then
-        ASSERT(DeleteFile(wad), 'Can''t delete file ' + newwad)
-    end
+      else
+        ok := DeleteFile(wad);
+    end;
+    result := ok;
   end;
 
   procedure g_AddResourceToDFWAD (wad, section, name: String; const data: PByte; len: Integer; out res: Integer);
@@ -149,6 +149,7 @@ implementation
       tmp, path: String;
       ts: TFileStream;
       dir: array of TFileInfo;
+      ok: Boolean;
 
     procedure Add (name: String; data: PByte; len: Integer);
       var ds: TSFSMemoryChunkStream;
@@ -200,9 +201,11 @@ implementation
     dfzip.writeCentralDir(ts, dir);
     ts.Free;
 
-    g_DeleteFile(wad);
-    ASSERT(RenameFile(tmp, wad), 'Can''t rename file ' + tmp + ' -> ' + wad);
-    res := 0
+    ok := g_DeleteFile(wad);
+    if not ok then e_WriteLog('Cant delete older wad [' + wad + ']', TRecordCategory.MSG_WARNING);
+    ok := RenameFile(tmp, wad);
+    if not ok then e_WriteLog('ERROR: Cant rename [' + tmp + '] -> [' + wad + ']', TRecordCategory.MSG_WARNING);
+    if ok then res := 0 else res := 2;
   end;
 
   procedure g_AddResource (wad, section, name: String; const data: PByte; len: Integer; out res: Integer);
@@ -247,6 +250,7 @@ implementation
       tmp, path: String;
       ts: TFileStream;
       dir: array of TFileInfo;
+      ok: Boolean;
 
     procedure Add (name: String; data: PByte; len: Integer);
       var ds: TSFSMemoryChunkStream;
@@ -292,9 +296,11 @@ implementation
     dfzip.writeCentralDir(ts, dir);
     ts.Free;
 
-    g_DeleteFile(wad);
-    ASSERT(RenameFile(tmp, wad), 'Can''t rename file ' + tmp + ' -> ' + wad);
-    res := 0
+    ok := g_DeleteFile(wad);
+    if not ok then e_WriteLog('Cant delete older wad [' + wad + ']', TRecordCategory.MSG_WARNING);
+    ok := RenameFile(tmp, wad);
+    if not ok then e_WriteLog('ERROR: Cant rename [' + tmp + '] -> [' + wad + ']', TRecordCategory.MSG_WARNING);
+    if ok then res := 0 else res := 2;
   end;
 
   procedure g_DeleteResource (wad, section, name: String; out res: Integer);

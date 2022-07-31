@@ -44,20 +44,21 @@
           <Parsing>
             <SyntaxOptions>
               <SyntaxMode Value="Delphi"/>
+              <IncludeAssertionCode Value="True"/>
             </SyntaxOptions>
           </Parsing>
           <CodeGeneration>
             <SmartLinkUnit Value="True"/>
             <Optimizations>
-              <OptimizationLevel Value="3"/>
+              <OptimizationLevel Value="2"/>
             </Optimizations>
           </CodeGeneration>
           <Linking>
             <Debugging>
-              <GenerateDebugInfo Value="False"/>
+              <GenerateDebugInfo Value="True"/>
               <DebugInfoType Value="dsDwarf2Set"/>
-              <UseValgrind Value="True"/>
-              <StripSymbols Value="True"/>
+              <UseValgrind Value="False"/>
+              <StripSymbols Value="False"/>
             </Debugging>
             <LinkSmart Value="True"/>
             <Options>
@@ -341,8 +342,8 @@
     <Linking>
       <Debugging>
         <UseHeaptrc Value="True"/>
-        <TrashVariables Value="True"/>
-        <UseValgrind Value="True"/>
+        <TrashVariables Value="False"/>
+        <UseValgrind Value="False"/>
       </Debugging>
       <Options>
         <Win32>
