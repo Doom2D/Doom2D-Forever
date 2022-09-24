@@ -5,6 +5,12 @@
 
 uses
   SysUtils, Classes,
+  {$IFDEF USE_SDL}
+    SDL in '../lib/sdl/sdl.pas',
+  {$ENDIF}
+  {$IFDEF USE_SDL2}
+    SDL2 in '../lib/sdl2/sdl2.pas',
+  {$ENDIF}
   mempool in '../shared/mempool.pas',
   xstreams in '../shared/xstreams.pas',
   xparser in '../shared/xparser.pas',

@@ -1,10 +1,17 @@
 {$INCLUDE ../shared/a_modes.inc}
+
 {$IFDEF WINDOWS}
   {$APPTYPE CONSOLE}
 {$ENDIF}
 
 uses
   SysUtils, Classes,
+  {$IFDEF USE_SDL}
+    SDL in '../lib/sdl/sdl.pas',
+  {$ENDIF}
+  {$IFDEF USE_SDL2}
+    SDL2 in '../lib/sdl2/sdl2.pas',
+  {$ENDIF}
   sfs in '../sfs/sfs.pas',
   sfsPlainFS in '../sfs/sfsPlainFS.pas',
   sfsZipFS in '../sfs/sfsZipFS.pas',
