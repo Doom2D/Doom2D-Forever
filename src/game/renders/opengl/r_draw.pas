@@ -127,7 +127,7 @@ implementation
   end;
 
   procedure r_Draw_Texture (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
-    var i, j, offx, offy: Integer; n: TGLAtlasNode;
+    var i, j, first, last, step: Integer; n: TGLAtlasNode;
   begin
     ASSERT(w >= 0);
     ASSERT(h >= 0);
@@ -135,24 +135,23 @@ implementation
       DrawTile(nil, x, y, w, h, flip, NTR, NTB, NTG, NTA, blend)
     else
     begin
-      offx := 0;
-      offy := 0;
+      if flip then first := img.cols - 1 else first := 0;
+      if flip then last  := -1           else last  := img.cols;
+      if flip then step  := -1           else step  := +1;
       glPushMatrix;
       glTranslatef(x, y, 0);
       glScalef(w / img.width, h / img.height, 1);
       for j := 0 to img.lines - 1 do
       begin
-        for i := 0 to img.cols - 1 do
-        begin
+        i := first;
+        repeat
           n := img.GetTile(i, j);
           ASSERT(n <> nil);
           DrawTile(n, 0, 0, n.width, n.height, flip, r, g, b, a, blend);
           glTranslatef(n.width, 0, 0);
-          offx := offx + n.width;
-        end;
-        glTranslatef(-offx, n.height, 0);
-        offx := 0;
-        offy := offy + n.height;
+          i := i + step;
+        until i = last;
+        glTranslatef(-img.width, n.height, 0);
       end;
       glPopMatrix;
     end
