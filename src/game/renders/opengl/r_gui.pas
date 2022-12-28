@@ -96,29 +96,29 @@ implementation
     Font[FALSE] := nil;
     Font[TRUE] := nil;
 
-    MarkerID[FALSE].Free;
-    MarkerID[TRUE].Free;
+    r_Common_FreeAndNil(MarkerID[FALSE]);
+    r_Common_FreeAndNil(MarkerID[TRUE]);
 
     for i := 0 to 8 do
-      Box[i].Free;
+      r_Common_FreeAndNil(Box[i]);
 
-    ScrollLeft.Free;
-    ScrollRight.Free;
-    ScrollMiddle.Free;
-    ScrollMarker.Free;
+    r_Common_FreeAndNil(ScrollLeft);
+    r_Common_FreeAndNil(ScrollRight);
+    r_Common_FreeAndNil(ScrollMiddle);
+    r_Common_FreeAndNil(ScrollMarker);
 
-    EditLeft.Free;
-    EditRight.Free;
-    EditMiddle.Free;
+    r_Common_FreeAndNil(EditLeft);
+    r_Common_FreeAndNil(EditRight);
+    r_Common_FreeAndNil(EditMiddle);
 
-    BScrollUp[true].Free;
-    BScrollUp[false].Free;
-    BScrollDown[true].Free;
-    BScrollDown[false].Free;
-    BScrollMiddle.Free;
+    r_Common_FreeAndNil(BScrollUp[true]);
+    r_Common_FreeAndNil(BScrollUp[false]);
+    r_Common_FreeAndNil(BScrollDown[true]);
+    r_Common_FreeAndNil(BScrollDown[false]);
+    r_Common_FreeAndNil(BScrollMiddle);
 
-    LogoTex.Free;
-    nopic.Free;
+    r_Common_FreeAndNil(LogoTex);
+    r_Common_FreeAndNil(nopic);
 
     r_Common_FreeThis(Background);
     r_Common_FreeThis(ImageControl);

@@ -138,6 +138,7 @@ implementation
 
   uses
     SysUtils, Classes,
+    r_common,
     e_log, e_res, WADReader, Config,
     g_console, // cvar declaration
     Imaging, ImagingTypes, ImagingUtility
@@ -331,8 +332,8 @@ implementation
     var i: Integer;
   begin
     for i := 0 to self.count - 1 do
-      self.mTexture[i].Free;
-    self.mTexture := nil;
+      r_Common_FreeAndNil(self.mTexture[i]);
+    SetLength(self.mTexture, 0);
     inherited;
   end;
 
@@ -413,10 +414,10 @@ implementation
       begin
         glDeleteTextures(1, @atl[i].id);
         atl[i].id := 0;
-        atl[i].Free;
+        r_Common_FreeAndNil(atl[i]);
       end;
-      atl := nil;
     end;
+    SetLength(atl, 0);
   end;
 
   function r_Textures_FixImageData (var img: TImageData): Boolean;

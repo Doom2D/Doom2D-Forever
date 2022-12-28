@@ -29,7 +29,7 @@ interface
 implementation
 
   uses
-    Math, utils, conbuf,
+    Math, SysUtils, utils, conbuf,
     g_game, g_options, g_console, g_language,
     r_draw, r_textures, r_fonts, r_common
   ;
@@ -62,7 +62,7 @@ implementation
 
   procedure r_Console_Free;
   begin
-    Background.Free;
+    r_Common_FreeAndNil(Background);
   end;
 
   procedure r_Console_Update;

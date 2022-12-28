@@ -39,6 +39,9 @@ interface
   var
     r_Common_ProcessLoadingCallback: TProcedure;
 
+  procedure r_Common_FreeAndNil (var obj);
+  procedure r_Common_FreeMemAndNil (var p);
+
   function  r_Common_LoadThis (const name: AnsiString; var here: THereTexture): Boolean;
   procedure r_Common_FreeThis (var here: THereTexture);
 
@@ -89,6 +92,24 @@ implementation
 
   var
     BackgroundTexture: THereTexture;
+
+  procedure r_Common_FreeAndNil (var obj);
+    var temp: TObject;
+  begin
+    temp := TObject(obj);
+    Pointer(obj) := nil;
+    if temp <> nil then
+      temp.Free;
+  end;
+
+  procedure r_Common_FreeMemAndNil (var p);
+    var temp: Pointer;
+  begin
+    temp := Pointer(p);
+    Pointer(p) := nil;
+    if temp <> nil then
+      FreeMem(temp)
+  end;
 
   procedure r_Common_GetObjectPos (const obj: TObj; out x, y: Integer);
     var fx, fy: Integer;
@@ -299,9 +320,7 @@ implementation
   procedure r_Common_FreeThis (var here: THereTexture);
   begin
     here.name := '';
-    if here.id <> nil then
-      here.id.Free;
-    here.id := nil;
+    r_Common_FreeAndNil(here.id);
   end;
 
   function r_Common_LoadThis (const name: AnsiString; var here: THereTexture): Boolean;
@@ -381,9 +400,9 @@ implementation
   procedure r_Common_Free;
   begin
     r_Common_FreeThis(BackgroundTexture);
-    menufont.Free;
-    smallfont.Free;
-    stdfont.Free;
+    FreeAndNil(menufont);
+    FreeAndNil(smallfont);
+    FreeAndNil(stdfont);
   end;
 
   (* --------- Loading screen helpers --------- *)

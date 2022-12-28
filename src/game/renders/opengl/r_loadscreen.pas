@@ -71,10 +71,10 @@ implementation
 
   procedure r_LoadScreen_Free;
   begin
-    BarL.Free;
-    BarM.Free;
-    BarR.Free;
-    BarF.Free;
+    r_Common_FreeAndNil(BarL);
+    r_Common_FreeAndNil(BarM);
+    r_Common_FreeAndNil(BarR);
+    r_Common_FreeAndNil(BarF);
   end;
 
   procedure r_LoadScreen_DrawLoadingBar (x0, x1, y, val, maxval: Integer);

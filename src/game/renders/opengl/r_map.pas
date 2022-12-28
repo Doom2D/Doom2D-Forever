@@ -300,7 +300,7 @@ implementation
 
   procedure r_Map_Finalize;
   begin
-    plist.Free;
+    r_Common_FreeAndNil(plist);
     FlagFrame := 0;
   end;
 
@@ -311,21 +311,17 @@ implementation
     begin
       for a := A_STAND to A_LAST do
       begin
-        if Models[i].anim[d, a].base <> nil then
-          Models[i].anim[d, a].base.Free;
-        if Models[i].anim[d, a].mask <> nil then
-          Models[i].anim[d, a].mask.Free;
-        Models[i].anim[d, a].base := nil;
-        Models[i].anim[d, a].mask := nil;
+        r_Common_FreeAndNil(Models[i].anim[d, a].base);
+        r_Common_FreeAndNil(Models[i].anim[d, a].mask);
       end;
     end;
     {$IFDEF ENABLE_GIBS}
       if Models[i].gibs.base <> nil then
         for a := 0 to High(Models[i].gibs.base) do
-          Models[i].gibs.base[a].Free;
+          r_Common_FreeAndNil(Models[i].gibs.base[a]);
       if Models[i].gibs.mask <> nil then
         for a := 0 to High(Models[i].gibs.mask) do
-          Models[i].gibs.mask[a].Free;
+          r_Common_FreeAndNil(Models[i].gibs.mask[a]);
       Models[i].gibs.base := nil;
       Models[i].gibs.mask := nil;
       Models[i].gibs.rect := nil;
@@ -496,84 +492,38 @@ implementation
   procedure r_Map_Free;
     var i, j, k: Integer; d: TDirection; b: Boolean;
   begin
-    if TalkTexture <> nil then
-      TalkTexture.Free;
-    if IndicatorTexture <> nil then
-      IndicatorTexture.Free;
-    if InvulPenta <> nil then
-      InvulPenta.Free;
-    InvulPenta := nil;
+    r_Common_FreeAndNil(TalkTexture);
+    r_Common_FreeAndNil(IndicatorTexture);
+    r_Common_FreeAndNil(InvulPenta);
     for b := false to true do
-    begin
       for i := 0 to 2 do
-      begin
-        if PunchTextures[b, i] <> nil then
-          PunchTextures[b, i].Free;
-        PunchTextures[b, i] := nil;
-      end;
-    end;
+        r_Common_FreeAndNil(PunchTextures[b, i]);
     {$IFDEF ENABLE_SHELLS}
       for i := 0 to SHELL_LAST do
-      begin
-        if ShellTextures[i] <> nil then
-          ShellTextures[i].Free;
-        ShellTextures[i] := nil;
-      end;
+        r_Common_FreeAndNil(ShellTextures[i]);
     {$ENDIF}
     for i := 0 to FLAG_LAST do
-    begin
-      if FlagTextures[i] <> nil then
-        FlagTextures[i].Free;
-      FlagTextures[i] := nil;
-    end;
+      r_Common_FreeAndNil(FlagTextures[i]);
     for i := 0 to WEAPON_LAST do
-    begin
-      if ShotTextures[i] <> nil then
-        ShotTextures[i].Free;
-      ShotTextures[i] := nil;
-    end;
+      r_Common_FreeAndNil(ShotTextures[i]);
     {$IFDEF ENABLE_GFX}
-      gfxlist := nil;
+      SetLength(gfxlist, 0);
       for i := 0 to R_GFX_LAST do
-      begin
-        if GFXTextures[i] <> nil then
-          GFXTextures[i].Free;
-        GFXTextures[i] := nil;
-      end;
+        r_Common_FreeAndNil(GFXTextures[i]);
     {$ENDIF}
     for i := 1 to WP_LAST do
-    begin
       for j := 0 to W_POS_LAST do
-      begin
         for k := 0 to W_ACT_LAST do
-        begin
-          if WeapTextures[i, j, k] <> nil then
-            WeapTextures[i, j, k].Free;
-          WeapTextures[i, j, k] := nil;
-        end;
-      end;
-    end;
+          r_Common_FreeAndNil(WeapTextures[i, j, k]);
     if Models <> nil then
       for i := 0 to High(Models) do
         r_Map_FreeModel(i);
     for i := MONSTER_DEMON to MONSTER_MAN do
-    begin
       for j := 0 to ANIM_LAST do
-      begin
         for d := TDirection.D_LEFT to TDirection.D_RIGHT do
-        begin
-          if MonTextures[i, j, d] <> nil then
-            MonTextures[i, j, d].Free;
-          MonTextures[i, j, d] := nil;
-        end;
-      end;
-    end;
+          r_Common_FreeAndNil(MonTextures[i, j, d]);
     for i := 0 to ITEM_LAST do
-    begin
-      if Items[i].tex <> nil then
-        Items[i].tex.Free;
-      Items[i].tex := nil;
-    end;
+      r_Common_FreeAndNil(Items[i].tex);
   end;
 
   procedure r_Map_LoadTextures;
@@ -616,14 +566,11 @@ implementation
     var i: Integer;
   begin
     plist.Clear;
-    if SkyTexture <> nil then
-      SkyTexture.Free;
-    SkyTexture := nil;
+    r_Common_FreeAndNil(SkyTexture);
     if RenTextures <> nil then
       for i := 0 to High(RenTextures) do
-        if RenTextures[i].tex <> nil then
-          RenTextures[i].tex.Free;
-    RenTextures := nil;
+        r_Common_FreeAndNil(RenTextures[i].tex);
+    SetLength(RenTextures, 0);
   end;
 
   procedure r_Map_DrawPanel (p: TPanel);

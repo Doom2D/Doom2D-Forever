@@ -160,28 +160,24 @@ implementation
     {$ENDIF}
     r_Map_Free;
     r_Console_Free;
-    hudbflagd.Free;
-    hudbflags.Free;
-    hudbflag.Free;
-    hudrflagd.Free;
-    hudrflags.Free;
-    hudrflag.Free;
-    hudjet.Free;
-    hudair.Free;
-    hudkey[0].Free;
-    hudkey[1].Free;
-    hudkey[2].Free;
+    r_Common_FreeAndNil(hudbflagd);
+    r_Common_FreeAndNil(hudbflags);
+    r_Common_FreeAndNil(hudbflag);
+    r_Common_FreeAndNil(hudrflagd);
+    r_Common_FreeAndNil(hudrflags);
+    r_Common_FreeAndNil(hudrflag);
+    r_Common_FreeAndNil(hudjet);
+    r_Common_FreeAndNil(hudair);
+    r_Common_FreeAndNil(hudkey[0]);
+    r_Common_FreeAndNil(hudkey[1]);
+    r_Common_FreeAndNil(hudkey[2]);
     for i := 0 to WP_LAST do
-    begin
-      if hudwp[i] <> nil then
-        hudwp[i].Free;
-      hudwp[i] := nil;
-    end;
-    hudap.Free;
-    hudhp[true].Free;
-    hudhp[false].Free;
-    hudbg.Free;
-    hud.Free;
+      r_Common_FreeAndNil(hudwp[i]);
+    r_Common_FreeAndNil(hudap);
+    r_Common_FreeAndNil(hudhp[true]);
+    r_Common_FreeAndNil(hudhp[false]);
+    r_Common_FreeAndNil(hudbg);
+    r_Common_FreeAndNil(hud);
     r_Common_Free;
   end;
 
