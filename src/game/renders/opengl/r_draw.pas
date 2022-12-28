@@ -126,6 +126,29 @@ implementation
     end
   end;
 
+  procedure DrawHWTexture (gltex: GLint; nw, nh, x, y, w, h: Integer; flip: Boolean; rr, gg, bb, aa: Byte; blend: Boolean);
+    var ax, bx, ay, by: GLfloat; l, t, r, b: Integer;
+  begin
+    ax := IfThen(flip, 0, w) / nw;
+    bx := IfThen(flip, w, 0) / nh;
+    ay := 0 / nw;
+    by := h / nh;
+    l := x; t := y; r := x + w; b := y + h;
+    glBindTexture(GL_TEXTURE_2D, gltex);
+    glColor4ub(rr, gg, bb, aa);
+    if blend then glBlendFunc(GL_SRC_ALPHA, GL_ONE) else glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBegin(GL_QUADS);
+      glTexCoord2f(ax, ay); glVertex2i(r, t);
+      glTexCoord2f(bx, ay); glVertex2i(l, t);
+      glTexCoord2f(bx, by); glVertex2i(l, b);
+      glTexCoord2f(ax, by); glVertex2i(r, b);
+    glEnd();
+    glDisable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+  end;
+
   procedure r_Draw_Texture (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
     var i, j, first, last, step: Integer; n: TGLAtlasNode;
   begin
@@ -157,6 +180,22 @@ implementation
     end
   end;
 
+  function r_Draw_IsHWRepeatable (img: TGLTexture): Boolean;
+    var n: TGLAtlasNode; a: TGLAtlas;
+  begin
+    ASSERT(img <> nil);
+    result := false;
+    if (img.cols = 1) and (img.lines = 1) then
+    begin
+      n := img.GetTile(0, 0);
+      if (n.width = img.width) and (n.height = img.height) then
+      begin
+        a := n.base;
+        result := (a.GetWidth() = img.width) and (a.GetHeight() = img.height)
+      end;
+    end;
+  end;
+
   procedure r_Draw_TextureRepeat (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
     var i, j: Integer;
   begin
@@ -164,6 +203,8 @@ implementation
     ASSERT(h >= 0);
     if img = nil then
       r_Draw_Texture(nil, x, y, w, h, flip, NTR, NTG, NTB, NTB, blend)
+    else if r_Draw_IsHWRepeatable(img) then
+      DrawHWTexture(img.GetTile(0, 0).base.id, img.width, img.height, x, y, w, h, flip, r, g, b, a, blend)
     else
       for j := 0 to (h - 1) div img.height do
         for i := 0 to (w - 1) div img.width do

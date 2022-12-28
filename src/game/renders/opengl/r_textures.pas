@@ -29,6 +29,9 @@ interface
   ;
 
   type
+    TGLHints = (txNoRepeat);
+    TGLHintsSet = set of TGLHints;
+
     TGLAtlas = class;
 
     TGLAtlasNode = class (TAtlasNode)
@@ -65,6 +68,7 @@ interface
         mHeight: Integer;
         mCols: Integer;
         mTile: array of TGLAtlasNode;
+        mHints: TGLHintsSet;
 
       public
         destructor Destroy; override;
@@ -77,6 +81,7 @@ interface
         property height: Integer read mHeight;
         property cols: Integer read mCols;
         property lines: Integer read GetLines;
+        property hints: TGLHintsSet read mHints;
     end;
 
     TGLMultiTexture = class
@@ -125,12 +130,12 @@ interface
   procedure r_Textures_Initialize;
   procedure r_Textures_Finalize;
 
-  function r_Textures_LoadFromFile (const filename: AnsiString; log: Boolean = True): TGLTexture;
-  function r_Textures_LoadMultiFromFile (const filename: AnsiString; log: Boolean = True): TGLMultiTexture;
-  function r_Textures_LoadMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; log: Boolean = True): TGLMultiTexture;
-  function r_Textures_LoadMultiTextFromFile (const filename: AnsiString; var txt: TAnimTextInfo; log: Boolean = True): TGLMultiTexture;
+  function r_Textures_LoadFromFile (const filename: AnsiString; hints: TGLHintsSet; log: Boolean = True): TGLTexture;
+  function r_Textures_LoadMultiFromFile (const filename: AnsiString; hints: TGLHintsSet; log: Boolean = True): TGLMultiTexture;
+  function r_Textures_LoadMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; hints: TGLHintsSet; log: Boolean = True): TGLMultiTexture;
+  function r_Textures_LoadMultiTextFromFile (const filename: AnsiString; var txt: TAnimTextInfo; hints: TGLHintsSet; log: Boolean = True): TGLMultiTexture;
 
-  function r_Textures_LoadStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
+  function r_Textures_LoadStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; hints: TGLHintsSet; log: Boolean = True): Boolean;
 
   function r_Textures_LoadFontFromFile (const filename: AnsiString; constref f: TFontInfo; font2enc: TConvProc; log: Boolean = true): TGLFont;
 
@@ -146,8 +151,9 @@ implementation
 
   var
     r_GL_MaxTexSize: WORD;
+    r_GL_RepeatOpt: Boolean;
     maxTileSize: Integer;
-    atl: array of TGLAtlas;
+    atl, ratl: array of TGLAtlas;
 
   (* --------- TGLAtlasNode --------- *)
 
@@ -216,6 +222,8 @@ implementation
     if id <> 0 then
     begin
       glBindTexture(GL_TEXTURE_2D, id);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nil);
@@ -235,6 +243,20 @@ implementation
       SetLength(atl, i + 1);
       atl[i] := TGLAtlas.Create(maxTileSize, maxTileSize, id);
       result := atl[i];
+    end;
+  end;
+
+  function r_Textures_AllocRepeatAtlas (w, h: Integer): TGLAtlas;
+    var i: Integer; id: GLuint;
+  begin
+    result := nil;
+    id := r_Textures_AllocHWTexture(w, h);
+    if id <> 0 then
+    begin
+      i := Length(ratl);
+      SetLength(ratl, i + 1);
+      ratl[i] := TGLAtlas.Create(w, h, id);
+      result := ratl[i];
     end;
   end;
 
@@ -260,22 +282,56 @@ implementation
     result := n
   end;
 
+  function r_Textures_AllocRepeatNode (w, h: Integer): TGLAtlasNode;
+    var i: Integer; n: TGLAtlasNode; a: TGLAtlas;
+  begin
+    n := nil; a := nil;
+    if ratl <> nil then
+    begin
+      i := High(ratl);
+      while (i >= 0) and (ratl[i] <> nil) do DEC(i);
+      if i >= 0 then a := ratl[i];
+    end;
+    if a = nil then a := r_Textures_AllocRepeatAtlas(w, h);
+    if a <> nil then
+    begin
+      n := a.Alloc(w, h);
+      if n = nil then
+      begin
+        i := High(ratl); while (i >= 0) and (ratl[i] <> a) do DEC(i);
+        if i >= 0 then ratl[i] := nil;
+        r_Common_FreeAndNil(a);
+      end;
+    end;
+    result := n
+  end;
+
   (* --------- TGLTexture --------- *)
 
   destructor TGLTexture.Destroy;
-    var i: Integer;
+    var i: Integer; a: TGLAtlas;
   begin
     if self.mTile <> nil then
     begin
-      for i := 0 to High(self.mTile) do
+      if TGLHints.txNoRepeat in self.hints then (* non repeatable texture -> delete tiles only *)
       begin
-        if self.mTile[i] <> nil then
+        for i := 0 to High(self.mTile) do
         begin
-          self.mTile[i].Dealloc;
-          self.mTile[i] := nil;
-        end;
+          if self.mTile[i] <> nil then
+          begin
+            self.mTile[i].Dealloc;
+            self.mTile[i] := nil
+          end
+        end
+      end
+      else (* repeatable texture -> delete whole atlas *)
+      begin
+        a := self.mTile[0].base;
+        i := High(ratl); while (i >= 0) and (ratl[i] <> a) do DEC(i);
+        if i >= 0 then ratl[i] := nil;
+        r_Common_FreeAndNil(a);
       end;
-      self.mTile := nil;
+      SetLength(self.mTile, 0);
     end;
     inherited;
   end;
@@ -299,29 +355,44 @@ implementation
     ASSERT(result <> nil)
   end;
 
-  function r_Textures_Alloc (w, h: Integer): TGLTexture;
+  function r_Textures_Alloc (w, h: Integer; hints: TGLHintsSet): TGLTexture;
     var x, y, mw, mh, cols, lines: Integer; t: TGLTexture;
   begin
     ASSERT(w > 0);
     ASSERT(h > 0);
-    cols := (w + maxTileSize - 1) div maxTileSize;
-    lines := (h + maxTileSize - 1) div maxTileSize;
-    t := TGLTexture.Create;
-    t.mWidth := w;
-    t.mHeight := h;
-    t.mCols := cols;
-    // t.mLines := lines;
-    SetLength(t.mTile, cols * lines);
-    for y := 0 to lines - 1 do
+    if TGLHints.txNoRepeat in hints then
     begin
-      mh := Min(maxTileSize, h - y * maxTileSize);
-      ASSERT(mh > 0);
-      for x := 0 to cols - 1 do
+      cols := (w + maxTileSize - 1) div maxTileSize;
+      lines := (h + maxTileSize - 1) div maxTileSize;
+      t := TGLTexture.Create;
+      t.mWidth := w;
+      t.mHeight := h;
+      t.mCols := cols;
+      // t.mLines := lines;
+      t.mHints := hints;
+      SetLength(t.mTile, cols * lines);
+      for y := 0 to lines - 1 do
       begin
-        mw := Min(maxTileSize, w - x * maxTileSize);
-        ASSERT(mw > 0);
-        t.mTile[y * cols + x] := r_Textures_AllocNode(mw, mh);
-      end
+        mh := Min(maxTileSize, h - y * maxTileSize);
+        ASSERT(mh > 0);
+        for x := 0 to cols - 1 do
+        begin
+          mw := Min(maxTileSize, w - x * maxTileSize);
+          ASSERT(mw > 0);
+          t.mTile[y * cols + x] := r_Textures_AllocNode(mw, mh);
+        end
+      end;
+    end
+    else
+    begin
+      t := TGLTexture.Create;
+      t.mWidth := w;
+      t.mHeight := h;
+      t.mCols := 1;
+      // t.mLines := 1
+      t.mHints := hints;
+      SetLength(t.mTile, 1);
+      t.mTile[0] := r_Textures_AllocRepeatNode(w, h);
     end;
     result := t;
   end;
@@ -418,6 +489,17 @@ implementation
       end;
     end;
     SetLength(atl, 0);
+
+    if ratl <> nil then
+    begin
+      for i := 0 to High(ratl) do
+      begin
+        glDeleteTextures(1, @ratl[i].id);
+        ratl[i].id := 0;
+        r_Common_FreeAndNil(ratl[i]);
+      end;
+    end;
+    SetLength(ratl, 0);
   end;
 
   function r_Textures_FixImageData (var img: TImageData): Boolean;
@@ -428,13 +510,34 @@ implementation
         result := true;
   end;
 
-  function r_Textures_LoadFromImage (var img: TImageData): TGLTexture;
+  function r_Textures_ValidRepeatTexture (w, h: Integer; hints: TGLHintsSet): Boolean;
+  begin
+    result := r_GL_RepeatOpt and
+              not (TGLHints.txNoRepeat in hints) and
+              (w <= maxTileSize) and
+              (h <= maxTileSize) and
+              IsPOT(w) and
+              IsPOT(h)
+  end;
+
+  function r_Textures_LoadFromImage (var img: TImageData; hints: TGLHintsSet): TGLTexture; // !!!
     var t: TGLTexture; n: TGLAtlasNode; c: TDynImageDataArray; cw, ch, i, j: LongInt;
   begin
     result := nil;
-    if SplitImage(img, c, maxTileSize, maxTileSize, cw, ch, False) then
+    if r_Textures_ValidRepeatTexture(img.width, img.height, hints) then
     begin
-      t := r_Textures_Alloc(img.width, img.height);
+      t := r_Textures_Alloc(img.width, img.height, hints - [TGLHints.txNoRepeat]);
+      if t <> nil then
+      begin
+        n := t.GetTile(0, 0);
+        ASSERT(n <> nil);
+        r_Textures_UpdateNode(n, img.bits, 0, 0, n.width, n.height);
+        result := t
+      end
+    end
+    else if SplitImage(img, c, maxTileSize, maxTileSize, cw, ch, False) then
+    begin
+      t := r_Textures_Alloc(img.width, img.height, hints + [TGLHints.txNoRepeat]);
       if t <> nil then
       begin
         ASSERT(cw = t.cols);
@@ -454,7 +557,7 @@ implementation
     end;
   end;
 
-  function r_Textures_LoadFromMemory (data: Pointer; size: LongInt): TGLTexture;
+  function r_Textures_LoadFromMemory (data: Pointer; size: LongInt; hints: TGLHintsSet): TGLTexture;
     var img: TImageData;
   begin
     result := nil;
@@ -464,14 +567,14 @@ implementation
       try
         if LoadImageFromMemory(data, size, img) then
           if r_Textures_FixImageData(img) then
-            result := r_Textures_LoadFromImage(img)
+            result := r_Textures_LoadFromImage(img, hints)
       except
       end;
       FreeImage(img);
     end;
   end;
 
-  function r_Textures_LoadFromFile (const filename: AnsiString; log: Boolean = True): TGLTexture;
+  function r_Textures_LoadFromFile (const filename: AnsiString; hints: TGLHintsSet; log: Boolean = True): TGLTexture;
     var wad: TWADFile; wadName, resName: AnsiString; data: Pointer; size: Integer;
   begin
     result := nil;
@@ -482,14 +585,14 @@ implementation
       resName := g_ExtractFilePathName(filename);
       if wad.GetResource(resName, data, size, log) then
       begin
-        result := r_Textures_LoadFromMemory(data, size);
+        result := r_Textures_LoadFromMemory(data, size, hints);
         FreeMem(data);
       end;
       wad.Free
     end
   end;
 
-  function r_Textures_LoadMultiFromImageAndInfo (var img: TImageData; w, h, c: Integer): TGLMultiTexture;
+  function r_Textures_LoadMultiFromImageAndInfo (var img: TImageData; w, h, c: Integer; hints: TGLHintsSet): TGLMultiTexture;
     var t: TImageData; a: array of TGLTexture; i: Integer; m: TGLMultiTexture;
   begin
     ASSERT(w >= 0);
@@ -502,7 +605,7 @@ implementation
       InitImage(t);
       if NewImage(w, h, img.Format, t) then
         if CopyRect(img, w * i, 0, w, h, t, 0, 0) then
-          a[i] := r_Textures_LoadFromImage(t);
+          a[i] := r_Textures_LoadFromImage(t, hints);
       ASSERT(a[i] <> nil);
       FreeImage(t);
     end;
@@ -512,7 +615,7 @@ implementation
     result := m;
   end;
 
-  function r_Textures_LoadMultiFromDataAndInfo (data: Pointer; size: LongInt; w, h, c: Integer): TGLMultiTexture;
+  function r_Textures_LoadMultiFromDataAndInfo (data: Pointer; size: LongInt; w, h, c: Integer; hints: TGLHintsSet): TGLMultiTexture;
     var img: TImageData;
   begin
     ASSERT(w > 0);
@@ -525,7 +628,7 @@ implementation
       try
         if LoadImageFromMemory(data, size, img) then
           if r_Textures_FixImageData(img) then
-            result := r_Textures_LoadMultiFromImageAndInfo(img, w, h, c)
+            result := r_Textures_LoadMultiFromImageAndInfo(img, w, h, c, hints)
       except
       end;
       FreeImage(img);
@@ -554,7 +657,7 @@ implementation
     end;
   end;
 
-  function r_Textures_LoadMultiFromWad (wad: TWADFile; var txt: TAnimTextInfo): TGLMultiTexture;
+  function r_Textures_LoadMultiFromWad (wad: TWADFile; var txt: TAnimTextInfo; hints: TGLHintsSet): TGLMultiTexture;
     var data: Pointer; size: LongInt; img: TImageData;
   begin
     ASSERT(wad <> nil);
@@ -570,7 +673,7 @@ implementation
           try
             if LoadImageFromMemory(data, size, img) then
               if r_Textures_FixImageData(img) then
-                result := r_Textures_LoadMultiFromImageAndInfo(img, txt.w, txt.h, txt.anim.frames);
+                result := r_Textures_LoadMultiFromImageAndInfo(img, txt.w, txt.h, txt.anim.frames, hints);
           finally
             FreeMem(data);
           end;
@@ -582,13 +685,13 @@ implementation
     end;
   end;
 
-  function r_Textures_LoadMultiFromMemory (data: Pointer; size: LongInt; var txt: TAnimTextInfo): TGLMultiTexture;
+  function r_Textures_LoadMultiFromMemory (data: Pointer; size: LongInt; var txt: TAnimTextInfo; hints: TGLHintsSet): TGLMultiTexture;
     var wad: TWADFile; t: TGLTexture; m: TGLMultiTexture;
   begin
     result := nil;
     if (data <> nil) and (size > 0) then
     begin
-      t := r_Textures_LoadFromMemory(data, size);
+      t := r_Textures_LoadFromMemory(data, size, hints);
       if t <> nil then
       begin
         m := TGLMultiTexture.Create();
@@ -608,14 +711,14 @@ implementation
         wad := TWADFile.Create();
         if wad.ReadMemory(data, size) then
         begin
-          result := r_Textures_LoadMultiFromWad(wad, txt);
+          result := r_Textures_LoadMultiFromWad(wad, txt, hints);
           wad.Free;
         end
       end
     end
   end;
 
-  function r_Textures_LoadMultiTextFromFile (const filename: AnsiString; var txt: TAnimTextInfo; log: Boolean = True): TGLMultiTexture;
+  function r_Textures_LoadMultiTextFromFile (const filename: AnsiString; var txt: TAnimTextInfo; hints: TGLHintsSet; log: Boolean = True): TGLMultiTexture;
     var wad: TWADFile; wadName, resName: AnsiString; data: Pointer; size: Integer;
   begin
     result := nil;
@@ -626,20 +729,20 @@ implementation
       resName := g_ExtractFilePathName(filename);
       if wad.GetResource(resName, data, size, log) then
       begin
-        result := r_Textures_LoadMultiFromMemory(data, size, txt);
+        result := r_Textures_LoadMultiFromMemory(data, size, txt, hints);
         FreeMem(data);
       end;
       wad.Free
     end
   end;
 
-  function r_Textures_LoadMultiFromFile (const filename: AnsiString; log: Boolean = True): TGLMultiTexture;
+  function r_Textures_LoadMultiFromFile (const filename: AnsiString; hints: TGLHintsSet; log: Boolean = True): TGLMultiTexture;
     var txt: TAnimTextInfo;
   begin
-    result := r_Textures_LoadMultiTextFromFile(filename, txt, log);
+    result := r_Textures_LoadMultiTextFromFile(filename, txt, hints, log);
   end;
 
-  function r_Textures_LoadMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; log: Boolean = True): TGLMultiTexture;
+  function r_Textures_LoadMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; hints: TGLHintsSet; log: Boolean = True): TGLMultiTexture;
     var wad: TWADFile; wadName, resName: AnsiString; data: Pointer; size: Integer;
   begin
     ASSERT(w > 0);
@@ -653,7 +756,7 @@ implementation
       resName := g_ExtractFilePathName(filename);
       if wad.GetResource(resName, data, size, log) then
       begin
-        result := r_Textures_LoadMultiFromDataAndInfo(data, size, w, h, count);
+        result := r_Textures_LoadMultiFromDataAndInfo(data, size, w, h, count, hints);
         FreeMem(data);
       end;
       wad.Free
@@ -717,7 +820,7 @@ implementation
     end;
   end;
 
-  function r_Textures_LoadStreamFromImage (var img: TImageData; w, h, c, cw: Integer; st: TGLTextureArray; rs: TRectArray): Boolean;
+  function r_Textures_LoadStreamFromImage (var img: TImageData; w, h, c, cw: Integer; st: TGLTextureArray; rs: TRectArray; hints: TGLHintsSet): Boolean;
     var i, x, y: Integer; t: TImageData;
   begin
     ASSERT(w >= 0);
@@ -739,7 +842,7 @@ implementation
         begin
           if rs <> nil then
             rs[i] := r_Textures_GetRect(t);
-          st[i] := r_Textures_LoadFromImage(t);
+          st[i] := r_Textures_LoadFromImage(t, hints);
         end;
       end;
       ASSERT(st[i] <> nil);
@@ -747,7 +850,7 @@ implementation
     end;
   end;
 
-  function r_Textures_LoadStreamFromMemory (data: Pointer; size: LongInt; w, h, c, cw: Integer; st: TGLTextureArray; rs: TRectArray): Boolean;
+  function r_Textures_LoadStreamFromMemory (data: Pointer; size: LongInt; w, h, c, cw: Integer; st: TGLTextureArray; rs: TRectArray; hints: TGLHintsSet): Boolean;
     var img: TImageData;
   begin
     ASSERT(w >= 0);
@@ -765,7 +868,7 @@ implementation
         begin
           if r_Textures_FixImageData(img) then
           begin
-            result := r_Textures_LoadStreamFromImage(img, w, h, c, cw, st, rs)
+            result := r_Textures_LoadStreamFromImage(img, w, h, c, cw, st, rs, hints)
           end;
         end;
       except
@@ -774,7 +877,7 @@ implementation
     end;
   end;
 
-  function r_Textures_LoadStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
+  function r_Textures_LoadStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; hints: TGLHintsSet; log: Boolean = True): Boolean;
     var wad: TWADFile; wadName, resName: AnsiString; data: Pointer; size: Integer;
   begin
     ASSERT(w > 0);
@@ -791,7 +894,7 @@ implementation
       resName := g_ExtractFilePathName(filename);
       if wad.GetResource(resName, data, size, log) then
       begin
-        result := r_Textures_LoadStreamFromMemory(data, size, w, h, count, cw, st, rs);
+        result := r_Textures_LoadStreamFromMemory(data, size, w, h, count, cw, st, rs, hints);
         FreeMem(data);
       end;
       wad.Free
@@ -805,7 +908,7 @@ implementation
   begin
     result := nil;
     SetLength(st, 256);
-    if r_Textures_LoadStreamFromFile(filename, f.w, f.h, 256, 16, st, nil, log) then
+    if r_Textures_LoadStreamFromFile(filename, f.w, f.h, 256, 16, st, nil, [TGLHints.txNoRepeat], log) then
     begin
       font := TGLFont.Create();
       font.info := f;
@@ -868,5 +971,7 @@ implementation
 
 initialization
   conRegVar('r_gl_maxtexsize', @r_GL_MaxTexSize, '', '');
+  conRegVar('r_gl_repeat', @r_GL_RepeatOpt, '', '');
   r_GL_MaxTexSize := 0; // default is automatic value
+  r_GL_RepeatOpt := true;
 end.

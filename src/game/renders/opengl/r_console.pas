@@ -57,7 +57,7 @@ implementation
   procedure r_Console_Load;
   begin
     r_Common_SetLoading(_lc[I_LOAD_CONSOLE], 1);
-    Background := r_Textures_LoadFromFile(GameWad + ':TEXTURES/CONSOLE');
+    Background := r_Textures_LoadFromFile(GameWad + ':TEXTURES/CONSOLE', [TGLHints.txNoRepeat]);
   end;
 
   procedure r_Console_Free;

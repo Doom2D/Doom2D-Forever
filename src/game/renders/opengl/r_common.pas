@@ -68,11 +68,11 @@ interface
   procedure r_Common_StepLoading (incval: Integer);
   procedure r_Common_DrawLoading (force: Boolean);
 
-  function r_Common_LoadTextureFromFile (const filename: AnsiString; log: Boolean = True): TGLTexture;
-  function r_Common_LoadTextureMultiFromFile (const filename: AnsiString; log: Boolean = True): TGLMultiTexture;
-  function r_Common_LoadTextureMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; log: Boolean = True): TGLMultiTexture;
-  function r_Common_LoadTextureMultiTextFromFile (const filename: AnsiString; var txt: TAnimTextInfo; log: Boolean = True): TGLMultiTexture;
-  function r_Common_LoadTextureStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
+  function r_Common_LoadTextureFromFile (const filename: AnsiString; hints: TGLHintsSet; log: Boolean = True): TGLTexture;
+  function r_Common_LoadTextureMultiFromFile (const filename: AnsiString; hints: TGLHintsSet; log: Boolean = True): TGLMultiTexture;
+  function r_Common_LoadTextureMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; hints: TGLHintsSet; log: Boolean = True): TGLMultiTexture;
+  function r_Common_LoadTextureMultiTextFromFile (const filename: AnsiString; var txt: TAnimTextInfo; hints: TGLHintsSet; log: Boolean = True): TGLMultiTexture;
+  function r_Common_LoadTextureStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; hints: TGLHintsSet; log: Boolean = True): Boolean;
   function r_Common_LoadTextureFontFromFile (const filename: AnsiString; constref f: TFontInfo; font2enc: TConvProc; log: Boolean = true): TGLFont;
 
   procedure r_Common_Load;
@@ -328,7 +328,7 @@ implementation
     if name <> here.name then
       r_Common_FreeThis(here);
     if (name <> '') and (here.name <> name) then
-      here.id := r_Textures_LoadFromFile(name);
+      here.id := r_Textures_LoadFromFile(name, []); // !!!
 
     result := here.id <> nil;
 
@@ -437,33 +437,33 @@ implementation
     r_Common_DrawLoading(false);
   end;
 
-  function r_Common_LoadTextureFromFile (const filename: AnsiString; log: Boolean = True): TGLTexture;
+  function r_Common_LoadTextureFromFile (const filename: AnsiString; hints: TGLHintsSet; log: Boolean = True): TGLTexture;
   begin
-    result := r_Textures_LoadFromFile(filename, log);
+    result := r_Textures_LoadFromFile(filename, hints, log);
     r_Common_StepLoading(1);
   end;
 
-  function r_Common_LoadTextureMultiFromFile (const filename: AnsiString; log: Boolean = True): TGLMultiTexture;
+  function r_Common_LoadTextureMultiFromFile (const filename: AnsiString; hints: TGLHintsSet; log: Boolean = True): TGLMultiTexture;
   begin
-    result := r_Textures_LoadMultiFromFile(filename, log);
+    result := r_Textures_LoadMultiFromFile(filename, hints, log);
     r_Common_StepLoading(1);
   end;
 
-  function r_Common_LoadTextureMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; log: Boolean = True): TGLMultiTexture;
+  function r_Common_LoadTextureMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; hints: TGLHintsSet; log: Boolean = True): TGLMultiTexture;
   begin
-    result := r_Textures_LoadMultiFromFileAndInfo(filename, w, h, count, log);
+    result := r_Textures_LoadMultiFromFileAndInfo(filename, w, h, count, hints, log);
     r_Common_StepLoading(1);
   end;
 
-  function r_Common_LoadTextureMultiTextFromFile (const filename: AnsiString; var txt: TAnimTextInfo; log: Boolean = True): TGLMultiTexture;
+  function r_Common_LoadTextureMultiTextFromFile (const filename: AnsiString; var txt: TAnimTextInfo; hints: TGLHintsSet; log: Boolean = True): TGLMultiTexture;
   begin
-    result := r_Textures_LoadMultiTextFromFile(filename, txt, log);
+    result := r_Textures_LoadMultiTextFromFile(filename, txt, hints, log);
     r_Common_StepLoading(1);
   end;
 
-  function r_Common_LoadTextureStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
+  function r_Common_LoadTextureStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; hints: TGLHintsSet; log: Boolean = True): Boolean;
   begin
-    r_Textures_LoadStreamFromFile(filename, w, h, count, cw, st, rs, log);
+    result := r_Textures_LoadStreamFromFile(filename, w, h, count, cw, st, rs, hints, log);
     r_Common_StepLoading(1);
   end;
 

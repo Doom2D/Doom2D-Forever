@@ -63,10 +63,10 @@ implementation
 
   procedure r_LoadScreen_Load;
   begin
-    BarL := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/LLEFT');
-    BarM := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/LMIDDLE');
-    BarR := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/LRIGHT');
-    BarF := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/LMARKER');
+    BarL := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/LLEFT', [TGLHints.txNoRepeat]);
+    BarM := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/LMIDDLE', []);
+    BarR := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/LRIGHT', [TGLHints.txNoRepeat]);
+    BarF := r_Textures_LoadFromFile(GameWAD + ':TEXTURES/LMARKER', []);
   end;
 
   procedure r_LoadScreen_Free;

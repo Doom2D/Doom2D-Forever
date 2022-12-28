@@ -65,29 +65,29 @@ implementation
 
     r_Common_SetLoading('GUI', 2 + 9 + 14);
 
-    MarkerID[FALSE] := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/MARKER1');
-    MarkerID[TRUE] := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/MARKER2');
+    MarkerID[FALSE] := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/MARKER1', [TGLHints.txNoRepeat]);
+    MarkerID[TRUE] := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/MARKER2', [TGLHints.txNoRepeat]);
 
     for i := 0 to 8 do
-      Box[i] := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/BOX' + IntToStr(i + 1));
+      Box[i] := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/BOX' + IntToStr(i + 1), []); // !!!
 
-    ScrollLeft := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SLEFT');
-    ScrollRight := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SRIGHT');
-    ScrollMiddle := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SMIDDLE');
-    ScrollMarker := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SMARKER');
+    ScrollLeft := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SLEFT', [TGLHints.txNoRepeat]);
+    ScrollRight := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SRIGHT', [TGLHints.txNoRepeat]);
+    ScrollMiddle := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SMIDDLE', []);
+    ScrollMarker := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SMARKER', [TGLHints.txNoRepeat]);
 
-    EditLeft := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/ELEFT');
-    EditRight := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/ERIGHT');
-    EditMiddle := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/EMIDDLE');
+    EditLeft := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/ELEFT', [TGLHints.txNoRepeat]);
+    EditRight := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/ERIGHT', [TGLHints.txNoRepeat]);
+    EditMiddle := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/EMIDDLE', []);
 
-    BScrollUp[true] := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SCROLLUPA');
-    BScrollUp[false] := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SCROLLUPU');
-    BScrollDown[true] := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SCROLLDOWNA');
-    BScrollDown[false] := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SCROLLDOWNU');
-    BScrollMiddle := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SCROLLMIDDLE');
+    BScrollUp[true] := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SCROLLUPA', [TGLHints.txNoRepeat]);
+    BScrollUp[false] := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SCROLLUPU', [TGLHints.txNoRepeat]);
+    BScrollDown[true] := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SCROLLDOWNA', [TGLHints.txNoRepeat]);
+    BScrollDown[false] := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SCROLLDOWNU', [TGLHints.txNoRepeat]);
+    BScrollMiddle := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/SCROLLMIDDLE', []);
 
-    LogoTex := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/MAINLOGO');
-    nopic := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/NOPIC');
+    LogoTex := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/MAINLOGO', [TGLHints.txNoRepeat]);
+    nopic := r_Common_LoadTextureFromFile(GameWad + ':TEXTURES/NOPIC', [TGLHints.txNoRepeat]);
   end;
 
   procedure r_GUI_Free;
