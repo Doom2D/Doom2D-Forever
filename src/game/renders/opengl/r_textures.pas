@@ -120,6 +120,8 @@ interface
       anim: TAnimInfo;
     end;
 
+    TConvProc = function (x: Integer): Integer;
+
   procedure r_Textures_Initialize;
   procedure r_Textures_Finalize;
 
@@ -130,7 +132,7 @@ interface
 
   function r_Textures_LoadStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
 
-  function r_Textures_LoadFontFromFile (const filename: AnsiString; constref f: TFontInfo; skipch: Integer; log: Boolean = true): TGLFont;
+  function r_Textures_LoadFontFromFile (const filename: AnsiString; constref f: TFontInfo; font2enc: TConvProc; log: Boolean = true): TGLFont;
 
 implementation
 
@@ -797,26 +799,28 @@ implementation
 
   (* --------- TGLFont --------- *)
 
-  function r_Textures_LoadFontFromFile (const filename: AnsiString; constref f: TFontInfo; skipch: Integer; log: Boolean = true): TGLFont;
-    var i: Integer; st: TGLTextureArray; font: TGLFont; t: TGLTexture;
+  function r_Textures_LoadFontFromFile (const filename: AnsiString; constref f: TFontInfo; font2enc: TConvProc; log: Boolean = true): TGLFont;
+    var i, ch: Integer; st, stch: TGLTextureArray; font: TGLFont;
   begin
-    ASSERT(skipch >= 0);
     result := nil;
     SetLength(st, 256);
     if r_Textures_LoadStreamFromFile(filename, f.w, f.h, 256, 16, st, nil, log) then
     begin
-      if skipch > 0 then
-      begin
-        for i := 0 to 255 do
-        begin
-          t := st[i];
-          st[i] := st[(i + skipch) mod 256];
-          st[(i + skipch) mod 256] := t;
-        end;
-      end;
       font := TGLFont.Create();
       font.info := f;
       font.ch := st;
+      if Assigned(font2enc) then
+      begin
+        SetLength(stch, 256);
+        for i := 0 to 255 do
+        begin
+          ch := font2enc(i);
+          ASSERT((ch >= 0) and (ch <= 255));
+          stch[ch] := st[i];
+        end;
+        font.ch := stch;
+        SetLength(st, 0);
+      end;
       result := font;
     end;
   end;

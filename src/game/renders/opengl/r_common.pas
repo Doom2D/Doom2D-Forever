@@ -70,7 +70,7 @@ interface
   function r_Common_LoadTextureMultiFromFileAndInfo (const filename: AnsiString; w, h, count: Integer; log: Boolean = True): TGLMultiTexture;
   function r_Common_LoadTextureMultiTextFromFile (const filename: AnsiString; var txt: TAnimTextInfo; log: Boolean = True): TGLMultiTexture;
   function r_Common_LoadTextureStreamFromFile (const filename: AnsiString; w, h, count, cw: Integer; st: TGLTextureArray; rs: TRectArray; log: Boolean = True): Boolean;
-  function r_Common_LoadTextureFontFromFile (const filename: AnsiString; constref f: TFontInfo; skipch: Integer; log: Boolean = true): TGLFont;
+  function r_Common_LoadTextureFontFromFile (const filename: AnsiString; constref f: TFontInfo; font2enc: TConvProc; log: Boolean = true): TGLFont;
 
   procedure r_Common_Load;
   procedure r_Common_Free;
@@ -349,13 +349,22 @@ implementation
       r_Common_DrawBackgroundImage(BackgroundTexture.id)
   end;
 
+  function r_Common_Std2Win (i: Integer): Integer;
+  begin
+    case i of
+      0..223:   result := i + 32;
+      224..255: result := i - 224;
+      otherwise result := -1;
+    end
+  end;
+
   function r_Common_LoadFont (const name: AnsiString): TGLFont;
-    var info: TFontInfo; skiphack: Integer;
+    var info: TFontInfo; p: TConvProc;
   begin
     result := nil;
-    if name = 'STD' then skiphack := 144 else skiphack := 0;
+    if name = 'STD' then p := @r_Common_Std2Win else p := nil;
     if r_Font_LoadInfoFromFile(GameWad + ':FONTS/' + name + 'TXT', info) then
-      result := r_Common_LoadTextureFontFromFile(GameWad + ':FONTS/' + name + 'FONT', info, skiphack, true);
+      result := r_Common_LoadTextureFontFromFile(GameWad + ':FONTS/' + name + 'FONT', info, p, true);
     if result = nil then
       e_logwritefln('failed to load font %s', [name]);
   end;
@@ -439,9 +448,9 @@ implementation
     r_Common_StepLoading(1);
   end;
 
-  function r_Common_LoadTextureFontFromFile (const filename: AnsiString; constref f: TFontInfo; skipch: Integer; log: Boolean = true): TGLFont;
+  function r_Common_LoadTextureFontFromFile (const filename: AnsiString; constref f: TFontInfo; font2enc: TConvProc; log: Boolean = true): TGLFont;
   begin
-    result := r_Textures_LoadFontFromFile (filename, f, skipch, log);
+    result := r_Textures_LoadFontFromFile (filename, f, font2enc, log);
     r_Common_StepLoading(1);
   end;
 
