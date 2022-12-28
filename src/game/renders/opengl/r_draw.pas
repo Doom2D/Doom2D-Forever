@@ -41,6 +41,8 @@ interface
   procedure r_Draw_SetRect (l, t, r, b: Integer);
   procedure r_Draw_GetRect (out l, t, r, b: Integer);
 
+  procedure r_Draw_EnableTexture2D (enable: Boolean);
+
 implementation
 
   uses
@@ -62,6 +64,30 @@ implementation
   var
     sl, st, sr, sb: Integer;
     ScreenWidth, ScreenHeight: Integer;
+
+    enableTexture2D: Boolean;
+    curR, curG, curB, curA: Byte;
+
+  procedure r_Draw_EnableTexture2D (enable: Boolean);
+  begin
+    if enable <> enableTexture2D then
+    begin
+      if enable then glEnable(GL_TEXTURE_2D) else glDisable(GL_TEXTURE_2D);
+      enableTexture2D := enable;
+    end;
+  end;
+
+  procedure r_Draw_SetColor (r, g, b, a: Byte);
+  begin
+    if (r <> curR) or (g <> curG) or (b <> curB) or (curA <> a) then
+    begin
+      glColor4ub(r, g, b, a);
+      curR := r;
+      curG := g;
+      curB := b;
+      curA := a;
+    end;
+  end;
 
   procedure r_Draw_Setup (w, h: Integer);
   begin
@@ -95,9 +121,9 @@ implementation
   begin
     if tile = nil then
     begin
-      glColor4ub(rr, gg, bb, aa);
+      r_Draw_SetColor(rr, gg, bb, aa);
       if blend then glBlendFunc(GL_SRC_ALPHA, GL_ONE) else glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-      glDisable(GL_TEXTURE_2D);
+      r_Draw_EnableTexture2D(false);
       glEnable(GL_BLEND);
       DrawQuad(x, y, w, h);
     end
@@ -110,10 +136,10 @@ implementation
       ay := (tile.t) / nw;
       by := (tile.b + 1) / nh;
       l := x; t := y; r := x + w; b := y + h;
-      glBindTexture(GL_TEXTURE_2D, tile.id);
-      glColor4ub(rr, gg, bb, aa);
+      r_Textures_GL_Bind(tile.id);
+      r_Draw_SetColor(rr, gg, bb, aa);
+      r_Draw_EnableTexture2D(true);
       if blend then glBlendFunc(GL_SRC_ALPHA, GL_ONE) else glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-      glEnable(GL_TEXTURE_2D);
       glEnable(GL_BLEND);
       glBegin(GL_QUADS);
         glTexCoord2f(ax, ay); glVertex2i(r, t);
@@ -121,8 +147,6 @@ implementation
         glTexCoord2f(bx, by); glVertex2i(l, b);
         glTexCoord2f(ax, by); glVertex2i(r, b);
       glEnd();
-      glDisable(GL_TEXTURE_2D);
-      glBindTexture(GL_TEXTURE_2D, 0);
     end
   end;
 
@@ -134,10 +158,10 @@ implementation
     ay := 0 / nw;
     by := h / nh;
     l := x; t := y; r := x + w; b := y + h;
-    glBindTexture(GL_TEXTURE_2D, gltex);
-    glColor4ub(rr, gg, bb, aa);
+    r_Textures_GL_Bind(gltex);
+    r_Draw_SetColor(rr, gg, bb, aa);
+    r_Draw_EnableTexture2D(true);
     if blend then glBlendFunc(GL_SRC_ALPHA, GL_ONE) else glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBegin(GL_QUADS);
       glTexCoord2f(ax, ay); glVertex2i(r, t);
@@ -145,8 +169,6 @@ implementation
       glTexCoord2f(bx, by); glVertex2i(l, b);
       glTexCoord2f(ax, by); glVertex2i(r, b);
     glEnd();
-    glDisable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
   end;
 
   procedure r_Draw_Texture (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
@@ -267,8 +289,8 @@ implementation
     ASSERT(b >= t);
     glEnable(GL_BLEND);
     glBlendFunc(GL_ZERO, GL_SRC_COLOR);
-    glDisable(GL_TEXTURE_2D);
-    glColor4ub(rr, gg, bb, aa);
+    r_Draw_EnableTexture2D(false);
+    r_Draw_SetColor(rr, gg, bb, aa);
     glBegin(GL_QUADS);
       glVertex2i(l, t);
       glVertex2i(r, t);
@@ -283,8 +305,8 @@ implementation
     ASSERT(b >= t);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_TEXTURE_2D);
-    glColor4ub(rr, gg, bb, aa);
+    r_Draw_EnableTexture2D(false);
+    r_Draw_SetColor(rr, gg, bb, aa);
     glBegin(GL_LINE_LOOP);
 {
       glVertex2i(l, t);
@@ -305,8 +327,8 @@ implementation
     ASSERT(b >= t);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_TEXTURE_2D);
-    glColor4ub(rr, gg, bb, aa);
+    r_Draw_EnableTexture2D(false);
+    r_Draw_SetColor(rr, gg, bb, aa);
     glBegin(GL_QUADS);
 {
       glVertex2i(l, t);
@@ -333,8 +355,8 @@ implementation
     ASSERT(b >= t);
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
-    glDisable(GL_TEXTURE_2D);
-    glColor4ub(rr, gg, bb, aa);
+    r_Draw_EnableTexture2D(false);
+    r_Draw_SetColor(rr, gg, bb, aa);
     glBegin(GL_QUADS);
       glVertex2i(l, t);
       glVertex2i(r, t);

@@ -1113,7 +1113,7 @@ implementation
   begin
     if gpart_dbg_enabled and (Particles <> nil) then
     begin
-      glDisable(GL_TEXTURE_2D);
+      r_Draw_EnableTexture2D(false);
       if (g_dbg_scale < 0.6) then
         glPointSize(1)
       else if (g_dbg_scale > 1.3) then
@@ -1132,7 +1132,7 @@ implementation
             fx := nlerp(Particles[i].oldX, Particles[i].x, gLerpFactor);
             fy := nlerp(Particles[i].oldY, Particles[i].y, gLerpFactor);
             glColor4ub(Particles[i].red, Particles[i].green, Particles[i].blue, Particles[i].alpha);
-            glVertex2f(fx, fy);
+            glVertex2i(fx, fy);
           end;
         end;
       glEnd;

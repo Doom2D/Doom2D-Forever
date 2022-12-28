@@ -139,6 +139,8 @@ interface
 
   function r_Textures_LoadFontFromFile (const filename: AnsiString; constref f: TFontInfo; font2enc: TConvProc; log: Boolean = true): TGLFont;
 
+  procedure r_Textures_GL_Bind (id: GLuint);
+
 implementation
 
   uses
@@ -154,6 +156,16 @@ implementation
     r_GL_RepeatOpt: Boolean;
     maxTileSize: Integer;
     atl, ratl: array of TGLAtlas;
+    currentTexture2D: GLuint;
+
+  procedure r_Textures_GL_Bind (id: GLuint);
+  begin
+    if id <> currentTexture2D then
+    begin
+      glBindTexture(GL_TEXTURE_2D, id);
+      currentTexture2D := id;
+    end
+  end;
 
   (* --------- TGLAtlasNode --------- *)
 
@@ -185,9 +197,9 @@ implementation
     ASSERT(n.l + x + w - 1 <= n.r);
     ASSERT(n.t + y + h - 1 <= n.b);
     ASSERT(n.id > 0);
-    glBindTexture(GL_TEXTURE_2D, n.id);
+    r_Textures_GL_Bind(n.id);
     glTexSubImage2D(GL_TEXTURE_2D, 0, n.l + x, n.t + y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    r_Textures_GL_Bind(0);
   end;
 
   (* --------- TGLAtlas --------- *)
@@ -221,13 +233,13 @@ implementation
     glGenTextures(1, @id);
     if id <> 0 then
     begin
-      glBindTexture(GL_TEXTURE_2D, id);
+      r_Textures_GL_Bind(id);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nil);
-      glBindTexture(GL_TEXTURE_2D, 0);
+      r_Textures_GL_Bind(0);
     end;
     result := id
   end;
@@ -472,6 +484,7 @@ implementation
 
   procedure r_Textures_Initialize;
   begin
+    currentTexture2D := 0;
     maxTileSize := r_Textures_GetMaxHardwareSize();
     e_LogWritefln('TEXTURE SIZE: %s', [maxTileSize]);
   end;
