@@ -137,22 +137,24 @@ implementation
     begin
       offx := 0;
       offy := 0;
+      glPushMatrix;
+      glTranslatef(x, y, 0);
+      glScalef(w / img.width, h / img.height, 1);
       for j := 0 to img.lines - 1 do
       begin
         for i := 0 to img.cols - 1 do
         begin
           n := img.GetTile(i, j);
           ASSERT(n <> nil);
-          glPushMatrix;
-          glTranslatef(x + offx, y + offy, 0);
-          glScalef(w / img.width, h / img.height, 1);
           DrawTile(n, 0, 0, n.width, n.height, flip, r, g, b, a, blend);
-          glPopMatrix;
+          glTranslatef(n.width, 0, 0);
           offx := offx + n.width;
         end;
+        glTranslatef(-offx, n.height, 0);
         offx := 0;
         offy := offy + n.height;
       end;
+      glPopMatrix;
     end
   end;
 
