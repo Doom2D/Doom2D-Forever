@@ -318,7 +318,7 @@
   {$IFNDEF USE_SDL2}
     {$FATAL SDL2 required for current Holmes implementation}
   {$ENDIF}
-  {$IFNDEF USE_OPENGL}
+  {$IF NOT DEFINED(USE_OPENGL) AND NOT DEFINED(USE_NEWGL)}
     {$FATAL Desktop OpenGL required for current Holmes implementation}
   {$ENDIF}
 {$ENDIF}

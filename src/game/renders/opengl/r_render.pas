@@ -87,6 +87,9 @@ implementation
     {$IFDEF ENABLE_SYSTEM}
       g_system,
     {$ENDIF}
+    {$IFDEF ENABLE_HOLMES}
+      g_holmes,
+    {$ENDIF}
     SysUtils, Classes, Math,
     g_basic,
     e_log, utils, wadreader, mapdef,
@@ -391,6 +394,13 @@ implementation
     r_Common_GetCameraPos(p, true, xx, yy);
     if p <> nil then
     begin
+      {$IFDEF ENABLE_HOLMES}
+        if p = gPlayer1 then
+        begin
+          g_Holmes_plrViewPos(x, y);
+          g_Holmes_plrViewSize(w, h);
+        end;
+      {$ENDIF}
       r_Map_Draw(x, y, w, h, xx, yy, p);
       r_Render_DrawStatsView(x, y, w, h, p);
       if p.Spectator and p.NoRespawn then
@@ -1107,7 +1117,10 @@ implementation
       if gShowMap then
         r_Render_DrawMiniMap(0, 0, 160);
 
-      // TODO draw holmes inspector
+      {$IFDEF ENABLE_HOLMES}
+        if g_holmes_enabled then
+          g_Holmes_Draw;
+      {$ENDIF}
 
       if MessageText <> '' then
         r_Common_DrawFormatText(MessageText, (gScreenWidth - 196) div 2, gScreenHeight div 2, 255, menufont, TBasePoint.BP_CENTER);
@@ -1215,7 +1228,9 @@ implementation
 
     // TODO draw profilers
 
-    // TODO draw holmes interface
+    {$IFDEF ENABLE_HOLMES}
+      g_Holmes_DrawUI;
+    {$ENDIF}
 
     // TODO draw touch screen controls
 
