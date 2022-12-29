@@ -1491,6 +1491,9 @@ implementation
     r_Map_DrawPanelType(PANEL_FORE);
     // TODO draw monsters health bar
     // TODO draw players health bar
+
+    r_Draw_SetRect(x, y, x + w, y + h);
+
     if gGameSettings.GameMode <> GM_SINGLE then
       r_Map_DrawPlayerIndicators(player, cx, cy, cw, ch);
     if DebugCameraScale <> 1.0 then
