@@ -57,13 +57,16 @@ type
     mClipRect: TGxRect;
     mClipOfs: TGxOfs;
 
-  protected
+  protected (* internal *)
     procedure realizeClip (); // setup scissoring
     procedure setClipOfs (const aofs: TGxOfs); // !!!
 
-  public
+  public (* internal *)
     function setOffset (constref aofs: TGxOfs): TGxOfs; // returns previous offset
     function setClip (constref aclip: TGxRect): TGxRect; // returns previous clip
+    procedure glSetScale (ascale: Single);
+    procedure glSetTrans (ax, ay: Single);
+    procedure glSetScaleTrans (ascale, ax, ay: Single);
 
   protected
     function getFont (): AnsiString; override;
@@ -77,6 +80,8 @@ type
 
     function  getClipRect (): TGxRect; override;
     procedure setClipRect (const aclip: TGxRect); override;
+
+    procedure setScale (a: Single); override;
 
   public
     constructor Create ();
@@ -96,27 +101,8 @@ type
     function drawChar (x, y: Integer; const ch: AnsiChar): Integer; override; // returns char width
     function drawText (x, y: Integer; const s: AnsiString): Integer; override; // returns text width
 
-    function iconMarkWidth (ic: TMarkIcon): Integer; override;
-    function iconMarkHeight (ic: TMarkIcon): Integer; override;
-    procedure drawIconMark (ic: TMarkIcon; x, y: Integer; marked: Boolean); override;
-
-    function iconWinWidth (ic: TWinIcon): Integer; override;
-    function iconWinHeight (ic: TWinIcon): Integer; override;
-    procedure drawIconWin (ic: TWinIcon; x, y: Integer; pressed: Boolean); override;
-
     procedure resetClip (); override;
-
     function combineClip (constref aclip: TGxRect): TGxRect; override; // returns previous clip
-
-    // vertical scrollbar
-    procedure drawVSBar (x, y, wdt, hgt: Integer; cur, min, max: Integer; constref clrfull, clrempty: TGxRGBA); override;
-    // horizontal scrollbar
-    procedure drawHSBar (x, y, wdt, hgt: Integer; cur, min, max: Integer; constref clrfull, clrempty: TGxRGBA); override;
-
-  public //HACK!
-    procedure glSetScale (ascale: Single);
-    procedure glSetTrans (ax, ay: Single);
-    procedure glSetScaleTrans (ascale, ax, ay: Single);
 
   public
     property color: TGxRGBA read mColor write setColor;
@@ -797,26 +783,8 @@ end;
 
 
 procedure TGxContext.onActivate ();
-//ascale: Single; domatrix: Boolean;
-var
-  mt: packed array [0..15] of GLfloat;
 begin
   savedGLState.save();
-//  if (domatrix) then
-//  begin
-//    oglSetup2D(fuiScrWdt, fuiScrHgt);
-//    glScalef(ascale, ascale, 1.0);
-//    self.mScaled := (ascale <> 1.0);
-//    self.mScale := ascale;
-//  end
-//  else
-  begin
-    // assume uniform scale
-    glGetFloatv(GL_MODELVIEW_MATRIX, @mt[0]);
-    self.mScaled := (mt[0] <> 1.0) or (mt[1*4+1] <> 1.0);
-    self.mScale := mt[0];
-    oglSetup2DState();
-  end;
   setupGLColor(mColor);
   realizeClip();
 end;
@@ -1129,151 +1097,10 @@ begin
 end;
 
 
-function TGxContext.iconMarkWidth (ic: TMarkIcon): Integer;
+procedure TGxContext.setScale (a: Single);
 begin
-  {$IFDEF FUI_TEXT_ICONS}
-  case ic of
-    TMarkIcon.Checkbox: result := textWidth('[x]');
-    TMarkIcon.Radiobox: result := textWidth('(*)');
-    else result := textWidth('[x]');
-  end;
-  {$ELSE}
-  result := 11;
-  {$ENDIF}
+  self.glSetScale(a);
 end;
-
-function TGxContext.iconMarkHeight (ic: TMarkIcon): Integer;
-begin
-  {$IFDEF FUI_TEXT_ICONS}
-  case ic of
-    TMarkIcon.Checkbox: result := textHeight('[x]');
-    TMarkIcon.Radiobox: result := textHeight('(*)');
-    else result := textHeight('[x]');
-  end;
-  {$ELSE}
-  result := 8;
-  {$ENDIF}
-end;
-
-procedure TGxContext.drawIconMark (ic: TMarkIcon; x, y: Integer; marked: Boolean);
-var
-  {$IFDEF FUI_TEXT_ICONS}
-  xstr: AnsiString;
-  {$ELSE}
-  f: Integer;
-  {$ENDIF}
-begin
-  if (not self.active) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
-  {$IFDEF FUI_TEXT_ICONS}
-  case ic of
-    TMarkIcon.Checkbox: xstr := '[x]';
-    TMarkIcon.Radiobox: xstr := '(*)';
-    else exit;
-  end;
-  if (marked) then
-  begin
-    drawText(x, y, xstr);
-  end
-  else
-  begin
-    drawChar(x, y, xstr[1]);
-    drawChar(x+textWidth(xstr)-charWidth(xstr[3]), y, xstr[3]);
-  end;
-  {$ELSE}
-  if (ic = TMarkIcon.Checkbox) then
-  begin
-    vline(x, y, 7);
-    vline(x+10, y, 7);
-    hline(x+1, y, 1);
-    hline(x+1, y+6, 1);
-    hline(x+9, y, 1);
-    hline(x+9, y+6, 1);
-  end
-  else
-  begin
-    vline(x, y+1, 5);
-    vline(x+10, y+1, 5);
-    hline(x+1, y, 1);
-    hline(x+1, y+6, 1);
-    hline(x+9, y, 1);
-    hline(x+9, y+6, 1);
-  end;
-  if (not marked) then exit;
-  case ic of
-    TMarkIcon.Checkbox:
-      begin
-        for f := 0 to 4 do
-        begin
-          vline(x+3+f, y+1+f, 1);
-          vline(x+7-f, y+1+f, 1);
-        end;
-      end;
-    TMarkIcon.Radiobox:
-      begin
-        hline(x+4, y+1, 3);
-        hline(x+3, y+2, 5);
-        hline(x+3, y+3, 5);
-        hline(x+3, y+4, 5);
-        hline(x+4, y+5, 3);
-      end;
-  end;
-  {$ENDIF}
-end;
-
-
-function TGxContext.iconWinWidth (ic: TWinIcon): Integer;
-begin
-  {$IFDEF FUI_TEXT_ICONS}
-  case ic of
-    TWinIcon.Close: result := nmax(textWidth('[x]'), textWidth('[#]'));
-    else result := nmax(textWidth('[x]'), textWidth('[#]'));
-  end;
-  {$ELSE}
-  result := 9;
-  {$ENDIF}
-end;
-
-function TGxContext.iconWinHeight (ic: TWinIcon): Integer;
-begin
-  {$IFDEF FUI_TEXT_ICONS}
-  case ic of
-    TWinIcon.Close: result := nmax(textHeight('[x]'), textHeight('[#]'));
-    else result := nmax(textHeight('[x]'), textHeight('[#]'));
-  end;
-  {$ELSE}
-  result := 8;
-  {$ENDIF}
-end;
-
-procedure TGxContext.drawIconWin (ic: TWinIcon; x, y: Integer; pressed: Boolean);
-var
-  {$IFDEF FUI_TEXT_ICONS}
-  xstr: AnsiString;
-  wdt: Integer;
-  {$ELSE}
-  f: Integer;
-  {$ENDIF}
-begin
-  if (not self.active) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
-  {$IFDEF FUI_TEXT_ICONS}
-  case ic of
-    TWinIcon.Close: if (pressed) then xstr := '[#]' else xstr := '[x]';
-    else exit;
-  end;
-  wdt := nmax(textWidth('[x]'), textWidth('[#]'));
-  drawChar(x, y, xstr[1]);
-  drawChar(x+wdt-charWidth(xstr[3]), y, xstr[3]);
-  drawChar(x+((wdt-charWidth(xstr[2])) div 2), y, xstr[2]);
-  {$ELSE}
-  if pressed then rect(x, y, 9, 8);
-  for f := 1 to 5 do
-  begin
-    vline(x+1+f, y+f, 1);
-    vline(x+1+6-f, y+f, 1);
-  end;
-  {$ENDIF}
-end;
-
 
 procedure TGxContext.glSetScale (ascale: Single);
 begin
@@ -1296,34 +1123,6 @@ procedure TGxContext.glSetScaleTrans (ascale, ax, ay: Single);
 begin
   glSetScale(ascale);
   glTranslatef(ax, ay, 0);
-end;
-
-
-// vertical scroll bar
-procedure TGxContext.drawVSBar (x, y, wdt, hgt: Integer; cur, min, max: Integer; constref clrfull, clrempty: TGxRGBA);
-var
-  filled: Integer;
-begin
-  if (wdt < 1) or (hgt < 1) then exit;
-  filled := sbarFilled(hgt, cur, min, max);
-  color := clrfull;
-  fillRect(x, y, wdt, filled);
-  color := clrempty;
-  fillRect(x, y+filled, wdt, hgt-filled);
-end;
-
-
-// horizontal scrollbar
-procedure TGxContext.drawHSBar (x, y, wdt, hgt: Integer; cur, min, max: Integer; constref clrfull, clrempty: TGxRGBA);
-var
-  filled: Integer;
-begin
-  if (wdt < 1) or (hgt < 1) then exit;
-  filled := sbarFilled(wdt, cur, min, max);
-  color := clrfull;
-  fillRect(x, y, filled, hgt);
-  color := clrempty;
-  fillRect(x+filled, y, wdt-filled, hgt);
 end;
 
 
