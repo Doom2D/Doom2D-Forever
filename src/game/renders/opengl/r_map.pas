@@ -236,6 +236,7 @@ implementation
 
   var
     DebugCameraScale: Single;
+    FillOutsizeArea: Boolean;
     SkyTexture: TGLTexture;
     RenTextures: array of record
       spec: LongInt;
@@ -1383,10 +1384,9 @@ implementation
   end;
 
   procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer);
-    var iter: TPanelGrid.Iter; p: PPanel; cx, cy, cw, ch, xx, yy, ww, hh: Integer; sx, sy, sw, sh: LongInt; l, t, r, b: Integer;
+    var iter: TPanelGrid.Iter; p: PPanel; cx, cy, cw, ch, xx, yy, ww, hh, ml, mt, mr, mb, mcx, mcy: Integer; sx, sy, sw, sh: LongInt; l, t, r, b: Integer;
   begin
     r_Draw_GetRect(l, t, r, b);
-    r_Draw_SetRect(x, y, x + w, y + h);
     glTranslatef(x, y, 0);
 
     (* camera rect *)
@@ -1421,6 +1421,17 @@ implementation
       xx := 0;
     if yy < 0 then
       yy := 0;
+
+    (* view bounds *)
+    ml := x; mt := y; mr := x + w; mb := y + h;
+    if FillOutsizeArea and (DebugCameraScale = 1.0) then
+    begin
+      ml := MAX(cx + ml, 0) - cx;
+      mt := MAX(cy + mt, 0) - cy;
+      mr := MIN(cx + mr, gMapInfo.Width - 1) - cx;
+      mb := MIN(cy + mb, gMapInfo.Height - 1) - cy;
+    end;
+    r_Draw_SetRect(ml, mt, mr, mb);
 
     plist.Clear;
     iter := mapGrid.ForEachInAABB(xx, yy, ww, hh, GridDrawableMask);
@@ -1502,5 +1513,7 @@ implementation
 
 initialization
   conRegVar('r_debug_camera_scale', @DebugCameraScale, 0.0001, 1000.0, '', '');
+  conRegVar('r_gl_fill_outside', @FillOutsizeArea, '', '');
   DebugCameraScale := 1.0;
+  FillOutsizeArea := true;
 end.
