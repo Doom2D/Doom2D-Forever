@@ -42,7 +42,8 @@ uses
   xprofiler,
   sdlcarcass,
   fui_common, fui_ctls,
-  fui_gfx_gl,
+  fui_gfx,
+  r_fui_gfx_gl,
   {$IFDEF ENABLE_GFX}
     g_gfx,
   {$ENDIF}
@@ -54,7 +55,7 @@ uses
   MAPDEF, g_options;
 
 var
-  hlmContext: TGxContext = nil;
+  hlmContext: r_fui_gfx_gl.TGxContext = nil;
   vpx, vpy: Integer;
   vpw, vph: Integer;
   laserSet: Boolean = false;
@@ -803,7 +804,7 @@ var
 begin
   if (gPlayer1 = nil) then exit;
 
-  if (hlmContext = nil) then hlmContext := TGxContext.Create();
+  if (hlmContext = nil) then hlmContext := r_fui_gfx_gl.TGxContext.Create();
 
   gxSetContext(hlmContext);
   try

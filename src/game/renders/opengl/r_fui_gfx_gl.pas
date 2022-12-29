@@ -15,15 +15,13 @@
  *)
 {$INCLUDE ../shared/a_modes.inc}
 {$DEFINE FUI_TEXT_ICONS}
-unit fui_gfx_gl;
+unit r_fui_gfx_gl;
 
 interface
 
 uses
-  {$INCLUDE ../nogl/noGLuses.inc}
   SysUtils, Classes,
-  SDL2,
-  sdlcarcass,
+  fui_gfx,
   fui_common, fui_events;
 
 
@@ -45,21 +43,8 @@ type
     property baseLine: Integer read mBaseLine;
   end;
 
-  TGxContext = class
-  public
-    type
-      TMarkIcon = (
-        Checkbox,
-        Radiobox
-      );
-
-    type
-      TWinIcon = (
-        Close
-      );
-
+  TGxContext = class (fui_gfx.TGxContext)
   protected
-    mActive: Boolean;
     mColor: TGxRGBA;
     mFont: TGxFont;
     // for active contexts
@@ -69,59 +54,60 @@ type
     mClipOfs: TGxOfs;
 
   protected
-    function getFont (): AnsiString;
-    procedure setFont (const aname: AnsiString);
-
-    procedure onActivate ();
-    procedure onDeactivate ();
-
-    procedure setColor (const clr: TGxRGBA);
-
     procedure realizeClip (); // setup scissoring
+    procedure setClipOfs (const aofs: TGxOfs); // !!!
 
-    procedure setClipOfs (const aofs: TGxOfs);
-    procedure setClipRect (const aclip: TGxRect);
+  public
+    function setOffset (constref aofs: TGxOfs): TGxOfs; // returns previous offset
+    function setClip (constref aclip: TGxRect): TGxRect; // returns previous clip
+
+  protected
+    function getFont (): AnsiString; override;
+    procedure setFont (const aname: AnsiString); override;
+
+    procedure onActivate (); override;
+    procedure onDeactivate (); override;
+
+    function  getColor (): TGxRGBA; override;
+    procedure setColor (const clr: TGxRGBA); override;
+
+    function  getClipRect (): TGxRect; override;
+    procedure setClipRect (const aclip: TGxRect); override;
 
   public
     constructor Create ();
     destructor Destroy (); override;
 
-    procedure line (x1, y1, x2, y2: Integer);
-    procedure hline (x, y, len: Integer);
-    procedure vline (x, y, len: Integer);
-    procedure rect (x, y, w, h: Integer);
-    procedure fillRect (x, y, w, h: Integer);
-    procedure darkenRect (x, y, w, h: Integer; a: Integer);
+    procedure line (x1, y1, x2, y2: Integer); override;
+    procedure hline (x, y, len: Integer); override;
+    procedure vline (x, y, len: Integer); override;
+    procedure rect (x, y, w, h: Integer); override;
+    procedure fillRect (x, y, w, h: Integer); override;
+    procedure darkenRect (x, y, w, h: Integer; a: Integer); override;
 
-    function charWidth (const ch: AnsiChar): Integer;
-    function charHeight (const ch: AnsiChar): Integer;
-    function textWidth (const s: AnsiString): Integer;
-    function textHeight (const s: AnsiString): Integer;
-    function drawChar (x, y: Integer; const ch: AnsiChar): Integer; // returns char width
-    function drawText (x, y: Integer; const s: AnsiString): Integer; // returns text width
+    function charWidth (const ch: AnsiChar): Integer; override;
+    function charHeight (const ch: AnsiChar): Integer; override;
+    function textWidth (const s: AnsiString): Integer; override;
+    function textHeight (const s: AnsiString): Integer; override;
+    function drawChar (x, y: Integer; const ch: AnsiChar): Integer; override; // returns char width
+    function drawText (x, y: Integer; const s: AnsiString): Integer; override; // returns text width
 
-    function iconMarkWidth (ic: TMarkIcon): Integer;
-    function iconMarkHeight (ic: TMarkIcon): Integer;
-    procedure drawIconMark (ic: TMarkIcon; x, y: Integer; marked: Boolean);
+    function iconMarkWidth (ic: TMarkIcon): Integer; override;
+    function iconMarkHeight (ic: TMarkIcon): Integer; override;
+    procedure drawIconMark (ic: TMarkIcon; x, y: Integer; marked: Boolean); override;
 
-    function iconWinWidth (ic: TWinIcon): Integer;
-    function iconWinHeight (ic: TWinIcon): Integer;
-    procedure drawIconWin (ic: TWinIcon; x, y: Integer; pressed: Boolean);
+    function iconWinWidth (ic: TWinIcon): Integer; override;
+    function iconWinHeight (ic: TWinIcon): Integer; override;
+    procedure drawIconWin (ic: TWinIcon; x, y: Integer; pressed: Boolean); override;
 
-    procedure resetClip ();
+    procedure resetClip (); override;
 
-    function setOffset (constref aofs: TGxOfs): TGxOfs; // returns previous offset
-    function setClip (constref aclip: TGxRect): TGxRect; // returns previous clip
-
-    function combineClip (constref aclip: TGxRect): TGxRect; // returns previous clip
+    function combineClip (constref aclip: TGxRect): TGxRect; override; // returns previous clip
 
     // vertical scrollbar
-    procedure drawVSBar (x, y, wdt, hgt: Integer; cur, min, max: Integer; constref clrfull, clrempty: TGxRGBA);
+    procedure drawVSBar (x, y, wdt, hgt: Integer; cur, min, max: Integer; constref clrfull, clrempty: TGxRGBA); override;
     // horizontal scrollbar
-    procedure drawHSBar (x, y, wdt, hgt: Integer; cur, min, max: Integer; constref clrfull, clrempty: TGxRGBA);
-
-    class function sbarFilled (wh: Integer; cur, min, max: Integer): Integer;
-    class function sbarPos (cxy: Integer; xy, wh: Integer; min, max: Integer): Integer;
+    procedure drawHSBar (x, y, wdt, hgt: Integer; cur, min, max: Integer; constref clrfull, clrempty: TGxRGBA); override;
 
   public //HACK!
     procedure glSetScale (ascale: Single);
@@ -129,29 +115,22 @@ type
     procedure glSetScaleTrans (ascale, ax, ay: Single);
 
   public
-    property active: Boolean read mActive;
     property color: TGxRGBA read mColor write setColor;
-    property font: AnsiString read getFont write setFont;
     property offset: TGxOfs read mClipOfs write setClipOfs;
     property clip: TGxRect read mClipRect write setClipRect; // clipping is unaffected by offset
   end;
 
 
-// set active context; `ctx` can be `nil`
-procedure gxSetContext (ctx: TGxContext; ascale: Single=1.0);
-procedure gxSetContextNoMatrix (ctx: TGxContext);
-
-
 // setup 2D OpenGL mode; will be called automatically in `glInit()`
-procedure oglSetup2D (winWidth, winHeight: Integer; upsideDown: Boolean=false);
-procedure oglSetup2DState (); // don't modify viewports and matrices
+//procedure oglSetup2D (winWidth, winHeight: Integer; upsideDown: Boolean=false);
+//procedure oglSetup2DState (); // don't modify viewports and matrices
 
-procedure oglDrawCursor ();
-procedure oglDrawCursorAt (msX, msY: Integer);
+//procedure oglDrawCursor ();
+//procedure oglDrawCursorAt (msX, msY: Integer);
 
 
-procedure fuiGfxLoadFont (const fontname: AnsiString; const fontFile: AnsiString; proportional: Boolean=false);
-procedure fuiGfxLoadFont (const fontname: AnsiString; st: TStream; proportional: Boolean=false);
+//procedure fuiGfxLoadFont (const fontname: AnsiString; const fontFile: AnsiString; proportional: Boolean=false);
+//procedure fuiGfxLoadFont (const fontname: AnsiString; st: TStream; proportional: Boolean=false);
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -162,6 +141,8 @@ var
 implementation
 
 uses
+  {$INCLUDE ../nogl/noGLuses.inc}
+  sdlcarcass,
   fui_wadread,
   utils;
 
@@ -253,52 +234,17 @@ end;
 
 
 var
-  curCtx: TGxContext = nil;
   savedGLState: TSavedGLState;
 
-
-// ////////////////////////////////////////////////////////////////////////// //
-// set active context; `ctx` can be `nil`
-procedure gxSetContextInternal (ctx: TGxContext; ascale: Single; domatrix: Boolean);
-var
-  mt: packed array [0..15] of GLfloat;
+procedure gxGLPreSetContextCallback;
 begin
   if (savedGLState.saved) then savedGLState.restore();
-
-  if (curCtx <> nil) then
-  begin
-    curCtx.onDeactivate();
-    curCtx.mActive := false;
-  end;
-
-  curCtx := ctx;
-  if (ctx <> nil) then
-  begin
-    ctx.mActive := true;
-    savedGLState.save();
-    if (domatrix) then
-    begin
-      oglSetup2D(fuiScrWdt, fuiScrHgt);
-      glScalef(ascale, ascale, 1.0);
-      ctx.mScaled := (ascale <> 1.0);
-      ctx.mScale := ascale;
-    end
-    else
-    begin
-      // assume uniform scale
-      glGetFloatv(GL_MODELVIEW_MATRIX, @mt[0]);
-      ctx.mScaled := (mt[0] <> 1.0) or (mt[1*4+1] <> 1.0);
-      ctx.mScale := mt[0];
-      oglSetup2DState();
-    end;
-    ctx.onActivate();
-  end;
 end;
 
-
-procedure gxSetContext (ctx: TGxContext; ascale: Single=1.0); begin gxSetContextInternal(ctx, ascale, true); end;
-procedure gxSetContextNoMatrix (ctx: TGxContext); begin gxSetContextInternal(ctx, 1, false); end;
-
+function gxGLCreateContextCallback (): fui_gfx.TGxContext;
+begin
+  result := TGxContext.Create();
+end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
@@ -694,28 +640,6 @@ end;
 }
 
 
-procedure fuiGfxLoadFont (const fontname: AnsiString; const fontFile: AnsiString; proportional: Boolean=false);
-var
-  st: TStream;
-begin
-  if (Length(fontname) = 0) then raise Exception.Create('FlexUI: cannot load nameless font '''+fontFile+'''');
-  st := fuiOpenFile(fontFile);
-  if (st = nil) then raise Exception.Create('FlexUI: cannot load font '''+fontFile+'''');
-  try
-    fuiGfxLoadFont(fontname, st, proportional);
-  except on e: Exception do
-    begin
-      writeln('FlexUI font loadin error: ', e.message);
-      FreeAndNil(st);
-      raise Exception.Create('FlexUI: cannot load font '''+fontFile+'''');
-    end;
-  else
-    raise;
-  end;
-  FreeAndNil(st);
-end;
-
-
 procedure fuiGfxLoadFont (const fontname: AnsiString; st: TStream; proportional: Boolean=false);
 var
   fnt: TGxBmpFont = nil;
@@ -740,6 +664,28 @@ begin
     FreeAndNil(fnt);
     raise;
   end;
+end;
+
+
+procedure fuiGfxLoadFont (const fontname: AnsiString; const fontFile: AnsiString; proportional: Boolean=false);
+var
+  st: TStream;
+begin
+  if (Length(fontname) = 0) then raise Exception.Create('FlexUI: cannot load nameless font '''+fontFile+'''');
+  st := fuiOpenFile(fontFile);
+  if (st = nil) then raise Exception.Create('FlexUI: cannot load font '''+fontFile+'''');
+  try
+    fuiGfxLoadFont(fontname, st, proportional);
+  except on e: Exception do
+    begin
+      writeln('FlexUI font loadin error: ', e.message);
+      FreeAndNil(st);
+      raise Exception.Create('FlexUI: cannot load font '''+fontFile+'''');
+    end;
+  else
+    raise;
+  end;
+  FreeAndNil(st);
 end;
 
 
@@ -810,7 +756,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-{$INCLUDE fui_gfx_gl_cursor.inc}
+{$INCLUDE r_fui_gfx_gl_cursor.inc}
 
 procedure oglDrawCursor (); begin oglDrawCursorAt(fuiMouseX, fuiMouseY); end;
 
@@ -818,7 +764,7 @@ procedure oglDrawCursor (); begin oglDrawCursorAt(fuiMouseX, fuiMouseY); end;
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TGxContext.Create ();
 begin
-  mActive := false;
+  inherited;
   mColor := TGxRGBA.Create(255, 255, 255);
   mFont := getFontByName('default');
   mScaled := false;
@@ -830,7 +776,7 @@ end;
 
 destructor TGxContext.Destroy ();
 begin
-  if (mActive) then gxSetContext(nil);
+  if self.active then gxSetContext(nil);
   inherited;
 end;
 
@@ -847,7 +793,26 @@ end;
 
 
 procedure TGxContext.onActivate ();
+//ascale: Single; domatrix: Boolean;
+var
+  mt: packed array [0..15] of GLfloat;
 begin
+  savedGLState.save();
+//  if (domatrix) then
+//  begin
+//    oglSetup2D(fuiScrWdt, fuiScrHgt);
+//    glScalef(ascale, ascale, 1.0);
+//    self.mScaled := (ascale <> 1.0);
+//    self.mScale := ascale;
+//  end
+//  else
+  begin
+    // assume uniform scale
+    glGetFloatv(GL_MODELVIEW_MATRIX, @mt[0]);
+    self.mScaled := (mt[0] <> 1.0) or (mt[1*4+1] <> 1.0);
+    self.mScale := mt[0];
+    oglSetup2DState();
+  end;
   setupGLColor(mColor);
   realizeClip();
 end;
@@ -857,10 +822,15 @@ begin
 end;
 
 
+function TGxContext.getColor (): TGxRGBA;
+begin
+  result := mColor;
+end;
+
 procedure TGxContext.setColor (const clr: TGxRGBA);
 begin
   mColor := clr;
-  if (mActive) then setupGLColor(mColor);
+  if self.active then setupGLColor(mColor);
 end;
 
 
@@ -868,7 +838,7 @@ procedure TGxContext.realizeClip ();
 var
   sx, sy, sw, sh: Integer;
 begin
-  if (not mActive) then exit; // just in case
+  if not self.active then exit; // just in case
   if (mClipRect.w <= 0) or (mClipRect.h <= 0) then
   begin
     glEnable(GL_SCISSOR_TEST);
@@ -912,7 +882,7 @@ end;
 procedure TGxContext.resetClip ();
 begin
   mClipRect := TGxRect.Create(0, 0, 8192, 8192);
-  if (mActive) then realizeClip();
+  if self.active then realizeClip();
 end;
 
 
@@ -922,10 +892,15 @@ begin
 end;
 
 
+function TGxContext.getClipRect (): TGxRect;
+begin
+  result := mClipRect;
+end;
+
 procedure TGxContext.setClipRect (const aclip: TGxRect);
 begin
   mClipRect := aclip;
-  if (mActive) then realizeClip();
+  if self.active then realizeClip();
 end;
 
 
@@ -940,7 +915,7 @@ function TGxContext.setClip (constref aclip: TGxRect): TGxRect;
 begin
   result := mClipRect;
   mClipRect := aclip;
-  if (mActive) then realizeClip();
+  if self.active then realizeClip();
 end;
 
 
@@ -948,13 +923,13 @@ function TGxContext.combineClip (constref aclip: TGxRect): TGxRect;
 begin
   result := mClipRect;
   mClipRect.intersect(aclip);
-  if (mActive) then realizeClip();
+  if self.active then realizeClip();
 end;
 
 
 procedure TGxContext.line (x1, y1, x2, y2: Integer);
 begin
-  if (not mActive) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
+  if (not self.active) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
 
   if (not mScaled) then
   begin
@@ -988,7 +963,7 @@ end;
 
 procedure TGxContext.hline (x, y, len: Integer);
 begin
-  if (not mActive) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
+  if (not self.active) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
   if (len < 1) then exit;
   if (not mScaled) then
   begin
@@ -1019,7 +994,7 @@ end;
 
 procedure TGxContext.vline (x, y, len: Integer);
 begin
-  if (not mActive) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
+  if (not self.active) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
   if (len < 1) then exit;
   if (not mScaled) then
   begin
@@ -1050,7 +1025,7 @@ end;
 
 procedure TGxContext.rect (x, y, w, h: Integer);
 begin
-  if (not mActive) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
+  if (not self.active) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
   if (w < 0) or (h < 0) then exit;
   if (w = 1) and (h = 1) then
   begin
@@ -1084,7 +1059,7 @@ end;
 
 procedure TGxContext.fillRect (x, y, w, h: Integer);
 begin
-  if (not mActive) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
+  if (not self.active) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
   if (w < 0) or (h < 0) then exit;
   glBegin(GL_QUADS);
     glVertex2f(x, y);
@@ -1097,7 +1072,7 @@ end;
 
 procedure TGxContext.darkenRect (x, y, w, h: Integer; a: Integer);
 begin
-  if (not mActive) or (mClipRect.w < 1) or (mClipRect.h < 1) or (a >= 255) then exit;
+  if (not self.active) or (mClipRect.w < 1) or (mClipRect.h < 1) or (a >= 255) then exit;
   if (w < 0) or (h < 0) then exit;
   if (a < 0) then a := 0;
   glEnable(GL_BLEND);
@@ -1138,14 +1113,14 @@ end;
 function TGxContext.drawChar (x, y: Integer; const ch: AnsiChar): Integer; // returns char width
 begin
   result := mFont.charWidth(ch);
-  if (not mActive) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
+  if (not self.active) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
   TGxBmpFont(mFont).drawCharInternal(x, y, ch);
 end;
 
 function TGxContext.drawText (x, y: Integer; const s: AnsiString): Integer; // returns text width
 begin
   result := mFont.textWidth(s);
-  if (not mActive) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) or (Length(s) = 0) then exit;
+  if (not self.active) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) or (Length(s) = 0) then exit;
   TGxBmpFont(mFont).drawTextInternal(x, y, s);
 end;
 
@@ -1184,7 +1159,7 @@ var
   f: Integer;
   {$ENDIF}
 begin
-  if (not mActive) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
+  if (not self.active) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
   {$IFDEF FUI_TEXT_ICONS}
   case ic of
     TMarkIcon.Checkbox: xstr := '[x]';
@@ -1275,7 +1250,7 @@ var
   f: Integer;
   {$ENDIF}
 begin
-  if (not mActive) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
+  if (not self.active) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
   {$IFDEF FUI_TEXT_ICONS}
   case ic of
     TWinIcon.Close: if (pressed) then xstr := '[#]' else xstr := '[x]';
@@ -1346,33 +1321,6 @@ begin
   color := clrempty;
   fillRect(x+filled, y, wdt-filled, hgt);
 end;
-
-
-class function TGxContext.sbarFilled (wh: Integer; cur, min, max: Integer): Integer;
-begin
-       if (wh < 1) then result := 0
-  else if (min > max) then result := 0
-  else if (min = max) then result := wh
-  else
-  begin
-    if (cur < min) then cur := min else if (cur > max) then cur := max;
-    result := wh*(cur-min) div (max-min);
-  end;
-end;
-
-
-class function TGxContext.sbarPos (cxy: Integer; xy, wh: Integer; min, max: Integer): Integer;
-begin
-  if (wh < 1) then begin result := 0; exit; end;
-  if (min > max) then begin result := 0; exit; end;
-  if (min = max) then begin result := max; exit; end;
-  if (cxy < xy) then begin result := min; exit; end;
-  if (cxy >= xy+wh) then begin result := max; exit; end;
-  result := min+((max-min)*(cxy-xy) div wh);
-  assert((result >= min) and (result <= max));
-end;
-
-
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1446,4 +1394,8 @@ initialization
   postrenderFrameCB := onPostRender;
   oglInitCB := onInit;
   oglDeinitCB := onDeinit;
+
+  gxPreSetContextCallback := gxGLPreSetContextCallback;
+  gxCreateContextCallback := gxGLCreateContextCallback;
+  gxFuiGfxLoadFontCallback := fuiGfxLoadFont;
 end.

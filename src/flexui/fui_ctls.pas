@@ -21,10 +21,9 @@ interface
 
 uses
   SysUtils, Classes,
-  SDL2,
   sdlcarcass,
   fui_common, fui_events, fui_style,
-  fui_gfx_gl,
+  fui_gfx,
   xparser;
 
 
@@ -601,7 +600,7 @@ end;
 procedure uiInitialize ();
 begin
   if (uiContext <> nil) then raise Exception.Create('FlexUI already initialized');
-  uiContext := TGxContext.Create();
+  uiContext := gxCreateContext();
 end;
 
 

@@ -208,6 +208,7 @@ uses
     r_gui in 'renders/opengl/r_gui.pas',
     r_loadscreen in 'renders/opengl/r_loadscreen.pas',
     {$IFDEF ENABLE_HOLMES}
+      r_fui_gfx_gl in 'renders/opengl/r_fui_gfx_gl.pas',
       r_holmes in 'renders/opengl/r_holmes.pas',
     {$ENDIF}
   {$ELSE}
@@ -241,8 +242,7 @@ uses
 
   fui_wadread in '../flexui/fui_wadread.pas',
   fui_common in '../flexui/fui_common.pas',
-//  fui_gfx in '../flexui/fui_gfx.pas',
-  fui_gfx_gl in '../flexui/fui_gfx_gl.pas',
+  fui_gfx in '../flexui/fui_gfx.pas',
   fui_events in '../flexui/fui_events.pas',
   fui_style in '../flexui/fui_style.pas',
   fui_flexlay in '../flexui/fui_flexlay.pas',
@@ -898,11 +898,11 @@ end;
       if not fuiAddWad('./data/flexui.wad') then fuiAddWad('./flexui.wad');
     end;
     try
-      fuiGfxLoadFont('win8', 'flexui/fonts/win8.fuifont');
-      fuiGfxLoadFont('win14', 'flexui/fonts/win14.fuifont');
-      fuiGfxLoadFont('win16', 'flexui/fonts/win16.fuifont');
-      fuiGfxLoadFont('dos8', 'flexui/fonts/dos8.fuifont');
-      fuiGfxLoadFont('msx6', 'flexui/fonts/msx6.fuifont');
+      gxGfxLoadFont('win8', 'flexui/fonts/win8.fuifont');
+      gxGfxLoadFont('win14', 'flexui/fonts/win14.fuifont');
+      gxGfxLoadFont('win16', 'flexui/fonts/win16.fuifont');
+      gxGfxLoadFont('dos8', 'flexui/fonts/dos8.fuifont');
+      gxGfxLoadFont('msx6', 'flexui/fonts/msx6.fuifont');
     except on e: Exception do
       begin
         writeln('ERROR loading FlexUI fonts');
