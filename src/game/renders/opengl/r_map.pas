@@ -40,7 +40,7 @@ interface
 
   procedure r_Map_Update;
 
-  procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer);
+  procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer; out acx, acy: Integer);
 
 implementation
 
@@ -1385,7 +1385,7 @@ implementation
     end;
   end;
 
-  procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer);
+  procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer; out acx, acy: Integer);
     var iter: TPanelGrid.Iter; p: PPanel; cx, cy, cw, ch, xx, yy, ww, hh, ml, mt, mr, mb, mcx, mcy: Integer; sx, sy, sw, sh: LongInt; l, t, r, b: Integer;
   begin
     r_Draw_GetRect(l, t, r, b);
@@ -1414,6 +1414,9 @@ implementation
       else if cy < 0 then
         cy := 0;
     end;
+
+    acx := cx;
+    acy := cy;
 
     (* map bounds *)
     xx := cx;
