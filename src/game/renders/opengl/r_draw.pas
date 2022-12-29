@@ -42,6 +42,7 @@ interface
   procedure r_Draw_GetRect (out l, t, r, b: Integer);
 
   procedure r_Draw_EnableTexture2D (enable: Boolean);
+  procedure r_Draw_SetColor (r, g, b, a: Byte);
 
 implementation
 

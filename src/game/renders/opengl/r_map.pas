@@ -1125,6 +1125,7 @@ implementation
       glEnable(GL_BLEND);
       glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+      r_Draw_SetColor(255, 255, 255, 255);
       glBegin(GL_POINTS);
         for i := 0 to High(Particles) do
         begin
@@ -1137,6 +1138,7 @@ implementation
           end;
         end;
       glEnd;
+      r_Draw_SetColor(0, 0, 0, 255);
 
       glDisable(GL_BLEND);
     end;
