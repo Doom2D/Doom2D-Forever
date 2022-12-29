@@ -307,24 +307,3 @@
   {$UNDEF USE_OPENGL}
   {$UNDEF USE_STUBRENDER}
 {$ENDIF}
-
-{$IFDEF ENABLE_HOLMES}
-  {$IFDEF DISABLE_SYSTEM}
-    {$FATAL System driver required for current Holmes implementation}
-  {$ENDIF}
-  {$IFDEF DISABLE_RENDER}
-    {$FATAL Render driver required for current Holmes implementation}
-  {$ENDIF}
-  {$IFNDEF USE_SDL2}
-    {$FATAL SDL2 required for current Holmes implementation}
-  {$ENDIF}
-  {$IF NOT DEFINED(USE_OPENGL) AND NOT DEFINED(USE_NEWGL)}
-    {$FATAL Desktop OpenGL required for current Holmes implementation}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF ENABLE_TOUCH}
-  {$IFDEF DISABLE_SYSTEM}
-    {$FATAL System driver required for current touch implementation}
-  {$ENDIF}
-{$ENDIF}

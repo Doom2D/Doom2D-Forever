@@ -16,6 +16,10 @@
 {$INCLUDE ../shared/a_modes.inc}
 unit fui_events;
 
+  {$IFNDEF USE_SDL2}
+    {$FATAL SDL2 required for flexui fui_events}
+  {$ENDIF}
+
 interface
 
 uses

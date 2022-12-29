@@ -15,6 +15,10 @@
 {$INCLUDE ../../../shared/a_modes.inc}
 unit r_holmes;
 
+  {$IFDEF USE_GLES1}
+    {$FATAL Desktop OpenGL required for current Holmes implementation}
+  {$ENDIF}
+
 interface
 
 procedure r_Holmes_Draw ();

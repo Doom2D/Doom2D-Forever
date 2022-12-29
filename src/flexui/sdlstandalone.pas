@@ -15,6 +15,10 @@
 {$INCLUDE ../shared/a_modes.inc}
 unit sdlstandalone;
 
+  {$IFNDEF USE_SDL2}
+    {$FATAL SDL2 required for flexui sdlstandalone}
+  {$ENDIF}
+
 interface
 
 uses

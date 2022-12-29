@@ -17,6 +17,10 @@
 {$DEFINE FUI_TEXT_ICONS}
 unit r_fui_gfx_gl;
 
+  {$IFDEF USE_GLES1}
+    {$FATAL Desktop OpenGL required for current flexui implementation}
+  {$ENDIF}
+
 interface
 
 uses
