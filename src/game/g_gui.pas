@@ -992,9 +992,9 @@ begin
     if FButtons[a] <> nil then
       _x := Min(_x, (gScreenWidth div 2)-(FButtons[a].GetWidth div 2));
 
-  lw := 0;
   lh := 0;
   {$IFDEF ENABLE_RENDER}
+    lw := 0;
     if FHeader = nil then
       r_Render_GetLogoSize(lw, lh);
   {$ENDIF}
