@@ -207,6 +207,9 @@ uses
     r_console in 'renders/opengl/r_console.pas',
     r_gui in 'renders/opengl/r_gui.pas',
     r_loadscreen in 'renders/opengl/r_loadscreen.pas',
+    {$IFDEF ENABLE_HOLMES}
+      r_holmes in 'renders/opengl/r_holmes.pas',
+    {$ENDIF}
   {$ELSE}
     {$FATAL render driver not selected}
   {$ENDIF}
@@ -238,6 +241,7 @@ uses
 
   fui_wadread in '../flexui/fui_wadread.pas',
   fui_common in '../flexui/fui_common.pas',
+//  fui_gfx in '../flexui/fui_gfx.pas',
   fui_gfx_gl in '../flexui/fui_gfx_gl.pas',
   fui_events in '../flexui/fui_events.pas',
   fui_style in '../flexui/fui_style.pas',

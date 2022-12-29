@@ -73,6 +73,12 @@ interface
   procedure r_Render_StepLoading (incval: Integer);
   procedure r_Render_DrawLoading (force: Boolean);
 
+  {$IFDEF ENABLE_HOLMES}
+    function pmsCurMapX (): Integer;
+    function pmsCurMapY (): Integer;
+    function r_Render_HolmesViewIsSet (): Boolean;
+  {$ENDIF}
+
 implementation
 
   uses
@@ -88,7 +94,7 @@ implementation
       g_system,
     {$ENDIF}
     {$IFDEF ENABLE_HOLMES}
-      g_holmes,
+      r_holmes,
     {$ENDIF}
     SysUtils, Classes, Math,
     g_basic,
@@ -397,8 +403,8 @@ implementation
       {$IFDEF ENABLE_HOLMES}
         if p = gPlayer1 then
         begin
-          g_Holmes_plrViewPos(x, y);
-          g_Holmes_plrViewSize(w, h);
+          r_Holmes_plrViewPos(x, y);
+          r_Holmes_plrViewSize(w, h);
         end;
       {$ENDIF}
       r_Map_Draw(x, y, w, h, xx, yy, p);
@@ -1118,8 +1124,7 @@ implementation
         r_Render_DrawMiniMap(0, 0, 160);
 
       {$IFDEF ENABLE_HOLMES}
-        if g_holmes_enabled then
-          g_Holmes_Draw;
+        r_Holmes_Draw;
       {$ENDIF}
 
       if MessageText <> '' then
@@ -1229,7 +1234,7 @@ implementation
     // TODO draw profilers
 
     {$IFDEF ENABLE_HOLMES}
-      g_Holmes_DrawUI;
+      r_Holmes_DrawUI;
     {$ENDIF}
 
     // TODO draw touch screen controls
@@ -1332,5 +1337,22 @@ implementation
   begin
     r_Common_DrawLoading(force);
   end;
+
+{$IFDEF ENABLE_HOLMES}
+  function pmsCurMapX (): Integer;
+  begin
+    result := r_holmes.pmsCurMapX();
+  end;
+
+  function pmsCurMapY (): Integer;
+  begin
+    result := r_holmes.pmsCurMapY();
+  end;
+
+  function r_Render_HolmesViewIsSet (): Boolean;
+  begin
+    result := vpSet;
+  end;
+{$ENDIF}
 
 end.
