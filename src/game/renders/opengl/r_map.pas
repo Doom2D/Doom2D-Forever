@@ -1398,13 +1398,18 @@ implementation
     (* camera bounds *)
     if g_dbg_ignore_bounds = false then
     begin
-      if cx + cw > gMapInfo.Width then
-        cx := gMapInfo.Width - cw;
-      if cy + ch > gMapInfo.Height then
-        cy := gMapInfo.Height - ch;
-      if cx < 0 then
+      if w > gMapInfo.Width then
+        cx := gMapInfo.Width div 2 - w div 2
+      else if cx + cw > gMapInfo.Width then
+        cx := gMapInfo.Width - cw
+      else if cx < 0 then
         cx := 0;
-      if cy < 0 then
+
+      if h > gMapInfo.Height then
+        cy := gMapInfo.Height div 2 - h div 2
+      else if cy + ch > gMapInfo.Height then
+        cy := gMapInfo.Height - ch
+      else if cy < 0 then
         cy := 0;
     end;
 
