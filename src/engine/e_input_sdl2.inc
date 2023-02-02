@@ -340,8 +340,6 @@ begin
   e_KeyNames[IK_DOT] := '.';
   e_KeyNames[IK_MINUS] := '-';
   e_KeyNames[IK_EQUALS] := '=';
-  e_KeyNames[IK_RMETA] := 'RMETA';
-  e_KeyNames[IK_LMETA] := 'LMETA';
   e_KeyNames[IK_NONUSBACKSLASH] := 'NONUSBACKSLASH';
 
   // joysticks

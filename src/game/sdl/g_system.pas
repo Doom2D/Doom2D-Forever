@@ -528,8 +528,8 @@ implementation
       SDLK_LCTRL: x := IK_CTRL;
       SDLK_RCTRL: x := IK_RCTRL;
       SDLK_RALT: x := IK_RALT;
-      SDLK_LSUPER: x := IK_WIN;
-      SDLK_RSUPER: x := IK_RWIN;
+      SDLK_LSUPER, SDLK_LMETA: x := IK_WIN;
+      SDLK_RSUPER, SDLK_RMETA: x := IK_RWIN;
       SDLK_MENU: x := IK_MENU;
       SDLK_PRINT: x := IK_PRINTSCR;
       SDLK_SCROLLOCK: x := IK_SCROLLLOCK;
@@ -571,8 +571,6 @@ implementation
       SDLK_PAUSE: x := IK_PAUSE;
       SDLK_A..SDLK_Z: x := IK_A + (key - SDLK_A);
       SDLK_MINUS: x := IK_MINUS;
-      SDLK_RMETA: x := IK_RMETA;
-      SDLK_LMETA: x := IK_LMETA;
     else
       x := IK_INVALID
     end;
