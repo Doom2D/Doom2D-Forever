@@ -40,6 +40,9 @@ interface
 implementation
 
   uses
+    {$IFDEF DARWIN}
+      Keyboards, Events,
+    {$ENDIF}
     SysUtils, SDL, Math,
     {$INCLUDE ../nogl/noGLuses.inc}
     e_log, e_graphics, e_input, e_sound,
@@ -345,6 +348,146 @@ implementation
 
   (* --------- Input --------- *)
 
+{$IFDEF DARWIN}
+  function Mac2Stub (scancode: Integer): Integer;
+  begin
+    (* SDL 2 swap tilda/grave and paragraph/plus-minus buttons on ISO keyboards *)
+    if ((scancode = 10) or (scancode = 50)) and (KBGetLayoutType(LMGetKbdType()) = kKeyboardISO) then
+      scancode := 60 - scancode;
+    case scancode of
+      0: result := IK_A;
+      1: result := IK_S;
+      2: result := IK_D;
+      3: result := IK_F;
+      4: result := IK_H;
+      5: result := IK_G;
+      6: result := IK_Z;
+      7: result := IK_X;
+      8: result := IK_C;
+      9: result := IK_V;
+      10: result := IK_NONUSBACKSLASH;
+      11: result := IK_B;
+      12: result := IK_Q;
+      13: result := IK_W;
+      14: result := IK_E;
+      15: result := IK_R;
+      16: result := IK_Y;
+      17: result := IK_T;
+      18: result := IK_1;
+      19: result := IK_2;
+      20: result := IK_3;
+      21: result := IK_4;
+      22: result := IK_6;
+      23: result := IK_5;
+      24: result := IK_EQUALS;
+      25: result := IK_9;
+      26: result := IK_7;
+      27: result := IK_MINUS;
+      28: result := IK_8;
+      29: result := IK_0;
+      30: result := {IK_RIGHTBRACKET} IK_RBRACKET;
+      31: result := IK_O;
+      32: result := IK_U;
+      33: result := {IK_LEFTBRACKET} IK_LBRACKET;
+      34: result := IK_I;
+      35: result := IK_P;
+      36: result := IK_RETURN;
+      37: result := IK_L;
+      38: result := IK_J;
+      39: result := {IK_APOSTROPHE} IK_QUOTE;
+      40: result := IK_K;
+      41: result := IK_SEMICOLON;
+      42: result := IK_BACKSLASH;
+      43: result := IK_COMMA;
+      44: result := IK_SLASH;
+      45: result := IK_N;
+      46: result := IK_M;
+      47: result := {IK_PERIOD} IK_DOT;
+      48: result := IK_TAB;
+      49: result := IK_SPACE;
+      50: result := IK_GRAVE;
+      51: result := IK_BACKSPACE;
+      52: result := {IK_KP_ENTER} IK_KPRETURN;
+      53: result := IK_ESCAPE;
+      54: result := {IK_RGUI} IK_RWIN;
+      55: result := {IK_LGUI} IK_WIN;
+      56: result := {IK_LSHIFT} IK_SHIFT;
+      57: result := IK_CAPSLOCK;
+      58: result := {IK_LALT} IK_ALT;
+      59: result := {IK_LCTRL} IK_CTRL;
+      60: result := IK_RSHIFT;
+      61: result := IK_RALT;
+      62: result := IK_RCTRL;
+      63: result := {IK_RGUI} IK_RWIN;
+      {64: result := IK_F17;}
+      65: result := {IK_KP_PERIOD} IK_KPDOT;
+      66: result := IK_INVALID; (* unused? *)
+      67: result := {IK_KP_MULTIPLY} IK_KPMULTIPLE;
+      68: result := IK_INVALID; (* unused? *)
+      69: result := {IK_KP_PLUS} IK_KPPLUS;
+      70: result := IK_INVALID; (* unused? *)
+      71: result := {IK_NUMLOCKCLEAR} IK_NUMLOCK;
+      {72: result := IK_VOLUMEUP;}
+      {73: result := IK_VOLUMEDOWN;}
+      {74: result := IK_MUTE;}
+      75: result := {IK_KP_DIVIDE} IK_KPDIVIDE;
+      76: result := {IK_KP_ENTER} IK_KPRETURN;
+      77: result := IK_INVALID; (* unused? *)
+      78: result := {IK_KP_MINUS} IK_KPMINUS;
+      {79: result := IK_F18;}
+      {80: result := IK_F19;}
+      {81: result := IK_KP_EQUALS;}
+      82: result := {IK_KP_0} IK_KPINSERT;
+      83: result := {IK_KP_1} IK_KPEND;
+      84: result := {IK_KP_2} IK_KPDOWN;
+      85: result := {IK_KP_3} IK_KPPAGEDN;
+      86: result := {IK_KP_4} IK_KPLEFT;
+      87: result := {IK_KP_5} IK_KP5;
+      88: result := {IK_KP_6} IK_KPRIGHT;
+      89: result := {IK_KP_7} IK_KPHOME;
+      90: result := IK_INVALID; (* unused? *)
+      91: result := {IK_KP_8} IK_KPUP;
+      92: result := {IK_KP_9} IK_KPPAGEUP;
+      {93: result := IK_INTERNATIONAL3;}
+      {94: result := IK_INTERNATIONAL1;}
+      {95: result := IK_KP_COMMA;}
+      96: result := IK_F5;
+      97: result := IK_F6;
+      98: result := IK_F7;
+      99: result := IK_F3;
+      100: result := IK_F8;
+      101: result := IK_F9;
+      {102: result := IK_LANG2;}
+      103: result := IK_F11;
+      {104: result := IK_LANG1;}
+      105: result := {IK_PRINTSCREEN} IK_PRINTSCR;
+      {106: result := IK_F16;}
+      107: result := IK_SCROLLLOCK;
+      108: result := IK_INVALID; (* unused? *)
+      109: result := IK_F10;
+      {110: result := IK_APPLICATION;}
+      111: result := IK_F12;
+      112: result := IK_INVALID; (* unused? *)
+      113: result := IK_PAUSE;
+      114: result := IK_INSERT;
+      115: result := IK_HOME;
+      116: result := IK_PAGEUP;
+      117: result := IK_DELETE;
+      118: result := IK_F4;
+      119: result := IK_END;
+      120: result := IK_F2;
+      121: result := {IK_PAGEDOWN} IK_PAGEDN;
+      122: result := IK_F1;
+      123: result := IK_LEFT;
+      124: result := IK_RIGHT;
+      125: result := IK_DOWN;
+      126: result := IK_UP;
+      {127: result := IK_POWER;}
+    otherwise result := IK_INVALID
+    end
+  end;
+{$ENDIF}
+
   function Key2Stub (key: Integer): Integer;
     var x: Integer;
   begin
@@ -439,12 +582,17 @@ implementation
   procedure HandleKeyboard (var ev: TSDL_KeyboardEvent);
     var down, repeated: Boolean; key: Integer; ch: Char;
   begin
-    key := Key2Stub(ev.keysym.sym);
+    key := IK_INVALID;
+    {$IFDEF DARWIN}
+      key := Mac2Stub(ev.keysym.scancode);
+    {$ENDIF}
+    if key = IK_INVALID then
+      key := Key2Stub(ev.keysym.sym);
     down := (ev.type_ = SDL_KEYDOWN);
     repeated := down and e_KeyPressed(key);
     ch := wchar2win(WideChar(ev.keysym.unicode));
     if g_dbg_input then
-      e_LogWritefln('Input Debug: keysym, down=%s, sym=%s, state=%s, unicode=%s, stubsym=%s, cp1251=%s', [down, ev.keysym.sym, ev.state, ev.keysym.unicode, key, Ord(ch)]);
+      e_LogWritefln('Input Debug: keysym, scancode=%s, down=%s, sym=%s, state=%s, unicode=%s, stubsym=%s, cp1251=%s', [ev.keysym.scancode, down, ev.keysym.sym, ev.state, ev.keysym.unicode, key, Ord(ch)]);
     if not repeated then
     begin
       e_KeyUpDown(key, down);

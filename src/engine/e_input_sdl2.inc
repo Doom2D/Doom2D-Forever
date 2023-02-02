@@ -127,6 +127,7 @@ const
   IK_T       = SDL_SCANCODE_T;
   IK_Z       = SDL_SCANCODE_Z;
   IK_MINUS   = SDL_SCANCODE_MINUS;
+  IK_NONUSBACKSLASH = SDL_SCANCODE_NONUSBACKSLASH;
   // TODO: think of something better than this shit
   IK_LASTKEY = SDL_NUM_SCANCODES-1;
 
@@ -339,6 +340,9 @@ begin
   e_KeyNames[IK_DOT] := '.';
   e_KeyNames[IK_MINUS] := '-';
   e_KeyNames[IK_EQUALS] := '=';
+  e_KeyNames[IK_RMETA] := 'RMETA';
+  e_KeyNames[IK_LMETA] := 'LMETA';
+  e_KeyNames[IK_NONUSBACKSLASH] := 'NONUSBACKSLASH';
 
   // joysticks
   for j := 0 to e_MaxJoys-1 do
