@@ -42,6 +42,9 @@ implementation
   uses
     {$IFDEF DARWIN}
       Keyboards, Events,
+      {$IFDEF CPU64}
+        {$linkframework Carbon}
+      {$ENDIF}
     {$ENDIF}
     SysUtils, SDL, Math,
     {$INCLUDE ../nogl/noGLuses.inc}
