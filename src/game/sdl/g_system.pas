@@ -40,7 +40,7 @@ interface
 implementation
 
   uses
-    {$IFDEF DARWIN}
+    {$IF DEFINED(DARWIN) OR DEFINED(MACOS)}
       Keyboards, Events,
       {$IFDEF CPU64}
         {$linkframework Carbon}
@@ -52,11 +52,12 @@ implementation
     g_options, g_window, g_console, g_game, g_menu, g_gui, g_main, g_basic;
 
   const
-    GameTitle = 'Doom 2D: Forever (SDL 1.2, %s)';
+    GameTitle = 'Doom 2D: Forever (SDL 1.2, %s, %s)';
 
   var
     userResize: Boolean;
     modeResize: Integer;
+    useScancodes: Boolean;
     screen: PSDL_Surface;
     JoystickHandle: array [0..e_MaxJoys - 1] of PSDL_Joystick;
     JoystickHatState: array [0..e_MaxJoys - 1, 0..e_MaxJoyHats - 1, HAT_LEFT..HAT_DOWN] of Boolean;
@@ -130,13 +131,21 @@ implementation
     g_Game_ClearLoading;
   end;
 
+  function GetDriver (): AnsiString;
+    var buf: array [0..31] of AnsiChar;
+  begin
+    buf := '';
+    SDL_VideoDriverName(buf, Length(buf));
+    result := AnsiString(buf);
+  end;
+
   function GetTitle (): AnsiString;
     var info: AnsiString;
   begin
     info := g_GetBuildHash(false);
     if info = 'custom build' then
       info := info + ' by ' + g_GetBuilderName() + ' ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME;
-    result := Format(GameTitle, [info]);
+    result := Format(GameTitle, [GetDriver(), info]);
   end;
 
   function InitWindow (w, h, bpp: Integer; fullScreen: Boolean): Boolean;
@@ -351,7 +360,26 @@ implementation
 
   (* --------- Input --------- *)
 
-{$IFDEF DARWIN}
+{$IF DEFINED(DARWIN) OR DEFINED(MACOS)}
+  var
+    IsMacPlatform: Boolean;
+
+  function IsMacModSym (sym: Integer): Boolean;
+  begin
+    case sym of
+      SDLK_NUMLOCK,
+      SDLK_CAPSLOCK,
+      SDLK_RCTRL, SDLK_LCTRL,
+      SDLK_RSHIFT, SDLK_LSHIFT,
+      SDLK_RALT, SDLK_LALT,
+      SDLK_RSUPER, SDLK_LSUPER,
+      SDLK_RMETA, SDLK_LMETA:
+        result := true;
+      otherwise
+        result := false;
+    end;
+  end;
+
   function Mac2Stub (scancode: Integer): Integer;
   begin
     (* SDL 2 swap tilda/grave and paragraph/plus-minus buttons on ISO keyboards *)
@@ -584,9 +612,14 @@ implementation
     var down, repeated: Boolean; key: Integer; ch: Char;
   begin
     key := IK_INVALID;
-    {$IFDEF DARWIN}
-      key := Mac2Stub(ev.keysym.scancode);
-    {$ENDIF}
+    if useScancodes then
+    begin
+      {$IF DEFINED(DARWIN) OR DEFINED(MACOS)}
+        if IsMacPlatform then
+          if IsMacModSym(ev.keysym.sym) = false then
+            key := Mac2Stub(ev.keysym.scancode);
+      {$ENDIF}
+    end;
     if key = IK_INVALID then
       key := Key2Stub(ev.keysym.sym);
     down := (ev.type_ = SDL_KEYDOWN);
@@ -646,7 +679,7 @@ implementation
   (* --------- Init --------- *)
 
   procedure sys_Init;
-    var flags: Uint32; i: Integer;
+    var flags: Uint32; i: Integer; name: AnsiString;
   begin
     e_WriteLog('Init SDL', TMsgType.Notify);
     flags := SDL_INIT_VIDEO or SDL_INIT_AUDIO or
@@ -654,6 +687,11 @@ implementation
              (*or SDL_INIT_NOPARACHUTE*);
     if SDL_Init(flags) <> 0 then
       raise Exception.Create('SDL: Init failed: ' + SDL_GetError);
+    name := GetDriver();
+    e_LogWritefln('SDL: Video Driver "%s"', [name]);
+    {$IF DEFINED(DARWIN) OR DEFINED(MACOS)}
+      IsMacPlatform := (name = 'Quartz') or (name = 'toolbox') or (name = 'DSp');
+    {$ENDIF}
     SDL_EnableUNICODE(1);
     SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
     for i := 0 to e_MaxJoys - 1 do
@@ -678,6 +716,8 @@ initialization
   (* window resize are broken both on linux and osx, so disabled by default *)
   conRegVar('sdl_allow_resize', @userResize, 'allow to resize window by user', 'allow to resize window by user');
   conRegVar('sdl_resize_action', @modeResize, 'set window resize mode (0: ignore, 1: change, 2: reset)', '');
+  conRegVar('sdl_use_scancodes', @useScancodes, 'use platform-specific scancodes when possible', '');
   userResize := false;
   modeResize := 0;
+  useScancodes := true;
 end.
