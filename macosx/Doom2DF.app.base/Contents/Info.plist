@@ -3,9 +3,9 @@
 <plist version="1.0">
 	<dict>
 		<key>CFBundleGetInfoString</key>
-		<string>Copyleft 2003-2019 Doom 2D: Forever Developers</string>
+		<string>Copyleft 2003-2023 Doom 2D: Forever Developers</string>
 		<key>NSHumanReadableCopyright</key>
-		<string>Copyleft 2003-2019 Doom 2D: Forever Developers</string>
+		<string>Copyleft 2003-2023 Doom 2D: Forever Developers</string>
 		<key>CFBundleExecutable</key>
 		<string>Doom2DF</string>
 		<key>CFBundleIdentifier</key>
