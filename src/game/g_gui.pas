@@ -552,7 +552,7 @@ implementation
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
   g_textures, g_sound, SysUtils, e_res,
-  g_game, Math, StrUtils, g_player, g_options,
+  g_game, Math, StrUtils, g_player, g_options, g_console,
   g_map, g_weapons, xdynrec, wadreader;
 
 
@@ -2472,7 +2472,7 @@ begin
                 actDefCtl();
               end;
           else
-            if e_KeyNames[wParam] <> '' then
+            if (e_KeyNames[wParam] <> '') and not g_Console_MatchBind(wParam, 'togglemenu') then
               FKey := wParam;
             FIsQuery := False;
             actDefCtl();
@@ -2620,7 +2620,7 @@ begin
                 actDefCtl();
               end;
           else
-            if e_KeyNames[wParam] <> '' then
+            if (e_KeyNames[wParam] <> '') and not g_Console_MatchBind(wParam, 'togglemenu') then
             begin
               if (FKeyIdx = 0) then FKey0 := wParam else FKey1 := wParam;
             end;
