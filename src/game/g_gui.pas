@@ -2443,58 +2443,40 @@ begin
   with Msg do
     case Msg of
       WM_KEYDOWN:
-        case wParam of
-          VK_ESCAPE:
-            begin
-              if FIsQuery then actDefCtl();
-              FIsQuery := False;
-            end;
-          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
-            begin
-              if not FIsQuery then
-                begin
-                  with FWindow do
-                    if FActiveControl <> Self then
-                      SetActive(Self);
-
-                  FIsQuery := True;
-                end
-              else if (wParam < VK_FIRSTKEY) and (wParam > VK_LASTKEY) then
-                begin
-                  // FKey := IK_ENTER; // <Enter>
-                  FKey := wParam;
-                  FIsQuery := False;
-                  actDefCtl();
-                end;
-            end;
-          IK_BACKSPACE: // clear keybinding if we aren't waiting for a key
-            begin
-              if not FIsQuery then
+        if not FIsQuery then
+        begin
+          case wParam of
+            IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
+              begin
+                with FWindow do
+                  if FActiveControl <> Self then
+                    SetActive(Self);
+                FIsQuery := True;
+              end;
+            IK_BACKSPACE: // clear keybinding if we aren't waiting for a key
               begin
                 FKey := 0;
                 actDefCtl();
               end;
-            end;
-        end;
-
-      MESSAGE_DIKEY:
+          else
+            FIsQuery := False;
+            actDefCtl();
+          end;
+        end
+        else
         begin
-          if not FIsQuery and (wParam = IK_BACKSPACE) then
-          begin
-            FKey := 0;
+          case wParam of
+            VK_FIRSTKEY..VK_LASTKEY: // do not allow to bind virtual keys
+              begin
+                FIsQuery := False;
+                actDefCtl();
+              end;
+          else
+            if e_KeyNames[wParam] <> '' then
+              FKey := wParam;
+            FIsQuery := False;
             actDefCtl();
           end
-          else if FIsQuery then
-          begin
-            case wParam of
-              IK_ENTER, IK_KPRETURN, VK_FIRSTKEY..VK_LASTKEY (*, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK*): // Not <Enter
-            else
-              if e_KeyNames[wParam] <> '' then
-                FKey := wParam;
-              FIsQuery := False;
-              actDefCtl();
-            end
-          end;
         end;
     end;
 
@@ -2599,72 +2581,52 @@ begin
   with Msg do
     case Msg of
       WM_KEYDOWN:
-        case wParam of
-          VK_ESCAPE:
-            begin
-              if FIsQuery then actDefCtl();
-              FIsQuery := False;
-            end;
-          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
-            begin
-              if not FIsQuery then
-                begin
-                  with FWindow do
-                    if FActiveControl <> Self then
-                      SetActive(Self);
-
-                  FIsQuery := True;
-                end
-              else if (wParam < VK_FIRSTKEY) and (wParam > VK_LASTKEY) then
-                begin
-                  // if (FKeyIdx = 0) then FKey0 := IK_ENTER else FKey1 := IK_ENTER; // <Enter>
-                  if (FKeyIdx = 0) then FKey0 := wParam else FKey1 := wParam;
-                  FIsQuery := False;
-                  actDefCtl();
-                end;
-            end;
-          IK_BACKSPACE: // clear keybinding if we aren't waiting for a key
-            begin
-              if not FIsQuery then
+        if not FIsQuery then
+        begin
+          case wParam of
+            IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
+              begin
+                with FWindow do
+                  if FActiveControl <> Self then
+                    SetActive(Self);
+                FIsQuery := True;
+              end;
+            IK_BACKSPACE: // clear keybinding if we aren't waiting for a key
               begin
                 if (FKeyIdx = 0) then FKey0 := 0 else FKey1 := 0;
                 actDefCtl();
               end;
-            end;
-          IK_LEFT, IK_KPLEFT, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
-            if not FIsQuery then
-            begin
-              FKeyIdx := 0;
-              actDefCtl();
-            end;
-          IK_RIGHT, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
-            if not FIsQuery then
-            begin
-              FKeyIdx := 1;
-              actDefCtl();
-            end;
-        end;
-
-      MESSAGE_DIKEY:
-        begin
-          if not FIsQuery and (wParam = IK_BACKSPACE) then
-          begin
-            if (FKeyIdx = 0) then FKey0 := 0 else FKey1 := 0;
-            actDefCtl();
-          end
-          else if FIsQuery then
-          begin
-            case wParam of
-              IK_ENTER, IK_KPRETURN, VK_FIRSTKEY..VK_LASTKEY (*, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK*): // Not <Enter
-            else
-              if e_KeyNames[wParam] <> '' then
+            IK_LEFT, IK_KPLEFT, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
               begin
-                if (FKeyIdx = 0) then FKey0 := wParam else FKey1 := wParam;
+                FKeyIdx := 0;
+                actDefCtl();
               end;
-              FIsQuery := False;
-              actDefCtl()
-            end
+            IK_RIGHT, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
+              begin
+                FKeyIdx := 1;
+                actDefCtl();
+              end;
+          else
+            FIsQuery := False;
+            actDefCtl();
           end;
+        end
+        else
+        begin
+          case wParam of
+            VK_FIRSTKEY..VK_LASTKEY: // do not allow to bind virtual keys
+              begin
+                FIsQuery := False;
+                actDefCtl();
+              end;
+          else
+            if e_KeyNames[wParam] <> '' then
+            begin
+              if (FKeyIdx = 0) then FKey0 := wParam else FKey1 := wParam;
+            end;
+            FIsQuery := False;
+            actDefCtl()
+          end
         end;
     end;
 

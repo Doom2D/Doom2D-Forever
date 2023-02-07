@@ -1943,10 +1943,13 @@ begin
   i := 0;
   while (n >= 1) and (i < e_MaxInputKeys) do
   begin
-    if g_Console_MatchBind(i, down, up) then
+    if (i < VK_FIRSTKEY) or (i > VK_LASTKEY) then (* never show virtual keys in gui *)
     begin
-      result := i;
-      dec(n)
+      if g_Console_MatchBind(i, down, up) then
+      begin
+        result := i;
+        dec(n)
+      end;
     end;
     inc(i)
   end;
