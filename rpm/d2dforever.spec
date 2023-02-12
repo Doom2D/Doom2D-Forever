@@ -56,7 +56,7 @@ cd ../..
 rm -R tmp
 mkdir tmp
 cd src/game
-fpc -g -gl -FE../../bin -FU../../tmp -dUSE_SYSSTUB -dUSE_OPENAL -dUSE_XMP -dUSE_VORBIS -dUSE_MODPLUG -dUSE_OPUS -dUSE_GME -dUSE_HEADLESS -oDoom2DF_H Doom2DF.lpr
+fpc -g -gl -FE../../bin -FU../../tmp -dUSE_SYSSTUB -dUSE_OPENAL -dUSE_XMP -dUSE_VORBIS -dUSE_MODPLUG -dUSE_OPUS -dUSE_GME -dHEADLESS -oDoom2DF_H Doom2DF.lpr
 
 %install
 
