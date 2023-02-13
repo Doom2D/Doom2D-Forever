@@ -37,7 +37,7 @@ interface
   procedure r_Draw_Text (const text: AnsiString; x, y: Integer; r, g, b, a: Byte; f: TGLFont);
   procedure r_Draw_GetTextSize (const text: AnsiString; f: TGLFont; out w, h: Integer);
 
-  procedure r_Draw_Setup (w, h: Integer);
+  procedure r_Draw_Setup (sw, sh, gw, gh: Integer);
   procedure r_Draw_SetRect (l, t, r, b: Integer);
   procedure r_Draw_GetRect (out l, t, r, b: Integer);
 
@@ -65,6 +65,7 @@ implementation
   var
     sl, st, sr, sb: Integer;
     ScreenWidth, ScreenHeight: Integer;
+    GameWidth, GameHeight: Integer;
 
     enableTexture2D: Boolean;
     curR, curG, curB, curA: Byte;
@@ -90,21 +91,23 @@ implementation
     end;
   end;
 
-  procedure r_Draw_Setup (w, h: Integer);
+  procedure r_Draw_Setup (sw, sh, gw, gh: Integer);
   begin
-    ASSERT(w >= 0);
-    ASSERT(h >= 0);
-    ScreenWidth := w;
-    ScreenHeight := h;
-    glScissor(0, 0, w, h);
-    glViewport(0, 0, w, h);
+    ASSERT((sw >= 0) and (sh >= 0)); // screen/window size
+    ASSERT((gw >= 0) and (gh >= 0)); // virtual screen size
+    ScreenWidth := sw;
+    ScreenHeight := sh;
+    GameWidth := gw;
+    GameHeight := gh;
+    glScissor(0, 0, sw, sh);
+    glViewport(0, 0, sw, sh);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity;
-    glOrtho(0, w, h, 0, 0, 1);
+    glOrtho(0, gw, gh, 0, 0, 1);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity;
     glEnable(GL_SCISSOR_TEST);
-    r_Draw_SetRect(0, 0, w - 1, h - 1);
+    r_Draw_SetRect(0, 0, gw - 1, gh - 1);
   end;
 
   procedure DrawQuad (x, y, w, h: Integer);
@@ -396,13 +399,15 @@ implementation
   end;
 
   procedure r_Draw_SetRect (l, t, r, b: Integer);
-    var w, h: Integer;
+    var x, y, w, h: Integer;
   begin
     ASSERT(l <= r);
     ASSERT(t <= b);
-    w := r - l + 1;
-    h := b - t + 1;
-    glScissor(l, ScreenHeight - h - t, w, h);
+    x := l * ScreenWidth div GameWidth;
+    y := t * ScreenHeight div GameHeight;
+    w := (r - l + 1) * ScreenWidth div GameWidth;
+    h := (b - t + 1) * ScreenHeight div GameHeight;
+    glScissor(x, ScreenHeight - h - y, w, h);
     sl := l; st := t; sr := r; sb := b;
   end;
 

@@ -142,7 +142,7 @@ implementation
       xx := gScreenWidth div 3;
       yy := gScreenHeight div 3;
       hh := gScreenHeight - yy - 96;
-      r_Draw_Setup(gScreenWidth, gScreenHeight);
+      r_Draw_Setup(gWinSizeX, gWinSizeY, gScreenWidth, gScreenHeight);
       glClearColor(0.0, 0.0, 0.0, 0.0);
       glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT);
       r_Common_DrawBackground(GameWad + ':TEXTURES/INTER');

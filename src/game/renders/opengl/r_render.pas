@@ -1056,7 +1056,7 @@ implementation
       FPSTime := time;
     end;
 
-    r_Draw_Setup(gScreenWidth, gScreenHeight);
+    r_Draw_Setup(gWinSizeX, gWinSizeY, gScreenWidth, gScreenHeight);
 
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT);
@@ -1248,8 +1248,8 @@ implementation
     gWinSizeY := h;
     gRC_Width := w;
     gRC_Height := h;
-    gScreenWidth := w;
-    gScreenHeight := h;
+    gScreenWidth := Round(w / r_pixel_scale);
+    gScreenHeight := Round(h / r_pixel_scale);
   end;
 
   procedure r_Render_Apply;
