@@ -57,7 +57,8 @@ implementation
     es_glFlush: procedure; cdecl;
     es_glFinish: procedure; cdecl;
 
-    es_glOrthof: procedure (left, right, bottom, top, near, far: GLfloat); cdecl;
+    es_glMultMatrixf: procedure (m: PGLfloat); cdecl;
+    //es_glOrthof: procedure (left, right, bottom, top, near, far: GLfloat); cdecl;
     es_glLoadIdentity: procedure; cdecl;
     es_glMatrixMode: procedure (mode: GLenum); cdecl;
     es_glLoadMatrixf: procedure (m: PGLfloat); cdecl;
@@ -297,9 +298,27 @@ implementation
 
 
 
-  procedure glOrtho (left, right, bottom, top, near, far: GLfloat);
+  procedure glOrtho (left, right, bottom, top, near, far: GLdouble);
+    var m: array [0..15] of GLfloat;
   begin
-    es_glOrthof(left, right, bottom, top, near, far);
+    {es_glOrthof(left, right, bottom, top, near, far);}
+    m[0] := 2 / (right - left);
+    m[1] := 0;
+    m[2] := 0;
+    m[3] := 0;
+    m[4] := 0;
+    m[5] := 2 / (top - bottom);
+    m[6] := 0;
+    m[7] := 0;
+    m[8] := 0;
+    m[9] := 0;
+    m[10] := -2 / (far - near);
+    m[11] := 0;
+    m[12] := -((right + left) / (right - left));
+    m[13] := -((top + bottom) / (top - bottom));
+    m[14] := -((far + near) / (far - near));
+    m[15] := 1;
+    es_glMultMatrixf(@m[0]);
   end;
 
   procedure glLoadIdentity;
@@ -514,7 +533,8 @@ implementation
     es_glFlush := SDL_GL_GetProcAddress('glFlush');
     es_glFinish := SDL_GL_GetProcAddress('glFinish');
 
-    es_glOrthof := SDL_GL_GetProcAddress('glOrthof');
+    es_glMultMatrixf := SDL_GL_GetProcAddress('glMultMatrixf');
+    //es_glOrthof := SDL_GL_GetProcAddress('glOrthof');
     es_glLoadIdentity := SDL_GL_GetProcAddress('glLoadIdentity');
     es_glMatrixMode := SDL_GL_GetProcAddress('glMatrixMode');
     es_glLoadMatrixf := SDL_GL_GetProcAddress('glLoadMatrixf');
@@ -583,7 +603,8 @@ implementation
     es_glFlush := nil;
     es_glFinish := nil;
 
-    es_glOrthof := nil;
+    es_glMultMatrixf := nil;
+    //es_glOrthof := nil;
     es_glLoadIdentity := nil;
     es_glMatrixMode := nil;
     es_glLoadMatrixf := nil;

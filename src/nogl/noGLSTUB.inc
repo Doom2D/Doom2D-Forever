@@ -99,7 +99,7 @@ implementation
   begin
   end;
 
-  procedure glOrtho (left, right, bottom, top, near, far: GLfloat);
+  procedure glOrtho (left, right, bottom, top, near, far: GLdouble);
   begin
   end;
 

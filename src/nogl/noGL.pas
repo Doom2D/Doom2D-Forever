@@ -174,7 +174,7 @@ interface
 
   procedure glReadPixels(x, y: GLint; width, height: GLsizei; format, atype: GLenum; pixels: Pointer);
 
-  procedure glOrtho (left, right, bottom, top, near, far: GLfloat);
+  procedure glOrtho (left, right, bottom, top, near, far: GLdouble);
   procedure glLoadIdentity;
   procedure glScissor(x, y: GLint; width, height: GLsizei);
   procedure glViewport(x, y: GLint; width, height: GLsizei);
