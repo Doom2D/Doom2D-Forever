@@ -323,7 +323,7 @@ implementation
 
     if gShowScore and (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
     begin
-      (* RED TEAM GOALS *)
+      (* RED TEAM SCORE *)
       fw := 0;
       if gGameSettings.GameMode = GM_CTF then
       begin
@@ -340,7 +340,7 @@ implementation
       end;
       r_Common_DrawText(IntToStr(gTeamStat[TEAM_RED].Score), x + w - 16 - fw, y + 240 - 72 - 4, TEAMCOLOR[TEAM_RED].R, TEAMCOLOR[TEAM_RED].G, TEAMCOLOR[TEAM_RED].B, 255, menufont, TBasePoint.BP_RIGHTUP);
 
-      (* BLUE TEAM GOALS *)
+      (* BLUE TEAM SCORE *)
       fw := 0;
       if gGameSettings.GameMode = GM_CTF then
       begin
@@ -557,7 +557,7 @@ implementation
     w3 := cw * 8;           (* frags width *)
     w2 := cw * 12;          (* ping/loss width *)
     w1 := w - w2 - w3 - w4; (* name width *)
-    tw := w1 - cw * 2 - w2; (* team goals *)
+    tw := w1 - cw * 2 - w2; (* team score *)
     if cs.PlayerStat = nil then players := 0 else players := Length(cs.PlayerStat);
     yy := y;
     if cs.GameMode in [GM_TDM, GM_CTF] then

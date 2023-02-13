@@ -167,35 +167,9 @@ uses
   {$ENDIF}
 
 {$IFDEF ENABLE_RENDER}
-  {$IF DEFINED(USE_OPENGL) OR DEFINED(USE_GLES1) OR DEFINED(USE_GLSTUB)}
-    {$I ../shared/vampimg.inc}
-    r_animations in 'opengl/r_animations.pas',
-    r_console in 'opengl/r_console.pas',
-    r_game in 'opengl/r_game.pas',
-    {$IFDEF ENABLE_GFX}
-      r_gfx in 'opengl/r_gfx.pas',
-    {$ENDIF}
-    r_graphics in 'opengl/r_graphics.pas',
-    r_items in 'opengl/r_items.pas',
-    r_map in 'opengl/r_map.pas',
-    r_monsters in 'opengl/r_monsters.pas',
-    r_netmaster in 'opengl/r_netmaster.pas',
-    r_player in 'opengl/r_player.pas',
-    r_playermodel in 'opengl/r_playermodel.pas',
-    r_render in 'opengl/r_render.pas',
-    r_texture in 'opengl/r_texture.pas',
-    r_textures in 'opengl/r_textures.pas',
-    r_weapons in 'opengl/r_weapons.pas',
-    r_window in 'opengl/r_window.pas',
-    {$IFDEF ENABLE_TOUCH}
-      r_touch in 'opengl/r_touch.pas',
-    {$ENDIF}
-    {$IFDEF ENABLE_MENU}
-      r_gui in 'opengl/r_gui.pas',
-    {$ENDIF}
-  {$ELSEIF DEFINED(USE_STUBRENDER)}
+  {$IF DEFINED(USE_STUBRENDER)}
     r_render in 'renders/stub/r_render.pas',
-  {$ELSEIF DEFINED(USE_NEWGL)}
+  {$ELSEIF DEFINED(USE_OPENGL) OR DEFINED(USE_GLES1) OR DEFINED(USE_GLSTUB) OR DEFINED(USE_NEWGL)}
     {$I ../shared/vampimg.inc}
     r_render in 'renders/opengl/r_render.pas',
     r_atlas in 'renders/opengl/r_atlas.pas',
