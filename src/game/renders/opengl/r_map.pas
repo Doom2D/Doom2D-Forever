@@ -1386,64 +1386,10 @@ implementation
     end;
   end;
 
-  procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer; out acx, acy: Integer);
-    var iter: TPanelGrid.Iter; p: PPanel; cx, cy, cw, ch, xx, yy, ww, hh, ml, mt, mr, mb, mcx, mcy: Integer; sx, sy, sw, sh: LongInt; l, t, r, b: Integer;
+  procedure r_Map_DrawGame (xx, yy, ww, hh: Integer; player: TPlayer);
+    (* xx/yy/ww/hh are in map units *)
+    var iter: TPanelGrid.Iter; p: PPanel;
   begin
-    r_Draw_GetRect(l, t, r, b);
-    glTranslatef(x, y, 0);
-
-    (* camera rect *)
-    cx := (camx - w) + w div 2;
-    cy := (camy - h) + h div 2;
-    cw := w;
-    ch := h;
-
-    (* camera bounds *)
-    if g_dbg_ignore_bounds = false then
-    begin
-      if w > gMapInfo.Width then
-        cx := gMapInfo.Width div 2 - w div 2
-      else if cx + cw > gMapInfo.Width then
-        cx := gMapInfo.Width - cw
-      else if cx < 0 then
-        cx := 0;
-
-      if h > gMapInfo.Height then
-        cy := gMapInfo.Height div 2 - h div 2
-      else if cy + ch > gMapInfo.Height then
-        cy := gMapInfo.Height - ch
-      else if cy < 0 then
-        cy := 0;
-    end;
-
-    acx := cx;
-    acy := cy;
-
-    (* map bounds *)
-    xx := cx;
-    yy := cy;
-    ww := cw;
-    hh := ch;
-    if xx + ww > gMapInfo.Width then
-      xx := gMapInfo.Width - ww;
-    if yy + hh > gMapInfo.Height then
-      yy := gMapInfo.Height - hh;
-    if xx < 0 then
-      xx := 0;
-    if yy < 0 then
-      yy := 0;
-
-    (* view bounds *)
-    ml := x; mt := y; mr := x + w; mb := y + h;
-    if FillOutsizeArea and (DebugCameraScale = 1.0) then
-    begin
-      ml := MAX(cx + ml, 0) - cx;
-      mt := MAX(cy + mt, 0) - cy;
-      mr := MIN(cx + mr, gMapInfo.Width - 1) - cx;
-      mb := MIN(cy + mb, gMapInfo.Height - 1) - cy;
-    end;
-    r_Draw_SetRect(ml, mt, mr, mb);
-
     plist.Clear;
     iter := mapGrid.ForEachInAABB(xx, yy, ww, hh, GridDrawableMask);
     for p in iter do
@@ -1451,21 +1397,6 @@ implementation
         plist.Insert(p^);
     iter.Release;
 
-    glPushMatrix;
-    if DebugCameraScale <> 1.0 then
-    begin
-      glTranslatef(cw div 2, ch div 2, 0);
-      glScalef(DebugCameraScale, DebugCameraScale, 1);
-      glTranslatef(-w div 2, -h div 2, 0);
-    end;
-
-    if SkyTexture <> nil then
-    begin
-      r_Map_CalcSkyParallax(cx, cy, w, h, SkyTexture.width, SkyTexture.height, gMapInfo.Width, gMapInfo.Height, sx, sy, sw, sh);
-      r_Draw_Texture(SkyTexture, sx, sy, sw, sh, false, 255, 255, 255, 255, false);
-    end;
-
-    glTranslatef(-cx, -cy, 0);
     r_Map_DrawPanelType(PANEL_BACK);
     r_Map_DrawPanelType(PANEL_STEP);
     r_Map_DrawItems(xx, yy, ww, hh, false);
@@ -1495,24 +1426,128 @@ implementation
     r_Map_DrawPanelType(PANEL_FORE);
     // TODO draw monsters health bar
     // TODO draw players health bar
+  end;
+
+  procedure r_Map_DrawScaled (w, h, camx, camy: Integer; player: TPlayer; out acx, acy, acw, ach, axx, ayy, aww, ahh: Integer);
+    (* w/h/camx/camy are in map units (scaled) *)
+    const limit = 32767;
+    var cx, cy, cw, ch, xx, yy, ww, hh{, ml, mt, mr, mb}: Integer; sx, sy, sw, sh: LongInt;
+  begin
+    (* camera rect *)
+    cx := camx - w div 2;
+    cy := camy - h div 2;
+    cw := w;
+    ch := h;
+
+    (* camera bounds *)
+    if g_dbg_ignore_bounds = false then
+    begin
+      if w > gMapInfo.Width then
+        cx := gMapInfo.Width div 2 - w div 2
+      else if cx + cw > gMapInfo.Width then
+        cx := gMapInfo.Width - cw
+      else if cx < 0 then
+        cx := 0;
+
+      if h > gMapInfo.Height then
+        cy := gMapInfo.Height div 2 - h div 2
+      else if cy + ch > gMapInfo.Height then
+        cy := gMapInfo.Height - ch
+      else if cy < 0 then
+        cy := 0;
+    end;
+
+    acx := cx;
+    acy := cy;
+    acw := cw;
+    ach := ch;
+
+    (* map bounds *)
+    xx := cx;
+    yy := cy;
+    ww := cw;
+    hh := ch;
+    if xx + ww > gMapInfo.Width then
+      xx := gMapInfo.Width - ww;
+    if yy + hh > gMapInfo.Height then
+      yy := gMapInfo.Height - hh;
+    if xx < 0 then
+      xx := 0;
+    if yy < 0 then
+      yy := 0;
+    axx := xx;
+    ayy := yy;
+    aww := ww;
+    ahh := hh;
+
+{
+    (* view bounds *)
+    ml := x; mt := y; mr := x + w; mb := y + h;
+    if FillOutsizeArea and (DebugCameraScale = 1.0) then
+    begin
+      ml := MAX(cx + ml, 0) - cx;
+      mt := MAX(cy + mt, 0) - cy;
+      mr := MIN(cx + mr, gMapInfo.Width - 1) - cx;
+      mb := MIN(cy + mb, gMapInfo.Height - 1) - cy;
+    end;
+    r_Draw_SetRect(ml, mt, mr, mb);
+}
+
+    if DebugCameraScale <> 1.0 then
+    begin
+      glTranslatef(cw div 2, ch div 2, 0);
+      glScalef(DebugCameraScale, DebugCameraScale, 1);
+      glTranslatef(-w div 2, -h div 2, 0);
+    end;
+
+    if SkyTexture <> nil then
+    begin
+      r_Map_CalcSkyParallax(cx, cy, w, h, SkyTexture.width, SkyTexture.height, gMapInfo.Width, gMapInfo.Height, sx, sy, sw, sh);
+      r_Draw_Texture(SkyTexture, sx, sy, sw, sh, false, 255, 255, 255, 255, false);
+    end;
+
+    glTranslatef(-cx, -cy, 0);
+    r_Map_DrawGame(xx, yy, ww, hh, player);
+    if FillOutsizeArea and (DebugCameraScale = 1.0) then
+    begin
+      r_Draw_FillRect(0 - limit, 0 - limit, gMapInfo.Width + limit, 0 - 1, 0, 0, 0, 255);
+      r_Draw_FillRect(0 - limit, 0, 0 - 1, gMapInfo.Height + limit, 0, 0, 0, 255);
+      r_Draw_FillRect(gMapInfo.Width, 0, gMapInfo.Width + limit, gMapInfo.Height + limit, 0, 0, 0, 255);
+      r_Draw_FillRect(0 - limit, gMapInfo.Height, gMapInfo.Width + limit, gMapInfo.Height + limit, 0, 0, 0, 255);
+    end;
+    glTranslatef(cx, cy, 0);
+  end;
+
+  procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer; out acx, acy: Integer);
+    var cx, cy, cw, ch, xx, yy, ww, hh, ml, mt, mr, mb, mcx, mcy: Integer; l, t, r, b: Integer;
+  begin
+    glPushMatrix;
+    r_Draw_GetRect(l, t, r, b);
+    glTranslatef(x, y, 0);
+    glScalef(g_dbg_scale, g_dbg_scale, 0);
 
     r_Draw_SetRect(x, y, x + w, y + h);
+    r_Map_DrawScaled(Round(w / g_dbg_scale), Round(h / g_dbg_scale), camx, camy, player, cx, cy, cw, ch, xx, yy, ww, hh);
+    acx := cx;
+    acy := cy;
+    r_Draw_SetRect(x, y, x + w, y + h);
+
+    if DebugCameraScale <> 1.0 then
+    begin
+      r_Draw_Rect(0, 0, cw, ch, 0, 255, 0, 255);
+      r_Draw_Rect(-cx + xx, -cy + yy, -cx + xx + ww, -cy + yy + hh, 255, 0, 0, 255);
+    end;
 
     if gGameSettings.GameMode <> GM_SINGLE then
       r_Map_DrawPlayerIndicators(player, cx, cy, cw, ch);
-    if DebugCameraScale <> 1.0 then
-    begin
-      r_Draw_Rect (cx, cy, cx + cw, cy + ch, 0, 255, 0, 255);
-      r_Draw_Rect (xx, yy, xx + ww, yy + hh, 255, 0, 0, 255);
-    end;
-    glPopMatrix;
-
-    r_Map_DrawScreenEffects(x, y, w, h, player);
 
     // TODO draw g_debug_player
 
-    glTranslatef(-x, -y, 0);
+    //glTranslatef(-x, -y, 0);
     r_Draw_SetRect(l, t, r, b);
+    glPopMatrix;
+
+    r_Map_DrawScreenEffects(x, y, w, h, player);
   end;
 
   procedure r_Map_Update;
