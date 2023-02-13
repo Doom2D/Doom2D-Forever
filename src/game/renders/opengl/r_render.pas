@@ -210,6 +210,15 @@ implementation
   end;
 {$ENDIF}
 
+  procedure r_Render_LogGLInfo;
+  begin
+    e_LogWritefln('GL Vendor: %s', [glGetString(GL_VENDOR)]);
+    e_LogWritefln('GL Renderer: %s', [glGetString(GL_RENDERER)]);
+    e_LogWritefln('GL Version: %s', [glGetString(GL_VERSION)]);
+    e_LogWritefln('GL Shaders: %s', [glGetString(GL_SHADING_LANGUAGE_VERSION)]);
+    e_LogWritefln('GL Extensions: %s', [glGetString(GL_EXTENSIONS)]);
+  end;
+
   procedure r_Render_Initialize;
   begin
     {$IFDEF ENABLE_SYSTEM}
@@ -220,6 +229,7 @@ implementation
     {$IFDEF NOGL_INIT}
       nogl_Init;
     {$ENDIF}
+    r_Render_LogGLInfo;
     r_LoadScreen_Initialize;
     r_Textures_Initialize;
     r_Console_Initialize;
