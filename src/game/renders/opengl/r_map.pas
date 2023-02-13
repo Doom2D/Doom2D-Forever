@@ -1110,15 +1110,16 @@ implementation
   end;
 
   procedure r_Map_DrawParticles (x, y, w, h: Integer);
-    var i, fx, fy: Integer;
+    var i, fx, fy: Integer; factor: Single;
   begin
     if gpart_dbg_enabled and (Particles <> nil) then
     begin
       r_Draw_EnableTexture2D(false);
-      if (g_dbg_scale < 0.6) then
+      factor := r_pixel_scale * g_dbg_scale;
+      if factor < 0.6 then
         glPointSize(1)
-      else if (g_dbg_scale > 1.3) then
-        glPointSize(g_dbg_scale + 1)
+      else if factor > 1.3 then
+        glPointSize(factor + 1)
       else
         glPointSize(2);
       glDisable(GL_POINT_SMOOTH);
