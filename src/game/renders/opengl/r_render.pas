@@ -286,12 +286,14 @@ implementation
   end;
 
   procedure r_Render_DrawHUDArea (x, y, w, h: Integer; p: TPlayer);
-    var s: AnsiString;
+    var s: AnsiString; oldy: Integer;
   begin
     r_Common_DrawTexture(hudbg, x, y, w, h, TBasePoint.BP_LEFTUP);
 
     if p <> nil then
     begin
+      oldy := y;
+      if h < 239 then y := y - 32; (* hack: hide nickname on 640x400 *)
       r_Render_DrawHUD(x + w - 196 + 2, y, p);
       if p.Spectator then
       begin
@@ -301,6 +303,7 @@ implementation
         if p.NoRespawn then
           r_Common_DrawText(_lc[I_PLAYER_SPECT1S], x + 4, y + 290, 255, 255, 255, 255, stdfont, TBasePoint.BP_LEFTUP);
       end;
+      y := oldy;
     end;
 
     if gShowPing and g_Game_IsClient then
