@@ -47,11 +47,7 @@ interface
 implementation
 
   uses
-    {$IFDEF USE_GLES1}
-      GLES11,
-    {$ELSE}
-      GL, GLEXT,
-    {$ENDIF}
+    {$I ../../../nogl/noGLuses.inc}
     SysUtils, Classes, Math,
     e_log, utils
   ;

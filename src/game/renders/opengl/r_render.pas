@@ -82,11 +82,7 @@ interface
 implementation
 
   uses
-    {$IFDEF USE_GLES1}
-      GLES11,
-    {$ELSE}
-      GL, GLEXT,
-    {$ENDIF}
+    {$I ../../../nogl/noGLuses.inc}
     {$IFDEF ENABLE_MENU}
       r_gui,
     {$ENDIF}
@@ -205,7 +201,11 @@ implementation
     info.maximized := gRC_Maximized;
     info.major := 1;
     info.minor := 1;
-    info.profile := TGLProfile.Compat;
+    {$IFDEF USE_GLES1}
+      info.profile := TGLProfile.Common;
+    {$ELSE}
+      info.profile := TGLProfile.Compat;
+    {$ENDIF}
     result := info;
   end;
 {$ENDIF}
@@ -216,6 +216,9 @@ implementation
       if sys_SetDisplayModeGL(GetInfo()) = False then
         raise Exception.Create('Failed to set videomode on startup.');
       sys_EnableVSync(gVSync);
+    {$ENDIF}
+    {$IFDEF NOGL_INIT}
+      nogl_Init;
     {$ENDIF}
     r_LoadScreen_Initialize;
     r_Textures_Initialize;
@@ -229,6 +232,9 @@ implementation
     r_Console_Finalize;
     r_Textures_Finalize;
     r_LoadScreen_Finalize;
+    {$IFDEF NOGL_INIT}
+      nogl_Quit;
+    {$ENDIF}
   end;
 
   procedure r_Render_Update;
@@ -1065,7 +1071,7 @@ implementation
     r_Draw_Setup(gWinSizeX, gWinSizeY, gScreenWidth, gScreenHeight);
 
     glClearColor(0.0, 0.0, 0.0, 0.0);
-    glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
 
     p1 := nil;
     p2 := nil;
@@ -1267,7 +1273,10 @@ implementation
         e_LogWriteln('resolution changed')
       else
         e_LogWriteln('resolution not changed');
-      sys_EnableVSync(gVSync)
+      sys_EnableVSync(gVSync);
+    {$ENDIF}
+    {$IFDEF NOGL_INIT}
+      nogl_Init;
     {$ENDIF}
   end;
 

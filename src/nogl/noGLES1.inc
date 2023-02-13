@@ -57,6 +57,7 @@ implementation
     es_glFlush: procedure; cdecl;
     es_glFinish: procedure; cdecl;
 
+    es_glOrthof: procedure (left, right, bottom, top, near, far: GLfloat); cdecl;
     es_glLoadIdentity: procedure; cdecl;
     es_glMatrixMode: procedure (mode: GLenum); cdecl;
     es_glLoadMatrixf: procedure (m: PGLfloat); cdecl;
@@ -173,7 +174,7 @@ implementation
   procedure glBegin(mode: GLenum);
   begin
     assert(cmds.mode = GL_INVALID_ENUM);
-    assert((mode = GL_POINTS) or (mode = GL_LINES) or (mode = GL_QUADS));
+    assert((mode = GL_POINTS) or (mode = GL_LINES) or (mode = GL_QUADS) or (mode = GL_LINE_LOOP));
     cmds.mode := mode;
     SetLength(cmds.v, 0);
     SetLength(cmds.c, 0);
@@ -296,6 +297,10 @@ implementation
 
 
 
+  procedure glOrtho (left, right, bottom, top, near, far: GLfloat);
+  begin
+    es_glOrthof(left, right, bottom, top, near, far);
+  end;
 
   procedure glLoadIdentity;
   begin
@@ -509,6 +514,7 @@ implementation
     es_glFlush := SDL_GL_GetProcAddress('glFlush');
     es_glFinish := SDL_GL_GetProcAddress('glFinish');
 
+    es_glOrthof := SDL_GL_GetProcAddress('glOrthof');
     es_glLoadIdentity := SDL_GL_GetProcAddress('glLoadIdentity');
     es_glMatrixMode := SDL_GL_GetProcAddress('glMatrixMode');
     es_glLoadMatrixf := SDL_GL_GetProcAddress('glLoadMatrixf');
@@ -577,6 +583,7 @@ implementation
     es_glFlush := nil;
     es_glFinish := nil;
 
+    es_glOrthof := nil;
     es_glLoadIdentity := nil;
     es_glMatrixMode := nil;
     es_glLoadMatrixf := nil;

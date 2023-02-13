@@ -18,11 +18,7 @@ unit r_textures;
 interface
 
   uses
-    {$IFDEF USE_GLES1}
-      GLES11,
-    {$ELSE}
-      GL, GLEXT,
-    {$ENDIF}
+    {$I ../../../nogl/noGLuses.inc}
     g_base, g_animations,  // TRectHW, TAnimInfo
     utils,
     r_atlas, r_fonts

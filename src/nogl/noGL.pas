@@ -57,6 +57,7 @@ interface
     GL_ZERO = $0;
     GL_POINTS = $0000;
     GL_LINES = $0001;
+    GL_LINE_LOOP = $0002;
     GL_DST_COLOR = $0306;
     GL_SRC_COLOR = $0300;
     GL_ONE_MINUS_DST_COLOR = $0307;
@@ -125,6 +126,7 @@ interface
     GL_VERSION = $1F02;
     GL_EXTENSIONS = $1F03;
     GL_SHADING_LANGUAGE_VERSION = $8B8C;
+    GL_MAX_TEXTURE_SIZE = $0D33;
 
 //  const
 //    GL_CULL_FACE = $0B44;
@@ -172,6 +174,7 @@ interface
 
   procedure glReadPixels(x, y: GLint; width, height: GLsizei; format, atype: GLenum; pixels: Pointer);
 
+  procedure glOrtho (left, right, bottom, top, near, far: GLfloat);
   procedure glLoadIdentity;
   procedure glScissor(x, y: GLint; width, height: GLsizei);
   procedure glViewport(x, y: GLint; width, height: GLsizei);

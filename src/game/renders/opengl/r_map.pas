@@ -45,12 +45,8 @@ interface
 implementation
 
   uses
+    {$I ../../../nogl/noGLuses.inc}
     Math, SysUtils,
-    {$IFDEF USE_GLES1}
-      GLES11,
-    {$ELSE}
-      GL, GLEXT,
-    {$ENDIF}
     e_log,
     binheap, MAPDEF, utils,
     g_options, g_animations, g_basic, g_phys,

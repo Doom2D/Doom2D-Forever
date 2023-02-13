@@ -31,11 +31,7 @@ interface
 implementation
 
   uses
-    {$IFDEF USE_GLES1}
-      GLES11,
-    {$ELSE}
-      GL, GLEXT,
-    {$ENDIF}
+    {$I ../../../nogl/noGLuses.inc}
     {$IFDEF ENABLE_SYSTEM}
       g_system,
     {$ENDIF}
@@ -144,7 +140,7 @@ implementation
       hh := gScreenHeight - yy - 96;
       r_Draw_Setup(gWinSizeX, gWinSizeY, gScreenWidth, gScreenHeight);
       glClearColor(0.0, 0.0, 0.0, 0.0);
-      glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT);
+      glClear(GL_COLOR_BUFFER_BIT);
       r_Common_DrawBackground(GameWad + ':TEXTURES/INTER');
       r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
       if menufont <> nil then
