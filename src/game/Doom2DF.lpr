@@ -205,8 +205,13 @@ uses
     r_fonts in 'renders/opengl/r_fonts.pas',
     r_common in 'renders/opengl/r_common.pas',
     r_console in 'renders/opengl/r_console.pas',
-    r_gui in 'renders/opengl/r_gui.pas',
+    {$IFDEF ENABLE_MENU}
+      r_gui in 'renders/opengl/r_gui.pas',
+    {$ENDIF}
     r_loadscreen in 'renders/opengl/r_loadscreen.pas',
+    {$IFDEF ENABLE_TOUCH}
+      r_touch in 'renders/opengl/r_touch.pas',
+    {$ENDIF}
     {$IFDEF ENABLE_HOLMES}
       r_fui_gfx_gl in 'renders/opengl/r_fui_gfx_gl.pas',
       r_holmes in 'renders/opengl/r_holmes.pas',

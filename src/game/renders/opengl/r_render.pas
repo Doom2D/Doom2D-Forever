@@ -93,6 +93,9 @@ implementation
     {$IFDEF ENABLE_SYSTEM}
       g_system,
     {$ENDIF}
+    {$IFDEF ENABLE_TOUCH}
+      r_touch,
+    {$ENDIF}
     {$IFDEF ENABLE_HOLMES}
       r_holmes,
     {$ENDIF}
@@ -1240,7 +1243,9 @@ implementation
       r_Holmes_DrawUI;
     {$ENDIF}
 
-    // TODO draw touch screen controls
+    {$IFDEF ENABLE_TOUCH}
+      r_Touch_Draw;
+    {$ENDIF}
 
     sys_Repaint;
   end;
@@ -1289,8 +1294,7 @@ implementation
 {$IFDEF ENABLE_TOUCH}
   procedure r_Render_GetKeyRect (key: Integer; out x, y, w, h: Integer; out founded: Boolean);
   begin
-    // TODO implement touchscreen
-    founded := False;
+    r_Touch_GetKeyRect(key, x, y, w, h, founded)
   end;
 {$ENDIF}
 
