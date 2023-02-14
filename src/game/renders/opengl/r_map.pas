@@ -1535,7 +1535,10 @@ implementation
     end;
 
     if gGameSettings.GameMode <> GM_SINGLE then
+    begin
+      glTranslatef(-cx, -cy, 0);
       r_Map_DrawPlayerIndicators(player, cx, cy, cw, ch);
+    end;
 
     // TODO draw g_debug_player
 
