@@ -1064,10 +1064,19 @@ implementation
   end;
 
   procedure r_Render_Draw;
-    var p1, p2: TPlayer; time: LongWord;
+    var p1, p2: TPlayer; time: LongWord; pw, ph: Integer;
   begin
     if gExit = EXIT_QUIT then
       exit;
+
+    {$IFDEF ENABLE_SYSTEM}
+      (* hack: if r_pixel_scale changed, reset menu and other things *)
+      pw := Round(gWinSizeX / r_pixel_scale);
+      ph := Round(gWinSizeY / r_pixel_scale);
+      if (pw <> gScreenWidth) or (ph <> gScreenHeight) then
+        if assigned(sys_ScreenResize) then
+          sys_ScreenResize(gWinSizeX, gWinSizeY);
+    {$ENDIF}
 
     INC(FPSCounter);
     time := GetTickCount64();
