@@ -65,7 +65,7 @@ implementation
       VK_CONSOLE: result := 'CON';
       VK_STATUS:  result := 'STAT';
       VK_TEAM:    result := 'TEAM';
-      VK_PREV:    result := '<PREW';
+      VK_PREV:    result := '<PREV';
       VK_NEXT:    result := 'NEXT>';
       VK_LSTRAFE: result := '<';
       VK_RSTRAFE: result := '>';
