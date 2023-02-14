@@ -100,7 +100,7 @@ implementation
       dpi := 96;
     {$ENDIF}
 
-    sz := Trunc(g_touch_size * dpi); sw := gScreenWidth; sh := gScreenHeight;
+    sz := Trunc(g_touch_size * dpi); sw := gWinSizeX; sh := gWinSizeY;
     x := 0; y := Round(sh * g_touch_offset / 100);
     w := sz; h := sz;
 

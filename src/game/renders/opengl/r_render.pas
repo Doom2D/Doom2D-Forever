@@ -1260,6 +1260,7 @@ implementation
     {$ENDIF}
 
     {$IFDEF ENABLE_TOUCH}
+      glScalef(1 / r_pixel_scale, 1 / r_pixel_scale, 0);
       r_Touch_Draw;
     {$ENDIF}
 
