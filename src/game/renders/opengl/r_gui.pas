@@ -258,7 +258,7 @@ implementation
     var w, h: Integer; r, g, b: Byte; f: TGLFont;
   begin
     r_Draw_Texture(EditLeft, ctrl.X, ctrl.Y, EditLeft.width, EditLeft.height, false, 255, 255, 255, 255, false);
-    r_Draw_TextureRepeat(EditMiddle, ctrl.X + 8, ctrl.Y, 8 + (ctrl.Width - 1) * 16, EditMiddle.height, false, 255, 255, 255, 255, false);
+    r_Draw_TextureRepeat(EditMiddle, ctrl.X + 8, ctrl.Y, 8 + ctrl.Width * 16, EditMiddle.height, false, 255, 255, 255, 255, false);
     r_Draw_Texture(EditRight, ctrl.X + 8 + ctrl.Width * 16, ctrl.Y, EditRight.width, EditRight.height, false, 255, 255, 255, 255, false);
     r := ctrl.Color.R;
     g := ctrl.Color.G;
