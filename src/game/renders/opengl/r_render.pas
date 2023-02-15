@@ -473,33 +473,33 @@ implementation
     r_Draw_GetTextSize('W', stdfont, cw, ch);
     motdh := gScreenHeight - 49 - ch * b_Text_LineCount(slMOTD);
 
-    r_Draw_FillRect(16, 64, gScreenWidth - 16, motdh, 64, 64, 64, 145);
-    r_Draw_Rect(16, 64, gScreenWidth - 16, motdh, 255, 127, 0, 255);
+    (* window background *)
+    r_Draw_Rect(16, 64, gScreenWidth - 16, motdh + 1, 255, 127, 0, 255);
+    r_Draw_FillRect(16 + 1, 64 + 1, gScreenWidth - 16 - 1, motdh, 64, 64, 64, 145);
 
     r_Common_DrawText(_lc[I_NET_SLIST_HELP], gScreenWidth div 2, gScreenHeight - 8, 255, 255, 255, 255, stdfont, TBasePoint.BP_DOWN);
 
     if slMOTD <> '' then
     begin
-      r_Draw_FillRect(16, motdh, gScreenWidth - 16, gScreenHeight - 44, 64, 64, 64, 110);
       r_Draw_Rect(16, motdh, gScreenWidth - 16, gScreenHeight - 44, 255, 127, 0, 255);
+      r_Draw_FillRect(16 + 1, motdh + 1, gScreenWidth - 16 - 1, gScreenHeight - 44 - 1, 64, 64, 64, 145);
       r_Common_DrawFormatText(slMOTD, 20, motdh + 3, 255, stdfont, TBasePoint.BP_LEFTUP);
     end;
 
     if not slReadUrgent and (slUrgent <> '') then
     begin
-      r_Draw_FillRect(17, 65, gScreenWidth - 17, motdh - 1, 64, 64, 64, 127);
-      r_Draw_FillRect(scrx - 256, scry - 60, scrx + 256, scry + 60, 64, 64, 64, 127);
-      r_Draw_Rect(scrx - 256, scry - 60, scrx + 256, scry + 60, 255, 127, 0, 255);
-      r_Draw_FillRect(scrx - 256, scry - 40, scrx + 256, scry - 40, 255, 127, 0, 255);
+      r_Draw_Rect(scrx - 256, scry - 60, scrx + 256, scry + 60 + 1, 255, 127, 0, 255);
+      r_Draw_FillRect(scrx - 256 + 1, scry - 60 + 1, scrx + 256 - 1, scry + 60, 64, 64, 64, 127);
+      r_Draw_FillRect(scrx - 256, scry - 40, scrx + 256, scry - 40 + 1, 255, 127, 0, 255);
+      r_Draw_FillRect(scrx - 256, scry + 40, scrx + 256, scry + 40 + 1, 255, 127, 0, 255);
       r_Common_DrawText(_lc[I_NET_SLIST_URGENT], scrx, scry - 58, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
-      r_Common_DrawFormatText(slUrgent, scrx - 253, scry - 38, 255, stdfont, TBasePoint.BP_LEFTUP);
       r_Common_DrawText(_lc[I_NET_SLIST_URGENT_CONT], scrx, scry + 41, 255, 255, 255, 255, stdfont, TBasePoint.BP_UP);
-      r_Draw_FillRect(scrx - 256, scry + 40, scrx + 256, scry + 40, 255, 127, 0, 255);
+      r_Common_DrawFormatText(slUrgent, scrx - 253, scry - 38, 255, stdfont, TBasePoint.BP_LEFTUP);
     end
     else if SL = nil then
     begin
-      r_Draw_FillRect(17, 65, gScreenWidth - 17, motdh - 1, 64, 64, 64, 127);
-      r_Draw_Rect(scrx - 192, scry - 10, scrx + 192, scry + 11, 255, 127, 0, 255);
+      r_Draw_Rect(scrx - 192, scry - 10, scrx + 192, scry + 10, 255, 127, 0, 255);
+      r_Draw_FillRect(scrx - 192 + 1, scry - 10 + 1, scrx + 192 - 1, scry + 10 - 1, 64, 64, 64, 145);
       r_Common_DrawText(slWaitStr, scrx, scry, 255, 255, 255, 255, stdfont, TBasePoint.BP_CENTER);
     end
     else
@@ -517,17 +517,20 @@ implementation
       mw := gScreenWidth - 188;
       mx := 16 + mw;
 
-      r_Draw_FillRect(16 + 1, sy, gScreenWidth - 16 - 1, sy + 40, 64, 64, 64, 255);
-      r_Draw_FillRect(16 + 1, sy, gScreenWidth - 16 - 1, sy, 205, 205, 205, 255);
-      r_Draw_FillRect(16 + 1, sy + 41, gScreenWidth - 16 - 1, sy + 41, 255, 255, 255, 255);
+      (* current selection *)
+      r_Draw_FillRect(16 + 1, sy + 1,      gScreenWidth - 16 - 1, sy + 1 + 40,     64, 64, 64, 255);
+      r_Draw_FillRect(16 + 1, sy,          gScreenWidth - 16 - 1, sy + 1,          255, 255, 255, 255);
+      r_Draw_FillRect(16 + 1, sy + 1 + 40, gScreenWidth - 16 - 1, sy + 1 + 40 + 1, 255, 255, 255, 255);
 
-      r_Draw_FillRect(16, 85, gScreenWidth - 16, 85, 255, 127, 0, 255);
-      r_Draw_FillRect(16, motdh - 20, gScreenWidth - 16, motdh - 20, 255, 127, 0, 255);
+      (* line separators for name/ping/mode.. & address/pasword *)
+      r_Draw_FillRect(16, 85, gScreenWidth - 16, 85 + 1, 255, 127, 0, 255);
+      r_Draw_FillRect(16, motdh - 20, gScreenWidth - 16, motdh - 20 + 1, 255, 127, 0, 255);
 
-      r_Draw_FillRect(mx - 70, 64, mx - 70, motdh, 255, 127, 0, 255);
-      r_Draw_FillRect(mx, 64, mx, motdh - 20, 255, 127, 0, 255);
-      r_Draw_FillRect(mx + 52, 64, mx + 52, motdh - 20, 255, 127, 0, 255);
-      r_Draw_FillRect(mx + 104, 64, mx + 104, motdh - 20, 255, 127, 0, 255);
+      (* column separators for name/ping/mode/players/version *)
+      r_Draw_FillRect(mx - 70,  64 + 1, mx - 70 + 1,  motdh, 255, 127, 0, 255);
+      r_Draw_FillRect(mx,       64 + 1, mx + 1,       motdh - 20, 255, 127, 0, 255);
+      r_Draw_FillRect(mx + 52,  64 + 1, mx + 52 + 1,  motdh - 20, 255, 127, 0, 255);
+      r_Draw_FillRect(mx + 104, 64 + 1, mx + 104 + 1, motdh - 20, 255, 127, 0, 255);
 
       r_Common_DrawText('NAME/MAP', 18, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
       r_Common_DrawText('PING', mx - 68, 68, 255, 127, 0, 255, stdfont, TBasePoint.BP_LEFTUP);
@@ -601,7 +604,7 @@ implementation
          INC(yy, ch);
 
          INC(yy, ch div 4);
-         r_Draw_FillRect(x, yy, x + w - 1, yy, r, g, b, 255);
+         r_Draw_FillRect(x, yy, x + w, yy + 1, r, g, b, 255);
          INC(yy, ch div 4);
 
          for i := 0 to players - 1 do
@@ -655,7 +658,7 @@ implementation
         end;
 
         // Player color
-        r_Draw_Rect(x, yy, x + 16 - 1, yy + 16 - 1, 192, 192, 192, 255);
+        r_Draw_Rect(x, yy, x + 16, yy + 16, 192, 192, 192, 255);
         r_Draw_FillRect(x + 1, yy + 1, x + 16 - 1, yy + 16 - 1, cs.PlayerStat[i].Color.R, cs.PlayerStat[i].Color.G, cs.PlayerStat[i].Color.B, 255);
         // Player name
         if gShowPIDs then s := Format('[%5d] %s', [cs.PlayerStat[i].UID, cs.PlayerStat[i].Name]) else s := cs.PlayerStat[i].Name;
@@ -684,8 +687,8 @@ implementation
   begin
     xoff := 0; yoff := 8;
     r_Draw_GetTextSize('W', stdfont, cw, ch);
-    r_Draw_FillRect(x, y, x + w - 1, y + h - 1, 64, 64, 64, 224);
-    r_Draw_Rect(x, y, x + w - 1, y + h - 1, 255, 127, 0, 255);
+    r_Draw_Rect(x, y, x + w, y + h, 255, 127, 0, 255);
+    r_Draw_FillRect(x + 1, y + 1, x + w - 1, y + h - 1, 64, 64, 64, 224);
 
     (* LINE 1 *)
 
@@ -984,8 +987,8 @@ implementation
     begin
       x0 := x + xx div scale;
       y0 := y + yy div scale;
-      x1 := x + (xx + ww - 1) div scale;
-      y1 := y + (yy + hh - 1) div scale;
+      x1 := x + (xx + ww) div scale;
+      y1 := y + (yy + hh) div scale;
       r_Draw_FillRect(x0, y0, x1, y1, r, g, b, alpha);
     end;
 
@@ -1052,7 +1055,7 @@ implementation
     end;
 
   begin
-    r_Draw_FillRect(x, y, (x + gMapInfo.Width - 1) div scale, (y + gMapInfo.Height - 1) div scale, 0, 0, 0, alpha);
+    r_Draw_FillRect(x, y, (x + gMapInfo.Width) div scale, (y + gMapInfo.Height) div scale, 0, 0, 0, alpha);
     DrawPanels(gSteps);
     DrawPanels(gLifts);
     DrawPanels(gWater);
@@ -1170,7 +1173,7 @@ implementation
 
     if gPauseMain and gGameOn {$IFDEF ENABLE_MENU}and (g_ActiveWindow = nil){$ENDIF} then
     begin
-      r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
+      r_Draw_FillRect(0, 0, gScreenWidth, gScreenHeight, 0, 0, 0, 105);
       r_Common_DrawText(_lc[I_MENU_PAUSE], gScreenWidth div 2, gScreenHeight div 2, 255, 255, 255, 255, menufont, TBasePoint.BP_CENTER);
     end;
 
@@ -1183,7 +1186,7 @@ implementation
         STATE_FOLD:
         begin
           if EndingGameCounter > 0 then
-            r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, MIN(MAX(255 - EndingGameCounter, 0), 255));
+            r_Draw_FillRect(0, 0, gScreenWidth, gScreenHeight, 0, 0, 0, MIN(MAX(255 - EndingGameCounter, 0), 255));
         end;
         STATE_INTERCUSTOM:
         begin
@@ -1199,14 +1202,14 @@ implementation
 
           {$IFDEF ENABLE_MENU}
             if g_ActiveWindow <> nil then
-              r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
+              r_Draw_FillRect(0, 0, gScreenWidth, gScreenHeight, 0, 0, 0, 105);
           {$ENDIF}
         end;
         STATE_INTERSINGLE, STATE_INTERTEXT, STATE_INTERPIC:
         begin
           if EndingGameCounter > 0 then
           begin
-            r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, MIN(MAX(255 - EndingGameCounter, 0), 255));
+            r_Draw_FillRect(0, 0, gScreenWidth, gScreenHeight, 0, 0, 0, MIN(MAX(255 - EndingGameCounter, 0), 255));
           end
           else
           begin
@@ -1214,7 +1217,7 @@ implementation
             r_Render_DrawSingleStats;
             {$IFDEF ENABLE_MENU}
               if g_ActiveWindow <> nil then
-                r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
+                r_Draw_FillRect(0, 0, gScreenWidth, gScreenHeight, 0, 0, 0, 105);
             {$ENDIF}
           end;
         end;
@@ -1226,13 +1229,13 @@ implementation
             r_Common_DrawBackground(GameWad + ':TEXTURES/' + _lc[I_TEXTURE_ENDPIC]);
           {$IFDEF ENABLE_MENU}
             if g_ActiveWindow <> nil then
-              r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
+              r_Draw_FillRect(0, 0, gScreenWidth, gScreenHeight, 0, 0, 0, 105);
           {$ENDIF}
         end;
         STATE_SLIST:
         begin
           r_Common_DrawBackground(GameWad + ':TEXTURES/TITLE');
-          r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
+          r_Draw_FillRect(0, 0, gScreenWidth, gScreenHeight, 0, 0, 0, 105);
           r_Render_DrawServerList(slCurrent, slTable);
         end;
       end;
@@ -1242,7 +1245,7 @@ implementation
       if g_ActiveWindow <> nil then
       begin
         if gGameOn then
-          r_Draw_FillRect(0, 0, gScreenWidth - 1, gScreenHeight - 1, 0, 0, 0, 105);
+          r_Draw_FillRect(0, 0, gScreenWidth, gScreenHeight, 0, 0, 0, 105);
         r_GUI_Draw_Window(g_ActiveWindow);
       end;
     {$ENDIF}

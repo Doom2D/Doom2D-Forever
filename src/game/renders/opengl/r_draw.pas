@@ -283,86 +283,96 @@ implementation
       r_Draw_MultiTextureRepeat(m, anim, backanim, x, y, w, h, flip, r, g, b, a, blend);
   end;
 
-  procedure r_Draw_Filter (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
-  begin
-    ASSERT(r >= l);
-    ASSERT(b >= t);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ZERO, GL_SRC_COLOR);
-    r_Draw_EnableTexture2D(false);
-    r_Draw_SetColor(rr, gg, bb, aa);
-    glBegin(GL_QUADS);
-      glVertex2i(l, t);
-      glVertex2i(r, t);
-      glVertex2i(r, b);
-      glVertex2i(l, b);
-    glEnd;
-  end;
-
   procedure r_Draw_Rect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
   begin
-    ASSERT(r >= l);
-    ASSERT(b >= t);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    r_Draw_EnableTexture2D(false);
-    r_Draw_SetColor(rr, gg, bb, aa);
-    glBegin(GL_LINE_LOOP);
-{
-      glVertex2i(l, t);
-      glVertex2i(r, t);
-      glVertex2i(r, b);
-      glVertex2i(l, b);
-}
-      glVertex2f(l + 0.5, t + 0.5);
-      glVertex2f(r - 0.5, t + 0.5);
-      glVertex2f(r - 0.5, b - 0.5);
-      glVertex2f(l + 0.5, b - 0.5);
-    glEnd;
+    ASSERT(l <= r);
+    ASSERT(t <= b);
+    if (l < r) and (t < b) then
+    begin
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      r_Draw_EnableTexture2D(false);
+      r_Draw_SetColor(rr, gg, bb, aa);
+      glBegin(GL_QUADS);
+        (* top *)
+        glVertex2i(l, t);
+        glVertex2i(r, t);
+        glVertex2i(r, t+1);
+        glVertex2i(l, t+1);
+        (* bottom *)
+        glVertex2i(l, b-1);
+        glVertex2i(r, b-1);
+        glVertex2i(r, b);
+        glVertex2i(l, b);
+        (* left *)
+        glVertex2i(l,   t+1);
+        glVertex2i(l+1, t+1);
+        glVertex2i(l+1, b-1);
+        glVertex2i(l,   b-1);
+        (* right *)
+        glVertex2i(r-1, t+1);
+        glVertex2i(r,   t+1);
+        glVertex2i(r,   b-1);
+        glVertex2i(r-1, b-1);
+      glEnd;
+    end;
   end;
 
   procedure r_Draw_FillRect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
   begin
-    ASSERT(r >= l);
-    ASSERT(b >= t);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    r_Draw_EnableTexture2D(false);
-    r_Draw_SetColor(rr, gg, bb, aa);
-    glBegin(GL_QUADS);
-{
-      glVertex2i(l, t);
-      glVertex2i(r, t);
-      glVertex2i(r, b);
-      glVertex2i(l, b);
-}
-{
-      glVertex2f(l + 0.5, t + 0.5);
-      glVertex2f(r - 0.5, t + 0.5);
-      glVertex2f(r - 0.5, b - 0.5);
-      glVertex2f(l + 0.5, b - 0.5);
-}
-      glVertex2f(l + 0, t + 0);
-      glVertex2f(r + 0.75, t + 0);
-      glVertex2f(r + 0.75, b + 0.75);
-      glVertex2f(l + 0, b + 0.75);
-    glEnd;
+    ASSERT(l <= r);
+    ASSERT(t <= b);
+    if (l < r) and (t < b) then
+    begin
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      r_Draw_EnableTexture2D(false);
+      r_Draw_SetColor(rr, gg, bb, aa);
+      glBegin(GL_QUADS);
+        glVertex2i(l, t);
+        glVertex2i(r, t);
+        glVertex2i(r, b);
+        glVertex2i(l, b);
+      glEnd;
+    end;
+  end;
+
+  procedure r_Draw_Filter (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
+  begin
+    ASSERT(l <= r);
+    ASSERT(t <= b);
+    if (l < r) and (t < b) then
+    begin
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_ZERO, GL_SRC_COLOR);
+      r_Draw_EnableTexture2D(false);
+      r_Draw_SetColor(rr, gg, bb, aa);
+      glBegin(GL_QUADS);
+        glVertex2i(l, t);
+        glVertex2i(r, t);
+        glVertex2i(r, b);
+        glVertex2i(l, b);
+      glEnd;
+    end;
   end;
 
   procedure r_Draw_InvertRect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
   begin
-    ASSERT(r >= l);
-    ASSERT(b >= t);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
-    r_Draw_EnableTexture2D(false);
-    r_Draw_SetColor(rr, gg, bb, aa);
-    glBegin(GL_QUADS);
-      glVertex2i(l, t);
-      glVertex2i(r, t);
-      glVertex2i(r, b);
-      glVertex2i(l, b);
-    glEnd;
+    ASSERT(l <= r);
+    ASSERT(t <= b);
+    if (l < r) and (t < b) then
+    begin
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
+      r_Draw_EnableTexture2D(false);
+      r_Draw_SetColor(rr, gg, bb, aa);
+      glBegin(GL_QUADS);
+        glVertex2i(l, t);
+        glVertex2i(r, t);
+        glVertex2i(r, b);
+        glVertex2i(l, b);
+      glEnd;
+    end;
   end;
 
   procedure r_Draw_Text (const text: AnsiString; x, y: Integer; r, g, b, a: Byte; f: TGLFont);

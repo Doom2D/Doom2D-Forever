@@ -819,19 +819,31 @@ implementation
   end;
 
   procedure r_Map_DrawBubble (x, y: Integer; cb, cf: TRGB);
-    var dot: Integer;
+    const w = 20; h = 14;
+    const dx = 6; dy = 8; dot = 6; size = 2;
+    const tx = 6; ty = h - 1;
   begin
-    // Outer borders
-    r_Draw_Rect(x + 1, y,     x + 18, y + 13, cb.R, cb.G, cb.B, 255);
-    r_Draw_Rect(x,     y + 1, x + 19, y + 12, cb.R, cb.G, cb.B, 255);
+    // Outer box (top/down)
+    r_Draw_FillRect(x + 1, y,         x + w - 1, y + 1, cb.R, cb.G, cb.B, 255);
+    r_Draw_FillRect(x + 1, y + h - 1, x + w - 1, y + h, cb.R, cb.G, cb.B, 255);
+    // Outer box (left/right)
+    r_Draw_FillRect(x,         y + 1, x + 1, y + h - 1, cb.R, cb.G, cb.B, 255);
+    r_Draw_FillRect(x + w - 1, y + 1, x + w, y + h - 1, cb.R, cb.G, cb.B, 255);
+    // Outer tail
+    r_Draw_FillRect(x + tx - 1, y + ty + 0, x + tx + 3 + 1, y + ty + 1, cb.R, cb.G, cb.B, 255);
+    r_Draw_FillRect(x + tx - 1, y + ty + 1, x + tx + 2 + 1, y + ty + 2, cb.R, cb.G, cb.B, 255);
+    r_Draw_FillRect(x + tx - 1, y + ty + 2, x + tx + 1 + 1, y + ty + 3, cb.R, cb.G, cb.B, 255);
+    r_Draw_FillRect(x + tx - 1, y + ty + 3, x + tx + 0 + 1, y + ty + 4, cb.R, cb.G, cb.B, 255);
+    // Inner tail
+    r_Draw_FillRect(x + tx, y + ty + 0, x + tx + 3, y + ty + 1, cf.R, cf.G, cf.B, 255);
+    r_Draw_FillRect(x + tx, y + ty + 1, x + tx + 2, y + ty + 2, cf.R, cf.G, cf.B, 255);
+    r_Draw_FillRect(x + tx, y + ty + 2, x + tx + 1, y + ty + 3, cf.R, cf.G, cf.B, 255);
     // Inner box
-    r_Draw_FillRect(x + 1, y + 1, x + 18, y + 12, cf.R, cf.G, cf.B, 255);
-    // TODO Tail
+    r_Draw_FillRect(x + 1, y + 1, x + w - 1, y + h - 1, cf.R, cf.G, cf.B, 255);
     // Dots
-    dot := 6;
-    r_Draw_FillRect(x + dot + 0, y + 8, x + dot + 0 + 1 + 1, y + 9 + 1, cb.R, cb.G, cb.B, 255);
-    r_Draw_FillRect(x + dot + 3, y + 8, x + dot + 3 + 1 + 1, y + 9 + 1, cb.R, cb.G, cb.B, 255);
-    r_Draw_FillRect(x + dot + 6, y + 8, x + dot + 6 + 1 + 1, y + 9 + 1, cb.R, cb.G, cb.B, 255);
+    r_Draw_FillRect(x + dx + 0*3, y + dy, x + dx + 0*3 + size, y + dy + size, cb.R, cb.G, cb.B, 255);
+    r_Draw_FillRect(x + dx + 1*3, y + dy, x + dx + 1*3 + size, y + dy + size, cb.R, cb.G, cb.B, 255);
+    r_Draw_FillRect(x + dx + 2*3, y + dy, x + dx + 2*3 + size, y + dy + size, cb.R, cb.G, cb.B, 255);
   end;
 
   procedure r_Map_DrawTalkBubble (p: TPlayer);
@@ -1506,10 +1518,10 @@ implementation
     r_Map_DrawGame(xx, yy, ww, hh, player);
     if FillOutsizeArea and (DebugCameraScale = 1.0) then
     begin
-      r_Draw_FillRect(0 - limit, 0 - limit, gMapInfo.Width + limit, 0 - 1, 0, 0, 0, 255);
-      r_Draw_FillRect(0 - limit, 0, 0 - 1, gMapInfo.Height + limit, 0, 0, 0, 255);
-      r_Draw_FillRect(gMapInfo.Width, 0, gMapInfo.Width + limit, gMapInfo.Height + limit, 0, 0, 0, 255);
-      r_Draw_FillRect(0 - limit, gMapInfo.Height, gMapInfo.Width + limit, gMapInfo.Height + limit, 0, 0, 0, 255);
+      (* top    *) r_Draw_FillRect(0 - limit, 0 - limit, gMapInfo.Width + limit, 0, 0, 0, 0, 255);
+      (* left   *) r_Draw_FillRect(0 - limit, 0, 0, gMapInfo.Height + limit, 0, 0, 0, 255);
+      (* right  *) r_Draw_FillRect(gMapInfo.Width, 0, gMapInfo.Width + limit, gMapInfo.Height + limit, 0, 0, 0, 255);
+      (* bottom *) r_Draw_FillRect(0 - limit, gMapInfo.Height, gMapInfo.Width + limit, gMapInfo.Height + limit, 0, 0, 0, 255);
     end;
     glTranslatef(cx, cy, 0);
   end;
