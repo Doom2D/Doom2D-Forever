@@ -645,7 +645,7 @@ implementation
   end;
 
   function r_Textures_LoadTextFromMemory (data: Pointer; size: LongInt; var txt: TAnimTextInfo): Boolean;
-    var cfg: TConfig;
+    var cfg: TConfig; text: TAnimTextInfo;
   begin
     result := false;
     if data <> nil then
@@ -653,15 +653,27 @@ implementation
       cfg := TConfig.CreateMem(data, size);
       if cfg <> nil then
       begin
-        txt.name := cfg.ReadStr('', 'resource', '');
-        txt.w := MAX(0, cfg.ReadInt('', 'framewidth', 0));
-        txt.h := MAX(0, cfg.ReadInt('', 'frameheight', 0));
-        txt.anim.loop := true;
-        txt.anim.delay := MAX(0, cfg.ReadInt('', 'waitcount', 0));
-        txt.anim.frames := MAX(0, cfg.ReadInt('', 'framecount', 0));
-        txt.anim.back := cfg.ReadBool('', 'backanim', false);
+        text.name := cfg.ReadStr('', 'resource', '');
+        text.w := cfg.ReadInt('', 'framewidth', 0);
+        text.h := cfg.ReadInt('', 'frameheight', 0);
+        text.anim.loop := true;
+        text.anim.delay := cfg.ReadInt('', 'waitcount', 0);
+        text.anim.frames := cfg.ReadInt('', 'framecount', 0);
+        text.anim.back := cfg.ReadBool('', 'backanim', false);
+        if text.w <= 0 then e_LogWritefln('Warning: bad animation width %s for %s', [text.w, text.name]);
+        if text.h <= 0 then e_LogWritefln('Warning: bad animation height %s for %s', [text.h, text.name]);
+        if text.anim.delay <= 0 then e_LogWritefln('Warning: bad animation delay %s for %s', [text.anim.delay, text.name]);
+        if text.anim.frames <= 0 then e_LogWritefln('Warning: bad animation frame count %s for %s', [text.anim.frames, text.name]);
+        text.w := MAX(0, text.w);
+        text.h := MAX(0, text.h);
+        text.anim.delay := MAX(1, text.anim.delay);
+        text.anim.frames := MAX(1, text.anim.frames);
         cfg.Free;
-        result := (txt.name <> '') and (txt.w > 0) and (txt.h > 0) and (txt.anim.delay > 0) and (txt.anim.frames > 0);
+        if (txt.name <> '') and (txt.w > 0) and (txt.h > 0) and (txt.anim.delay > 0) and (txt.anim.frames > 0) then
+        begin
+          txt := text;
+          result := true;
+        end;
       end;
     end;
   end;

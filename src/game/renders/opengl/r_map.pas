@@ -536,8 +536,8 @@ implementation
       r_Common_SetLoading(_lc[I_LOAD_TEXTURES], n);
       for i := 0 to n - 1 do
       begin
-        txt.anim := DefaultAnimInfo;
         RenTextures[i].tex := nil;
+        RenTextures[i].anim := DefaultAnimInfo;
         case Textures[i].TextureName of
           TEXTURE_NAME_WATER: RenTextures[i].spec := TEXTURE_SPECIAL_WATER;
           TEXTURE_NAME_ACID1: RenTextures[i].spec := TEXTURE_SPECIAL_ACID1;
@@ -545,12 +545,18 @@ implementation
           else
             RenTextures[i].spec := 0;
             RenTextures[i].tex := r_Textures_LoadMultiTextFromFile(Textures[i].FullName, txt, []);
-            if RenTextures[i].tex = nil then
-              e_LogWritefln('r_Map_LoadTextures: failed to load texture: %s', [Textures[i].FullName])
-            else
+            if RenTextures[i].tex <> nil then
+            begin
+              RenTextures[i].anim := txt.anim;
               r_Common_StepLoading(1);
+            end
+            else
+            begin
+              e_LogWritefln('r_Map_LoadTextures: failed to load texture: %s', [Textures[i].FullName]);
+            end;
         end;
-        RenTextures[i].anim := txt.anim;
+        ASSERT(RenTextures[i].anim.frames > 0);
+        ASSERT(RenTextures[i].anim.delay > 0);
       end;
     end;
     if gMapInfo.SkyFullName <> '' then
@@ -578,7 +584,9 @@ implementation
     ASSERT(p <> nil);
     if p.FCurTexture >= 0 then
     begin
+      ASSERT(p.FCurTexture <= High(p.TextureIDs));
       Texture := p.TextureIDs[p.FCurTexture].Texture;
+      ASSERT(Texture <= High(RenTextures));
       t := RenTextures[Texture].tex;
       if (RenTextures[Texture].spec = 0) or (t <> nil) then
       begin
