@@ -586,24 +586,29 @@ implementation
     begin
       ASSERT(p.FCurTexture <= High(p.TextureIDs));
       Texture := p.TextureIDs[p.FCurTexture].Texture;
+      t := nil;
+      ASSERT(Texture >= -1);
       ASSERT(Texture <= High(RenTextures));
-      t := RenTextures[Texture].tex;
-      if (RenTextures[Texture].spec = 0) or (t <> nil) then
+      if Texture >= 0 then
       begin
-        count := 0; frame := 0;
-        if p.AnimTime <= gTime then
+        t := RenTextures[Texture].tex;
+        if (RenTextures[Texture].spec = 0) or (t <> nil) then
         begin
-          a := RenTextures[Texture].anim;
-          a.loop := p.AnimLoop;
-          g_Anim_GetFrameByTime(a, (gTime - p.AnimTime) DIV GAME_TICK, count, frame);
+          count := 0; frame := 0;
+          if p.AnimTime <= gTime then
+          begin
+            a := RenTextures[Texture].anim;
+            a.loop := p.AnimLoop;
+            g_Anim_GetFrameByTime(a, (gTime - p.AnimTime) DIV GAME_TICK, count, frame);
+          end;
+          if t <> nil then
+          begin
+            tex := t.GetTexture(frame);
+            r_Draw_TextureRepeat(tex, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255 - p.alpha, p.blending);
+          end
+          else
+            r_Draw_TextureRepeat(nil, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255, false);
         end;
-        if t <> nil then
-        begin
-          tex := t.GetTexture(frame);
-          r_Draw_TextureRepeat(tex, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255 - p.alpha, p.blending);
-        end
-        else
-          r_Draw_TextureRepeat(nil, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255, false);
       end;
 
       if t = nil then
