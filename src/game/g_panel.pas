@@ -922,10 +922,13 @@ end;
     if (FCurTexture >= 0) then
     begin
       Texture := FTextureIDs[FCurTexture].Texture;
-      case Textures[Texture].TextureName of
-        TEXTURE_NAME_WATER: Result := DWORD(TEXTURE_SPECIAL_WATER);
-        TEXTURE_NAME_ACID1: Result := DWORD(TEXTURE_SPECIAL_ACID1);
-        TEXTURE_NAME_ACID2: Result := DWORD(TEXTURE_SPECIAL_ACID2);
+      if Texture >= 0 then
+      begin
+        case Textures[Texture].TextureName of (* TODO: optimize it *)
+          TEXTURE_NAME_WATER: Result := DWORD(TEXTURE_SPECIAL_WATER);
+          TEXTURE_NAME_ACID1: Result := DWORD(TEXTURE_SPECIAL_ACID1);
+          TEXTURE_NAME_ACID2: Result := DWORD(TEXTURE_SPECIAL_ACID2);
+        end
       end
     end
   end;
