@@ -525,10 +525,22 @@ implementation
       r_Common_FreeAndNil(Items[i].tex);
   end;
 
+  procedure r_Map_FreeTextures;
+    var i: Integer;
+  begin
+    plist.Clear;
+    r_Common_FreeAndNil(SkyTexture);
+    if RenTextures <> nil then
+      for i := 0 to High(RenTextures) do
+        r_Common_FreeAndNil(RenTextures[i].tex);
+    SetLength(RenTextures, 0);
+  end;
+
   procedure r_Map_LoadTextures;
     const DefaultAnimInfo: TAnimInfo = (loop: true; delay: 1; frames: 1; back: false);
     var i, n: Integer; txt: TAnimTextInfo;
   begin
+    r_Map_FreeTextures;
     if Textures <> nil then
     begin
       n := Length(Textures);
@@ -565,17 +577,6 @@ implementation
       SkyTexture := r_Common_LoadTextureFromFile(gMapInfo.SkyFullName, [TGLHints.txNoRepeat]);
     end;
     plist.Clear;
-  end;
-
-  procedure r_Map_FreeTextures;
-    var i: Integer;
-  begin
-    plist.Clear;
-    r_Common_FreeAndNil(SkyTexture);
-    if RenTextures <> nil then
-      for i := 0 to High(RenTextures) do
-        r_Common_FreeAndNil(RenTextures[i].tex);
-    SetLength(RenTextures, 0);
   end;
 
   procedure r_Map_DrawPanel (p: TPanel);
