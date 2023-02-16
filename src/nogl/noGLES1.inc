@@ -232,15 +232,16 @@ implementation
   begin
     i := Length(x);
     vpx := Length(v);
-    if (cmds.mode = GL_QUADS) and (i div vpx mod 4 = 3) then
+    if (cmds.mode = GL_QUADS) and (i div vpx mod 6 = 3) then
     begin
-      for j := 0 to vpx - 1 do
-        AddFloatRaw(x, x[i - 3*vpx + j]);
-      for j := 0 to vpx - 1 do
-        AddFloatRaw(x, x[i - 1*vpx + j]);
+      for j := 0 to vpx - 1 do AddFloatRaw(x, x[i - 1*vpx + j]);
+      for j := 0 to vpx - 1 do AddFloatRaw(x, v[j]);
+      for j := 0 to vpx - 1 do AddFloatRaw(x, x[i - 3*vpx + j]);
+    end
+    else
+    begin
+      for j := 0 to vpx - 1 do AddFloatRaw(x, v[j]);
     end;
-    for j := 0 to vpx - 1 do
-      AddFloatRaw(x, v[j]);
   end;
 
 (* ---------- end internals ---------- *)
