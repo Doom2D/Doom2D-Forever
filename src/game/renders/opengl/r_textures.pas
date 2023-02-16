@@ -644,8 +644,8 @@ implementation
     end;
   end;
 
-  function r_Textures_LoadTextFromMemory (data: Pointer; size: LongInt; var txt: TAnimTextInfo): Boolean;
-    var cfg: TConfig; text: TAnimTextInfo;
+  function r_Textures_LoadTextFromMemory (data: Pointer; size: LongInt; var text: TAnimTextInfo): Boolean;
+    var cfg: TConfig;
   begin
     result := false;
     if data <> nil then
@@ -669,11 +669,7 @@ implementation
         text.anim.delay := MAX(1, text.anim.delay);
         text.anim.frames := MAX(1, text.anim.frames);
         cfg.Free;
-        if (txt.name <> '') and (txt.w > 0) and (txt.h > 0) and (txt.anim.delay > 0) and (txt.anim.frames > 0) then
-        begin
-          txt := text;
-          result := true;
-        end;
+        result := (text.name <> '') and (text.w > 0) and (text.h > 0) and (text.anim.delay > 0) and (text.anim.frames > 0);
       end;
     end;
   end;
