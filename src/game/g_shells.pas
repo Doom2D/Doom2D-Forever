@@ -135,9 +135,9 @@ implementation
   procedure g_Shells_RemoveAll;
     var i: Integer;
   begin
-    i := g_Shells_GetMax();
-    g_Shells_SetMax(0);
-    g_Shells_SetMax(i);
+    if gShells <> nil then
+      for i := 0 to High(gShells) do
+        gShells[i].alive := false;
   end;
 
   procedure g_Shells_SoundBounce(X, Y: Integer; T: Byte);

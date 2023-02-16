@@ -42,6 +42,9 @@ uses
   {$IFDEF ENABLE_CORPSES}
     g_corpses,
   {$ENDIF}
+  {$IFDEF ENABLE_SHELLS}
+    g_shells,
+  {$ENDIF}
   MAPDEF, utils, xstreams,
   g_game, g_items, g_map, g_monsters, g_triggers,
   g_basic, Math, wadreader,
@@ -206,7 +209,7 @@ begin
   {$IFDEF ENABLE_GIBS}
     g_Gibs_RemoveAll;
   {$ENDIF}
-  {$IFDEF ENALBE_SHELLS}
+  {$IFDEF ENABLE_SHELLS}
     g_Shells_RemoveAll; // ???
   {$ENDIF}
   {$IFDEF ENABLE_CORPSES}

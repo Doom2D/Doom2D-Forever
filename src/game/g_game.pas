@@ -1484,7 +1484,7 @@ begin
   {$IFDEF ENABLE_GIBS}
     g_Gibs_RemoveAll;
   {$ENDIF}
-  {$IFDEF ENALBE_SHELLS}
+  {$IFDEF ENABLE_SHELLS}
     g_Shells_RemoveAll;
   {$ENDIF}
   {$IFDEF ENABLE_CORPSES}
@@ -3439,7 +3439,7 @@ begin
   {$IFDEF ENABLE_GIBS}
     g_Gibs_RemoveAll;
   {$ENDIF}
-  {$IFDEF ENALBE_SHELLS}
+  {$IFDEF ENABLE_SHELLS}
     g_Shells_RemoveAll;
   {$ENDIF}
   {$IFDEF ENABLE_CORPSES}
@@ -3778,7 +3778,7 @@ begin
   {$IFDEF ENABLE_GIBS}
     g_Gibs_RemoveAll;
   {$ENDIF}
-  {$IFDEF ENALBE_SHELLS}
+  {$IFDEF ENABLE_SHELLS}
     g_Shells_RemoveAll;
   {$ENDIF}
   {$IFDEF ENABLE_CORPSES}
