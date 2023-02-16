@@ -492,9 +492,12 @@ implementation
     begin
       for i := 0 to High(atl) do
       begin
-        glDeleteTextures(1, @atl[i].id);
-        atl[i].id := 0;
-        r_Common_FreeAndNil(atl[i]);
+        if atl[i] <> nil then
+        begin
+          glDeleteTextures(1, @atl[i].id);
+          atl[i].id := 0;
+          r_Common_FreeAndNil(atl[i]);
+        end;
       end;
     end;
     SetLength(atl, 0);
@@ -503,9 +506,12 @@ implementation
     begin
       for i := 0 to High(ratl) do
       begin
-        glDeleteTextures(1, @ratl[i].id);
-        ratl[i].id := 0;
-        r_Common_FreeAndNil(ratl[i]);
+        if ratl[i] <> nil then
+        begin
+          glDeleteTextures(1, @ratl[i].id);
+          ratl[i].id := 0;
+          r_Common_FreeAndNil(ratl[i]);
+        end;
       end;
     end;
     SetLength(ratl, 0);
