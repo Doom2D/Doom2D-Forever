@@ -1188,7 +1188,14 @@ implementation
       // TODO F key handle
       case gState of
         STATE_NONE: (* do nothing *) ;
-        STATE_MENU: r_Common_DrawBackground(GameWad + ':TEXTURES/TITLE');
+        STATE_MENU:
+        begin
+          r_Common_DrawBackground(GameWad + ':TEXTURES/TITLE');
+          {$IFDEF ENABLE_MENU}
+            if g_ActiveWindow <> nil then
+              r_Draw_FillRect(0, 0, gScreenWidth, gScreenHeight, 0, 0, 0, 105);
+          {$ENDIF}
+        end;
         STATE_FOLD:
         begin
           if EndingGameCounter > 0 then
