@@ -39,6 +39,7 @@ interface
   procedure r_Render_LoadTextures;
   procedure r_Render_FreeTextures;
 
+  procedure r_Render_Reset;
   procedure r_Render_Update;
   procedure r_Render_Draw;
 
@@ -245,6 +246,11 @@ implementation
     {$IFDEF NOGL_INIT}
       nogl_Quit;
     {$ENDIF}
+  end;
+
+  procedure r_Render_Reset;
+  begin
+    r_Map_Reset;
   end;
 
   procedure r_Render_Update;

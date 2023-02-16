@@ -38,6 +38,7 @@ interface
   procedure r_Map_DrawPlayerModel (pm: TPlayerModel; x, y: Integer; alpha: Byte);
 {$ENDIF}
 
+  procedure r_Map_Reset;
   procedure r_Map_Update;
 
   procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer; out acx, acy: Integer);
@@ -1077,6 +1078,11 @@ implementation
     end;
   end;
 
+  procedure r_Map_ResetGFX;
+  begin
+    SetLength(gfxlist, 0);
+  end;
+
   procedure r_Map_UpdateGFX (tick: LongWord);
     var i: Integer; count: LongInt;
   begin
@@ -1573,6 +1579,13 @@ implementation
     glPopMatrix;
 
     r_Map_DrawScreenEffects(x, y, w, h, player);
+  end;
+
+  procedure r_Map_Reset;
+  begin
+    {$IFDEF ENABLE_GFX}
+      r_Map_ResetGFX;
+    {$ENDIF}
   end;
 
   procedure r_Map_Update;
