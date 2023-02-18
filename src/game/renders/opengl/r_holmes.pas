@@ -808,6 +808,11 @@ var
 begin
   if (gPlayer1 = nil) then exit;
 
+  glPushMatrix;
+  (* hack: scale and translate must be handled by hlmContext.glSetScaleTrans, but it dont work for some reason *)
+  glScalef(g_dbg_scale, g_dbg_scale, 1.0);
+  glTranslatef(-vpx, -vpy, 0);
+
   if (hlmContext = nil) then hlmContext := r_fui_gfx_gl.TGxContext.Create();
 
   gxSetContext(hlmContext);
@@ -819,7 +824,7 @@ begin
     glScalef(g_dbg_scale, g_dbg_scale, 1.0);
     glTranslatef(-vpx, -vpy, 0);
     }
-    hlmContext.glSetScaleTrans(g_dbg_scale, -vpx, -vpy);
+//    hlmContext.glSetScaleTrans(g_dbg_scale, -vpx, -vpy); // uncomment when fix it
     glEnable(GL_SCISSOR_TEST);
     glScissor(0, gScreenHeight-gPlayerScreenSize.Y-1, gPlayerScreenSize.X, gPlayerScreenSize.Y);
 
@@ -879,6 +884,8 @@ begin
   finally
     gxSetContext(nil);
   end;
+
+  glPopMatrix;
 
   if showMapCurPos then
   begin
