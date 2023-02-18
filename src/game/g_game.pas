@@ -313,7 +313,6 @@ var
   gLanguageChange: Boolean = False;
   gDebugMode: Boolean = False;
   g_debug_Sounds: Boolean = False;
-  g_debug_Frames: Boolean = False;
   g_debug_WinMsgs: Boolean = False;
   g_debug_MonsterOff: Boolean = False;
   g_debug_BotAIOff: Byte = 0;
@@ -1032,7 +1031,6 @@ end;
 procedure ClearDebugCvars();
 begin
   g_debug_Sounds := False;
-  g_debug_Frames := False;
   g_debug_WinMsgs := False;
   g_debug_MonsterOff := False;
   g_debug_BotAIOff := 0;
@@ -4675,14 +4673,6 @@ begin
         g_Debug_Sounds := (P[1][1] = '1');
 
       g_Console_Add(Format('d_sounds is %d', [Byte(g_Debug_Sounds)]));
-    end
-    else if cmd = 'd_frames' then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        g_Debug_Frames := (P[1][1] = '1');
-
-      g_Console_Add(Format('d_frames is %d', [Byte(g_Debug_Frames)]));
     end
     else if cmd = 'd_winmsg' then
     begin

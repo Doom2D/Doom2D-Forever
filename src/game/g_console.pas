@@ -1050,7 +1050,6 @@ begin
 
   AddCommand('d_window', DebugCommands);
   AddCommand('d_sounds', DebugCommands);
-  AddCommand('d_frames', DebugCommands);
   AddCommand('d_winmsg', DebugCommands);
   AddCommand('d_monoff', DebugCommands);
   AddCommand('d_botoff', DebugCommands);

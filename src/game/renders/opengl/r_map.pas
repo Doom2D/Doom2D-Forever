@@ -232,6 +232,7 @@ implementation
     TMonsterAnims = array [0..ANIM_LAST, TDirection] of TGLMultiTexture;
 
   var
+    DebugFrames: Boolean;
     DebugCameraScale: Single;
     FillOutsizeArea: Boolean;
     SkyTexture: TGLTexture;
@@ -656,11 +657,20 @@ implementation
             r_Common_GetObjectPos(it.obj, xx, yy);
             tex := t.GetTexture(Items[it.ItemType].frame);
             r_Draw_TextureRepeat(tex, xx, yy, tex.width, tex.height, false, 255, 255, 255, 255, false);
+            if DebugFrames then
+            begin
+              r_Draw_Rect(
+                xx + it.obj.rect.x, // it.obj.x + it.obj.rect.x,
+                yy + it.obj.rect.y, // it.obj.y + it.obj.rect.y,
+                xx + it.obj.rect.x + it.obj.rect.width,  // it.obj.x + it.obj.rect.x + it.obj.rect.width,
+                yy + it.obj.rect.y + it.obj.rect.height, // it.obj.y + it.obj.rect.y + it.obj.rect.height,
+                0, 255, 0, 255
+              );
+            end;
           end;
         end;
       end;
     end;
-    // TODO draw g_debug_frames
   end;
 
   function r_Map_GetMonsterTexture (m, a: Integer; d: TDirection; out t: TGLMultiTexture; out dx, dy: Integer; out flip: Boolean): Boolean;
@@ -720,13 +730,21 @@ implementation
     a := mon.MonsterAnim;
     d := mon.GameDirection;
 
+    r_Common_GetObjectPos(mon.obj, xx, yy);
     if r_Map_GetMonsterTexture(m, a, d, t, dx, dy, flip) then
     begin
-      r_Common_GetObjectPos(mon.obj, xx, yy);
       r_Draw_MultiTextureRepeat(t, mon.DirAnim[a, d], false, xx + dx, yy + dy, t.width, t.height, flip, 255, 255, 255, 255, false);
     end;
-
-    // TODO draw g_debug_frames
+    if DebugFrames then
+    begin
+      r_Draw_Rect(
+        xx + mon.obj.rect.x, // mon.obj.x + mon.obj.rect.x,
+        yy + mon.obj.rect.y, // mon.obj.y + mon.obj.rect.y,
+        xx + mon.obj.rect.x + mon.obj.rect.width,  // mon.obj.x + mon.obj.rect.x + mon.obj.rect.width,
+        yy + mon.obj.rect.y + mon.obj.rect.height, // mon.obj.y + mon.obj.rect.y + mon.obj.rect.height,
+        0, 255, 0, 255
+      );
+    end;
   end;
 
   procedure r_Map_DrawMonsters (x, y, w, h: Integer);
@@ -960,7 +978,17 @@ implementation
 
       r_Map_DrawPlayerModel(p.Model, x, y, alpha);
     end;
-    // TODO draw g_debug_frames
+
+    if DebugFrames then
+    begin
+      r_Draw_Rect(
+        x + p.obj.rect.x, // p.obj.x + p.obj.rect.x,
+        y + p.obj.rect.y, // p.obj.y + p.obj.rect.y,
+        x + p.obj.rect.x + p.obj.rect.width,  // p.obj.x + p.obj.rect.x + p.obj.rect.width,
+        y + p.obj.rect.y + p.obj.rect.height, // p.obj.y + p.obj.rect.y + p.obj.rect.height,
+        0, 255, 0, 255
+      );
+    end;
 
     if (gChatBubble > 0) and p.FKeys[KEY_CHAT].Pressed and (p.Ghost = false) then
       if (p.FMegaRulez[MR_INVIS] <= gTime) or ((drawed <> nil) and ((p = drawed) or (p.Team = drawed.Team) and (gGameSettings.GameMode <> GM_DM))) then
@@ -1015,7 +1043,6 @@ implementation
         end;
       end;
     end;
-    // TODO draw g_debug_frames
   end;
 {$ENDIF}
 
@@ -1035,7 +1062,6 @@ implementation
         end;
       end;
     end;
-    // TODO draw g_debug_frames
   end;
 {$ENDIF}
 
@@ -1198,11 +1224,20 @@ implementation
             g_Anim_GetFrameByTime(ShotAnim[typ].anim, (gTime - Shots[i].time) DIV GAME_TICK, count, frame);
             tex := t.GetTexture(frame);
             r_Draw_TextureRepeatRotate(tex, xx, yy, tex.width, tex.height, false, 255, 255, 255, 255, false, pX, pY, a);
+            if DebugFrames then
+            begin
+              r_Draw_Rect(
+                xx + Shots[i].obj.rect.x, // Shots[i].obj.x + Shots[i].obj.rect.x,
+                yy + Shots[i].obj.rect.y, // Shots[i].obj.y + Shots[i].obj.rect.y,
+                xx + Shots[i].obj.rect.x + Shots[i].obj.rect.width,  // Shots[i].obj.x + Shots[i].obj.rect.x + Shots[i].obj.rect.width,
+                yy + Shots[i].obj.rect.y + Shots[i].obj.rect.height, // Shots[i].obj.y + Shots[i].obj.rect.y + Shots[i].obj.rect.height,
+                0, 255, 0, 255
+              );
+            end;
           end;
         end;
       end;
     end;
-    // TODO draw g_debug_frames
   end;
 
   procedure r_Map_DrawFlags (x, y, w, h: Integer);
@@ -1219,11 +1254,20 @@ implementation
           if flip then dx := -1 else dx := +1;
           t := FlagTextures[i];
           tex := t.GetTexture(FlagFrame);
-          r_Draw_TextureRepeat(tex, xx + dx, yy + 1, tex.width, tex.height, flip, 255, 255, 255, 255, false)
+          r_Draw_TextureRepeat(tex, xx + dx, yy + 1, tex.width, tex.height, flip, 255, 255, 255, 255, false);
+          if DebugFrames then
+          begin
+            r_Draw_Rect(
+              xx + gFlags[i].obj.rect.x, // gFlags[i].obj.x + gFlags[i].obj.rect.x,
+              yy + gFlags[i].obj.rect.y, // gFlags[i].obj.y + gFlags[i].obj.rect.y,
+              xx + gFlags[i].obj.rect.x + gFlags[i].obj.rect.width,  // gFlags[i].obj.x + gFlags[i].obj.rect.x + gFlags[i].obj.rect.width,
+              yy + gFlags[i].obj.rect.y + gFlags[i].obj.rect.height, // gFlags[i].obj.y + gFlags[i].obj.rect.y + gFlags[i].obj.rect.height,
+              0, 255, 0, 255
+            );
+          end;
         end;
       end;
     end;
-    // TODO g_debug_frames
   end;
 
 {$IFDEF ENABLE_SHELLS}
@@ -1601,6 +1645,8 @@ implementation
 initialization
   conRegVar('r_debug_camera_scale', @DebugCameraScale, 0.0001, 1000.0, '', '');
   conRegVar('r_gl_fill_outside', @FillOutsizeArea, '', '');
+  conRegVar('d_frames', @DebugFrames, '', '');
   DebugCameraScale := 1.0;
   FillOutsizeArea := true;
+  DebugFrames := false;
 end.
