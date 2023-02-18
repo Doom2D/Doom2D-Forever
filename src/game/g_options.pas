@@ -80,7 +80,6 @@ var
 {$ELSE}
   e_NoGraphics: Boolean = False;
 {$ENDIF}
-  e_FastScreenshots: Boolean = true; // it's REALLY SLOW with `false`
   g_dbg_scale: Single = 1.0;
   r_pixel_scale: Single = 1.0;
 
@@ -312,7 +311,6 @@ begin
   gChatBubble := 4;
   wadoptDebug := False;
   wadoptFast := False;
-  e_FastScreenshots := True;
   gDefaultMegawadStart := DF_Default_Megawad_Start;
   g_dbg_scale := 1.0;
   gSaveStats := False;
@@ -427,7 +425,6 @@ initialization
   conRegVar('r_chat_bubble', @gChatBubble, '', '');
   conRegVar('sfs_debug', @wadoptDebug, '', '');
   conRegVar('sfs_fastmode', @wadoptFast, '', '');
-  conRegVar('g_fast_screenshots', @e_FastScreenshots, '', '');
   conRegVar('g_default_megawad', @gDefaultMegawadStart, '', '');
   conRegVar('g_save_stats', @gSaveStats, '', '');
   conRegVar('g_screenshot_stats', @gScreenshotStats, '', '');

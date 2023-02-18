@@ -46,7 +46,7 @@ interface
   procedure r_Render_Resize (w, h: Integer);
   procedure r_Render_Apply;
 
-  function r_Render_WriteScreenShot (filename: String): Boolean;
+  procedure r_Render_RequestScreenShot;
 
   {$IFDEF ENABLE_GIBS}
     function r_Render_GetGibRect (m, id: Integer): TRectWH;
@@ -84,6 +84,7 @@ implementation
 
   uses
     {$I ../../../nogl/noGLuses.inc}
+    Imaging, ImagingTypes, ImagingUtility, (* for screenshots *)
     {$IFDEF ENABLE_MENU}
       r_gui,
     {$ENDIF}
@@ -98,7 +99,7 @@ implementation
     {$ENDIF}
     SysUtils, Classes, Math,
     g_basic,
-    e_log, utils, wadreader, mapdef,
+    e_log, e_res, utils, wadreader, mapdef,
     g_game, g_map, g_panel, g_options, g_console, g_player, g_weapons, g_language, g_triggers, g_monsters,
     g_net, g_netmaster,
     r_draw, r_textures, r_fonts, r_common, r_console, r_map, r_loadscreen
@@ -116,6 +117,7 @@ implementation
     hudbflag, hudbflags, hudbflagd: TGLTexture;
 
     FPS, FPSCounter, FPSTime: LongWord;
+    TakeScreenShot: Boolean;
 
   procedure r_Render_LoadTextures;
   begin
@@ -1072,6 +1074,63 @@ implementation
     DrawPlayers;
   end;
 
+  function GetScreenShotName (AsStats: Boolean): AnsiString;
+    var dir, date: AnsiString;
+  begin
+    result := '';
+    dir := e_GetWriteableDir(ScreenshotDirs);
+    if dir <> '' then
+    begin
+      if AsStats then
+      begin
+        dir := e_CatPath(dir, 'stats'); (* TODO: use e_GetWriteableDir *)
+        result := e_CatPath(dir, StatFilename + '.png');
+      end
+      else
+      begin
+        DateTimeToString(date, 'yyyy-mm-dd-hh-nn-ss', Now());
+        result := e_CatPath(dir, 'screenshot-' + date + '.png');
+      end;
+    end;
+  end;
+
+  procedure SaveScreenShot (AsStats: Boolean);
+    var img: TImageData; typ: GLenum; ok: Boolean; fname: AnsiString;
+  begin
+    ok := false;
+    fname := GetScreenShotName(AsStats);
+    if fname <> '' then
+    begin
+      if (gWinSizeX > 0) and (gWinSizeY > 0) then
+      begin
+        Imaging.SetOption(ImagingPNGPreFilter, 5);
+        Imaging.SetOption(ImagingPNGCompressLevel, 5);
+        InitImage(img);
+        if NewImage(gWinSizeX, gWinSizeY, TImageFormat.ifA8R8G8B8, img) then
+        begin
+          {$IFDEF ENDIAN_LITTLE}
+            typ := GL_UNSIGNED_INT_8_8_8_8_REV;
+          {$ELSE}
+            typ := GL_UNSIGNED_INT_8_8_8_8;
+          {$ENDIF}
+          glReadPixels(0, 0, gWinSizeX, gWinSizeY, GL_BGRA, typ, img.bits);
+          if glGetError() = GL_NO_ERROR then
+          begin
+            if FlipImage(img) then
+            begin
+              ok := SaveImageToFile(fname, img);
+            end;
+          end;
+        end;
+        FreeImage(img);
+      end;
+    end;
+    if ok then
+      g_Console_Add(Format(_lc[I_CONSOLE_SCREENSHOT], [fname]))
+    else
+      g_Console_Add(Format(_lc[I_CONSOLE_ERROR_WRITE], [fname]));
+  end;
+
   procedure r_Render_Draw;
     var p1, p2: TPlayer; time: LongWord; pw, ph: Integer;
   begin
@@ -1289,6 +1348,19 @@ implementation
       r_Touch_Draw;
     {$ENDIF}
 
+    if TakeScreenShot then
+    begin
+      SaveScreenShot(false);
+      TakeScreenShot := false;
+    end;
+
+    (* take stats screenshot immediately after the first frame of the stats showing *)
+    if gScreenshotStats and (StatShotDone = false) and (Length(CustomStat.PlayerStat) > 1) then
+    begin
+      SaveScreenShot(true);
+      StatShotDone := true;
+    end;
+
     sys_Repaint;
   end;
 
@@ -1316,10 +1388,9 @@ implementation
     {$ENDIF}
   end;
 
-  function r_Render_WriteScreenShot (filename: String): Boolean;
+  procedure r_Render_RequestScreenShot;
   begin
-    // TODO write screenshot file
-    Result := False;
+    TakeScreenShot := true;
   end;
 
 {$IFDEF ENABLE_GIBS}

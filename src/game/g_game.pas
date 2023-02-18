@@ -132,9 +132,6 @@ procedure g_Game_Announce_KillCombo(Param: Integer);
 procedure g_Game_Announce_BodyKill(SpawnerUID: Word);
 procedure g_Game_StartVote(Command, Initiator: string);
 procedure g_Game_CheckVote;
-{$IFDEF ENABLE_RENDER}
-  procedure g_TakeScreenShot(Filename: string = '');
-{$ENDIF}
 procedure g_FatalError(Text: String);
 procedure g_SimpleError(Text: String);
 function  g_Game_IsTestMap(): Boolean;
@@ -5981,7 +5978,7 @@ begin
   else if cmd = 'screenshot' then
   begin
     {$IFDEF ENABLE_RENDER}
-      g_TakeScreenShot;
+      r_Render_RequestScreenShot;
     {$ENDIF}
   end
   else if (cmd = 'weapnext') or (cmd = 'weapprev') then
@@ -6314,29 +6311,6 @@ begin
       end;
   end;
 end;
-
-{$IFDEF ENABLE_RENDER}
-procedure g_TakeScreenShot(Filename: string = '');
-  var t: TDateTime; dir, date, name: String;
-begin
-  if e_NoGraphics then
-    Exit;
-
-  dir := e_GetWriteableDir(ScreenshotDirs);
-  if Filename = '' then
-  begin
-    t := Now;
-    DateTimeToString(date, 'yyyy-mm-dd-hh-nn-ss', t);
-    Filename := 'screenshot-' + date;
-  end;
-
-  name := e_CatPath(dir, Filename + '.png');
-  if r_Render_WriteScreenShot(name) then
-    g_Console_Add(Format(_lc[I_CONSOLE_SCREENSHOT], [name]))
-  else
-    g_Console_Add(Format(_lc[I_CONSOLE_ERROR_WRITE], [name]));
-end;
-{$ENDIF}
 
 {$IFDEF ENABLE_MENU}
 procedure g_Game_InGameMenu(Show: Boolean);
