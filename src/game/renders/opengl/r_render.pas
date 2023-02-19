@@ -216,12 +216,16 @@ implementation
 {$ENDIF}
 
   procedure r_Render_LogGLInfo;
+    var size: GLint;
   begin
+    size := 0;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, @size);
     e_LogWritefln('GL Vendor: %s', [glGetString(GL_VENDOR)]);
     e_LogWritefln('GL Renderer: %s', [glGetString(GL_RENDERER)]);
     e_LogWritefln('GL Version: %s', [glGetString(GL_VERSION)]);
     e_LogWritefln('GL Shaders: %s', [glGetString(GL_SHADING_LANGUAGE_VERSION)]);
     e_LogWritefln('GL Extensions: %s', [glGetString(GL_EXTENSIONS)]);
+    e_LogWritefln('GL Texture: %s', [size]);
   end;
 
   procedure r_Render_Initialize;

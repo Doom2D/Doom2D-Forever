@@ -465,7 +465,8 @@ implementation
     begin
       // auto, max possible reccomended by driver
       glGetIntegerv(GL_MAX_TEXTURE_SIZE, @size);
-      if size < 1 then size := 64;
+      size := size div 2; (* hack: on some devices max size may produce invalid texture *)
+      if size < 64 then size := 64; (* at least 64x64 are guarantied by specification *)
     end
     else
     begin
@@ -482,7 +483,7 @@ implementation
   begin
     currentTexture2D := 0;
     maxTileSize := r_Textures_GetMaxHardwareSize();
-    e_LogWritefln('TEXTURE SIZE: %s', [maxTileSize]);
+    e_LogWritefln('Texture Tile Size: %s', [maxTileSize]);
   end;
 
   procedure r_Textures_Finalize;
