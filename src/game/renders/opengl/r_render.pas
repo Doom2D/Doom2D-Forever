@@ -99,6 +99,7 @@ implementation
     {$ENDIF}
     SysUtils, Classes, Math,
     g_basic,
+    e_sound, // DebugSound
     e_log, e_res, utils, wadreader, mapdef,
     g_game, g_map, g_panel, g_options, g_console, g_player, g_weapons, g_language, g_triggers, g_monsters,
     g_net, g_netmaster,
@@ -118,6 +119,7 @@ implementation
 
     FPS, FPSCounter, FPSTime: LongWord;
     TakeScreenShot: Boolean;
+    DebugSound: Boolean;
 
   procedure r_Render_LoadTextures;
   begin
@@ -1132,7 +1134,7 @@ implementation
   end;
 
   procedure r_Render_Draw;
-    var p1, p2: TPlayer; time: LongWord; pw, ph: Integer;
+    var p1, p2: TPlayer; time: LongWord; pw, ph, i, j: Integer;
   begin
     if gExit = EXIT_QUIT then
       exit;
@@ -1324,7 +1326,12 @@ implementation
 
     r_Console_Draw(false);
 
-    // TODO g_debug_Sounds
+    if DebugSound and gGameOn then
+    begin
+      for i := 0 to High(e_SoundsArray) do
+        for j := 0 to e_SoundsArray[i].nRefs do
+          r_Draw_FillRect(i + 100, j + 100, i + 100 + 1, j + 100 + 1, 255, 0, 0, 255);
+    end;
 
     if gShowFPS then
     begin
@@ -1478,4 +1485,7 @@ implementation
   end;
 {$ENDIF}
 
+begin
+  conRegVar('d_sounds', @DebugSound, '', '');
+  DebugSound := false;
 end.

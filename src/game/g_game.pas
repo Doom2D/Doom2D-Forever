@@ -1,4 +1,4 @@
- (* Copyright (C)  Doom 2D: Forever Developers
+(* Copyright (C)  Doom 2D: Forever Developers
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -312,7 +312,6 @@ var
   gRC_FullScreen, gRC_Maximized: Boolean;
   gLanguageChange: Boolean = False;
   gDebugMode: Boolean = False;
-  g_debug_Sounds: Boolean = False;
   g_debug_WinMsgs: Boolean = False;
   g_debug_MonsterOff: Boolean = False;
   g_debug_BotAIOff: Byte = 0;
@@ -1030,7 +1029,6 @@ end;
 
 procedure ClearDebugCvars();
 begin
-  g_debug_Sounds := False;
   g_debug_WinMsgs := False;
   g_debug_MonsterOff := False;
   g_debug_BotAIOff := 0;
@@ -4665,14 +4663,6 @@ begin
     begin
       g_Console_Add(Format('gScreenWidth = %d, gScreenHeight = %d', [gScreenWidth, gScreenHeight]));
       g_Console_Add(Format('gScreenWidth = %d, gScreenHeight = %d', [gScreenWidth, gScreenHeight]));
-    end
-    else if cmd = 'd_sounds' then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        g_Debug_Sounds := (P[1][1] = '1');
-
-      g_Console_Add(Format('d_sounds is %d', [Byte(g_Debug_Sounds)]));
     end
     else if cmd = 'd_winmsg' then
     begin
