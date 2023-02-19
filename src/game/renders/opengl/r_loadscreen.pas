@@ -176,5 +176,5 @@ implementation
 
 initialization
   conRegVar('r_loadscreen_fps', @r_loadscreen_fps, '', '');
-  r_loadscreen_fps := 0; // auto
+  r_loadscreen_fps := 10;
 end.
