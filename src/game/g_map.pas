@@ -214,7 +214,6 @@ var
   gExternalResources: array of TDiskFileInfo = nil;
   gMovingWallIds: array of Integer = nil;
 
-  gdbg_map_use_accel_render: Boolean = true;
   gdbg_map_use_accel_coldet: Boolean = true;
   profMapCollision: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
 

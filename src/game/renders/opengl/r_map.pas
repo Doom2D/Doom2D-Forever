@@ -232,6 +232,7 @@ implementation
     TMonsterAnims = array [0..ANIM_LAST, TDirection] of TGLMultiTexture;
 
   var
+    UseAccel: Boolean;
     DebugFrames: Boolean;
     DebugHealth: Boolean;
     DebugCameraScale: Single;
@@ -287,9 +288,9 @@ implementation
 
   class function TBinHeapPanelDrawCmp.less (const a, b: TPanel): Boolean; inline;
   begin
-    if a.tag < b.tag then begin result := true; exit; end;
-    if a.tag > b.tag then begin result := false; exit; end;
-    result := a.arrIdx < b.arrIdx;
+    if a.tag < b.tag then result := true
+    else if a.tag > b.tag then result := false
+    else result := a.arrIdx < b.arrIdx;
   end;
 
   procedure r_Map_Initialize;
@@ -583,20 +584,22 @@ implementation
   end;
 
   procedure r_Map_DrawPanel (p: TPanel);
-    var Texture: Integer; t: TGLMultiTexture; tex: TGLTexture; count, frame: LongInt; a: TAnimInfo;
+    var Texture, spec: Integer; t: TGLMultiTexture; count, frame: LongInt; a: TAnimInfo;
   begin
     ASSERT(p <> nil);
+
+    spec := -1;
     if p.FCurTexture >= 0 then
     begin
       ASSERT(p.FCurTexture <= High(p.TextureIDs));
       Texture := p.TextureIDs[p.FCurTexture].Texture;
-      t := nil;
       ASSERT(Texture >= -1);
-      ASSERT(Texture <= High(RenTextures));
       if Texture >= 0 then
       begin
+        ASSERT(Texture <= High(RenTextures));
+        spec := RenTextures[Texture].spec;
         t := RenTextures[Texture].tex;
-        if (RenTextures[Texture].spec = 0) or (t <> nil) then
+        if t <> nil then
         begin
           count := 0; frame := 0;
           if p.AnimTime <= gTime then
@@ -605,40 +608,75 @@ implementation
             a.loop := p.AnimLoop;
             g_Anim_GetFrameByTime(a, (gTime - p.AnimTime) DIV GAME_TICK, count, frame);
           end;
-          if t <> nil then
-          begin
-            tex := t.GetTexture(frame);
-            r_Draw_TextureRepeat(tex, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255 - p.alpha, p.blending);
-          end
-          else
-            r_Draw_TextureRepeat(nil, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255, false);
+          r_Draw_TextureRepeat(t.GetTexture(frame), p.x, p.y, p.width, p.height, false, 255, 255, 255, 255 - p.alpha, p.blending);
+        end
+        else if RenTextures[Texture].spec = 0 then
+        begin
+          r_Draw_TextureRepeat(nil, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255, false);
         end;
       end;
+    end;
 
-      if t = nil then
+    // legacy support:
+    // older maps may omit textures for fluid panels
+    // in such case default filters must be used automatically
+    if spec = -1 then
+    begin
+      case p.PanelType of
+        PANEL_WATER: spec := TEXTURE_SPECIAL_WATER;
+        PANEL_ACID1: spec := TEXTURE_SPECIAL_ACID1;
+        PANEL_ACID2: spec := TEXTURE_SPECIAL_ACID2;
+      end;
+    end;
+
+    case spec of
+      TEXTURE_SPECIAL_WATER: r_Draw_Filter(p.x, p.y, p.x + p.width, p.y + p.height, 0, 0, 255, 255);
+      TEXTURE_SPECIAL_ACID1: r_Draw_Filter(p.x, p.y, p.x + p.width, p.y + p.height, 0, 230, 0, 255);
+      TEXTURE_SPECIAL_ACID2: r_Draw_Filter(p.x, p.y, p.x + p.width, p.y + p.height, 230, 0, 0, 255);
+    end;
+  end;
+
+  procedure r_Map_DrawPanels (constref panels: TPanelArray; drawDoors: Boolean = false);
+    var i: Integer; p: TPanel;
+  begin
+    if panels <> nil then
+    begin
+      for i := 0 to High(panels) do
       begin
-        case RenTextures[Texture].spec of
-          TEXTURE_SPECIAL_WATER: r_Draw_Filter(p.x, p.y, p.x + p.width, p.y + p.height, 0, 0, 255, 255);
-          TEXTURE_SPECIAL_ACID1: r_Draw_Filter(p.x, p.y, p.x + p.width, p.y + p.height, 0, 230, 0, 255);
-          TEXTURE_SPECIAL_ACID2: r_Draw_Filter(p.x, p.y, p.x + p.width, p.y + p.height, 230, 0, 0, 255);
-        end
-      end
-    end
+        p := panels[i];
+        if p.enabled and not (drawDoors xor p.door) then
+          r_Map_DrawPanel(p);
+      end;
+    end;
   end;
 
   procedure r_Map_DrawPanelType (panelTyp: DWORD);
-    var tagMask, i: Integer; p: TPanel;
+    var tagMask: Integer; p: TPanel;
   begin
-    i := 0;
-    tagMask := PanelTypeToTag(panelTyp);
-    while plist.count > 0 do
+    if UseAccel then
     begin
-      p := TPanel(plist.Front());
-      if (p.tag and tagMask) = 0 then
-        break;
-      r_Map_DrawPanel(p);
-      Inc(i);
-      plist.PopFront
+      tagMask := PanelTypeToTag(panelTyp);
+      while plist.count > 0 do
+      begin
+        p := TPanel(plist.Front());
+        if (p.tag and tagMask) = 0 then
+          break;
+        r_Map_DrawPanel(p);
+        plist.PopFront;
+      end;
+    end
+    else
+    begin
+      case panelTyp of
+        PANEL_BACK:      if g_rlayer_back then r_Map_DrawPanels(gRenderBackgrounds);
+        PANEL_STEP:      if g_rlayer_step then r_Map_DrawPanels(gSteps);
+        PANEL_WALL:      if g_rlayer_wall then r_Map_DrawPanels(gWalls);
+        PANEL_CLOSEDOOR: if g_rlayer_door then r_Map_DrawPanels(gWalls, True);
+        PANEL_ACID1:     if g_rlayer_acid1 then r_Map_DrawPanels(gAcid1);
+        PANEL_ACID2:     if g_rlayer_acid2 then r_Map_DrawPanels(gAcid2);
+        PANEL_WATER:     if g_rlayer_water then r_Map_DrawPanels(gWater);
+        PANEL_FORE:      if g_rlayer_fore then r_Map_DrawPanels(gRenderForegrounds);
+      end;
     end;
   end;
 
@@ -1482,16 +1520,34 @@ implementation
     end;
   end;
 
+  function r_Map_GetDrawableGridMask (): Integer;
+    var mask: Integer;
+  begin
+    mask := 0;
+    if g_rlayer_back then mask := mask or GridTagBack;
+    if g_rlayer_step then mask := mask or GridTagStep;
+    if g_rlayer_wall then mask := mask or GridTagWall;
+    if g_rlayer_door then mask := mask or GridTagDoor;
+    if g_rlayer_acid1 then mask := mask or GridTagAcid1;
+    if g_rlayer_acid2 then mask := mask or GridTagAcid2;
+    if g_rlayer_water then mask := mask or GridTagWater;
+    if g_rlayer_fore then mask := mask or GridTagFore;
+    result := mask;
+  end;
+
   procedure r_Map_DrawGame (xx, yy, ww, hh: Integer; player: TPlayer);
     (* xx/yy/ww/hh are in map units *)
     var iter: TPanelGrid.Iter; p: PPanel;
   begin
-    plist.Clear;
-    iter := mapGrid.ForEachInAABB(xx, yy, ww, hh, GridDrawableMask);
-    for p in iter do
-      if ((p^.tag and GridTagDoor) <> 0) = p^.door then
-        plist.Insert(p^);
-    iter.Release;
+    if UseAccel then
+    begin
+      plist.Clear;
+      iter := mapGrid.ForEachInAABB(xx, yy, ww, hh, r_Map_GetDrawableGridMask());
+      for p in iter do
+        if ((p^.tag and GridTagDoor) <> 0) = p^.door then
+          plist.Insert(p^);
+      iter.Release;
+    end;
 
     r_Map_DrawPanelType(PANEL_BACK);
     r_Map_DrawPanelType(PANEL_STEP);
@@ -1520,8 +1576,6 @@ implementation
     r_Map_DrawPanelType(PANEL_ACID2);
     r_Map_DrawPanelType(PANEL_WATER);
     r_Map_DrawPanelType(PANEL_FORE);
-    // TODO draw monsters health bar
-    // TODO draw players health bar
   end;
 
   procedure r_Map_DrawScaled (w, h, camx, camy: Integer; player: TPlayer; out acx, acy, acw, ach, axx, ayy, aww, ahh: Integer);
@@ -1596,7 +1650,7 @@ implementation
       glTranslatef(-w div 2, -h div 2, 0);
     end;
 
-    if SkyTexture <> nil then
+    if gDrawBackGround and (SkyTexture <> nil) then
     begin
       r_Map_CalcSkyParallax(cx, cy, w, h, SkyTexture.width, SkyTexture.height, gMapInfo.Width, gMapInfo.Height, sx, sy, sw, sh);
       r_Draw_Texture(SkyTexture, sx, sy, sw, sh, false, 255, 255, 255, 255, false);
@@ -1665,10 +1719,12 @@ implementation
   end;
 
 initialization
+  conRegVar('r_sq_draw', @UseAccel, 'accelerated spatial queries in rendering', 'accelerated rendering');
   conRegVar('r_debug_camera_scale', @DebugCameraScale, 0.0001, 1000.0, '', '');
   conRegVar('r_gl_fill_outside', @FillOutsizeArea, '', '');
   conRegVar('d_frames', @DebugFrames, '', '');
   conRegVar('d_health', @DebugHealth, '', '');
+  UseAccel := true;
   DebugCameraScale := 1.0;
   FillOutsizeArea := true;
   DebugFrames := false;

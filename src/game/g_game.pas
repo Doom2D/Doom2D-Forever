@@ -6967,7 +6967,6 @@ begin
   conRegVar('pf_coldet', @g_profile_collision, 'draw collision detection profiles', 'coldet profiles');
   conRegVar('pf_los', @g_profile_los, 'draw monster LOS profiles', 'monster LOS profiles');
 
-  conRegVar('r_sq_draw', @gdbg_map_use_accel_render, 'accelerated spatial queries in rendering', 'accelerated rendering');
   conRegVar('cd_sq_enabled', @gdbg_map_use_accel_coldet, 'accelerated spatial queries in map coldet', 'accelerated map coldet');
   conRegVar('mon_sq_enabled', @gmon_debug_use_sqaccel, 'accelerated spatial queries for monsters', 'accelerated monster coldet');
   conRegVar('wtrace_sq_enabled', @gwep_debug_fast_trace, 'accelerated spatial queries for weapon hitscan trace', 'accelerated weapon hitscan');
