@@ -1110,15 +1110,10 @@ implementation
         InitImage(img);
         if NewImage(gWinSizeX, gWinSizeY, TImageFormat.ifA8R8G8B8, img) then
         begin
-          {$IFDEF ENDIAN_LITTLE}
-            typ := GL_UNSIGNED_INT_8_8_8_8_REV;
-          {$ELSE}
-            typ := GL_UNSIGNED_INT_8_8_8_8;
-          {$ENDIF}
-          glReadPixels(0, 0, gWinSizeX, gWinSizeY, GL_BGRA, typ, img.bits);
+          glReadPixels(0, 0, gWinSizeX, gWinSizeY, GL_RGBA, GL_UNSIGNED_BYTE, img.bits);
           if glGetError() = GL_NO_ERROR then
           begin
-            if FlipImage(img) then
+            if FlipImage(img) and SwapChannels(img, ChannelRed, ChannelBlue) then
             begin
               ok := SaveImageToFile(fname, img);
             end;
