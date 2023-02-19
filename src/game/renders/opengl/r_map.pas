@@ -233,6 +233,7 @@ implementation
 
   var
     DebugFrames: Boolean;
+    DebugHealth: Boolean;
     DebugCameraScale: Single;
     FillOutsizeArea: Boolean;
     SkyTexture: TGLTexture;
@@ -745,6 +746,17 @@ implementation
         0, 255, 0, 255
       );
     end;
+    if DebugHealth and mon.alive then
+    begin
+      r_Common_DrawText(
+        IntToStr(mon.MonsterHealth),
+        xx + mon.obj.rect.x + mon.obj.rect.width div 2,
+        yy + mon.obj.rect.y,
+        255, 255, 255, 255,
+        stdfont,
+        TBasePoint.BP_DOWN
+      );
+    end;
   end;
 
   procedure r_Map_DrawMonsters (x, y, w, h: Integer);
@@ -987,6 +999,18 @@ implementation
         x + p.obj.rect.x + p.obj.rect.width,  // p.obj.x + p.obj.rect.x + p.obj.rect.width,
         y + p.obj.rect.y + p.obj.rect.height, // p.obj.y + p.obj.rect.y + p.obj.rect.height,
         0, 255, 0, 255
+      );
+    end;
+
+    if DebugHealth and p.alive then
+    begin
+      r_Common_DrawText(
+        IntToStr(p.health) + '/' + IntToStr(p.armor),
+        x + p.obj.rect.x + p.obj.rect.width div 2,
+        y - 24,
+        255, 255, 255, 255,
+        stdfont,
+        TBasePoint.BP_DOWN
       );
     end;
 
@@ -1616,8 +1640,6 @@ implementation
       r_Map_DrawPlayerIndicators(player, cx, cy, cw, ch);
     end;
 
-    // TODO draw g_debug_player
-
     //glTranslatef(-x, -y, 0);
     r_Draw_SetRect(l, t, r, b);
     glPopMatrix;
@@ -1646,7 +1668,9 @@ initialization
   conRegVar('r_debug_camera_scale', @DebugCameraScale, 0.0001, 1000.0, '', '');
   conRegVar('r_gl_fill_outside', @FillOutsizeArea, '', '');
   conRegVar('d_frames', @DebugFrames, '', '');
+  conRegVar('d_health', @DebugHealth, '', '');
   DebugCameraScale := 1.0;
   FillOutsizeArea := true;
   DebugFrames := false;
+  DebugHealth := false;
 end.

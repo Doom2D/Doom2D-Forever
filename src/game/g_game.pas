@@ -315,7 +315,6 @@ var
   g_debug_WinMsgs: Boolean = False;
   g_debug_MonsterOff: Boolean = False;
   g_debug_BotAIOff: Byte = 0;
-  g_debug_HealthBar: Boolean = False;
   g_Debug_Player: Boolean = False;
   gCoopMonstersKilled: Word = 0;
   gCoopSecretsFound: Word = 0;
@@ -1032,7 +1031,6 @@ begin
   g_debug_WinMsgs := False;
   g_debug_MonsterOff := False;
   g_debug_BotAIOff := 0;
-  g_debug_HealthBar := False;
   g_Debug_Player := False;
 end;
 
@@ -4733,14 +4731,6 @@ begin
               end;
             end;
         end;
-    end
-    else if (cmd = 'd_health') then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        g_debug_HealthBar := (P[1][1] = '1');
-
-      g_Console_Add(Format('d_health is %d', [Byte(g_debug_HealthBar)]));
     end
     else if (cmd = 'd_player') then
     begin

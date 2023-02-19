@@ -1053,7 +1053,6 @@ begin
   AddCommand('d_monoff', DebugCommands);
   AddCommand('d_botoff', DebugCommands);
   AddCommand('d_monster', DebugCommands);
-  AddCommand('d_health', DebugCommands);
   AddCommand('d_player', DebugCommands);
   AddCommand('d_joy', DebugCommands);
   AddCommand('d_mem', DebugCommands);
