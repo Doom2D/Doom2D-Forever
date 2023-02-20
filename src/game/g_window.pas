@@ -32,11 +32,17 @@ implementation
     {$IFDEF ENABLE_SYSTEM}
       g_system,
     {$ENDIF}
+    {$IFDEF ENABLE_MENU}
+      g_gui,
+    {$ENDIF}
     e_sound, g_net
   ;
 
   procedure ProcessLoading (forceUpdate: Boolean = False);
   begin
+    {$IFDEF ENABLE_MENU}
+      g_ActiveWindow := nil;
+    {$ENDIF}
     {$IFDEF ENABLE_RENDER}
       r_Render_DrawLoading(forceUpdate);
     {$ENDIF}
@@ -44,6 +50,9 @@ implementation
 
   procedure g_Game_ClearLoading;
   begin
+    {$IFDEF ENABLE_MENU}
+      g_ActiveWindow := nil;
+    {$ENDIF}
     {$IFDEF ENABLE_RENDER}
       r_Render_ClearLoading;
     {$ENDIF}
@@ -51,6 +60,9 @@ implementation
 
   procedure g_Game_SetLoadingText (const text: String; maxval: Integer; rewrite: Boolean);
   begin
+    {$IFDEF ENABLE_MENU}
+      g_ActiveWindow := nil;
+    {$ENDIF}
     {$IFDEF ENABLE_RENDER}
       if maxval < 0 then maxval := 0;
       r_Render_SetLoading(text, maxval);
@@ -59,6 +71,9 @@ implementation
 
   procedure g_Game_StepLoading (value: Integer = -1);
   begin
+    {$IFDEF ENABLE_MENU}
+      g_ActiveWindow := nil;
+    {$ENDIF}
     {$IFDEF ENABLE_RENDER}
       if value < 0 then value := 1;
       r_Render_StepLoading(value);
