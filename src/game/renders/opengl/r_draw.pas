@@ -116,16 +116,24 @@ implementation
     glEnd();
   end;
 
+  procedure DrawTextureError (x, y, w, h: Integer);
+    var w2, h2: Integer;
+  begin
+    w2 := w div 2; h2 := h div 2;
+    r_Draw_FillRect(x,      y,      x + w2, y + h2, 255, 0,   255, 255);
+    r_Draw_FillRect(x + w2, y,      x + w,  y + h2, 255, 255, 255, 255);
+    r_Draw_FillRect(x + w2, y + h2, x + w,  y + h,  255, 0,   255, 255);
+    r_Draw_FillRect(x,      y + h2, x + w2, y + h,  255, 255, 255, 255);
+    if (w > 2) and (h > 2) then
+      r_Draw_Rect(x, y, x + w, y + h, 0, 255, 0, 255);
+  end;
+
   procedure DrawTile (tile: TGLAtlasNode; x, y, w, h: Integer; flip: Boolean; rr, gg, bb, aa: Byte; blend: Boolean);
     var nw, nh, ax, bx, ay, by: GLfloat; l, t, r, b: Integer;
   begin
     if tile = nil then
     begin
-      r_Draw_SetColor(rr, gg, bb, aa);
-      if blend then glBlendFunc(GL_SRC_ALPHA, GL_ONE) else glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-      r_Draw_EnableTexture2D(false);
-      glEnable(GL_BLEND);
-      DrawQuad(x, y, w, h);
+      DrawTextureError(x, y, w, h);
     end
     else
     begin
@@ -177,7 +185,7 @@ implementation
     ASSERT(w >= 0);
     ASSERT(h >= 0);
     if img = nil then
-      DrawTile(nil, x, y, w, h, flip, NTR, NTB, NTG, NTA, blend)
+      DrawTextureError(x, y, w, h)
     else
     begin
       if flip then first := img.cols - 1 else first := 0;
@@ -224,7 +232,7 @@ implementation
     ASSERT(w >= 0);
     ASSERT(h >= 0);
     if img = nil then
-      r_Draw_Texture(nil, x, y, w, h, flip, NTR, NTG, NTB, NTB, blend)
+      DrawTextureError(x, y, w, h)
     else if r_Draw_IsHWRepeatable(img) then
       DrawHWTexture(img.GetTile(0, 0).base.id, img.width, img.height, x, y, w, h, flip, r, g, b, a, blend)
     else
@@ -255,7 +263,7 @@ implementation
   begin
     ASSERT(anim.IsValid());
     if m = nil then
-      r_Draw_TextureRepeat(nil, x, y, w, h, flip, NTR, NTG, NTB, NTB, blend)
+      DrawTextureError(x, y, w, h)
     else
     begin
       g_Anim_GetFrameFromState(anim, backanim, frame);
