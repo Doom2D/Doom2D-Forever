@@ -246,21 +246,25 @@ const
 
 { T P a n e l : }
 
-  function FindTextureByName (const name: String): Integer;
-    var i: Integer;
+  function GetSpecialTexture (const name: String): Integer;
+    (* HACK: get texture id, if not present -> insert it into list *)
+    (* required for older maps *)
+    var i, len: Integer;
   begin
-    Result := -1;
+    i := 0; len := 0;
     if Textures <> nil then
     begin
-      for i := 0 to High(Textures) do
-      begin
-        if Textures[i].TextureName = name then
-        begin
-          Result := i;
-          break;
-        end
-      end
-    end
+      len := Length(Textures);
+      while (i < len) and (Textures[i].TextureName <> name) do
+        Inc(i);
+    end;
+    if i >= len then
+    begin
+      i := len;
+      SetLength(Textures, len + 1);
+      Textures[i].TextureName := name;
+    end;
+    result := i;
   end;
 
 constructor TPanel.Create(PanelRec: TDynRecord;
@@ -343,9 +347,9 @@ begin
   begin
     SetLength(FTextureIDs, 1);
     case PanelRec.PanelType of
-      PANEL_WATER: FTextureIDs[0].Texture := FindTextureByName(TEXTURE_NAME_WATER);
-      PANEL_ACID1: FTextureIDs[0].Texture := FindTextureByName(TEXTURE_NAME_ACID1);
-      PANEL_ACID2: FTextureIDs[0].Texture := FindTextureByName(TEXTURE_NAME_ACID2);
+      PANEL_WATER: FTextureIDs[0].Texture := GetSpecialTexture(TEXTURE_NAME_WATER);
+      PANEL_ACID1: FTextureIDs[0].Texture := GetSpecialTexture(TEXTURE_NAME_ACID1);
+      PANEL_ACID2: FTextureIDs[0].Texture := GetSpecialTexture(TEXTURE_NAME_ACID2);
     end;
     FCurTexture := 0;
     Exit;

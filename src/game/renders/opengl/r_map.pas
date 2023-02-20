@@ -587,17 +587,15 @@ implementation
     var Texture, spec: Integer; t: TGLMultiTexture; count, frame: LongInt; a: TAnimInfo;
   begin
     ASSERT(p <> nil);
-
-    spec := -1;
+    ASSERT(p.FCurTexture >= -1); (* p.FCurTexture = -1 -> invisible texture *)
     if p.FCurTexture >= 0 then
     begin
       ASSERT(p.FCurTexture <= High(p.TextureIDs));
       Texture := p.TextureIDs[p.FCurTexture].Texture;
-      ASSERT(Texture >= -1);
+      ASSERT(Texture >= -1); (* Texture = -1 -> texture not found *)
       if Texture >= 0 then
       begin
         ASSERT(Texture <= High(RenTextures));
-        spec := RenTextures[Texture].spec;
         t := RenTextures[Texture].tex;
         if t <> nil then
         begin
@@ -614,25 +612,16 @@ implementation
         begin
           r_Draw_TextureRepeat(nil, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255, false);
         end;
+        case RenTextures[Texture].spec of
+          TEXTURE_SPECIAL_WATER: r_Draw_Filter(p.x, p.y, p.x + p.width, p.y + p.height, 0, 0, 255, 255);
+          TEXTURE_SPECIAL_ACID1: r_Draw_Filter(p.x, p.y, p.x + p.width, p.y + p.height, 0, 230, 0, 255);
+          TEXTURE_SPECIAL_ACID2: r_Draw_Filter(p.x, p.y, p.x + p.width, p.y + p.height, 230, 0, 0, 255);
+        end;
+      end
+      else
+      begin
+        r_Draw_TextureRepeat(nil, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255, false);
       end;
-    end;
-
-    // legacy support:
-    // older maps may omit textures for fluid panels
-    // in such case default filters must be used automatically
-    if spec = -1 then
-    begin
-      case p.PanelType of
-        PANEL_WATER: spec := TEXTURE_SPECIAL_WATER;
-        PANEL_ACID1: spec := TEXTURE_SPECIAL_ACID1;
-        PANEL_ACID2: spec := TEXTURE_SPECIAL_ACID2;
-      end;
-    end;
-
-    case spec of
-      TEXTURE_SPECIAL_WATER: r_Draw_Filter(p.x, p.y, p.x + p.width, p.y + p.height, 0, 0, 255, 255);
-      TEXTURE_SPECIAL_ACID1: r_Draw_Filter(p.x, p.y, p.x + p.width, p.y + p.height, 0, 230, 0, 255);
-      TEXTURE_SPECIAL_ACID2: r_Draw_Filter(p.x, p.y, p.x + p.width, p.y + p.height, 230, 0, 0, 255);
     end;
   end;
 
