@@ -470,7 +470,7 @@ implementation
       end;
     {$ENDIF}
     // --------- shots --------- //
-    r_Common_SetLoading('Weapon splahses', WEAPON_LAST + 1);
+    r_Common_SetLoading('Weapon splashes', WEAPON_LAST + 1);
     for i := 0 to WEAPON_LAST do
     begin
       if ShotAnim[i].anim.frames > 0 then
