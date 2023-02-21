@@ -703,7 +703,7 @@ implementation
   end;
 
   function r_Map_GetMonsterTexture (m, a: Integer; d: TDirection; out t: TGLMultiTexture; out dx, dy: Integer; out flip: Boolean): Boolean;
-    // var c: Integer;
+    var w: Integer;
   begin
     t := nil; dx := 0; dy := 0; flip := false;
     result := MonTextures[m, a, d] <> nil;
@@ -728,9 +728,8 @@ implementation
       end;
       if flip then
       begin
-//        c := (MONSTERTABLE[MonsterType].Rect.X - dx) + MONSTERTABLE[MonsterType].Rect.Width;
-//        dx := MTABLE[m].width - c - MONSTERTABLE[MonsterType].Rect.X;
-        dx := -dx;
+        if (m = MONSTER_SOUL) and (a = ANIM_DIE) then w := 64 else w := 0;
+        dx := -dx - w;
       end;
     end;
   end;
