@@ -694,7 +694,7 @@ begin
       begin
         g_Obj_Init(@Obj);
 
-        Obj.Rect.Width := 32;
+        Obj.Rect.Width := 16;
         Obj.Rect.Height := 16;
 
         Triggers := nil;
@@ -1913,7 +1913,7 @@ begin
   begin
     g_Obj_Init(@Obj);
 
-    Obj.Rect.Width := 32;
+    Obj.Rect.Width := 16;
     Obj.Rect.Height := 16;
 
     dx := IfThen(xd>x, -Obj.Rect.Width, 0);
