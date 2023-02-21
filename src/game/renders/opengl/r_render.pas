@@ -80,6 +80,8 @@ interface
     function r_Render_HolmesViewIsSet (): Boolean;
   {$ENDIF}
 
+  procedure r_Render_GetSpectatorLimits (out x0, y0, x1, y1: Integer);
+
 implementation
 
   uses
@@ -1204,7 +1206,7 @@ implementation
     begin
       if gSpectMode = SPECT_MAPVIEW then
       begin
-        r_Render_DrawMapView(0, 0, gScreenWidth, gScreenHeight, gSpectX + gScreenWidth div 2, gSpectY + gScreenHeight div 2);
+        r_Render_DrawMapView(0, 0, gScreenWidth, gScreenHeight, gSpectX, gSpectY);
       end
       else if (p1 <> nil) and (p2 <> nil) then
       begin
@@ -1483,6 +1485,11 @@ implementation
     result := vpSet;
   end;
 {$ENDIF}
+
+  procedure r_Render_GetSpectatorLimits (out x0, y0, x1, y1: Integer);
+  begin
+    r_Map_GetSpectatorLimits(x0, y0, x1, y1);
+  end;
 
 begin
   conRegVar('d_sounds', @DebugSound, '', '');

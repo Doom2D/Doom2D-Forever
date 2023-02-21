@@ -42,6 +42,7 @@ interface
   procedure r_Map_Update;
 
   procedure r_Map_Draw (x, y, w, h, camx, camy: Integer; player: TPlayer; out acx, acy: Integer);
+  procedure r_Map_GetSpectatorLimits (out x0, y0, x1, y1: Integer);
 
 implementation
 
@@ -1709,6 +1710,34 @@ implementation
       g_Anim_GetFrameByTime(ItemAnim[i].anim, tick, count, Items[i].frame);
     r_Map_UpdateGFX(tick);
     g_Anim_GetFrameByTime(FlagAnim, tick, count, FlagFrame);
+  end;
+
+  procedure r_Map_GetSpectatorLimits (out x0, y0, x1, y1: Integer);
+    var w, h: Integer;
+  begin
+    w := Round(gScreenWidth / g_dbg_scale);
+    if gMapInfo.Width > w then
+    begin
+      x0 := w div 2;
+      x1 := gMapInfo.Width - w div 2 - 1;
+    end
+    else
+    begin
+      x0 := gMapInfo.Width div 2;
+      x1 := gMapInfo.Width div 2;
+    end;
+
+    h := Round(gScreenHeight / g_dbg_scale);
+    if gMapInfo.Height > h then
+    begin
+      y0 := h div 2;
+      y1 := gMapInfo.Height - h div 2 - 1;
+    end
+    else
+    begin
+      y0 := gMapInfo.Height div 2;
+      y1 := gMapInfo.Height div 2;
+    end;
   end;
 
 initialization

@@ -1820,6 +1820,8 @@ procedure g_Game_Update();
 
 var
   reliableUpdate: Boolean;
+  rSpectX0, rSpectY0: Integer;
+  rSpectX1, rSpectY1: Integer;
 begin
   g_ResetDynlights();
   framePool.reset();
@@ -2096,7 +2098,15 @@ begin
       // process weapon switch queue
     end; // if server
 
-  // Наблюдатель
+  // Spectator
+
+    {$IFDEF ENABLE_RENDER}
+      r_Render_GetSpectatorLimits(rSpectX0, rSpectY0, rSpectX1, rSpectY1);
+    {$ELSE}
+      rSpectX0 := 0; rSpectY0 := 0;
+      rSpectX1 := gMapInfo.Width - 1; rSpectY1 := gMapInfo.Height - 1;
+    {$ENDIF}
+
     if (gPlayer1 = nil) and (gPlayer2 = nil)
       and (not gConsoleShow) and (not gChatShow)
 {$IFDEF ENABLE_MENU}
@@ -2120,14 +2130,10 @@ begin
         if (gSpectMode = SPECT_MAPVIEW)
            and (not gSpectAuto) then
         begin
-          if gPlayerAction[0, ACTION_MOVELEFT] then
-            gSpectX := Max(gSpectX - gSpectStep, 0);
-          if gPlayerAction[0, ACTION_MOVERIGHT] then
-            gSpectX := Min(gSpectX + gSpectStep, gMapInfo.Width - gScreenWidth);
-          if gPlayerAction[0, ACTION_LOOKUP] then
-            gSpectY := Max(gSpectY - gSpectStep, 0);
-          if gPlayerAction[0, ACTION_LOOKDOWN] then
-            gSpectY := Min(gSpectY + gSpectStep, gMapInfo.Height - gScreenHeight);
+          if gPlayerAction[0, ACTION_MOVELEFT]  then gSpectX := gSpectX - gSpectStep;
+          if gPlayerAction[0, ACTION_MOVERIGHT] then gSpectX := gSpectX + gSpectStep;
+          if gPlayerAction[0, ACTION_LOOKUP]    then gSpectY := gSpectY - gSpectStep;
+          if gPlayerAction[0, ACTION_LOOKDOWN]  then gSpectY := gSpectY + gSpectStep;
           if gWeaponAction[0, WP_PREV] then
           begin
             // decrease step
@@ -2212,12 +2218,12 @@ begin
       begin
         if gSpectMode = SPECT_MAPVIEW then
         begin
-          i := Min(Max(gSpectX + gSpectAutoStepX, 0), gMapInfo.Width - gScreenWidth);
+          i := Min(Max(gSpectX + gSpectAutoStepX, rSpectX0), rSpectX1);
           if i = gSpectX then
             gSpectAutoNext := gTime
           else
             gSpectX := i;
-          i := Min(Max(gSpectY + gSpectAutoStepY, 0), gMapInfo.Height - gScreenHeight);
+          i := Min(Max(gSpectY + gSpectAutoStepY, rSpectY0), rSpectY1);
           if i = gSpectY then
             gSpectAutoNext := gTime
           else
@@ -2231,15 +2237,15 @@ begin
             case gSpectMode of
               SPECT_MAPVIEW:
               begin
-                gSpectX := Random(gMapInfo.Width - gScreenWidth);
-                gSpectY := Random(gMapInfo.Height - gScreenHeight);
+                gSpectX := rSpectX0 + Random(rSpectX1 - rSpectX0);
+                gSpectY := rSpectY0 + Random(rSpectY1 - rSpectY0);
                 gSpectAutoStepX := Random(9) - 4;
                 gSpectAutoStepY := Random(9) - 4;
-                if ((gSpectX < 800) and (gSpectAutoStepX < 0)) or
-                   ((gSpectX > gMapInfo.Width - gScreenWidth - 800) and (gSpectAutoStepX > 0)) then
+                if ((gSpectX < rSpectX0) and (gSpectAutoStepX < 0)) or
+                   ((gSpectX > rSpectX1) and (gSpectAutoStepX > 0)) then
                   gSpectAutoStepX := gSpectAutoStepX * -1;
-                if ((gSpectY < 800) and (gSpectAutoStepY < 0)) or
-                   ((gSpectY > gMapInfo.Height - gScreenHeight - 800) and (gSpectAutoStepY > 0)) then
+                if ((gSpectY < rSpectY0) and (gSpectAutoStepY < 0)) or
+                   ((gSpectY > rSpectY1) and (gSpectAutoStepY > 0)) then
                   gSpectAutoStepY := gSpectAutoStepY * -1;
               end;
               SPECT_PLAYERS:
@@ -2254,6 +2260,14 @@ begin
             SPECT_PLAYERS: gSpectAutoNext := gTime + (Random(7) + 8) * 1000;
           end;
         end;
+      end;
+
+      if gSpectMode = SPECT_MAPVIEW then
+      begin
+        gSpectX := Max(gSpectX, rSpectX0);
+        gSpectX := Min(gSpectX, rSpectX1);
+        gSpectY := Max(gSpectY, rSpectY0);
+        gSpectY := Min(gSpectY, rSpectY1);
       end;
     end;
 
