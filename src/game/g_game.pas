@@ -2259,8 +2259,16 @@ begin
 
     (* spectator state check from render *)
 
-    if (gPlayer1 = nil) and (gPlayer2 = nil) and (gSpectMode = SPECT_NONE) then
-      gSpectMode := SPECT_STATS;
+    if (gPlayer1 = nil) and (gPlayer2 = nil) then
+    begin
+      (* no local players -> automatically enable to spectator mode *)
+      if gSpectMode = SPECT_NONE then gSpectMode := SPECT_STATS;
+    end
+    else
+    begin
+      (* at least one local player -> automatically disable spectator mode *)
+      gSpectMode := SPECT_NONE;
+    end;
 
     if IsActivePlayer(g_Player_Get(gSpectPID1)) = false then
       gSpectPID1 := GetActivePlayerID_Next();
