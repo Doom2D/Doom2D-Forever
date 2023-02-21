@@ -70,6 +70,11 @@ implementation
   ;
 
   const
+    MAXGIBW = 32;
+    MAXGIBH = 32;
+
+    MAXMONW = 256;
+    MAXMONH = 128;
     MTABLE: array [0..MONSTER_MAN] of record
       w, h: Integer;
     end = (
@@ -98,6 +103,8 @@ implementation
     VILEFIRE_DX = 32;
     VILEFIRE_DY = 128;
 
+    MAXITEMW = 64;
+    MAXITEMH = 64;
     ItemAnim: array [0..ITEM_LAST] of record
       name: AnsiString;
       w, h: Integer;
@@ -676,15 +683,20 @@ implementation
   begin
     if ggItems <> nil then
     begin
+      (* hack: prevent visual disappearance *)
+      x := x - MAXITEMW;
+      y := y - MAXITEMH;
+      w := w + MAXITEMW*2;
+      h := h + MAXITEMH*2;
       for i := 0 to High(ggItems) do
       begin
         it := @ggItems[i];
         if it.used and it.alive and (it.dropped = drop) and (it.ItemType > ITEM_NONE) and (it.ItemType <= ITEM_LAST) then
         begin
-          t := Items[it.ItemType].tex;
-          if g_Collide(it.obj.x, it.obj.y, t.width, t.height, x, y, w, h) then
+          r_Common_GetObjectPos(it.obj, xx, yy);
+          if g_Collide(xx + it.obj.rect.x, yy + it.obj.rect.y, it.obj.rect.width, it.obj.rect.height, x, y, w, h) then
           begin
-            r_Common_GetObjectPos(it.obj, xx, yy);
+            t := Items[it.ItemType].tex;
             tex := t.GetTexture(Items[it.ItemType].frame);
             r_Draw_TextureRepeat(tex, xx, yy, tex.width, tex.height, false, 255, 255, 255, 255, false);
             if DebugFrames then
@@ -796,6 +808,11 @@ implementation
   begin
     if gMonsters <> nil then
     begin
+      (* hack: prevent visual disappearance *)
+      x := x - MAXMONW;
+      y := y - MAXMONH;
+      w := w + MAXMONW*2;
+      h := h + MAXMONH*2;
       for i := 0 to High(gMonsters) do
       begin
         m := gMonsters[i];
@@ -1073,6 +1090,11 @@ implementation
   begin
     if gGibs <> nil then
     begin
+      (* hack: prevent visual disappearance *)
+      x := x - MAXGIBW;
+      y := y - MAXGIBH;
+      w := w + MAXGIBW*2;
+      h := h + MAXGIBH*2;
       for i := 0 to High(gGibs) do
       begin
         if gGibs[i].alive then
