@@ -753,16 +753,20 @@ implementation
   end;
 
   procedure r_Map_DrawMonster (constref mon: TMonster);
-    var m, a, xx, yy, dx, dy: Integer; d: TDirection; flip: Boolean; t: TGLMultiTexture;
+    var m, a, xx, yy, dx, dy: Integer; d, da: TDirection; flip: Boolean; t: TGLMultiTexture;
   begin
     m := mon.MonsterType;
     a := mon.MonsterAnim;
     d := mon.GameDirection;
 
+    (* hack: barrel tracks player, fix it in game logic *)
+    if m = MONSTER_BARREL then d := TDirection.D_LEFT;
+
     r_Common_GetObjectPos(mon.obj, xx, yy);
     if r_Map_GetMonsterTexture(m, a, d, t, dx, dy, flip) then
     begin
-      r_Draw_MultiTextureRepeat(t, mon.DirAnim[a, d], false, xx + dx, yy + dy, t.width, t.height, flip, 255, 255, 255, 255, false);
+      da := mon.GameDirection;
+      r_Draw_MultiTextureRepeat(t, mon.DirAnim[a, da], false, xx + dx, yy + dy, t.width, t.height, flip, 255, 255, 255, 255, false);
     end;
     if DebugFrames then
     begin
