@@ -182,36 +182,37 @@ implementation
 
     ShotAnim: array [0..WEAPON_LAST] of record
       name: AnsiString;
+      x, y: Integer;
       w, h: Integer;
       anim: TAnimInfo;
     end = (
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 0  KASTET
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 1  SAW
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 2  PISTOL
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 3  SHOTGUN1
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 4  SHOTGUN2
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 5  CHAINGUN
-      (name: 'BROCKET';     w: 64; h: 32; anim: (loop: true; delay: 1; frames: 1; back: false)),  // 6  ROCKETLAUNCHER
-      (name: 'BPLASMA';     w: 16; h: 16; anim: (loop: true; delay: 5; frames: 2; back: false)),  // 7  PLASMA
-      (name: 'BBFG';        w: 64; h: 64; anim: (loop: true; delay: 6; frames: 2; back: false)),  // 8  BFG
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 9  SUPERPULEMET
-      (name: 'FLAME';       w: 32; h: 32; anim: (loop: true; delay: 6; frames: 0{11}; back: false)), // 10 FLAMETHROWER
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 11
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 12
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 13
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 14
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 15
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 16
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 17
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 18
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 19
-      (name: '';            w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 20 ZOMPY_PISTOL
-      (name: 'BIMPFIRE';    w: 16; h: 16; anim: (loop: true; delay: 4; frames: 2; back: false)),  // 21 IMP_FIRE
-      (name: 'BBSPFIRE';    w: 16; h: 16; anim: (loop: true; delay: 4; frames: 2; back: false)),  // 22 BSP_FIRE
-      (name: 'BCACOFIRE';   w: 16; h: 16; anim: (loop: true; delay: 4; frames: 2; back: false)),  // 23 CACO_FIRE
-      (name: 'BBARONFIRE';  w: 64; h: 16; anim: (loop: true; delay: 4; frames: 2; back: false)),  // 24 BARON_FIRE
-      (name: 'BMANCUBFIRE'; w: 64; h: 32; anim: (loop: true; delay: 4; frames: 2; back: false)),  // 25 MANCUB_FIRE
-      (name: 'BSKELFIRE';   w: 64; h: 64; anim: (loop: true; delay: 5; frames: 2; back: false))   // 26 SKEL_FIRE
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 0  KASTET
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 1  SAW
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 2  PISTOL
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 3  SHOTGUN1
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 4  SHOTGUN2
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 5  CHAINGUN
+      (name: 'BROCKET';     x: 0; y: 0; w: 64; h: 32; anim: (loop: true; delay: 1; frames: 1; back: false)),  // 6  ROCKETLAUNCHER
+      (name: 'BPLASMA';     x: 0; y: 0; w: 16; h: 16; anim: (loop: true; delay: 5; frames: 2; back: false)),  // 7  PLASMA
+      (name: 'BBFG';        x: 8; y: 8; w: 64; h: 64; anim: (loop: true; delay: 6; frames: 2; back: false)),  // 8  BFG
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 9  SUPERPULEMET
+      (name: 'FLAME';       x: 0; y: 0; w: 32; h: 32; anim: (loop: true; delay: 6; frames: 0{11}; back: false)), // 10 FLAMETHROWER
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 11
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 12
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 13
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 14
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 15
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 16
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 17
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 18
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 19
+      (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 20 ZOMPY_PISTOL
+      (name: 'BIMPFIRE';    x: 0; y: 0; w: 16; h: 16; anim: (loop: true; delay: 4; frames: 2; back: false)),  // 21 IMP_FIRE
+      (name: 'BBSPFIRE';    x: 0; y: 0; w: 16; h: 16; anim: (loop: true; delay: 4; frames: 2; back: false)),  // 22 BSP_FIRE
+      (name: 'BCACOFIRE';   x: 0; y: 0; w: 16; h: 16; anim: (loop: true; delay: 4; frames: 2; back: false)),  // 23 CACO_FIRE
+      (name: 'BBARONFIRE';  x: 0; y: 0; w: 64; h: 16; anim: (loop: true; delay: 4; frames: 2; back: false)),  // 24 BARON_FIRE
+      (name: 'BMANCUBFIRE'; x: 0; y: 0; w: 64; h: 32; anim: (loop: true; delay: 4; frames: 2; back: false)),  // 25 MANCUB_FIRE
+      (name: 'BSKELFIRE';   x: 0; y: 0; w: 64; h: 64; anim: (loop: true; delay: 5; frames: 2; back: false))   // 26 SKEL_FIRE
     );
 
 {$IFDEF ENABLE_SHELLS}
@@ -1301,7 +1302,7 @@ implementation
             pY := Shots[i].Obj.Rect.Height div 2;
             g_Anim_GetFrameByTime(ShotAnim[typ].anim, (gTime - Shots[i].time) DIV GAME_TICK, count, frame);
             tex := t.GetTexture(frame);
-            r_Draw_TextureRepeatRotate(tex, xx, yy, tex.width, tex.height, false, 255, 255, 255, 255, false, pX, pY, a);
+            r_Draw_TextureRepeatRotate(tex, xx - ShotAnim[typ].x, yy - ShotAnim[typ].y, tex.width, tex.height, false, 255, 255, 255, 255, false, pX, pY, a);
             if DebugFrames then
             begin
               r_Draw_Rect(
