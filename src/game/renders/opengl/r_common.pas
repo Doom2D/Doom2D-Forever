@@ -17,7 +17,7 @@ unit r_common;
 
 interface
 
-  uses r_textures, r_fonts, g_player, g_phys;
+  uses r_textures, r_fonts, g_player, g_phys, g_panel;
 
   type
     TBasePoint = (
@@ -55,7 +55,8 @@ interface
 
   function r_Common_TimeToStr (t: LongWord): AnsiString;
 
-  procedure r_Common_GetObjectPos (const obj: TObj; out x, y: Integer);
+  procedure r_Common_GetPanelPos (const p: TPanel; out x, y, w, h: Integer);
+  procedure r_Common_GetObjectPos (constref obj: TObj; out x, y: Integer);
   procedure r_Common_GetPlayerPos (const p: TPlayer; out x, y: Integer);
   procedure r_Common_GetCameraPos (const p: TPlayer; center: Boolean; out x, y: Integer);
   function  r_Common_GetPosByUID (uid: WORD; out obj: TObj; out x, y: Integer): Boolean;
@@ -111,22 +112,36 @@ implementation
       FreeMem(temp)
   end;
 
-  procedure r_Common_GetObjectPos (const obj: TObj; out x, y: Integer);
-    var fx, fy: Integer;
+  procedure r_Common_GetPanelPos (const p: TPanel; out x, y, w, h: Integer);
   begin
-    obj.Lerp(gLerpFactor, fx, fy);
-    x := fx;
-    y := fy + obj.slopeUpLeft;
+    ASSERT(p <> nil);
+    if p.OldMovingActive then
+    begin
+      x := nlerp(p.oldX, p.x, gLerpFactor);
+      y := nlerp(p.oldY, p.y, gLerpFactor);
+      w := nlerp(p.oldWidth, p.width, gLerpFactor);
+      h := nlerp(p.oldHeight, p.height, gLerpFactor);
+    end
+    else
+    begin
+      x := p.x;
+      y := p.y;
+      w := p.width;
+      h := p.height;
+    end;
+  end;
+
+  procedure r_Common_GetObjectPos (constref obj: TObj; out x, y: Integer);
+  begin
+    x := nlerp(obj.oldx, obj.x, gLerpFactor);
+    y := nlerp(obj.oldy, obj.y, gLerpFactor) + obj.slopeUpLeft;
   end;
 
   procedure r_Common_GetPlayerPos (const p: TPlayer; out x, y: Integer);
-    var fx, fy, fSlope: Integer;
   begin
     ASSERT(p <> nil);
-    p.obj.Lerp(gLerpFactor, fx, fy);
-    fSlope := nlerp(p.SlopeOld, p.obj.slopeUpLeft, gLerpFactor);
-    x := fx;
-    y := fy + fSlope;
+    x := nlerp(p.obj.oldx, p.obj.x, gLerpFactor);
+    y := nlerp(p.obj.oldy + p.SlopeOld, p.obj.y + p.obj.slopeUpLeft, gLerpFactor);
   end;
 
 {$IFDEF ENABLE_CORPSES}

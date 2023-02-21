@@ -584,12 +584,13 @@ implementation
   end;
 
   procedure r_Map_DrawPanel (p: TPanel);
-    var Texture, spec: Integer; t: TGLMultiTexture; count, frame: LongInt; a: TAnimInfo;
+    var Texture, x, y, w, h: Integer; t: TGLMultiTexture; count, frame: LongInt; a: TAnimInfo;
   begin
     ASSERT(p <> nil);
     ASSERT(p.FCurTexture >= -1); (* p.FCurTexture = -1 -> invisible texture *)
     if p.FCurTexture >= 0 then
     begin
+      r_Common_GetPanelPos(p, x, y, w, h);
       ASSERT(p.FCurTexture <= High(p.TextureIDs));
       Texture := p.TextureIDs[p.FCurTexture].Texture;
       ASSERT(Texture >= -1); (* Texture = -1 -> texture not found *)
@@ -606,21 +607,21 @@ implementation
             a.loop := p.AnimLoop;
             g_Anim_GetFrameByTime(a, (gTime - p.AnimTime) DIV GAME_TICK, count, frame);
           end;
-          r_Draw_TextureRepeat(t.GetTexture(frame), p.x, p.y, p.width, p.height, false, 255, 255, 255, 255 - p.alpha, p.blending);
+          r_Draw_TextureRepeat(t.GetTexture(frame), x, y, w, h, false, 255, 255, 255, 255 - p.alpha, p.blending);
         end
         else if RenTextures[Texture].spec = 0 then
         begin
-          r_Draw_TextureRepeat(nil, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255, false);
+          r_Draw_TextureRepeat(nil, x, y, w, h, false, 255, 255, 255, 255, false);
         end;
         case RenTextures[Texture].spec of
-          TEXTURE_SPECIAL_WATER: r_Draw_Filter(p.x, p.y, p.x + p.width, p.y + p.height, 0, 0, 255, 255);
-          TEXTURE_SPECIAL_ACID1: r_Draw_Filter(p.x, p.y, p.x + p.width, p.y + p.height, 0, 230, 0, 255);
-          TEXTURE_SPECIAL_ACID2: r_Draw_Filter(p.x, p.y, p.x + p.width, p.y + p.height, 230, 0, 0, 255);
+          TEXTURE_SPECIAL_WATER: r_Draw_Filter(x, y, x + w, y + h, 0, 0, 255, 255);
+          TEXTURE_SPECIAL_ACID1: r_Draw_Filter(x, y, x + w, y + h, 0, 230, 0, 255);
+          TEXTURE_SPECIAL_ACID2: r_Draw_Filter(x, y, x + w, y + h, 230, 0, 0, 255);
         end;
       end
       else
       begin
-        r_Draw_TextureRepeat(nil, p.x, p.y, p.width, p.height, false, 255, 255, 255, 255, false);
+        r_Draw_TextureRepeat(nil, x, y, w, h, false, 255, 255, 255, 255, false);
       end;
     end;
   end;

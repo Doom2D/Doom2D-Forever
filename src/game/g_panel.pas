@@ -164,6 +164,7 @@ type
     property oldY: Integer read FOldY;
     property oldWidth: Word read FOldW;
     property oldHeight: Word read FOldH;
+    property oldMovingActive: Boolean read mOldMovingActive write mOldMovingActive;
     property panelType: Word read FPanelType write FPanelType;
     property enabled: Boolean read FEnabled write FEnabled;
     property door: Boolean read FDoor write FDoor;
