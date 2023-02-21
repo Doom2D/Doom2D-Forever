@@ -194,7 +194,7 @@ implementation
       (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 5  CHAINGUN
       (name: 'BROCKET';     x: 0; y: 0; w: 64; h: 32; anim: (loop: true; delay: 1; frames: 1; back: false)),  // 6  ROCKETLAUNCHER
       (name: 'BPLASMA';     x: 0; y: 0; w: 16; h: 16; anim: (loop: true; delay: 5; frames: 2; back: false)),  // 7  PLASMA
-      (name: 'BBFG';        x: 8; y: 8; w: 64; h: 64; anim: (loop: true; delay: 6; frames: 2; back: false)),  // 8  BFG
+      (name: 'BBFG';        x: 6; y: 7; w: 64; h: 64; anim: (loop: true; delay: 6; frames: 2; back: false)),  // 8  BFG
       (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 9  SUPERPULEMET
       (name: 'FLAME';       x: 0; y: 0; w: 32; h: 32; anim: (loop: true; delay: 6; frames: 0{11}; back: false)), // 10 FLAMETHROWER
       (name: '';            x: 0; y: 0; w: 0;  h: 0;  anim: (loop: true; delay: 0; frames: 0; back: false)),  // 11
