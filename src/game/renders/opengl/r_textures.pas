@@ -158,12 +158,57 @@ implementation
     atl, ratl: array of TGLAtlas;
     currentTexture2D: GLuint;
 
+  function r_Textures_GL_GetError (msg: AnsiString): Boolean;
+    var code: GLenum; s: AnsiString;
+  begin
+    code := glGetError();
+    if code <> GL_NO_ERROR then
+    begin
+      case code of
+        GL_INVALID_ENUM: s := 'GL_INVALID_ENUM';
+        GL_INVALID_VALUE: s := 'GL_INVALID_VALUE';
+        GL_INVALID_OPERATION: s := 'GL_INVALID_OPERATION';
+        GL_STACK_OVERFLOW: s := 'GL_STACK_OVERFLOW';
+        GL_STACK_UNDERFLOW: s := 'GL_STACK_UNDERFLOW';
+        GL_OUT_OF_MEMORY: s := 'GL_OUT_OF_MEMORY';
+        GL_TABLE_TOO_LARGE: s := 'GL_TABLE_TOO_LARGE';
+        otherwise s := '';
+      end;
+      if s = '' then
+        e_LogWritefln('%s: %s', [msg, s])
+      else
+        e_LogWritefln('%s: error code %s', [msg, code]);
+    end;
+    result := code <> GL_NO_ERROR;
+  end;
+
+  procedure r_Textures_GL_ClearError;
+    var code: GLenum;
+  begin
+    repeat
+      code := glGetError();
+    until code = GL_NO_ERROR;
+  end;
+
   procedure r_Textures_GL_Bind (id: GLuint);
   begin
     if id <> currentTexture2D then
     begin
       glBindTexture(GL_TEXTURE_2D, id);
       currentTexture2D := id;
+    end
+  end;
+
+  function r_Textures_GL_BindAndCheck (id: GLuint): Boolean;
+  begin
+    result := true;
+    if id <> currentTexture2D then
+    begin
+      r_Textures_GL_ClearError;
+      glBindTexture(GL_TEXTURE_2D, id);
+      result := not r_Textures_GL_GetError('failed to bind texture');
+      if result = true then
+        currentTexture2D := id;
     end
   end;
 
@@ -186,7 +231,7 @@ implementation
     result := self.base.id
   end;
 
-  procedure r_Textures_UpdateNode (n: TGLAtlasNode; data: Pointer; x, y, w, h: Integer);
+  function r_Textures_UpdateNode (n: TGLAtlasNode; data: Pointer; x, y, w, h: Integer): Boolean;
   begin
     ASSERT(n <> nil);
     // ASSERT(n.leaf);
@@ -197,9 +242,13 @@ implementation
     ASSERT(n.l + x + w - 1 <= n.r);
     ASSERT(n.t + y + h - 1 <= n.b);
     ASSERT(n.id > 0);
-    r_Textures_GL_Bind(n.id);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, n.l + x, n.t + y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    r_Textures_GL_Bind(0);
+    result := false;
+    if r_Textures_GL_BindAndCheck(n.id) then
+    begin
+      glTexSubImage2D(GL_TEXTURE_2D, 0, n.l + x, n.t + y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
+      result := not r_Textures_GL_GetError('failed to update atlas node');
+      r_Textures_GL_Bind(0);
+    end;
   end;
 
   (* --------- TGLAtlas --------- *)
@@ -228,29 +277,38 @@ implementation
     result := TGLAtlasNode(inherited Alloc(ww, hh));
   end;
 
-  function r_Textures_AllocHWTexture (w, h: Integer): GLuint;
-    var id: GLuint;
+  procedure r_Textures_AllocHWTexture (w, h: Integer; out id: GLuint; out ok: Boolean);
   begin
+    id := 0; ok := false;
+    r_Textures_GL_ClearError;
     glGenTextures(1, @id);
-    if id <> 0 then
+    if not r_Textures_GL_GetError('failed to allocate texture id') then
     begin
-      r_Textures_GL_Bind(id);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nil);
-      r_Textures_GL_Bind(0);
+      if r_Textures_GL_BindAndCheck(id) then
+      begin
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        r_Textures_GL_ClearError;
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nil);
+        ok := not r_Textures_GL_GetError('failed to allocate hardware texture');
+        r_Textures_GL_Bind(0);
+      end;
+      if ok = false then
+      begin
+        glDeleteTextures(1, @id);
+        id := 0;
+      end;
     end;
-    result := id
   end;
 
   function r_Textures_AllocAtlas (): TGLAtlas;
-    var i: Integer; id: GLuint;
+    var i: Integer; id: GLuint; ok: Boolean;
   begin
     result := nil;
-    id := r_Textures_AllocHWTexture(maxTileSize, maxTileSize);
-    if id <> 0 then
+    r_Textures_AllocHWTexture(maxTileSize, maxTileSize, id, ok);
+    if ok then
     begin
       i := Length(atl);
       SetLength(atl, i + 1);
@@ -260,11 +318,11 @@ implementation
   end;
 
   function r_Textures_AllocRepeatAtlas (w, h: Integer): TGLAtlas;
-    var i: Integer; id: GLuint;
+    var i: Integer; id: GLuint; ok: Boolean;
   begin
     result := nil;
-    id := r_Textures_AllocHWTexture(w, h);
-    if id <> 0 then
+    r_Textures_AllocHWTexture(w, h, id, ok);
+    if ok then
     begin
       i := Length(ratl);
       SetLength(ratl, i + 1);
@@ -543,9 +601,9 @@ implementation
   end;
 
   function r_Textures_LoadFromImage (var img: TImageData; hints: TGLHintsSet): TGLTexture; // !!!
-    var t: TGLTexture; n: TGLAtlasNode; c: TDynImageDataArray; cw, ch, i, j: LongInt;
+    var t: TGLTexture; n: TGLAtlasNode; c: TDynImageDataArray; cw, ch, i, j: LongInt; ok: Boolean;
   begin
-    result := nil;
+    t := nil; ok := false;
     if r_Textures_ValidRepeatTexture(img.width, img.height, hints) then
     begin
       t := r_Textures_Alloc(img.width, img.height, hints - [TGLHints.txNoRepeat]);
@@ -553,8 +611,7 @@ implementation
       begin
         n := t.GetTile(0, 0);
         ASSERT(n <> nil);
-        r_Textures_UpdateNode(n, img.bits, 0, 0, n.width, n.height);
-        result := t
+        ok := r_Textures_UpdateNode(n, img.bits, 0, 0, n.width, n.height);
       end
     end
     else if SplitImage(img, c, maxTileSize, maxTileSize, cw, ch, False) then
@@ -562,6 +619,7 @@ implementation
       t := r_Textures_Alloc(img.width, img.height, hints + [TGLHints.txNoRepeat]);
       if t <> nil then
       begin
+        ok := true;
         ASSERT(cw = t.cols);
         ASSERT(ch = t.lines);
         for j := 0 to ch - 1 do
@@ -570,13 +628,15 @@ implementation
           begin
             n := t.GetTile(i, j);
             if n <> nil then
-              r_Textures_UpdateNode(n, c[j * cw + i].bits, 0, 0, n.width, n.height)
+              ok := ok and r_Textures_UpdateNode(n, c[j * cw + i].bits, 0, 0, n.width, n.height)
           end
         end;
-        result := t
       end;
       FreeImagesInArray(c);
     end;
+    if ok = false then
+      r_Common_FreeAndNil(t);
+    result := t
   end;
 
   function r_Textures_LoadFromMemory (data: Pointer; size: LongInt; hints: TGLHintsSet): TGLTexture;
