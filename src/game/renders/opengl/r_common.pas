@@ -366,14 +366,17 @@ implementation
   end;
 
   procedure r_Common_DrawBackgroundImage (img: TGLTexture);
-    var fw, w, h: LongInt;
+    var fw, w, h: LongInt; OldFilter: Boolean;
   begin
     if img <> nil then
     begin
       img := BackgroundTexture.id;
+      OldFilter := img.filter;
+      r_Draw_SetFilter(img, gTextureFilter);
       if img.width = img.height then fw := img.width * 4 div 3 else fw := img.width; // fix aspect 4:3
       r_Common_CalcAspect(fw, img.height, gScreenWidth, gScreenHeight, false, w, h);
       r_Draw_Texture(img, gScreenWidth div 2 - w div 2, 0, w, h, false, 255, 255, 255, 255, false);
+      r_Draw_SetFilter(img, OldFilter);
     end
   end;
 

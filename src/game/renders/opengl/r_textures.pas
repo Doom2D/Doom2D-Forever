@@ -47,6 +47,7 @@ interface
     TGLAtlas = class (TAtlas)
       private
         mID: GLuint;
+        mFilter: Boolean;
 
       public
         constructor Create (ww, hh: Integer; id: GLuint);
@@ -56,6 +57,7 @@ interface
         function Alloc (ww, hh: Integer): TGLAtlasNode; overload;
 
         property id: GLuint read mID write mID default 0;
+        property filter: Boolean read mFilter write mFilter;
     end;
 
     TGLTexture = class
@@ -65,6 +67,7 @@ interface
         mCols: Integer;
         mTile: array of TGLAtlasNode;
         mHints: TGLHintsSet;
+        mFilter: Boolean;
 
       public
         destructor Destroy; override;
@@ -78,6 +81,7 @@ interface
         property cols: Integer read mCols;
         property lines: Integer read GetLines;
         property hints: TGLHintsSet read mHints;
+        property filter: Boolean read mFilter write mFilter;
     end;
 
     TGLMultiTexture = class
@@ -206,6 +210,7 @@ implementation
     ASSERT(hh > 0);
     inherited Create(ww, hh);
     self.mID := id;
+    self.mFilter := false;
   end;
 
   destructor TGLAtlas.Destroy;
@@ -378,6 +383,7 @@ implementation
       t.mCols := cols;
       // t.mLines := lines;
       t.mHints := hints;
+      t.mFilter := false;
       SetLength(t.mTile, cols * lines);
       for y := 0 to lines - 1 do
       begin

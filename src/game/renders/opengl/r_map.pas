@@ -1711,6 +1711,7 @@ implementation
     if gDrawBackGround and (SkyTexture <> nil) then
     begin
       r_Map_CalcSkyParallax(cx, cy, w, h, SkyTexture.width, SkyTexture.height, gMapInfo.Width, gMapInfo.Height, sx, sy, sw, sh);
+      r_Draw_SetFilter(SkyTexture, gTextureFilter);
       r_Draw_Texture(SkyTexture, sx, sy, sw, sh, false, 255, 255, 255, 255, false);
     end;
 

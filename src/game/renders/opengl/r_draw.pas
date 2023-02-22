@@ -22,6 +22,8 @@ interface
     r_textures
   ;
 
+  procedure r_Draw_SetFilter (img: TGLTexture; enable: Boolean);
+
   procedure r_Draw_Texture (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
   procedure r_Draw_TextureRepeat (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean);
   procedure r_Draw_TextureRepeatRotate (img: TGLTexture; x, y, w, h: Integer; flip: Boolean; r, g, b, a: Byte; blend: Boolean; rx, ry, angle: Integer);
@@ -129,7 +131,13 @@ implementation
       r_Draw_Rect(x, y, x + w, y + h, 0, 255, 0, 255);
   end;
 
-  procedure DrawTile (tile: TGLAtlasNode; x, y, w, h: Integer; flip: Boolean; rr, gg, bb, aa: Byte; blend: Boolean);
+  procedure r_Draw_SetFilter (img: TGLTexture; enable: Boolean);
+  begin
+    ASSERT(img <> nil);
+    img.filter := enable;
+  end;
+
+  procedure DrawTile (tile: TGLAtlasNode; x, y, w, h: Integer; flip: Boolean; rr, gg, bb, aa: Byte; blend, filter: Boolean);
     var nw, nh, ax, bx, ay, by: GLfloat; l, t, r, b: Integer;
   begin
     if tile = nil then
@@ -146,6 +154,24 @@ implementation
       by := (tile.b + 1) / nh;
       l := x; t := y; r := x + w; b := y + h;
       r_Textures_GL_Bind(tile.id);
+      if filter <> tile.base.filter then
+      begin
+        if filter then
+        begin
+          glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+          glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+          glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+          glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        end
+        else
+        begin
+          glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+          glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+          glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+          glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        end;
+        tile.base.filter := filter;
+      end;
       r_Draw_SetColor(rr, gg, bb, aa);
       r_Draw_EnableTexture2D(true);
       if blend then glBlendFunc(GL_SRC_ALPHA, GL_ONE) else glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -201,7 +227,7 @@ implementation
         repeat
           n := img.GetTile(i, j);
           ASSERT(n <> nil);
-          DrawTile(n, 0, 0, n.width, n.height, flip, r, g, b, a, blend);
+          DrawTile(n, 0, 0, n.width, n.height, flip, r, g, b, a, blend, img.filter);
           glTranslatef(n.width, 0, 0);
           i := i + step;
         until i = last;
