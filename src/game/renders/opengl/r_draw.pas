@@ -33,6 +33,7 @@ interface
   procedure r_Draw_Rect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
   procedure r_Draw_FillRect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
   procedure r_Draw_InvertRect (l, t, r, b: Integer; rr, gg, bb, aa: Byte);
+  procedure r_Draw_Line (x0, y0, x1, y1: Integer; rr, gg, bb, aa: Byte);
 
   procedure r_Draw_Text (const text: AnsiString; x, y: Integer; r, g, b, a: Byte; f: TGLFont);
   procedure r_Draw_GetTextSize (const text: AnsiString; f: TGLFont; out w, h: Integer);
@@ -381,6 +382,19 @@ implementation
         glVertex2i(l, b);
       glEnd;
     end;
+  end;
+
+  procedure r_Draw_Line (x0, y0, x1, y1: Integer; rr, gg, bb, aa: Byte);
+  begin
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    r_Draw_EnableTexture2D(false);
+    r_Draw_SetColor(rr, gg, bb, aa);
+    glLineWidth(1);
+    glBegin(GL_LINES);
+      glVertex2i(x0, y0);
+      glVertex2i(x1, y1);
+    glEnd;
   end;
 
   procedure r_Draw_Text (const text: AnsiString; x, y: Integer; r, g, b, a: Byte; f: TGLFont);

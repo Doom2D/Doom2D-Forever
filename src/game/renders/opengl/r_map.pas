@@ -984,6 +984,46 @@ implementation
     end;
   end;
 
+  procedure r_Map_DrawAim (p: TPlayer);
+    var x0, y0, x1, y1, a, len: Integer;
+  begin
+    ASSERT(p <> nil);
+    r_Common_GetPlayerPos(p, x0, y0);
+    x0 := x0 + WEAPONPOINT[p.Direction].X + IfThen(p.Direction = TDirection.D_LEFT, 7, -7);
+    y0 := y0 + WEAPONPOINT[p.Direction].Y;
+    a := p.Angle_;
+    len := 1024;
+    case p.CurrWeap of
+      WEAPON_KASTET: len := 12;
+      WEAPON_SAW: len := 24;
+      WEAPON_PISTOL, WEAPON_SHOTGUN1, WEAPON_SHOTGUN2, WEAPON_CHAINGUN,
+      WEAPON_ROCKETLAUNCHER, WEAPON_SUPERPULEMET, WEAPON_FLAMETHROWER:
+      begin
+        if a = ANGLE_RIGHTUP then DEC(a, 2);
+        if a = ANGLE_RIGHTDOWN then INC(a, 4);
+        if a = ANGLE_LEFTUP then INC(a, 2);
+        if a = ANGLE_LEFTDOWN then DEC(a, 4);
+      end;
+      WEAPON_PLASMA:
+      begin
+        if a = ANGLE_RIGHTUP then DEC(a, 1);
+        if a = ANGLE_RIGHTDOWN then INC(a, 3);
+        if a = ANGLE_LEFTUP then INC(a, 1);
+        if a = ANGLE_LEFTDOWN then DEC(a, 3);
+      end;
+      WEAPON_BFG:
+      begin
+        if a = ANGLE_RIGHTUP then DEC(a, 1);
+        if a = ANGLE_RIGHTDOWN then INC(a, 2);
+        if a = ANGLE_LEFTUP then INC(a, 1);
+        if a = ANGLE_LEFTDOWN then DEC(a, 2);
+      end;
+    end;
+    x1 := x0 + Trunc(Cos(-DegToRad(a)) * len);
+    y1 := y0 + Trunc(Sin(-DegToRad(a)) * len);
+    r_Draw_Line(x0, y0, x1, y1, 255, 0, 0, 158);
+  end;
+
   procedure r_Map_DrawPlayer (p, drawed: TPlayer);
     var x, y, ax, ay, w, h: Integer; b, flip: Boolean; t: TGLMultiTexture; tex: TGLTexture; alpha: Byte; count, frame: LongInt;
   begin
@@ -1068,7 +1108,8 @@ implementation
       if (p.FMegaRulez[MR_INVIS] <= gTime) or ((drawed <> nil) and ((p = drawed) or (p.Team = drawed.Team) and (gGameSettings.GameMode <> GM_DM))) then
         r_Map_DrawTalkBubble(p);
 
-    // TODO draw aim
+    if gAimLine and p.alive and ((p = gPlayer1) or (p = gPlayer2)) then
+      r_Map_DrawAim(p);
   end;
 
   procedure r_Map_DrawPlayers (x, y, w, h: Integer; player: TPlayer);
