@@ -725,37 +725,37 @@ begin
 
     TRIGGER_SHOT_IMP:
       begin
-        g_Weapon_ball1(wx, wy, dx, dy, 0, -1, True);
+        g_Weapon_ball1(wx, wy, dx, dy, 0, -1, True, False);
         snd := 'SOUND_WEAPON_FIREBALL';
       end;
 
     TRIGGER_SHOT_PLASMA:
       begin
-        g_Weapon_Plasma(wx, wy, dx, dy, 0, -1, True);
+        g_Weapon_Plasma(wx, wy, dx, dy, 0, -1, True, False);
         snd := 'SOUND_WEAPON_FIREPLASMA';
       end;
 
     TRIGGER_SHOT_SPIDER:
       begin
-        g_Weapon_aplasma(wx, wy, dx, dy, 0, -1, True);
+        g_Weapon_aplasma(wx, wy, dx, dy, 0, -1, True, False);
         snd := 'SOUND_WEAPON_FIREPLASMA';
       end;
 
     TRIGGER_SHOT_CACO:
       begin
-        g_Weapon_ball2(wx, wy, dx, dy, 0, -1, True);
+        g_Weapon_ball2(wx, wy, dx, dy, 0, -1, True, False);
         snd := 'SOUND_WEAPON_FIREBALL';
       end;
 
     TRIGGER_SHOT_BARON:
       begin
-        g_Weapon_ball7(wx, wy, dx, dy, 0, -1, True);
+        g_Weapon_ball7(wx, wy, dx, dy, 0, -1, True, False);
         snd := 'SOUND_WEAPON_FIREBALL';
       end;
 
     TRIGGER_SHOT_MANCUB:
       begin
-        g_Weapon_manfire(wx, wy, dx, dy, 0, -1, True);
+        g_Weapon_manfire(wx, wy, dx, dy, 0, -1, True, False);
         snd := 'SOUND_WEAPON_FIREBALL';
       end;
 
@@ -767,13 +767,13 @@ begin
 
     TRIGGER_SHOT_ROCKET:
       begin
-        g_Weapon_Rocket(wx, wy, dx, dy, 0, -1, True);
+        g_Weapon_Rocket(wx, wy, dx, dy, 0, -1, True, False);
         snd := 'SOUND_WEAPON_FIREROCKET';
       end;
 
     TRIGGER_SHOT_BFG:
       begin
-        g_Weapon_BFGShot(wx, wy, dx, dy, 0, -1, True);
+        g_Weapon_BFGShot(wx, wy, dx, dy, 0, -1, True, False);
         snd := 'SOUND_WEAPON_FIREBFG';
       end;
 
@@ -807,7 +807,7 @@ begin
 
     TRIGGER_SHOT_FLAME:
       begin
-        g_Weapon_flame(wx, wy, dx, dy, 0, -1, True);
+        g_Weapon_flame(wx, wy, dx, dy, 0, -1, True, False);
         snd := 'SOUND_GAME_BURNING';
       end;
 

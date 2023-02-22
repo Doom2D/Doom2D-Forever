@@ -54,16 +54,16 @@ function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, TargetUID: Wor
 procedure g_Weapon_gun(const x, y, xd, yd, v, indmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
 procedure g_Weapon_punch(x, y: Integer; d, SpawnerUID: Word);
 function g_Weapon_chainsaw(x, y: Integer; d, SpawnerUID: Word): Integer;
-procedure g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
+procedure g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
 procedure g_Weapon_revf(x, y, xd, yd: Integer; SpawnerUID, TargetUID: Word; WID: Integer = -1; Silent: Boolean = False);
-procedure g_Weapon_flame(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
-procedure g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
-procedure g_Weapon_ball1(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
-procedure g_Weapon_ball2(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
-procedure g_Weapon_ball7(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
-procedure g_Weapon_aplasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
-procedure g_Weapon_manfire(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
-procedure g_Weapon_bfgshot(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
+procedure g_Weapon_flame(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
+procedure g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
+procedure g_Weapon_ball1(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
+procedure g_Weapon_ball2(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
+procedure g_Weapon_ball7(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
+procedure g_Weapon_aplasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
+procedure g_Weapon_manfire(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
+procedure g_Weapon_bfgshot(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
 procedure g_Weapon_bfghit(x, y: Integer);
 procedure g_Weapon_pistol(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Boolean = False);
 procedure g_Weapon_mgun(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Boolean = False);
@@ -1659,7 +1659,7 @@ begin
 end;
 
 procedure g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
-  Silent: Boolean = False);
+  Silent: Boolean = False; compat: Boolean = true);
 var
   find_id: DWORD;
   dx, dy: Integer;
@@ -1680,7 +1680,10 @@ begin
     Obj.Rect.Width := SHOT_ROCKETLAUNCHER_WIDTH;
     Obj.Rect.Height := SHOT_ROCKETLAUNCHER_HEIGHT;
 
-    dx := IfThen(xd > x, -Obj.Rect.Width, 0);
+    if compat then
+      dx := IfThen(xd > x, -Obj.Rect.Width, 0)
+    else
+      dx := -(Obj.Rect.Width div 2);
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_ROCKETLAUNCHER;
@@ -1738,7 +1741,7 @@ begin
 end;
 
 procedure g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
-  Silent: Boolean = False);
+  Silent: Boolean = False; compat: Boolean = true);
 var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
@@ -1759,7 +1762,10 @@ begin
     Obj.Rect.Width := SHOT_PLASMA_WIDTH;
     Obj.Rect.Height := SHOT_PLASMA_HEIGHT;
 
-    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    if compat then
+      dx := IfThen(xd > x, -Obj.Rect.Width, 0)
+    else
+      dx := -(Obj.Rect.Width div 2);
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_PLASMA;
@@ -1777,7 +1783,7 @@ begin
 end;
 
 procedure g_Weapon_flame(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
-  Silent: Boolean = False);
+  Silent: Boolean = False; compat: Boolean = true);
 var
   find_id: DWORD;
   dx, dy: Integer;
@@ -1798,7 +1804,10 @@ begin
     Obj.Rect.Width := SHOT_FLAME_WIDTH;
     Obj.Rect.Height := SHOT_FLAME_HEIGHT;
 
-    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    if compat then
+      dx := IfThen(xd > x, -Obj.Rect.Width, 0)
+    else
+      dx := -(Obj.Rect.Width div 2);
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_FLAMETHROWER;
@@ -1817,7 +1826,7 @@ begin
 end;
 
 procedure g_Weapon_ball1(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
-  Silent: Boolean = False);
+  Silent: Boolean = False; compat: Boolean = true);
 var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
@@ -1838,7 +1847,10 @@ begin
     Obj.Rect.Width := 16;
     Obj.Rect.Height := 16;
 
-    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    if compat then
+      dx := IfThen(xd > x, -Obj.Rect.Width, 0)
+    else
+      dx := -(Obj.Rect.Width div 2);
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_IMP_FIRE;
@@ -1856,7 +1868,7 @@ begin
 end;
 
 procedure g_Weapon_ball2(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
-  Silent: Boolean = False);
+  Silent: Boolean = False; compat: Boolean = true);
 var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
@@ -1877,7 +1889,10 @@ begin
     Obj.Rect.Width := 16;
     Obj.Rect.Height := 16;
 
-    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    if compat then
+      dx := IfThen(xd > x, -Obj.Rect.Width, 0)
+    else
+      dx := -(Obj.Rect.Width div 2);
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_CACO_FIRE;
@@ -1895,7 +1910,7 @@ begin
 end;
 
 procedure g_Weapon_ball7(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
-  Silent: Boolean = False);
+  Silent: Boolean = False; compat: Boolean = true);
 var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
@@ -1916,7 +1931,10 @@ begin
     Obj.Rect.Width := 16;
     Obj.Rect.Height := 16;
 
-    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    if compat then
+      dx := IfThen(xd > x, -Obj.Rect.Width, 0)
+    else
+      dx := -(Obj.Rect.Width div 2);
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_BARON_FIRE;
@@ -1934,7 +1952,7 @@ begin
 end;
 
 procedure g_Weapon_aplasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
-  Silent: Boolean = False);
+  Silent: Boolean = False; compat: Boolean = true);
 var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
@@ -1955,7 +1973,10 @@ begin
     Obj.Rect.Width := 16;
     Obj.Rect.Height := 16;
 
-    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    if compat then
+      dx := IfThen(xd > x, -Obj.Rect.Width, 0)
+    else
+      dx := -(Obj.Rect.Width div 2);
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_BSP_FIRE;
@@ -1974,7 +1995,7 @@ begin
 end;
 
 procedure g_Weapon_manfire(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
-  Silent: Boolean = False);
+  Silent: Boolean = False; compat: Boolean = true);
 var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
@@ -1995,7 +2016,10 @@ begin
     Obj.Rect.Width := 32;
     Obj.Rect.Height := 32;
 
-    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    if compat then
+      dx := IfThen(xd > x, -Obj.Rect.Width, 0)
+    else
+      dx := -(Obj.Rect.Width div 2);
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_MANCUB_FIRE;
@@ -2014,7 +2038,7 @@ begin
 end;
 
 procedure g_Weapon_bfgshot(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
-  Silent: Boolean = False);
+  Silent: Boolean = False; compat: Boolean = true);
 var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
@@ -2035,7 +2059,10 @@ begin
     Obj.Rect.Width := SHOT_BFG_WIDTH;
     Obj.Rect.Height := SHOT_BFG_HEIGHT;
 
-    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    if compat then
+      dx := IfThen(xd > x, -Obj.Rect.Width, 0)
+    else
+      dx := -(Obj.Rect.Width div 2);
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_BFG;
