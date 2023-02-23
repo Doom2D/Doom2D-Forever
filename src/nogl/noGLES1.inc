@@ -10,7 +10,6 @@ implementation
     GL_TEXTURE_COORD_ARRAY = $8078;
     GL_TRIANGLES = $0004;
     GL_TEXTURE0 = $84C0;
-    GL_INVALID_ENUM = $0500;
 
   const
     ValPerVertex = 2;

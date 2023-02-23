@@ -171,10 +171,12 @@ implementation
         GL_STACK_OVERFLOW: s := 'GL_STACK_OVERFLOW';
         GL_STACK_UNDERFLOW: s := 'GL_STACK_UNDERFLOW';
         GL_OUT_OF_MEMORY: s := 'GL_OUT_OF_MEMORY';
-        GL_TABLE_TOO_LARGE: s := 'GL_TABLE_TOO_LARGE';
+        {$IFNDEF USE_GLES1}
+          GL_TABLE_TOO_LARGE: s := 'GL_TABLE_TOO_LARGE';
+        {$ENDIF}
         otherwise s := '';
       end;
-      if s = '' then
+      if s <> '' then
         e_LogWritefln('%s: %s', [msg, s])
       else
         e_LogWritefln('%s: error code %s', [msg, code]);
