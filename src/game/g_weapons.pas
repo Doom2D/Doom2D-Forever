@@ -2596,6 +2596,12 @@ begin
         p.X := Obj.Rect.Width div 2;
         p.Y := Obj.Rect.Height div 2;
 
+        if Shots[i].ShotType = WEAPON_BFG then
+        begin
+          DEC(fX, 6);
+          DEC(fY, 7);
+        end;
+
         if Animation <> nil then
           begin
             if (Shots[i].ShotType = WEAPON_BARON_FIRE) or
