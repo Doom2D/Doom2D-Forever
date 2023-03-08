@@ -1,0 +1,268 @@
+@title Doom2DF 3 08.03.2023 3 3
+
+@h1 NAME
+Custom configuration manual for a Doom 2D Forever dedicated server.
+
+
+@h1 CONTENTS
+
+1. Server setitngs
+
+2. Game parameters
+
+3. Events
+
+4. Aliases
+
+@h1 1. Server settings
+The dedicated server uses its own configuration file, which is set up only with a text editor. It is not enough to simply change something in the main game and then copy it from its .cfg file into the server file - In the menu "My Game" not all settings for the server are displayed, and some variables from there you can not change. In this paragraph, we consider the most necessary parameters that must be prescribed.
+
+
+@h2 Main options
+sv_name "<name>"
+	Server name.
+
+sv_passwd "<password>"
+	Lock server with password.
+
+sv_port PORTNUMBER
+	The port number to be used by the server, by default it is recommended 25667. Overwritten by the parameter -port.
+
+sv_public 1/0
+	Whether to show the server in the list or not, by default it is shown.
+
+sv_maxplrs <number>
+	Maximum number of slots for players. Recommended 14-16.
+
+sv_intertime <number>
+	After how many seconds the server will start the next round. For non-cooperative servers it is recommended to set -1 (this will set the timer for 15 seconds).
+
+
+@h2 Administration option
+sv_rcon 1/0
+	Enable rcon access to manage the server.
+
+sv_rcon_password
+	Password for rcon, specify without spaces and quotes.
+
+@h2 Ban options
+sv_autoban_threshold <number>
+	After how many attempts to harm the server player should be banned (0 = off), the default 5.
+sv_autoban_permanent 1/0
+	Set the permanence of the ban (0 = ban for a while), the default is 1.
+sv_autoban_warn 1/0
+	Warn the client about penalty triggers, default is 0.
+sv_auth_timeout <number>
+	The number of milliseconds it takes for the client to complete authentication to the server (0 = infinite) is by default 30.
+sv_packet_timeout <number>
+	The number of milliseconds the client has to idle before kicking (0 = infinite) is 60 by default.
+
+@h2 Optional options
+sv_forwardports 1/0
+	Does the server have to pierce the ports itself through miniupnpc.
+sv_reliable_interval <number>
+	Delay between objects position sending at reliable channel. Must be greater than sv_update_interval.
+sv_update_interval <number>
+	Delay between objects position sending at unreliable channel.
+sv_master_interval <number>
+	After how many seconds the server has to remind the master server.
+
+
+@h2 Technical options
+net_master_list <host>
+	To which master server address the data will be sent. You can specify more than one, for example mpms.doom2d.org:25665,deadsoftware.ru:25665
+rdl_ignore_enabled 1/0
+	Enable or disable hash checking.
+rdl_ignore_names <resource wad names>
+	The names of the resource files (from the wads folder without an extension) that should not be checked by the server for consistency.
+rdl_hashdb_save_enabled 1/0
+	Saving hashes in the database on disk.
+
+@h1 2. Game parameters
+Game parameters are not required to be specified in the maplist, and serve rather to override the configuration file settings, so as not to change the values in it unnecessarily. To turn on you must set 1, to turn off - 0.
+
+g_gamemode dm/tdm/ctf/coop
+	What mode will be set on the server.
+
+@h2 Bots
+g_max_bots <number>
+	The maximum number of bots that can be spawned.
+g_bot_vsmonsters 1/0
+	Should bots fight monsters.
+g_bot_vsplayers 1/0
+	Should bots fight players
+
+
+@h2 Limits
+g_scorelimit <number>
+	How many points are needed to end the round (0 = infinite).
+g_timelimit <number>
+	The time limit after which the round ends (0 = infinite).
+g_maxlives <number>
+	Number of player lives, enables Survival, LMS, TLMS gamemodes.
+
+
+@h2 Time settings
+g_item_respawn_time <number>
+	How much time (in seconds) should appear items, the default is 60.
+g_warmup_time <number>
+	Warmup time for Survival mode and its derivatives, in seconds.
+
+
+@h2 Items spawn
+g_spawn_invul 1/0
+	Enable or disable the invulnerability sphere spawn.
+g_weaponstay 1/0
+	Whether to leave the weapon after a player picks it up.
+
+
+@h2 Permissions
+g_allow_dropflag 1/0
+	Enable or disable flag dropping in CTF mode.
+g_throw_flag 1/0
+	How to throw the flag, 1 - with acceleration, 0 - under the player.
+g_allow_exit 1/0
+	Enable or disable the ability to exit. For the cooperative to work properly, you must set 1.
+g_allow_monsters 1/0
+	Allow or disallow monsters to spawn.
+
+
+@h2 Stats
+g_save_stats 1/0
+	Whether to save the statistics of the round, the default is 0. It is saved as a csv-table.
+g_screenshot_stats 1/0
+	Whether to save a screenshot of the table at the end of the round, the default is 0.
+
+
+@h2 Friendly-Fire options
+g_friendlyfire 1/0
+	Turn friendly-fire on or off.
+g_friendly_hit_trace 1/0
+	Enable or disable the passage of hitscan (bullet) through their teammates.
+g_friendly_hit_projectile 1/0
+	Enable or disable the passage of projectiles (missiles, BFG or plasma balls) through your teammates.
+g_friendly_absorb_damage 1/0
+	Enable or disable the absorption of some damage when bullets or projectiles pass through teammates.
+Note: the values of the numbers change for the cooperative (1 - off, 0 - on).
+
+@h1 3. Events
+To control certain events on the server, there is a command event, through which you can relatively flexibly configure the behavior of the server in certain situations. The need to use the event command is directly related to proper server startup and map lists.@br
+The command supports the following types of events:
+
+onmapstart
+	Execute the given commands at the start of the next map.
+onmapend
+	Execute the given commands at the end of the map.
+oninter
+	Perform assigned commands at the end of the round (when the points table appears).
+onwadend
+	Execute the given commands at the end of the megawad/campaing (after passing the last level).
+
+Note: parameters may not work as expected, so it is recommended to use the examples below to ensure that aliases work.
+
+@h1 4. Aliases
+After defining all the parameters, it is necessary to configure the aliases. Through them set lists of maps, switching multiple parameters simultaneously, the implementation of multiple modes on the server with the correct settings for each, etc. If you plan to keep the server on a regular basis, then it is imperative that you set a list of maps on the server. This paragraph will specify working examples that you can use in your configuration file for the server.
+
+Change gamemode to DM with its inherent settings, notify the players about it, as well as set the map directly:
+
+	@pre
+	alias dm "g_gamemode dm;g_warmup_time 16;g_maxlives 0;g_dm_keys 1;g_timelimit 900;g_scorelimit 0;sv_intertime -1;centerprint 100 GAMEMODE: DM;nextmap PrikolSoft.wad MAP01;event onmapend call cmap02;bot_removeall"
+	@endpre
+
+Change gamemode to coop (with the ability to pass bullets through players)::
+
+	@pre
+	alias coop "g_gamemode coop;g_maxlives 0;g_dm_keys 0;g_timelimit 0;g_scorelimit 0;sv_intertime 30;g_friendly_hit_trace 0;centerprint 100 GAMEMODE: Cooperative;call coop01;bot_removeall"
+	@endpre
+
+Change gamemode to coop (classic):
+
+	@pre
+	alias coop "g_gamemode coop;g_maxlives 0;g_dm_keys 0;g_timelimit 0;g_scorelimit 0;sv_intertime 30;g_friendly_hit_trace 1;centerprint 100 GAMEMODE: Cooperative;call coop01;bot_removeall"
+	@endpre
+
+Change gamemode to survival:
+
+	@pre
+	alias survival "g_gamemode coop;g_warmup_time 60;g_maxlives 1;g_dm_keys 1;g_timelimit 0;g_scorelimit 0;g_friendly_hit_trace 0;g_weaponstay 1;g_friendlyfire 0;sv_intertime 30;centerprint 100 GAMEMODE: Survival;call coop01;bot_removeall"
+	@endpre
+
+By the same example, you can set and batch switching of parameters during the game, just list in the alias needed to change the parameters.
+
+Set a list of maps that will be used on the server (it must be looped!):
+
+	@pre
+	alias cmap01 "event onmapstart nextmap PrikolSoft.wad MAP01;       event onmapend call cmap02"
+	alias cmap02 "event onmapstart nextmap SurMP.wad MAP01;       event onmapend call cmap03"
+	alias cmap03 "event onmapstart nextmap PrikolSoft.wad MAP01;     event onmapend call cmap01"
+	@endpre
+
+Set up some list of megawads (it must be looped!):
+
+	@pre
+	# Set wads
+	alias wad01 "nextmap megawads/doom2d.wad MAP01"
+	alias wad02 "nextmap megawads/doom2d2.wad MAP01"
+	alias wad03 "nextmap megawads/VETERAN.wad MAP01"
+	alias wad04 "nextmap megawads/Bloodworks.wad MAP01"
+
+	# Set aliases for right calling megawads
+	alias coop01 "call wad01; event onwadend call coop02"
+	alias coop02 "call wad02; event onwadend call coop03"
+	alias coop03 "call wad03; event onwadend call coop04"
+	alias coop04 "call wad04; event onwadend call coop01"
+	@endpre
+
+All aliases are invoked through commands:
+
+callvote call <alias>
+	For players
+rcon call <alias>
+	For administrator with rcon.
+
+@h1 RECOMENDATIONS
+At the moment, the use of custom configuration for servers, although preferable, also requires some additional commands to start the server correctly.
+
+@h2 General
+Between the aliases and the server configuration, set the following:
+
+	@pre
+	event oninter ""
+	event onmapend call cmap01
+	@endpre
+
+Otherwise the server will not use the map list. In place of cmap01 you can specify what you used to name the aliases with maps.
+
+@h2 Standart server (with DM or team gamemodes)
+At the very end of the configuration, write for example:
+
+	@pre
+	map PrikolSoft.wad MAP01
+	@endpre
+
+Then we start it with the command:
+
+	@pre
+	$ Doom2DF_H -map PrikolSoft.wad:\\MAP01 -gm DM -port 25667 -exec maplist_dm.txt --log-file dfserver_dm.log
+	@endpre
+	
+So the server starts up and switches the map after a while after the start, applying all the necessary parameters and running the map call alias we set at the beginning.
+
+@h2 Coop server
+For a cooperative server, you can't prescribe any map calls at the end, otherwise it will be broken and you'll have to manually switch the map on the server.
+
+The following command must be used to start it:
+
+	@pre
+	$ Doom2DF_H -map doom2d.wad:\\MAP01 -gm COOP -port 25667 -exec coop_list.txt --log-file dfserver_coop.log
+	@endpre
+
+The map you can put what you want from the beginning of the server. This will ensure that the megawads are switched correctly. Also, do not use when testing the cooperative server command endmap - it will switch you to any map in the folder, but not the next megawad map!
+
+@h1 SEE ALSO
+
+*d2df*(2)
+
+@h1 AUTHOR
+
+Written by Dmitry Lyashuk <lyashuk.voxx\@gmail.com>, Doom 2D: Forever Developers.

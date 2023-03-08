@@ -1,4 +1,24 @@
 If you want to convert this txt to man, you need a k8ttman (see https://repo.or.cz/k8ttman.git).
 Build them, copy txt file to program directory and run:
 
-  ./ttman d2df.txt d2df.1
+  ./ttman d2df.1.txt d2df.1
+  ./ttman d2df.2.txt d2df.2
+  ./ttman d2df.3.txt d2df.3
+
+For the manual to be detectable by man/man-db, it must be packed into a .gz archive. We do this with the command:
+
+  gzip -c d2df.1 > d2df.1.gz
+  gzip -c d2df.2 > d2df.2.gz
+  gzip -c d2df.3 > d2df.3.gz
+
+Then put them in directories based on the number in the name:
+
+  d2df.1 = /usr/share/man/man1
+  d2df.2 = /usr/share/man/man2
+  d2df.3 = /usr/share/man/man3
+
+For russian version, you must use txt from directory "ru" to convert/compression and put them to:
+
+  d2df.1 = /usr/share/man/ru/man1
+  d2df.2 = /usr/share/man/ru/man2
+  d2df.3 = /usr/share/man/ru/man3

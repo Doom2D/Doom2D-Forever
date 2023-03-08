@@ -1,0 +1,90 @@
+@title Doom2DF 1 08.03.2023 1 1
+
+@h1 NAME
+Doom2DF - main game binary.@br
+Doom2DF_H - dedicated server binary.
+
+@h1 SYNOPSIS
+Doom2DF [*ARGUMENTS*]... [*OPTION*]...@br
+Doom2DF_H [*ARGUMENTS*]... [*OPTION*]...
+
+
+@h1 DESCRIPTION
+Doom 2D Forever is Doom-themed platformer game with network multiplayer support. This is the modern port of 1996 Doom 2D game by Prikol Software.@br
+Note: documentation is not finished yet.
+
+
+@h2 ARGUMENTS
+-map WADFILE:\\MAPnn
+	Run the game with the map from the specified wad for the current game session.@br
+	All maps in the Doom 2D Forever must be packed to a .wad (incompatible with doom wads) or .dfz (renamed zip) archive.@br
+	These wads can have a lot of maps inside, usually named as MAPnn.
+
+-gm NAME [`DM`|`TDM`|`CTF`|`COOP`]
+	Use a specific gamemode for the current game session. Default is DM.
+
+-port PORTNUMBER [`25667`]
+	Use a specific port for the server. Default is 25667.
+
+-exec FILENAME.txt
+	You can also set a custom config for the game session. Good for maplists, etc.
+
+-connect IP:PORT
+	Connect to server, when game loads.
+
+-lims nnn
+	Set the goal limit for current game session.
+
+-lives nnn
+	Set the number of lives for the Survival mode.
+
+-limt nnnn
+	Set the time limit for current game session.
+
+
+@h1 OPTIONS
+--log-file FILENAME.log
+	Set custom name for the log file.
+
+
+@h1 EXAMPLES
+Run the dedicated server in DeathMatch mode, with custom maplist and custom log file.
+
+	@pre
+	$ Doom2DF_H -map PrikolSoft.wad:\\MAP01 -gm DM -port 25667 -exec maplist_dm.txt --log-file dfserver_dm.log
+	@endpre
+
+
+@h1 DIRECTORIES
+By default, the game checks the entire disc for game files. (The editor can't search for files everywhere.) To follow a hierarchy, files can be located:
+
+~/.doom2df
+    in your home directory.
+
+/usr/share/doom2df
+    or in default directory.
+
+@h1 URLS
+Our site:@br
+https://doom2d.org
+
+Our forum:@br
+https://doom2d.org/forum/index.php
+
+Our IRC:@br
+irc.wenet.ru:6677 #doom2d
+
+Our Telegram:@br
+https://t.me/doom2d_channel - Channel@br
+https://t.me/doom2d - Chat
+
+Our Discord:@br
+https://discord.gg/sGpJwMy
+
+@h1 SEE ALSO
+
+*d2df*(2), *d2df*(3)
+
+@h1 AUTHOR
+
+Written by Dmitry Lyashuk <lyashuk.voxx\@gmail.com>, Doom 2D: Forever Developers.
