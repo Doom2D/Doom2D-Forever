@@ -5584,10 +5584,9 @@ end;
 procedure TPlayer.NetFire(Wpn: Byte; X, Y, AX, AY: Integer; WID: Integer = -1);
 var
   locObj: TObj;
-  F: Boolean;
+  visible: Boolean = True;
   WX, WY, XD, YD: Integer;
 begin
-  F := False;
   WX := X;
   WY := Y;
   XD := AX;
@@ -5596,6 +5595,7 @@ begin
   case FCurrWeap of
     WEAPON_KASTET:
     begin
+      visible := False;
       DoPunch();
       if R_BERSERK in FRulez then
       begin
@@ -5637,14 +5637,12 @@ begin
         FSawSoundSelect.Stop();
         FSawSound.PlayAt(FObj.X, FObj.Y);
       end;
-      f := True;
     end;
 
     WEAPON_PISTOL:
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', GameX, Gamey);
       FFireAngle := FAngle;
-      f := True;
       g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
                              GameVelX, GameVelY-2, SHELL_BULLET);
     end;
@@ -5653,7 +5651,6 @@ begin
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', Gamex, Gamey);
       FFireAngle := FAngle;
-      f := True;
       FShellTimer := 10;
       FShellType := SHELL_SHELL;
     end;
@@ -5662,7 +5659,6 @@ begin
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN2', Gamex, Gamey);
       FFireAngle := FAngle;
-      f := True;
       FShellTimer := 13;
       FShellType := SHELL_DBLSHELL;
     end;
@@ -5671,7 +5667,6 @@ begin
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', Gamex, Gamey);
       FFireAngle := FAngle;
-      f := True;
       g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
                              GameVelX, GameVelY-2, SHELL_BULLET);
     end;
@@ -5680,28 +5675,24 @@ begin
     begin
       g_Weapon_Rocket(wx, wy, xd, yd, FUID, WID);
       FFireAngle := FAngle;
-      f := True;
     end;
 
     WEAPON_PLASMA:
     begin
       g_Weapon_Plasma(wx, wy, xd, yd, FUID, WID);
       FFireAngle := FAngle;
-      f := True;
     end;
 
     WEAPON_BFG:
     begin
       g_Weapon_BFGShot(wx, wy, xd, yd, FUID, WID);
       FFireAngle := FAngle;
-      f := True;
     end;
 
     WEAPON_SUPERPULEMET:
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', Gamex, Gamey);
       FFireAngle := FAngle;
-      f := True;
       g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
                              GameVelX, GameVelY-2, SHELL_SHELL);
     end;
@@ -5711,11 +5702,10 @@ begin
       g_Weapon_flame(wx, wy, xd, yd, FUID, WID);
       FlamerOn;
       FFireAngle := FAngle;
-      f := True;
     end;
   end;
 
-  if not f then Exit;
+  if not visible then Exit;
 
   if (FAngle = 0) or (FAngle = 180) then SetAction(A_ATTACK)
     else if (FAngle = ANGLE_LEFTDOWN) or (FAngle = ANGLE_RIGHTDOWN) then SetAction(A_ATTACKDOWN)
