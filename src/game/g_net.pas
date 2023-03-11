@@ -207,13 +207,13 @@ procedure g_Net_Flush();
 function  g_Net_Host(IPAddr: LongWord; Port: enet_uint16; MaxClients: Cardinal = 16): Boolean;
 procedure g_Net_Host_Die();
 procedure g_Net_Host_Send(ID: Integer; Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
-function  g_Net_Host_Update(): enet_size_t;
+procedure g_Net_Host_Update();
 
 function  g_Net_Connect(IP: string; Port: enet_uint16): Boolean;
 procedure g_Net_Disconnect(Forced: Boolean = False);
 procedure g_Net_Client_Send(Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
-function  g_Net_Client_Update(): enet_size_t;
-function  g_Net_Client_UpdateWhileLoading(): enet_size_t;
+procedure g_Net_Client_Update();
+procedure g_Net_Client_UpdateWhileLoading();
 
 function  g_Net_Client_ByName(Name: string): pTNetClient;
 function  g_Net_Client_ByPlayer(PID: Word): pTNetClient;
@@ -1748,7 +1748,7 @@ begin
 end;
 
 
-function g_Net_Host_Update(): enet_size_t;
+procedure g_Net_Host_Update();
 var
   IP: string;
   Port: Word;
@@ -1756,7 +1756,6 @@ var
   TC: pTNetClient;
 begin
   IP := '';
-  Result := 0;
 
   if NetUseMaster then g_Net_Slist_Pulse();
   g_Net_Host_CheckPings();
@@ -1941,9 +1940,8 @@ begin
   g_Net_Flush(); // FIXME: for now, send immediately
 end;
 
-function g_Net_Client_Update(): enet_size_t;
+procedure g_Net_Client_Update();
 begin
-  Result := 0;
   while (NetHost <> nil) and (enet_host_service(NetHost, @NetEvent, 0) > 0) do
   begin
     case NetEvent.kind of
@@ -1957,16 +1955,14 @@ begin
       ENET_EVENT_TYPE_DISCONNECT:
       begin
         g_Net_Disconnect(True);
-        Result := 1;
         Exit;
       end;
     end;
   end
 end;
 
-function g_Net_Client_UpdateWhileLoading(): enet_size_t;
+procedure g_Net_Client_UpdateWhileLoading();
 begin
-  Result := 0;
   while (enet_host_service(NetHost, @NetEvent, 0) > 0) do
   begin
     case NetEvent.kind of
@@ -1980,7 +1976,6 @@ begin
       ENET_EVENT_TYPE_DISCONNECT:
       begin
         g_Net_Disconnect(True);
-        Result := 1;
         Exit;
       end;
     end;
