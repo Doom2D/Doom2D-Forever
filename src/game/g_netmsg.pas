@@ -555,6 +555,14 @@ end;
 procedure MH_RECV_FullStateRequest(C: pTNetClient; var M: TMsg);
 begin
   //e_LogWritefln('*** client #%u (cid #%u) full state request', [C.ID, C.Player]);
+
+  if C^.FullUpdateSent then
+  begin
+    // FullStateRequest spam?
+    g_Net_Penalize(C, 'duplicate full state request');
+    exit;
+  end;
+
   if gGameOn then
   begin
     MH_SEND_Everything((C^.State = NET_STATE_AUTH), C^.ID)
@@ -894,11 +902,14 @@ procedure MH_SEND_Everything(CreatePlayers: Boolean {= False}; ID: Integer {= NE
 var
   I: Integer;
 begin
-  if (ID >= 0) and (ID < length(NetClients)) then
-  begin
-    e_LogWritefln('*** client #%u (cid #%u) will get everything', [ID, NetClients[ID].Player]);
-    MH_ProcessFirstSpawn(@NetClients[ID]);
-  end;
+  if (ID < 0) or (ID >= Length(NetClients)) then
+    exit; // bogus client, this shouldn't happen
+
+  NetClients[ID].FullUpdateSent := True;
+
+  e_LogWritefln('*** client #%u (cid #%u) will get everything', [ID, NetClients[ID].Player]);
+
+  MH_ProcessFirstSpawn(@NetClients[ID]);
 
   if gPlayers <> nil then
   begin

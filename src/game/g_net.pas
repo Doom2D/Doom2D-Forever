@@ -103,6 +103,7 @@ type
     Player:   Word;
     RequestedFullUpdate: Boolean;
     WaitForFirstSpawn: Boolean; // set to `true` in server, used to spawn a player on first full state request
+    FullUpdateSent: Boolean;
     RCONAuth: Boolean;
     Voted:    Boolean;
     Crimes:   Integer;
@@ -1662,6 +1663,7 @@ begin
   TC^.AuthTime := 0;
   TC^.MsgTime := 0;
   TC^.RequestedFullUpdate := False;
+  TC^.FullUpdateSent := False;
   TC^.WaitForFirstSpawn := False;
   TC^.NetOut[NET_UNRELIABLE].Free();
   TC^.NetOut[NET_RELIABLE].Free();

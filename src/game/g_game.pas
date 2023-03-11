@@ -5163,6 +5163,11 @@ begin
 
   if NetMode = NET_SERVER then
   begin
+  // reset full state flags
+    if NetClients <> nil then
+      for I := 0 to High(NetClients) do
+        NetClients[I].FullUpdateSent := False;
+
     MH_SEND_GameEvent(NET_EV_MAPSTART, gGameSettings.GameMode, Map);
 
   // Мастерсервер
