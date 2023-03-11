@@ -12,11 +12,7 @@ Doom 2D Forever console commands.
 
 3. Console commands
 
-4. Debug commands
-
-5. Game commands
-
-6. Cheats
+4. Game commands
 
 
 @h1 1. System commands
@@ -90,63 +86,7 @@ ver, version
     Show game version.
 
 
-@h1 4. Debug commands
-
-d_window
-    Show window resolution.
-d_sounds 1/0
-    Sound debugging.
-d_frames 1/0
-    Show item, entities hitboxes.
-d_winmsg 1/0
-    (?)
-d_monoff 1/0
-    Switch the work of the AI monsters.
-d_botoff 3/2/1/0
-    Switch the work of the AI bots.
-d_health 1/0
-    Toggle the display of XP in numerical form.
-d_player 1/0
-    Toggle the display of player coordinates.
-d_joy 1/0
-    (?)
-d_mem 1/0
-    Toggle the heap status display.
-
-@h2 Monsters
-d_monster <ID or name> <behaviour>
-    Spawn a monster with a specific behavior. If no behavior is specified, the default behavior is set (normal).
-
-ID:
-    1 - Pinky
-    2 - Imp
-    3 - Zombie
-    4 - Shotgun Guy
-    5 - Cyberdemon
-    6 - Chaingunner
-    7 - Baron of Hell
-    8 - Hell Knight
-    9 - Cacodemon
-    10 - Lost Soul
-    11 - Pain Elemental
-    12 - Spider Mastermind
-    13 - Arachnotron
-    14 - Mancubus
-    15 - Revenant
-    16 - Arch-vile
-    17 - Fish
-    18 - Barrrel
-    19 - Robot
-    20 - Prikolist
-
-Behavior:
-    0 - killer
-    1 - maniac
-    2 - insane
-    3 - cannibal, attacks both the player and monsters
-    4 - good, player friendly, hostile to monsters
-
-@h1 5. Game commands
+@h1 4. Game commands
 
 pause
     Pause the game.
@@ -234,33 +174,6 @@ clientlist
     Output the list of connected clients.
 event <name> <command or parameter>
     Use a command or change a parameter for a certain event. When empty, display a list of actions performed on certain events.
-
-
-@h1 6. Cheats
-Enter once to turn on and once to turn off.
-
-god
-    Godmode.
-notarget
-    Monsters stop paying attention to you.
-give
-    Give out a certain item (including the exit).
-open
-    Open all doors.
-fly
-    Give the player an infinity jetpack.
-noclip
-    Disabling collisions at walls + flight.
-speedy
-    Increased movement speed.
-jumpy
-    Increasing the height of jump.
-noreload
-    Disabling the reload (cooldown between shots).
-aimline
-    Show where the player is aiming.
-automap
-    Show full map.
 
 
 @h1 SEE ALSO

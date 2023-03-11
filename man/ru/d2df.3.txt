@@ -243,7 +243,7 @@ rcon call <алиас>
 Затем запускаем при помощи команды:
 
 	@pre
-	$ Doom2DF_H -map PrikolSoft.wad:\\MAP01 -gm DM -port 25667 -exec maplist_dm.txt --log-file dfserver_dm.log
+	$ Doom2DF_H -map PrikolSoft.wad:\\\MAP01 -gm DM -port 25667 -exec maplist_dm.txt --log-file dfserver_dm.log
 	@endpre
 
 Так сервер запускается и через некоторое время переключает карту после старта, применяя все необходимые параметры и запуская нами установленный в начале алиас вызова карты.
@@ -254,7 +254,7 @@ rcon call <алиас>
 Для запуска необходимо использовать следующую команду:
 
 	@pre
-	$ Doom2DF_H -map doom2d.wad:\\MAP01 -gm COOP -port 25667 -exec coop_list.txt --log-file dfserver_coop.log
+	$ Doom2DF_H -map doom2d.wad:\\\MAP01 -gm COOP -port 25667 -exec coop_list.txt --log-file dfserver_coop.log
 	@endpre
 
 Карту можете подставить какую вы хотите с самого начала сервера. Это обеспечит правильное переключение мегавадов. Так же не стоит использовать при тестировании кооперативного сервера команду endmap - она переключит вас на любую карту из папки, но не на следующую карту вада!

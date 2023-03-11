@@ -243,7 +243,7 @@ At the very end of the configuration, write for example:
 Then we start it with the command:
 
 	@pre
-	$ Doom2DF_H -map PrikolSoft.wad:\\MAP01 -gm DM -port 25667 -exec maplist_dm.txt --log-file dfserver_dm.log
+	$ Doom2DF_H -map PrikolSoft.wad:\\\MAP01 -gm DM -port 25667 -exec maplist_dm.txt --log-file dfserver_dm.log
 	@endpre
 	
 So the server starts up and switches the map after a while after the start, applying all the necessary parameters and running the map call alias we set at the beginning.
@@ -254,7 +254,7 @@ For a cooperative server, you can't prescribe any map calls at the end, otherwis
 The following command must be used to start it:
 
 	@pre
-	$ Doom2DF_H -map doom2d.wad:\\MAP01 -gm COOP -port 25667 -exec coop_list.txt --log-file dfserver_coop.log
+	$ Doom2DF_H -map doom2d.wad:\\\MAP01 -gm COOP -port 25667 -exec coop_list.txt --log-file dfserver_coop.log
 	@endpre
 
 The map you can put what you want from the beginning of the server. This will ensure that the megawads are switched correctly. Also, do not use when testing the cooperative server command endmap - it will switch you to any map in the folder, but not the next megawad map!

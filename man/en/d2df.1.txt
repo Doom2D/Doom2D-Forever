@@ -51,7 +51,7 @@ Note: documentation is not finished yet.
 Run the dedicated server in DeathMatch mode, with custom maplist and custom log file.
 
 	@pre
-	$ Doom2DF_H -map PrikolSoft.wad:\\MAP01 -gm DM -port 25667 -exec maplist_dm.txt --log-file dfserver_dm.log
+	$ Doom2DF_H -map PrikolSoft.wad:\\\MAP01 -gm DM -port 25667 -exec maplist_dm.txt --log-file dfserver_dm.log
 	@endpre
 
 

@@ -51,7 +51,7 @@ Doom 2D Forever это платформер на основе классичес
 Команда запуска выделенного сервера в режиме DeatMatch, с кастомным маплистом и логом.
 
 	@pre
-	$ Doom2DF_H -map PrikolSoft.wad:\\MAP01 -gm DM -port 25667 -exec maplist_dm.txt --log-file dfserver_dm.log
+	$ Doom2DF_H -map PrikolSoft.wad:\\\MAP01 -gm DM -port 25667 -exec maplist_dm.txt --log-file dfserver_dm.log
 	@endpre
 
 
