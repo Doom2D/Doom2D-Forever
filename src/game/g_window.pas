@@ -22,7 +22,7 @@ uses
 
 function SDLMain (): Integer;
 procedure ResetTimer ();
-procedure ProcessLoading (forceUpdate: Boolean=false);
+procedure ProcessLoading (forceUpdate: Boolean = False);
 
 var
   gwin_dump_extensions: Boolean = false;
@@ -68,7 +68,7 @@ var
   prevLoadingUpdateTime: UInt64 = 0;
 {$ENDIF}
 
-procedure ProcessLoading (forceUpdate: Boolean=false);
+procedure ProcessLoading (forceUpdate: Boolean);
 {$IFNDEF HEADLESS}
 var
   stt: UInt64;
@@ -108,14 +108,13 @@ begin
 
   e_SoundUpdate();
 
-  if NetMode = NET_SERVER then
-  begin
-    g_Net_Host_Update();
-  end
-  else
-  begin
-    if (NetMode = NET_CLIENT) and (NetState <> NET_STATE_AUTH) then g_Net_Client_UpdateWhileLoading();
-  end;
+  // TODO: At the moment, I left here only host network processing, because the client code must
+  // handle network events on its own. Otherwise separate network cases that use different calls to
+  // enet_host_service() WILL lose their packets (for example, resource downloading). So they have
+  // to handle everything by themselves. But in general, this MUST be removed completely, since
+  // updating the window should never affect the network. Use single enet_host_service(), period.
+  if NetMode = NET_SERVER
+    then g_Net_Host_Update();
 end;
 
 

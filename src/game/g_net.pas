@@ -214,7 +214,6 @@ function  g_Net_Connect(IP: string; Port: enet_uint16): Boolean;
 procedure g_Net_Disconnect(Forced: Boolean = False);
 procedure g_Net_Client_Send(Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
 procedure g_Net_Client_Update();
-procedure g_Net_Client_UpdateWhileLoading();
 
 function  g_Net_Client_ByName(Name: string): pTNetClient;
 function  g_Net_Client_ByPlayer(PID: Word): pTNetClient;
@@ -920,7 +919,8 @@ begin
         end;
         if (freePacket) then begin freePacket := false; enet_packet_destroy(ev.packet); end;
       end;
-      ProcessLoading();
+
+      ProcessLoading(False);
       if g_Net_UserRequestExit() then
       begin
         g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' user abort', True);
@@ -1068,7 +1068,8 @@ begin
         end;
         if (freePacket) then begin freePacket := false; enet_packet_destroy(ev.packet); end;
       end;
-      ProcessLoading();
+
+      ProcessLoading(False);
       if g_Net_UserRequestExit() then
       begin
         g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' user abort', True);
@@ -1267,7 +1268,8 @@ begin
         end;
         if (freePacket) then begin freePacket := false; enet_packet_destroy(ev.packet); end;
       end;
-      ProcessLoading();
+
+      ProcessLoading(False);
       if g_Net_UserRequestExit() then
       begin
         g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' user abort', True);
@@ -1949,7 +1951,6 @@ begin
     case NetEvent.kind of
       ENET_EVENT_TYPE_RECEIVE:
       begin
-        if (NetEvent.channelID = NET_CHAN_DOWNLOAD_EX) then continue; // ignore all download packets, they're processed by separate code
         if NetDump then g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
         g_Net_Client_HandlePacket(NetEvent.packet, g_Net_ClientMsgHandler);
       end;
@@ -1961,28 +1962,6 @@ begin
       end;
     end;
   end
-end;
-
-procedure g_Net_Client_UpdateWhileLoading();
-begin
-  while (enet_host_service(NetHost, @NetEvent, 0) > 0) do
-  begin
-    case NetEvent.kind of
-      ENET_EVENT_TYPE_RECEIVE:
-      begin
-        if (NetEvent.channelID = NET_CHAN_DOWNLOAD_EX) then continue; // ignore all download packets, they're processed by separate code
-        if NetDump then g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
-        g_Net_Client_HandlePacket(NetEvent.packet, g_Net_ClientLightMsgHandler);
-      end;
-
-      ENET_EVENT_TYPE_DISCONNECT:
-      begin
-        g_Net_Disconnect(True);
-        Exit;
-      end;
-    end;
-  end;
-  g_Net_Flush();
 end;
 
 function g_Net_Connect(IP: string; Port: enet_uint16): Boolean;
@@ -2067,8 +2046,7 @@ begin
       g_Console_Add(Format(_lc[I_NET_MSG_PORTS], [Integer(Port), Integer(NET_PING_PORT)]), True);
     end;
 
-    ProcessLoading(true);
-
+    ProcessLoading(True);
     if e_KeyPressed(IK_SPACE) or e_KeyPressed(IK_ESCAPE) or e_KeyPressed(VK_ESCAPE) or
        e_KeyPressed(JOY0_JUMP) or e_KeyPressed(JOY1_JUMP) or e_KeyPressed(JOY2_JUMP) or e_KeyPressed(JOY3_JUMP) then
       OuterLoop := False;
@@ -2164,23 +2142,16 @@ var
 begin
   dataLength := Length(Data);
 
-  if (Reliable) then
-    F := LongWord(ENET_PACKET_FLAG_RELIABLE)
-  else
-    F := 0;
+  if Reliable
+    then F := LongWord(ENET_PACKET_FLAG_RELIABLE)
+    else F := 0;
 
-  if (peer <> nil) then
-  begin
-    P := enet_packet_create(@Data[0], dataLength, F);
-    if not Assigned(P) then Exit;
-    enet_peer_send(peer, Chan, P);
-  end
-  else
-  begin
-    P := enet_packet_create(@Data[0], dataLength, F);
-    if not Assigned(P) then Exit;
-    enet_host_broadcast(NetHost, Chan, P);
-  end;
+  P := enet_packet_create(@Data[0], dataLength, F);
+  if not Assigned(P) then exit;
+
+  if peer <> nil
+    then enet_peer_send(peer, Chan, P)
+    else enet_host_broadcast(NetHost, Chan, P);
 
   enet_host_flush(NetHost);
 end;

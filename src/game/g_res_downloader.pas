@@ -374,7 +374,7 @@ begin
   sfsGCCollect(); // why not?
   g_Res_CreateDatabases();
   FileName := ExtractFileName(FileName);
-  if (length(FileName) = 0) then FileName := '__unititled__.wad';
+  if (length(FileName) = 0) then FileName := '__untitled__.wad';
 
   try
     g_Res_received_map_start := 1;

@@ -4854,12 +4854,6 @@ begin
     begin
       if (NetEvent.kind = ENET_EVENT_TYPE_RECEIVE) then
       begin
-        if (NetEvent.channelID = NET_CHAN_DOWNLOAD_EX) then
-        begin
-          // ignore all download packets, they're processed by separate code
-          enet_packet_destroy(NetEvent.packet);
-          continue;
-        end;
         Ptr := NetEvent.packet^.data;
         if not InMsg.Init(Ptr, NetEvent.packet^.dataLength, True) then
         begin
@@ -4959,8 +4953,7 @@ begin
       end;
     end;
 
-    ProcessLoading(true);
-
+    ProcessLoading(True);
     if g_Net_UserRequestExit() then
     begin
       State := 0;
@@ -8308,8 +8301,7 @@ begin
   end;
 
   g_ActiveWindow := nil;
-
-  ProcessLoading(true);
+  ProcessLoading(True);
 end;
 
 procedure g_Game_StepLoading(Value: Integer = -1);
@@ -8323,10 +8315,11 @@ begin
     end
     else
       CurValue := Value;
+
     if (ShowCount > LOADING_SHOW_STEP) or (Value > -1) then
     begin
       ShowCount := 0;
-      ProcessLoading();
+      ProcessLoading(False);
     end;
   end;
 end;

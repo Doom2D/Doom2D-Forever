@@ -34,6 +34,7 @@ implementation
 
 uses sysutils, g_console;
 
+// TODO: Unify this with g_Net_Host_HandlePacket() somehow? They're almost the same.
 procedure g_Net_Client_HandlePacket(P: pENetPacket; Handler: TNetClientMsgHandler);
 var
   MNext: Integer;
@@ -42,8 +43,8 @@ var
   NetMsg: TMsg;
   Err: Boolean;
 begin
-  if not NetMsg.Init(P^.data, P^.dataLength, True) then
-    Exit;
+  if not NetMsg.Init(P^.data, P^.dataLength, True)
+    then exit;
 
   Err := False;
   MNext := 0;
@@ -60,10 +61,9 @@ begin
     end;
   end;
 
-  MHandled := not MHandled; //k8: stfu, fpc!
-
   enet_packet_destroy(P);
-  //if Err then begin MC_MalformedPacket(S); Exit; end;
+  //if Err
+  //  then MC_MalformedPacket(S);
 end;
 
 procedure g_Net_Host_HandlePacket(S: pTNetClient; P: pENetPacket; Handler: TNetHostMsgHandler);
@@ -74,8 +74,8 @@ var
   NetMsg: TMsg;
   Err: Boolean;
 begin
-  if not NetMsg.Init(P^.data, P^.dataLength, True) then
-    Exit;
+  if not NetMsg.Init(P^.data, P^.dataLength, True)
+    then exit;
 
   Err := False;
   MNext := 0;
@@ -92,10 +92,9 @@ begin
     end;
   end;
 
-  MHandled := not MHandled; //k8: stfu, fpc!
-
   enet_packet_destroy(P);
-  if Err then begin MH_MalformedPacket(S); Exit; end;
+  if Err
+    then MH_MalformedPacket(S);
 end;
 
 
