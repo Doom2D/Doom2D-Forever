@@ -212,6 +212,11 @@ begin
       if res <> FMOD_OK then
         res := TryInitWithOutput(FMOD_OUTPUTTYPE_OSS, 'OUTPUTTYPE_OSS');
       {$ENDIF}
+      {$IFDEF DARWIN}
+        res := TryInitWithOutput(FMOD_OUTPUTTYPE_COREAUDIO, 'OUTPUTTYPE_COREAUDIO');
+        if res <> FMOD_OK then
+          res := TryInitWithOutput(FMOD_OUTPUTTYPE_SOUNDMANAGER, 'OUTPUTTYPE_SOUNDMANAGER');
+      {$ENDIF}
       if (res <> FMOD_OK) and (forceNoSound <> 1) then Exit;
       if res <> FMOD_OK then
         res := TryInitWithOutput(FMOD_OUTPUTTYPE_NOSOUND, 'OUTPUTTYPE_NOSOUND');
@@ -237,6 +242,8 @@ begin
       FMOD_OUTPUTTYPE_ASIO: e_WriteLog('FMOD Output Method: ASIO', TMsgType.Notify);
       FMOD_OUTPUTTYPE_OSS:  e_WriteLog('FMOD Output Method: OSS', TMsgType.Notify);
       FMOD_OUTPUTTYPE_ALSA: e_Writelog('FMOD Output Method: ALSA', TMsgType.Notify);
+      FMOD_OUTPUTTYPE_SOUNDMANAGER: e_Writelog('FMOD Output Method: SOUNDMANAGER', TMsgType.Notify);
+      FMOD_OUTPUTTYPE_COREAUDIO: e_Writelog('FMOD Output Method: COREAUDIO', TMsgType.Notify);
       else e_WriteLog('FMOD Output Method: Unknown', TMsgType.Notify);
     end;
 

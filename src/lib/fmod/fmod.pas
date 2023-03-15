@@ -504,12 +504,13 @@ function FMOD_Unload                        (): FMOD_RESULT; {$IFDEF WIN32} stdc
 implementation
 
 const
-{$IFDEF MSWINDOWS}
+{$IF DEFINED(MSWINDOWS)}
   FMOD_DLL = 'fmodex.dll';
-{$ELSE}
-{$IFDEF LINUX}
+{$ELSEIF DEFINED(LINUX)}
   FMOD_DLL = 'libfmodex.so';
-{$ENDIF}
+{$ELSEIF DEFINED(DARWIN)}
+  FMOD_DLL = 'libfmodex.dylib';
+  {$LINKLIB libfmodex}
 {$ENDIF}
 
 function FMOD_Load(const libname: PChar): FMOD_RESULT;
