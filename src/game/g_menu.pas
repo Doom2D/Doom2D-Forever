@@ -2217,8 +2217,8 @@ begin
     Name := 'mmNewGameMenu';
     AddButton(@ProcSingle1Player, _lc[I_MENU_1_PLAYER]);
     AddButton(@ProcSingle2Players, _lc[I_MENU_2_PLAYERS]);
-    AddButton(nil, _lc[I_MENU_CUSTOM_GAME], 'CustomGameMenu');
     AddButton(@ProcSelectCampaignMenu, _lc[I_MENU_CAMPAIGN], 'CampaignMenu');
+    AddButton(nil, _lc[I_MENU_CUSTOM_GAME], 'CustomGameMenu');
   end;
   Menu.DefControl := 'mmNewGameMenu';
   g_GUI_AddWindow(Menu);
