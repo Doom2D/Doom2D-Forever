@@ -25,7 +25,6 @@ procedure ResetTimer ();
 procedure ProcessLoading (forceUpdate: Boolean = False);
 
 var
-  gwin_dump_extensions: Boolean = false;
   gwin_has_stencil: Boolean = false;
   gwin_k8_enable_light_experiments: Boolean = false;
   g_dbg_aimline_on: Boolean = false;
@@ -256,8 +255,6 @@ begin
   begin
     arg := ParamStr(idx);
     Inc(idx);
-    if arg = '--opengl-dump-exts' then gwin_dump_extensions := true;
-    //if arg = '--twinkletwinkle' then gwin_k8_enable_light_experiments := true;
     if arg = '--jah' then g_profile_history_size := 100;
     if arg = '--no-particles' then gpart_dbg_enabled := false;
     if arg = '--no-los' then gmon_dbg_los_enabled := false;
@@ -360,7 +357,6 @@ begin
     if (glLegacyNPOT) then e_logWriteln('NPOT texture emulation: enabled')
     else e_logWriteln('NPOT texture emulation: disabled');
   end;
-  gwin_dump_extensions := false;
 
   Init;
   Time_Old := sys_GetTicks();

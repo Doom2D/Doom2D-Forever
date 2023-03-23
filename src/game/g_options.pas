@@ -114,7 +114,7 @@ begin
   gScreenHeight := 480;
   gWinSizeX := 640;
   gWinSizeY := 480;
-  //gBPP := SDL_BITSPERPIXEL(dispaly.format);
+  //gBPP := SDL_BITSPERPIXEL(display.format);
   gBPP := 32;
   {$IFDEF ANDROID}
     gFullScreen := True; (* rotation not allowed? *)
