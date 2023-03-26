@@ -78,27 +78,27 @@ implementation
   (* --------- Graphics --------- *)
 
   function LoadGL: Boolean;
-  {$IFNDEF NOGL_INIT}
-  var
-    ltmp: Integer;
-  {$ENDIF}
+    var ltmp: Integer;
   begin
     result := true;
     {$IFDEF NOGL_INIT}
-    nogl_Init;
-    if glRenderToFBO and (not nogl_ExtensionSupported('GL_OES_framebuffer_object')) then
+      nogl_Init;
+      if glRenderToFBO and (not nogl_ExtensionSupported('GL_OES_framebuffer_object')) then
+      begin
+        e_LogWriteln('GL: framebuffer objects not supported; disabling FBO rendering');
+        glRenderToFBO := false;
+      end;
     {$ELSE}
-    if SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, @ltmp) = 0 then
+      if glRenderToFBO and (not Load_GL_ARB_framebuffer_object) then
+      begin
+        e_LogWriteln('GL: framebuffer objects not supported; disabling FBO rendering');
+        glRenderToFBO := false;
+      end;
+    {$ENDIF}
+    if SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, ltmp) = 0 then
     begin
       e_LogWritefln('stencil buffer size: %s', [ltmp]);
       gwin_has_stencil := (ltmp > 0);
-    end;
-
-    if glRenderToFBO and (not Load_GL_ARB_framebuffer_object) then
-    {$ENDIF}
-    begin
-      e_LogWriteln('GL: framebuffer objects not supported; disabling FBO rendering');
-      glRenderToFBO := false;
     end;
   end;
 
