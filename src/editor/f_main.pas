@@ -286,7 +286,6 @@ const
 
 var
   MainForm: TMainForm;
-  EditorDir: String;
   OpenedMap: String;
   OpenedWAD: String;
 
@@ -2647,8 +2646,6 @@ var
   s: String;
 begin
   Randomize();
-
-  EditorDir := ExtractFilePath(Application.ExeName);
 
   e_WriteLog('Doom 2D: Forever Editor version ' + EDITOR_VERSION, MSG_NOTIFY);
   e_WriteLog('Build date: ' + EDITOR_BUILDDATE + ' ' + EDITOR_BUILDTIME, MSG_NOTIFY);

@@ -45,7 +45,7 @@ var
 implementation
 
 uses
-  f_main, WADSTRUCT, g_language, utils, sfs;
+  f_main, WADSTRUCT, g_language, utils, sfs, g_options;
 
 {$R *.lfm}
 
@@ -64,7 +64,6 @@ begin
   FFullResourceName := '';
   FResourceSelected := False;
 
-  ChDir(EditorDir);
   if FindFirst(EditorDir + 'wads/*.*', faAnyFile, SR) = 0 then
   repeat
     if (SR.name <> '.') and (SR.name <> '..') then

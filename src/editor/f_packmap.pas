@@ -53,7 +53,7 @@ implementation
 
 uses
   BinEditor, WADEDITOR, g_map, MAPREADER, MAPWRITER, MAPSTRUCT,
-  f_main, math, g_language, g_resources, e_log;
+  f_main, math, g_language, g_resources, g_options, e_log;
 
 {$R *.lfm}
 

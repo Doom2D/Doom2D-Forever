@@ -5,6 +5,7 @@ unit g_options;
 interface
 
   var
+    EditorDir: AnsiString;
     CfgFileName: AnsiString;
     GameWad: AnsiString;
     EditorWad: AnsiString;
