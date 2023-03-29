@@ -65,7 +65,8 @@ uses
     end;
 
   var
-    H: THandlerObject;
+    LogFileName: AnsiString = '';
+    ParamFileIndex: Integer = 1;
 
   procedure THandlerObject.ExceptionHandler (Sender: TObject; e: Exception);
   begin
@@ -73,17 +74,61 @@ uses
     MessageDlg('Unhandled exception: ' + e.message + ' (see Editor.log for more information)', mtError, [mbOK], 0);
   end;
 
+  procedure CheckParamOptions;
+    var i: Integer; p: AnsiString;
+  begin
+    i := 1;
+    while (i <= ParamCount) and (Length(ParamStr(i)) > 0) and (ParamStr(i)[1] = '-') do
+    begin
+      p := ParamStr(i);
+      if p = '--log-file' then
+      begin
+        if i + 1 <= ParamCount then
+        begin
+          Inc(i);
+          LogFileName := ParamStr(i);
+        end;
+      end;
+      Inc(i);
+    end;
+    ParamFileIndex := i;
+  end;
+
+  procedure CheckParamFiles;
+    var i: Integer; path: AnsiString;
+  begin
+    i := ParamFileIndex;
+    if i <= ParamCount then
+    begin
+      path := ParamStr(i);
+      if path <> '' then
+        OpenMap(path, '');
+    end;
+  end;
+
+  procedure InitLogs;
+  begin
+    if LogFileName = '' then
+      LogFileName := 'Editor.log';
+
+    if LogFileName <> '' then
+      e_InitLog(LogFileName, WM_NEWFILE);
+
+    {$IF DECLARED(UseHeapTrace)}
+      (* http://wiki.freepascal.org/heaptrc *)
+      GlobalSkipIfNoLeaks := True;
+      //SetHeapTraceOutput('EditorLeaks.log');
+      //HaltOnError := False;
+    {$ENDIF}
+  end;
+
 begin
   Application.ExceptionDialog := aedOkMessageBox;
-  Application.AddOnExceptionHandler(H.ExceptionHandler, True);
+  Application.AddOnExceptionHandler(THandlerObject.ExceptionHandler, True);
   Application.Initialize();
 
-{$IF DECLARED(UseHeapTrace)}
-  (* http://wiki.freepascal.org/heaptrc *)
-  GlobalSkipIfNoLeaks := True;
-  //SetHeapTraceOutput('EditorLeaks.log');
-  //HaltOnError := False;
-{$ENDIF}
+  CheckParamOptions;
+  InitLogs;
 
   Application.CreateForm(TMainForm, MainForm);
   Application.CreateForm(TOptionsForm, OptionsForm);
@@ -105,6 +150,7 @@ begin
   Application.CreateForm(TChooseTypeForm, ChooseTypeForm);
   Application.CreateForm(TSelectLanguageForm, SelectLanguageForm);
 
-  if ParamStr(1) <> '' then OpenMap(ParamStr(1), '');
+  CheckParamFiles;
+
   Application.Run();
 end.

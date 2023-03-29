@@ -2650,7 +2650,6 @@ begin
 
   EditorDir := ExtractFilePath(Application.ExeName);
 
-  e_InitLog(EditorDir+'Editor.log', WM_NEWFILE);
   e_WriteLog('Doom 2D: Forever Editor version ' + EDITOR_VERSION, MSG_NOTIFY);
   e_WriteLog('Build date: ' + EDITOR_BUILDDATE + ' ' + EDITOR_BUILDTIME, MSG_NOTIFY);
   e_WriteLog('Build hash: ' + g_GetBuildHash(), MSG_NOTIFY);
