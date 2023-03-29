@@ -77,7 +77,7 @@ procedure RegisterFileType(ext: String; FileName: String);
 implementation
 
 uses
-  f_main, StdConvs, CONFIG, g_language, g_resources;
+  f_main, StdConvs, CONFIG, g_language, g_resources, g_options;
 
 {$R *.lfm}
 
@@ -207,7 +207,7 @@ begin
   else
     DotSize := 1;
 
-  config := TConfig.CreateFile(EditorDir+'Editor.cfg');
+  config := TConfig.CreateFile(CfgFileName);
 
   config.WriteInt('Editor', 'DotColor', DotColor);
   config.WriteBool('Editor', 'DotEnable', DotEnable);
@@ -232,7 +232,7 @@ begin
     MainForm.RefreshRecentMenu();
   end;
 
-  config.SaveFile(EditorDir+'Editor.cfg');
+  config.SaveFile(CfgFileName);
   config.Free();
   Close();
 end;

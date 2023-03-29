@@ -52,6 +52,7 @@ uses
   ImagingTypes,
   Imaging,
   ImagingUtility,
+  g_options in 'g_options.pas',
   g_language in 'g_language.pas',
   f_selectlang in 'f_selectlang.pas' {SelectLanguageForm};
 
@@ -87,6 +88,14 @@ uses
         begin
           Inc(i);
           LogFileName := ParamStr(i);
+        end;
+      end
+      else if p = '--config' then
+      begin
+        if i + 1 <= ParamCount then
+        begin
+          Inc(i);
+          CfgFileName := ParamStr(i);
         end;
       end;
       Inc(i);
@@ -126,6 +135,9 @@ begin
   Application.ExceptionDialog := aedOkMessageBox;
   Application.AddOnExceptionHandler(THandlerObject.ExceptionHandler, True);
   Application.Initialize();
+
+  EditorDir := ExtractFilePath(Application.ExeName);
+  CfgFileName := EditorDir + DirectorySeparator + 'Editor.cfg';
 
   CheckParamOptions;
   InitLogs;

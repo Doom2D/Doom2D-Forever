@@ -341,7 +341,7 @@ uses
   MAPREADER, f_selectmap, f_savemap, WADEDITOR, MAPDEF,
   g_map, f_saveminimap, f_addresource, CONFIG, f_packmap,
   f_addresource_sound, f_maptest, f_choosetype,
-  g_language, f_selectlang, ClipBrd, g_resources;
+  g_language, f_selectlang, ClipBrd, g_resources, g_options;
 
 const
   UNDO_DELETE_PANEL   = 1;
@@ -2673,7 +2673,7 @@ begin
   OpenedMap := '';
   OpenedWAD := '';
 
-  config := TConfig.CreateFile(EditorDir+'Editor.cfg');
+  config := TConfig.CreateFile(CfgFileName);
 
   if config.ReadInt('Editor', 'XPos', -1) = -1 then
     Position := poDesktopCenter
@@ -4238,7 +4238,7 @@ var
   config: TConfig;
   i: Integer;
 begin
-  config := TConfig.CreateFile(EditorDir+'Editor.cfg');
+  config := TConfig.CreateFile(CfgFileName);
 
   if WindowState <> wsMaximized then
   begin
@@ -4277,7 +4277,7 @@ begin
       config.WriteStr('RecentFiles', IntToStr(i+1), '');
   RecentFiles.Free();
 
-  config.SaveFile(EditorDir+'Editor.cfg');
+  config.SaveFile(CfgFileName);
   config.Free();
 
   slInvalidTextures.Free;
@@ -6235,9 +6235,9 @@ begin
       else gLanguage := LANGUAGE_RUSSIAN;
     end;
 
-    config := TConfig.CreateFile(EditorDir+'Editor.cfg');
+    config := TConfig.CreateFile(CfgFileName);
     config.WriteStr('Editor', 'Language', gLanguage);
-    config.SaveFile(EditorDir+'Editor.cfg');
+    config.SaveFile(CfgFileName);
     config.Free();
   end;
 

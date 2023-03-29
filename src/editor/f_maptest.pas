@@ -64,7 +64,7 @@ var
 implementation
 
 uses
-  f_main, CONFIG;
+  f_main, g_options, CONFIG;
 
 {$R *.lfm}
 
@@ -75,7 +75,7 @@ var
   n: Integer;
   
 begin
-  config := TConfig.CreateFile(EditorDir+'Editor.cfg');
+  config := TConfig.CreateFile(CfgFileName);
 
   if rbTDM.Checked then
     s := 'TDM'
@@ -121,7 +121,7 @@ begin
   config.WriteStr('TestRun', 'Args', edD2DArgs.Text);
   TestD2DArgs := edD2DArgs.Text;
 
-  config.SaveFile(EditorDir+'Editor.cfg');
+  config.SaveFile(CfgFileName);
   config.Free();
   Close();
 end;
@@ -161,7 +161,7 @@ var
   config: TConfig;
   
 begin
-  config := TConfig.CreateFile(EditorDir+'Editor.cfg');
+  config := TConfig.CreateFile(CfgFileName);
 
   TestGameMode := config.ReadStr('TestRun', 'GameMode', 'DM');
   TestLimTime := config.ReadStr('TestRun', 'LimTime', '0');
