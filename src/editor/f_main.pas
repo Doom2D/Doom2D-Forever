@@ -2617,10 +2617,10 @@ var
   config: TConfig;
 begin
   ID := 0;
-  g_ReadResource(EditorDir + 'data/game.wad', 'FONTS', cfgres, cfgdata, cfglen);
+  g_ReadResource(GameWad, 'FONTS', cfgres, cfgdata, cfglen);
   if cfgdata <> nil then
   begin
-    if not g_CreateTextureWAD('FONT_STD', EditorDir + 'data/game.wad:FONTS\' + texture) then
+    if not g_CreateTextureWAD('FONT_STD', GameWad + ':FONTS\' + texture) then
       e_WriteLog('ERROR ERROR ERROR', MSG_WARNING);
 
     config := TConfig.CreateMem(cfgdata, cfglen);

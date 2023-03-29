@@ -97,6 +97,22 @@ uses
           Inc(i);
           CfgFileName := ParamStr(i);
         end;
+      end
+      else if p = '--game-wad' then
+      begin
+        if i + 1 <= ParamCount then
+        begin
+          Inc(i);
+          GameWad := ParamStr(i);
+        end;
+      end
+      else if p = '--editor-wad' then
+      begin
+        if i + 1 <= ParamCount then
+        begin
+          Inc(i);
+          EditorWad := ParamStr(i);
+        end;
       end;
       Inc(i);
     end;
@@ -138,6 +154,8 @@ begin
 
   EditorDir := ExtractFilePath(Application.ExeName);
   CfgFileName := EditorDir + DirectorySeparator + 'Editor.cfg';
+  GameWad := EditorDir + DirectorySeparator + 'data' + DirectorySeparator + 'game.wad';
+  EditorWad := EditorDir + DirectorySeparator + 'data' + DirectorySeparator + 'editor.wad';
 
   CheckParamOptions;
   InitLogs;
