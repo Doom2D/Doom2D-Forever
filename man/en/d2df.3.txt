@@ -109,9 +109,9 @@ g_warmup_time <number>
 	Warmup time for Survival mode and its derivatives, in seconds.
 
 
-@h2 Items spawn
-g_spawn_invul 1/0
-	Enable or disable the invulnerability sphere spawn.
+@h2 Spawn
+g_spawn_invul <number>
+	Whether the player will be immortal after respawning. A value 0 turns off immortality after rebirth.
 g_weaponstay 1/0
 	Whether to leave the weapon after a player picks it up.
 
