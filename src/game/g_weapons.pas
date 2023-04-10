@@ -2277,19 +2277,20 @@ begin
 
           // В воде шлейф - пузыри, в воздухе шлейф - дым:
             if WordBool(st and MOVE_INWATER) then
-              g_GFX_Bubbles(Obj.X+(Obj.Rect.Width div 2),
-                            Obj.Y+(Obj.Rect.Height div 2),
-                            1+Random(3), 16, 16)
-            else
-              if g_Frames_Get(_id, 'FRAMES_SMOKE') then
-              begin
-                Anim := TAnimation.Create(_id, False, 3);
-                Anim.Alpha := 150;
-                g_GFX_OnceAnim(Obj.X-14+Random(9),
-                               Obj.Y+(Obj.Rect.Height div 2)-20+Random(9),
-                               Anim, ONCEANIM_SMOKE);
-                Anim.Free();
-              end;
+            begin
+              g_GFX_Bubbles(cx, cy, 1+Random(3), 16, 16);
+              if Random(2) = 0
+                then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', cx, cy)
+                else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', cx, cy);
+            end
+            else if g_Frames_Get(_id, 'FRAMES_SMOKE') then
+            begin
+              Anim := TAnimation.Create(_id, False, 3);
+              Anim.Alpha := 150;
+              g_GFX_OnceAnim(Obj.X-14+Random(9), cy-20+Random(9),
+                             Anim, ONCEANIM_SMOKE);
+              Anim.Free();
+            end;
 
           // Попали в кого-то или в стену:
             if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
@@ -2412,7 +2413,12 @@ begin
                 end;
               end
               else
+              begin
                 g_GFX_Bubbles(cx, cy, 1+Random(3), 16, 16);
+                if Random(2) = 0
+                  then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', cx, cy)
+                  else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', cx, cy);
+              end;
               ShotType := 0;
               Continue;
             end;

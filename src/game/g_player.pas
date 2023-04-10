@@ -2299,8 +2299,13 @@ begin
         end;
 
       if t = HIT_WATER then
+      begin
         g_GFX_Bubbles(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
                       FObj.Y+PLAYER_RECT.Y-4, value div 2, 8, 4);
+        if Random(2) = 0
+          then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
+          else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
+      end;
     end;
 
   // Буфер урона:
@@ -5373,10 +5378,9 @@ begin
       else if (FAir mod 31 = 0) and not blockmon then
       begin
         g_GFX_Bubbles(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2), FObj.Y+PLAYER_RECT.Y-4, 5+Random(6), 8, 4);
-        if Random(2) = 0 then
-          g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
-        else
-          g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
+        if Random(2) = 0
+          then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
+          else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
       end;
     end else if FAir < AIR_DEF then
       FAir := AIR_DEF;
@@ -6477,10 +6481,9 @@ begin
   begin
     g_GFX_Bubbles(Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)+Random(3)-1,
                   Obj.Y+Obj.Rect.Height+8, 1, 8, 4);
-    if Random(2) = 0 then
-      g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
-    else
-      g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
+    if Random(2) = 0
+      then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
+      else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
     Exit;
   end;
 

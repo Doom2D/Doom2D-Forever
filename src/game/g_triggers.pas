@@ -884,7 +884,13 @@ begin
       TRIGGER_EFFECT_DLIQUID: g_GFX_SimpleWater(X, Y, 1, VX, VY, 5, CR, CG, CB);
       TRIGGER_EFFECT_BLOOD: g_GFX_Blood(X, Y, 1, VX, VY, 0, 0, CR, CG, CB);
       TRIGGER_EFFECT_SPARK: g_GFX_Spark(X, Y, 1, GetAngle2(VX, VY), 0, 0);
-      TRIGGER_EFFECT_BUBBLE: g_GFX_Bubbles(X, Y, 1, 0, 0);
+      TRIGGER_EFFECT_BUBBLE:
+      begin
+        g_GFX_Bubbles(X, Y, 1, 0, 0);
+        if not Silent then if Random(2) = 0
+          then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', X, Y)
+          else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', X, Y);
+      end;
     end;
   end;
 
