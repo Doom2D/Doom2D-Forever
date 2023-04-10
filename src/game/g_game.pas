@@ -680,6 +680,7 @@ begin
     fname := e_CatPath(fname, StatFilename + '.csv');
     AssignFile(s, fname);
     try
+      SetTextCodePage(s, CP_UTF8);
       Rewrite(s);
       // line 1: stats ver, datetime, server name, map name, game mode, time limit, score limit, dmflags, game time, num players
       if g_Game_IsNet then fname := NetServerName else fname := '';
