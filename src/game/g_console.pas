@@ -2052,7 +2052,7 @@ begin
   g_Console_BindKey(IK_T, 'togglechat');
   g_Console_BindKey(IK_Y, 'toggleteamchat');
   g_Console_BindKey(IK_F11, 'screenshot');
-  g_Console_BindKey(IK_TAB, '+p1_scores', '-p1_scores');
+  g_Console_BindKey(IK_TAB, '+scores', '-scores');
   g_Console_BindKey(IK_PAUSE, 'pause');
   g_Console_BindKey(IK_F1, 'vote');
 
