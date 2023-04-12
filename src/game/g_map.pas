@@ -3272,9 +3272,9 @@ begin
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
   begin
     // Очки Красной команды
-    utils.writeInt(st, SmallInt(gTeamStat[TEAM_RED].Goals));
+    utils.writeInt(st, SmallInt(gTeamStat[TEAM_RED].Score));
     // Очки Синей команды
-    utils.writeInt(st, SmallInt(gTeamStat[TEAM_BLUE].Goals));
+    utils.writeInt(st, SmallInt(gTeamStat[TEAM_BLUE].Score));
   end;
   ///// /////
 end;
@@ -3364,9 +3364,9 @@ begin
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
   begin
     // Очки Красной команды
-    gTeamStat[TEAM_RED].Goals := utils.readSmallInt(st);
+    gTeamStat[TEAM_RED].Score := utils.readSmallInt(st);
     // Очки Синей команды
-    gTeamStat[TEAM_BLUE].Goals := utils.readSmallInt(st);
+    gTeamStat[TEAM_BLUE].Score := utils.readSmallInt(st);
   end;
   ///// /////
 end;

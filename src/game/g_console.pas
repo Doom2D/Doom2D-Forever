@@ -2190,7 +2190,7 @@ begin
 
   // gameplay settings
   WriteLn(f, 'g_gamemode ', gsGameMode);
-  WriteLn(f, 'g_scorelimit ', gsGoalLimit);
+  WriteLn(f, 'g_scorelimit ', gsScoreLimit);
   WriteLn(f, 'g_timelimit ', gsTimeLimit);
   WriteLn(f, 'g_maxlives ', gsMaxLives);
   WriteLn(f, 'g_item_respawn_time ', gsItemRespawnTime);

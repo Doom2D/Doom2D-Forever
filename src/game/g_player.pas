@@ -573,7 +573,7 @@ type
 
   TTeamStat = Array [TEAM_RED..TEAM_BLUE] of
     record
-      Goals: SmallInt;
+      Score: SmallInt;
     end;
 
 var
@@ -1488,8 +1488,8 @@ procedure g_Player_ResetAll(Force, Silent: Boolean);
 var
   i: Integer;
 begin
-  gTeamStat[TEAM_RED].Goals := 0;
-  gTeamStat[TEAM_BLUE].Goals := 0;
+  gTeamStat[TEAM_RED].Score := 0;
+  gTeamStat[TEAM_BLUE].Score := 0;
 
   if gPlayers <> nil then
     for i := 0 to High(gPlayers) do
@@ -2743,7 +2743,7 @@ begin
   SY := gPlayerScreenSize.Y;
   Y := 0;
 
-  if gShowGoals and (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
+  if gShowScore and (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
   begin
     if gGameSettings.GameMode = GM_CTF then
       a := 32 + 8
@@ -2760,7 +2760,7 @@ begin
         e_Draw(ID, X-16-32, 240-72-4, 0, True, False);
     end;
 
-    s := IntToStr(gTeamStat[TEAM_RED].Goals);
+    s := IntToStr(gTeamStat[TEAM_RED].Score);
     e_CharFont_GetSize(gMenuFont, s, tw, th);
     e_CharFont_PrintEx(gMenuFont, X-16-a-tw, 240-72-4, s, TEAMCOLOR[TEAM_RED]);
 
@@ -2775,7 +2775,7 @@ begin
         e_Draw(ID,  X-16-32, 240-32-4, 0, True, False);
     end;
 
-    s := IntToStr(gTeamStat[TEAM_BLUE].Goals);
+    s := IntToStr(gTeamStat[TEAM_BLUE].Score);
     e_CharFont_GetSize(gMenuFont, s, tw, th);
     e_CharFont_PrintEx(gMenuFont, X-16-a-tw, 240-32-4, s, TEAMCOLOR[TEAM_BLUE]);
   end;
@@ -3484,7 +3484,7 @@ begin
       if Srv then
       begin
         if gGameSettings.GameMode = GM_TDM then
-          Dec(gTeamStat[FTeam].Goals);
+          Dec(gTeamStat[FTeam].Score);
         if DoFrags or (gGameSettings.GameMode = GM_TDM) then
         begin
           Dec(FFrags);
@@ -3511,7 +3511,7 @@ begin
             end;
 
           if (gGameSettings.GameMode = GM_TDM) and DoFrags then
-            Inc(gTeamStat[KP.Team].Goals,
+            Inc(gTeamStat[KP.Team].Score,
               IfThen(SameTeam(FUID, SpawnerUID), -1, 1));
 
           if netsrv then MH_SEND_PlayerStats(SpawnerUID);
@@ -3672,7 +3672,7 @@ begin
         g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 144);
         if Netsrv then
           MH_SEND_GameEvent(NET_EV_TLMS_WIN, TEAM_RED);
-        Inc(gTeamStat[TEAM_RED].Goals);
+        Inc(gTeamStat[TEAM_RED].Score);
         gLMSRespawn := LMS_RESPAWN_FINAL;
         gLMSRespawnTime := gTime + 5000;
       end
@@ -3682,7 +3682,7 @@ begin
         g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 144);
         if Netsrv then
           MH_SEND_GameEvent(NET_EV_TLMS_WIN, TEAM_BLUE);
-        Inc(gTeamStat[TEAM_BLUE].Goals);
+        Inc(gTeamStat[TEAM_BLUE].Score);
         gLMSRespawn := LMS_RESPAWN_FINAL;
         gLMSRespawnTime := gTime + 5000;
       end
@@ -5802,7 +5802,7 @@ begin
     if not sound_cap_flag[a].IsPlaying() then
       sound_cap_flag[a].Play();
 
-    gTeamStat[FTeam].Goals := gTeamStat[FTeam].Goals + 1;
+    gTeamStat[FTeam].Score += 1;
 
     Result := True;
     if g_Game_IsNet then

@@ -1711,7 +1711,7 @@ begin
               if ((tgcScoreAction = TRIGGER_SCORE_ACTION_ADD) and (tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_RED) and (p.Team = TEAM_RED))
               or ((tgcScoreAction = TRIGGER_SCORE_ACTION_ADD) and (tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_BLUE) and (p.Team = TEAM_BLUE)) then
               begin
-                Inc(gTeamStat[TEAM_RED].Goals, tgcScoreCount); // Red Scores
+                Inc(gTeamStat[TEAM_RED].Score, tgcScoreCount); // Red Scores
 
                 if tgcScoreCon then
                 begin
@@ -1738,7 +1738,7 @@ begin
               if ((tgcScoreAction = TRIGGER_SCORE_ACTION_SUB) and (tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_RED) and (p.Team = TEAM_RED))
               or ((tgcScoreAction = TRIGGER_SCORE_ACTION_SUB) and (tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_BLUE) and (p.Team = TEAM_BLUE)) then
               begin
-                Dec(gTeamStat[TEAM_RED].Goals, tgcScoreCount); // Red Fouls
+                Dec(gTeamStat[TEAM_RED].Score, tgcScoreCount); // Red Fouls
 
                 if tgcScoreCon then
                 begin
@@ -1765,7 +1765,7 @@ begin
               if ((tgcScoreAction = TRIGGER_SCORE_ACTION_ADD) and (tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_RED) and (p.Team = TEAM_BLUE))
               or ((tgcScoreAction = TRIGGER_SCORE_ACTION_ADD) and (tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_BLUE) and (p.Team = TEAM_RED)) then
               begin
-                Inc(gTeamStat[TEAM_BLUE].Goals, tgcScoreCount); // Blue Scores
+                Inc(gTeamStat[TEAM_BLUE].Score, tgcScoreCount); // Blue Scores
 
                 if tgcScoreCon then
                 begin
@@ -1792,7 +1792,7 @@ begin
               if ((tgcScoreAction = TRIGGER_SCORE_ACTION_SUB) and (tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_RED) and (p.Team = TEAM_BLUE))
               or ((tgcScoreAction = TRIGGER_SCORE_ACTION_SUB) and (tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_BLUE) and (p.Team = TEAM_RED)) then
               begin
-                Dec(gTeamStat[TEAM_BLUE].Goals, tgcScoreCount); // Blue Fouls
+                Dec(gTeamStat[TEAM_BLUE].Score, tgcScoreCount); // Blue Fouls
 
                 if tgcScoreCon then
                 begin
@@ -1823,7 +1823,7 @@ begin
             begin
               if (tgcScoreAction = TRIGGER_SCORE_ACTION_ADD) and (tgcScoreTeam = TRIGGER_SCORE_TEAM_FORCE_RED) then
               begin
-                Inc(gTeamStat[TEAM_RED].Goals, tgcScoreCount); // Red Scores
+                Inc(gTeamStat[TEAM_RED].Score, tgcScoreCount); // Red Scores
 
                 if tgcScoreCon then
                 begin
@@ -1841,7 +1841,7 @@ begin
               end;
               if (tgcScoreAction = TRIGGER_SCORE_ACTION_SUB) and (tgcScoreTeam = TRIGGER_SCORE_TEAM_FORCE_RED) then
               begin
-                Dec(gTeamStat[TEAM_RED].Goals, tgcScoreCount); // Red Fouls
+                Dec(gTeamStat[TEAM_RED].Score, tgcScoreCount); // Red Fouls
 
                 if tgcScoreCon then
                 begin
@@ -1859,7 +1859,7 @@ begin
               end;
               if (tgcScoreAction = TRIGGER_SCORE_ACTION_ADD) and (tgcScoreTeam = TRIGGER_SCORE_TEAM_FORCE_BLUE) then
               begin
-                Inc(gTeamStat[TEAM_BLUE].Goals, tgcScoreCount); // Blue Scores
+                Inc(gTeamStat[TEAM_BLUE].Score, tgcScoreCount); // Blue Scores
 
                 if tgcScoreCon then
                 begin
@@ -1877,7 +1877,7 @@ begin
               end;
               if (tgcScoreAction = TRIGGER_SCORE_ACTION_SUB) and (tgcScoreTeam = TRIGGER_SCORE_TEAM_FORCE_BLUE) then
               begin
-                Dec(gTeamStat[TEAM_BLUE].Goals, tgcScoreCount); // Blue Fouls
+                Dec(gTeamStat[TEAM_BLUE].Score, tgcScoreCount); // Blue Fouls
 
                 if tgcScoreCon then
                 begin
@@ -1897,7 +1897,7 @@ begin
             end;
           end;
           // Выигрыш
-          if (tgcScoreAction = TRIGGER_SCORE_ACTION_WIN) and (gGameSettings.GoalLimit > 0) then
+          if (tgcScoreAction = TRIGGER_SCORE_ACTION_WIN) and (gGameSettings.ScoreLimit > 0) then
           begin
             // Своей или чужой команды
             if (tgcScoreTeam in [TRIGGER_SCORE_TEAM_MINE_RED, TRIGGER_SCORE_TEAM_MINE_BLUE]) and (g_GetUIDType(ActivateUID) = UID_PLAYER) then
@@ -1906,9 +1906,9 @@ begin
               if ((tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_RED) and (p.Team = TEAM_RED)) // Red Wins
               or ((tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_BLUE) and (p.Team = TEAM_BLUE)) then
               begin
-                if gTeamStat[TEAM_RED].Goals < SmallInt(gGameSettings.GoalLimit) then
+                if gTeamStat[TEAM_RED].Score < SmallInt(gGameSettings.ScoreLimit) then
                 begin
-                  gTeamStat[TEAM_RED].Goals := gGameSettings.GoalLimit;
+                  gTeamStat[TEAM_RED].Score := gGameSettings.ScoreLimit;
 
                   if tgcScoreCon then
                   begin
@@ -1931,9 +1931,9 @@ begin
               if ((tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_RED) and (p.Team = TEAM_BLUE)) // Blue Wins
               or ((tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_BLUE) and (p.Team = TEAM_RED)) then
               begin
-                if gTeamStat[TEAM_BLUE].Goals < SmallInt(gGameSettings.GoalLimit) then
+                if gTeamStat[TEAM_BLUE].Score < SmallInt(gGameSettings.ScoreLimit) then
                 begin
-                  gTeamStat[TEAM_BLUE].Goals := gGameSettings.GoalLimit;
+                  gTeamStat[TEAM_BLUE].Score := gGameSettings.ScoreLimit;
 
                   if tgcScoreCon then
                   begin
@@ -1959,24 +1959,24 @@ begin
             begin
               if (tgcScoreTeam = TRIGGER_SCORE_TEAM_FORCE_RED) then // Red Wins
               begin
-                if gTeamStat[TEAM_RED].Goals < SmallInt(gGameSettings.GoalLimit) then
+                if gTeamStat[TEAM_RED].Score < SmallInt(gGameSettings.ScoreLimit) then
                 begin
-                  gTeamStat[TEAM_RED].Goals := gGameSettings.GoalLimit;
+                  gTeamStat[TEAM_RED].Score := gGameSettings.ScoreLimit;
                   Result := True;
                 end;
               end;
               if (tgcScoreTeam = TRIGGER_SCORE_TEAM_FORCE_BLUE) then // Blue Wins
               begin
-                if gTeamStat[TEAM_BLUE].Goals < SmallInt(gGameSettings.GoalLimit) then
+                if gTeamStat[TEAM_BLUE].Score < SmallInt(gGameSettings.ScoreLimit) then
                 begin
-                  gTeamStat[TEAM_BLUE].Goals := gGameSettings.GoalLimit;
+                  gTeamStat[TEAM_BLUE].Score := gGameSettings.ScoreLimit;
                   Result := True;
                 end;
               end;
             end;
           end;
           // Проигрыш
-          if (tgcScoreAction = TRIGGER_SCORE_ACTION_LOOSE) and (gGameSettings.GoalLimit > 0) then
+          if (tgcScoreAction = TRIGGER_SCORE_ACTION_LOOSE) and (gGameSettings.ScoreLimit > 0) then
           begin
             // Своей или чужой команды
             if (tgcScoreTeam in [TRIGGER_SCORE_TEAM_MINE_RED, TRIGGER_SCORE_TEAM_MINE_BLUE]) and (g_GetUIDType(ActivateUID) = UID_PLAYER) then
@@ -1984,9 +1984,9 @@ begin
               p := g_Player_Get(ActivateUID);
               if ((tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_RED) and (p.Team = TEAM_BLUE)) // Red Wins
               or ((tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_BLUE) and (p.Team = TEAM_RED)) then
-                if gTeamStat[TEAM_RED].Goals < SmallInt(gGameSettings.GoalLimit) then
+                if gTeamStat[TEAM_RED].Score < SmallInt(gGameSettings.ScoreLimit) then
                 begin
-                  gTeamStat[TEAM_RED].Goals := gGameSettings.GoalLimit;
+                  gTeamStat[TEAM_RED].Score := gGameSettings.ScoreLimit;
 
                   if tgcScoreCon then
                     if tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_RED then
@@ -2005,9 +2005,9 @@ begin
                 end;
               if ((tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_RED) and (p.Team = TEAM_RED)) // Blue Wins
               or ((tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_BLUE) and (p.Team = TEAM_BLUE)) then
-                if gTeamStat[TEAM_BLUE].Goals < SmallInt(gGameSettings.GoalLimit) then
+                if gTeamStat[TEAM_BLUE].Score < SmallInt(gGameSettings.ScoreLimit) then
                 begin
-                  gTeamStat[TEAM_BLUE].Goals := gGameSettings.GoalLimit;
+                  gTeamStat[TEAM_BLUE].Score := gGameSettings.ScoreLimit;
 
                   if tgcScoreCon then
                     if tgcScoreTeam = TRIGGER_SCORE_TEAM_MINE_RED then
@@ -2030,17 +2030,17 @@ begin
             begin
               if (tgcScoreTeam = TRIGGER_SCORE_TEAM_FORCE_BLUE) then // Red Wins
               begin
-                if gTeamStat[TEAM_RED].Goals < SmallInt(gGameSettings.GoalLimit) then
+                if gTeamStat[TEAM_RED].Score < SmallInt(gGameSettings.ScoreLimit) then
                 begin
-                  gTeamStat[TEAM_RED].Goals := gGameSettings.GoalLimit;
+                  gTeamStat[TEAM_RED].Score := gGameSettings.ScoreLimit;
                   Result := True;
                 end;
               end;
               if (tgcScoreTeam = TRIGGER_SCORE_TEAM_FORCE_RED) then // Blue Wins
               begin
-                if gTeamStat[TEAM_BLUE].Goals < SmallInt(gGameSettings.GoalLimit) then
+                if gTeamStat[TEAM_BLUE].Score < SmallInt(gGameSettings.ScoreLimit) then
                 begin
-                  gTeamStat[TEAM_BLUE].Goals := gGameSettings.GoalLimit;
+                  gTeamStat[TEAM_BLUE].Score := gGameSettings.ScoreLimit;
                   Result := True;
                 end;
               end;

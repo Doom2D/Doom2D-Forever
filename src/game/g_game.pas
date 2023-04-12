@@ -29,7 +29,7 @@ type
     GameType: Byte;
     GameMode: Byte;
     TimeLimit: Word;
-    GoalLimit: Word;
+    ScoreLimit: Word;
     WarmupTime: Word;
     SpawnInvul: Word;
     ItemRespawnTime: Word;
@@ -103,8 +103,8 @@ procedure g_Game_RemovePlayer();
 procedure g_Game_Spectate();
 procedure g_Game_SpectateCenterView();
 procedure g_Game_StartSingle(Map: String; TwoPlayers: Boolean; nPlayers: Byte);
-procedure g_Game_StartCustom(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte);
-procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte; IPAddr: LongWord; Port: Word);
+procedure g_Game_StartCustom(Map: String; GameMode: Byte; TimeLimit, ScoreLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte);
+procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, ScoreLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte; IPAddr: LongWord; Port: Word);
 procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
 procedure g_Game_Restart();
 procedure g_Game_RestartLevel();
@@ -275,7 +275,7 @@ var
   gPauseHolmes: Boolean = false;
   gShowTime: Boolean = False;
   gShowFPS: Boolean = False;
-  gShowGoals: Boolean = True;
+  gShowScore: Boolean = True;
   gShowStat: Boolean = True;
   gShowPIDs: Boolean = False;
   gShowKillMsg: Boolean = True;
@@ -699,7 +699,7 @@ begin
         dquoteStr(map),
         mode,
         gGameSettings.TimeLimit,
-        gGameSettings.GoalLimit,
+        gGameSettings.ScoreLimit,
         gGameSettings.Options,
         etime,
         Length(Stat.PlayerStat)
@@ -710,7 +710,7 @@ begin
       //   otherwise nothing
       if Stat.GameMode in [GM_TDM, GM_CTF] then
         WriteLn(s, 
-          Format('red_score,blue_score' + LineEnding + '%d,%d', [Stat.TeamStat[TEAM_RED].Goals, Stat.TeamStat[TEAM_BLUE].Goals]))
+          Format('red_score,blue_score' + LineEnding + '%d,%d', [Stat.TeamStat[TEAM_RED].Score, Stat.TeamStat[TEAM_BLUE].Score]))
       else if Stat.GameMode in [GM_COOP, GM_SINGLE] then
         WriteLn(s,
           Format('mon_killed,mon_total,secrets_found,secrets_total' + LineEnding + '%d,%d,%d,%d',[gCoopMonstersKilled, gTotalMonsters, gCoopSecretsFound, gSecretsCount]));
@@ -1208,7 +1208,7 @@ begin
         s1 := _lc[I_GAME_DM]
       else
         s1 := _lc[I_GAME_LMS];
-      s2 := Format(_lc[I_GAME_FRAG_LIMIT], [gGameSettings.GoalLimit]);
+      s2 := Format(_lc[I_GAME_FRAG_LIMIT], [gGameSettings.ScoreLimit]);
       s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600, (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
     end;
 
@@ -1218,14 +1218,14 @@ begin
         s1 := _lc[I_GAME_TDM]
       else
         s1 := _lc[I_GAME_TLMS];
-      s2 := Format(_lc[I_GAME_FRAG_LIMIT], [gGameSettings.GoalLimit]);
+      s2 := Format(_lc[I_GAME_FRAG_LIMIT], [gGameSettings.ScoreLimit]);
       s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600, (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
     end;
 
     GM_CTF:
     begin
       s1 := _lc[I_GAME_CTF];
-      s2 := Format(_lc[I_GAME_SCORE_LIMIT], [gGameSettings.GoalLimit]);
+      s2 := Format(_lc[I_GAME_SCORE_LIMIT], [gGameSettings.ScoreLimit]);
       s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600, (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
     end;
 
@@ -1295,7 +1295,7 @@ begin
       end;
 
       e_TextureFontPrintEx(x+16, _y, s1, gStdFont, r, g, b, 1);
-      e_TextureFontPrintEx(x+w1+16, _y, IntToStr(gTeamStat[a].Goals),
+      e_TextureFontPrintEx(x+w1+16, _y, IntToStr(gTeamStat[a].Score),
                            gStdFont, r, g, b, 1);
 
       _y := _y+ch+(ch div 4);
@@ -2011,7 +2011,7 @@ begin
         gFlags[FLAG_BLUE].CaptureTime := gFlags[FLAG_BLUE].CaptureTime + GAME_TICK;
 
     // Был задан лимит побед:
-      if (gGameSettings.GoalLimit > 0) then
+      if (gGameSettings.ScoreLimit > 0) then
       begin
         b := 0;
 
@@ -2025,11 +2025,11 @@ begin
         else
           if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
           begin // В CTF/TDM выбираем команду с наибольшим счетом
-            b := Max(gTeamStat[TEAM_RED].Goals, gTeamStat[TEAM_BLUE].Goals);
+            b := Max(gTeamStat[TEAM_RED].Score, gTeamStat[TEAM_BLUE].Score);
           end;
 
       // Лимит побед набран => конец уровня:
-        if b >= gGameSettings.GoalLimit then
+        if b >= gGameSettings.ScoreLimit then
         begin
           g_Game_NextLevel();
           Exit;
@@ -2848,8 +2848,8 @@ begin
     _y := _y+16+16;
 
     with CustomStat do
-      if TeamStat[TEAM_RED].Goals > TeamStat[TEAM_BLUE].Goals then s1 := _lc[I_GAME_WIN_RED]
-        else if TeamStat[TEAM_BLUE].Goals > TeamStat[TEAM_RED].Goals then s1 := _lc[I_GAME_WIN_BLUE]
+      if TeamStat[TEAM_RED].Score > TeamStat[TEAM_BLUE].Score then s1 := _lc[I_GAME_WIN_RED]
+        else if TeamStat[TEAM_BLUE].Score > TeamStat[TEAM_RED].Score then s1 := _lc[I_GAME_WIN_BLUE]
           else s1 := _lc[I_GAME_WIN_DRAW];
 
     e_TextureFontPrintEx(x+8+(w div 2)-(Length(s1)*ww2 div 2), _y, s1, gStdFont, 255, 255, 255, 1);
@@ -2861,7 +2861,7 @@ begin
       begin
         e_TextureFontPrintEx(x+8, _y, _lc[I_GAME_TEAM_RED],
                              gStdFont, 255, 0, 0, 1);
-        e_TextureFontPrintEx(x+w1+8, _y, IntToStr(CustomStat.TeamStat[TEAM_RED].Goals),
+        e_TextureFontPrintEx(x+w1+8, _y, IntToStr(CustomStat.TeamStat[TEAM_RED].Score),
                              gStdFont, 255, 0, 0, 1);
         r := 255;
         g := 0;
@@ -2871,7 +2871,7 @@ begin
       begin
         e_TextureFontPrintEx(x+8, _y, _lc[I_GAME_TEAM_BLUE],
                              gStdFont, 0, 0, 255, 1);
-        e_TextureFontPrintEx(x+w1+8, _y, IntToStr(CustomStat.TeamStat[TEAM_BLUE].Goals),
+        e_TextureFontPrintEx(x+w1+8, _y, IntToStr(CustomStat.TeamStat[TEAM_BLUE].Score),
                              gStdFont, 0, 0, 255, 1);
         r := 0;
         g := 0;
@@ -4549,7 +4549,7 @@ begin
 end;
 
 procedure g_Game_StartCustom(Map: String; GameMode: Byte;
-                             TimeLimit, GoalLimit: Word;
+                             TimeLimit, ScoreLimit: Word;
                              MaxLives: Byte;
                              Options: LongWord; nPlayers: Byte);
 var
@@ -4566,7 +4566,7 @@ begin
   gGameSettings.GameMode := GameMode;
   gSwitchGameMode := GameMode;
   gGameSettings.TimeLimit := TimeLimit;
-  gGameSettings.GoalLimit := GoalLimit;
+  gGameSettings.ScoreLimit := ScoreLimit;
   gGameSettings.MaxLives := IfThen(GameMode = GM_CTF, 0, MaxLives);
   gGameSettings.Options := Options;
 
@@ -4662,7 +4662,7 @@ begin
 end;
 
 procedure g_Game_StartServer(Map: String; GameMode: Byte;
-                             TimeLimit, GoalLimit: Word; MaxLives: Byte;
+                             TimeLimit, ScoreLimit: Word; MaxLives: Byte;
                              Options: LongWord; nPlayers: Byte;
                              IPAddr: LongWord; Port: Word);
 begin
@@ -4678,7 +4678,7 @@ begin
   gGameSettings.GameMode := GameMode;
   gSwitchGameMode := GameMode;
   gGameSettings.TimeLimit := TimeLimit;
-  gGameSettings.GoalLimit := GoalLimit;
+  gGameSettings.ScoreLimit := ScoreLimit;
   gGameSettings.MaxLives := IfThen(GameMode = GM_CTF, 0, MaxLives);
   gGameSettings.Options := Options;
 
@@ -4877,7 +4877,7 @@ begin
 
           gGameSettings.GameMode := InMsg.ReadByte();
           gSwitchGameMode := gGameSettings.GameMode;
-          gGameSettings.GoalLimit := InMsg.ReadWord();
+          gGameSettings.ScoreLimit := InMsg.ReadWord();
           gGameSettings.TimeLimit := InMsg.ReadWord();
           gGameSettings.MaxLives := InMsg.ReadByte();
           gGameSettings.Options := InMsg.ReadLongWord();
@@ -5765,7 +5765,7 @@ begin
   begin
     if Length(P) > 1 then
     begin
-      gsGoalLimit := nclamp(StrToIntDef(P[1], gsGoalLimit), 0, $FFFF);
+      gsScoreLimit := nclamp(StrToIntDef(P[1], gsScoreLimit), 0, $FFFF);
 
       if g_Game_IsServer then
       begin
@@ -5779,17 +5779,17 @@ begin
                 b := stat[a].Frags;
         end
         else // TDM/CTF
-          b := Max(gTeamStat[TEAM_RED].Goals, gTeamStat[TEAM_BLUE].Goals);
+          b := Max(gTeamStat[TEAM_RED].Score, gTeamStat[TEAM_BLUE].Score);
 
         // if someone has a higher score, set it to that instead
-        gsGoalLimit := max(gsGoalLimit, b);
-        gGameSettings.GoalLimit := gsGoalLimit;
+        gsScoreLimit := max(gsScoreLimit, b);
+        gGameSettings.ScoreLimit := gsScoreLimit;
  
         if g_Game_IsNet then MH_SEND_GameSettings;
       end;
     end;
 
-    g_Console_Add(Format(_lc[I_MSG_SCORE_LIMIT], [Integer(gsGoalLimit)]));
+    g_Console_Add(Format(_lc[I_MSG_SCORE_LIMIT], [Integer(gsScoreLimit)]));
   end
   else if cmd = 'g_timelimit' then
   begin
@@ -7055,7 +7055,7 @@ begin
           if Length(P) >= 4 then
             b := StrToIntDef(P[3], 1);
           g_Game_StartCustom(s, GameMode, TimeLimit,
-                             GoalLimit, MaxLives, Options, b);
+                             ScoreLimit, MaxLives, Options, b);
         end;
       end
       else
@@ -7108,7 +7108,7 @@ begin
           b := 0;
           if Length(P) >= 6 then
             b := StrToIntDef(P[5], 0);
-          g_Game_StartServer(s, GameMode, TimeLimit, GoalLimit, MaxLives, Options, b, listen, prt)
+          g_Game_StartServer(s, GameMode, TimeLimit, ScoreLimit, MaxLives, Options, b, listen, prt)
         end
       end
       else
@@ -8464,7 +8464,7 @@ begin
     if LimT < 0 then
       LimT := 0;
 
-  // Goal limit:
+  // Score limit:
     s := Find_Param_Value(pars, '-lims');
     if (s = '') or (not TryStrToInt(s, LimS)) then
       LimS := 0;
@@ -8607,7 +8607,7 @@ begin
   conRegVar('r_showfps', @gShowFPS, 'draw fps counter', 'draw fps counter');
   conRegVar('r_showtime', @gShowTime, 'show game time', 'show game time');
   conRegVar('r_showping', @gShowPing, 'show ping', 'show ping');
-  conRegVar('r_showscore', @gShowGoals, 'show score', 'show score');
+  conRegVar('r_showscore', @gShowScore, 'show score', 'show score');
   conRegVar('r_showkillmsg', @gShowKillMsg, 'show kill log', 'show kill log');
   conRegVar('r_showlives', @gShowLives, 'show lives', 'show lives');
   conRegVar('r_showspect', @gSpectHUD, 'show spectator hud', 'show spectator hud');

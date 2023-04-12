@@ -194,7 +194,7 @@ begin
       // Лимит времени
       utils.writeInt(st, Word(gGameSettings.TimeLimit));
       // Лимит очков
-      utils.writeInt(st, Word(gGameSettings.GoalLimit));
+      utils.writeInt(st, Word(gGameSettings.ScoreLimit));
       // Лимит жизней
       utils.writeInt(st, Byte(gGameSettings.MaxLives));
       // Игровые опции
@@ -291,7 +291,7 @@ var
   WAD_Path, Map_Name: AnsiString;
   nPlayers: Integer;
   Game_Type, Game_Mode, Game_MaxLives: Byte;
-  Game_TimeLimit, Game_GoalLimit: Word;
+  Game_TimeLimit, Game_ScoreLimit: Word;
   Game_Time, Game_Options: Cardinal;
   Game_CoopMonstersKilled,
   Game_CoopSecretsFound,
@@ -353,7 +353,7 @@ begin
         // Лимит времени
         Game_TimeLimit := utils.readWord(st);
         // Лимит очков
-        Game_GoalLimit := utils.readWord(st);
+        Game_ScoreLimit := utils.readWord(st);
         // Лимит жизней
         Game_MaxLives := utils.readByte(st);
         // Игровые опции
@@ -395,7 +395,7 @@ begin
           gGameSettings.GameMode := Game_Mode;
           gSwitchGameMode := Game_Mode;
           gGameSettings.TimeLimit := Game_TimeLimit;
-          gGameSettings.GoalLimit := Game_GoalLimit;
+          gGameSettings.ScoreLimit := Game_ScoreLimit;
           gGameSettings.MaxLives := IfThen(Game_Mode = GM_CTF, 0, Game_MaxLives);
           gGameSettings.Options := Game_Options;
         end;
