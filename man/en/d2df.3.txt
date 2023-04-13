@@ -143,7 +143,7 @@ g_friendly_hit_projectile 1/0
 	Enable or disable the passage of projectiles (missiles, BFG or plasma balls) through your teammates.
 g_friendly_absorb_damage 1/0
 	Enable or disable the absorption of some damage when bullets or projectiles pass through teammates.
-Note: the values of the numbers change for the cooperative (1 - off, 0 - on).
+Note: works as follows: 1 - off (bullets/munitions will collide with allies), 0 - on (bullets/munitions will pass through allies).
 
 @h1 3. Events
 To control certain events on the server, there is a command event, through which you can relatively flexibly configure the behavior of the server in certain situations. The need to use the event command is directly related to proper server startup and map lists.@br
