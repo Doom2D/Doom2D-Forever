@@ -857,6 +857,8 @@ begin
 
   gPlayers[a].FActualModelName := ModelName;
   gPlayers[a].SetModel(ModelName);
+  if Bot and (g_Force_Model_Get() <> 0) then
+    gPlayers[a].SetModel(g_Forced_Model_GetName());
 
 // Нет модели - создание не возможно:
   if gPlayers[a].FModel = nil then
@@ -925,7 +927,11 @@ begin
 
   // create entity and load state
   if Bot then
-    gPlayers[a] := TBot.Create()
+  begin
+    gPlayers[a] := TBot.Create();
+    if (g_Force_Model_Get() <> 0) then
+      gPlayers[a].SetModel(g_Forced_Model_GetName());
+  end
   else
     gPlayers[a] := TPlayer.Create();
   gPlayers[a].FPhysics := True; // ???
