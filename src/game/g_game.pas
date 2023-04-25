@@ -5768,7 +5768,7 @@ begin
       a := StrToIntDef(p[1], 0);
       g_Force_Model_Set(a);
     end
-  end  
+  end
   else if cmd = 'g_force_model_name' then
   begin
     if (Length(P) > 1) then
