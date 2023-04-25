@@ -1071,6 +1071,8 @@ begin
   AddCommand('g_max_shells', GameCVars);
   AddCommand('g_max_gibs', GameCVars);
   AddCommand('g_max_corpses', GameCVars);
+  AddCommand('g_force_model', GameCVars);
+  AddCommand('g_force_model_name', GameCVars);
   AddCommand('g_gamemode', GameCVars);
   AddCommand('g_friendlyfire', GameCVars);
   AddCommand('g_friendly_hit_trace', GameCVars);
@@ -2186,6 +2188,8 @@ begin
   WriteLn(f, 'g_max_shells ', g_Shells_GetMax());
   WriteLn(f, 'g_max_gibs ', g_Gibs_GetMax());
   WriteLn(f, 'g_max_corpses ', g_Corpses_GetMax());
+  WriteLn(f, 'g_force_model ', g_Force_Model_Get());
+  WriteLn(f, 'g_force_model_name ', g_Forced_Model_GetName());
   WriteLn(f, 'sv_intertime ', gDefInterTime);
 
   // gameplay settings

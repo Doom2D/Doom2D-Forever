@@ -600,6 +600,10 @@ procedure g_Gibs_SetMax(Count: Word);
 function  g_Gibs_GetMax(): Word;
 procedure g_Corpses_SetMax(Count: Word);
 function  g_Corpses_GetMax(): Word;
+procedure g_Force_Model_Set(Mode: Word);
+function g_Force_Model_Get(): Word;
+procedure g_Forced_Model_SetName(Model: String);
+function  g_Forced_Model_GetName(): String;
 procedure g_Shells_SetMax(Count: Word);
 function  g_Shells_GetMax(): Word;
 
@@ -729,6 +733,8 @@ var
   MaxGibs: Word = 150;
   MaxCorpses: Word = 20;
   MaxShells: Word = 300;
+  ForceModel: Word = 0;
+  ForcedModelName: String = STD_PLAYER_MODEL;
   CurrentGib: Integer = 0;
   CurrentShell: Integer = 0;
   BotNames: Array of String;
@@ -794,6 +800,26 @@ end;
 function g_Corpses_GetMax(): Word;
 begin
   Result := MaxCorpses;
+end;
+
+procedure g_Force_Model_Set(Mode: Word);
+begin
+  ForceModel := Mode;
+end;
+
+function g_Force_Model_Get(): Word;
+begin
+  Result := ForceModel;
+end;
+
+procedure g_Forced_Model_SetName(Model: String);
+begin
+  ForcedModelName := Model;
+end;
+
+function g_Forced_Model_GetName(): String;
+begin
+  Result := ForcedModelName;
 end;
 
 function g_Player_Create(ModelName: String; Color: TRGB; Team: Byte; Bot: Boolean): Word;

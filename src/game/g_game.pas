@@ -5761,6 +5761,36 @@ begin
       e_LogWritefln('usage: %s <n>', [cmd])
     end
   end
+  else if cmd = 'g_force_model' then
+  begin
+    if Length(p) = 2 then
+    begin
+      a := StrToIntDef(p[1], 0);
+      g_Force_Model_Set(a);
+    end
+  end  
+  else if cmd = 'g_force_model_name' then
+  begin
+    if (Length(P) > 1) then
+    begin
+      cmd := b_Text_Unformat(P[1]);
+      g_Forced_Model_SetName(cmd);
+      if (gGameSettings.GameType <> GT_SINGLE) and (g_Force_Model_Get() <> 0) and (gPlayers <> nil) then
+      begin
+        for a := Low(gPlayers) to High(gPlayers) do
+        begin
+          if (gPlayers[a] <> nil) then
+          begin
+            if (gPlayers[a].UID = gPlayer1.UID) then
+              continue
+            else if (gPlayer2 <> nil) and (gPlayers[a].UID = gPlayer2.UID) then
+              continue;
+            gPlayers[a].setModel(g_Forced_Model_GetName());
+          end;
+        end
+      end
+    end
+  end
   else if cmd = 'g_scorelimit' then
   begin
     if Length(P) > 1 then

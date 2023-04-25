@@ -463,6 +463,8 @@ begin
     SetWeaponPrefs(TmpPrefArray);
     SwitchToEmpty := SwitchEmpty;
     SkipFist := SkipF;
+    if (g_Force_Model_Get() <> 0) then
+      SetModel(g_Forced_Model_GetName());
     Reset(True);
   end;
 
@@ -762,6 +764,8 @@ begin
     Pl.Name := TmpName;
   end;
 
+  if (g_Force_Model_Get() <> 0) then
+    TmpModel := g_Forced_Model_GetName();
   if TmpModel <> Pl.Model.Name then
     Pl.SetModel(TmpModel);
 
@@ -2395,6 +2399,8 @@ begin
   if (PID <> NetPlrUID1) and (PID <> NetPlrUID2) then
   begin
     if (Pl <> nil) then Exit;
+    if (g_Force_Model_Get() <> 0) then
+      Model := g_Forced_Model_GetName();
     DID := g_Player_Create(Model, Color, T, False);
     with g_Player_Get(DID) do
     begin
@@ -2689,6 +2695,7 @@ procedure MC_RECV_PlayerSettings(var M: TMsg);
 var
   TmpName: string;
   TmpModel: string;
+  CheckModel: string;
   TmpColor: TRGB;
   TmpTeam: Byte;
   Pl: TPlayer;
@@ -2722,6 +2729,8 @@ begin
     Pl.Name := TmpName;
   end;
 
+  if (g_Force_Model_Get() <> 0) then
+    TmpModel := g_Forced_Model_GetName();
   if TmpModel <> Pl.Model.Name then
     Pl.SetModel(TmpModel);
 end;
