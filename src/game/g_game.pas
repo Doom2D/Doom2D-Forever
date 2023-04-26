@@ -5780,6 +5780,34 @@ begin
     begin
       a := StrToIntDef(p[1], 0);
       g_Force_Model_Set(a);
+      if (g_Force_Model_Get() <> 0) and (gPlayers <> nil) then
+      begin
+        for a := Low(gPlayers) to High(gPlayers) do
+        begin
+          if (gPlayers[a] <> nil) then
+          begin
+            if (gPlayers[a].UID = gPlayer1.UID) then
+              continue
+            else if (gPlayer2 <> nil) and (gPlayers[a].UID = gPlayer2.UID) then
+              continue;
+            gPlayers[a].setModel(g_Forced_Model_GetName());
+          end;
+        end
+      end
+      else if (g_Force_Model_Get() = 0) and (gPlayers <> nil) then
+      begin
+        for a := Low(gPlayers) to High(gPlayers) do
+        begin
+          if (gPlayers[a] <> nil) then
+          begin
+            if (gPlayers[a].UID = gPlayer1.UID) then
+              continue
+            else if (gPlayer2 <> nil) and (gPlayers[a].UID = gPlayer2.UID) then
+              continue;
+            gPlayers[a].setModel(gPlayers[a].FActualModelName);
+          end;
+        end
+      end
     end
   end
   else if cmd = 'g_force_model_name' then
@@ -5788,7 +5816,7 @@ begin
     begin
       cmd := b_Text_Unformat(P[1]);
       g_Forced_Model_SetName(cmd);
-      if (gGameSettings.GameType <> GT_SINGLE) and (g_Force_Model_Get() <> 0) and (gPlayers <> nil) then
+      if (g_Force_Model_Get() <> 0) and (gPlayers <> nil) then
       begin
         for a := Low(gPlayers) to High(gPlayers) do
         begin
