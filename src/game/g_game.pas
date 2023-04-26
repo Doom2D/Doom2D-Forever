@@ -774,6 +774,19 @@ end;
 function g_Game_IsNet(): Boolean;
 begin
   Result := (gGameSettings.GameType in [GT_SERVER, GT_CLIENT]);
+
+  if gGameSettings.GameType in [GT_SERVER, GT_CLIENT] then
+  begin
+    // set debug options to false to avoid cheaters
+    g_debug_Sounds := False;
+    g_debug_Frames := False;
+    g_debug_WinMsgs := False;
+    g_debug_MonsterOff := False;
+    g_debug_BotAIOff := 0;
+    g_debug_HealthBar := False;
+    g_Debug_Player := False;
+    Exit;
+  end;
 end;
 
 function g_Game_IsServer(): Boolean;
@@ -4820,15 +4833,6 @@ begin
 
 // Установка размеров окон игроков:
   g_Game_SetupScreenSize();
-
-// set debug options to false to avoid cheaters
-  g_debug_Sounds := False;
-  g_debug_Frames := False;
-  g_debug_WinMsgs := False;
-  g_debug_MonsterOff := False;
-  g_debug_BotAIOff := 0;
-  g_debug_HealthBar := False;
-  g_Debug_Player := False;
 
   NetState := NET_STATE_AUTH;
 
