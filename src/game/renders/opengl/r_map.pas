@@ -700,7 +700,7 @@ implementation
             t := Items[it.ItemType].tex;
             tex := t.GetTexture(Items[it.ItemType].frame);
             r_Draw_TextureRepeat(tex, xx, yy, tex.width, tex.height, false, 255, 255, 255, 255, false);
-            if DebugFrames then
+            if DebugFrames and not (gGameSettings.GameType in [GT_SERVER, GT_CLIENT]) then
             begin
               r_Draw_Rect(
                 xx + it.obj.rect.x, // it.obj.x + it.obj.rect.x,
@@ -781,7 +781,7 @@ implementation
       da := mon.GameDirection;
       r_Draw_MultiTextureRepeat(t, mon.DirAnim[a, da], false, xx + dx, yy + dy, t.width, t.height, flip, 255, 255, 255, 255, false);
     end;
-    if DebugFrames then
+    if DebugFrames and not (gGameSettings.GameType in [GT_SERVER, GT_CLIENT]) then
     begin
       r_Draw_Rect(
         xx + mon.obj.rect.x, // mon.obj.x + mon.obj.rect.x,
@@ -791,7 +791,7 @@ implementation
         0, 255, 0, 255
       );
     end;
-    if DebugHealth and mon.alive then
+    if DebugHealth and mon.alive and not (gGameSettings.GameType in [GT_SERVER, GT_CLIENT]) then
     begin
       r_Common_DrawText(
         IntToStr(mon.MonsterHealth),
@@ -1081,7 +1081,7 @@ implementation
       r_Map_DrawPlayerModel(p.Model, x, y, alpha);
     end;
 
-    if DebugFrames then
+    if DebugFrames and not (gGameSettings.GameType in [GT_SERVER, GT_CLIENT]) then
     begin
       r_Draw_Rect(
         x + p.obj.rect.x, // p.obj.x + p.obj.rect.x,
@@ -1092,7 +1092,7 @@ implementation
       );
     end;
 
-    if DebugHealth and p.alive then
+    if DebugHealth and p.alive and not (gGameSettings.GameType in [GT_SERVER, GT_CLIENT]) then
     begin
       r_Common_DrawText(
         IntToStr(p.health) + '/' + IntToStr(p.armor),
@@ -1344,7 +1344,7 @@ implementation
             g_Anim_GetFrameByTime(ShotAnim[typ].anim, (gTime - Shots[i].time) DIV GAME_TICK, count, frame);
             tex := t.GetTexture(frame);
             r_Draw_TextureRepeatRotate(tex, xx - ShotAnim[typ].x, yy - ShotAnim[typ].y, tex.width, tex.height, false, 255, 255, 255, 255, false, pX, pY, a);
-            if DebugFrames then
+            if DebugFrames and not (gGameSettings.GameType in [GT_SERVER, GT_CLIENT]) then
             begin
               r_Draw_Rect(
                 xx + Shots[i].obj.rect.x, // Shots[i].obj.x + Shots[i].obj.rect.x,
@@ -1375,7 +1375,7 @@ implementation
           t := FlagTextures[i];
           tex := t.GetTexture(FlagFrame);
           r_Draw_TextureRepeat(tex, xx + dx, yy + 1, tex.width, tex.height, flip, 255, 255, 255, 255, false);
-          if DebugFrames then
+          if DebugFrames and not (gGameSettings.GameType in [GT_SERVER, GT_CLIENT]) then
           begin
             r_Draw_Rect(
               xx + gFlags[i].obj.rect.x, // gFlags[i].obj.x + gFlags[i].obj.rect.x,

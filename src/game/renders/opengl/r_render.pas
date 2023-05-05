@@ -1327,7 +1327,7 @@ implementation
 
     r_Console_Draw(false);
 
-    if DebugSound and gGameOn then
+    if DebugSound and gGameOn and not (gGameSettings.GameType in [GT_SERVER, GT_CLIENT]) then
     begin
       for i := 0 to High(e_SoundsArray) do
         for j := 0 to e_SoundsArray[i].nRefs do
