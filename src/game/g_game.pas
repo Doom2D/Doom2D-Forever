@@ -314,7 +314,6 @@ var
   gDebugMode: Boolean = False;
   g_debug_MonsterOff: Boolean = False;
   g_debug_BotAIOff: Byte = 0;
-  g_Debug_Player: Boolean = False;
   gCoopMonstersKilled: Word = 0;
   gCoopSecretsFound: Word = 0;
   gCoopTotalMonstersKilled: Word = 0;
@@ -1029,7 +1028,6 @@ procedure ClearDebugCvars();
 begin
   g_debug_MonsterOff := False;
   g_debug_BotAIOff := 0;
-  g_Debug_Player := False;
 end;
 
 function g_Game_ModeToText(Mode: Byte): string;
@@ -4743,14 +4741,6 @@ begin
               end;
             end;
         end;
-    end
-    else if (cmd = 'd_player') then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        g_debug_Player := (P[1][1] = '1');
-
-      g_Console_Add(Format(cmd + ' is %d', [Byte(g_Debug_Player)]));
     end
     else if (cmd = 'd_mem') then
     begin
