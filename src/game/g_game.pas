@@ -312,7 +312,6 @@ var
   gRC_FullScreen, gRC_Maximized: Boolean;
   gLanguageChange: Boolean = False;
   gDebugMode: Boolean = False;
-  g_debug_WinMsgs: Boolean = False;
   g_debug_MonsterOff: Boolean = False;
   g_debug_BotAIOff: Byte = 0;
   g_Debug_Player: Boolean = False;
@@ -1028,7 +1027,6 @@ end;
 
 procedure ClearDebugCvars();
 begin
-  g_debug_WinMsgs := False;
   g_debug_MonsterOff := False;
   g_debug_BotAIOff := 0;
   g_Debug_Player := False;
@@ -4683,14 +4681,6 @@ begin
     begin
       g_Console_Add(Format('gScreenWidth = %d, gScreenHeight = %d', [gScreenWidth, gScreenHeight]));
       g_Console_Add(Format('gScreenWidth = %d, gScreenHeight = %d', [gScreenWidth, gScreenHeight]));
-    end
-    else if cmd = 'd_winmsg' then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        g_Debug_WinMsgs := (P[1][1] = '1');
-
-      g_Console_Add(Format('d_winmsg is %d', [Byte(g_Debug_WinMsgs)]));
     end
     else if (cmd = 'd_monoff') and not g_Game_IsNet then
     begin
