@@ -728,6 +728,17 @@ begin
   CloseFile(s);
 end;
 
+procedure ClearDebugCvars();
+begin
+  g_debug_Sounds := False;
+  g_debug_Frames := False;
+  g_debug_WinMsgs := False;
+  g_debug_MonsterOff := False;
+  g_debug_BotAIOff := 0;
+  g_debug_HealthBar := False;
+  g_Debug_Player := False;
+end;
+
 function g_Game_ModeToText(Mode: Byte): string;
 begin
   Result := '';
@@ -774,19 +785,6 @@ end;
 function g_Game_IsNet(): Boolean;
 begin
   Result := (gGameSettings.GameType in [GT_SERVER, GT_CLIENT]);
-
-  if gGameSettings.GameType in [GT_SERVER, GT_CLIENT] then
-  begin
-    // set debug options to false to avoid cheaters
-    g_debug_Sounds := False;
-    g_debug_Frames := False;
-    g_debug_WinMsgs := False;
-    g_debug_MonsterOff := False;
-    g_debug_BotAIOff := 0;
-    g_debug_HealthBar := False;
-    g_Debug_Player := False;
-    Exit;
-  end;
 end;
 
 function g_Game_IsServer(): Boolean;
@@ -4686,6 +4684,8 @@ begin
 
   g_Game_ClearLoading();
 
+  ClearDebugCvars();
+
 // Настройки игры:
   gGameSettings.GameType := GT_SERVER;
   gGameSettings.GameMode := GameMode;
@@ -4818,6 +4818,8 @@ begin
   e_WriteLog('NET: Trying to connect to ' + Addr + ':' + IntToStr(Port) + '...', TMsgType.Notify);
 
   g_Game_ClearLoading();
+
+  ClearDebugCvars();
 
 // Настройки игры:
   gGameSettings.GameType := GT_CLIENT;
