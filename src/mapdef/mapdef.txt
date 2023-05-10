@@ -104,6 +104,7 @@ enum DirType {
   DIR_LEFT, // 0
   DIR_RIGHT, // 1
   DIR_SOMETHING2, // 2
+  DIR_REVERSE, // 3
 }
 
 // triggers
