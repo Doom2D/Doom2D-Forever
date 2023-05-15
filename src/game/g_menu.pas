@@ -2782,7 +2782,7 @@ begin
       FixedLength := 10;
       Enabled := False;
     end;
-    with AddMemo(_lc[I_MENU_MAP_DESCRIPTION], 12, 4) do
+    with AddMemo(_lc[I_MENU_MAP_DESCRIPTION], 20, 4) do
     begin
       Name := 'meMapDescription';
     end;
