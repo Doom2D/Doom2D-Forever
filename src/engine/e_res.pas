@@ -79,9 +79,9 @@ implementation
   function e_UpperDir (path: AnsiString): AnsiString;
     var i: Integer;
   begin
-    i := High(path);
+    i := High(path);  // consider possible cases: '\a\', '\a', '\abc\'
     while (i >= 1) and (path[i] <> '/') and (path[i] <> '\') do Dec(i);
-    result := Copy(path, 1, i)
+    result := Copy(path, 1, i-1)  // exclude the trailing separator
   end;
 
   function HasRelativeDirs (name: AnsiString): Boolean;

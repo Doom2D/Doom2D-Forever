@@ -3232,13 +3232,13 @@ begin
                   begin
                     if FItems[FIndex] = #29 + '..' then
                     begin
-                      e_LogWritefln('TGUIFileListBox: Upper dir "%s" -> "%s"', [FSubPath, e_UpperDir(FSubPath)]);
+                      //e_LogWritefln('TGUIFileListBox: Upper dir "%s" -> "%s"', [FSubPath, e_UpperDir(FSubPath)]);
                       FSubPath := e_UpperDir(FSubPath)
                     end
                     else
                     begin
                       s := Copy(AnsiString(FItems[FIndex]), 2);
-                      e_LogWritefln('TGUIFileListBox: Enter dir "%s" -> "%s"', [FSubPath, e_CatPath(FSubPath, s)]);
+                      //e_LogWritefln('TGUIFileListBox: Enter dir "%s" -> "%s"', [FSubPath, e_CatPath(FSubPath, s)]);
                       FSubPath := e_CatPath(FSubPath, s);
                     end;
                     ScanDirs;
