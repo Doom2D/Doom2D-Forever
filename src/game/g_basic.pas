@@ -743,42 +743,62 @@ begin
     end;
 end;
 
-function GetLines (Text: string; FontID: DWORD; MaxWidth: Word): SSArray;
-  var i, j, len, lines: Integer;
+function GetLines (text: string; FontID: DWORD; MaxWidth: Word): SSArray;
+  var
+    k: Integer = 1;
+    lines: Integer = 0;
+    i, len, lastsep: Integer;
 
-  function GetLine (j, i: Integer): String;
+  function PrepareStep (): Boolean; inline;
   begin
-    result := Copy(text, j, i - j + 1);
+    // Skip leading spaces.
+    while PChar(text)[k-1] = ' ' do k += 1;
+    Result := k <= len;
+    i := k;
   end;
 
-  function GetWidth (j, i: Integer): Integer;
+  function GetLine (j: Integer; Strip: Boolean): String; inline;
+  begin
+    // Exclude trailing spaces from the line.
+    if Strip then
+      while text[j] = ' ' do j -= 1; 
+
+    Result := Copy(text, k, j-k+1);
+  end;
+
+  function LineWidth (): Integer; inline;
     var w, h: Word;
   begin
-    e_CharFont_GetSize(FontID, GetLine(j, i), w, h);
-    result := w
+    e_CharFont_GetSize(FontID, GetLine(i, False), w, h);
+    Result := w;
   end;
 
 begin
-  result := nil; lines := 0;
-  j := 1; i := 1; len := Length(Text);
-  // e_LogWritefln('GetLines @%s len=%s [%s]', [MaxWidth, len, Text]);
-  while j <= len do
+  Result := nil;
+  len := Length(text);
+  //e_LogWritefln('GetLines @%s len=%s [%s]', [MaxWidth, len, text]);
+
+  while PrepareStep() do
   begin
-    (* --- Get longest possible sequence --- *)
-    while (i + 1 <= len) and (GetWidth(j, i + 1) <= MaxWidth) do Inc(i);
-    (* --- Do not include part of word --- *)
-    if (i < len) and (text[i] <> ' ') then
-      while (i >= j) and (text[i] <> ' ') do Dec(i);
-    (* --- Do not include spaces --- *)
-    while (i >= j) and (text[i] = ' ') do Dec(i);
-    (* --- Add line --- *)
-    SetLength(result, lines + 1);
-    result[lines] := GetLine(j, i);
-    // e_LogWritefln('  -> (%s:%s::%s) [%s]', [j, i, GetWidth(j, i), result[lines]]);
-    Inc(lines);
-    (* --- Skip spaces --- *)
-    while (i <= len) and (text[i] = ' ') do Inc(i);
-    j := i + 2;
+    // Get longest possible sequence (this is not constant because fonts are not monospaced).
+    lastsep := 0;
+    repeat
+      if text[i] in [' ', '.', ',', ':', ';']
+        then lastsep := i;
+      i += 1;
+    until (i > len) or (LineWidth() > MaxWidth);
+
+    // Do not include part of a word if possible.
+    if (lastsep-k > 3) and (i <= len) and (text[i] <> ' ')
+      then i := lastsep + 1;
+
+    // Add line.
+    SetLength(Result, lines + 1);
+    Result[lines] := GetLine(i-1, True);
+    //e_LogWritefln('  -> (%s:%s::%s) [%s]', [k, i, LineWidth(), Result[lines]]);
+    lines += 1;
+
+    k := i;
   end;
 end;
 
