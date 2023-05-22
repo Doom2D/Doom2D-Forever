@@ -1730,7 +1730,7 @@ begin
     MainForm.pbLoad.StepIt();
     Application.ProcessMessages();
 
-    s := TexturePrefix + UpperCase(map.ReadStr('Textures', 'TextureName'+IntToStr(a), ''));
+    s := TexturePrefix + UpperCase(win2utf(map.ReadStr('Textures', 'TextureName'+IntToStr(a), '')));
     if s = TexturePrefix then
       Continue;
 
@@ -1784,7 +1784,7 @@ begin
   // Текстура панели:
     if panel.PanelType in [PANEL_WALL, PANEL_BACK, PANEL_FORE, PANEL_STEP] then
       begin
-        s := TexturePrefix + UpperCase(map.ReadStr(section, 'TextureName', ''));
+        s := TexturePrefix + UpperCase(win2utf(map.ReadStr(section, 'TextureName', '')));
 
         if g_GetTexture(s, panel.TextureID) then
           begin
@@ -1897,8 +1897,8 @@ begin
 // Чтение параметров карты:
   with gMapInfo do
   begin
-    Name := map.ReadStr('MapOptions', 'MapName', '');
-    Description := map.ReadStr('MapOptions', 'MapDescription', '');
+    Name := win2utf(map.ReadStr('MapOptions', 'MapName', ''));
+    Description := win2utf(map.ReadStr('MapOptions', 'MapDescription', ''));
     Author := '';
     MusicName := DefaultMusRes;
     SkyName := DefaultSkyRes;
