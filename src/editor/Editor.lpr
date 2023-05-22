@@ -113,6 +113,14 @@ uses
           Inc(i);
           EditorWad := ParamStr(i);
         end;
+      end
+      else if p = '--wads-dir' then
+      begin
+        if i + 1 <= ParamCount then
+        begin
+          Inc(i);
+          WadsDir := ParamStr(i);
+        end;
       end;
       Inc(i);
     end;
@@ -152,6 +160,7 @@ begin
   CfgFileName := EditorDir + DirectorySeparator + 'Editor.cfg';
   GameWad := EditorDir + DirectorySeparator + 'data' + DirectorySeparator + 'game.wad';
   EditorWad := EditorDir + DirectorySeparator + 'data' + DirectorySeparator + 'editor.wad';
+  WadsDir := EditorDir + DirectorySeparator + 'wads';
 
   CheckParamOptions;
   InitLogs;

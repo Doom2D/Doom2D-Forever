@@ -64,7 +64,7 @@ begin
   FFullResourceName := '';
   FResourceSelected := False;
 
-  if FindFirst(EditorDir + 'wads/*.*', faAnyFile, SR) = 0 then
+  if FindFirst(WadsDir + DirectorySeparator + '*.*', faAnyFile, SR) = 0 then
   repeat
     if (SR.name <> '.') and (SR.name <> '..') then
       cbWADList.Items.Add(SR.Name);
@@ -108,7 +108,7 @@ procedure TAddResourceForm.cbWADListChange(Sender: TObject);
     FileName, Section, sn, rn: String;
 begin
   if cbWADList.Text <> _lc[I_WAD_SPECIAL_MAP] then
-    FileName := EditorDir + 'wads/' + cbWADList.Text (* Resource wad *)
+    FileName := WadsDir + DirectorySeparator + cbWADList.Text (* Resource wad *)
   else
     g_ProcessResourceStr(OpenedMap, FileName, sn, rn); (* Map wad *)
 
@@ -138,7 +138,7 @@ procedure TAddResourceForm.cbSectionsListChange(Sender: TObject);
     FileName, Section, SectionName, sn, rn: String;
 begin
   if cbWADList.Text <> _lc[I_WAD_SPECIAL_MAP] then
-    FileName := EditorDir + 'wads/' + cbWADList.Text (* Resource wad *)
+    FileName := WadsDir + DirectorySeparator + cbWADList.Text (* Resource wad *)
   else
     g_ProcessResourceStr(OpenedMap, FileName, sn, rn); (* Map wad *)
 
@@ -179,7 +179,7 @@ begin
 
   g_ProcessResourceStr(OpenedMap, @fn, nil, nil);
   if FileName <> '' then
-    FFullResourceName := EditorDir + 'wads/' + FResourceName
+    FFullResourceName := WadsDir + DirectorySeparator + FResourceName
   else
     FFullResourceName := fn + FResourceName
 end;

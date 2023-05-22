@@ -80,7 +80,7 @@ begin
   if filename = '' then
     g_GetResourceSection(OpenedMap, filename, us, un)
   else
-    filename := EditorDir + 'wads/' + filename;
+    filename := WadsDir + DirectorySeparator + filename;
   e_WriteLog('ProcessResource: "' + wad_to + '" "' + section_to + '" "' + filename + '" "' + section + '" "' + resource + '"', MSG_NOTIFY);
 
   if resource = '' then Exit;

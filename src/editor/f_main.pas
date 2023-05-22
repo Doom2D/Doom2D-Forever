@@ -1946,7 +1946,7 @@ begin
       end
     else
       begin // Внешний WAD
-        FileName := EditorDir+'wads/'+aWAD;
+        FileName := WadsDir + DirectorySeparator + aWAD;
         ResourceName := aWAD+':'+SectionName+'\'+aTex;
       end;
 

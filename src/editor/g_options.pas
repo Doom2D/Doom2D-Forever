@@ -9,6 +9,7 @@ interface
     CfgFileName: AnsiString;
     GameWad: AnsiString;
     EditorWad: AnsiString;
+    WadsDir: AnsiString;
 
 implementation
 

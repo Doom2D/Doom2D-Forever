@@ -366,7 +366,7 @@ begin
       fn := fn + Res;
     end
   else
-    fn := EditorDir + 'wads/' + Res;
+    fn := WadsDir + DirectorySeparator + Res;
 
   g_CreateTextureWAD(SKY_TEXTURE, fn);
 end;
@@ -1445,7 +1445,7 @@ begin
       if _fn = '' then
         TextureRes := FileName + ustr
       else
-        TextureRes := EditorDir+'wads/'+ustr;
+        TextureRes := WadsDir + DirectorySeparator + ustr;
 
       Error := False;
 
@@ -1735,13 +1735,13 @@ begin
       Continue;
 
   // Нет такой текстуры - ищем в WAD карты:
-    if not g_CreateTextureWAD(s, EditorDir+'wads/'+s) then
+    if not g_CreateTextureWAD(s, WadsDir + DirectorySeparator + s) then
     begin
       s := ExtractFileName(_FileName);
       Delete(s, Length(s)-3, 4);
       s := UpperCase(s) + '.WAD:TEXTURES\'+ UpperCase(win2utf(map.ReadStr('Textures', 'TextureName'+IntToStr(a), '')));
 
-      if not g_CreateTextureWAD(s, EditorDir+'wads/'+s) then
+      if not g_CreateTextureWAD(s, WadsDir + DirectorySeparator + s) then
         Continue;
     end;
 
