@@ -4311,6 +4311,8 @@ begin
   begin
     if MapTestProcess.Running = false then
     begin
+      if MapTestProcess.ExitCode <> 0 then
+        Application.MessageBox(PChar(_lc[I_MSG_EXEC_ERROR]), 'FIXME', MB_OK or MB_ICONERROR);
       SysUtils.DeleteFile(MapTestFile);
       MapTestFile := '';
       FreeAndNil(MapTestProcess);
@@ -6834,7 +6836,7 @@ begin
   end
   else
   begin
-    MessageBox(0, 'FIXME', PChar(_lc[I_MSG_EXEC_ERROR]), MB_OK or MB_ICONERROR);
+    Application.MessageBox(PChar(_lc[I_MSG_EXEC_ERROR]), 'FIXME', MB_OK or MB_ICONERROR);
     SysUtils.DeleteFile(newWAD);
     proc.Free();
   end;
