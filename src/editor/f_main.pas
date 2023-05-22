@@ -288,6 +288,7 @@ const
 
 var
   MainForm: TMainForm;
+  StartMap: String;
   OpenedMap: String;
   OpenedWAD: String;
 
@@ -6530,6 +6531,7 @@ begin
 end;
 
 procedure TMainForm.OnIdle(Sender: TObject; var Done: Boolean);
+  var f: AnsiString;
 begin
   // FIXME: this is a shitty hack
   if not gDataLoaded then
@@ -6545,6 +6547,12 @@ begin
     MainForm.FormResize(nil);
   end;
   Draw();
+  if StartMap <> '' then
+  begin
+    f := StartMap;
+    StartMap := '';
+    OpenMap(f, '');
+  end;
 end;
 
 procedure TMainForm.miMapPreviewClick(Sender: TObject);

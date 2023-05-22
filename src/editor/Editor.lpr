@@ -120,15 +120,11 @@ uses
   end;
 
   procedure CheckParamFiles;
-    var i: Integer; path: AnsiString;
+    var i: Integer;
   begin
     i := ParamFileIndex;
     if i <= ParamCount then
-    begin
-      path := ParamStr(i);
-      if path <> '' then
-        OpenMap(path, '');
-    end;
+      StartMap := ParamStr(i);
   end;
 
   procedure InitLogs;
