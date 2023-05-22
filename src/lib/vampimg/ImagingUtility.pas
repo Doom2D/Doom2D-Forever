@@ -1093,6 +1093,8 @@ begin
   Result := PByte(@W)^ = $FF;
 end;
 
+(* Vampimp wrongly use swaps for converting big-endian to little-endian anywhere *)
+{$IF DEFINED(FPC_LITTLE_ENDIAN)}
 function SwapEndianWord(Value: Word): Word;
 {$IF Defined(USE_ASM) and (not Defined(USE_INLINE))}
 asm
@@ -1169,6 +1171,27 @@ begin
     TLongWordRec(PLongWordArray(P)[I]).Bytes[3] := TLongWordRec(Temp).Bytes[0];
   end;
 end;
+{$ENDIF}
+{$ELSEIF DEFINED(FPC_BIG_ENDIAN)}
+function SwapEndianWord(Value: Word): Word;
+begin
+  Result := Value
+end;
+
+procedure SwapEndianWord(P: PWordArray; Count: LongInt);
+begin
+end;
+
+function SwapEndianLongWord(Value: LongWord): LongWord;
+begin
+  Result := Value
+end;
+
+procedure SwapEndianLongWord(P: PLongWord; Count: LongInt);
+begin
+end;
+{$ELSE}
+  {$ERROR Unsupported endianness!}
 {$ENDIF}
 
 type

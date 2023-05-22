@@ -197,6 +197,12 @@ begin
   begin
     // Read targa header
     Read(Handle, @Hdr, SizeOf(Hdr));
+    Hdr.ColorMapOff := LEtoN(Hdr.ColorMapOff);
+    Hdr.ColorMapLength := LEtoN(Hdr.ColorMapLength);
+    Hdr.XOrg := LEtoN(Hdr.XOrg);
+    Hdr.YOrg := LEtoN(Hdr.YOrg);
+    Hdr.Width := LEtoN(Hdr.Width);
+    Hdr.Height := LEtoN(Hdr.Height);
     // Skip image ID info
     Seek(Handle, Hdr.IDLength, smFromCurrent);
     // Determine image format

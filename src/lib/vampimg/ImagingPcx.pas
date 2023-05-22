@@ -87,7 +87,6 @@ end;
 
 function TPCXFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
-
 var
   Hdr: TPCXHeader;
   PalID, B: Byte;

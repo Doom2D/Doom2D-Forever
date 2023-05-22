@@ -259,7 +259,7 @@ type
     ifETC2PA         = 223,
     ifDXBC6          = 224,
     ifDXBC7          = 225}
-    { PCX formats}
+    { PCX formats }
     ifMono           = 250,
     ifIndex2         = 251,
     ifIndex4         = 252
