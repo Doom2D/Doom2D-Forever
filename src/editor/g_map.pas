@@ -1912,6 +1912,8 @@ begin
       SetLength(Description, 256);
   end;
 
+  LoadSky(gMapInfo.SkyName);
+
   map.Free();
 
   Result := True;
