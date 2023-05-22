@@ -1764,6 +1764,7 @@ begin
     if not map.SectionExists(section) then
       Continue;
 
+    panel := Default(TPanel);
     panel.X := map.ReadInt(section, 'X1', 0);
     panel.Y := map.ReadInt(section, 'Y1', 0);
     panel.Height := map.ReadInt(section, 'Height', 16);
@@ -1780,6 +1781,7 @@ begin
     end;
 
     panel.Alpha := map.ReadInt(section, 'Alpha', 0);
+    panel.Blending := false;
 
   // Текстура панели:
     if panel.PanelType in [PANEL_WALL, PANEL_BACK, PANEL_FORE, PANEL_STEP] then
@@ -1853,6 +1855,7 @@ begin
     if not map.SectionExists(section) then
       Continue;
 
+    item := Default(TItem);
     item.X := map.ReadInt(section, 'X', 0);
     item.Y := map.ReadInt(section, 'Y', 0);
     item.ItemType := ITEMSCONVERT[map.ReadInt(section, 'Type', 0)];
@@ -1882,6 +1885,7 @@ begin
     if not map.SectionExists(section) then
       Continue;
 
+    area := Default(TArea);
     area.X := map.ReadInt(section, 'X', 0);
     area.Y := map.ReadInt(section, 'Y', 0);
     area.AreaType := map.ReadInt(section, 'Type', 0);
@@ -1895,6 +1899,7 @@ begin
   end;
 
 // Чтение параметров карты:
+  gMapInfo := Default(TMapInfo);
   with gMapInfo do
   begin
     Name := win2utf(map.ReadStr('MapOptions', 'MapName', ''));
@@ -1940,17 +1945,9 @@ begin
   SetLength(gTriggers, 0);
   gTriggers := nil;
 
-  with gMapInfo do
-  begin
-    Name := '';
-    Description := '';
-    Author := '';
-    MusicName := '';
-    SkyName := '';
-    FileName := '';
-    Height := 1600;
-    Width := 1600;
-  end;
+  gMapInfo := Default(TMapInfo);
+  gMapInfo.Width := 1600;
+  gMapInfo.Height := 1600;
 
   with MainForm.lbTextureList do
   begin
