@@ -124,6 +124,7 @@ type
   // Панель применения свойств:
     PanelPropApply: TPanel;
     bApplyProperty: TButton;
+    MapTestTimer: TTimer;
   // Редактор свойств объектов:
     vleObjectProperty: TValueListEditor;
 
@@ -218,6 +219,7 @@ type
     procedure RenderPanelPaint(Sender: TObject);
     procedure RenderPanelResize(Sender: TObject);
     procedure Splitter1Moved(Sender: TObject);
+    procedure MapTestCheck(Sender: TObject);
     procedure vleObjectPropertyEditButtonClick(Sender: TObject);
     procedure vleObjectPropertyApply(Sender: TObject);
     procedure vleObjectPropertyGetPickList(Sender: TObject; const KeyName: String; Values: TStrings);
@@ -456,6 +458,8 @@ var
 
   UndoBuffer: Array of Array of TUndoRec = nil;
 
+  MapTestProcess: TProcessUTF8;
+  MapTestFile: String;
 
 {$R *.lfm}
 
@@ -4300,6 +4304,20 @@ begin
   FormResize(Sender);
 end;
 
+procedure TMainForm.MapTestCheck(Sender: TObject);
+begin
+  if MapTestProcess <> nil then
+  begin
+    if MapTestProcess.Running = false then
+    begin
+      SysUtils.DeleteFile(MapTestFile);
+      MapTestFile := '';
+      FreeAndNil(MapTestProcess);
+      tbTestMap.Enabled := True;
+    end;
+  end;
+end;
+
 procedure TMainForm.aMapOptionsExecute(Sender: TObject);
 var
   ResName: String;
@@ -6735,6 +6753,10 @@ var
   proc: TProcessUTF8;
   res: Boolean;
 begin
+  // Ignore while map testing in progress
+  if MapTestProcess <> nil then
+    Exit;
+
   // Сохраняем временную карту:
   time := 0;
   repeat
@@ -6798,19 +6820,16 @@ begin
   end;
   if res then
   begin
-    Application.Minimize();
-    proc.WaitOnExit();
-  end;
-  if (not res) or (proc.ExitCode < 0) then
+    tbTestMap.Enabled := False;
+    MapTestFile := newWAD;
+    MapTestProcess := proc;
+  end
+  else
   begin
-    MessageBox(0, 'FIXME',
-               PChar(_lc[I_MSG_EXEC_ERROR]),
-               MB_OK or MB_ICONERROR);
+    MessageBox(0, 'FIXME', PChar(_lc[I_MSG_EXEC_ERROR]), MB_OK or MB_ICONERROR);
+    SysUtils.DeleteFile(newWAD);
+    proc.Free();
   end;
-  proc.Free();
-
-  SysUtils.DeleteFile(newWAD);
-  Application.Restore();
 end;
 
 procedure TMainForm.sbVerticalScroll(Sender: TObject;

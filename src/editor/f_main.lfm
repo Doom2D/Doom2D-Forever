@@ -3751,4 +3751,9 @@ object MainForm: TMainForm
     left = 64
     top = 146
   end
+  object MapTestTimer: TTimer
+    OnTimer = MapTestCheck
+    left = 192
+    top = 64
+  end
 end
