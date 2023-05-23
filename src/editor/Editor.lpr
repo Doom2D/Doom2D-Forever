@@ -3,6 +3,9 @@ program Editor;
 {$INCLUDE ../shared/a_modes.inc}
 
 uses
+  {$IFDEF DARWIN}
+    MacOSAll, CocoaAll,
+  {$ENDIF}
   Forms, Interfaces, Dialogs,
   GL, GLExt, SysUtils,
   e_graphics in '../engine/e_graphics.pas',
@@ -68,6 +71,27 @@ uses
   var
     LogFileName: AnsiString = '';
     ParamFileIndex: Integer = 1;
+
+{$IFDEF DARWIN}
+  function NSStringToAnsiString (s: NSString): AnsiString;
+    var i: Integer;
+  begin
+    result := '';
+    for i := 0 to s.length - 1 do
+      result := result + AnsiChar(s.characterAtIndex(i));
+  end;
+
+  function GetBundlePath (): AnsiString;
+    var pathRef: CFURLRef; pathCFStr: CFStringRef; pathStr: ShortString;
+  begin
+    pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+    pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+    CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+    CFRelease(pathRef);
+    CFRelease(pathCFStr);
+    Result := pathStr;
+  end;
+{$ENDIF}
 
   procedure THandlerObject.ExceptionHandler (Sender: TObject; e: Exception);
   begin
@@ -135,13 +159,53 @@ uses
       StartMap := ParamStr(i);
   end;
 
+  procedure InitPathes;
+    {$IFDEF DARWIN}
+      var BundlePath, DFPath, DocPath: AnsiString; ns: NSString;
+      var ApplicationSupportDirs, DocumentDirs: NSArray;
+      var count: Integer;
+    {$ELSE}
+      var EditorDir: AnsiString;
+    {$ENDIF}
+  begin
+    {$IFDEF DARWIN}
+      BundlePath := GetBundlePath();
+      ApplicationSupportDirs := NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true);
+      count := ApplicationSupportDirs.count;
+      ns := ApplicationSupportDirs.objectAtIndex(count - 1);
+      DFPath := NSStringToAnsiString(ns) + DirectorySeparator + 'Doom 2D Forever';
+      DocumentDirs := NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, true);
+      count := DocumentDirs.count;
+      ns := DocumentDirs.objectAtIndex(count - 1);
+      DocPath := NSStringToAnsiString(ns) + DirectorySeparator + 'Doom 2D Forever';
+      GameExeFile := 'Doom 2D Forever.app';
+      CfgFileName := DFPath + DirectorySeparator + 'Editor.cfg';
+      LogFileName := DFPath + DirectorySeparator + 'Editor.log';
+      MapsDir := DocPath + DirectorySeparator + 'Maps';
+      WadsDir := BundlePath + DirectorySeparator + 'Contents' + DirectorySeparator + 'Resources' + DirectorySeparator + 'wads';
+      GameWad := BundlePath + DirectorySeparator + 'Contents' + DirectorySeparator + 'Resources' + DirectorySeparator + 'data' + DirectorySeparator + 'game.wad';
+      EditorWad := BundlePath + DirectorySeparator + 'Contents' + DirectorySeparator + 'Resources' + DirectorySeparator + 'data' + DirectorySeparator + 'editor.wad';
+    {$ELSE}
+      EditorDir := ExtractFilePath(Application.ExeName);
+      {$IFDEF WINDOWS}
+        GameExeFile := 'Doom2DF.exe';
+      {$ELSE}
+        GameExeFile := 'Doom2DF';
+      {$ENDIF}
+      CfgFileName := EditorDir + DirectorySeparator + 'Editor.cfg';
+      LogFileName := EditorDir + DirectorySeparator + 'Editor.log';
+      MapsDir := EditorDir + DirectorySeparator + 'maps';
+      WadsDir := EditorDir + DirectorySeparator + 'wads';
+      GameWad := EditorDir + DirectorySeparator + 'data' + DirectorySeparator + 'game.wad';
+      EditorWad := EditorDir + DirectorySeparator + 'data' + DirectorySeparator + 'editor.wad';
+    {$ENDIF}
+    ForceDirectories(MapsDir);
+    ForceDirectories(WadsDir);
+  end;
+
   procedure InitLogs;
   begin
-    if LogFileName = '' then
-      LogFileName := 'Editor.log';
-
-    if LogFileName <> '' then
-      e_InitLog(LogFileName, WM_NEWFILE);
+    e_InitLog(LogFileName, WM_NEWFILE);
 
     {$IF DECLARED(UseHeapTrace)}
       (* http://wiki.freepascal.org/heaptrc *)
@@ -149,6 +213,15 @@ uses
       //SetHeapTraceOutput('EditorLeaks.log');
       //HaltOnError := False;
     {$ENDIF}
+
+    e_WriteLog('Used file pathes:', MSG_NOTIFY);
+    e_WriteLog('  GameExeFile = ' + GameExeFile, MSG_NOTIFY);
+    e_WriteLog('  CfgFileName = ' + CfgFileName, MSG_NOTIFY);
+    e_WriteLog('  LogFileName = ' + LogFileName, MSG_NOTIFY);
+    e_WriteLog('  MapsDir     = ' + MapsDir, MSG_NOTIFY);
+    e_WriteLog('  WadsDir     = ' + WadsDir, MSG_NOTIFY);
+    e_WriteLog('  GameWad     = ' + GameWad, MSG_NOTIFY);
+    e_WriteLog('  EditorWad   = ' + EditorWad, MSG_NOTIFY);
   end;
 
 begin
@@ -156,12 +229,7 @@ begin
   Application.AddOnExceptionHandler(THandlerObject.ExceptionHandler, True);
   Application.Initialize();
 
-  EditorDir := ExtractFilePath(Application.ExeName);
-  CfgFileName := EditorDir + DirectorySeparator + 'Editor.cfg';
-  GameWad := EditorDir + DirectorySeparator + 'data' + DirectorySeparator + 'game.wad';
-  EditorWad := EditorDir + DirectorySeparator + 'data' + DirectorySeparator + 'editor.wad';
-  WadsDir := EditorDir + DirectorySeparator + 'wads';
-
+  InitPathes;
   CheckParamOptions;
   InitLogs;
 

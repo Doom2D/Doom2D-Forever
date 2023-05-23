@@ -314,7 +314,7 @@ end;
 
 procedure TPackMapForm.FormCreate(Sender: TObject);
 begin
-  SaveDialog.InitialDir := EditorDir;
+  SaveDialog.InitialDir := MapsDir;
 end;
 
 end.

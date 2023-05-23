@@ -172,7 +172,7 @@ begin
   TestOptionsWeaponStay := config.ReadBool('TestRun', 'WeaponStay', False);
   TestOptionsMonstersDM := config.ReadBool('TestRun', 'MonstersDM', False);
   TestMapOnce := config.ReadBool('TestRun', 'MapOnce', False);
-  TestD2dExe := config.ReadStr('TestRun', 'Exe', EditorDir+'Doom2DF.exe');
+  TestD2dExe := config.ReadStr('TestRun', 'Exe', GameExeFile);
   TestD2DArgs := config.ReadStr('TestRun', 'Args', '');
 
   config.Free();

@@ -1934,7 +1934,6 @@ begin
   if aWAD = _lc[I_WAD_SPECIAL_MAP] then
     begin // Файл карты
       g_ProcessResourceStr(OpenedMap, @fn, nil, nil);
-    //FileName := EditorDir+'maps\'+ExtractFileName(fn);
       FileName := fn;
       ResourceName := ':'+SectionName+'\'+aTex;
     end
@@ -2730,8 +2729,8 @@ begin
     DotSize := 2
   else
     DotSize := 1;
-  OpenDialog.InitialDir := config.ReadStr('Editor', 'LastOpenDir', EditorDir);
-  SaveDialog.InitialDir := config.ReadStr('Editor', 'LastSaveDir', EditorDir);
+  OpenDialog.InitialDir := config.ReadStr('Editor', 'LastOpenDir', MapsDir);
+  SaveDialog.InitialDir := config.ReadStr('Editor', 'LastSaveDir', MapsDir);
 
   s := config.ReadStr('Editor', 'Language', '');
   gLanguage := s;
