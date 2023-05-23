@@ -6244,12 +6244,13 @@ begin
   MainForm.ActiveControl := RenderPanel;
 
 // Язык:
-  if gLanguage = '' then
+  if (gLanguage = '') and not (fsModal in SelectLanguageForm.FormState) then
   begin
     lang := SelectLanguageForm.ShowModal();
     case lang of
       1:   gLanguage := LANGUAGE_ENGLISH;
-      else gLanguage := LANGUAGE_RUSSIAN;
+      2:   gLanguage := LANGUAGE_RUSSIAN;
+      else gLanguage := LANGUAGE_ENGLISH;
     end;
 
     config := TConfig.CreateFile(CfgFileName);
