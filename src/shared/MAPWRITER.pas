@@ -83,6 +83,7 @@ var
   b, c: LongWord;
   Sign: array[0..2] of Char;
   Ver: Byte;
+  blk: TBlock;
 begin
  b := 3+1+SizeOf(TBlock)*(Length(FDataBlocks)+1);
 
@@ -105,7 +106,12 @@ begin
  if FDataBlocks <> nil then
   for a := 0 to High(FDataBlocks) do
   begin
-   CopyMemory(Pointer(PtrUInt(Data)+c), @FDataBlocks[a].Block, SizeOf(TBlock));
+   blk := FDataBlocks[a].Block;
+   {$IFDEF FPC_BIG_ENDIAN}
+     blk.Reserved := NtoLE(blk.Reserved);
+     blk.BlockSize := NtoLE(blk.BlockSize);
+   {$ENDIF}
+   CopyMemory(Pointer(PtrUInt(Data)+c), @blk, SizeOf(TBlock));
    c := c+SizeOf(TBlock);
    CopyMemory(Pointer(PtrUInt(Data)+c), FDataBlocks[a].Data, FDataBlocks[a].Block.BlockSize);
    c := c+FDataBlocks[a].Block.BlockSize;
@@ -124,6 +130,7 @@ end;
 function TMapWriter_1.AddAreas(Areas: TAreasRec1Array): Boolean;
 var
   a, size: LongWord;
+  area: TAreaRec_1;
 begin
  if Areas = nil then
  begin
@@ -144,7 +151,14 @@ begin
   Data := GetMemory(Block.BlockSize);
 
   for a := 0 to High(Areas) do
-   CopyMemory(Pointer(PtrUInt(Data)+a*Size), @Areas[a], size);
+  begin
+   area := Areas[a];
+   {$IFDEF FPC_BIG_ENDIAN}
+     area.X := NtoLE(area.X);
+     area.Y := NtoLE(area.Y);
+   {$ENDIF}
+   CopyMemory(Pointer(PtrUInt(Data)+a*Size), @area, size);
+  end;
  end;
  
  Result := True;
@@ -153,6 +167,7 @@ end;
 function TMapWriter_1.AddItems(Items: TItemsRec1Array): Boolean;
 var
   a, size: LongWord;
+  item: TItemRec_1;
 begin
  if Items = nil then
  begin
@@ -173,7 +188,14 @@ begin
   Data := GetMemory(Block.BlockSize);
 
   for a := 0 to High(Items) do
-   CopyMemory(Pointer(PtrUInt(Data)+a*size), @Items[a], size);
+  begin
+   item := Items[a];
+   {$IFDEF FPC_BIG_ENDIAN}
+     item.X := NtoLE(item.X);
+     item.Y := NtoLE(item.Y);
+   {$ENDIF}
+   CopyMemory(Pointer(PtrUInt(Data)+a*size), @item, size);
+  end;
  end;
  
  Result := True;
@@ -182,6 +204,7 @@ end;
 function TMapWriter_1.AddMonsters(Monsters: TMonsterRec1Array): Boolean;
 var
   a, size: LongWord;
+  mon: TMonsterRec_1;
 begin
  if Monsters = nil then
  begin
@@ -202,7 +225,14 @@ begin
   Data := GetMemory(Block.BlockSize);
 
   for a := 0 to High(Monsters) do
-   CopyMemory(Pointer(PtrUInt(Data)+a*Size), @Monsters[a], size);
+  begin
+   mon := Monsters[a];
+   {$IFDEF FPC_BIG_ENDIAN}
+     mon.X := NtoLE(mon.X);
+     mon.Y := NtoLE(mon.Y);
+   {$ENDIF}
+   CopyMemory(Pointer(PtrUInt(Data)+a*Size), @mon, size);
+  end;
  end;
  
  Result := True;
@@ -211,6 +241,7 @@ end;
 function TMapWriter_1.AddPanels(Panels: TPanelsRec1Array): Boolean;
 var
   a, size: LongWord;
+  panel: TPanelRec_1;
 begin
  if Panels = nil then
  begin
@@ -231,7 +262,18 @@ begin
   Data := GetMemory(Block.BlockSize);
 
   for a := 0 to High(Panels) do
-   CopyMemory(Pointer(PtrUInt(Data)+a*size), @Panels[a], size);
+  begin
+   panel := Panels[a];
+   {$IFDEF FPC_BIG_ENDIAN}
+     panel.X := NtoLE(panel.X);
+     panel.Y := NtoLE(panel.Y);
+     panel.Width := NtoLE(panel.Width);
+     panel.Height := NtoLE(panel.Height);
+     panel.TextureNum := NtoLE(panel.TextureNum);
+     panel.PanelType := NtoLE(panel.PanelType);
+   {$ENDIF}
+   CopyMemory(Pointer(PtrUInt(Data)+a*size), @panel, size);
+  end;
  end;
  
  Result := True;
@@ -269,7 +311,8 @@ end;
 function TMapWriter_1.AddTriggers(Triggers: TTriggersRec1Array): Boolean;
 var
   a, i, size: LongWord;
-  tr: ^TTriggerData;
+  tr: TTriggerRec_1;
+  data: ^TTriggerData;
 begin
  if Triggers = nil then
  begin
@@ -277,29 +320,109 @@ begin
   Exit;
  end;
 
- // fix broken maps
- for i := 0 to High(Triggers) do
- begin
-   tr := @Triggers[i].data;
-   case Triggers[i].TriggerType of
-     TRIGGER_MUSIC: tr.MusicAction := Min(Max(tr.MusicAction, 0), 1);
-   end
- end;
-
  SetLength(FDataBlocks, Length(FDataBlocks)+1);
 
  size := SizeOf(TTriggerRec_1);
 
- with FDataBlocks[High(FDataBlocks)] do
+ FDataBlocks[High(FDataBlocks)].Block.BlockType := BLOCK_TRIGGERS;
+ FDataBlocks[High(FDataBlocks)].Block.Reserved := $00000000;
+ FDataBlocks[High(FDataBlocks)].Block.BlockSize := LongWord(Length(Triggers))*size;
+
+ FDataBlocks[High(FDataBlocks)].Data := GetMemory(FDataBlocks[High(FDataBlocks)].Block.BlockSize);
+
+ for a := 0 to High(Triggers) do
  begin
-  Block.BlockType := BLOCK_TRIGGERS;
-  Block.Reserved := $00000000;
-  Block.BlockSize := LongWord(Length(Triggers))*size;
-
-  Data := GetMemory(Block.BlockSize);
-
-  for a := 0 to High(Triggers) do
-   CopyMemory(Pointer(PtrUInt(Data)+a*size), @Triggers[a], size);
+   tr := Triggers[a];
+   data := @tr.data;
+   // fix broken maps
+   case tr.TriggerType of
+     TRIGGER_MUSIC: data.MusicAction := Min(Max(data.MusicAction, 0), 1);
+   end;
+   // fix endianness
+   {$IFDEF FPC_BIG_ENDIAN}
+     tr.X := NtoLE(tr.X);
+     tr.Y := NtoLE(tr.Y);
+     tr.Width := NtoLE(tr.Width);
+     tr.Height := NtoLE(tr.Height);
+     tr.TexturePanel := NtoLE(tr.TexturePanel);
+     case tr.TriggerType of
+       //TRIGGER_EXIT: ;
+       TRIGGER_TELEPORT:
+       begin
+         data.TargetPoint.X := NtoLE(data.TargetPoint.X);
+         data.TargetPoint.Y := NtoLE(data.TargetPoint.Y);
+       end;
+       TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5,
+       TRIGGER_CLOSETRAP, TRIGGER_TRAP, TRIGGER_LIFTUP, TRIGGER_LIFTDOWN,
+       TRIGGER_LIFT:
+         data.PanelID := NtoLE(data.PanelID);
+       TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF:
+       begin
+         data.tX := NtoLE(data.tX);
+         data.tY := NtoLE(data.tY);
+         data.tWidth := NtoLE(data.tWidth);
+         data.tHeight := NtoLE(data.tHeight);
+         data.Wait := NtoLE(data.Wait);
+         data.Count := NtoLE(data.Count);
+         data.MonsterID := NtoLE(data.MonsterID);
+       end;
+       //TRIGGER_SECRET: ;
+       //TRIGGER_TEXTURE: ;
+       //TRIGGER_SOUND: ;
+       TRIGGER_SPAWNMONSTER:
+       begin
+         data.MonPos.X := NtoLE(data.MonPos.X);
+         data.MonPos.Y := NtoLE(data.MonPos.Y);
+         data.MonHealth := NtoLE(data.MonHealth);
+         data.MonCount := NtoLE(data.MonCount);
+         data.MonMax := NtoLE(data.MonMax);
+         data.MonDelay := NtoLE(data.MonDelay);
+       end;
+       TRIGGER_SPAWNITEM:
+       begin
+         data.ItemPos.X := NtoLE(data.ItemPos.X);
+         data.ItemPos.Y := NtoLE(data.ItemPos.Y);
+         data.ItemCount := NtoLE(data.ItemCount);
+         data.ItemMax := NtoLE(data.ItemMax);
+         data.ItemDelay := NtoLE(data.ItemDelay);
+       end;
+       //TRIGGER_MUSIC:
+       TRIGGER_PUSH:
+         data.PushAngle := NtoLE(data.PushAngle);
+       //TRIGGER_SCORE:
+       TRIGGER_MESSAGE:
+         data.MessageTime := NtoLE(data.MessageTime);
+       TRIGGER_DAMAGE:
+       begin
+         data.DamageValue := NtoLE(data.DamageValue);
+         data.DamageInterval := NtoLE(data.DamageInterval);
+       end;
+       TRIGGER_HEALTH:
+       begin
+         data.HealValue := NtoLE(data.HealValue);
+         data.HealInterval := NtoLE(data.HealInterval);
+       end;
+       TRIGGER_SHOT:
+       begin
+         data.ShotPos.X := NtoLE(data.ShotPos.X);
+         data.ShotPos.Y := NtoLE(data.ShotPos.Y);
+         data.ShotPanelID := NtoLE(data.ShotPanelID);
+         data.ShotIntSight := NtoLE(data.ShotIntSight);
+         data.ShotAngle := NtoLE(data.ShotAngle);
+         data.ShotWait := NtoLE(data.ShotWait);
+         data.ShotAccuracy := NtoLE(data.ShotAccuracy);
+         data.ShotAmmo := NtoLE(data.ShotAmmo);
+         data.ShotIntReload := NtoLE(data.ShotIntReload);
+       end;
+       TRIGGER_EFFECT:
+       begin
+         data.FXWait := NtoLE(data.FXWait);
+         data.FXVelX := NtoLE(data.FXVelX);
+         data.FXVelY := NtoLE(data.FXVelY);
+       end;
+     end;
+   {$ENDIF}
+   CopyMemory(Pointer(PtrUInt(FDataBlocks[High(FDataBlocks)].Data)+a*size), @tr, size);
  end;
 
  Result := True;
@@ -308,6 +431,7 @@ end;
 function TMapWriter_1.AddHeader(MapHeader: TMapHeaderRec_1): Boolean;
 var
   size: LongWord;
+  hdr: TMapHeaderRec_1;
 begin
  SetLength(FDataBlocks, Length(FDataBlocks)+1);
 
@@ -321,7 +445,12 @@ begin
 
   Data := GetMemory(Block.BlockSize);
 
-  CopyMemory(Pointer(PtrUInt(Data)), @MapHeader, size);
+  hdr := MapHeader;
+  {$IFDEF FPC_BIG_ENDIAN}
+    hdr.Width := NtoLE(hdr.Width);
+    hdr.Height := NtoLE(hdr.Height);
+  {$ENDIF}
+  CopyMemory(Pointer(PtrUInt(Data)), @hdr, size);
  end;
  
  Result := True;
