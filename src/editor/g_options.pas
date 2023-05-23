@@ -5,11 +5,12 @@ unit g_options;
 interface
 
   var
-    EditorDir: AnsiString;
+    GameExeFile: AnsiString;
     CfgFileName: AnsiString;
     GameWad: AnsiString;
     EditorWad: AnsiString;
     WadsDir: AnsiString;
+    MapsDir: AnsiString;
 
 implementation
 
