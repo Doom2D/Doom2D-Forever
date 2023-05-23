@@ -1843,7 +1843,7 @@ end;
 
 procedure ErrorMessageBox(str: String);
 begin
-  MessageBox(0, PChar(str), PChar(_lc[I_MSG_ERROR]),
+  Application.MessageBox(PChar(str), PChar(_lc[I_MSG_ERROR]),
              MB_ICONINFORMATION or MB_OK or MB_DEFBUTTON1);
 end;
 
@@ -2597,7 +2597,7 @@ begin
       s := g_ExtractFilePathName(RecentFiles[n]);
       OpenMap(fn, s)
     end
-    else if MessageBox(0, PChar(_lc[I_MSG_DEL_RECENT_PROMT]), PChar(_lc[I_MSG_DEL_RECENT]), MB_ICONQUESTION or MB_YESNO) = idYes then
+    else if Application.MessageBox(PChar(_lc[I_MSG_DEL_RECENT_PROMT]), PChar(_lc[I_MSG_DEL_RECENT]), MB_ICONQUESTION or MB_YESNO) = idYes then
     begin
       RecentFiles.Delete(n);
       RefreshRecentMenu();
@@ -4223,7 +4223,7 @@ end;
 
 procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
-  CanClose := MessageBox(0, PChar(_lc[I_MSG_EXIT_PROMT]),
+  CanClose := Application.MessageBox(PChar(_lc[I_MSG_EXIT_PROMT]),
                          PChar(_lc[I_MSG_EXIT]),
                          MB_ICONQUESTION or MB_YESNO or
                          MB_DEFBUTTON1) = idYes;
@@ -4741,7 +4741,7 @@ begin
   if OpenedMap = '' then
     Exit;
 
-  if MessageBox(0, PChar(_lc[I_MSG_REOPEN_MAP_PROMT]),
+  if Application.MessageBox(PChar(_lc[I_MSG_REOPEN_MAP_PROMT]),
   PChar(_lc[I_MENU_FILE_REOPEN]), MB_ICONQUESTION or MB_YESNO) <> idYes then
     Exit;
 
@@ -5371,7 +5371,7 @@ begin
   if i = -1 then
     Exit;
 
-  if MessageBox(0, PChar(Format(_lc[I_MSG_DEL_TEXTURE_PROMT],
+  if Application.MessageBox(PChar(Format(_lc[I_MSG_DEL_TEXTURE_PROMT],
                                 [SelectedTexture()])),
                 PChar(_lc[I_MSG_DEL_TEXTURE]),
                 MB_ICONQUESTION or MB_YESNO or
@@ -5397,10 +5397,7 @@ end;
 
 procedure TMainForm.aNewMapExecute(Sender: TObject);
 begin
-  if (MessageBox(0, PChar(_lc[I_MSG_CLEAR_MAP_PROMT]),
-                 PChar(_lc[I_MSG_CLEAR_MAP]),
-                 MB_ICONQUESTION or MB_YESNO or
-                 MB_DEFBUTTON1) = mrYes) then
+  if Application.MessageBox(PChar(_lc[I_MSG_CLEAR_MAP_PROMT]), PChar(_lc[I_MSG_CLEAR_MAP]), MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON1) = mrYes then
     FullClear();
 end;
 
@@ -6284,18 +6281,17 @@ begin
     Exit;
 
   MapName := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
-  if MessageBox(0, PChar(Format(_lc[I_MSG_DELETE_MAP_PROMT], [MapName, OpenDialog.FileName])), PChar(_lc[I_MSG_DELETE_MAP]), MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON2) <> mrYes then
+  if Application.MessageBox(PChar(Format(_lc[I_MSG_DELETE_MAP_PROMT], [MapName, OpenDialog.FileName])), PChar(_lc[I_MSG_DELETE_MAP]), MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON2) <> mrYes then
     Exit;
 
   g_DeleteResource(FileName, '', MapName, res);
   if res <> 0 then
   begin
-    MessageBox(0, PChar('Cant delete map res=' + IntToStr(res)), PChar('Map not deleted!'), MB_ICONINFORMATION or MB_OK or MB_DEFBUTTON1);
+    Application.MessageBox(PChar('Cant delete map res=' + IntToStr(res)), PChar('Map not deleted!'), MB_ICONINFORMATION or MB_OK or MB_DEFBUTTON1);
     Exit
   end;
 
-  MessageBox(
-    0,
+  Application.MessageBox(
     PChar(Format(_lc[I_MSG_MAP_DELETED_PROMT], [MapName])),
     PChar(_lc[I_MSG_MAP_DELETED]),
     MB_ICONINFORMATION or MB_OK or MB_DEFBUTTON1

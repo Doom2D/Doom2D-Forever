@@ -87,7 +87,7 @@ procedure TAddResourceForm.bOKClick(Sender: TObject);
 begin
   if FResourceName = '' then
   begin
-    MessageBox(0, PChar(_lc[I_MSG_CHOOSE_RES]),
+    Application.MessageBox(PChar(_lc[I_MSG_CHOOSE_RES]),
                PChar(_lc[I_MSG_ERROR]), MB_OK + MB_ICONERROR);
     Exit;
   end;

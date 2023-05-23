@@ -99,8 +99,8 @@ begin
   end
   else
   begin
-    //MessageBox(0, PChar(Format(_lc[I_MSG_WAD_ERROR], [ExtractFileName(filename)])), PChar(_lc[I_MSG_ERROR]), MB_OK + MB_ICONERROR);
-    MessageBox(0, PChar(Format(_lc[I_MSG_RES_ERROR], [filename, section, resource])), PChar(_lc[I_MSG_ERROR]), MB_OK + MB_ICONERROR);
+    //Application.MessageBox(PChar(Format(_lc[I_MSG_WAD_ERROR], [ExtractFileName(filename)])), PChar(_lc[I_MSG_ERROR]), MB_OK + MB_ICONERROR);
+    Application.MessageBox(PChar(Format(_lc[I_MSG_RES_ERROR], [filename, section, resource])), PChar(_lc[I_MSG_ERROR]), MB_OK + MB_ICONERROR);
     Result := False
   end
 end;

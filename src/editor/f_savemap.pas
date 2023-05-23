@@ -69,7 +69,7 @@ begin
   for a := 0 to lbMapList.Count-1 do
     if eMapName.Text = lbMapList.Items[a] then
     begin
-      ok := MessageBox(0, PChar(Format(_lc[I_MSG_MAP_EXISTS],
+      ok := Application.MessageBox(PChar(Format(_lc[I_MSG_MAP_EXISTS],
                                        [eMapName.Text])),
                        PChar(_lc[I_MSG_SAVE_MAP]),
                        MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON1) = mrYes;
