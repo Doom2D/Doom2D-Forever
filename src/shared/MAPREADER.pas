@@ -69,7 +69,7 @@ function g_Texture_NumNameFindNext(var newName: String): Byte;
 implementation
 
 uses
-  SysUtils, BinEditor;
+  SysUtils, BinEditor, MAPDEF;
 
 var
   NNF_PureName: String; // Имя текстуры без цифр в конце
@@ -155,6 +155,14 @@ begin
    CopyMemory(@Result[High(Result)], Pointer(PtrUInt(TempDataBlocks[a].Data)+b*size), size);
   end;
 
+ {$IFDEF FPC_BIG_ENDIAN}
+  for a := 0 to High(Result) do
+  begin
+   Result[a].X := LEtoN(Result[a].X);
+   Result[a].Y := LEtoN(Result[a].Y);
+  end;
+ {$ENDIF}
+
  TempDataBlocks := nil;
 end;
 
@@ -179,6 +187,14 @@ begin
    CopyMemory(@Result[High(Result)], Pointer(PtrUInt(TempDataBlocks[a].Data)+b*size), size);
   end;
 
+ {$IFDEF FPC_BIG_ENDIAN}
+  for a := 0 to High(Result) do
+  begin
+   Result[a].X := LEtoN(Result[a].X);
+   Result[a].Y := LEtoN(Result[a].Y);
+  end;
+ {$ENDIF}
+
  TempDataBlocks := nil;
 end;
 
@@ -193,6 +209,11 @@ begin
  if TempDataBlocks = nil then Exit;
 
  CopyMemory(@Result, TempDataBlocks[0].Data, SizeOf(TMapHeaderRec_1));
+
+ {$IFDEF FPC_BIG_ENDIAN}
+  Result.Width := LEtoN(Result.Width);
+  Result.Height := LEtoN(Result.Height);
+ {$ENDIF}
 
  TempDataBlocks := nil;
 end;
@@ -218,6 +239,14 @@ begin
    CopyMemory(@Result[High(Result)], Pointer(PtrUInt(TempDataBlocks[a].Data)+b*size), size);
   end;
 
+ {$IFDEF FPC_BIG_ENDIAN}
+  for a := 0 to High(Result) do
+  begin
+   Result[a].X := LEtoN(Result[a].X);
+   Result[a].Y := LEtoN(Result[a].Y);
+  end;
+ {$ENDIF}
+
  TempDataBlocks := nil;
 end;
 
@@ -241,6 +270,18 @@ begin
    SetLength(Result, Length(Result)+1);
    CopyMemory(@Result[High(Result)], Pointer(PtrUInt(TempDataBlocks[a].Data)+b*size), size);
   end;
+
+ {$IFDEF FPC_BIG_ENDIAN}
+  for a := 0 to High(Result) do
+  begin
+   Result[a].X := LEtoN(Result[a].X);
+   Result[a].Y := LEtoN(Result[a].Y);
+   Result[a].Width := LEtoN(Result[a].Width);
+   Result[a].Height := LEtoN(Result[a].Height);
+   Result[a].TextureNum := LEtoN(Result[a].TextureNum);
+   Result[a].PanelType := LEtoN(Result[a].PanelType);
+  end;
+ {$ENDIF}
 
  TempDataBlocks := nil;
 end;
@@ -270,10 +311,13 @@ begin
 end;
 
 function TMapReader_1.GetTriggers(): TTriggersRec1Array;
+type
+  PTriggerData = ^TTriggerData;
 var
   TempDataBlocks: TDataBlocksArray;
   a: Integer;
   b, Size: LongWord;
+  data: PTriggerData;
 begin
  Result := nil;
 
@@ -289,6 +333,94 @@ begin
    SetLength(Result, Length(Result)+1);
    CopyMemory(@Result[High(Result)], Pointer(PtrUInt(TempDataBlocks[a].Data)+b*size), size);
   end;
+
+ {$IFDEF FPC_BIG_ENDIAN}
+  for a := 0 to High(Result) do
+  begin
+   Result[a].X := LEtoN(Result[a].X);
+   Result[a].Y := LEtoN(Result[a].Y);
+   Result[a].Width := LEtoN(Result[a].Width);
+   Result[a].Height := LEtoN(Result[a].Height);
+   Result[a].TexturePanel := LEtoN(Result[a].TexturePanel);
+   data := PTriggerData(@Result[a].DATA);
+   case Result[a].TriggerType of
+     //TRIGGER_EXIT: ;
+     TRIGGER_TELEPORT:
+     begin
+       data.TargetPoint.X := LEtoN(data.TargetPoint.X);
+       data.TargetPoint.Y := LEtoN(data.TargetPoint.Y);
+     end;
+     TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5,
+     TRIGGER_CLOSETRAP, TRIGGER_TRAP, TRIGGER_LIFTUP, TRIGGER_LIFTDOWN,
+     TRIGGER_LIFT:
+       data.PanelID := LEtoN(data.PanelID);
+     TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF:
+     begin
+       data.tX := LEtoN(data.tX);
+       data.tY := LEtoN(data.tY);
+       data.tWidth := LEtoN(data.tWidth);
+       data.tHeight := LEtoN(data.tHeight);
+       data.Wait := LEtoN(data.Wait);
+       data.Count := LEtoN(data.Count);
+       data.MonsterID := LEtoN(data.MonsterID);
+     end;
+     //TRIGGER_SECRET: ;
+     //TRIGGER_TEXTURE: ;
+     //TRIGGER_SOUND: ;
+     TRIGGER_SPAWNMONSTER:
+     begin
+       data.MonPos.X := LEtoN(data.MonPos.X);
+       data.MonPos.Y := LEtoN(data.MonPos.Y);
+       data.MonHealth := LEtoN(data.MonHealth);
+       data.MonCount := LEtoN(data.MonCount);
+       data.MonMax := LEtoN(data.MonMax);
+       data.MonDelay := LEtoN(data.MonDelay);
+     end;
+     TRIGGER_SPAWNITEM:
+     begin
+       data.ItemPos.X := LEtoN(data.ItemPos.X);
+       data.ItemPos.Y := LEtoN(data.ItemPos.Y);
+       data.ItemCount := LEtoN(data.ItemCount);
+       data.ItemMax := LEtoN(data.ItemMax);
+       data.ItemDelay := LEtoN(data.ItemDelay);
+     end;
+     //TRIGGER_MUSIC:
+     TRIGGER_PUSH:
+       data.PushAngle := LEtoN(data.PushAngle);
+     //TRIGGER_SCORE:
+     TRIGGER_MESSAGE:
+       data.MessageTime := LEtoN(data.MessageTime);
+     TRIGGER_DAMAGE:
+     begin
+       data.DamageValue := LEtoN(data.DamageValue);
+       data.DamageInterval := LEtoN(data.DamageInterval);
+     end;
+     TRIGGER_HEALTH:
+     begin
+       data.HealValue := LEtoN(data.HealValue);
+       data.HealInterval := LEtoN(data.HealInterval);
+     end;
+     TRIGGER_SHOT:
+     begin
+       data.ShotPos.X := LEtoN(data.ShotPos.X);
+       data.ShotPos.Y := LEtoN(data.ShotPos.Y);
+       data.ShotPanelID := LEtoN(data.ShotPanelID);
+       data.ShotIntSight := LEtoN(data.ShotIntSight);
+       data.ShotAngle := LEtoN(data.ShotAngle);
+       data.ShotWait := LEtoN(data.ShotWait);
+       data.ShotAccuracy := LEtoN(data.ShotAccuracy);
+       data.ShotAmmo := LEtoN(data.ShotAmmo);
+       data.ShotIntReload := LEtoN(data.ShotIntReload);
+     end;
+     TRIGGER_EFFECT:
+     begin
+       data.FXWait := LEtoN(data.FXWait);
+       data.FXVelX := LEtoN(data.FXVelX);
+       data.FXVelY := LEtoN(data.FXVelY);
+     end;
+   end;
+  end;
+ {$ENDIF}
 
  TempDataBlocks := nil;
 end;
@@ -379,6 +511,10 @@ begin
   _id := High(FDataBlocks);
 
   CopyMemory(@FDataBlocks[_id].Block, Pointer(PtrUInt(Data)+adr), SizeOf(TBlock));
+  {$IFDEF FPC_BIG_ENDIAN}
+    FDataBlocks[_id].Block.Reserved := LEtoN(FDataBlocks[_id].Block.Reserved);
+    FDataBlocks[_id].Block.BlockSize := LEtoN(FDataBlocks[_id].Block.BlockSize);
+  {$ENDIF}
   adr := adr+SizeOf(TBlock);
 
   FDataBlocks[_id].Data := GetMemory(FDataBlocks[_id].Block.BlockSize);
