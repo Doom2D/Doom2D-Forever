@@ -6766,7 +6766,7 @@ begin
   // Сохраняем временную карту:
   time := 0;
   repeat
-    newWAD := ExtractFilePath(TestD2dExe) + Format('maps/temp%.4d', [time]);
+    newWAD := Format('%s/temp%.4d', [MapsDir, time]);
     Inc(time);
   until not FileExists(newWAD);
   if OpenedMap <> '' then
@@ -6782,7 +6782,6 @@ begin
   end;
   tempMap := newWAD + ':\' + TEST_MAP_NAME;
   SaveMap(tempMap);
-  tempMap := ExtractRelativePath(ExtractFilePath(TestD2dExe) + 'maps/', tempMap);
 
 // Опции игры:
   opt := 32 + 64;
@@ -6800,6 +6799,11 @@ begin
 // Запускаем:
   proc := TProcessUTF8.Create(nil);
   proc.Executable := TestD2dExe;
+  {$IFDEF DARWIN}
+    // TODO: get real executable name from Info.plist
+    if LowerCase(ExtractFileExt(TestD2dExe)) = '.app' then
+      proc.Executable := TestD2dExe + DirectorySeparator + 'Contents' + DirectorySeparator + 'MacOS' + DirectorySeparator + 'Doom2DF';
+  {$ENDIF}
   proc.Parameters.Add('-map');
   proc.Parameters.Add(tempMap);
   proc.Parameters.Add('-gm');
