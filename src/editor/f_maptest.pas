@@ -177,7 +177,22 @@ begin
 
   config.Free();
 
-  FindD2dDialog.InitialDir := TestD2dExe;
+  {$IF DEFINED(DARWIN)}
+    if LowerCase(ExtractFileExt(TestD2dExe)) = '.app' then
+      FindD2dDialog.InitialDir := ExtractFileDir(TestD2dExe)
+    else
+      FindD2dDialog.InitialDir := TestD2dExe;
+    FindD2dDialog.DefaultExt := '.app';
+    FindD2dDialog.Filter := 'Doom 2D Forever.app|*.app|Doom 2D Forever (Unix Executable)|Doom2DF;*';
+  {$ELSEIF DEFINED(WINDOWS)}
+    FindD2dDialog.InitialDir := TestD2dExe;
+    FindD2dDialog.DefaultExt := '.exe';
+    FindD2dDialog.Filter := 'Doom2DF.exe|Doom2DF.exe;*.exe';
+  {$ELSE}
+    FindD2dDialog.InitialDir := TestD2dExe;
+    FindD2dDialog.DefaultExt := '';
+    FindD2dDialog.Filter := 'Doom2DF|Doom2DF;*';
+  {$ENDIF}
 end;
 
 procedure TMapTestForm.bChooseD2dClick(Sender: TObject);
