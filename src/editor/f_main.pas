@@ -71,8 +71,6 @@ type
     miMapOptions: TMenuItem;
     miLine6: TMenuItem;
     miOptions: TMenuItem;
-    miLine7: TMenuItem;
-    miMapTestSettings: TMenuItem;
   // "Справка":
     miMenuHelp: TMenuItem;
     miAbout: TMenuItem;
@@ -109,9 +107,6 @@ type
     miLayerP7: TMenuItem;
     miLayerP8: TMenuItem;
     miLayerP9: TMenuItem;
-  // Всплывающее меню для кнопки теста карты:
-    pmMapTest: TPopupMenu;
-    miMapTestPMSet: TMenuItem;
 
   // Панель карты:
     PanelMap: TPanel;
@@ -246,7 +241,6 @@ type
     procedure bClearTextureClick(Sender: TObject);
     procedure miPackMapClick(Sender: TObject);
     procedure aRecentFileExecute(Sender: TObject);
-    procedure miMapTestSettingsClick(Sender: TObject);
     procedure miTestMapClick(Sender: TObject);
     procedure sbVerticalScroll(Sender: TObject; ScrollCode: TScrollCode;
       var ScrollPos: Integer);
@@ -342,7 +336,7 @@ uses
   f_activationtype, f_keys, wadreader, fileutil,
   MAPREADER, f_selectmap, f_savemap, WADEDITOR, MAPDEF,
   g_map, f_saveminimap, f_addresource, CONFIG, f_packmap,
-  f_addresource_sound, f_maptest, f_choosetype,
+  f_addresource_sound, f_choosetype,
   g_language, f_selectlang, ClipBrd, g_resources, g_options;
 
 const
@@ -2737,6 +2731,24 @@ begin
 
   Compress := config.ReadBool('Editor', 'Compress', True);
   Backup := config.ReadBool('Editor', 'Backup', True);
+
+  TestGameMode := config.ReadStr('TestRun', 'GameMode', 'DM');
+  TestLimTime := config.ReadStr('TestRun', 'LimTime', '0');
+  TestLimScore := config.ReadStr('TestRun', 'LimScore', '0');
+  TestOptionsTwoPlayers := config.ReadBool('TestRun', 'TwoPlayers', False);
+  TestOptionsTeamDamage := config.ReadBool('TestRun', 'TeamDamage', False);
+  TestOptionsAllowExit := config.ReadBool('TestRun', 'AllowExit', True);
+  TestOptionsWeaponStay := config.ReadBool('TestRun', 'WeaponStay', False);
+  TestOptionsMonstersDM := config.ReadBool('TestRun', 'MonstersDM', False);
+  TestMapOnce := config.ReadBool('TestRun', 'MapOnce', False);
+  {$IF DEFINED(DARWIN)}
+    TestD2dExe := config.ReadStr('TestRun', 'ExeDrawin', GameExeFile);
+  {$ELSEIF DEFINED(WINDOWS)}
+    TestD2dExe := config.ReadStr('TestRun', 'ExeWindows', GameExeFile);
+  {$ELSE}
+    TestD2dExe := config.ReadStr('TestRun', 'ExeUnix', GameExeFile);
+  {$ENDIF}
+  TestD2DArgs := config.ReadStr('TestRun', 'Args', '');
 
   RecentCount := config.ReadInt('Editor', 'RecentCount', 5);
   if RecentCount > 10 then
@@ -6708,11 +6720,6 @@ end;
 procedure TMainForm.miPackMapClick(Sender: TObject);
 begin
   PackMapForm.ShowModal();
-end;
-
-procedure TMainForm.miMapTestSettingsClick(Sender: TObject);
-begin
-  MapTestForm.ShowModal();
 end;
 
 type SSArray = array of String;

@@ -7,7 +7,7 @@ interface
 uses
   LCLIntf, LCLType, SysUtils, Variants, Classes,
   Graphics, Controls, Forms, Dialogs, StdCtrls,
-  ExtCtrls, ComCtrls, Registry, Math;
+  ExtCtrls, ComCtrls, Registry, Math, Types;
 
 type
 
@@ -19,8 +19,11 @@ type
     cbCheckerboard: TCheckBox;
     cbCompress: TCheckBox;
     cbBackup: TCheckBox;
+    PageControl: TPageControl;
+    TabGeneral: TTabSheet;
+    TabFiles: TTabSheet;
+    TabTesting: TTabSheet;
     ColorDialog: TColorDialog;
-    GroupBox1: TGroupBox;
   // Общие настройки:
     cbShowDots: TCheckBox;
     cbShowTexture: TCheckBox;
@@ -55,6 +58,29 @@ type
     rbEnglish: TRadioButton;
     LabelGridSize: TLabel;
     cbDotSize: TComboBox;
+  // Map testing:
+    LabelPath: TLabel;
+    edD2dexe: TEdit;
+    bChooseD2d: TButton;
+    FindD2dDialog: TOpenDialog;
+    LabelArgs: TLabel;
+    edD2DArgs: TEdit;
+    rbCOOP: TRadioButton;
+    rbCTF: TRadioButton;
+    rbDM: TRadioButton;
+    rbTDM: TRadioButton;
+    cbAllowExit: TCheckBox;
+    cbMapOnce: TCheckBox;
+    cbMonstersDM: TCheckBox;
+    cbTeamDamage: TCheckBox;
+    cbTwoPlayers: TCheckBox;
+    cbWeaponStay: TCheckBox;
+    LabelScore: TLabel;
+    LabelSecs: TLabel;
+    edScore: TEdit;
+    LabelTime: TLabel;
+    edTime: TEdit;
+
 
     procedure bGridClick(Sender: TObject);
     procedure FormActivate(Sender: TObject);
@@ -62,6 +88,8 @@ type
     procedure bCancelClick(Sender: TObject);
     procedure bBackClick(Sender: TObject);
     procedure bPreviewClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure bChooseD2dClick(Sender: TObject);
 
   private
     { Private declarations }
@@ -111,6 +139,12 @@ begin
     sDotColor.Brush.Color := ColorDialog.Color;
 end;
 
+procedure TOptionsForm.bChooseD2dClick(Sender: TObject);
+begin
+  if FindD2dDialog.Execute then
+    edD2dExe.Text := FindD2dDialog.FileName;
+end;
+
 procedure TOptionsForm.FormActivate(Sender: TObject);
 begin
   sDotColor.Brush.Color := DotColor;
@@ -145,21 +179,37 @@ begin
       rbRussian.Checked := False;
       rbEnglish.Checked := True;
     end;
+
+  if TestGameMode = 'TDM' then
+    rbTDM.Checked := True
+  else if TestGameMode = 'CTF' then
+    rbCTF.Checked := True
+  else if TestGameMode = 'COOP' then
+    rbCOOP.Checked := True
+  else
+    rbDM.Checked := True;
+
+  edTime.Text := TestLimTime;
+  edScore.Text := TestLimScore;
+  cbTwoPlayers.Checked := TestOptionsTwoPlayers;
+  cbTeamDamage.Checked := TestOptionsTeamDamage;
+  cbAllowExit.Checked := TestOptionsAllowExit;
+  cbWeaponStay.Checked := TestOptionsWeaponStay;
+  cbMonstersDM.Checked := TestOptionsMonstersDM;
+  cbMapOnce.Checked := TestMapOnce;
+  edD2dExe.Text := TestD2dExe;
+  edD2DArgs.Text := TestD2DArgs;
 end;
 
 procedure TOptionsForm.bOKClick(Sender: TObject);
 var
   config: TConfig;
-  re: Integer;
+  re, n: Integer;
   d1: Boolean;
   str: String;
 
 begin
-  re := StrToIntDef(eRecent.Text, 5);
-  if re < 2 then
-    re := 2;
-  if re > 10 then
-    re := 10;
+  // General tab
 
   if rbRussian.Checked then
     str := LANGUAGE_RUSSIAN
@@ -194,8 +244,6 @@ begin
   BackColor := sBackColor.Brush.Color;
   PreviewColor := sPreviewColor.Brush.Color;
   UseCheckerboard := cbCheckerboard.Checked;
-  Compress := cbCompress.Checked;
-  Backup := cbBackup.Checked;
 
   if cbScale.ItemIndex = 1 then
     Scale := 2
@@ -206,6 +254,43 @@ begin
     DotSize := 2
   else
     DotSize := 1;
+
+  // Files tab
+
+  re := Min(Max(StrToIntDef(eRecent.Text, 5), 2), 10);
+  Compress := cbCompress.Checked;
+  Backup := cbBackup.Checked;
+
+  // Testing tab
+
+  if rbTDM.Checked then
+    TestGameMode := 'TDM'
+  else if rbCTF.Checked then
+    TestGameMode := 'CTF'
+  else if rbCOOP.Checked then
+    TestGameMode := 'COOP'
+  else
+    TestGameMode := 'DM';
+
+  TestLimTime := edTime.Text;
+  if (not TryStrToInt(TestLimTime, n)) then
+    TestLimTime := '0';
+
+  TestLimScore := edScore.Text;
+  if (not TryStrToInt(TestLimScore, n)) then
+    TestLimScore := '0';
+
+  TestOptionsTwoPlayers := cbTwoPlayers.Checked;
+  TestOptionsTeamDamage := cbTeamDamage.Checked;
+  TestOptionsAllowExit := cbAllowExit.Checked;
+  TestOptionsWeaponStay := cbWeaponStay.Checked;
+  TestOptionsMonstersDM := cbMonstersDM.Checked;
+  TestMapOnce := cbMapOnce.Checked;
+
+  TestD2dExe := edD2dExe.Text;
+  TestD2DArgs := edD2DArgs.Text;
+
+  // save into config
 
   config := TConfig.CreateFile(CfgFileName);
 
@@ -221,10 +306,29 @@ begin
   config.WriteInt('Editor', 'PreviewColor', PreviewColor);
   config.WriteBool('Editor', 'UseCheckerboard', UseCheckerboard);
   config.WriteInt('Editor', 'Scale', cbScale.ItemIndex);
-  config.WriteInt('Editor', 'RecentCount', re);
   config.WriteStr('Editor', 'Language', gLanguage);
+
+  config.WriteInt('Editor', 'RecentCount', re);
   config.WriteBool('Editor', 'Compress', Compress);
   config.WriteBool('Editor', 'Backup', Backup);
+
+  config.WriteStr('TestRun', 'GameMode', TestGameMode);
+  config.WriteStr('TestRun', 'LimTime', TestLimTime);
+  config.WriteStr('TestRun', 'LimScore', TestLimScore);
+  config.WriteBool('TestRun', 'TwoPlayers', TestOptionsTwoPlayers);
+  config.WriteBool('TestRun', 'TeamDamage', TestOptionsTeamDamage);
+  config.WriteBool('TestRun', 'AllowExit', TestOptionsAllowExit);
+  config.WriteBool('TestRun', 'WeaponStay', TestOptionsWeaponStay);
+  config.WriteBool('TestRun', 'MonstersDM', TestOptionsMonstersDM);
+  config.WriteBool('TestRun', 'MapOnce', TestMapOnce);
+  {$IF DEFINED(DARWIN)}
+    config.WriteStr('TestRun', 'ExeDrawin', TestD2dExe);
+  {$ELSEIF DEFINED(WINDOWS)}
+    config.WriteStr('TestRun', 'ExeWindows', TestD2dExe);
+  {$ELSE}
+    config.WriteStr('TestRun', 'ExeUnix', TestD2dExe);
+  {$ENDIF}
+  config.WriteStr('TestRun', 'Args', TestD2DArgs);
 
   if RecentCount <> re then
   begin
@@ -252,6 +356,26 @@ procedure TOptionsForm.bPreviewClick(Sender: TObject);
 begin
   if ColorDialog.Execute then
     sPreviewColor.Brush.Color := ColorDialog.Color;
+end;
+
+procedure TOptionsForm.FormCreate(Sender: TObject);
+begin
+  {$IF DEFINED(DARWIN)}
+    if LowerCase(ExtractFileExt(TestD2dExe)) = '.app' then
+      FindD2dDialog.InitialDir := ExtractFileDir(TestD2dExe)
+    else
+      FindD2dDialog.InitialDir := TestD2dExe;
+    FindD2dDialog.DefaultExt := '.app';
+    FindD2dDialog.Filter := 'Doom 2D Forever.app|*.app|Doom 2D Forever (Unix Executable)|Doom2DF;*';
+  {$ELSEIF DEFINED(WINDOWS)}
+    FindD2dDialog.InitialDir := TestD2dExe;
+    FindD2dDialog.DefaultExt := '.exe';
+    FindD2dDialog.Filter := 'Doom2DF.exe|Doom2DF.exe;*.exe';
+  {$ELSE}
+    FindD2dDialog.InitialDir := TestD2dExe;
+    FindD2dDialog.DefaultExt := '';
+    FindD2dDialog.Filter := 'Doom2DF|Doom2DF;*';
+  {$ENDIF}
 end;
 
 end.

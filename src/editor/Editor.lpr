@@ -44,7 +44,6 @@ uses
   spectrum in 'spectrum.pas',
   f_saveminimap in 'f_saveminimap.pas' {SaveMiniMapForm},
   f_packmap in 'f_packmap.pas' {PackMapForm},
-  f_maptest in 'f_maptest.pas' {MapTestForm},
   f_choosetype in 'f_choosetype.pas' {ChooseTypeForm},
 {$IFNDEF NOSOUND}
   fmod,
@@ -253,7 +252,6 @@ begin
   Application.CreateForm(TAddSoundForm, AddSoundForm);
   Application.CreateForm(TSaveMiniMapForm, SaveMiniMapForm);
   Application.CreateForm(TPackMapForm, PackMapForm);
-  Application.CreateForm(TMapTestForm, MapTestForm);
   Application.CreateForm(TChooseTypeForm, ChooseTypeForm);
   Application.CreateForm(TSelectLanguageForm, SelectLanguageForm);
 

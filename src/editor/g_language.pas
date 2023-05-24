@@ -657,7 +657,7 @@ Uses
   SysUtils, e_log, f_main, f_about, f_activationtype,
   f_addresource_sky, f_addresource_sound,
   f_addresource_texture, f_choosetype, f_keys, f_mapcheck,
-  f_mapoptions, f_maptest, f_mapoptimization, f_options,
+  f_mapoptions, f_mapoptimization, f_options,
   f_packmap, f_savemap, f_saveminimap, f_selectmap, Forms, utils;
 
 Const
@@ -2121,7 +2121,6 @@ begin
     miMenuSettings.Caption := _lc[I_MENU_SETS];
     miMapOptions.Caption := _lc[I_MENU_SETS_MAP];
     miOptions.Caption := _lc[I_MENU_SETS_EDITOR];
-    miMapTestSettings.Caption := _lc[I_MENU_SETS_LAUNCH];
   // "Справка":
     miMenuHelp.Caption := _lc[I_MENU_HELP];
     miAbout.Caption := _lc[I_MENU_HELP_ABOUT];
@@ -2146,8 +2145,6 @@ begin
     miLayerP7.Caption := _lc[I_MENU_LAYER_MONSTER];
     miLayerP8.Caption := _lc[I_MENU_LAYER_AREA];
     miLayerP9.Caption := _lc[I_MENU_LAYER_TRIGGER];
-  // Всплывающее меню для кнопки теста карты:
-    miMapTestPMSet.Caption := _lc[I_MENU_LAUNCH_SETS];
 
   // Кнопка применения свойств:
     bApplyProperty.Caption := _lc[I_BTN_APPLY_PROPS];
@@ -2327,18 +2324,33 @@ begin
     bCancel.Caption := _lc[I_BTN_CANCEL];
   end;
 
-// Форма "Настройки теста карты":
-  with MapTestForm do
+// From "Editor settings":
+  with OptionsForm do
   begin
-    Caption := _lc[I_CAP_LAUNCH];
+    Caption := _lc[I_CAP_ES];
     bOK.Caption := _lc[I_BTN_OK];
     bCancel.Caption := _lc[I_BTN_CANCEL];
-  // Режим игры:
+  // TabGeneral:
+    cbShowDots.Caption := _lc[I_CTRL_ES_GRID];
+    cbShowTexture.Caption := _lc[I_CTRL_ES_TEXTURE];
+    cbShowSize.Caption := _lc[I_CTRL_ES_PANEL_SIZE];
+    cbCheckerboard.Caption := _lc[I_CTRL_ES_CHECKERBOARD];
+    LabelGrid.Caption := _lc[I_LAB_ES_GRID];
+    LabelGridCol.Caption := _lc[I_LAB_ES_GRID_COLOR];
+    LabelGridSize.Caption := _lc[I_LAB_ES_GRID_SIZE];
+    LabelBack.Caption := _lc[I_LAB_ES_BACK];
+    LabelPreview.Caption := _lc[I_LAB_ES_PREVIEW];
+    LabelMinimap.Caption := _lc[I_LAB_ES_MINIMAP];
+    LabelLanguage.Caption := _lc[I_LAB_ES_LANGUAGE];
+  // TabFiles:
+    cbCompress.Caption := _lc[I_LAB_ES_COMPRESS];
+    cbBackup.Caption := _lc[I_LAB_ES_BACKUP];
+    LabelRecent.Caption := _lc[I_LAB_ES_RECENT];
+  // TabTesting:
     rbDM.Caption := _lc[I_CTRL_LAUNCH_DM];
     rbTDM.Caption := _lc[I_CTRL_LAUNCH_TDM];
     rbCTF.Caption := _lc[I_CTRL_LAUNCH_CTF];
     rbCOOP.Caption := _lc[I_CTRL_LAUNCH_COOP];
-  // Опции:
     cbTwoPlayers.Caption := _lc[I_CTRL_LAUNCH_2P];
     cbTeamDamage.Caption := _lc[I_CTRL_LAUNCH_FF];
     cbAllowExit.Caption := _lc[I_CTRL_LAUNCH_EXIT];
@@ -2348,34 +2360,9 @@ begin
     LabelTime.Caption := _lc[I_LAB_LAUNCH_TIME];
     LabelSecs.Caption := _lc[I_LAB_LAUNCH_SECS];
     LabelScore.Caption := _lc[I_LAB_LAUNCH_SCORE];
-  // Путь:
     LabelPath.Caption := _lc[I_LAB_LAUNCH_PATH];
     FindD2dDialog.Title := _lc[I_CTRL_LAUNCH_OPEN];
-
     LabelArgs.Caption := _lc[I_LAB_LAUNCH_ARGS];
-  end;
-
-// Форма "Настройки редактора":
-  with OptionsForm do
-  begin
-    Caption := _lc[I_CAP_ES];
-    bOK.Caption := _lc[I_BTN_OK];
-    bCancel.Caption := _lc[I_BTN_CANCEL];
-  // Настройки:
-    cbShowDots.Caption := _lc[I_CTRL_ES_GRID];
-    cbShowTexture.Caption := _lc[I_CTRL_ES_TEXTURE];
-    cbShowSize.Caption := _lc[I_CTRL_ES_PANEL_SIZE];
-    cbCheckerboard.Caption := _lc[I_CTRL_ES_CHECKERBOARD];
-    cbCompress.Caption := _lc[I_LAB_ES_COMPRESS];
-    cbBackup.Caption := _lc[I_LAB_ES_BACKUP];
-    LabelGrid.Caption := _lc[I_LAB_ES_GRID];
-    LabelGridCol.Caption := _lc[I_LAB_ES_GRID_COLOR];
-    LabelGridSize.Caption := _lc[I_LAB_ES_GRID_SIZE];
-    LabelBack.Caption := _lc[I_LAB_ES_BACK];
-    LabelPreview.Caption := _lc[I_LAB_ES_PREVIEW];
-    LabelMinimap.Caption := _lc[I_LAB_ES_MINIMAP];
-    LabelRecent.Caption := _lc[I_LAB_ES_RECENT];
-    LabelLanguage.Caption := _lc[I_LAB_ES_LANGUAGE];
   end;
 
 // Форма "Упаковать карту":
