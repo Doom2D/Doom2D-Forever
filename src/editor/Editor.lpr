@@ -228,6 +228,10 @@ begin
   Application.ExceptionDialog := aedOkMessageBox;
   Application.AddOnExceptionHandler(THandlerObject.ExceptionHandler, True);
   Application.Initialize();
+  {$IFDEF DARWIN}
+    // Disable icons in menu on OSX by default
+    Application.ShowMenuGlyphs := sbgNever;
+  {$ENDIF}
 
   InitPathes;
   CheckParamOptions;
