@@ -1,11 +1,11 @@
 object MainForm: TMainForm
-  Left = 432
+  Left = 221
   Height = 480
-  Top = 732
+  Top = 232
   Width = 672
   AllowDropFiles = True
   Caption = '2'
-  ClientHeight = 453
+  ClientHeight = 480
   ClientWidth = 672
   Color = clBtnFace
   Constraints.MinHeight = 480
@@ -23,10 +23,11 @@ object MainForm: TMainForm
   OnKeyDown = FormKeyDown
   OnKeyUp = FormKeyUp
   OnResize = FormResize
+  OnWindowStateChange = FormWindowStateChange
   LCLVersion = '2.2.4.0'
   object Splitter1: TSplitter
     Left = 518
-    Height = 284
+    Height = 317
     Top = 34
     Width = 5
     Align = alRight
@@ -40,7 +41,7 @@ object MainForm: TMainForm
     Cursor = crVSplit
     Left = 0
     Height = 3
-    Top = 318
+    Top = 351
     Width = 672
     Align = alBottom
     MinSize = 64
@@ -50,18 +51,18 @@ object MainForm: TMainForm
   end
   object PanelProps: TPanel
     Left = 523
-    Height = 284
+    Height = 317
     Top = 34
     Width = 149
     Align = alRight
     BevelInner = bvRaised
     BevelOuter = bvLowered
-    ClientHeight = 284
+    ClientHeight = 317
     ClientWidth = 149
     TabOrder = 0
     object vleObjectProperty: TValueListEditor
       Left = 2
-      Height = 250
+      Height = 283
       Top = 2
       Width = 145
       Align = alClient
@@ -102,7 +103,7 @@ object MainForm: TMainForm
     object PanelPropApply: TPanel
       Left = 2
       Height = 30
-      Top = 252
+      Top = 285
       Width = 145
       Align = alBottom
       BevelOuter = bvNone
@@ -122,18 +123,18 @@ object MainForm: TMainForm
   end
   object PanelMap: TPanel
     Left = 0
-    Height = 284
+    Height = 317
     Top = 34
     Width = 518
     Align = alClient
     BevelOuter = bvNone
-    ClientHeight = 284
+    ClientHeight = 317
     ClientWidth = 518
     TabOrder = 1
     object sbHorizontal: TScrollBar
       Left = 0
       Height = 16
-      Top = 268
+      Top = 301
       Width = 518
       Align = alBottom
       LargeChange = 256
@@ -146,7 +147,7 @@ object MainForm: TMainForm
     end
     object sbVertical: TScrollBar
       Left = 502
-      Height = 268
+      Height = 301
       Top = 0
       Width = 16
       Align = alRight
@@ -161,7 +162,7 @@ object MainForm: TMainForm
     end
     object RenderPanel: TOpenGLControl
       Left = 0
-      Height = 268
+      Height = 301
       Top = 0
       Width = 502
       Align = alClient
@@ -201,8 +202,8 @@ object MainForm: TMainForm
   end
   object StatusBar: TStatusBar
     Left = 0
-    Height = 21
-    Top = 432
+    Height = 15
+    Top = 465
     Width = 672
     AutoHint = True
     Panels = <    
@@ -218,7 +219,7 @@ object MainForm: TMainForm
   object PanelObjs: TPanel
     Left = 0
     Height = 111
-    Top = 321
+    Top = 354
     Width = 672
     Align = alBottom
     BevelInner = bvRaised
@@ -239,48 +240,48 @@ object MainForm: TMainForm
       TabOrder = 0
       object tsPanels: TTabSheet
         Caption = 'Панели'
-        ClientHeight = 77
-        ClientWidth = 664
+        ClientHeight = 68
+        ClientWidth = 662
         ImageIndex = 12
         object lbTextureList: TListBox
           Left = 206
-          Height = 77
+          Height = 70
           Hint = 'Список текстур'
           Top = 0
-          Width = 246
+          Width = 244
           Align = alClient
           Constraints.MaxHeight = 600
           Constraints.MinHeight = 70
           ItemHeight = 13
           OnClick = lbTextureListClick
           OnDrawItem = lbTextureListDrawItem
+          Options = [lboDrawFocusRect]
           Style = lbOwnerDrawFixed
           TabOrder = 0
-          TopIndex = -1
         end
         object PanelTextures: TPanel
-          Left = 452
-          Height = 77
+          Left = 450
+          Height = 68
           Top = 0
           Width = 212
           Align = alRight
           BevelOuter = bvNone
-          ClientHeight = 77
+          ClientHeight = 68
           ClientWidth = 212
           TabOrder = 1
           object LabelTxH: TLabel
             Left = 33
-            Height = 14
+            Height = 13
             Top = 22
-            Width = 105
+            Width = 95
             Caption = 'Высота текстуры:'
             ParentColor = False
           end
           object LabelTxW: TLabel
             Left = 33
-            Height = 14
+            Height = 13
             Top = 0
-            Width = 109
+            Width = 101
             Caption = 'Ширина текстуры:'
             ParentColor = False
           end
@@ -302,9 +303,9 @@ object MainForm: TMainForm
           end
           object cbPreview: TCheckBox
             Left = 35
-            Height = 21
+            Height = 18
             Top = 54
-            Width = 187
+            Width = 205
             Caption = 'Предварительный просмотр'
             TabOrder = 0
           end
@@ -340,17 +341,17 @@ object MainForm: TMainForm
         end
         object PanelPanelType: TPanel
           Left = 0
-          Height = 77
+          Height = 68
           Top = 0
           Width = 206
           Align = alLeft
           BevelOuter = bvNone
-          ClientHeight = 77
+          ClientHeight = 68
           ClientWidth = 206
           TabOrder = 2
           object lbPanelType: TListBox
             Left = 0
-            Height = 77
+            Height = 68
             Hint = 'Тип панели'
             Top = 0
             Width = 201
@@ -370,18 +371,19 @@ object MainForm: TMainForm
               'Блокиратор монстров'
             )
             ItemHeight = 20
+            Options = [lboDrawFocusRect]
             TabOrder = 0
           end
         end
       end
       object tsItems: TTabSheet
         Caption = 'Предметы'
-        ClientHeight = 77
-        ClientWidth = 664
+        ClientHeight = 68
+        ClientWidth = 662
         ImageIndex = 4
         object lbItemList: TListBox
           Left = 0
-          Height = 77
+          Height = 68
           Hint = 'Список предметов'
           Top = 0
           Width = 201
@@ -420,35 +422,35 @@ object MainForm: TMainForm
             'Бутылек здоровья'
             'Часть брони'
           )
-          ItemHeight = 0
+          ItemHeight = 20
+          Options = [lboDrawFocusRect]
           TabOrder = 0
-          TopIndex = -1
         end
         object cbOnlyDM: TCheckBox
           Left = 208
-          Height = 21
+          Height = 18
           Top = 0
-          Width = 110
+          Width = 102
           Caption = 'Только в DM'
           TabOrder = 1
         end
         object cbFall: TCheckBox
           Left = 208
-          Height = 21
+          Height = 18
           Top = 16
-          Width = 74
+          Width = 67
           Caption = 'Падает'
           TabOrder = 2
         end
       end
       object tsMonsters: TTabSheet
         Caption = 'Монстры'
-        ClientHeight = 77
-        ClientWidth = 664
+        ClientHeight = 68
+        ClientWidth = 662
         ImageIndex = 15
         object lbMonsterList: TListBox
           Left = 0
-          Height = 77
+          Height = 68
           Hint = 'Список монстров'
           Top = 0
           Width = 201
@@ -475,15 +477,15 @@ object MainForm: TMainForm
             'Робот'
             'Приколист'
           )
-          ItemHeight = 0
+          ItemHeight = 20
+          Options = [lboDrawFocusRect]
           TabOrder = 0
-          TopIndex = -1
         end
         object rbMonsterLeft: TRadioButton
           Left = 208
-          Height = 21
+          Height = 18
           Top = 0
-          Width = 65
+          Width = 58
           Caption = 'Влево'
           Checked = True
           TabOrder = 1
@@ -491,21 +493,21 @@ object MainForm: TMainForm
         end
         object rbMonsterRight: TRadioButton
           Left = 208
-          Height = 21
+          Height = 18
           Top = 16
-          Width = 73
+          Width = 66
           Caption = 'Вправо'
           TabOrder = 2
         end
       end
       object tsAreas: TTabSheet
         Caption = 'Области'
-        ClientHeight = 77
-        ClientWidth = 664
+        ClientHeight = 68
+        ClientWidth = 662
         ImageIndex = 3
         object lbAreasList: TListBox
           Left = 0
-          Height = 77
+          Height = 68
           Hint = 'Список областей'
           Top = 0
           Width = 201
@@ -520,15 +522,15 @@ object MainForm: TMainForm
             'Красная команда'
             'Синяя команда'
           )
-          ItemHeight = 0
+          ItemHeight = 20
+          Options = [lboDrawFocusRect]
           TabOrder = 0
-          TopIndex = -1
         end
         object rbAreaLeft: TRadioButton
           Left = 208
-          Height = 21
+          Height = 18
           Top = 0
-          Width = 65
+          Width = 58
           Caption = 'Влево'
           Checked = True
           TabOrder = 1
@@ -536,21 +538,21 @@ object MainForm: TMainForm
         end
         object rbAreaRight: TRadioButton
           Left = 208
-          Height = 21
+          Height = 18
           Top = 16
-          Width = 73
+          Width = 66
           Caption = 'Вправо'
           TabOrder = 2
         end
       end
       object tsTriggers: TTabSheet
         Caption = 'Триггеры'
-        ClientHeight = 77
-        ClientWidth = 664
+        ClientHeight = 68
+        ClientWidth = 662
         ImageIndex = 6
         object lbTriggersList: TListBox
           Left = 0
-          Height = 77
+          Height = 68
           Hint = 'Список триггеров'
           Top = 0
           Width = 201
@@ -578,13 +580,13 @@ object MainForm: TMainForm
             'Создать предмет'
             'Музыка'
           )
-          ItemHeight = 0
+          ItemHeight = 20
+          Options = [lboDrawFocusRect]
           TabOrder = 0
-          TopIndex = -1
         end
         object clbActivationType: TCheckListBox
           Left = 201
-          Height = 77
+          Height = 68
           Hint = 'Тип активации триггера'
           Top = 0
           Width = 128
@@ -597,16 +599,15 @@ object MainForm: TMainForm
             'Выстрел'
             'Монстров нет'
           )
-          ItemHeight = 0
+          ItemHeight = 20
           TabOrder = 1
-          TopIndex = -1
           Data = {
             06000000000000000000
           }
         end
         object clbKeys: TCheckListBox
           Left = 329
-          Height = 77
+          Height = 68
           Hint = 'Ключи для активации'
           Top = 0
           Width = 128
@@ -618,9 +619,8 @@ object MainForm: TMainForm
             'Красная команда'
             'Синяя команда'
           )
-          ItemHeight = 0
+          ItemHeight = 20
           TabOrder = 2
-          TopIndex = -1
           Data = {
             050000000000000000
           }
@@ -749,12 +749,12 @@ object MainForm: TMainForm
     DefaultExt = '.dfz'
     Filter = 'Карты Doom 2D: Forever (*.dfz, *.dfzip, *.zip, *.wad)|*.dfz;*.dfzip;*.zip;*.wad|Старые карты Doom 2D: Forever 0.30 (*.ini)|*.ini|Все файлы (*.*)|*.*'
     Options = [ofHideReadOnly, ofNoChangeDir, ofPathMustExist, ofFileMustExist, ofEnableSizing, ofDontAddToRecent]
-    left = 32
-    top = 64
+    Left = 32
+    Top = 64
   end
   object ImageList: TImageList
-    left = 32
-    top = 101
+    Left = 32
+    Top = 101
     Bitmap = {
       4C7A1E00000010000000100000003A1000000000000078DAED5D4DAC234711F6
       D1471FDFD512A018118209903884102C72F101212B512483E06090001F22300A
@@ -893,81 +893,130 @@ object MainForm: TMainForm
     DefaultExt = '.dfz'
     Filter = 'Карты Doom 2D: Forever (*.dfz)|*.dfz|Карты Doom 2D: Forever (*.dfzip)|*.dfzip|Карты Doom 2D: Forever (*.zip)|*.zip|Карты Doom 2D: Forever (*.wad)|*.wad|Все файлы (*.*)|*.*'
     Options = [ofHideReadOnly, ofNoChangeDir, ofPathMustExist, ofNoReadOnlyReturn, ofEnableSizing, ofDontAddToRecent]
-    left = 64
-    top = 64
+    Left = 64
+    Top = 64
   end
   object MainMenu: TMainMenu
     Images = ImageList
-    left = 96
-    top = 64
+    Left = 96
+    Top = 64
+    object miApple: TMenuItem
+      Caption = ''
+      Enabled = False
+      Visible = False
+      object miAppleAbout: TMenuItem
+        Caption = 'About Editor'
+        OnClick = aAboutExecute
+      end
+      object miAppleLine0: TMenuItem
+        Caption = '-'
+      end
+      object miApplePref: TMenuItem
+        Caption = 'Preferences...'
+        ShortCut = 4284
+        OnClick = aEditorOptionsExecute
+      end
+      object miAppleLine1: TMenuItem
+        Caption = '-'
+      end
+    end
     object miMenuFile: TMenuItem
-      Caption = 'Файл'
+      Caption = 'File'
       object miNewMap: TMenuItem
-        Caption = 'Новая карта'
+        Caption = 'New'
         ImageIndex = 0
         ShortCut = 16462
         OnClick = aNewMapExecute
       end
       object miOpenMap: TMenuItem
-        Caption = 'Открыть карту'
+        Caption = 'Open...'
         ImageIndex = 1
         ShortCut = 16463
         OnClick = aOpenMapExecute
       end
+      object miMacRecentSubMenu: TMenuItem
+        Caption = 'Open Recent'
+        Enabled = False
+        Visible = False
+        object miMacRecentEnd: TMenuItem
+          Caption = '-'
+        end
+        object miMacRecentClear: TMenuItem
+          Caption = 'Clear Recent'
+          OnClick = miMacRecentClearClick
+        end
+      end
+      object Separator1: TMenuItem
+        Caption = '-'
+      end
       object miSaveMap: TMenuItem
-        Caption = 'Сохранить карту'
+        Caption = 'Save'
         ImageIndex = 2
         ShortCut = 16467
         OnClick = aSaveMapExecute
       end
       object miSaveMapAs: TMenuItem
-        Caption = 'Сохранить карту как...'
+        Caption = 'Save As...'
         ImageIndex = 21
         OnClick = aSaveMapAsExecute
       end
       object miOpenWadMap: TMenuItem
-        Caption = 'Выбрать карту'
+        Caption = 'Select Map...'
         ImageIndex = 28
         OnClick = miOpenWadMapClick
       end
-      object miLine1: TMenuItem
-        Caption = '-'
-      end
       object miReopenMap: TMenuItem
-        Caption = 'Открыть заново'
+        Caption = 'Revert to Saved'
         ImageIndex = 1
         ShortCut = 116
         OnClick = miReopenMapClick
       end
+      object miLine1: TMenuItem
+        Caption = '-'
+      end
       object miSaveMiniMap: TMenuItem
-        Caption = 'Сохранить мини-карту'
+        Caption = 'Export Minimap...'
         ImageIndex = 22
         OnClick = miSaveMiniMapClick
       end
       object miDeleteMap: TMenuItem
-        Caption = 'Удалить карту из WAD...'
+        Caption = 'Delete from WAD...'
         ImageIndex = 11
         OnClick = aDeleteMap
       end
       object miPackMap: TMenuItem
-        Caption = 'Упаковать карту'
+        Caption = 'Pack to WAD...'
         ImageIndex = 26
         OnClick = miPackMapClick
       end
+      object miWinRecentStart: TMenuItem
+        Caption = '-'
+        Enabled = False
+        Visible = False
+      end
+      object miWinRecent: TMenuItem
+        Caption = 'Recent Files'
+        Enabled = False
+        Visible = False
+      end
       object miLine2: TMenuItem
         Caption = '-'
+        Enabled = False
+        Visible = False
       end
       object miExit: TMenuItem
-        Caption = 'Выход'
+        Caption = 'Exit'
+        Enabled = False
         ImageIndex = 10
         ShortCut = 121
+        Visible = False
         OnClick = aExitExecute
       end
     end
     object miMenuEdit: TMenuItem
-      Caption = 'Правка'
+      Caption = 'Edit'
       object miUndo: TMenuItem
-        Caption = 'Отменить'
+        Caption = 'Undo'
         Enabled = False
         ImageIndex = 5
         ShortCut = 16474
@@ -977,21 +1026,21 @@ object MainForm: TMainForm
         Caption = '-'
       end
       object miCopy: TMenuItem
-        Caption = 'Копировать объект'
+        Caption = 'Copy'
         Enabled = False
         ImageIndex = 8
         ShortCut = 16451
         OnClick = aCopyObjectExecute
       end
       object miCut: TMenuItem
-        Caption = 'Вырезать объект'
+        Caption = 'Cut'
         Enabled = False
         ImageIndex = 7
         ShortCut = 16472
         OnClick = aCutObjectExecute
       end
       object miPaste: TMenuItem
-        Caption = 'Вставить объект'
+        Caption = 'Paste'
         ImageIndex = 9
         ShortCut = 16470
         OnClick = aPasteObjectExecute
@@ -1000,7 +1049,7 @@ object MainForm: TMainForm
         Caption = '-'
       end
       object miSelectAll: TMenuItem
-        Caption = 'Выделить все объекты'
+        Caption = 'Select All'
         ImageIndex = 24
         ShortCut = 16449
         OnClick = aSelectAllExecute
@@ -1008,48 +1057,56 @@ object MainForm: TMainForm
       object miLine5: TMenuItem
         Caption = '-'
       end
+      object miSnapToGrid: TMenuItem
+        Caption = 'Snap to Grid'
+        ImageIndex = 20
+        ShortCut = 16465
+        OnClick = miSnapToGridClick
+      end
+      object miSwitchGrid: TMenuItem
+        Caption = 'Switch Grid Granularity'
+        ImageIndex = 19
+        ShortCut = 16453
+        OnClick = miSwitchGridClick
+      end
+      object Separator2: TMenuItem
+        Caption = '-'
+      end
       object miToFore: TMenuItem
-        Caption = 'Передвинуть вперед'
+        Caption = 'Bring to Front'
         Enabled = False
         ImageIndex = 25
         ShortCut = 16605
         OnClick = aMoveToFore
       end
       object miToBack: TMenuItem
-        Caption = 'Передвинуть назад'
+        Caption = 'Send to Back'
         Enabled = False
         ImageIndex = 13
         ShortCut = 16603
         OnClick = aMoveToBack
       end
-    end
-    object miMenuTools: TMenuItem
-      Caption = 'Инструменты'
-      object miSnapToGrid: TMenuItem
-        Caption = 'Привязка к сетке'
-        ImageIndex = 20
-        ShortCut = 16465
-        OnClick = miSnapToGridClick
+      object miLine6: TMenuItem
+        Caption = '-'
       end
-      object miMiniMap: TMenuItem
-        Caption = 'Мини-карта'
+      object miMapOptions: TMenuItem
+        Caption = 'Map Properties...'
         ImageIndex = 14
-        ShortCut = 16471
-        OnClick = miMiniMapClick
+        ShortCut = 16461
+        OnClick = aMapOptionsExecute
       end
-      object miSwitchGrid: TMenuItem
-        Caption = 'Переключить сетку'
-        ImageIndex = 19
-        ShortCut = 16453
-        OnClick = miSwitchGridClick
+      object miOptions: TMenuItem
+        Caption = 'Preferences...'
+        Enabled = False
+        ImageIndex = 16
+        Visible = False
+        OnClick = aEditorOptionsExecute
       end
-      object miShowEdges: TMenuItem
-        Caption = 'Границы карты'
-        ImageIndex = 29
-        OnClick = miShowEdgesClick
-      end
+    end
+    object miMenuView: TMenuItem
+      Caption = 'View'
       object miLayers: TMenuItem
-        Caption = 'Слои'
+        Caption = 'Show Layers'
         ImageIndex = 25
         object miLayer1: TMenuItem
           Caption = 'Фон'
@@ -1098,57 +1155,73 @@ object MainForm: TMainForm
           OnClick = miLayer9Click
         end
       end
-    end
-    object miMenuService: TMenuItem
-      Caption = 'Сервис'
-      object miCheckMap: TMenuItem
-        Caption = 'Проверка карты'
-        ImageIndex = 17
-        OnClick = aCheckMapExecute
+      object miViewLine1: TMenuItem
+        Caption = '-'
       end
-      object miOptimmization: TMenuItem
-        Caption = 'Оптимизация карты'
-        ImageIndex = 18
-        OnClick = aOptimizeExecute
+      object miMiniMap: TMenuItem
+        Caption = 'Show Minimap'
+        ImageIndex = 14
+        ShortCut = 16471
+        OnClick = miMiniMapClick
+      end
+      object miShowEdges: TMenuItem
+        Caption = 'Show Map Bounds'
+        ImageIndex = 29
+        OnClick = miShowEdgesClick
+      end
+      object miViewLine2: TMenuItem
+        Caption = '-'
       end
       object miMapPreview: TMenuItem
-        Caption = 'Предварительный просмотр'
+        Caption = 'Preview Mode'
         ImageIndex = 23
         ShortCut = 9
         OnClick = miMapPreviewClick
       end
+    end
+    object miMenuService: TMenuItem
+      Caption = 'Service'
+      object miCheckMap: TMenuItem
+        Caption = 'Analyse Map...'
+        ImageIndex = 17
+        OnClick = aCheckMapExecute
+      end
+      object miOptimmization: TMenuItem
+        Caption = 'Optimize Map...'
+        ImageIndex = 18
+        OnClick = aOptimizeExecute
+      end
       object miTestMap: TMenuItem
-        Caption = 'Тест карты в игре'
+        Caption = 'Run Test'
         ImageIndex = 27
         OnClick = miTestMapClick
       end
     end
-    object miMenuSettings: TMenuItem
-      Caption = 'Настройка'
-      object miMapOptions: TMenuItem
-        Caption = 'Карта'
-        ImageIndex = 14
-        ShortCut = 16461
-        OnClick = aMapOptionsExecute
+    object miMenuWindow: TMenuItem
+      Caption = 'Window'
+      Enabled = False
+      Visible = False
+      object miMacMinimize: TMenuItem
+        Caption = 'Minimize'
+        ShortCut = 4173
+        OnClick = miMacMinimizeClick
       end
-      object miLine6: TMenuItem
-        Caption = '-'
-      end
-      object miOptions: TMenuItem
-        Caption = 'Редактор'
-        ImageIndex = 16
-        OnClick = aEditorOptionsExecute
+      object miMacZoom: TMenuItem
+        Caption = 'Zoom'
+        OnClick = miMacZoomClick
       end
     end
     object miMenuHelp: TMenuItem
-      Caption = 'Справка'
+      Caption = 'Help'
       object miAbout: TMenuItem
-        Caption = 'О программе'
+        Caption = 'About Editor'
+        Enabled = False
         ImageIndex = 16
+        Visible = False
         OnClick = aAboutExecute
       end
     end
-    object miHidden1: TMenuItem
+    object miMenuHidden: TMenuItem
       Caption = 'hidden'
       Visible = False
       object minexttab: TMenuItem
@@ -1165,8 +1238,8 @@ object MainForm: TMainForm
   end
   object pmShow: TPopupMenu
     Images = ImageList
-    left = 128
-    top = 64
+    Left = 128
+    Top = 64
     object miLayerP1: TMenuItem
       Caption = 'Фон'
       Checked = True
@@ -1216,8 +1289,8 @@ object MainForm: TMainForm
   object ilToolbar: TImageList
     Height = 24
     Width = 24
-    left = 64
-    top = 101
+    Left = 64
+    Top = 101
     Bitmap = {
       4C7A090000001800000018000000810800000000000078DAED9C4D6C13471886
       73E4C021C71C9020200E415C0C17A2860A0511513797BAD046A610D1084465A4
@@ -1314,12 +1387,12 @@ object MainForm: TMainForm
       'ColorS=F0FBFF'
       'ColorT=A4A0A0'
     )
-    left = 64
-    top = 146
+    Left = 64
+    Top = 146
   end
   object MapTestTimer: TTimer
     OnTimer = MapTestCheck
-    left = 192
-    top = 64
+    Left = 192
+    Top = 64
   end
 end

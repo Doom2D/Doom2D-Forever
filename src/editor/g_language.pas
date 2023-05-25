@@ -1313,24 +1313,24 @@ Const
 
     ('MENU FILE',                      'File',
                                        'Файл'),
-    ('MENU FILE NEW',                  'New Map',
-                                       'Новая карта'),
-    ('MENU FILE OPEN',                 'Open Map',
-                                       'Открыть карту'),
-    ('MENU FILE SAVE',                 'Save Map',
-                                       'Сохранить карту'),
-    ('MENU FILE SAVE AS',              'Save Map As...',
-                                       'Сохранить карту как...'),
-    ('MENU FILE OPEN WAD',             'Select Map',
-                                       'Выбрать карту'),
-    ('MENU FILE REOPEN',               'Reopen Map',
+    ('MENU FILE NEW',                  'New',
+                                       'Создать'),
+    ('MENU FILE OPEN',                 'Open...',
+                                       'Открыть...'),
+    ('MENU FILE SAVE',                 'Save',
+                                       'Сохранить'),
+    ('MENU FILE SAVE AS',              'Save As...',
+                                       'Сохранить как...'),
+    ('MENU FILE OPEN WAD',             'Select Map...',
+                                       'Выбрать карту...'),
+    ('MENU FILE REOPEN',               'Revert to Saved',
                                        'Открыть заново'),
-    ('MENU FILE SAVE MINI',            'Save Mini-map',
-                                       'Сохранить мини-карту'),
-    ('MENU FILE DELETE',               'Delete Map from WAD...',
-                                       'Удалить карту из WAD...'),
-    ('MENU FILE PACK MAP',             'Pack Map',
-                                       'Упаковать карту'),
+    ('MENU FILE SAVE MINI',            'Save Minimap...',
+                                       'Сохранить мини-карту...'),
+    ('MENU FILE DELETE',               'Delete from WAD...',
+                                       'Удалить из WAD...'),
+    ('MENU FILE PACK MAP',             'Pack to WAD...',
+                                       'Упаковать в WAD...'),
     ('MENU FILE EXIT',                 'Exit',
                                        'Выход'),
 
@@ -1355,32 +1355,32 @@ Const
                                        'Инструменты'),
     ('MENU TOOLS SNAP GRID',           'Snap to Grid',
                                        'Привязка к сетке'),
-    ('MENU TOOLS MINIMAP',             'Show Mini-map',
-                                       'Мини-карта'),
-    ('MENU TOOLS STEP GRID',           'Switch Grid step',
-                                       'Сменить шаг сетки'),
-    ('MENU TOOLS SHOW EDGES',          'Switch Map edges',
-                                       'Границы карты'),
+    ('MENU TOOLS MINIMAP',             'Show Minimap',
+                                       'Показать Мини-карту'),
+    ('MENU TOOLS STEP GRID',           'Switch Grid Granularity',
+                                       'Переключить шаг сетки'),
+    ('MENU TOOLS SHOW EDGES',          'Show Map Bounds',
+                                       'Показывать границы карты'),
     ('MENU TOOLS LAYERS',              'Layers',
                                        'Слои'),
 
     ('MENU SERV',                      'Service',
                                        'Сервис'),
-    ('MENU SERV TEST',                 'Check the Map',
-                                       'Проверка карты'),
-    ('MENU SERV OPT',                  'Optimize the Map',
-                                       'Оптимизация карты'),
-    ('MENU SERV PREVIEW',              'Map Preview',
+    ('MENU SERV TEST',                 'Analyse Map...',
+                                       'Проверка карты...'),
+    ('MENU SERV OPT',                  'Optimize Map...',
+                                       'Оптимизация карты...'),
+    ('MENU SERV PREVIEW',              'Preview Mode',
                                        'Предварительный просмотр'),
-    ('MENU SERV LAUNCH',               'In-game test',
+    ('MENU SERV LAUNCH',               'Run Test',
                                        'Тест карты в игре'),
 
     ('MENU SETS',                      'Settings',
                                        'Настройка'),
-    ('MENU SETS MAP',                  'Map parameters',
-                                       'Параметры карты'),
-    ('MENU SETS EDITOR',               'Editor settings',
-                                       'Настройки редактора'),
+    ('MENU SETS MAP',                  'Map Properties...',
+                                       'Свойства карты...'),
+    ('MENU SETS EDITOR',               'Preferences...',
+                                       'Настройки...'),
     ('MENU SETS LAUNCH',               'In-game test settings',
                                        'Настройки теста в игре'),
 
@@ -1424,7 +1424,7 @@ Const
                                        'Включить/Отключить отображение сетки'),
     ('MENU TB GRID STEP',              'Switch Grid step',
                                        'Изменить шаг сетки'),
-    ('MENU TB LAUNCH',                 'In-game test',
+    ('MENU TB LAUNCH',                 'Run Test',
                                        'Тест карты в игре'),
 
     ('MENU LAUNCH SETS',               'Settings...',
@@ -1448,21 +1448,21 @@ Const
                                        'Выберите текстуру'),
     ('CAP KEYS',                       'Keys',
                                        'Ключи'),
-    ('CAP TEST',                       'Map Checking',
+    ('CAP TEST',                       'Analyse Map',
                                        'Проверка карты'),
-    ('CAP OPT',                        'Map Optimization',
+    ('CAP OPT',                        'Optimize Map',
                                        'Оптимизация карты'),
-    ('CAP SETS',                       'Map Parameters',
-                                       'Параметры карты'),
+    ('CAP SETS',                       'Map Properties',
+                                       'Свойства карты'),
     ('CAP LAUNCH',                     'In-game test Settings',
                                        'Настройки теста в игре'),
-    ('CAP ES',                         'Editor Settings',
+    ('CAP ES',                         'Editor Preferences',
                                        'Настройки редактора'),
     ('CAP PACK',                       'Pack Map',
                                        'Упаковать карту'),
     ('CAP SAVE',                       'Save Map',
                                        'Сохранить карту'),
-    ('CAP MINI',                       'Save Mini-map',
+    ('CAP MINI',                       'Save Minimap',
                                        'Сохранить мини-карту'),
     ('CAP SELECT',                     'Select Map',
                                        'Выберите карту'),
@@ -2096,7 +2096,6 @@ begin
     miToFore.Caption := _lc[I_MENU_EDIT_TO_FORE];
     miToBack.Caption := _lc[I_MENU_EDIT_TO_BACK];
   // "Инструменты":
-    miMenuTools.Caption := _lc[I_MENU_TOOLS];
     miSnapToGrid.Caption := _lc[I_MENU_TOOLS_SNAP_GRID];
     miMiniMap.Caption := _lc[I_MENU_TOOLS_MINIMAP];
     miSwitchGrid.Caption := _lc[I_MENU_TOOLS_STEP_GRID];
@@ -2111,16 +2110,14 @@ begin
     miLayer7.Caption := _lc[I_MENU_LAYER_MONSTER];
     miLayer8.Caption := _lc[I_MENU_LAYER_AREA];
     miLayer9.Caption := _lc[I_MENU_LAYER_TRIGGER];
+    miMapOptions.Caption := _lc[I_MENU_SETS_MAP];
+    miOptions.Caption := _lc[I_MENU_SETS_EDITOR];
   // "Сервис":
     miMenuService.Caption := _lc[I_MENU_SERV];
     miCheckMap.Caption := _lc[I_MENU_SERV_TEST];
     miOptimmization.Caption := _lc[I_MENU_SERV_OPT];
     miMapPreview.Caption := _lc[I_MENU_SERV_PREVIEW];
     miTestMap.Caption := _lc[I_MENU_SERV_LAUNCH];
-  // "Настройка":
-    miMenuSettings.Caption := _lc[I_MENU_SETS];
-    miMapOptions.Caption := _lc[I_MENU_SETS_MAP];
-    miOptions.Caption := _lc[I_MENU_SETS_EDITOR];
   // "Справка":
     miMenuHelp.Caption := _lc[I_MENU_HELP];
     miAbout.Caption := _lc[I_MENU_HELP_ABOUT];

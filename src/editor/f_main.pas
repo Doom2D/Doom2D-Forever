@@ -18,18 +18,27 @@ type
     lLoad: TLabel;
   // Главное меню:
     MainMenu: TMainMenu;
+  // Apple menu:
+    miApple: TMenuItem;
+    miAppleAbout: TMenuItem;
+    miAppleLine0: TMenuItem;
+    miApplePref: TMenuItem;
+    miAppleLine1: TMenuItem;
   // "Файл":
     miMenuFile: TMenuItem;
     miNewMap: TMenuItem;
     miOpenMap: TMenuItem;
     miSaveMap: TMenuItem;
     miSaveMapAs: TMenuItem;
+    miMacRecentSubMenu: TMenuItem;
+    miMacRecentClear: TMenuItem;
     miOpenWadMap: TMenuItem;
     miLine1: TMenuItem;
     miReopenMap: TMenuItem;
     miSaveMiniMap: TMenuItem;
     miDeleteMap: TMenuItem;
     miPackMap: TMenuItem;
+    miWinRecent: TMenuItem;
     miLine2: TMenuItem;
     miExit: TMenuItem;
   // "Правка":
@@ -44,11 +53,8 @@ type
     miLine5: TMenuItem;
     miToFore: TMenuItem;
     miToBack: TMenuItem;
-  // "Инструменты":
-    miMenuTools: TMenuItem;
-    miSnapToGrid: TMenuItem;
-    miMiniMap: TMenuItem;
-    miSwitchGrid: TMenuItem;
+  // View menu:
+    miMenuView: TMenuItem;
     miShowEdges: TMenuItem;
     miLayers: TMenuItem;
     miLayer1: TMenuItem;
@@ -60,22 +66,29 @@ type
     miLayer7: TMenuItem;
     miLayer8: TMenuItem;
     miLayer9: TMenuItem;
+    miViewLine1: TMenuItem;
+    miMiniMap: TMenuItem;
+    miViewLine2: TMenuItem;
+    miMapPreview: TMenuItem;
+    miSnapToGrid: TMenuItem;
+    miSwitchGrid: TMenuItem;
+    miLine6: TMenuItem;
+    miOptions: TMenuItem;
+    miMapOptions: TMenuItem;
   // "Сервис":
     miMenuService: TMenuItem;
     miCheckMap: TMenuItem;
     miOptimmization: TMenuItem;
-    miMapPreview: TMenuItem;
     miTestMap: TMenuItem;
-  // "Настройка":
-    miMenuSettings: TMenuItem;
-    miMapOptions: TMenuItem;
-    miLine6: TMenuItem;
-    miOptions: TMenuItem;
+  // Window menu:
+    miMenuWindow: TMenuItem;
+    miMacMinimize: TMenuItem;
+    miMacZoom: TMenuItem;
   // "Справка":
     miMenuHelp: TMenuItem;
     miAbout: TMenuItem;
   // Скрытый пункт меню для Ctrl+Tab:
-    miHidden1: TMenuItem;
+    miMenuHidden: TMenuItem;
     minexttab: TMenuItem;
 
   // Панель инструментов:
@@ -83,6 +96,10 @@ type
     pbLoad: TProgressBar;
     pLoadProgress: TPanel;
     RenderPanel: TOpenGLControl;
+    Separator1: TMenuItem;
+    miMacRecentEnd: TMenuItem;
+    miWinRecentStart: TMenuItem;
+    Separator2: TMenuItem;
     tbNewMap: TToolButton;
     tbOpenMap: TToolButton;
     tbSaveMap: TToolButton;
@@ -204,9 +221,13 @@ type
     procedure FormDropFiles(Sender: TObject; const FileNames: array of String);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormResize(Sender: TObject);
+    procedure FormWindowStateChange(Sender: TObject);
+    procedure miMacRecentClearClick(Sender: TObject);
+    procedure miMacZoomClick(Sender: TObject);
     procedure lbTextureListClick(Sender: TObject);
     procedure lbTextureListDrawItem(Control: TWinControl; Index: Integer;
       ARect: TRect; State: TOwnerDrawState);
+    procedure miMacMinimizeClick(Sender: TObject);
     procedure miReopenMapClick(Sender: TObject);
     procedure RenderPanelMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure RenderPanelMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
@@ -240,7 +261,6 @@ type
     procedure miSaveMiniMapClick(Sender: TObject);
     procedure bClearTextureClick(Sender: TObject);
     procedure miPackMapClick(Sender: TObject);
-    procedure aRecentFileExecute(Sender: TObject);
     procedure miTestMapClick(Sender: TObject);
     procedure sbVerticalScroll(Sender: TObject; ScrollCode: TScrollCode;
       var ScrollPos: Integer);
@@ -259,6 +279,7 @@ type
   private
     procedure Draw();
     procedure OnIdle(Sender: TObject; var Done: Boolean);
+    procedure RefillRecentMenu (menu: TMenuItem; start: Integer; fmt: AnsiString);
   public
     procedure RefreshRecentMenu();
     procedure OpenMapFile(FileName: String);
@@ -2238,6 +2259,7 @@ procedure SwitchMap();
 begin
   ShowMap := not ShowMap;
   MainForm.tbShowMap.Down := ShowMap;
+  MainForm.miMiniMap.Checked := ShowMap;
 end;
 
 procedure ShowEdges();
@@ -2246,6 +2268,7 @@ begin
     drEdge[3] := 255
   else
     drEdge[3] := gAlphaEdge;
+  MainForm.miShowEdges.Checked := drEdge[3] <> 255;
 end;
 
 function SelectedTexture(): String;
@@ -2543,60 +2566,105 @@ end;
 //Закончились вспомогательные процедуры
 //----------------------------------------
 
-procedure TMainForm.RefreshRecentMenu();
-var
-  i: Integer;
-  MI: TMenuItem;
-begin
-// Лишние запомненные карты:
-  while RecentFiles.Count > RecentCount do
-    RecentFiles.Delete(RecentFiles.Count-1);
-
-// Лишние строки меню:
-  while MainMenu.Items[0].Count > RECENT_FILES_MENU_START do
-    MainMenu.Items[0].Delete(MainMenu.Items[0].Count-1);
-
-// Отделение списка карт от строки "Выход":
-  if RecentFiles.Count > 0 then
-  begin
-    MI := TMenuItem.Create(MainMenu.Items[0]);
-    MI.Caption := '-';
-    MainMenu.Items[0].Add(MI);
+type
+  TRecentHandler = class
+    private
+      FForm: TMainForm;
+      FPath: String;
+    public
+      constructor Create (form: TMainForm; path: String);
+      procedure Execute (Sender: TObject);
   end;
 
-// Добавление в меню списка запомненных карт:
-  for i := 0 to RecentFiles.Count-1 do
+constructor TRecentHandler.Create (form: TMainForm; path: String);
+begin
+  Assert(form <> nil);
+  FForm := form;
+  FPath := path;
+end;
+
+procedure TRecentHandler.Execute (Sender: TObject);
+  var fn: AnsiString;
+begin
+  fn := g_ExtractWadName(FPath);
+  if FileExists(fn) then
+    OpenMap(fn, g_ExtractFilePathName(FPath))
+  else
+    Application.MessageBox('', 'File not available anymore', MB_OK);
+//  if Application.MessageBox(PChar(_lc[I_MSG_DEL_RECENT_PROMT]), PChar(_lc[I_MSG_DEL_RECENT]), MB_ICONQUESTION or MB_YESNO) = idYes then
+//  begin
+//    RecentFiles.Delete(n);
+//    RefreshRecentMenu();
+//  end;
+end;
+
+procedure TMainForm.RefillRecentMenu (menu: TMenuItem; start: Integer; fmt: AnsiString);
+  var i: Integer; MI: TMenuItem; cb: TMethod; h: TRecentHandler; s: AnsiString;
+begin
+  Assert(menu <> nil);
+  Assert(start >= 0);
+  Assert(start <= menu.Count);
+
+  // clear all recent entries from menu
+  i := start;
+  while i < menu.Count do
   begin
-    MI := TMenuItem.Create(MainMenu.Items[0]);
-    MI.Caption := IntToStr(i+1) + '  ' + RecentFiles[i];
-    MI.OnClick := aRecentFileExecute;
-    MainMenu.Items[0].Add(MI);
+    MI := menu.Items[i];
+    cb := TMethod(MI.OnClick);
+    if cb.Code = @TRecentHandler.Execute then
+    begin
+      // this is recent menu entry
+      // remove it and free callback handler
+      h := TRecentHandler(cb.Data);
+      menu.Delete(i);
+      MI.Free();
+      h.Free();
+    end
+    else
+      Inc(i);
+  end;
+
+  // fill with a new ones
+  for i := 0 to RecentFiles.Count - 1 do
+  begin
+    s := RecentFiles[i];
+    h := TRecentHandler.Create(self, s);
+    MI := TMenuItem.Create(menu);
+    MI.Caption := Format(fmt, [i + 1, g_ExtractWadNameNoPath(s), g_ExtractFilePathName(s)]);
+    MI.OnClick := h.Execute;
+    menu.Insert(start + i, MI);
   end;
 end;
 
-procedure TMainForm.aRecentFileExecute(Sender: TObject);
-var
-  n: Integer;
-  fn, s: String;
+procedure TMainForm.RefreshRecentMenu();
+  var start: Integer;
 begin
-  s := LowerCase((Sender as TMenuItem).Caption);
-  Delete(s, Pos('&', s), 1);
-  s := Trim(Copy(s, 1, 2));
-  n := StrToIntDef(s, 0) - 1;
-  if (n >= 0) and (n <= RecentFiles.Count) then
+  while RecentFiles.Count > RecentCount do
+    RecentFiles.Delete(RecentFiles.Count - 1);
+
+  if miMacRecentSubMenu.Visible then
   begin
-    fn := g_ExtractWadName(RecentFiles[n]);
-    if FileExists(fn) then
-    begin
-      s := g_ExtractFilePathName(RecentFiles[n]);
-      OpenMap(fn, s)
-    end
-    else if Application.MessageBox(PChar(_lc[I_MSG_DEL_RECENT_PROMT]), PChar(_lc[I_MSG_DEL_RECENT]), MB_ICONQUESTION or MB_YESNO) = idYes then
-    begin
-      RecentFiles.Delete(n);
-      RefreshRecentMenu();
-    end
-  end
+    // Reconstruct OSX-like recent list
+    RefillRecentMenu(miMacRecentSubMenu, 0, '%1:s - %2:s');
+    miMacRecentEnd.Enabled := RecentFiles.Count <> 0;
+    miMacRecentEnd.Visible := RecentFiles.Count <> 0;
+  end;
+
+  if miWinRecentStart.Visible then
+  begin
+    // Reconstruct Windows-like recent list
+    start := miMenuFile.IndexOf(miWinRecent);
+    if start < 0 then start := miMenuFile.Count else start := start + 1;
+    RefillRecentMenu(miMenuFile, start, '%0:d %1:s:%2:s');
+    miWinRecent.Enabled := False;
+    miWinRecent.Visible := RecentFiles.Count = 0;
+  end;
+end;
+
+procedure TMainForm.miMacRecentClearClick(Sender: TObject);
+begin
+  RecentFiles.Clear();
+  RefreshRecentMenu();
 end;
 
 procedure TMainForm.aEditorOptionsExecute(Sender: TObject);
@@ -2644,6 +2712,65 @@ var
   s: String;
 begin
   Randomize();
+
+  {$IFDEF DARWIN}
+    miApple.Enabled := True;
+    miApple.Visible := True;
+    miMacRecentSubMenu.Enabled := True;
+    miMacRecentSubMenu.Visible := True;
+    miWinRecentStart.Enabled := False;
+    miWinRecentStart.Visible := False;
+    miWinRecent.Enabled := False;
+    miWinRecent.Visible := False;
+    miLine2.Enabled := False;
+    miLine2.Visible := False;
+    miExit.Enabled := False;
+    miExit.Visible := False;
+    miOptions.Enabled := False;
+    miOptions.Visible := False;
+    miMenuWindow.Enabled := True;
+    miMenuWindow.Visible := True;
+    miAbout.Enabled := False;
+    miAbout.Visible := False;
+  {$ELSE}
+    miApple.Enabled := False;
+    miApple.Visible := False;
+    miMacRecentSubMenu.Enabled := False;
+    miMacRecentSubMenu.Visible := False;
+    miWinRecentStart.Enabled := True;
+    miWinRecentStart.Visible := True;
+    miWinRecent.Enabled := True;
+    miWinRecent.Visible := True;
+    miLine2.Enabled := True;
+    miLine2.Visible := True;
+    miExit.Enabled := True;
+    miExit.Visible := True;
+    miOptions.Enabled := True;
+    miOptions.Visible := True;
+    miMenuWindow.Enabled := False;
+    miMenuWindow.Visible := False;
+    miAbout.Enabled := True;
+    miAbout.Visible := True;
+  {$ENDIF}
+
+  miNewMap.ShortCut := ShortCut(VK_N, [ssModifier]);
+  miOpenMap.ShortCut := ShortCut(VK_O, [ssModifier]);
+  miSaveMap.ShortCut := ShortCut(VK_S, [ssModifier]);
+  {$IFDEF DARWIN}
+    miSaveMapAs.ShortCut := ShortCut(VK_S, [ssModifier, ssShift]);
+    miReopenMap.ShortCut := ShortCut(VK_F5, [ssModifier]);
+  {$ENDIF}
+  miUndo.ShortCut := ShortCut(VK_Z, [ssModifier]);
+  miCopy.ShortCut := ShortCut(VK_C, [ssModifier]);
+  miCut.ShortCut := ShortCut(VK_X, [ssModifier]);
+  miPaste.ShortCut := ShortCut(VK_V, [ssModifier]);
+  miSelectAll.ShortCut := ShortCut(VK_A, [ssModifier]);
+  miToFore.ShortCut := ShortCut(VK_LCL_CLOSE_BRACKET, [ssModifier]);
+  miToBack.ShortCut := ShortCut(VK_LCL_OPEN_BRACKET, [ssModifier]);
+  {$IFDEF DARWIN}
+    miMapOptions.Shortcut := ShortCut(VK_P, [ssModifier, ssAlt]);
+    selectall1.Shortcut := ShortCut(VK_A, [ssModifier, ssAlt]);
+  {$ENDIF}
 
   e_WriteLog('Doom 2D: Forever Editor version ' + EDITOR_VERSION, MSG_NOTIFY);
   e_WriteLog('Build date: ' + EDITOR_BUILDDATE + ' ' + EDITOR_BUILDTIME, MSG_NOTIFY);
@@ -2759,7 +2886,11 @@ begin
   RecentFiles := TStringList.Create();
   for i := 0 to RecentCount-1 do
   begin
-    s := config.ReadStr('RecentFiles', IntToStr(i+1), '');
+    {$IFDEF WINDOWS}
+      s := config.ReadStr('RecentFilesWin', IntToStr(i), '');
+    {$ELSE}
+      s := config.ReadStr('RecentFilesUnix', IntToStr(i), '');
+    {$ENDIF}
     if s <> '' then
       RecentFiles.Add(s);
   end;
@@ -3120,6 +3251,24 @@ begin
 
   MapOffset.X := -sbHorizontal.Position;
   MapOffset.Y := -sbVertical.Position;
+end;
+
+procedure TMainForm.FormWindowStateChange(Sender: TObject);
+  {$IFDEF DARWIN}
+    var e: Boolean;
+  {$ENDIF}
+begin
+  {$IFDEF DARWIN}
+    // deactivate all menus when main window minimized
+    e := self.WindowState <> wsMinimized;
+    miMenuFile.Enabled := e;
+    miMenuEdit.Enabled := e;
+    miMenuView.Enabled := e;
+    miMenuService.Enabled := e;
+    miMenuWindow.Enabled := e;
+    miMenuHelp.Enabled := e;
+    miMenuHidden.Enabled := e;
+  {$ENDIF}
 end;
 
 procedure SelectNextObject(X, Y: Integer; ObjectType: Byte; ID: DWORD);
@@ -4249,6 +4398,7 @@ end;
 procedure TMainForm.FormDestroy(Sender: TObject);
 var
   config: TConfig;
+  s: AnsiString;
   i: Integer;
 begin
   config := TConfig.CreateFile(CfgFileName);
@@ -4283,11 +4433,15 @@ begin
   config.WriteInt('Editor', 'MonsterRectAlpha', gAlphaMonsterRect);
   config.WriteInt('Editor', 'AreaRectAlpha', gAlphaAreaRect);
 
-  for i := 0 to RecentCount-1 do
-    if i < RecentFiles.Count then
-      config.WriteStr('RecentFiles', IntToStr(i+1), RecentFiles[i])
-    else
-      config.WriteStr('RecentFiles', IntToStr(i+1), '');
+  for i := 0 to RecentCount - 1 do
+  begin
+    if i < RecentFiles.Count then s := RecentFiles[i] else s := '';
+    {$IFDEF WINDOWS}
+      config.WriteStr('RecentFilesWin', IntToStr(i), s);
+    {$ELSE}
+      config.WriteStr('RecentFilesUnix', IntToStr(i), s);
+    {$ENDIF}
+  end;
   RecentFiles.Free();
 
   config.SaveFile(CfgFileName);
@@ -4744,6 +4898,21 @@ begin
     Canvas.FillRect(ARect);
     Canvas.TextRect(ARect, ARect.Left, ARect.Top, Items[Index]);
   end;
+end;
+
+procedure TMainForm.miMacMinimizeClick(Sender: TObject);
+begin
+  self.WindowState := wsMinimized;
+  self.FormWindowStateChange(Sender);
+end;
+
+procedure TMainForm.miMacZoomClick(Sender: TObject);
+begin
+  if self.WindowState = wsMaximized then
+    self.WindowState := wsNormal
+  else
+    self.WindowState := wsMaximized;
+  self.FormWindowStateChange(Sender);
 end;
 
 procedure TMainForm.miReopenMapClick(Sender: TObject);

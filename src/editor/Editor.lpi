@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="11"/>
+    <Version Value="12"/>
     <General>
       <Flags>
         <MainUnitHasUsesSectionForAllUnits Value="False"/>
         <MainUnitHasCreateFormStatements Value="False"/>
         <MainUnitHasTitleStatement Value="False"/>
+        <CompatibilityMode Value="True"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <MainUnit Value="0"/>
       <Title Value="Editor"/>
       <ResourceType Value="res"/>
       <UseXPManifest Value="True"/>
@@ -55,10 +55,7 @@
           </CodeGeneration>
           <Linking>
             <Debugging>
-              <GenerateDebugInfo Value="True"/>
               <DebugInfoType Value="dsDwarf2Set"/>
-              <UseValgrind Value="False"/>
-              <StripSymbols Value="False"/>
             </Debugging>
             <LinkSmart Value="True"/>
             <Options>
@@ -342,8 +339,6 @@
     <Linking>
       <Debugging>
         <UseHeaptrc Value="True"/>
-        <TrashVariables Value="False"/>
-        <UseValgrind Value="False"/>
       </Debugging>
       <Options>
         <Win32>
