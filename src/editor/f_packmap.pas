@@ -64,7 +64,7 @@ const
 
 procedure TPackMapForm.bSelectWADClick(Sender: TObject);
 begin
-  SaveDialog.Filter := _lc[I_FILE_FILTER_WAD];
+  SaveDialog.Filter := MsgFileFilterWad;
 
   if SaveDialog.Execute() then
     eWAD.Text := SaveDialog.FileName;
@@ -99,8 +99,8 @@ begin
   end
   else
   begin
-    //Application.MessageBox(PChar(Format(_lc[I_MSG_WAD_ERROR], [ExtractFileName(filename)])), PChar(_lc[I_MSG_ERROR]), MB_OK + MB_ICONERROR);
-    Application.MessageBox(PChar(Format(_lc[I_MSG_RES_ERROR], [filename, section, resource])), PChar(_lc[I_MSG_ERROR]), MB_OK + MB_ICONERROR);
+    //Application.MessageBox(PChar(Format(MsgMsgWadError, [ExtractFileName(filename)])), PChar(MsgMsgError), MB_OK + MB_ICONERROR);
+    Application.MessageBox(PChar(Format(MsgMsgResError, [filename, section, resource])), PChar(MsgMsgError), MB_OK + MB_ICONERROR);
     Result := False
   end
 end;
@@ -309,7 +309,7 @@ begin
   Close();
 
   ASSERT(a = 0); (* saved *)
-  MessageDlg(Format(_lc[I_MSG_PACKED], [eResource.Text, ExtractFileName(eWAD.Text)]), mtInformation, [mbOK], 0);
+  MessageDlg(Format(MsgMsgPacked, [eResource.Text, ExtractFileName(eWAD.Text)]), mtInformation, [mbOK], 0);
 end;
 
 procedure TPackMapForm.FormCreate(Sender: TObject);

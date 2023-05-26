@@ -358,7 +358,7 @@ uses
   MAPREADER, f_selectmap, f_savemap, WADEDITOR, MAPDEF,
   g_map, f_saveminimap, f_addresource, CONFIG, f_packmap,
   f_addresource_sound, f_choosetype,
-  g_language, f_selectlang, ClipBrd, g_resources, g_options;
+  g_language, ClipBrd, g_resources, g_options;
 
 const
   UNDO_DELETE_PANEL   = 1;
@@ -767,7 +767,7 @@ begin
     Exit;
 
   with MainForm.vleObjectProperty do
-    with ItemProps[InsertRow(_lc[I_PROP_ID], IntToStr(SelectedObjects[_id].ID), True)] do
+    with ItemProps[InsertRow(MsgPropId, IntToStr(SelectedObjects[_id].ID), True)] do
     begin
       EditStyle := esSimple;
       ReadOnly := True;
@@ -779,31 +779,31 @@ begin
         with MainForm.vleObjectProperty,
              gPanels[SelectedObjects[_id].ID] do
         begin
-          with ItemProps[InsertRow(_lc[I_PROP_X], IntToStr(X), True)] do
+          with ItemProps[InsertRow(MsgPropX, IntToStr(X), True)] do
           begin
             EditStyle := esSimple;
             MaxLength := 5;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_Y], IntToStr(Y), True)] do
+          with ItemProps[InsertRow(MsgPropY, IntToStr(Y), True)] do
           begin
             EditStyle := esSimple;
             MaxLength := 5;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_WIDTH], IntToStr(Width), True)] do
+          with ItemProps[InsertRow(MsgPropWidth, IntToStr(Width), True)] do
           begin
             EditStyle := esSimple;
             MaxLength := 5;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_HEIGHT], IntToStr(Height), True)] do
+          with ItemProps[InsertRow(MsgPropHeight, IntToStr(Height), True)] do
           begin
             EditStyle := esSimple;
             MaxLength := 5;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_PANEL_TYPE], GetPanelName(PanelType), True)] do
+          with ItemProps[InsertRow(MsgPropPanelType, GetPanelName(PanelType), True)] do
           begin
             EditStyle := esEllipsis;
             ReadOnly := True;
@@ -811,7 +811,7 @@ begin
 
           if IsTexturedPanel(PanelType) then
           begin // Может быть текстура
-            with ItemProps[InsertRow(_lc[I_PROP_PANEL_TEX], TextureName, True)] do
+            with ItemProps[InsertRow(MsgPropPanelTex, TextureName, True)] do
             begin
               EditStyle := esEllipsis;
               ReadOnly := True;
@@ -819,13 +819,13 @@ begin
 
             if TextureName <> '' then
             begin // Есть текстура
-              with ItemProps[InsertRow(_lc[I_PROP_PANEL_ALPHA], IntToStr(Alpha), True)] do
+              with ItemProps[InsertRow(MsgPropPanelAlpha, IntToStr(Alpha), True)] do
               begin
                 EditStyle := esSimple;
                 MaxLength := 3;
               end;
 
-              with ItemProps[InsertRow(_lc[I_PROP_PANEL_BLEND], BoolNames[Blending], True)] do
+              with ItemProps[InsertRow(MsgPropPanelBlend, BoolNames[Blending], True)] do
               begin
                 EditStyle := esPickList;
                 ReadOnly := True;
@@ -840,25 +840,25 @@ begin
         with MainForm.vleObjectProperty,
              gItems[SelectedObjects[_id].ID] do
         begin
-          with ItemProps[InsertRow(_lc[I_PROP_X], IntToStr(X), True)] do
+          with ItemProps[InsertRow(MsgPropX, IntToStr(X), True)] do
           begin
             EditStyle := esSimple;
             MaxLength := 5;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_Y], IntToStr(Y), True)] do
+          with ItemProps[InsertRow(MsgPropY, IntToStr(Y), True)] do
           begin
             EditStyle := esSimple;
             MaxLength := 5;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_DM_ONLY], BoolNames[OnlyDM], True)] do
+          with ItemProps[InsertRow(MsgPropDmOnly, BoolNames[OnlyDM], True)] do
           begin
             EditStyle := esPickList;
             ReadOnly := True;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_ITEM_FALLS], BoolNames[Fall], True)] do
+          with ItemProps[InsertRow(MsgPropItemFalls, BoolNames[Fall], True)] do
           begin
             EditStyle := esPickList;
             ReadOnly := True;
@@ -871,19 +871,19 @@ begin
         with MainForm.vleObjectProperty,
              gMonsters[SelectedObjects[_id].ID] do
         begin
-          with ItemProps[InsertRow(_lc[I_PROP_X], IntToStr(X), True)] do
+          with ItemProps[InsertRow(MsgPropX, IntToStr(X), True)] do
           begin
             EditStyle := esSimple;
             MaxLength := 5;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_Y], IntToStr(Y), True)] do
+          with ItemProps[InsertRow(MsgPropY, IntToStr(Y), True)] do
           begin
             EditStyle := esSimple;
             MaxLength := 5;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_DIRECTION], DirNames[Direction], True)] do
+          with ItemProps[InsertRow(MsgPropDirection, DirNames[Direction], True)] do
           begin
             EditStyle := esPickList;
             ReadOnly := True;
@@ -896,19 +896,19 @@ begin
         with MainForm.vleObjectProperty,
              gAreas[SelectedObjects[_id].ID] do
         begin
-          with ItemProps[InsertRow(_lc[I_PROP_X], IntToStr(X), True)] do
+          with ItemProps[InsertRow(MsgPropX, IntToStr(X), True)] do
           begin
             EditStyle := esSimple;
             MaxLength := 5;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_Y], IntToStr(Y), True)] do
+          with ItemProps[InsertRow(MsgPropY, IntToStr(Y), True)] do
           begin
             EditStyle := esSimple;
             MaxLength := 5;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_DIRECTION], DirNames[Direction], True)] do
+          with ItemProps[InsertRow(MsgPropDirection, DirNames[Direction], True)] do
           begin
             EditStyle := esPickList;
             ReadOnly := True;
@@ -921,55 +921,55 @@ begin
         with MainForm.vleObjectProperty,
              gTriggers[SelectedObjects[_id].ID] do
         begin
-          with ItemProps[InsertRow(_lc[I_PROP_TR_TYPE], GetTriggerName(TriggerType), True)] do
+          with ItemProps[InsertRow(MsgPropTrType, GetTriggerName(TriggerType), True)] do
           begin
             EditStyle := esSimple;
             ReadOnly := True;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_X], IntToStr(X), True)] do
+          with ItemProps[InsertRow(MsgPropX, IntToStr(X), True)] do
           begin
             EditStyle := esSimple;
             MaxLength := 5;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_Y], IntToStr(Y), True)] do
+          with ItemProps[InsertRow(MsgPropY, IntToStr(Y), True)] do
           begin
             EditStyle := esSimple;
             MaxLength := 5;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_WIDTH], IntToStr(Width), True)] do
+          with ItemProps[InsertRow(MsgPropWidth, IntToStr(Width), True)] do
           begin
             EditStyle := esSimple;
             MaxLength := 5;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_HEIGHT], IntToStr(Height), True)] do
+          with ItemProps[InsertRow(MsgPropHeight, IntToStr(Height), True)] do
           begin
             EditStyle := esSimple;
             MaxLength := 5;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_TR_ENABLED], BoolNames[Enabled], True)] do
+          with ItemProps[InsertRow(MsgPropTrEnabled, BoolNames[Enabled], True)] do
           begin
             EditStyle := esPickList;
             ReadOnly := True;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_TR_TEXTURE_PANEL], IntToStr(TexturePanel), True)] do
+          with ItemProps[InsertRow(MsgPropTrTexturePanel, IntToStr(TexturePanel), True)] do
           begin
             EditStyle := esEllipsis;
             ReadOnly := True;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_TR_ACTIVATION], ActivateToStr(ActivateType), True)] do
+          with ItemProps[InsertRow(MsgPropTrActivation, ActivateToStr(ActivateType), True)] do
           begin
             EditStyle := esEllipsis;
             ReadOnly := True;
           end;
 
-          with ItemProps[InsertRow(_lc[I_PROP_TR_KEYS], KeyToStr(Key), True)] do
+          with ItemProps[InsertRow(MsgPropTrKeys, KeyToStr(Key), True)] do
           begin
             EditStyle := esEllipsis;
             ReadOnly := True;
@@ -979,7 +979,7 @@ begin
             TRIGGER_EXIT:
               begin
                 str := win2utf(Data.MapName);
-                with ItemProps[InsertRow(_lc[I_PROP_TR_NEXT_MAP], str, True)] do
+                with ItemProps[InsertRow(MsgPropTrNextMap, str, True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
@@ -988,25 +988,25 @@ begin
 
             TRIGGER_TELEPORT:
               begin
-                with ItemProps[InsertRow(_lc[I_PROP_TR_TELEPORT_TO], Format('(%d:%d)', [Data.TargetPoint.X, Data.TargetPoint.Y]), True)] do
+                with ItemProps[InsertRow(MsgPropTrTeleportTo, Format('(%d:%d)', [Data.TargetPoint.X, Data.TargetPoint.Y]), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_D2D], BoolNames[Data.d2d_teleport], True)] do
+                with ItemProps[InsertRow(MsgPropTrD2d, BoolNames[Data.d2d_teleport], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_TELEPORT_SILENT], BoolNames[Data.silent_teleport], True)] do
+                with ItemProps[InsertRow(MsgPropTrTeleportSilent, BoolNames[Data.silent_teleport], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_TELEPORT_DIR], DirNamesAdv[Data.TlpDir], True)] do
+                with ItemProps[InsertRow(MsgPropTrTeleportDir, DirNamesAdv[Data.TlpDir], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
@@ -1016,19 +1016,19 @@ begin
             TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR,
             TRIGGER_DOOR, TRIGGER_DOOR5:
               begin
-                with ItemProps[InsertRow(_lc[I_PROP_TR_DOOR_PANEL], IntToStr(Data.PanelID), True)] do
+                with ItemProps[InsertRow(MsgPropTrDoorPanel, IntToStr(Data.PanelID), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SILENT], BoolNames[Data.NoSound], True)] do
+                with ItemProps[InsertRow(MsgPropTrSilent, BoolNames[Data.NoSound], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_D2D], BoolNames[Data.d2d_doors], True)] do
+                with ItemProps[InsertRow(MsgPropTrD2d, BoolNames[Data.d2d_doors], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
@@ -1037,19 +1037,19 @@ begin
 
             TRIGGER_CLOSETRAP, TRIGGER_TRAP:
               begin
-                with ItemProps[InsertRow(_lc[I_PROP_TR_TRAP_PANEL], IntToStr(Data.PanelID), True)] do
+                with ItemProps[InsertRow(MsgPropTrTrapPanel, IntToStr(Data.PanelID), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SILENT], BoolNames[Data.NoSound], True)] do
+                with ItemProps[InsertRow(MsgPropTrSilent, BoolNames[Data.NoSound], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_D2D], BoolNames[Data.d2d_doors], True)] do
+                with ItemProps[InsertRow(MsgPropTrD2d, BoolNames[Data.d2d_doors], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
@@ -1059,33 +1059,33 @@ begin
             TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF,
             TRIGGER_ONOFF:
               begin
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EX_AREA],
+                with ItemProps[InsertRow(MsgPropTrExArea,
                                  Format('(%d:%d %d:%d)', [Data.tX, Data.tY, Data.tWidth, Data.tHeight]), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EX_DELAY], IntToStr(Data.Wait), True)] do
+                with ItemProps[InsertRow(MsgPropTrExDelay, IntToStr(Data.Wait), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EX_COUNT], IntToStr(Data.Count), True)] do
+                with ItemProps[InsertRow(MsgPropTrExCount, IntToStr(Data.Count), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EX_MONSTER], IntToStr(Data.MonsterID-1), True)] do
+                with ItemProps[InsertRow(MsgPropTrExMonster, IntToStr(Data.MonsterID-1), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
                 if TriggerType = TRIGGER_PRESS then
-                  with ItemProps[InsertRow(_lc[I_PROP_TR_EX_RANDOM], BoolNames[Data.ExtRandom], True)] do
+                  with ItemProps[InsertRow(MsgPropTrExRandom, BoolNames[Data.ExtRandom], True)] do
                   begin
                     EditStyle := esPickList;
                     ReadOnly := True;
@@ -1097,19 +1097,19 @@ begin
 
             TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT:
               begin
-                with ItemProps[InsertRow(_lc[I_PROP_TR_LIFT_PANEL], IntToStr(Data.PanelID), True)] do
+                with ItemProps[InsertRow(MsgPropTrLiftPanel, IntToStr(Data.PanelID), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SILENT], BoolNames[Data.NoSound], True)] do
+                with ItemProps[InsertRow(MsgPropTrSilent, BoolNames[Data.NoSound], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_D2D], BoolNames[Data.d2d_doors], True)] do
+                with ItemProps[InsertRow(MsgPropTrD2d, BoolNames[Data.d2d_doors], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
@@ -1118,13 +1118,13 @@ begin
 
             TRIGGER_TEXTURE:
               begin
-                with ItemProps[InsertRow(_lc[I_PROP_TR_TEXTURE_ONCE], BoolNames[Data.ActivateOnce], True)] do
+                with ItemProps[InsertRow(MsgPropTrTextureOnce, BoolNames[Data.ActivateOnce], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_TEXTURE_ANIM_ONCE], BoolNames[Data.AnimOnce], True)] do
+                with ItemProps[InsertRow(MsgPropTrTextureAnimOnce, BoolNames[Data.AnimOnce], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
@@ -1134,37 +1134,37 @@ begin
             TRIGGER_SOUND:
               begin
                 str := win2utf(Data.SoundName);
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SOUND_NAME], str, True)] do
+                with ItemProps[InsertRow(MsgPropTrSoundName, str, True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SOUND_VOLUME], IntToStr(Data.Volume), True)] do
+                with ItemProps[InsertRow(MsgPropTrSoundVolume, IntToStr(Data.Volume), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 3;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SOUND_PAN], IntToStr(Data.Pan), True)] do
+                with ItemProps[InsertRow(MsgPropTrSoundPan, IntToStr(Data.Pan), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 3;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SOUND_COUNT], IntToStr(Data.PlayCount), True)] do
+                with ItemProps[InsertRow(MsgPropTrSoundCount, IntToStr(Data.PlayCount), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 3;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SOUND_LOCAL], BoolNames[Data.Local], True)] do
+                with ItemProps[InsertRow(MsgPropTrSoundLocal, BoolNames[Data.Local], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SOUND_SWITCH], BoolNames[Data.SoundSwitch], True)] do
+                with ItemProps[InsertRow(MsgPropTrSoundSwitch, BoolNames[Data.SoundSwitch], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
@@ -1173,70 +1173,70 @@ begin
 
             TRIGGER_SPAWNMONSTER:
               begin
-                with ItemProps[InsertRow(_lc[I_PROP_TR_MONSTER_TYPE], MonsterToStr(Data.MonType), True)] do
+                with ItemProps[InsertRow(MsgPropTrMonsterType, MonsterToStr(Data.MonType), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_TO],
+                with ItemProps[InsertRow(MsgPropTrSpawnTo,
                                  Format('(%d:%d)', [Data.MonPos.X, Data.MonPos.Y]), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_DIRECTION], DirNames[TDirection(Data.MonDir)], True)] do
+                with ItemProps[InsertRow(MsgPropDirection, DirNames[TDirection(Data.MonDir)], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_HEALTH], IntToStr(Data.MonHealth), True)] do
+                with ItemProps[InsertRow(MsgPropTrHealth, IntToStr(Data.MonHealth), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_MONSTER_ACTIVE], BoolNames[Data.MonActive], True)] do
+                with ItemProps[InsertRow(MsgPropTrMonsterActive, BoolNames[Data.MonActive], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_COUNT], IntToStr(Data.MonCount), True)] do
+                with ItemProps[InsertRow(MsgPropTrCount, IntToStr(Data.MonCount), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_FX_TYPE], EffectToStr(Data.MonEffect), True)] do
+                with ItemProps[InsertRow(MsgPropTrFxType, EffectToStr(Data.MonEffect), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_MAX], IntToStr(Data.MonMax), True)] do
+                with ItemProps[InsertRow(MsgPropTrSpawnMax, IntToStr(Data.MonMax), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_DELAY], IntToStr(Data.MonDelay), True)] do
+                with ItemProps[InsertRow(MsgPropTrSpawnDelay, IntToStr(Data.MonDelay), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
 
                 case Data.MonBehav of
-                  1: str := _lc[I_PROP_TR_MONSTER_BEHAVIOUR_1];
-                  2: str := _lc[I_PROP_TR_MONSTER_BEHAVIOUR_2];
-                  3: str := _lc[I_PROP_TR_MONSTER_BEHAVIOUR_3];
-                  4: str := _lc[I_PROP_TR_MONSTER_BEHAVIOUR_4];
-                  5: str := _lc[I_PROP_TR_MONSTER_BEHAVIOUR_5];
-                  else str := _lc[I_PROP_TR_MONSTER_BEHAVIOUR_0];
+                  1: str := MsgPropTrMonsterBehaviour1;
+                  2: str := MsgPropTrMonsterBehaviour2;
+                  3: str := MsgPropTrMonsterBehaviour3;
+                  4: str := MsgPropTrMonsterBehaviour4;
+                  5: str := MsgPropTrMonsterBehaviour5;
+                  else str := MsgPropTrMonsterBehaviour0;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_MONSTER_BEHAVIOUR], str, True)] do
+                with ItemProps[InsertRow(MsgPropTrMonsterBehaviour, str, True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
@@ -1245,50 +1245,50 @@ begin
 
             TRIGGER_SPAWNITEM:
               begin
-                with ItemProps[InsertRow(_lc[I_PROP_TR_ITEM_TYPE], ItemToStr(Data.ItemType), True)] do
+                with ItemProps[InsertRow(MsgPropTrItemType, ItemToStr(Data.ItemType), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_TO],
+                with ItemProps[InsertRow(MsgPropTrSpawnTo,
                                  Format('(%d:%d)', [Data.ItemPos.X, Data.ItemPos.Y]), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_DM_ONLY], BoolNames[Data.ItemOnlyDM], True)] do
+                with ItemProps[InsertRow(MsgPropDmOnly, BoolNames[Data.ItemOnlyDM], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_ITEM_FALLS], BoolNames[Data.ItemFalls], True)] do
+                with ItemProps[InsertRow(MsgPropItemFalls, BoolNames[Data.ItemFalls], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_COUNT], IntToStr(Data.ItemCount), True)] do
+                with ItemProps[InsertRow(MsgPropTrCount, IntToStr(Data.ItemCount), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_FX_TYPE], EffectToStr(Data.ItemEffect), True)] do
+                with ItemProps[InsertRow(MsgPropTrFxType, EffectToStr(Data.ItemEffect), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_MAX], IntToStr(Data.ItemMax), True)] do
+                with ItemProps[InsertRow(MsgPropTrSpawnMax, IntToStr(Data.ItemMax), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_DELAY], IntToStr(Data.ItemDelay), True)] do
+                with ItemProps[InsertRow(MsgPropTrSpawnDelay, IntToStr(Data.ItemDelay), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
@@ -1298,18 +1298,18 @@ begin
            TRIGGER_MUSIC:
              begin
                str := win2utf(Data.MusicName);
-               with ItemProps[InsertRow(_lc[I_PROP_TR_MUSIC_NAME], str, True)] do
+               with ItemProps[InsertRow(MsgPropTrMusicName, str, True)] do
                begin
                  EditStyle := esEllipsis;
                  ReadOnly := True;
                end;
 
                if Data.MusicAction = 1 then
-                 str := _lc[I_PROP_TR_MUSIC_ON]
+                 str := MsgPropTrMusicOn
                else
-                 str := _lc[I_PROP_TR_MUSIC_OFF];
+                 str := MsgPropTrMusicOff;
 
-               with ItemProps[InsertRow(_lc[I_PROP_TR_MUSIC_ACT], str, True)] do
+               with ItemProps[InsertRow(MsgPropTrMusicAct, str, True)] do
                begin
                  EditStyle := esPickList;
                  ReadOnly := True;
@@ -1318,17 +1318,17 @@ begin
 
             TRIGGER_PUSH:
               begin
-                with ItemProps[InsertRow(_lc[I_PROP_TR_PUSH_ANGLE], IntToStr(Data.PushAngle), True)] do
+                with ItemProps[InsertRow(MsgPropTrPushAngle, IntToStr(Data.PushAngle), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 4;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_PUSH_FORCE], IntToStr(Data.PushForce), True)] do
+                with ItemProps[InsertRow(MsgPropTrPushForce, IntToStr(Data.PushForce), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 4;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_PUSH_RESET], BoolNames[Data.ResetVel], True)] do
+                with ItemProps[InsertRow(MsgPropTrPushReset, BoolNames[Data.ResetVel], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
@@ -1338,38 +1338,38 @@ begin
             TRIGGER_SCORE:
               begin
                 case Data.ScoreAction of
-                  1: str := _lc[I_PROP_TR_SCORE_ACT_1];
-                  2: str := _lc[I_PROP_TR_SCORE_ACT_2];
-                  3: str := _lc[I_PROP_TR_SCORE_ACT_3];
-                  else str := _lc[I_PROP_TR_SCORE_ACT_0];
+                  1: str := MsgPropTrScoreAct1;
+                  2: str := MsgPropTrScoreAct2;
+                  3: str := MsgPropTrScoreAct3;
+                  else str := MsgPropTrScoreAct0;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SCORE_ACT], str, True)] do
+                with ItemProps[InsertRow(MsgPropTrScoreAct, str, True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_COUNT], IntToStr(Data.ScoreCount), True)] do
+                with ItemProps[InsertRow(MsgPropTrCount, IntToStr(Data.ScoreCount), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 3;
                 end;
                 case Data.ScoreTeam of
-                  1: str := _lc[I_PROP_TR_SCORE_TEAM_1];
-                  2: str := _lc[I_PROP_TR_SCORE_TEAM_2];
-                  3: str := _lc[I_PROP_TR_SCORE_TEAM_3];
-                  else str := _lc[I_PROP_TR_SCORE_TEAM_0];
+                  1: str := MsgPropTrScoreTeam1;
+                  2: str := MsgPropTrScoreTeam2;
+                  3: str := MsgPropTrScoreTeam3;
+                  else str := MsgPropTrScoreTeam0;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SCORE_TEAM], str, True)] do
+                with ItemProps[InsertRow(MsgPropTrScoreTeam, str, True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SCORE_CON], BoolNames[Data.ScoreCon], True)] do
+                with ItemProps[InsertRow(MsgPropTrScoreCon, BoolNames[Data.ScoreCon], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SCORE_MSG], BoolNames[Data.ScoreMsg], True)] do
+                with ItemProps[InsertRow(MsgPropTrScoreMsg, BoolNames[Data.ScoreMsg], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
@@ -1379,34 +1379,34 @@ begin
             TRIGGER_MESSAGE:
               begin
                 case Data.MessageKind of
-                  1: str := _lc[I_PROP_TR_MESSAGE_KIND_1];
-                  else str := _lc[I_PROP_TR_MESSAGE_KIND_0];
+                  1: str := MsgPropTrMessageKind1;
+                  else str := MsgPropTrMessageKind0;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_MESSAGE_KIND], str, True)] do
+                with ItemProps[InsertRow(MsgPropTrMessageKind, str, True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
                 case Data.MessageSendTo of
-                  1: str := _lc[I_PROP_TR_MESSAGE_TO_1];
-                  2: str := _lc[I_PROP_TR_MESSAGE_TO_2];
-                  3: str := _lc[I_PROP_TR_MESSAGE_TO_3];
-                  4: str := _lc[I_PROP_TR_MESSAGE_TO_4];
-                  5: str := _lc[I_PROP_TR_MESSAGE_TO_5];
-                  else str := _lc[I_PROP_TR_MESSAGE_TO_0];
+                  1: str := MsgPropTrMessageTo1;
+                  2: str := MsgPropTrMessageTo2;
+                  3: str := MsgPropTrMessageTo3;
+                  4: str := MsgPropTrMessageTo4;
+                  5: str := MsgPropTrMessageTo5;
+                  else str := MsgPropTrMessageTo0;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_MESSAGE_TO], str, True)] do
+                with ItemProps[InsertRow(MsgPropTrMessageTo, str, True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
                 str := win2utf(Data.MessageText);
-                with ItemProps[InsertRow(_lc[I_PROP_TR_MESSAGE_TEXT], str, True)] do
+                with ItemProps[InsertRow(MsgPropTrMessageText, str, True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 100;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_MESSAGE_TIME], IntToStr(Data.MessageTime), True)] do
+                with ItemProps[InsertRow(MsgPropTrMessageTime, IntToStr(Data.MessageTime), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
@@ -1415,26 +1415,26 @@ begin
 
             TRIGGER_DAMAGE:
               begin
-                with ItemProps[InsertRow(_lc[I_PROP_TR_DAMAGE_VALUE], IntToStr(Data.DamageValue), True)] do
+                with ItemProps[InsertRow(MsgPropTrDamageValue, IntToStr(Data.DamageValue), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_INTERVAL], IntToStr(Data.DamageInterval), True)] do
+                with ItemProps[InsertRow(MsgPropTrInterval, IntToStr(Data.DamageInterval), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
                 case Data.DamageKind of
-                  3: str := _lc[I_PROP_TR_DAMAGE_KIND_3];
-                  4: str := _lc[I_PROP_TR_DAMAGE_KIND_4];
-                  5: str := _lc[I_PROP_TR_DAMAGE_KIND_5];
-                  6: str := _lc[I_PROP_TR_DAMAGE_KIND_6];
-                  7: str := _lc[I_PROP_TR_DAMAGE_KIND_7];
-                  8: str := _lc[I_PROP_TR_DAMAGE_KIND_8];
-                  else str := _lc[I_PROP_TR_DAMAGE_KIND_0];
+                  3: str := MsgPropTrDamageKind3;
+                  4: str := MsgPropTrDamageKind4;
+                  5: str := MsgPropTrDamageKind5;
+                  6: str := MsgPropTrDamageKind6;
+                  7: str := MsgPropTrDamageKind7;
+                  8: str := MsgPropTrDamageKind8;
+                  else str := MsgPropTrDamageKind0;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_DAMAGE_KIND], str, True)] do
+                with ItemProps[InsertRow(MsgPropTrDamageKind, str, True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
@@ -1443,22 +1443,22 @@ begin
 
             TRIGGER_HEALTH:
               begin
-                with ItemProps[InsertRow(_lc[I_PROP_TR_HEALTH], IntToStr(Data.HealValue), True)] do
+                with ItemProps[InsertRow(MsgPropTrHealth, IntToStr(Data.HealValue), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_INTERVAL], IntToStr(Data.HealInterval), True)] do
+                with ItemProps[InsertRow(MsgPropTrInterval, IntToStr(Data.HealInterval), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_HEALTH_MAX], BoolNames[Data.HealMax], True)] do
+                with ItemProps[InsertRow(MsgPropTrHealthMax, BoolNames[Data.HealMax], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SILENT], BoolNames[Data.HealSilent], True)] do
+                with ItemProps[InsertRow(MsgPropTrSilent, BoolNames[Data.HealSilent], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
@@ -1467,89 +1467,89 @@ begin
 
             TRIGGER_SHOT:
               begin
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_TYPE], ShotToStr(Data.ShotType), True)] do
+                with ItemProps[InsertRow(MsgPropTrShotType, ShotToStr(Data.ShotType), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_SOUND], BoolNames[Data.ShotSound], True)] do
+                with ItemProps[InsertRow(MsgPropTrShotSound, BoolNames[Data.ShotSound], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_PANEL], IntToStr(Data.ShotPanelID), True)] do
+                with ItemProps[InsertRow(MsgPropTrShotPanel, IntToStr(Data.ShotPanelID), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
                 case Data.ShotTarget of
-                  1: str := _lc[I_PROP_TR_SHOT_TO_1];
-                  2: str := _lc[I_PROP_TR_SHOT_TO_2];
-                  3: str := _lc[I_PROP_TR_SHOT_TO_3];
-                  4: str := _lc[I_PROP_TR_SHOT_TO_4];
-                  5: str := _lc[I_PROP_TR_SHOT_TO_5];
-                  6: str := _lc[I_PROP_TR_SHOT_TO_6];
-                  else str := _lc[I_PROP_TR_SHOT_TO_0];
+                  1: str := MsgPropTrShotTo1;
+                  2: str := MsgPropTrShotTo2;
+                  3: str := MsgPropTrShotTo3;
+                  4: str := MsgPropTrShotTo4;
+                  5: str := MsgPropTrShotTo5;
+                  6: str := MsgPropTrShotTo6;
+                  else str := MsgPropTrShotTo0;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_TO], str, True)] do
+                with ItemProps[InsertRow(MsgPropTrShotTo, str, True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_SIGHT], IntToStr(Data.ShotIntSight), True)] do
+                with ItemProps[InsertRow(MsgPropTrShotSight, IntToStr(Data.ShotIntSight), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 3;
                 end;
 
                 case Data.ShotAim of
-                  1: str := _lc[I_PROP_TR_SHOT_AIM_1];
-                  2: str := _lc[I_PROP_TR_SHOT_AIM_2];
-                  3: str := _lc[I_PROP_TR_SHOT_AIM_3];
-                  else str := _lc[I_PROP_TR_SHOT_AIM_0];
+                  1: str := MsgPropTrShotAim1;
+                  2: str := MsgPropTrShotAim2;
+                  3: str := MsgPropTrShotAim3;
+                  else str := MsgPropTrShotAim0;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_AIM], str, True)] do
+                with ItemProps[InsertRow(MsgPropTrShotAim, str, True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_TO],
+                with ItemProps[InsertRow(MsgPropTrSpawnTo,
                                  Format('(%d:%d)', [Data.ShotPos.X, Data.ShotPos.Y]), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_ANGLE], IntToStr(Data.ShotAngle), True)] do
+                with ItemProps[InsertRow(MsgPropTrShotAngle, IntToStr(Data.ShotAngle), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 4;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EX_DELAY], IntToStr(Data.ShotWait), True)] do
+                with ItemProps[InsertRow(MsgPropTrExDelay, IntToStr(Data.ShotWait), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_ACC], IntToStr(Data.ShotAccuracy), True)] do
+                with ItemProps[InsertRow(MsgPropTrShotAcc, IntToStr(Data.ShotAccuracy), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_AMMO], IntToStr(Data.ShotAmmo), True)] do
+                with ItemProps[InsertRow(MsgPropTrShotAmmo, IntToStr(Data.ShotAmmo), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_RELOAD], IntToStr(Data.ShotIntReload), True)] do
+                with ItemProps[InsertRow(MsgPropTrShotReload, IntToStr(Data.ShotIntReload), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 4;
@@ -1558,17 +1558,17 @@ begin
 
             TRIGGER_EFFECT:
               begin
-                with ItemProps[InsertRow(_lc[I_PROP_TR_COUNT], IntToStr(Data.FXCount), True)] do
+                with ItemProps[InsertRow(MsgPropTrCount, IntToStr(Data.FXCount), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 3;
                 end;
 
                 if Data.FXType = 0 then
-                  str := _lc[I_PROP_TR_EFFECT_PARTICLE]
+                  str := MsgPropTrEffectParticle
                 else
-                  str := _lc[I_PROP_TR_EFFECT_ANIMATION];
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EFFECT_TYPE], str, True)] do
+                  str := MsgPropTrEffectAnimation;
+                with ItemProps[InsertRow(MsgPropTrEffectType, str, True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
@@ -1578,17 +1578,17 @@ begin
                 if Data.FXType = 0 then
                   case Data.FXSubType of
                     TRIGGER_EFFECT_SLIQUID:
-                      str := _lc[I_PROP_TR_EFFECT_SLIQUID];
+                      str := MsgPropTrEffectSliquid;
                     TRIGGER_EFFECT_LLIQUID:
-                      str := _lc[I_PROP_TR_EFFECT_LLIQUID];
+                      str := MsgPropTrEffectLliquid;
                     TRIGGER_EFFECT_DLIQUID:
-                      str := _lc[I_PROP_TR_EFFECT_DLIQUID];
+                      str := MsgPropTrEffectDliquid;
                     TRIGGER_EFFECT_BLOOD:
-                      str := _lc[I_PROP_TR_EFFECT_BLOOD];
+                      str := MsgPropTrEffectBlood;
                     TRIGGER_EFFECT_SPARK:
-                      str := _lc[I_PROP_TR_EFFECT_SPARK];
+                      str := MsgPropTrEffectSpark;
                     TRIGGER_EFFECT_BUBBLE:
-                      str := _lc[I_PROP_TR_EFFECT_BUBBLE];
+                      str := MsgPropTrEffectBubble;
                   end;
                 if Data.FXType = 1 then
                 begin
@@ -1596,61 +1596,61 @@ begin
                     Data.FXSubType := EFFECT_TELEPORT;
                   str := EffectToStr(Data.FXSubType);
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EFFECT_SUBTYPE], str, True)] do
+                with ItemProps[InsertRow(MsgPropTrEffectSubtype, str, True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EFFECT_COLOR], IntToStr(Data.FXColorR or (Data.FXColorG shl 8) or (Data.FXColorB shl 16)), True)] do
+                with ItemProps[InsertRow(MsgPropTrEffectColor, IntToStr(Data.FXColorR or (Data.FXColorG shl 8) or (Data.FXColorB shl 16)), True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EFFECT_CENTER], BoolNames[Data.FXPos = 0], True)] do
+                with ItemProps[InsertRow(MsgPropTrEffectCenter, BoolNames[Data.FXPos = 0], True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EX_DELAY], IntToStr(Data.FXWait), True)] do
+                with ItemProps[InsertRow(MsgPropTrExDelay, IntToStr(Data.FXWait), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EFFECT_VELX], IntToStr(Data.FXVelX), True)] do
+                with ItemProps[InsertRow(MsgPropTrEffectVelx, IntToStr(Data.FXVelX), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 4;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EFFECT_VELY], IntToStr(Data.FXVelY), True)] do
+                with ItemProps[InsertRow(MsgPropTrEffectVely, IntToStr(Data.FXVelY), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 4;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EFFECT_SPL], IntToStr(Data.FXSpreadL), True)] do
+                with ItemProps[InsertRow(MsgPropTrEffectSpl, IntToStr(Data.FXSpreadL), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 3;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EFFECT_SPR], IntToStr(Data.FXSpreadR), True)] do
+                with ItemProps[InsertRow(MsgPropTrEffectSpr, IntToStr(Data.FXSpreadR), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 3;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EFFECT_SPU], IntToStr(Data.FXSpreadU), True)] do
+                with ItemProps[InsertRow(MsgPropTrEffectSpu, IntToStr(Data.FXSpreadU), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 3;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_EFFECT_SPD], IntToStr(Data.FXSpreadD), True)] do
+                with ItemProps[InsertRow(MsgPropTrEffectSpd, IntToStr(Data.FXSpreadD), True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 3;
@@ -1858,7 +1858,7 @@ end;
 
 procedure ErrorMessageBox(str: String);
 begin
-  Application.MessageBox(PChar(str), PChar(_lc[I_MSG_ERROR]),
+  Application.MessageBox(PChar(str), PChar(MsgMsgError),
              MB_ICONINFORMATION or MB_OK or MB_DEFBUTTON1);
 end;
 
@@ -1874,41 +1874,41 @@ begin
     with gPanels[SelectedObjects[_id].ID] do
     begin
       if TextureWidth <> 0 then
-        if StrToIntDef(MainForm.vleObjectProperty.Values[_lc[I_PROP_WIDTH]], 1) mod TextureWidth <> 0 then
+        if StrToIntDef(MainForm.vleObjectProperty.Values[MsgPropWidth], 1) mod TextureWidth <> 0 then
         begin
-          ErrorMessageBox(Format(_lc[I_MSG_WRONG_TEXWIDTH],
+          ErrorMessageBox(Format(MsgMsgWrongTexwidth,
                                  [TextureWidth]));
           Exit;
         end;
 
       if TextureHeight <> 0 then
-        if StrToIntDef(Trim(MainForm.vleObjectProperty.Values[_lc[I_PROP_HEIGHT]]), 1) mod TextureHeight <> 0 then
+        if StrToIntDef(Trim(MainForm.vleObjectProperty.Values[MsgPropHeight]), 1) mod TextureHeight <> 0 then
         begin
-          ErrorMessageBox(Format(_lc[I_MSG_WRONG_TEXHEIGHT],
+          ErrorMessageBox(Format(MsgMsgWrongTexheight,
                                  [TextureHeight]));
           Exit;
         end;
 
       if IsTexturedPanel(PanelType) and (TextureName <> '') then
-        if not (StrToIntDef(MainForm.vleObjectProperty.Values[_lc[I_PROP_PANEL_ALPHA]], -1) in [0..255]) then
+        if not (StrToIntDef(MainForm.vleObjectProperty.Values[MsgPropPanelAlpha], -1) in [0..255]) then
         begin
-          ErrorMessageBox(_lc[I_MSG_WRONG_ALPHA]);
+          ErrorMessageBox(MsgMsgWrongAlpha);
           Exit;
         end;
     end;
 
   if SelectedObjects[_id].ObjectType in [OBJECT_PANEL, OBJECT_TRIGGER] then
-    if (StrToIntDef(MainForm.vleObjectProperty.Values[_lc[I_PROP_WIDTH]], 0) <= 0) or
-       (StrToIntDef(MainForm.vleObjectProperty.Values[_lc[I_PROP_HEIGHT]], 0) <= 0) then
+    if (StrToIntDef(MainForm.vleObjectProperty.Values[MsgPropWidth], 0) <= 0) or
+       (StrToIntDef(MainForm.vleObjectProperty.Values[MsgPropHeight], 0) <= 0) then
     begin
-      ErrorMessageBox(_lc[I_MSG_WRONG_SIZE]);
+      ErrorMessageBox(MsgMsgWrongSize);
       Exit;
     end;
 
-  if (Trim(MainForm.vleObjectProperty.Values[_lc[I_PROP_X]]) = '') or
-     (Trim(MainForm.vleObjectProperty.Values[_lc[I_PROP_Y]]) = '') then
+  if (Trim(MainForm.vleObjectProperty.Values[MsgPropX]) = '') or
+     (Trim(MainForm.vleObjectProperty.Values[MsgPropY]) = '') then
   begin
-    ErrorMessageBox(_lc[I_MSG_WRONG_XY]);
+    ErrorMessageBox(MsgMsgWrongXy);
     Exit;
   end;
 
@@ -1944,16 +1944,16 @@ begin
     SectionName := aSection;
 
   if aWAD = '' then
-    aWAD := _lc[I_WAD_SPECIAL_MAP];
+    aWAD := MsgWadSpecialMap;
 
-  if aWAD = _lc[I_WAD_SPECIAL_MAP] then
+  if aWAD = MsgWadSpecialMap then
     begin // Файл карты
       g_ProcessResourceStr(OpenedMap, @fn, nil, nil);
       FileName := fn;
       ResourceName := ':'+SectionName+'\'+aTex;
     end
   else
-    if aWAD = _lc[I_WAD_SPECIAL_TEXS] then
+    if aWAD = MsgWadSpecialTexs then
       begin // Спец. текстуры
         FileName := '';
         ResourceName := aTex;
@@ -1971,7 +1971,7 @@ begin
     if ResourceName = MainForm.lbTextureList.Items[a] then
     begin
       if not silent then
-        ErrorMessageBox(Format(_lc[I_MSG_TEXTURE_ALREADY],
+        ErrorMessageBox(Format(MsgMsgTextureAlready,
                                [ResourceName]));
       ok := False;
     end;
@@ -1980,7 +1980,7 @@ begin
   if Length(ResourceName) > 64 then
   begin
     if not silent then
-      ErrorMessageBox(Format(_lc[I_MSG_RES_NAME_64],
+      ErrorMessageBox(Format(MsgMsgResName64,
                              [ResourceName]));
     ok := False;
   end;
@@ -1988,7 +1988,7 @@ begin
   if ok then
   begin
     a := -1;
-    if aWAD = _lc[I_WAD_SPECIAL_TEXS] then
+    if aWAD = MsgWadSpecialTexs then
     begin
       a := MainForm.lbTextureList.Items.Add(ResourceName);
       if not silent then
@@ -2045,7 +2045,7 @@ var
   MapName: String;
   idx: Integer;
 begin
-  SelectMapForm.Caption := _lc[I_CAP_OPEN];
+  SelectMapForm.Caption := MsgCapOpen;
   SelectMapForm.GetMaps(FileName);
 
   if (FileName = OpenedWAD) and
@@ -2591,7 +2591,7 @@ begin
     OpenMap(fn, g_ExtractFilePathName(FPath))
   else
     Application.MessageBox('', 'File not available anymore', MB_OK);
-//  if Application.MessageBox(PChar(_lc[I_MSG_DEL_RECENT_PROMT]), PChar(_lc[I_MSG_DEL_RECENT]), MB_ICONQUESTION or MB_YESNO) = idYes then
+//  if Application.MessageBox(PChar(MsgMsgDelRecentPromt), PChar(MsgMsgDelRecent), MB_ICONQUESTION or MB_YESNO) = idYes then
 //  begin
 //    RecentFiles.Delete(n);
 //    RefreshRecentMenu();
@@ -2901,7 +2901,7 @@ begin
   tbShowMap.Down := ShowMap;
   tbGridOn.Down := DotEnable;
   pcObjects.ActivePageIndex := 0;
-  Application.Title := _lc[I_EDITOR_TITLE];
+  Application.Title := MsgEditorTitle;
 
   Application.OnIdle := OnIdle;
 end;
@@ -3028,7 +3028,7 @@ begin
 
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 255, 255, 255);
-    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_TELEPORT], gEditorFont);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, utf8to1251(MsgHintTeleport), gEditorFont);
   end;
 
 // Подсказка при выборе точки появления:
@@ -3039,7 +3039,7 @@ begin
                0, 0, 255);
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 255, 255, 255);
-    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_SPAWN], gEditorFont);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, utf8to1251(MsgHintSpawn), gEditorFont);
   end;
 
 // Подсказка при выборе панели двери:
@@ -3047,7 +3047,7 @@ begin
   begin
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 255, 255, 255);
-    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_PANEL_DOOR], gEditorFont);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, utf8to1251(MsgHintPanelDoor), gEditorFont);
   end;
 
 // Подсказка при выборе панели с текстурой:
@@ -3055,7 +3055,7 @@ begin
   begin
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+196, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+196, MousePos.Y+18, 255, 255, 255);
-    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_PANEL_TEXTURE], gEditorFont);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, utf8to1251(MsgHintPanelTexture), gEditorFont);
   end;
 
 // Подсказка при выборе панели индикации выстрела:
@@ -3063,7 +3063,7 @@ begin
   begin
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+316, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+316, MousePos.Y+18, 255, 255, 255);
-    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_PANEL_SHOT], gEditorFont);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, utf8to1251(MsgHintPanelShot), gEditorFont);
   end;
 
 // Подсказка при выборе панели лифта:
@@ -3071,7 +3071,7 @@ begin
   begin
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 255, 255, 255);
-    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_PANEL_LIFT], gEditorFont);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, utf8to1251(MsgHintPanelLift), gEditorFont);
   end;
 
 // Подсказка при выборе монстра:
@@ -3079,7 +3079,7 @@ begin
   begin
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+120, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+120, MousePos.Y+18, 255, 255, 255);
-    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_MONSTER], gEditorFont);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, utf8to1251(MsgHintMonster), gEditorFont);
   end;
 
 // Подсказка при выборе области воздействия:
@@ -3087,7 +3087,7 @@ begin
   begin
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+204, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+204, MousePos.Y+18, 255, 255, 255);
-    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_EXT_AREA], gEditorFont);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, utf8to1251(MsgHintExtArea), gEditorFont);
   end;
 
 // Рисуем текстуры, если чертим панель:
@@ -3119,9 +3119,9 @@ begin
 
     if MouseAction in [MOUSEACTION_DRAWPANEL, MOUSEACTION_DRAWTRIGGER] then
       begin // Чертим новый
-        PrintBlack(MousePos.X+2, MousePos.Y+2, Format(_glc[I_HINT_WIDTH],
+        PrintBlack(MousePos.X+2, MousePos.Y+2, Format(utf8to1251(MsgHintWidth),
                           [Abs(MousePos.X-MouseLDownPos.X)]), gEditorFont);
-        PrintBlack(MousePos.X+2, MousePos.Y+16, Format(_glc[I_HINT_HEIGHT],
+        PrintBlack(MousePos.X+2, MousePos.Y+16, Format(utf8to1251(MsgHintHeight),
                           [Abs(MousePos.Y-MouseLDownPos.Y)]), gEditorFont);
       end
     else // Растягиваем существующий
@@ -3138,9 +3138,9 @@ begin
             Height := gTriggers[SelectedObjects[GetFirstSelected].ID].Height;
           end;
 
-        PrintBlack(MousePos.X+2, MousePos.Y+2, Format(_glc[I_HINT_WIDTH], [Width]),
+        PrintBlack(MousePos.X+2, MousePos.Y+2, Format(utf8to1251(MsgHintWidth), [Width]),
                           gEditorFont);
-        PrintBlack(MousePos.X+2, MousePos.Y+16, Format(_glc[I_HINT_HEIGHT], [Height]),
+        PrintBlack(MousePos.X+2, MousePos.Y+16, Format(utf8to1251(MsgHintHeight), [Height]),
                           gEditorFont);
       end;
   end;
@@ -3427,7 +3427,7 @@ begin
           case pcObjects.ActivePageIndex of
             1:
               if lbItemList.ItemIndex = -1 then
-                ErrorMessageBox(_lc[I_MSG_CHOOSE_ITEM])
+                ErrorMessageBox(MsgMsgChooseItem)
               else
                 begin
                   item.ItemType := lbItemList.ItemIndex + ITEM_MEDKIT_SMALL;
@@ -3448,7 +3448,7 @@ begin
                 end;
             2:
               if lbMonsterList.ItemIndex = -1 then
-                ErrorMessageBox(_lc[I_MSG_CHOOSE_MONSTER])
+                ErrorMessageBox(MsgMsgChooseMonster)
               else
                 begin
                   monster.MonsterType := lbMonsterList.ItemIndex + MONSTER_DEMON;
@@ -3469,7 +3469,7 @@ begin
                 end;
             3:
               if lbAreasList.ItemIndex = -1 then
-                ErrorMessageBox(_lc[I_MSG_CHOOSE_AREA])
+                ErrorMessageBox(MsgMsgChooseArea)
               else
                 if (lbAreasList.ItemIndex + 1) <> AREA_DOMFLAG then
                   begin
@@ -3830,7 +3830,7 @@ begin
               // Фон или передний план без текстуры - ошибка:
                 if (lbPanelType.ItemIndex in [1, 2]) and
                    (lbTextureList.ItemIndex = -1) then
-                  ErrorMessageBox(_lc[I_MSG_CHOOSE_TEXTURE])
+                  ErrorMessageBox(MsgMsgChooseTexture)
                 else // Назначаем параметры панели:
                   begin
                     case lbPanelType.ItemIndex of
@@ -4205,7 +4205,7 @@ begin
   if SelectedObjectCount() = 0 then
     StatusBar.Panels[0].Text := ''
   else
-    StatusBar.Panels[0].Text := Format(_lc[I_CAP_STAT_SELECTED], [SelectedObjectCount()]);
+    StatusBar.Panels[0].Text := Format(MsgCapStatSelected, [SelectedObjectCount()]);
 end;
 
 procedure TMainForm.RenderPanelMouseMove(Sender: TObject;
@@ -4384,8 +4384,8 @@ end;
 
 procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
-  CanClose := Application.MessageBox(PChar(_lc[I_MSG_EXIT_PROMT]),
-                         PChar(_lc[I_MSG_EXIT]),
+  CanClose := Application.MessageBox(PChar(MsgMsgExitPromt),
+                         PChar(MsgMsgExit),
                          MB_ICONQUESTION or MB_YESNO or
                          MB_DEFBUTTON1) = idYes;
 end;
@@ -4425,6 +4425,7 @@ begin
   config.WriteInt('Editor', 'DotStep', DotStep);
   config.WriteStr('Editor', 'LastOpenDir', OpenDialog.InitialDir);
   config.WriteStr('Editor', 'LastSaveDir', SaveDialog.InitialDir);
+  config.WriteStr('Editor', 'Language', gLanguage);
   config.WriteBool('Editor', 'EdgeShow', drEdge[3] < 255);
   config.WriteInt('Editor', 'EdgeColor', gColorEdge);
   config.WriteInt('Editor', 'EdgeAlpha', gAlphaEdge);
@@ -4477,7 +4478,7 @@ begin
     if MapTestProcess.Running = false then
     begin
       if MapTestProcess.ExitCode <> 0 then
-        Application.MessageBox(PChar(_lc[I_MSG_EXEC_ERROR]), 'FIXME', MB_OK or MB_ICONERROR);
+        Application.MessageBox(PChar(MsgMsgExecError), 'FIXME', MB_OK or MB_ICONERROR);
       SysUtils.DeleteFile(MapTestFile);
       MapTestFile := '';
       FreeAndNil(MapTestProcess);
@@ -4739,7 +4740,7 @@ begin
         SelectFlag := SELECTFLAG_NONE;
         Exit;
       end;
-      vleObjectProperty.FindRow(_lc[I_PROP_TR_TEXTURE_PANEL], i);
+      vleObjectProperty.FindRow(MsgPropTrTexturePanel, i);
       if i > 0 then
         SelectFlag := SELECTFLAG_TEXTURE;
     end;
@@ -4755,33 +4756,33 @@ begin
       i := -1;
 
     // Выбор области воздействия, в зависимости от типа триггера
-      vleObjectProperty.FindRow(_lc[I_PROP_TR_EX_AREA], i);
+      vleObjectProperty.FindRow(MsgPropTrExArea, i);
       if i > 0 then
       begin
         DrawPressRect := True;
         Exit;
       end;
-      vleObjectProperty.FindRow(_lc[I_PROP_TR_DOOR_PANEL], i);
+      vleObjectProperty.FindRow(MsgPropTrDoorPanel, i);
       if i <= 0 then
-        vleObjectProperty.FindRow(_lc[I_PROP_TR_TRAP_PANEL], i);
+        vleObjectProperty.FindRow(MsgPropTrTrapPanel, i);
       if i > 0 then
       begin
         SelectFlag := SELECTFLAG_DOOR;
         Exit;
       end;
-      vleObjectProperty.FindRow(_lc[I_PROP_TR_LIFT_PANEL], i);
+      vleObjectProperty.FindRow(MsgPropTrLiftPanel, i);
       if i > 0 then
       begin
         SelectFlag := SELECTFLAG_LIFT;
         Exit;
       end;
-      vleObjectProperty.FindRow(_lc[I_PROP_TR_TELEPORT_TO], i);
+      vleObjectProperty.FindRow(MsgPropTrTeleportTo, i);
       if i > 0 then
       begin
         SelectFlag := SELECTFLAG_TELEPORT;
         Exit;
       end;
-      vleObjectProperty.FindRow(_lc[I_PROP_TR_SPAWN_TO], i);
+      vleObjectProperty.FindRow(MsgPropTrSpawnTo, i);
       if i > 0 then
       begin
         SelectFlag := SELECTFLAG_SPAWNPOINT;
@@ -4789,11 +4790,11 @@ begin
       end;
 
     // Выбор основного параметра, в зависимости от типа триггера
-      vleObjectProperty.FindRow(_lc[I_PROP_TR_NEXT_MAP], i);
+      vleObjectProperty.FindRow(MsgPropTrNextMap, i);
       if i > 0 then
       begin
         g_ProcessResourceStr(OpenedMap, @FileName, nil, nil);
-        SelectMapForm.Caption := _lc[I_CAP_SELECT];
+        SelectMapForm.Caption := MsgCapSelect;
         SelectMapForm.GetMaps(FileName);
 
         if SelectMapForm.ShowModal() = mrOK then
@@ -4803,9 +4804,9 @@ begin
         end;
         Exit;
       end;
-      vleObjectProperty.FindRow(_lc[I_PROP_TR_SOUND_NAME], i);
+      vleObjectProperty.FindRow(MsgPropTrSoundName, i);
       if i <= 0 then
-        vleObjectProperty.FindRow(_lc[I_PROP_TR_MUSIC_NAME], i);
+        vleObjectProperty.FindRow(MsgPropTrMusicName, i);
       if i > 0 then
       begin
         AddSoundForm.OKFunction := nil;
@@ -4819,9 +4820,9 @@ begin
         end;
         Exit;
       end;
-      vleObjectProperty.FindRow(_lc[I_PROP_TR_PUSH_ANGLE], i);
+      vleObjectProperty.FindRow(MsgPropTrPushAngle, i);
       if i <= 0 then
-        vleObjectProperty.FindRow(_lc[I_PROP_TR_MESSAGE_TEXT], i);
+        vleObjectProperty.FindRow(MsgPropTrMessageText, i);
       if i > 0 then
       begin
         vleObjectProperty.Row := i;
@@ -4868,8 +4869,8 @@ begin
         lTextureHeight.Caption := IntToStr(TextureHeight);
       end else
       begin
-        lTextureWidth.Caption := _lc[I_NOT_ACCESSIBLE];
-        lTextureHeight.Caption := _lc[I_NOT_ACCESSIBLE];
+        lTextureWidth.Caption := MsgNotAccessible;
+        lTextureHeight.Caption := MsgNotAccessible;
       end;
     end
   else
@@ -4922,8 +4923,8 @@ begin
   if OpenedMap = '' then
     Exit;
 
-  if Application.MessageBox(PChar(_lc[I_MSG_REOPEN_MAP_PROMT]),
-  PChar(_lc[I_MENU_FILE_REOPEN]), MB_ICONQUESTION or MB_YESNO) <> idYes then
+  if Application.MessageBox(PChar(MsgMsgReopenMapPromt),
+  PChar(MsgMenuFileReopen), MB_ICONQUESTION or MB_YESNO) <> idYes then
     Exit;
 
   g_ProcessResourceStr(OpenedMap, @FileName, nil, @Resource);
@@ -4935,106 +4936,106 @@ procedure TMainForm.vleObjectPropertyGetPickList(Sender: TObject;
 begin
   if vleObjectProperty.ItemProps[KeyName].EditStyle = esPickList then
   begin
-    if KeyName = _lc[I_PROP_DIRECTION] then
+    if KeyName = MsgPropDirection then
       begin
         Values.Add(DirNames[D_LEFT]);
         Values.Add(DirNames[D_RIGHT]);
       end
-    else if KeyName = _lc[I_PROP_TR_TELEPORT_DIR] then
+    else if KeyName = MsgPropTrTeleportDir then
       begin
         Values.Add(DirNamesAdv[0]);
         Values.Add(DirNamesAdv[1]);
         Values.Add(DirNamesAdv[2]);
         Values.Add(DirNamesAdv[3]);
       end
-    else if KeyName = _lc[I_PROP_TR_MUSIC_ACT] then
+    else if KeyName = MsgPropTrMusicAct then
       begin
-        Values.Add(_lc[I_PROP_TR_MUSIC_ON]);
-        Values.Add(_lc[I_PROP_TR_MUSIC_OFF]);
+        Values.Add(MsgPropTrMusicOn);
+        Values.Add(MsgPropTrMusicOff);
       end
-    else if KeyName = _lc[I_PROP_TR_MONSTER_BEHAVIOUR] then
+    else if KeyName = MsgPropTrMonsterBehaviour then
       begin
-        Values.Add(_lc[I_PROP_TR_MONSTER_BEHAVIOUR_0]);
-        Values.Add(_lc[I_PROP_TR_MONSTER_BEHAVIOUR_1]);
-        Values.Add(_lc[I_PROP_TR_MONSTER_BEHAVIOUR_2]);
-        Values.Add(_lc[I_PROP_TR_MONSTER_BEHAVIOUR_3]);
-        Values.Add(_lc[I_PROP_TR_MONSTER_BEHAVIOUR_4]);
-        Values.Add(_lc[I_PROP_TR_MONSTER_BEHAVIOUR_5]);
+        Values.Add(MsgPropTrMonsterBehaviour0);
+        Values.Add(MsgPropTrMonsterBehaviour1);
+        Values.Add(MsgPropTrMonsterBehaviour2);
+        Values.Add(MsgPropTrMonsterBehaviour3);
+        Values.Add(MsgPropTrMonsterBehaviour4);
+        Values.Add(MsgPropTrMonsterBehaviour5);
       end
-    else if KeyName = _lc[I_PROP_TR_SCORE_ACT] then
+    else if KeyName = MsgPropTrScoreAct then
       begin
-        Values.Add(_lc[I_PROP_TR_SCORE_ACT_0]);
-        Values.Add(_lc[I_PROP_TR_SCORE_ACT_1]);
-        Values.Add(_lc[I_PROP_TR_SCORE_ACT_2]);
-        Values.Add(_lc[I_PROP_TR_SCORE_ACT_3]);
+        Values.Add(MsgPropTrScoreAct0);
+        Values.Add(MsgPropTrScoreAct1);
+        Values.Add(MsgPropTrScoreAct2);
+        Values.Add(MsgPropTrScoreAct3);
       end
-    else if KeyName = _lc[I_PROP_TR_SCORE_TEAM] then
+    else if KeyName = MsgPropTrScoreTeam then
       begin
-        Values.Add(_lc[I_PROP_TR_SCORE_TEAM_0]);
-        Values.Add(_lc[I_PROP_TR_SCORE_TEAM_1]);
-        Values.Add(_lc[I_PROP_TR_SCORE_TEAM_2]);
-        Values.Add(_lc[I_PROP_TR_SCORE_TEAM_3]);
+        Values.Add(MsgPropTrScoreTeam0);
+        Values.Add(MsgPropTrScoreTeam1);
+        Values.Add(MsgPropTrScoreTeam2);
+        Values.Add(MsgPropTrScoreTeam3);
       end
-    else if KeyName = _lc[I_PROP_TR_MESSAGE_KIND] then
+    else if KeyName = MsgPropTrMessageKind then
       begin
-        Values.Add(_lc[I_PROP_TR_MESSAGE_KIND_0]);
-        Values.Add(_lc[I_PROP_TR_MESSAGE_KIND_1]);
+        Values.Add(MsgPropTrMessageKind0);
+        Values.Add(MsgPropTrMessageKind1);
       end
-    else if KeyName = _lc[I_PROP_TR_MESSAGE_TO] then
+    else if KeyName = MsgPropTrMessageTo then
       begin
-        Values.Add(_lc[I_PROP_TR_MESSAGE_TO_0]);
-        Values.Add(_lc[I_PROP_TR_MESSAGE_TO_1]);
-        Values.Add(_lc[I_PROP_TR_MESSAGE_TO_2]);
-        Values.Add(_lc[I_PROP_TR_MESSAGE_TO_3]);
-        Values.Add(_lc[I_PROP_TR_MESSAGE_TO_4]);
-        Values.Add(_lc[I_PROP_TR_MESSAGE_TO_5]);
+        Values.Add(MsgPropTrMessageTo0);
+        Values.Add(MsgPropTrMessageTo1);
+        Values.Add(MsgPropTrMessageTo2);
+        Values.Add(MsgPropTrMessageTo3);
+        Values.Add(MsgPropTrMessageTo4);
+        Values.Add(MsgPropTrMessageTo5);
       end
-    else if KeyName = _lc[I_PROP_TR_SHOT_TO] then
+    else if KeyName = MsgPropTrShotTo then
       begin
-        Values.Add(_lc[I_PROP_TR_SHOT_TO_0]);
-        Values.Add(_lc[I_PROP_TR_SHOT_TO_1]);
-        Values.Add(_lc[I_PROP_TR_SHOT_TO_2]);
-        Values.Add(_lc[I_PROP_TR_SHOT_TO_3]);
-        Values.Add(_lc[I_PROP_TR_SHOT_TO_4]);
-        Values.Add(_lc[I_PROP_TR_SHOT_TO_5]);
-        Values.Add(_lc[I_PROP_TR_SHOT_TO_6]);
+        Values.Add(MsgPropTrShotTo0);
+        Values.Add(MsgPropTrShotTo1);
+        Values.Add(MsgPropTrShotTo2);
+        Values.Add(MsgPropTrShotTo3);
+        Values.Add(MsgPropTrShotTo4);
+        Values.Add(MsgPropTrShotTo5);
+        Values.Add(MsgPropTrShotTo6);
       end
-    else if KeyName = _lc[I_PROP_TR_SHOT_AIM] then
+    else if KeyName = MsgPropTrShotAim then
       begin
-        Values.Add(_lc[I_PROP_TR_SHOT_AIM_0]);
-        Values.Add(_lc[I_PROP_TR_SHOT_AIM_1]);
-        Values.Add(_lc[I_PROP_TR_SHOT_AIM_2]);
-        Values.Add(_lc[I_PROP_TR_SHOT_AIM_3]);
+        Values.Add(MsgPropTrShotAim0);
+        Values.Add(MsgPropTrShotAim1);
+        Values.Add(MsgPropTrShotAim2);
+        Values.Add(MsgPropTrShotAim3);
       end
-    else if KeyName = _lc[I_PROP_TR_DAMAGE_KIND] then
+    else if KeyName = MsgPropTrDamageKind then
       begin
-        Values.Add(_lc[I_PROP_TR_DAMAGE_KIND_0]);
-        Values.Add(_lc[I_PROP_TR_DAMAGE_KIND_3]);
-        Values.Add(_lc[I_PROP_TR_DAMAGE_KIND_4]);
-        Values.Add(_lc[I_PROP_TR_DAMAGE_KIND_5]);
-        Values.Add(_lc[I_PROP_TR_DAMAGE_KIND_6]);
-        Values.Add(_lc[I_PROP_TR_DAMAGE_KIND_7]);
-        Values.Add(_lc[I_PROP_TR_DAMAGE_KIND_8]);
+        Values.Add(MsgPropTrDamageKind0);
+        Values.Add(MsgPropTrDamageKind3);
+        Values.Add(MsgPropTrDamageKind4);
+        Values.Add(MsgPropTrDamageKind5);
+        Values.Add(MsgPropTrDamageKind6);
+        Values.Add(MsgPropTrDamageKind7);
+        Values.Add(MsgPropTrDamageKind8);
       end
-    else if (KeyName = _lc[I_PROP_PANEL_BLEND]) or
-            (KeyName = _lc[I_PROP_DM_ONLY]) or
-            (KeyName = _lc[I_PROP_ITEM_FALLS]) or
-            (KeyName = _lc[I_PROP_TR_ENABLED]) or
-            (KeyName = _lc[I_PROP_TR_D2D]) or
-            (KeyName = _lc[I_PROP_TR_SILENT]) or
-            (KeyName = _lc[I_PROP_TR_TELEPORT_SILENT]) or
-            (KeyName = _lc[I_PROP_TR_EX_RANDOM]) or
-            (KeyName = _lc[I_PROP_TR_TEXTURE_ONCE]) or
-            (KeyName = _lc[I_PROP_TR_TEXTURE_ANIM_ONCE]) or
-            (KeyName = _lc[I_PROP_TR_SOUND_LOCAL]) or
-            (KeyName = _lc[I_PROP_TR_SOUND_SWITCH]) or
-            (KeyName = _lc[I_PROP_TR_MONSTER_ACTIVE]) or
-            (KeyName = _lc[I_PROP_TR_PUSH_RESET]) or
-            (KeyName = _lc[I_PROP_TR_SCORE_CON]) or
-            (KeyName = _lc[I_PROP_TR_SCORE_MSG]) or
-            (KeyName = _lc[I_PROP_TR_HEALTH_MAX]) or
-            (KeyName = _lc[I_PROP_TR_SHOT_SOUND]) or
-            (KeyName = _lc[I_PROP_TR_EFFECT_CENTER]) then
+    else if (KeyName = MsgPropPanelBlend) or
+            (KeyName = MsgPropDmOnly) or
+            (KeyName = MsgPropItemFalls) or
+            (KeyName = MsgPropTrEnabled) or
+            (KeyName = MsgPropTrD2d) or
+            (KeyName = MsgPropTrSilent) or
+            (KeyName = MsgPropTrTeleportSilent) or
+            (KeyName = MsgPropTrExRandom) or
+            (KeyName = MsgPropTrTextureOnce) or
+            (KeyName = MsgPropTrTextureAnimOnce) or
+            (KeyName = MsgPropTrSoundLocal) or
+            (KeyName = MsgPropTrSoundSwitch) or
+            (KeyName = MsgPropTrMonsterActive) or
+            (KeyName = MsgPropTrPushReset) or
+            (KeyName = MsgPropTrScoreCon) or
+            (KeyName = MsgPropTrScoreMsg) or
+            (KeyName = MsgPropTrHealthMax) or
+            (KeyName = MsgPropTrShotSound) or
+            (KeyName = MsgPropTrEffectCenter) then
       begin
         Values.Add(BoolNames[True]);
         Values.Add(BoolNames[False]);
@@ -5076,12 +5077,12 @@ begin
       begin
         with gPanels[SelectedObjects[_id].ID] do
         begin
-          X := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_X]]));
-          Y := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_Y]]));
-          Width := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_WIDTH]]));
-          Height := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_HEIGHT]]));
+          X := StrToInt(Trim(vleObjectProperty.Values[MsgPropX]));
+          Y := StrToInt(Trim(vleObjectProperty.Values[MsgPropY]));
+          Width := StrToInt(Trim(vleObjectProperty.Values[MsgPropWidth]));
+          Height := StrToInt(Trim(vleObjectProperty.Values[MsgPropHeight]));
 
-          PanelType := GetPanelType(vleObjectProperty.Values[_lc[I_PROP_PANEL_TYPE]]);
+          PanelType := GetPanelType(vleObjectProperty.Values[MsgPropPanelType]);
 
         // Сброс ссылки на триггеры смены текстуры:
           if not WordBool(PanelType and (PANEL_WALL or PANEL_FORE or PANEL_BACK)) then
@@ -5117,8 +5118,8 @@ begin
             begin // Может быть текстура
               if TextureName <> '' then
                 begin // Была текстура
-                  Alpha := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_PANEL_ALPHA]]));
-                  Blending := NameToBool(vleObjectProperty.Values[_lc[I_PROP_PANEL_BLEND]]);
+                  Alpha := StrToInt(Trim(vleObjectProperty.Values[MsgPropPanelAlpha]));
+                  Blending := NameToBool(vleObjectProperty.Values[MsgPropPanelBlend]);
                 end
               else // Не было
                 begin
@@ -5127,7 +5128,7 @@ begin
                 end;
 
             // Новая текстура:
-              TextureName := vleObjectProperty.Values[_lc[I_PROP_PANEL_TEX]];
+              TextureName := vleObjectProperty.Values[MsgPropPanelTex];
 
               if TextureName <> '' then
                 begin // Есть текстура
@@ -5142,14 +5143,14 @@ begin
                       if TextureWidth <> 0 then
                         if gPanels[SelectedObjects[_id].ID].Width mod TextureWidth <> 0 then
                         begin
-                          ErrorMessageBox(Format(_lc[I_MSG_WRONG_TEXWIDTH],
+                          ErrorMessageBox(Format(MsgMsgWrongTexwidth,
                                           [TextureWidth]));
                           Res := False;
                         end;
                       if Res and (TextureHeight <> 0) then
                         if gPanels[SelectedObjects[_id].ID].Height mod TextureHeight <> 0 then
                         begin
-                          ErrorMessageBox(Format(_lc[I_MSG_WRONG_TEXHEIGHT],
+                          ErrorMessageBox(Format(MsgMsgWrongTexheight,
                                           [TextureHeight]));
                           Res := False;
                         end;
@@ -5209,10 +5210,10 @@ begin
       begin
         with gItems[SelectedObjects[_id].ID] do
         begin
-          X := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_X]]));
-          Y := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_Y]]));
-          OnlyDM := NameToBool(vleObjectProperty.Values[_lc[I_PROP_DM_ONLY]]);
-          Fall := NameToBool(vleObjectProperty.Values[_lc[I_PROP_ITEM_FALLS]]);
+          X := StrToInt(Trim(vleObjectProperty.Values[MsgPropX]));
+          Y := StrToInt(Trim(vleObjectProperty.Values[MsgPropY]));
+          OnlyDM := NameToBool(vleObjectProperty.Values[MsgPropDmOnly]);
+          Fall := NameToBool(vleObjectProperty.Values[MsgPropItemFalls]);
         end;
       end;
 
@@ -5220,9 +5221,9 @@ begin
       begin
         with gMonsters[SelectedObjects[_id].ID] do
         begin
-          X := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_X]]));
-          Y := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_Y]]));
-          Direction := NameToDir(vleObjectProperty.Values[_lc[I_PROP_DIRECTION]]);
+          X := StrToInt(Trim(vleObjectProperty.Values[MsgPropX]));
+          Y := StrToInt(Trim(vleObjectProperty.Values[MsgPropY]));
+          Direction := NameToDir(vleObjectProperty.Values[MsgPropDirection]);
         end;
       end;
 
@@ -5230,9 +5231,9 @@ begin
       begin
         with gAreas[SelectedObjects[_id].ID] do
         begin
-          X := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_X]]));
-          Y := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_Y]]));
-          Direction := NameToDir(vleObjectProperty.Values[_lc[I_PROP_DIRECTION]]);
+          X := StrToInt(Trim(vleObjectProperty.Values[MsgPropX]));
+          Y := StrToInt(Trim(vleObjectProperty.Values[MsgPropY]));
+          Direction := NameToDir(vleObjectProperty.Values[MsgPropDirection]);
         end;
       end;
 
@@ -5240,18 +5241,18 @@ begin
       begin
         with gTriggers[SelectedObjects[_id].ID] do
         begin
-          X := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_X]]));
-          Y := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_Y]]));
-          Width := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_WIDTH]]));
-          Height := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_HEIGHT]]));
-          Enabled := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_ENABLED]]);
-          ActivateType := StrToActivate(vleObjectProperty.Values[_lc[I_PROP_TR_ACTIVATION]]);
-          Key := StrToKey(vleObjectProperty.Values[_lc[I_PROP_TR_KEYS]]);
+          X := StrToInt(Trim(vleObjectProperty.Values[MsgPropX]));
+          Y := StrToInt(Trim(vleObjectProperty.Values[MsgPropY]));
+          Width := StrToInt(Trim(vleObjectProperty.Values[MsgPropWidth]));
+          Height := StrToInt(Trim(vleObjectProperty.Values[MsgPropHeight]));
+          Enabled := NameToBool(vleObjectProperty.Values[MsgPropTrEnabled]);
+          ActivateType := StrToActivate(vleObjectProperty.Values[MsgPropTrActivation]);
+          Key := StrToKey(vleObjectProperty.Values[MsgPropTrKeys]);
 
           case TriggerType of
             TRIGGER_EXIT:
               begin
-                s := utf2win(vleObjectProperty.Values[_lc[I_PROP_TR_NEXT_MAP]]);
+                s := utf2win(vleObjectProperty.Values[MsgPropTrNextMap]);
                 FillByte(Data.MapName[0], 16, 0);
                 if s <> '' then
                   Move(s[1], Data.MapName[0], Min(Length(s), 16));
@@ -5259,97 +5260,97 @@ begin
 
             TRIGGER_TEXTURE:
               begin
-                Data.ActivateOnce := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_TEXTURE_ONCE]]);
-                Data.AnimOnce := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_TEXTURE_ANIM_ONCE]]);
+                Data.ActivateOnce := NameToBool(vleObjectProperty.Values[MsgPropTrTextureOnce]);
+                Data.AnimOnce := NameToBool(vleObjectProperty.Values[MsgPropTrTextureAnimOnce]);
               end;
 
             TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF:
               begin
-                Data.Wait := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EX_DELAY]], 0), 65535);
-                Data.Count := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EX_COUNT]], 0), 65535);
+                Data.Wait := Min(StrToIntDef(vleObjectProperty.Values[MsgPropTrExDelay], 0), 65535);
+                Data.Count := Min(StrToIntDef(vleObjectProperty.Values[MsgPropTrExCount], 0), 65535);
                 if Data.Count < 1 then
                   Data.Count := 1;
                 if TriggerType = TRIGGER_PRESS then
-                  Data.ExtRandom := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_EX_RANDOM]]);
+                  Data.ExtRandom := NameToBool(vleObjectProperty.Values[MsgPropTrExRandom]);
               end;
 
             TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5,
             TRIGGER_CLOSETRAP, TRIGGER_TRAP, TRIGGER_LIFTUP, TRIGGER_LIFTDOWN,
             TRIGGER_LIFT:
               begin
-                Data.NoSound := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SILENT]]);
-                Data.d2d_doors := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_D2D]]);
+                Data.NoSound := NameToBool(vleObjectProperty.Values[MsgPropTrSilent]);
+                Data.d2d_doors := NameToBool(vleObjectProperty.Values[MsgPropTrD2d]);
               end;
 
             TRIGGER_TELEPORT:
               begin
-                Data.d2d_teleport := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_D2D]]);
-                Data.silent_teleport := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_TELEPORT_SILENT]]);
-                Data.TlpDir := NameToDirAdv(vleObjectProperty.Values[_lc[I_PROP_TR_TELEPORT_DIR]]);
+                Data.d2d_teleport := NameToBool(vleObjectProperty.Values[MsgPropTrD2d]);
+                Data.silent_teleport := NameToBool(vleObjectProperty.Values[MsgPropTrTeleportSilent]);
+                Data.TlpDir := NameToDirAdv(vleObjectProperty.Values[MsgPropTrTeleportDir]);
               end;
 
             TRIGGER_SOUND:
               begin
-                s := utf2win(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_NAME]]);
+                s := utf2win(vleObjectProperty.Values[MsgPropTrSoundName]);
                 FillByte(Data.SoundName[0], 64, 0);
                 if s <> '' then
                   Move(s[1], Data.SoundName[0], Min(Length(s), 64));
 
-                Data.Volume := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_VOLUME]], 0), 255);
-                Data.Pan := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_PAN]], 0), 255);
-                Data.PlayCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_COUNT]], 0), 255);
-                Data.Local := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_LOCAL]]);
-                Data.SoundSwitch := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_SWITCH]]);
+                Data.Volume := Min(StrToIntDef(vleObjectProperty.Values[MsgPropTrSoundVolume], 0), 255);
+                Data.Pan := Min(StrToIntDef(vleObjectProperty.Values[MsgPropTrSoundPan], 0), 255);
+                Data.PlayCount := Min(StrToIntDef(vleObjectProperty.Values[MsgPropTrSoundCount], 0), 255);
+                Data.Local := NameToBool(vleObjectProperty.Values[MsgPropTrSoundLocal]);
+                Data.SoundSwitch := NameToBool(vleObjectProperty.Values[MsgPropTrSoundSwitch]);
               end;
 
             TRIGGER_SPAWNMONSTER:
               begin
-                Data.MonType := StrToMonster(vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_TYPE]]);
-                Data.MonDir := Byte(NameToDir(vleObjectProperty.Values[_lc[I_PROP_DIRECTION]]));
-                Data.MonHealth := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_HEALTH]], 0), 1000000);
+                Data.MonType := StrToMonster(vleObjectProperty.Values[MsgPropTrMonsterType]);
+                Data.MonDir := Byte(NameToDir(vleObjectProperty.Values[MsgPropDirection]));
+                Data.MonHealth := Min(StrToIntDef(vleObjectProperty.Values[MsgPropTrHealth], 0), 1000000);
                 if Data.MonHealth < 0 then
                   Data.MonHealth := 0;
-                Data.MonActive := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_ACTIVE]]);
-                Data.MonCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_COUNT]], 0), 64);
+                Data.MonActive := NameToBool(vleObjectProperty.Values[MsgPropTrMonsterActive]);
+                Data.MonCount := Min(StrToIntDef(vleObjectProperty.Values[MsgPropTrCount], 0), 64);
                 if Data.MonCount < 1 then
                   Data.MonCount := 1;
-                Data.MonEffect := StrToEffect(vleObjectProperty.Values[_lc[I_PROP_TR_FX_TYPE]]);
-                Data.MonMax := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SPAWN_MAX]], 0), 65535);
-                Data.MonDelay := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SPAWN_DELAY]], 0), 65535);
+                Data.MonEffect := StrToEffect(vleObjectProperty.Values[MsgPropTrFxType]);
+                Data.MonMax := Min(StrToIntDef(vleObjectProperty.Values[MsgPropTrSpawnMax], 0), 65535);
+                Data.MonDelay := Min(StrToIntDef(vleObjectProperty.Values[MsgPropTrSpawnDelay], 0), 65535);
                 Data.MonBehav := 0;
-                if vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_BEHAVIOUR]] = _lc[I_PROP_TR_MONSTER_BEHAVIOUR_1] then
+                if vleObjectProperty.Values[MsgPropTrMonsterBehaviour] = MsgPropTrMonsterBehaviour1 then
                   Data.MonBehav := 1;
-                if vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_BEHAVIOUR]] = _lc[I_PROP_TR_MONSTER_BEHAVIOUR_2] then
+                if vleObjectProperty.Values[MsgPropTrMonsterBehaviour] = MsgPropTrMonsterBehaviour2 then
                   Data.MonBehav := 2;
-                if vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_BEHAVIOUR]] = _lc[I_PROP_TR_MONSTER_BEHAVIOUR_3] then
+                if vleObjectProperty.Values[MsgPropTrMonsterBehaviour] = MsgPropTrMonsterBehaviour3 then
                   Data.MonBehav := 3;
-                if vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_BEHAVIOUR]] = _lc[I_PROP_TR_MONSTER_BEHAVIOUR_4] then
+                if vleObjectProperty.Values[MsgPropTrMonsterBehaviour] = MsgPropTrMonsterBehaviour4 then
                   Data.MonBehav := 4;
-                if vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_BEHAVIOUR]] = _lc[I_PROP_TR_MONSTER_BEHAVIOUR_5] then
+                if vleObjectProperty.Values[MsgPropTrMonsterBehaviour] = MsgPropTrMonsterBehaviour5 then
                   Data.MonBehav := 5;
               end;
 
             TRIGGER_SPAWNITEM:
               begin
-                Data.ItemType := StrToItem(vleObjectProperty.Values[_lc[I_PROP_TR_ITEM_TYPE]]);
-                Data.ItemOnlyDM := NameToBool(vleObjectProperty.Values[_lc[I_PROP_DM_ONLY]]);
-                Data.ItemFalls := NameToBool(vleObjectProperty.Values[_lc[I_PROP_ITEM_FALLS]]);
-                Data.ItemCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_COUNT]], 0), 64);
+                Data.ItemType := StrToItem(vleObjectProperty.Values[MsgPropTrItemType]);
+                Data.ItemOnlyDM := NameToBool(vleObjectProperty.Values[MsgPropDmOnly]);
+                Data.ItemFalls := NameToBool(vleObjectProperty.Values[MsgPropItemFalls]);
+                Data.ItemCount := Min(StrToIntDef(vleObjectProperty.Values[MsgPropTrCount], 0), 64);
                 if Data.ItemCount < 1 then
                   Data.ItemCount := 1;
-                Data.ItemEffect := StrToEffect(vleObjectProperty.Values[_lc[I_PROP_TR_FX_TYPE]]);
-                Data.ItemMax := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SPAWN_MAX]], 0), 65535);
-                Data.ItemDelay := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SPAWN_DELAY]], 0), 65535);
+                Data.ItemEffect := StrToEffect(vleObjectProperty.Values[MsgPropTrFxType]);
+                Data.ItemMax := Min(StrToIntDef(vleObjectProperty.Values[MsgPropTrSpawnMax], 0), 65535);
+                Data.ItemDelay := Min(StrToIntDef(vleObjectProperty.Values[MsgPropTrSpawnDelay], 0), 65535);
               end;
 
             TRIGGER_MUSIC:
               begin
-                s := utf2win(vleObjectProperty.Values[_lc[I_PROP_TR_MUSIC_NAME]]);
+                s := utf2win(vleObjectProperty.Values[MsgPropTrMusicName]);
                 FillByte(Data.MusicName[0], 64, 0);
                 if s <> '' then
                   Move(s[1], Data.MusicName[0], Min(Length(s), 64));
 
-                if vleObjectProperty.Values[_lc[I_PROP_TR_MUSIC_ACT]] = _lc[I_PROP_TR_MUSIC_ON] then
+                if vleObjectProperty.Values[MsgPropTrMusicAct] = MsgPropTrMusicOn then
                   Data.MusicAction := 1
                 else
                   Data.MusicAction := 0;
@@ -5358,79 +5359,79 @@ begin
             TRIGGER_PUSH:
               begin
                 Data.PushAngle := Min(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_PUSH_ANGLE]], 0), 360);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrPushAngle], 0), 360);
                 Data.PushForce := Min(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_PUSH_FORCE]], 0), 255);
-                Data.ResetVel := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_PUSH_RESET]]);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrPushForce], 0), 255);
+                Data.ResetVel := NameToBool(vleObjectProperty.Values[MsgPropTrPushReset]);
               end;
 
             TRIGGER_SCORE:
               begin
                 Data.ScoreAction := 0;
-                if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_ACT]] = _lc[I_PROP_TR_SCORE_ACT_1] then
+                if vleObjectProperty.Values[MsgPropTrScoreAct] = MsgPropTrScoreAct1 then
                   Data.ScoreAction := 1
-                else if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_ACT]] = _lc[I_PROP_TR_SCORE_ACT_2] then
+                else if vleObjectProperty.Values[MsgPropTrScoreAct] = MsgPropTrScoreAct2 then
                   Data.ScoreAction := 2
-                else if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_ACT]] = _lc[I_PROP_TR_SCORE_ACT_3] then
+                else if vleObjectProperty.Values[MsgPropTrScoreAct] = MsgPropTrScoreAct3 then
                   Data.ScoreAction := 3;
                 Data.ScoreCount := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_COUNT]], 0), 0), 255);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrCount], 0), 0), 255);
                 Data.ScoreTeam := 0;
-                if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_TEAM]] = _lc[I_PROP_TR_SCORE_TEAM_1] then
+                if vleObjectProperty.Values[MsgPropTrScoreTeam] = MsgPropTrScoreTeam1 then
                   Data.ScoreTeam := 1
-                else if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_TEAM]] = _lc[I_PROP_TR_SCORE_TEAM_2] then
+                else if vleObjectProperty.Values[MsgPropTrScoreTeam] = MsgPropTrScoreTeam2 then
                   Data.ScoreTeam := 2
-                else if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_TEAM]] = _lc[I_PROP_TR_SCORE_TEAM_3] then
+                else if vleObjectProperty.Values[MsgPropTrScoreTeam] = MsgPropTrScoreTeam3 then
                   Data.ScoreTeam := 3;
-                Data.ScoreCon := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_CON]]);
-                Data.ScoreMsg := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_MSG]]);
+                Data.ScoreCon := NameToBool(vleObjectProperty.Values[MsgPropTrScoreCon]);
+                Data.ScoreMsg := NameToBool(vleObjectProperty.Values[MsgPropTrScoreMsg]);
               end;
 
             TRIGGER_MESSAGE:
               begin
                 Data.MessageKind := 0;
-                if vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_KIND]] = _lc[I_PROP_TR_MESSAGE_KIND_1] then
+                if vleObjectProperty.Values[MsgPropTrMessageKind] = MsgPropTrMessageKind1 then
                   Data.MessageKind := 1;
 
                 Data.MessageSendTo := 0;
-                if vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TO]] = _lc[I_PROP_TR_MESSAGE_TO_1] then
+                if vleObjectProperty.Values[MsgPropTrMessageTo] = MsgPropTrMessageTo1 then
                   Data.MessageSendTo := 1
-                else if vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TO]] = _lc[I_PROP_TR_MESSAGE_TO_2] then
+                else if vleObjectProperty.Values[MsgPropTrMessageTo] = MsgPropTrMessageTo2 then
                   Data.MessageSendTo := 2
-                else if vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TO]] = _lc[I_PROP_TR_MESSAGE_TO_3] then
+                else if vleObjectProperty.Values[MsgPropTrMessageTo] = MsgPropTrMessageTo3 then
                   Data.MessageSendTo := 3
-                else if vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TO]] = _lc[I_PROP_TR_MESSAGE_TO_4] then
+                else if vleObjectProperty.Values[MsgPropTrMessageTo] = MsgPropTrMessageTo4 then
                   Data.MessageSendTo := 4
-                else if vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TO]] = _lc[I_PROP_TR_MESSAGE_TO_5] then
+                else if vleObjectProperty.Values[MsgPropTrMessageTo] = MsgPropTrMessageTo5 then
                   Data.MessageSendTo := 5;
 
-                s := utf2win(vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TEXT]]);
+                s := utf2win(vleObjectProperty.Values[MsgPropTrMessageText]);
                 FillByte(Data.MessageText[0], 100, 0);
                 if s <> '' then
                   Move(s[1], Data.MessageText[0], Min(Length(s), 100));
 
                 Data.MessageTime := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TIME]], 0), 0), 65535);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrMessageTime], 0), 0), 65535);
               end;
 
             TRIGGER_DAMAGE:
               begin
                 Data.DamageValue := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_DAMAGE_VALUE]], 0), 0), 65535);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrDamageValue], 0), 0), 65535);
                 Data.DamageInterval := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_INTERVAL]], 0), 0), 65535);
-                s := vleObjectProperty.Values[_lc[I_PROP_TR_DAMAGE_KIND]];
-                if s = _lc[I_PROP_TR_DAMAGE_KIND_3] then
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrInterval], 0), 0), 65535);
+                s := vleObjectProperty.Values[MsgPropTrDamageKind];
+                if s = MsgPropTrDamageKind3 then
                   Data.DamageKind := 3
-                else if s = _lc[I_PROP_TR_DAMAGE_KIND_4] then
+                else if s = MsgPropTrDamageKind4 then
                   Data.DamageKind := 4
-                else if s = _lc[I_PROP_TR_DAMAGE_KIND_5] then
+                else if s = MsgPropTrDamageKind5 then
                   Data.DamageKind := 5
-                else if s = _lc[I_PROP_TR_DAMAGE_KIND_6] then
+                else if s = MsgPropTrDamageKind6 then
                   Data.DamageKind := 6
-                else if s = _lc[I_PROP_TR_DAMAGE_KIND_7] then
+                else if s = MsgPropTrDamageKind7 then
                   Data.DamageKind := 7
-                else if s = _lc[I_PROP_TR_DAMAGE_KIND_8] then
+                else if s = MsgPropTrDamageKind8 then
                   Data.DamageKind := 8
                 else
                   Data.DamageKind := 0;
@@ -5439,99 +5440,99 @@ begin
             TRIGGER_HEALTH:
               begin
                 Data.HealValue := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_HEALTH]], 0), 0), 65535);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrHealth], 0), 0), 65535);
                 Data.HealInterval := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_INTERVAL]], 0), 0), 65535);
-                Data.HealMax := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_HEALTH_MAX]]);
-                Data.HealSilent := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SILENT]]);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrInterval], 0), 0), 65535);
+                Data.HealMax := NameToBool(vleObjectProperty.Values[MsgPropTrHealthMax]);
+                Data.HealSilent := NameToBool(vleObjectProperty.Values[MsgPropTrSilent]);
               end;
 
             TRIGGER_SHOT:
               begin
-                Data.ShotType := StrToShot(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TYPE]]);
-                Data.ShotSound := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_SOUND]]);
+                Data.ShotType := StrToShot(vleObjectProperty.Values[MsgPropTrShotType]);
+                Data.ShotSound := NameToBool(vleObjectProperty.Values[MsgPropTrShotSound]);
                 Data.ShotTarget := 0;
-                if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_1] then
+                if vleObjectProperty.Values[MsgPropTrShotTo] = MsgPropTrShotTo1 then
                   Data.ShotTarget := 1
-                else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_2] then
+                else if vleObjectProperty.Values[MsgPropTrShotTo] = MsgPropTrShotTo2 then
                   Data.ShotTarget := 2
-                else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_3] then
+                else if vleObjectProperty.Values[MsgPropTrShotTo] = MsgPropTrShotTo3 then
                   Data.ShotTarget := 3
-                else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_4] then
+                else if vleObjectProperty.Values[MsgPropTrShotTo] = MsgPropTrShotTo4 then
                   Data.ShotTarget := 4
-                else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_5] then
+                else if vleObjectProperty.Values[MsgPropTrShotTo] = MsgPropTrShotTo5 then
                   Data.ShotTarget := 5
-                else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_6] then
+                else if vleObjectProperty.Values[MsgPropTrShotTo] = MsgPropTrShotTo6 then
                   Data.ShotTarget := 6;
                 Data.ShotIntSight := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_SIGHT]], 0), 0), 65535);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrShotSight], 0), 0), 65535);
                 Data.ShotAim := 0;
-                if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_AIM]] = _lc[I_PROP_TR_SHOT_AIM_1] then
+                if vleObjectProperty.Values[MsgPropTrShotAim] = MsgPropTrShotAim1 then
                   Data.ShotAim := 1
-                else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_AIM]] = _lc[I_PROP_TR_SHOT_AIM_2] then
+                else if vleObjectProperty.Values[MsgPropTrShotAim] = MsgPropTrShotAim2 then
                   Data.ShotAim := 2
-                else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_AIM]] = _lc[I_PROP_TR_SHOT_AIM_3] then
+                else if vleObjectProperty.Values[MsgPropTrShotAim] = MsgPropTrShotAim3 then
                   Data.ShotAim := 3;
                 Data.ShotAngle := Min(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_ANGLE]], 0), 360);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrShotAngle], 0), 360);
                 Data.ShotWait := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EX_DELAY]], 0), 0), 65535);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrExDelay], 0), 0), 65535);
                 Data.ShotAccuracy := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_ACC]], 0), 0), 65535);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrShotAcc], 0), 0), 65535);
                 Data.ShotAmmo := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_AMMO]], 0), 0), 65535);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrShotAmmo], 0), 0), 65535);
                 Data.ShotIntReload := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_RELOAD]], 0), 0), 65535);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrShotReload], 0), 0), 65535);
               end;
 
             TRIGGER_EFFECT:
               begin
                 Data.FXCount := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_COUNT]], 0), 0), 255);
-                if vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_TYPE]] = _lc[I_PROP_TR_EFFECT_PARTICLE] then
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrCount], 0), 0), 255);
+                if vleObjectProperty.Values[MsgPropTrEffectType] = MsgPropTrEffectParticle then
                 begin
                   Data.FXType := TRIGGER_EFFECT_PARTICLE;
                   Data.FXSubType := TRIGGER_EFFECT_SLIQUID;
-                  if vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_SUBTYPE]] = _lc[I_PROP_TR_EFFECT_SLIQUID] then
+                  if vleObjectProperty.Values[MsgPropTrEffectSubtype] = MsgPropTrEffectSliquid then
                     Data.FXSubType := TRIGGER_EFFECT_SLIQUID
-                  else if vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_SUBTYPE]] = _lc[I_PROP_TR_EFFECT_LLIQUID] then
+                  else if vleObjectProperty.Values[MsgPropTrEffectSubtype] = MsgPropTrEffectLliquid then
                     Data.FXSubType := TRIGGER_EFFECT_LLIQUID
-                  else if vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_SUBTYPE]] = _lc[I_PROP_TR_EFFECT_DLIQUID] then
+                  else if vleObjectProperty.Values[MsgPropTrEffectSubtype] = MsgPropTrEffectDliquid then
                     Data.FXSubType := TRIGGER_EFFECT_DLIQUID
-                  else if vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_SUBTYPE]] = _lc[I_PROP_TR_EFFECT_BLOOD] then
+                  else if vleObjectProperty.Values[MsgPropTrEffectSubtype] = MsgPropTrEffectBlood then
                     Data.FXSubType := TRIGGER_EFFECT_BLOOD
-                  else if vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_SUBTYPE]] = _lc[I_PROP_TR_EFFECT_SPARK] then
+                  else if vleObjectProperty.Values[MsgPropTrEffectSubtype] = MsgPropTrEffectSpark then
                     Data.FXSubType := TRIGGER_EFFECT_SPARK
-                  else if vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_SUBTYPE]] = _lc[I_PROP_TR_EFFECT_BUBBLE] then
+                  else if vleObjectProperty.Values[MsgPropTrEffectSubtype] = MsgPropTrEffectBubble then
                     Data.FXSubType := TRIGGER_EFFECT_BUBBLE;
                 end else
                 begin
                   Data.FXType := TRIGGER_EFFECT_ANIMATION;
-                  Data.FXSubType := StrToEffect(vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_SUBTYPE]]);
+                  Data.FXSubType := StrToEffect(vleObjectProperty.Values[MsgPropTrEffectSubtype]);
                 end;
                 a := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_COLOR]], 0), 0), $FFFFFF);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrEffectColor], 0), 0), $FFFFFF);
                 Data.FXColorR := a and $FF;
                 Data.FXColorG := (a shr 8) and $FF;
                 Data.FXColorB := (a shr 16) and $FF;
-                if NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_CENTER]]) then
+                if NameToBool(vleObjectProperty.Values[MsgPropTrEffectCenter]) then
                   Data.FXPos := 0
                 else
                   Data.FXPos := 1;
                 Data.FXWait := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EX_DELAY]], 0), 0), 65535);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrExDelay], 0), 0), 65535);
                 Data.FXVelX := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_VELX]], 0), -128), 127);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrEffectVelx], 0), -128), 127);
                 Data.FXVelY := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_VELY]], 0), -128), 127);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrEffectVely], 0), -128), 127);
                 Data.FXSpreadL := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_SPL]], 0), 0), 255);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrEffectSpl], 0), 0), 255);
                 Data.FXSpreadR := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_SPR]], 0), 0), 255);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrEffectSpr], 0), 0), 255);
                 Data.FXSpreadU := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_SPU]], 0), 0), 255);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrEffectSpu], 0), 0), 255);
                 Data.FXSpreadD := Min(Max(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EFFECT_SPD]], 0), 0), 255);
+                  StrToIntDef(vleObjectProperty.Values[MsgPropTrEffectSpd], 0), 0), 255);
               end;
           end;
         end;
@@ -5552,9 +5553,9 @@ begin
   if i = -1 then
     Exit;
 
-  if Application.MessageBox(PChar(Format(_lc[I_MSG_DEL_TEXTURE_PROMT],
+  if Application.MessageBox(PChar(Format(MsgMsgDelTexturePromt,
                                 [SelectedTexture()])),
-                PChar(_lc[I_MSG_DEL_TEXTURE]),
+                PChar(MsgMsgDelTexture),
                 MB_ICONQUESTION or MB_YESNO or
                 MB_DEFBUTTON1) <> idYes then
     Exit;
@@ -5564,7 +5565,7 @@ begin
       if (gPanels[a].PanelType <> 0) and
          (gPanels[a].TextureName = SelectedTexture()) then
       begin
-        ErrorMessageBox(_lc[I_MSG_DEL_TEXTURE_CANT]);
+        ErrorMessageBox(MsgMsgDelTextureCant);
         Exit;
       end;
 
@@ -5578,7 +5579,7 @@ end;
 
 procedure TMainForm.aNewMapExecute(Sender: TObject);
 begin
-  if Application.MessageBox(PChar(_lc[I_MSG_CLEAR_MAP_PROMT]), PChar(_lc[I_MSG_CLEAR_MAP]), MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON1) = mrYes then
+  if Application.MessageBox(PChar(MsgMsgClearMapPromt), PChar(MsgMsgClearMap), MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON1) = mrYes then
     FullClear();
 end;
 
@@ -6048,11 +6049,11 @@ var
 begin
   Key := vleObjectProperty.Keys[vleObjectProperty.Row];
 
-  if Key = _lc[I_PROP_PANEL_TYPE] then
+  if Key = MsgPropPanelType then
     begin
       with ChooseTypeForm, vleObjectProperty do
       begin // Выбор типа панели:
-        Caption := _lc[I_PROP_PANEL_TYPE];
+        Caption := MsgPropPanelType;
         lbTypeSelect.Items.Clear();
 
         for b := 0 to High(PANELNAMES) do
@@ -6070,33 +6071,33 @@ begin
         end;
       end
     end
-  else if Key = _lc[I_PROP_TR_TELEPORT_TO] then
+  else if Key = MsgPropTrTeleportTo then
     SelectFlag := SELECTFLAG_TELEPORT
-  else if Key = _lc[I_PROP_TR_SPAWN_TO] then
+  else if Key = MsgPropTrSpawnTo then
     SelectFlag := SELECTFLAG_SPAWNPOINT
-  else if (Key = _lc[I_PROP_TR_DOOR_PANEL]) or
-          (Key = _lc[I_PROP_TR_TRAP_PANEL]) then
+  else if (Key = MsgPropTrDoorPanel) or
+          (Key = MsgPropTrTrapPanel) then
     SelectFlag := SELECTFLAG_DOOR
-  else if Key = _lc[I_PROP_TR_TEXTURE_PANEL] then
+  else if Key = MsgPropTrTexturePanel then
   begin
     DrawPressRect := False;
     SelectFlag := SELECTFLAG_TEXTURE;
   end
-  else if Key = _lc[I_PROP_TR_SHOT_PANEL] then
+  else if Key = MsgPropTrShotPanel then
     SelectFlag := SELECTFLAG_SHOTPANEL
-  else if Key = _lc[I_PROP_TR_LIFT_PANEL] then
+  else if Key = MsgPropTrLiftPanel then
     SelectFlag := SELECTFLAG_LIFT
-  else if key = _lc[I_PROP_TR_EX_MONSTER] then
+  else if key = MsgPropTrExMonster then
     SelectFlag := SELECTFLAG_MONSTER
-  else if Key = _lc[I_PROP_TR_EX_AREA] then
+  else if Key = MsgPropTrExArea then
   begin
     SelectFlag := SELECTFLAG_NONE;
     DrawPressRect := True;
   end
-  else if Key = _lc[I_PROP_TR_NEXT_MAP] then
+  else if Key = MsgPropTrNextMap then
     begin // Выбор следующей карты:
       g_ProcessResourceStr(OpenedMap, @FileName, nil, nil);
-      SelectMapForm.Caption := _lc[I_CAP_SELECT];
+      SelectMapForm.Caption := MsgCapSelect;
       SelectMapForm.GetMaps(FileName);
 
       if SelectMapForm.ShowModal() = mrOK then
@@ -6105,8 +6106,8 @@ begin
         vleObjectPropertyApply(Sender);
       end;
     end
-  else if (Key = _lc[I_PROP_TR_SOUND_NAME]) or
-          (Key = _lc[I_PROP_TR_MUSIC_NAME]) then
+  else if (Key = MsgPropTrSoundName) or
+          (Key = MsgPropTrMusicName) then
     begin // Выбор файла звука/музыки:
       AddSoundForm.OKFunction := nil;
       AddSoundForm.lbResourcesList.MultiSelect := False;
@@ -6118,7 +6119,7 @@ begin
         vleObjectPropertyApply(Sender);
       end;
     end
-  else if Key = _lc[I_PROP_TR_ACTIVATION] then
+  else if Key = MsgPropTrActivation then
     with ActivationTypeForm, vleObjectProperty do
     begin // Выбор типов активации:
       cbPlayerCollide.Checked := Pos('PC', Values[Key]) > 0;
@@ -6148,7 +6149,7 @@ begin
         vleObjectPropertyApply(Sender);
       end;
     end
-  else if Key = _lc[I_PROP_TR_KEYS] then
+  else if Key = MsgPropTrKeys then
     with KeysForm, vleObjectProperty do
     begin // Выбор необходимых ключей:
       cbRedKey.Checked := Pos('RK', Values[Key]) > 0;
@@ -6175,10 +6176,10 @@ begin
         vleObjectPropertyApply(Sender);
       end;
     end
-  else if Key = _lc[I_PROP_TR_FX_TYPE] then
+  else if Key = MsgPropTrFxType then
     with ChooseTypeForm, vleObjectProperty do
     begin // Выбор типа эффекта:
-      Caption := _lc[I_CAP_FX_TYPE];
+      Caption := MsgCapFxType;
       lbTypeSelect.Items.Clear();
 
       for b := EFFECT_NONE to EFFECT_FIRE do
@@ -6193,10 +6194,10 @@ begin
         vleObjectPropertyApply(Sender);
       end;
     end
-  else if Key = _lc[I_PROP_TR_MONSTER_TYPE] then
+  else if Key = MsgPropTrMonsterType then
     with ChooseTypeForm, vleObjectProperty do
     begin // Выбор типа монстра:
-      Caption := _lc[I_CAP_MONSTER_TYPE];
+      Caption := MsgCapMonsterType;
       lbTypeSelect.Items.Clear();
 
       for b := MONSTER_DEMON to MONSTER_MAN do
@@ -6211,10 +6212,10 @@ begin
         vleObjectPropertyApply(Sender);
       end;
     end
-  else if Key = _lc[I_PROP_TR_ITEM_TYPE] then
+  else if Key = MsgPropTrItemType then
     with ChooseTypeForm, vleObjectProperty do
     begin // Выбор типа предмета:
-      Caption := _lc[I_CAP_ITEM_TYPE];
+      Caption := MsgCapItemType;
       lbTypeSelect.Items.Clear();
 
       for b := ITEM_MEDKIT_SMALL to ITEM_KEY_BLUE do
@@ -6240,10 +6241,10 @@ begin
         vleObjectPropertyApply(Sender);
       end;
     end
-  else if Key = _lc[I_PROP_TR_SHOT_TYPE] then
+  else if Key = MsgPropTrShotType then
     with ChooseTypeForm, vleObjectProperty do
     begin // Выбор типа предмета:
-      Caption := _lc[I_PROP_TR_SHOT_TYPE];
+      Caption := MsgPropTrShotType;
       lbTypeSelect.Items.Clear();
 
       for b := TRIGGER_SHOT_PISTOL to TRIGGER_SHOT_MAX do
@@ -6258,15 +6259,15 @@ begin
         vleObjectPropertyApply(Sender);
       end;
     end
-  else if Key = _lc[I_PROP_TR_EFFECT_TYPE] then
+  else if Key = MsgPropTrEffectType then
     with ChooseTypeForm, vleObjectProperty do
     begin // Выбор типа эффекта:
-      Caption := _lc[I_CAP_FX_TYPE];
+      Caption := MsgCapFxType;
       lbTypeSelect.Items.Clear();
 
-      lbTypeSelect.Items.Add(_lc[I_PROP_TR_EFFECT_PARTICLE]);
-      lbTypeSelect.Items.Add(_lc[I_PROP_TR_EFFECT_ANIMATION]);
-      if Values[Key] = _lc[I_PROP_TR_EFFECT_ANIMATION] then
+      lbTypeSelect.Items.Add(MsgPropTrEffectParticle);
+      lbTypeSelect.Items.Add(MsgPropTrEffectAnimation);
+      if Values[Key] = MsgPropTrEffectAnimation then
         lbTypeSelect.ItemIndex := 1
       else
         lbTypeSelect.ItemIndex := 0;
@@ -6275,19 +6276,19 @@ begin
       begin
         b := lbTypeSelect.ItemIndex;
         if b = 0 then
-          Values[Key] := _lc[I_PROP_TR_EFFECT_PARTICLE]
+          Values[Key] := MsgPropTrEffectParticle
         else
-          Values[Key] := _lc[I_PROP_TR_EFFECT_ANIMATION];
+          Values[Key] := MsgPropTrEffectAnimation;
         vleObjectPropertyApply(Sender);
       end;
     end
-  else if Key = _lc[I_PROP_TR_EFFECT_SUBTYPE] then
+  else if Key = MsgPropTrEffectSubtype then
     with ChooseTypeForm, vleObjectProperty do
     begin // Выбор подтипа эффекта:
-      Caption := _lc[I_CAP_FX_TYPE];
+      Caption := MsgCapFxType;
       lbTypeSelect.Items.Clear();
 
-      if Values[_lc[I_PROP_TR_EFFECT_TYPE]] = _lc[I_PROP_TR_EFFECT_ANIMATION] then
+      if Values[MsgPropTrEffectType] = MsgPropTrEffectAnimation then
       begin
         for b := EFFECT_TELEPORT to EFFECT_FIRE do
           lbTypeSelect.Items.Add(EffectToStr(b));
@@ -6295,22 +6296,22 @@ begin
         lbTypeSelect.ItemIndex := StrToEffect(Values[Key]) - 1;
       end else
       begin
-        lbTypeSelect.Items.Add(_lc[I_PROP_TR_EFFECT_SLIQUID]);
-        lbTypeSelect.Items.Add(_lc[I_PROP_TR_EFFECT_LLIQUID]);
-        lbTypeSelect.Items.Add(_lc[I_PROP_TR_EFFECT_DLIQUID]);
-        lbTypeSelect.Items.Add(_lc[I_PROP_TR_EFFECT_BLOOD]);
-        lbTypeSelect.Items.Add(_lc[I_PROP_TR_EFFECT_SPARK]);
-        lbTypeSelect.Items.Add(_lc[I_PROP_TR_EFFECT_BUBBLE]);
+        lbTypeSelect.Items.Add(MsgPropTrEffectSliquid);
+        lbTypeSelect.Items.Add(MsgPropTrEffectLliquid);
+        lbTypeSelect.Items.Add(MsgPropTrEffectDliquid);
+        lbTypeSelect.Items.Add(MsgPropTrEffectBlood);
+        lbTypeSelect.Items.Add(MsgPropTrEffectSpark);
+        lbTypeSelect.Items.Add(MsgPropTrEffectBubble);
         lbTypeSelect.ItemIndex := TRIGGER_EFFECT_SLIQUID;
-        if Values[Key] = _lc[I_PROP_TR_EFFECT_LLIQUID] then
+        if Values[Key] = MsgPropTrEffectLliquid then
           lbTypeSelect.ItemIndex := TRIGGER_EFFECT_LLIQUID;
-        if Values[Key] = _lc[I_PROP_TR_EFFECT_DLIQUID] then
+        if Values[Key] = MsgPropTrEffectDliquid then
           lbTypeSelect.ItemIndex := TRIGGER_EFFECT_DLIQUID;
-        if Values[Key] = _lc[I_PROP_TR_EFFECT_BLOOD] then
+        if Values[Key] = MsgPropTrEffectBlood then
           lbTypeSelect.ItemIndex := TRIGGER_EFFECT_BLOOD;
-        if Values[Key] = _lc[I_PROP_TR_EFFECT_SPARK] then
+        if Values[Key] = MsgPropTrEffectSpark then
           lbTypeSelect.ItemIndex := TRIGGER_EFFECT_SPARK;
-        if Values[Key] = _lc[I_PROP_TR_EFFECT_BUBBLE] then
+        if Values[Key] = MsgPropTrEffectBubble then
           lbTypeSelect.ItemIndex := TRIGGER_EFFECT_BUBBLE;
       end;
 
@@ -6318,26 +6319,26 @@ begin
       begin
         b := lbTypeSelect.ItemIndex;
 
-        if Values[_lc[I_PROP_TR_EFFECT_TYPE]] = _lc[I_PROP_TR_EFFECT_ANIMATION] then
+        if Values[MsgPropTrEffectType] = MsgPropTrEffectAnimation then
           Values[Key] := EffectToStr(b + 1)
         else begin
-          Values[Key] := _lc[I_PROP_TR_EFFECT_SLIQUID];
+          Values[Key] := MsgPropTrEffectSliquid;
           if b = TRIGGER_EFFECT_LLIQUID then
-            Values[Key] := _lc[I_PROP_TR_EFFECT_LLIQUID];
+            Values[Key] := MsgPropTrEffectLliquid;
           if b = TRIGGER_EFFECT_DLIQUID then
-            Values[Key] := _lc[I_PROP_TR_EFFECT_DLIQUID];
+            Values[Key] := MsgPropTrEffectDliquid;
           if b = TRIGGER_EFFECT_BLOOD then
-            Values[Key] := _lc[I_PROP_TR_EFFECT_BLOOD];
+            Values[Key] := MsgPropTrEffectBlood;
           if b = TRIGGER_EFFECT_SPARK then
-            Values[Key] := _lc[I_PROP_TR_EFFECT_SPARK];
+            Values[Key] := MsgPropTrEffectSpark;
           if b = TRIGGER_EFFECT_BUBBLE then
-            Values[Key] := _lc[I_PROP_TR_EFFECT_BUBBLE];
+            Values[Key] := MsgPropTrEffectBubble;
         end;
 
         vleObjectPropertyApply(Sender);
       end;
     end
-  else if Key = _lc[I_PROP_TR_EFFECT_COLOR] then
+  else if Key = MsgPropTrEffectColor then
     with vleObjectProperty do
     begin // Выбор цвета эффекта:
       ColorDialog.Color := StrToIntDef(Values[Key], 0);
@@ -6347,7 +6348,7 @@ begin
         vleObjectPropertyApply(Sender);
       end;
     end
-  else if Key = _lc[I_PROP_PANEL_TEX] then
+  else if Key = MsgPropPanelTex then
     begin // Смена текстуры:
       vleObjectProperty.Values[Key] := SelectedTexture();
       vleObjectPropertyApply(Sender);
@@ -6379,7 +6380,7 @@ end;
 
 procedure TMainForm.aOpenMapExecute(Sender: TObject);
 begin
-  OpenDialog.Filter := _lc[I_FILE_FILTER_ALL];
+  OpenDialog.Filter := MsgFileFilterAll;
 
   if OpenDialog.Execute() then
   begin
@@ -6415,31 +6416,8 @@ begin
 end;
 
 procedure TMainForm.FormActivate(Sender: TObject);
-var
-  lang: Integer;
-  config: TConfig;
 begin
   MainForm.ActiveControl := RenderPanel;
-
-// Язык:
-  if (gLanguage = '') and not (fsModal in SelectLanguageForm.FormState) then
-  begin
-    lang := SelectLanguageForm.ShowModal();
-    case lang of
-      1:   gLanguage := LANGUAGE_ENGLISH;
-      2:   gLanguage := LANGUAGE_RUSSIAN;
-      else gLanguage := LANGUAGE_ENGLISH;
-    end;
-
-    config := TConfig.CreateFile(CfgFileName);
-    config.WriteStr('Editor', 'Language', gLanguage);
-    config.SaveFile(CfgFileName);
-    config.Free();
-  end;
-
-  //e_WriteLog('Read language file', MSG_NOTIFY);
-  //g_Language_Load(EditorDir+'\data\'+gLanguage+LANGUAGE_FILE_NAME);
-  g_Language_Set(gLanguage);
 end;
 
 procedure TMainForm.aDeleteMap(Sender: TObject);
@@ -6448,13 +6426,13 @@ var
   FileName: String;
   MapName: String;
 begin
-  OpenDialog.Filter := _lc[I_FILE_FILTER_WAD];
+  OpenDialog.Filter := MsgFileFilterWad;
 
   if not OpenDialog.Execute() then
     Exit;
 
   FileName := OpenDialog.FileName;
-  SelectMapForm.Caption := _lc[I_CAP_REMOVE];
+  SelectMapForm.Caption := MsgCapRemove;
   SelectMapForm.lbMapList.Items.Clear();
   SelectMapForm.GetMaps(FileName);
 
@@ -6462,7 +6440,7 @@ begin
     Exit;
 
   MapName := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
-  if Application.MessageBox(PChar(Format(_lc[I_MSG_DELETE_MAP_PROMT], [MapName, OpenDialog.FileName])), PChar(_lc[I_MSG_DELETE_MAP]), MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON2) <> mrYes then
+  if Application.MessageBox(PChar(Format(MsgMsgDeleteMapPromt, [MapName, OpenDialog.FileName])), PChar(MsgMsgDeleteMap), MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON2) <> mrYes then
     Exit;
 
   g_DeleteResource(FileName, '', MapName, res);
@@ -6473,8 +6451,8 @@ begin
   end;
 
   Application.MessageBox(
-    PChar(Format(_lc[I_MSG_MAP_DELETED_PROMT], [MapName])),
-    PChar(_lc[I_MSG_MAP_DELETED]),
+    PChar(Format(MsgMsgMapDeletedPromt, [MapName])),
+    PChar(MsgMsgMapDeleted),
     MB_ICONINFORMATION or MB_OK or MB_DEFBUTTON1
   );
 
@@ -6638,7 +6616,7 @@ procedure TMainForm.aSaveMapAsExecute(Sender: TObject);
 var
   idx: Integer;
 begin
-  SaveDialog.Filter := _lc[I_FILE_FILTER_WAD];
+  SaveDialog.Filter := MsgFileFilterWad;
 
   if not SaveDialog.Execute() then
     Exit;
@@ -7012,7 +6990,7 @@ begin
   end
   else
   begin
-    Application.MessageBox(PChar(_lc[I_MSG_EXEC_ERROR]), 'FIXME', MB_OK or MB_ICONERROR);
+    Application.MessageBox(PChar(MsgMsgExecError), 'FIXME', MB_OK or MB_ICONERROR);
     SysUtils.DeleteFile(newWAD);
     proc.Free();
   end;

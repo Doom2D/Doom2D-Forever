@@ -55,8 +55,7 @@ uses
   Imaging,
   ImagingUtility,
   g_options in 'g_options.pas',
-  g_language in 'g_language.pas',
-  f_selectlang in 'f_selectlang.pas' {SelectLanguageForm};
+  g_language in 'g_language.pas';
 
 {$IFDEF WINDOWS}
   {$R *.res}
@@ -182,6 +181,7 @@ uses
       LogFileName := DFPath + DirectorySeparator + 'Editor.log';
       MapsDir := DocPath + DirectorySeparator + 'Maps';
       WadsDir := BundlePath + DirectorySeparator + 'Contents' + DirectorySeparator + 'Resources' + DirectorySeparator + 'wads';
+      LangDIr := BundlePath + DirectorySeparator + 'Contents' + DirectorySeparator + 'Resources' + DirectorySeparator + 'data' + DirectorySeparator + 'lang';
       GameWad := BundlePath + DirectorySeparator + 'Contents' + DirectorySeparator + 'Resources' + DirectorySeparator + 'data' + DirectorySeparator + 'game.wad';
       EditorWad := BundlePath + DirectorySeparator + 'Contents' + DirectorySeparator + 'Resources' + DirectorySeparator + 'data' + DirectorySeparator + 'editor.wad';
     {$ELSE}
@@ -195,6 +195,7 @@ uses
       LogFileName := EditorDir + DirectorySeparator + 'Editor.log';
       MapsDir := EditorDir + DirectorySeparator + 'maps';
       WadsDir := EditorDir + DirectorySeparator + 'wads';
+      LangDir := EditorDir + DirectorySeparator + 'data' + DirectorySeparator + 'lang';
       GameWad := EditorDir + DirectorySeparator + 'data' + DirectorySeparator + 'game.wad';
       EditorWad := EditorDir + DirectorySeparator + 'data' + DirectorySeparator + 'editor.wad';
     {$ENDIF}
@@ -219,6 +220,7 @@ uses
     e_WriteLog('  LogFileName = ' + LogFileName, MSG_NOTIFY);
     e_WriteLog('  MapsDir     = ' + MapsDir, MSG_NOTIFY);
     e_WriteLog('  WadsDir     = ' + WadsDir, MSG_NOTIFY);
+    e_WriteLog('  LangDir     = ' + LangDir, MSG_NOTIFY);
     e_WriteLog('  GameWad     = ' + GameWad, MSG_NOTIFY);
     e_WriteLog('  EditorWad   = ' + EditorWad, MSG_NOTIFY);
   end;
@@ -253,7 +255,8 @@ begin
   Application.CreateForm(TSaveMiniMapForm, SaveMiniMapForm);
   Application.CreateForm(TPackMapForm, PackMapForm);
   Application.CreateForm(TChooseTypeForm, ChooseTypeForm);
-  Application.CreateForm(TSelectLanguageForm, SelectLanguageForm);
+
+  g_Language_Set(gLanguage);
 
   CheckParamFiles;
 

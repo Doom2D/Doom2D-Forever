@@ -194,7 +194,7 @@ begin
     begin
       FBuffer.Canvas.Font.Color := clWhite;
       ARect := BoundsRect;
-      DrawText(FBuffer.Canvas.Handle, PChar(_lc[I_LAB_SPECTRUM]), -1, ARect,
+      DrawText(FBuffer.Canvas.Handle, PChar(MsgLabSpectrum), -1, ARect,
                DT_WORDBREAK or DT_NOPREFIX or DT_VCENTER or DT_CENTER);
     end;
 

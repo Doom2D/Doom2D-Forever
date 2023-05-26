@@ -76,7 +76,7 @@ begin
 
           if c or ObjectCollideLevel(a, OBJECT_AREA, 0, 0) then
           begin
-            lbErrorList.Items.Add(Format(_lc[I_TEST_AREA_WALL_STR], [a, X, Y]));
+            lbErrorList.Items.Add(Format(MsgTestAreaWallStr, [a, X, Y]));
             SetLength(ErrorsNum, Length(ErrorsNum)+1);
             ErrorsNum[High(ErrorsNum)] := 1;
           end;
@@ -104,7 +104,7 @@ begin
 
           if c or ObjectCollideLevel(a, OBJECT_MONSTER, 0, 0) then
           begin
-            lbErrorList.Items.Add(Format(_lc[I_TEST_MONSTER_WALL_STR], [a, X, Y]));
+            lbErrorList.Items.Add(Format(MsgTestMonsterWallStr, [a, X, Y]));
             SetLength(ErrorsNum, Length(ErrorsNum)+1);
             ErrorsNum[High(ErrorsNum)] := 5;
           end;
@@ -126,21 +126,21 @@ begin
 
   if b > 1 then
   begin
-    lbErrorList.Items.Add(_lc[I_TEST_SPAWNS_1]);
+    lbErrorList.Items.Add(MsgTestSpawns1);
     SetLength(ErrorsNum, Length(ErrorsNum)+1);
     ErrorsNum[High(ErrorsNum)] := 2;
   end;
 
   if bb > 1 then
   begin
-    lbErrorList.Items.Add(_lc[I_TEST_SPAWNS_2]);
+    lbErrorList.Items.Add(MsgTestSpawns2);
     SetLength(ErrorsNum, Length(ErrorsNum)+1);
     ErrorsNum[High(ErrorsNum)] := 3;
   end;
 
   if bbb = 0 then
   begin
-    lbErrorList.Items.Add(_lc[I_TEST_NO_DM]);
+    lbErrorList.Items.Add(MsgTestNoDm);
     SetLength(ErrorsNum, Length(ErrorsNum)+1);
     ErrorsNum[High(ErrorsNum)] := 4;
   end;
@@ -150,10 +150,10 @@ procedure TMapCheckForm.lbErrorListClick(Sender: TObject);
 begin
   if lbErrorList.ItemIndex <> -1 then
     case ErrorsNum[lbErrorList.ItemIndex] of
-      1: mErrorDescription.Text := _lc[I_TEST_AREA_WALL];
-      2, 3: mErrorDescription.Text := _lc[I_TEST_SPAWNS];
-      4: mErrorDescription.Text := _lc[I_TEST_NO_DM_EX];
-      5: mErrorDescription.Text := _lc[I_TEST_MONSTER_WALL];
+      1: mErrorDescription.Text := MsgTestAreaWall;
+      2, 3: mErrorDescription.Text := MsgTestSpawns;
+      4: mErrorDescription.Text := MsgTestNoDmEx;
+      5: mErrorDescription.Text := MsgTestMonsterWall;
     end;
 end;
 

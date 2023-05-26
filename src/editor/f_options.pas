@@ -7,7 +7,7 @@ interface
 uses
   LCLIntf, LCLType, SysUtils, Variants, Classes,
   Graphics, Controls, Forms, Dialogs, StdCtrls,
-  ExtCtrls, ComCtrls, Registry, Math, Types;
+  ExtCtrls, ComCtrls, ActnList, Registry, Math, Types;
 
 type
 
@@ -19,6 +19,7 @@ type
     cbCheckerboard: TCheckBox;
     cbCompress: TCheckBox;
     cbBackup: TCheckBox;
+    cbLanguage: TComboBox;
     PageControl: TPageControl;
     TabGeneral: TTabSheet;
     TabFiles: TTabSheet;
@@ -54,8 +55,6 @@ type
     eRecent: TEdit;
     UpDown3: TUpDown;
     LabelLanguage: TLabel;
-    rbRussian: TRadioButton;
-    rbEnglish: TRadioButton;
     LabelGridSize: TLabel;
     cbDotSize: TComboBox;
   // Map testing:
@@ -105,7 +104,7 @@ procedure RegisterFileType(ext: String; FileName: String);
 implementation
 
 uses
-  f_main, StdConvs, CONFIG, g_language, g_resources, g_options;
+  LazFileUtils, StrUtils, f_main, StdConvs, CONFIG, g_language, g_resources, g_options;
 
 {$R *.lfm}
 
@@ -146,6 +145,7 @@ begin
 end;
 
 procedure TOptionsForm.FormActivate(Sender: TObject);
+  var info: TSearchRec; s: String; i: Integer;
 begin
   sDotColor.Brush.Color := DotColor;
   cbShowDots.Checked := DotEnable;
@@ -168,17 +168,25 @@ begin
     cbDotSize.ItemIndex := 0;
   eRecent.Text := IntToStr(RecentCount);
 
-// Язык:
-  if gLanguage = LANGUAGE_RUSSIAN then
+  try
+    cbLanguage.Items.BeginUpdate;
+    cbLanguage.Items.Clear;
+    cbLanguage.Items.Add('Auto');
+    if FindFirst(LangDir + DirectorySeparator + '*.mo', faAnyFile, info) = 0 then
     begin
-      rbRussian.Checked := True;
-      rbEnglish.Checked := False;
-    end
-  else
-    begin
-      rbRussian.Checked := False;
-      rbEnglish.Checked := True;
+      repeat
+        s := ExtractFileNameWithoutExt(info.Name);
+        // TODO: check encoding part in name (editor.ru_RU.UTF-8.mo)
+        i := Max(RPos('.', s), 1);
+        s := Copy(s, i + 1, Length(s) - i);
+        cbLanguage.Items.Add(s);
+      until FindNext(info) <> 0;
+      FindClose(info);
     end;
+    cbLanguage.ItemIndex := IfThen(gLanguage = '', 0, cbLanguage.Items.IndexOf(gLanguage));
+  finally
+    cbLanguage.Items.EndUpdate;
+  end;
 
   if TestGameMode = 'TDM' then
     rbTDM.Checked := True
@@ -211,17 +219,10 @@ var
 begin
   // General tab
 
-  if rbRussian.Checked then
-    str := LANGUAGE_RUSSIAN
-  else
-    str := LANGUAGE_ENGLISH;
-
-// Нужно сменить язык:
-  if gLanguage <> str then
+  if cbLanguage.ItemIndex <= 0 then str := '' else str := cbLanguage.Items[cbLanguage.ItemIndex];
+  if (str = '') or (gLanguage <> str) then
   begin
     gLanguage := str;
-    //e_WriteLog('Read language file', MSG_NOTIFY);
-    //g_Language_Load(EditorDir+'\data\'+gLanguage+LANGUAGE_FILE_NAME);
     g_Language_Set(gLanguage);
   end;
   

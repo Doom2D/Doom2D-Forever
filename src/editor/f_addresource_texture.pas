@@ -189,7 +189,7 @@ begin
   Inherited;
 
   lStats.Caption := '';
-  cbWADList.Items.Add(_lc[I_WAD_SPECIAL_TEXS]);
+  cbWADList.Items.Add(MsgWadSpecialTexs);
 
   eTextureName.Text := '';
   iPreview.Canvas.FillRect(iPreview.Canvas.ClipRect);
@@ -212,11 +212,11 @@ begin
     Exit;
   if FResourceName = '' then
     Exit;
-  if cbWADList.Text = _lc[I_WAD_SPECIAL_TEXS] then
+  if cbWADList.Text = MsgWadSpecialTexs then
     Exit;
 
   g_ProcessResourceStr(FFullResourceName, @wad, nil, nil);
-  if wad = _lc[I_WAD_SPECIAL_TEXS] then
+  if wad = MsgWadSpecialTexs then
     Exit;
 
   Anim := IsAnim(FFullResourceName);
@@ -229,9 +229,9 @@ begin
     Exit;
 
   if Anim then
-    lStats.Caption := Format(_lc[I_CAP_ANIMATION], [Texture.Width, Texture.Height, NumFrames])
+    lStats.Caption := Format(MsgCapAnimation, [Texture.Width, Texture.Height, NumFrames])
   else
-    lStats.Caption := Format(_lc[I_CAP_TEXTURE], [Texture.Width, Texture.Height]);
+    lStats.Caption := Format(MsgCapTexture, [Texture.Width, Texture.Height]);
 
   iPreview.Canvas.FillRect(iPreview.Canvas.ClipRect);
   iPreview.Canvas.CopyRect(Texture.Canvas.ClipRect, Texture.Canvas, Texture.Canvas.ClipRect);
@@ -275,7 +275,7 @@ end;
 
 procedure TAddTextureForm.cbWADListChange(Sender: TObject);
 begin
-  if cbWADList.Text = _lc[I_WAD_SPECIAL_TEXS] then
+  if cbWADList.Text = MsgWadSpecialTexs then
   begin
     cbSectionsList.Clear();
     cbSectionsList.Items.Add('..');
@@ -287,7 +287,7 @@ end;
 
 procedure TAddTextureForm.cbSectionsListChange(Sender: TObject);
 begin
-  if cbWADList.Text = _lc[I_WAD_SPECIAL_TEXS] then
+  if cbWADList.Text = MsgWadSpecialTexs then
   begin
     lbResourcesList.Clear();
     lbResourcesList.Items.Add(TEXTURE_NAME_WATER);

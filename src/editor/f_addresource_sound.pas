@@ -182,7 +182,7 @@ begin
     if res <> FMOD_OK then
     begin
       Application.MessageBox(FMOD_ErrorString(res),
-                             PChar(_lc[I_MSG_SOUND_ERROR]),
+                             PChar(MsgMsgSoundError),
                              MB_OK or MB_ICONHAND);
       Exit;
     end;
@@ -299,7 +299,7 @@ begin
     g_ProcessResourceStr(FSetResource, FileName, SectionName, ResourceName);
 
     if FileName = '' then
-      FileName := _lc[I_WAD_SPECIAL_MAP];
+      FileName := MsgWadSpecialMap;
 
     if SectionName = '' then
       SectionName := '..';

@@ -11,6 +11,7 @@ interface
     EditorWad: AnsiString;
     WadsDir: AnsiString;
     MapsDir: AnsiString;
+    LangDir: AnsiString;
 
 implementation
 

@@ -148,7 +148,7 @@ begin
     g_ProcessResourceStr(FSetResource, FileName, SectionName, ResourceName);
 
     if FileName = '' then
-      FileName := _lc[I_WAD_SPECIAL_MAP];
+      FileName := MsgWadSpecialMap;
     if SectionName = '' then
       SectionName := '..';
 

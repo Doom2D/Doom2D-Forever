@@ -1404,7 +1404,7 @@ begin
   NH := 0;
 
   MainForm.pbLoad.Position := 0;
-  MainForm.lLoad.Caption := _lc[I_LOAD_WAD];
+  MainForm.lLoad.Caption := MsgLoadWad;
   Application.ProcessMessages();
 
 // Читаем ресурс карты
@@ -1414,7 +1414,7 @@ begin
 
   MapReader := TMapReader_1.Create();
 
-  MainForm.lLoad.Caption := _lc[I_LOAD_MAP];
+  MainForm.lLoad.Caption := MsgLoadMap;
   Application.ProcessMessages();
 
   MapReader.LoadMap(pData);
@@ -1426,7 +1426,7 @@ begin
   begin
     MainForm.pbLoad.Position := 0;
     MainForm.pbLoad.Max := Length(textures);
-    MainForm.lLoad.Caption := _lc[I_LOAD_TEXTURES];
+    MainForm.lLoad.Caption := MsgLoadTextures;
 
     for a := 0 to High(textures) do
     begin
@@ -1488,7 +1488,7 @@ begin
   begin
     MainForm.pbLoad.Position := 0;
     MainForm.pbLoad.Max := Length(panels);
-    MainForm.lLoad.Caption := _lc[I_LOAD_PANELS];
+    MainForm.lLoad.Caption := MsgLoadPanels;
 
     for a := 0 to High(panels) do
     begin
@@ -1567,7 +1567,7 @@ begin
   begin
     MainForm.pbLoad.Position := 0;
     MainForm.pbLoad.Max := Length(items);
-    MainForm.lLoad.Caption := _lc[I_LOAD_ITEMS];
+    MainForm.lLoad.Caption := MsgLoadItems;
 
     for a := 0 to High(items) do
     begin
@@ -1591,7 +1591,7 @@ begin
   begin
     MainForm.pbLoad.Position := 0;
     MainForm.pbLoad.Max := Length(monsters);
-    MainForm.lLoad.Caption := _lc[I_LOAD_MONSTERS];
+    MainForm.lLoad.Caption := MsgLoadMonsters;
 
     for a := 0 to High(monsters) do
     begin
@@ -1614,7 +1614,7 @@ begin
   begin
     MainForm.pbLoad.Position := 0;
     MainForm.pbLoad.Max := Length(areas);
-    MainForm.lLoad.Caption := _lc[I_LOAD_AREAS];
+    MainForm.lLoad.Caption := MsgLoadAreas;
 
     for a := 0 to High(areas) do
     begin
@@ -1637,7 +1637,7 @@ begin
   begin
     MainForm.pbLoad.Position := 0;
     MainForm.pbLoad.Max := Length(triggers);
-    MainForm.lLoad.Caption := _lc[I_LOAD_TRIGGERS];
+    MainForm.lLoad.Caption := MsgLoadTriggers;
 
     for a := 0 to High(triggers) do
     begin
@@ -1713,7 +1713,7 @@ begin
 
 // Открытие карты:
   MainForm.pbLoad.Position := 0;
-  MainForm.lLoad.Caption := _lc[I_LOAD_MAP];;
+  MainForm.lLoad.Caption := MsgLoadMap;;
   Application.ProcessMessages();
 
   map := TConfig.CreateFile(_FileName);
@@ -1723,7 +1723,7 @@ begin
 
   MainForm.pbLoad.Max := i;
   MainForm.pbLoad.Position := 0;
-  MainForm.lLoad.Caption := _lc[I_LOAD_TEXTURES];
+  MainForm.lLoad.Caption := MsgLoadTextures;
 
   for a := 1 to i do
   begin
@@ -1753,7 +1753,7 @@ begin
 
   MainForm.pbLoad.Max := i;
   MainForm.pbLoad.Position := 0;
-  MainForm.lLoad.Caption := _lc[I_LOAD_PANELS];
+  MainForm.lLoad.Caption := MsgLoadPanels;
 
   for a := 1 to i do
   begin
@@ -1844,7 +1844,7 @@ begin
 
   MainForm.pbLoad.Max := i;
   MainForm.pbLoad.Position := 0;
-  MainForm.lLoad.Caption := _lc[I_LOAD_ITEMS];
+  MainForm.lLoad.Caption := MsgLoadItems;
 
   for a := 1 to i do
   begin
@@ -1874,7 +1874,7 @@ begin
 
   MainForm.pbLoad.Max := i;
   MainForm.pbLoad.Position := 0;
-  MainForm.lLoad.Caption := _lc[I_LOAD_AREAS];
+  MainForm.lLoad.Caption := MsgLoadAreas;
 
   for a := 1 to i do
   begin

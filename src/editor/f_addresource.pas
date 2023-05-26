@@ -80,15 +80,15 @@ begin
 
 // WAD карты:
   if OpenedMap <> '' then
-    cbWADList.Items.Add(_lc[I_WAD_SPECIAL_MAP]);
+    cbWADList.Items.Add(MsgWadSpecialMap);
 end;
 
 procedure TAddResourceForm.bOKClick(Sender: TObject);
 begin
   if FResourceName = '' then
   begin
-    Application.MessageBox(PChar(_lc[I_MSG_CHOOSE_RES]),
-               PChar(_lc[I_MSG_ERROR]), MB_OK + MB_ICONERROR);
+    Application.MessageBox(PChar(MsgMsgChooseRes),
+               PChar(MsgMsgError), MB_OK + MB_ICONERROR);
     Exit;
   end;
 
@@ -107,7 +107,7 @@ procedure TAddResourceForm.cbWADListChange(Sender: TObject);
     i: Integer;
     FileName, Section, sn, rn: String;
 begin
-  if cbWADList.Text <> _lc[I_WAD_SPECIAL_MAP] then
+  if cbWADList.Text <> MsgWadSpecialMap then
     FileName := WadsDir + DirectorySeparator + cbWADList.Text (* Resource wad *)
   else
     g_ProcessResourceStr(OpenedMap, FileName, sn, rn); (* Map wad *)
@@ -137,7 +137,7 @@ procedure TAddResourceForm.cbSectionsListChange(Sender: TObject);
     i: Integer;
     FileName, Section, SectionName, sn, rn: String;
 begin
-  if cbWADList.Text <> _lc[I_WAD_SPECIAL_MAP] then
+  if cbWADList.Text <> MsgWadSpecialMap then
     FileName := WadsDir + DirectorySeparator + cbWADList.Text (* Resource wad *)
   else
     g_ProcessResourceStr(OpenedMap, FileName, sn, rn); (* Map wad *)

@@ -68,13 +68,13 @@ end;
 procedure TMapOptimizationForm.rbTexturesOptimizationClick(Sender: TObject);
 begin
   pcOptimizationOptions.ActivePage := tsTextureOptimization;
-  lOptimizationDescription.Caption := _lc[I_CTRL_OPT_DESC_TEXTURE];
+  lOptimizationDescription.Caption := MsgCtrlOptDescTexture;
 end;
 
 procedure TMapOptimizationForm.rbPanelsOptimizationClick(Sender: TObject);
 begin
   pcOptimizationOptions.ActivePage := tsPanelOptimization;
-  lOptimizationDescription.Caption := _lc[I_CTRL_OPT_DESC_PANEL];
+  lOptimizationDescription.Caption := MsgCtrlOptDescPanel;
 end;
 
 procedure TMapOptimizationForm.bBeginTextureOptimizationClick(
@@ -92,7 +92,7 @@ begin
 
   if MainForm.lbTextureList.Count = 0 then
   begin
-    mOptimizationResult.Lines.Add(_lc[I_OPT_NO_TEXTURES]);
+    mOptimizationResult.Lines.Add(MsgOptNoTextures);
     Exit;
   end;
 
@@ -117,7 +117,7 @@ begin
         g_DeleteTexture(MainForm.lbTextureList.Items[a]);
         if not b then
         begin
-          mOptimizationResult.Lines.Add(_lc[I_OPT_DELETED_TEXTURES]);
+          mOptimizationResult.Lines.Add(MsgOptDeletedTextures);
           b := True;
         end;
         mOptimizationResult.Lines.Add('  '+MainForm.lbTextureList.Items[a]);
@@ -129,8 +129,8 @@ begin
 
   with mOptimizationResult.Lines do
   begin
-    Add(#13#10+_lc[I_OPT_TOTAL_TEXTURES]+' '+#9+IntToStr(c));
-    Add(_lc[I_OPT_TEX_DELETED]+#9+IntToStr(c-MainForm.lbTextureList.Count));
+    Add(#13#10+MsgOptTotalTextures+' '+#9+IntToStr(c));
+    Add(MsgOptTexDeleted+#9+IntToStr(c-MainForm.lbTextureList.Count));
   end;
 end;
 
@@ -272,65 +272,65 @@ begin
 
   if cbOptimizeWalls.Checked then
   begin
-    mOptimizationResult.Lines.Add(_lc[I_OPT_WALLS]);
+    mOptimizationResult.Lines.Add(MsgOptWalls);
     count := OptimizePanels(PANEL_WALL);
-    mOptimizationResult.Lines.Add(_lc[I_OPT_PANELS_OPT]+' '+IntToStr(count)+#13#10);
+    mOptimizationResult.Lines.Add(MsgOptPanelsOpt+' '+IntToStr(count)+#13#10);
   end;
 
   if cbOptimizeForeGround.Checked then
   begin
-    mOptimizationResult.Lines.Add(_lc[I_OPT_FORES]);
+    mOptimizationResult.Lines.Add(MsgOptFores);
     count := OptimizePanels(PANEL_FORE);
-    mOptimizationResult.Lines.Add(_lc[I_OPT_PANELS_OPT]+' '+IntToStr(count)+#13#10);
+    mOptimizationResult.Lines.Add(MsgOptPanelsOpt+' '+IntToStr(count)+#13#10);
   end;
 
   if cbOptimizeBackGround.Checked then
   begin
-    mOptimizationResult.Lines.Add(_lc[I_OPT_BACKS]);
+    mOptimizationResult.Lines.Add(MsgOptBacks);
     count := OptimizePanels(PANEL_BACK);
-    mOptimizationResult.Lines.Add(_lc[I_OPT_PANELS_OPT]+' '+IntToStr(count)+#13#10);
+    mOptimizationResult.Lines.Add(MsgOptPanelsOpt+' '+IntToStr(count)+#13#10);
   end;
 
   if cbOptimizeSteps.Checked then
   begin
-    mOptimizationResult.Lines.Add(_lc[I_OPT_STAIRS]);
+    mOptimizationResult.Lines.Add(MsgOptStairs);
     count := OptimizePanels(PANEL_STEP);
-    mOptimizationResult.Lines.Add(_lc[I_OPT_PANELS_OPT]+' '+IntToStr(count)+#13#10);
+    mOptimizationResult.Lines.Add(MsgOptPanelsOpt+' '+IntToStr(count)+#13#10);
   end;
 
   if cbOptimizeWater.Checked then
   begin
-    mOptimizationResult.Lines.Add(_lc[I_OPT_WATER]);
+    mOptimizationResult.Lines.Add(MsgOptWater);
     count := OptimizePanels(PANEL_WATER);
-    mOptimizationResult.Lines.Add(_lc[I_OPT_PANELS_OPT]+' '+IntToStr(count)+#13#10);
+    mOptimizationResult.Lines.Add(MsgOptPanelsOpt+' '+IntToStr(count)+#13#10);
   end;
 
   if cbOptimizeAcid1.Checked then
   begin
-    mOptimizationResult.Lines.Add(_lc[I_OPT_ACID1]);
+    mOptimizationResult.Lines.Add(MsgOptAcid1);
     count := OptimizePanels(PANEL_ACID1);
-    mOptimizationResult.Lines.Add(_lc[I_OPT_PANELS_OPT]+' '+IntToStr(count)+#13#10);
+    mOptimizationResult.Lines.Add(MsgOptPanelsOpt+' '+IntToStr(count)+#13#10);
   end;
 
   if cbOptimizeAcid2.Checked then
   begin
-    mOptimizationResult.Lines.Add(_lc[I_OPT_ACID2]);
+    mOptimizationResult.Lines.Add(MsgOptAcid2);
     count := OptimizePanels(PANEL_ACID2);
-    mOptimizationResult.Lines.Add(_lc[I_OPT_PANELS_OPT]+' '+IntToStr(count)+#13#10);
+    mOptimizationResult.Lines.Add(MsgOptPanelsOpt+' '+IntToStr(count)+#13#10);
   end;
 
   if cbOptimizeLift.Checked then
   begin
-    mOptimizationResult.Lines.Add(_lc[I_OPT_LIFTS]);
+    mOptimizationResult.Lines.Add(MsgOptLifts);
     count := OptimizePanels(PANEL_LIFTUP)+OptimizePanels(PANEL_LIFTDOWN)+OptimizePanels(PANEL_LIFTLEFT)+OptimizePanels(PANEL_LIFTRIGHT);
-    mOptimizationResult.Lines.Add(_lc[I_OPT_PANELS_OPT]+' '+IntToStr(count)+#13#10);
+    mOptimizationResult.Lines.Add(MsgOptPanelsOpt+' '+IntToStr(count)+#13#10);
   end;
 
   if cbOptimizeBlockMon.Checked then
   begin
-    mOptimizationResult.Lines.Add(_lc[I_OPT_BLOCKMON]);
+    mOptimizationResult.Lines.Add(MsgOptBlockmon);
     count := OptimizePanels(PANEL_BLOCKMON);
-    mOptimizationResult.Lines.Add(_lc[I_OPT_PANELS_OPT]+' '+IntToStr(count)+#13#10);
+    mOptimizationResult.Lines.Add(MsgOptPanelsOpt+' '+IntToStr(count)+#13#10);
   end;
 
   panelcount2 := 0;
@@ -339,9 +339,9 @@ begin
       panelcount2 := panelcount2 + 1;
 
   mOptimizationResult.Lines.Add('-----------------------');
-  mOptimizationResult.Lines.Add(_lc[I_OPT_TOTAL_PANELS]+' '+IntToStr(panelcount1));
-  mOptimizationResult.Lines.Add(_lc[I_OPT_PANELS_AFTER]+' '+IntToStr(panelcount2));
-  mOptimizationResult.Lines.Add(_lc[I_OPT_PANELS_OPT]+' '+IntToStr(panelcount1-panelcount2));
+  mOptimizationResult.Lines.Add(MsgOptTotalPanels+' '+IntToStr(panelcount1));
+  mOptimizationResult.Lines.Add(MsgOptPanelsAfter+' '+IntToStr(panelcount2));
+  mOptimizationResult.Lines.Add(MsgOptPanelsOpt+' '+IntToStr(panelcount1-panelcount2));
 end;
 
 end.
