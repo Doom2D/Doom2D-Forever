@@ -12,8 +12,8 @@ object OptionsForm: TOptionsForm
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
-  OnActivate = FormActivate
   OnCreate = FormCreate
+  OnShow = FormShow
   Position = poScreenCenter
   LCLVersion = '2.2.4.0'
   object PageControl: TPageControl

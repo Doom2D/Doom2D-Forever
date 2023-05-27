@@ -82,7 +82,7 @@ type
 
 
     procedure bGridClick(Sender: TObject);
-    procedure FormActivate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure bOKClick(Sender: TObject);
     procedure bCancelClick(Sender: TObject);
     procedure bBackClick(Sender: TObject);
@@ -144,7 +144,7 @@ begin
     edD2dExe.Text := FindD2dDialog.FileName;
 end;
 
-procedure TOptionsForm.FormActivate(Sender: TObject);
+procedure TOptionsForm.FormShow(Sender: TObject);
   const langfilename = 'editor';
   var info: TSearchRec;
 begin
