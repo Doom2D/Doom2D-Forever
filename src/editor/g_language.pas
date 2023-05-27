@@ -638,7 +638,7 @@ procedure g_Language_Set(lang: String);
 Implementation
 
 Uses
-  gettext,
+  gettext, g_options,
   SysUtils, e_log, f_main, f_about, f_activationtype,
   f_addresource_sky, f_addresource_sound,
   f_addresource_texture, f_choosetype, f_keys, f_mapcheck,
@@ -1214,6 +1214,7 @@ begin
 end;
 
 procedure g_Language_Set(lang: String);
+  const langfilename = 'editor';
   var syslang, fallbacklang: String;
 begin
   e_WriteLog('g_Language_Set: requested lang is "' + lang + '"', MSG_NOTIFY);
@@ -1223,15 +1224,15 @@ begin
   ResetResourceTables;
   try
     e_WriteLog('g_Language_Set: try language "' + lang + '"', MSG_NOTIFY);
-    TranslateResourceStrings('data/lang/editor.' + lang + '.mo');
+    TranslateResourceStrings(LangDir + DirectorySeparator + langfilename + '.' + lang + '.mo');
   except
     try
       e_WriteLog('g_Language_Set: try system language "' + syslang + '"', MSG_NOTIFY);
-      TranslateResourceStrings('data/lang/editor.' + syslang + '.mo');
+      TranslateResourceStrings(LangDir + DirectorySeparator + langfilename + '.' + syslang + '.mo');
     except
       try
         e_WriteLog('g_Language_Set: try fallback language "' + fallbacklang + '"', MSG_NOTIFY);
-        TranslateResourceStrings('data/lang/editor.' + fallbacklang + '.mo');
+        TranslateResourceStrings(LangDir + DirectorySeparator + langfilename + '.' + fallbacklang + '.mo');
       except
          e_WriteLog('g_Language_Set: use default strings', MSG_NOTIFY);
       end;
