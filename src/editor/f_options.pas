@@ -104,7 +104,7 @@ procedure RegisterFileType(ext: String; FileName: String);
 implementation
 
 uses
-  LazFileUtils, StrUtils, f_main, StdConvs, CONFIG, g_language, g_resources, g_options;
+  LazFileUtils, f_main, StdConvs, CONFIG, g_language, g_resources, g_options;
 
 {$R *.lfm}
 
@@ -145,7 +145,8 @@ begin
 end;
 
 procedure TOptionsForm.FormActivate(Sender: TObject);
-  var info: TSearchRec; s: String; i: Integer;
+  const langfilename = 'editor';
+  var info: TSearchRec;
 begin
   sDotColor.Brush.Color := DotColor;
   cbShowDots.Checked := DotEnable;
@@ -172,14 +173,10 @@ begin
     cbLanguage.Items.BeginUpdate;
     cbLanguage.Items.Clear;
     cbLanguage.Items.Add('Auto');
-    if FindFirst(LangDir + DirectorySeparator + '*.mo', faAnyFile, info) = 0 then
+    if FindFirst(LangDir + DirectorySeparator + langfilename + '.*.mo', faAnyFile, info) = 0 then
     begin
       repeat
-        s := ExtractFileNameWithoutExt(info.Name);
-        // TODO: check encoding part in name (editor.ru_RU.UTF-8.mo)
-        i := Max(RPos('.', s), 1);
-        s := Copy(s, i + 1, Length(s) - i);
-        cbLanguage.Items.Add(s);
+        cbLanguage.Items.Add(Copy(ExtractFileNameWithoutExt(info.Name), Length(langfilename) + 2));
       until FindNext(info) <> 0;
       FindClose(info);
     end;
