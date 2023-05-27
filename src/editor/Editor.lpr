@@ -143,6 +143,14 @@ uses
           Inc(i);
           WadsDir := ParamStr(i);
         end;
+      end
+      else if p = '--lang-dir' then
+      begin
+        if i + 1 <= ParamCount then
+        begin
+          Inc(i);
+          LangDir := ParamStr(i);
+        end;
       end;
       Inc(i);
     end;
