@@ -145,8 +145,7 @@ begin
 end;
 
 procedure TOptionsForm.FormShow(Sender: TObject);
-  const langfilename = 'editor';
-  var info: TSearchRec;
+  var list: TStringList;
 begin
   sDotColor.Brush.Color := DotColor;
   cbShowDots.Checked := DotEnable;
@@ -173,13 +172,9 @@ begin
     cbLanguage.Items.BeginUpdate;
     cbLanguage.Items.Clear;
     cbLanguage.Items.Add('Auto');
-    if FindFirst(LangDir + DirectorySeparator + langfilename + '.*.mo', faAnyFile, info) = 0 then
-    begin
-      repeat
-        cbLanguage.Items.Add(Copy(ExtractFileNameWithoutExt(info.Name), Length(langfilename) + 2));
-      until FindNext(info) <> 0;
-      FindClose(info);
-    end;
+    list := g_Language_GetList();
+    cbLanguage.Items.AddStrings(list);
+    list.Free();
     cbLanguage.ItemIndex := IfThen(gLanguage = '', 0, cbLanguage.Items.IndexOf(gLanguage));
   finally
     cbLanguage.Items.EndUpdate;
@@ -216,13 +211,16 @@ var
 begin
   // General tab
 
-  if cbLanguage.ItemIndex <= 0 then str := '' else str := cbLanguage.Items[cbLanguage.ItemIndex];
-  if (str = '') or (gLanguage <> str) then
+  if cbLanguage.ItemIndex >= 0 then
   begin
-    gLanguage := str;
-    g_Language_Set(gLanguage);
+    if cbLanguage.ItemIndex = 0 then str := '' else str := cbLanguage.Items[cbLanguage.ItemIndex];
+    if (str = '') or (gLanguage <> str) then
+    begin
+      gLanguage := str;
+      g_Language_Set(gLanguage);
+    end;
   end;
-  
+
   DotColor := sDotColor.Brush.Color;
   DotEnable := cbShowDots.Checked;
 

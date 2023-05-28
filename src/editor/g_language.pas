@@ -4,7 +4,7 @@
 
 Interface
 
-  uses g_Basic, MAPDEF;
+  uses g_Basic, MAPDEF, Classes;
 
   resourcestring
     MsgNotAccessible = 'N/A';
@@ -633,17 +633,21 @@ Var
   AreaNames: Array [AREA_PLAYERPOINT1..AREA_BLUETEAMPOINT] of String;
   TriggerNames: Array [TRIGGER_EXIT..TRIGGER_MAX] of String;
 
+function g_Language_GetList (): TStringList;
 procedure g_Language_Set(lang: String);
 
 Implementation
 
 Uses
-  gettext, g_options,
+  g_options, IniFiles, gettext, LazFileUtils,
   SysUtils, e_log, f_main, f_about, f_activationtype,
   f_addresource_sky, f_addresource_sound,
   f_addresource_texture, f_choosetype, f_keys, f_mapcheck,
   f_mapoptions, f_mapoptimization, f_options,
   f_packmap, f_savemap, f_saveminimap, f_selectmap, Forms, utils;
+
+  const
+    InSourceLanguage = 'en_US';
 
 procedure SetupArrays();
 var
@@ -1213,32 +1217,131 @@ begin
   Application.Title := MsgEditorTitle;
 end;
 
-procedure g_Language_Set(lang: String);
-  const langfilename = 'editor';
-  var syslang, fallbacklang: String;
-begin
-  e_WriteLog('g_Language_Set: requested lang is "' + lang + '"', MSG_NOTIFY);
-  GetLanguageIDs(syslang, fallbacklang);
-  if lang = '' then lang := syslang;
+type
+  TResArg = record
+    ini: TIniFile;
+    ignored: TStringList;
+  end;
+  PResArg = ^TResArg;
 
-  ResetResourceTables;
+function gResourceItarator (name, value: AnsiString; hash: LongInt; arg: Pointer): AnsiString;
+  var res: PResArg; orig: AnsiString;
+begin
+  res := PResArg(arg);
+  orig := res.ini.ReadString('resourcestring', name + '$', '');
+  if (orig = '') or (orig = value) then
+  begin
+    if res.ini.ValueExists('resourcestring', name) then
+    begin
+      result := res.ini.ReadString('resourcestring', name, '');
+    end
+    else
+    begin
+      result := value;
+      if res.ignored.IndexOf(Copy(name, 1, Pos('.', name) - 1)) < 0 then
+        e_WriteLog('  Seems that key ' + name + ' not translated', MSG_NOTIFY);
+    end;
+  end
+  else
+  begin
+    e_WriteLog('  Original resource string for ' + name + ' do not match, translation are outdated?', MSG_WARNING);
+    e_WriteLog('    [' + value + '] -> [' + orig + ']', MSG_WARNING);
+    result := value;
+  end;
+end;
+
+procedure gSetLanguageFormStream (const lang: AnsiString; stream: TStream; out ok: Boolean);
+  var res: TResArg;
+begin
+  ok := False;
   try
-    e_WriteLog('g_Language_Set: try language "' + lang + '"', MSG_NOTIFY);
-    TranslateResourceStrings(LangDir + DirectorySeparator + langfilename + '.' + lang + '.mo');
+    res.ini := TIniFile.Create(stream, [ifoStripComments, ifoStripQuotes, ifoEscapeLineFeeds]);
   except
+    res.ini := nil;
+  end;
+  if res.ini <> nil then
+  begin
     try
-      e_WriteLog('g_Language_Set: try system language "' + syslang + '"', MSG_NOTIFY);
-      TranslateResourceStrings(LangDir + DirectorySeparator + langfilename + '.' + syslang + '.mo');
-    except
-      try
-        e_WriteLog('g_Language_Set: try fallback language "' + fallbacklang + '"', MSG_NOTIFY);
-        TranslateResourceStrings(LangDir + DirectorySeparator + langfilename + '.' + fallbacklang + '.mo');
-      except
-         e_WriteLog('g_Language_Set: use default strings', MSG_NOTIFY);
+      ok := res.ini.SectionExists('resourcestring');
+      if ok then
+      begin
+        res.ignored := TStringList.Create;
+        res.ignored.CaseSensitive := False;
+        res.ini.ReadSection('ignore', res.ignored);
+        res.ignored.Sort;
+        SetResourceStrings(gResourceItarator, @res);
+        res.ignored.Free();
       end;
+    finally
+      res.ini.Free();
     end;
   end;
-  e_WriteLog('g_Language_Set: ok', MSG_NOTIFY);
+  if not ok then e_WriteLog('Translation file for ' + lang + ' are invalid ', MSG_FATALERROR);
+end;
+
+procedure gSetLanguageFromFile (const lang: AnsiString; out ok: Boolean);
+  const langfilename = 'editor';
+  var stream: TFileStream; name: AnsiString;
+begin
+  name := LangDir + DirectorySeparator + langfilename + '.' + lang + '.lng';
+  try
+    stream := TFileStream.Create(name, fmOpenRead);
+    try
+      gSetLanguageFormStream(lang, stream, ok);
+    finally
+      stream.Free();
+    end;
+  except on E: EFOpenError do
+    ok := False;
+  end;
+end;
+
+procedure gSetLanguage (const lang: AnsiString; out ok: Boolean);
+begin
+  gSetLanguageFromFile(lang, ok);
+end;
+
+function g_Language_GetList (): TStringList;
+  const langfilename = 'editor';
+  var list: TStringList; info: TSearchRec;
+begin
+  list := TStringList.Create;
+  list.Duplicates := dupIgnore;
+  list.Add(InSourceLanguage);
+  if FindFirst(LangDir + DirectorySeparator + langfilename + '.*.lng', faAnyFile, info) = 0 then
+  begin
+    repeat
+      list.Add(Copy(ExtractFileNameWithoutExt(info.Name), Length(langfilename) + 2));
+    until FindNext(info) <> 0;
+    FindClose(info);
+  end;
+  list.Sort;
+  result := list;
+end;
+
+procedure g_Language_Set(lang: String);
+  var syslang, fallbacklang: String; ok: Boolean;
+begin
+  ResetResourceTables;
+
+  if lang = '' then
+  begin
+    GetLanguageIDs(syslang, fallbacklang); // TODO: remove dependency on gettext
+    e_WriteLog('g_Language_Set: try strings "' + syslang + '" (system)', MSG_NOTIFY);
+    gSetLanguage(syslang, ok);
+    if not ok then
+    begin
+      e_WriteLog('g_Language_Set: try strings "' + fallbacklang + '" (fallback)', MSG_NOTIFY);
+      gSetLanguage(syslang, ok);
+    end;
+  end
+  else
+  begin
+    e_WriteLog('g_Language_Set: try strings "' + lang + '" (user specified)', MSG_NOTIFY);
+    gSetLanguage(lang, ok);
+  end;
+  if not ok then e_WriteLog('g_Language_Set: use default strings "' + InSourceLanguage + '" (in-source)', MSG_NOTIFY);
+
   SetupArrays();
   SetupCaptions();
   RemoveSelectFromObjects();
