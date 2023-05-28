@@ -109,7 +109,7 @@ begin
 
     FSoundEnabled := True;
   except
-    Application.MessageBox('Sound was disabled. Reason: ' + FMOD_ErrorString(res), 'FMOD Error', MB_OK or MB_ICONWARNING);
+    Application.MessageBox(PChar('Sound was disabled. Reason: ' + FMOD_ErrorString(res)), 'FMOD Error', MB_OK or MB_ICONWARNING);
   end;
 {$ENDIF}
 
