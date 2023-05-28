@@ -1,11 +1,11 @@
 object MainForm: TMainForm
-  Left = 221
+  Left = 933
   Height = 480
-  Top = 232
+  Top = 499
   Width = 672
   AllowDropFiles = True
   Caption = '2'
-  ClientHeight = 480
+  ClientHeight = 453
   ClientWidth = 672
   Color = clBtnFace
   Constraints.MinHeight = 480
@@ -25,9 +25,88 @@ object MainForm: TMainForm
   OnResize = FormResize
   OnWindowStateChange = FormWindowStateChange
   LCLVersion = '2.2.4.0'
+  object PanelMap: TPanel
+    Left = 0
+    Height = 284
+    Top = 34
+    Width = 518
+    Align = alClient
+    BevelOuter = bvNone
+    ClientHeight = 284
+    ClientWidth = 518
+    TabOrder = 1
+    object RenderPanel: TOpenGLControl
+      Left = 0
+      Height = 268
+      Top = 0
+      Width = 502
+      Align = alClient
+      AlphaBits = 8
+      OnMouseDown = RenderPanelMouseDown
+      OnMouseMove = RenderPanelMouseMove
+      OnMouseUp = RenderPanelMouseUp
+      OnPaint = RenderPanelPaint
+      OnResize = RenderPanelResize
+    end
+    object sbHorizontal: TScrollBar
+      Left = 0
+      Height = 16
+      Top = 268
+      Width = 518
+      Align = alBottom
+      LargeChange = 256
+      Max = 0
+      PageSize = 0
+      SmallChange = 16
+      TabOrder = 0
+      TabStop = False
+      OnScroll = sbHorizontalScroll
+    end
+    object sbVertical: TScrollBar
+      Left = 502
+      Height = 268
+      Top = 0
+      Width = 16
+      Align = alRight
+      Kind = sbVertical
+      LargeChange = 256
+      Max = 0
+      PageSize = 0
+      SmallChange = 16
+      TabOrder = 1
+      TabStop = False
+      OnScroll = sbVerticalScroll
+    end
+  end
+  object pLoadProgress: TPanel
+    Left = 168
+    Height = 56
+    Top = 144
+    Width = 176
+    ClientHeight = 56
+    ClientWidth = 176
+    TabOrder = 7
+    Visible = False
+    object pbLoad: TProgressBar
+      Left = 8
+      Height = 16
+      Top = 8
+      Width = 160
+      Step = 1
+      TabOrder = 0
+    end
+    object lLoad: TLabel
+      Left = 8
+      Height = 16
+      Top = 32
+      Width = 160
+      AutoSize = False
+      ParentColor = False
+    end
+  end
   object Splitter1: TSplitter
     Left = 518
-    Height = 317
+    Height = 284
     Top = 34
     Width = 5
     Align = alRight
@@ -41,7 +120,7 @@ object MainForm: TMainForm
     Cursor = crVSplit
     Left = 0
     Height = 3
-    Top = 351
+    Top = 318
     Width = 672
     Align = alBottom
     MinSize = 64
@@ -51,18 +130,18 @@ object MainForm: TMainForm
   end
   object PanelProps: TPanel
     Left = 523
-    Height = 317
+    Height = 284
     Top = 34
     Width = 149
     Align = alRight
     BevelInner = bvRaised
     BevelOuter = bvLowered
-    ClientHeight = 317
+    ClientHeight = 284
     ClientWidth = 149
     TabOrder = 0
     object vleObjectProperty: TValueListEditor
       Left = 2
-      Height = 283
+      Height = 250
       Top = 2
       Width = 145
       Align = alClient
@@ -103,7 +182,7 @@ object MainForm: TMainForm
     object PanelPropApply: TPanel
       Left = 2
       Height = 30
-      Top = 285
+      Top = 252
       Width = 145
       Align = alBottom
       BevelOuter = bvNone
@@ -121,89 +200,10 @@ object MainForm: TMainForm
       end
     end
   end
-  object PanelMap: TPanel
-    Left = 0
-    Height = 317
-    Top = 34
-    Width = 518
-    Align = alClient
-    BevelOuter = bvNone
-    ClientHeight = 317
-    ClientWidth = 518
-    TabOrder = 1
-    object sbHorizontal: TScrollBar
-      Left = 0
-      Height = 16
-      Top = 301
-      Width = 518
-      Align = alBottom
-      LargeChange = 256
-      Max = 0
-      PageSize = 0
-      SmallChange = 16
-      TabOrder = 0
-      TabStop = False
-      OnScroll = sbHorizontalScroll
-    end
-    object sbVertical: TScrollBar
-      Left = 502
-      Height = 301
-      Top = 0
-      Width = 16
-      Align = alRight
-      Kind = sbVertical
-      LargeChange = 256
-      Max = 0
-      PageSize = 0
-      SmallChange = 16
-      TabOrder = 1
-      TabStop = False
-      OnScroll = sbVerticalScroll
-    end
-    object RenderPanel: TOpenGLControl
-      Left = 0
-      Height = 301
-      Top = 0
-      Width = 502
-      Align = alClient
-      AlphaBits = 8
-      OnMouseDown = RenderPanelMouseDown
-      OnMouseMove = RenderPanelMouseMove
-      OnMouseUp = RenderPanelMouseUp
-      OnPaint = RenderPanelPaint
-      OnResize = RenderPanelResize
-      object pLoadProgress: TPanel
-        Left = 142
-        Height = 49
-        Top = 94
-        Width = 185
-        ClientHeight = 49
-        ClientWidth = 185
-        TabOrder = 0
-        Visible = False
-        object lLoad: TLabel
-          Left = 6
-          Height = 13
-          Top = 30
-          Width = 169
-          AutoSize = False
-          ParentColor = False
-        end
-        object pbLoad: TProgressBar
-          Left = 6
-          Height = 16
-          Top = 6
-          Width = 169
-          Step = 1
-          TabOrder = 0
-        end
-      end
-    end
-  end
   object StatusBar: TStatusBar
     Left = 0
-    Height = 15
-    Top = 465
+    Height = 21
+    Top = 432
     Width = 672
     AutoHint = True
     Panels = <    
@@ -219,7 +219,7 @@ object MainForm: TMainForm
   object PanelObjs: TPanel
     Left = 0
     Height = 111
-    Top = 354
+    Top = 321
     Width = 672
     Align = alBottom
     BevelInner = bvRaised
@@ -240,48 +240,48 @@ object MainForm: TMainForm
       TabOrder = 0
       object tsPanels: TTabSheet
         Caption = 'Панели'
-        ClientHeight = 68
-        ClientWidth = 662
+        ClientHeight = 77
+        ClientWidth = 664
         ImageIndex = 12
         object lbTextureList: TListBox
           Left = 206
-          Height = 70
+          Height = 77
           Hint = 'Список текстур'
           Top = 0
-          Width = 244
+          Width = 246
           Align = alClient
           Constraints.MaxHeight = 600
           Constraints.MinHeight = 70
           ItemHeight = 13
           OnClick = lbTextureListClick
           OnDrawItem = lbTextureListDrawItem
-          Options = [lboDrawFocusRect]
           Style = lbOwnerDrawFixed
           TabOrder = 0
+          TopIndex = -1
         end
         object PanelTextures: TPanel
-          Left = 450
-          Height = 68
+          Left = 452
+          Height = 77
           Top = 0
           Width = 212
           Align = alRight
           BevelOuter = bvNone
-          ClientHeight = 68
+          ClientHeight = 77
           ClientWidth = 212
           TabOrder = 1
           object LabelTxH: TLabel
             Left = 33
-            Height = 13
+            Height = 14
             Top = 22
-            Width = 95
+            Width = 105
             Caption = 'Высота текстуры:'
             ParentColor = False
           end
           object LabelTxW: TLabel
             Left = 33
-            Height = 13
+            Height = 14
             Top = 0
-            Width = 101
+            Width = 109
             Caption = 'Ширина текстуры:'
             ParentColor = False
           end
@@ -303,9 +303,9 @@ object MainForm: TMainForm
           end
           object cbPreview: TCheckBox
             Left = 35
-            Height = 18
+            Height = 21
             Top = 54
-            Width = 205
+            Width = 187
             Caption = 'Предварительный просмотр'
             TabOrder = 0
           end
@@ -341,17 +341,17 @@ object MainForm: TMainForm
         end
         object PanelPanelType: TPanel
           Left = 0
-          Height = 68
+          Height = 77
           Top = 0
           Width = 206
           Align = alLeft
           BevelOuter = bvNone
-          ClientHeight = 68
+          ClientHeight = 77
           ClientWidth = 206
           TabOrder = 2
           object lbPanelType: TListBox
             Left = 0
-            Height = 68
+            Height = 77
             Hint = 'Тип панели'
             Top = 0
             Width = 201
@@ -371,19 +371,18 @@ object MainForm: TMainForm
               'Блокиратор монстров'
             )
             ItemHeight = 20
-            Options = [lboDrawFocusRect]
             TabOrder = 0
           end
         end
       end
       object tsItems: TTabSheet
         Caption = 'Предметы'
-        ClientHeight = 68
-        ClientWidth = 662
+        ClientHeight = 77
+        ClientWidth = 664
         ImageIndex = 4
         object lbItemList: TListBox
           Left = 0
-          Height = 68
+          Height = 77
           Hint = 'Список предметов'
           Top = 0
           Width = 201
@@ -422,35 +421,35 @@ object MainForm: TMainForm
             'Бутылек здоровья'
             'Часть брони'
           )
-          ItemHeight = 20
-          Options = [lboDrawFocusRect]
+          ItemHeight = 0
           TabOrder = 0
+          TopIndex = -1
         end
         object cbOnlyDM: TCheckBox
           Left = 208
-          Height = 18
+          Height = 21
           Top = 0
-          Width = 102
+          Width = 110
           Caption = 'Только в DM'
           TabOrder = 1
         end
         object cbFall: TCheckBox
           Left = 208
-          Height = 18
+          Height = 21
           Top = 16
-          Width = 67
+          Width = 74
           Caption = 'Падает'
           TabOrder = 2
         end
       end
       object tsMonsters: TTabSheet
         Caption = 'Монстры'
-        ClientHeight = 68
-        ClientWidth = 662
+        ClientHeight = 77
+        ClientWidth = 664
         ImageIndex = 15
         object lbMonsterList: TListBox
           Left = 0
-          Height = 68
+          Height = 77
           Hint = 'Список монстров'
           Top = 0
           Width = 201
@@ -477,15 +476,15 @@ object MainForm: TMainForm
             'Робот'
             'Приколист'
           )
-          ItemHeight = 20
-          Options = [lboDrawFocusRect]
+          ItemHeight = 0
           TabOrder = 0
+          TopIndex = -1
         end
         object rbMonsterLeft: TRadioButton
           Left = 208
-          Height = 18
+          Height = 21
           Top = 0
-          Width = 58
+          Width = 65
           Caption = 'Влево'
           Checked = True
           TabOrder = 1
@@ -493,21 +492,21 @@ object MainForm: TMainForm
         end
         object rbMonsterRight: TRadioButton
           Left = 208
-          Height = 18
+          Height = 21
           Top = 16
-          Width = 66
+          Width = 73
           Caption = 'Вправо'
           TabOrder = 2
         end
       end
       object tsAreas: TTabSheet
         Caption = 'Области'
-        ClientHeight = 68
-        ClientWidth = 662
+        ClientHeight = 77
+        ClientWidth = 664
         ImageIndex = 3
         object lbAreasList: TListBox
           Left = 0
-          Height = 68
+          Height = 77
           Hint = 'Список областей'
           Top = 0
           Width = 201
@@ -522,15 +521,15 @@ object MainForm: TMainForm
             'Красная команда'
             'Синяя команда'
           )
-          ItemHeight = 20
-          Options = [lboDrawFocusRect]
+          ItemHeight = 0
           TabOrder = 0
+          TopIndex = -1
         end
         object rbAreaLeft: TRadioButton
           Left = 208
-          Height = 18
+          Height = 21
           Top = 0
-          Width = 58
+          Width = 65
           Caption = 'Влево'
           Checked = True
           TabOrder = 1
@@ -538,21 +537,21 @@ object MainForm: TMainForm
         end
         object rbAreaRight: TRadioButton
           Left = 208
-          Height = 18
+          Height = 21
           Top = 16
-          Width = 66
+          Width = 73
           Caption = 'Вправо'
           TabOrder = 2
         end
       end
       object tsTriggers: TTabSheet
         Caption = 'Триггеры'
-        ClientHeight = 68
-        ClientWidth = 662
+        ClientHeight = 77
+        ClientWidth = 664
         ImageIndex = 6
         object lbTriggersList: TListBox
           Left = 0
-          Height = 68
+          Height = 77
           Hint = 'Список триггеров'
           Top = 0
           Width = 201
@@ -580,13 +579,13 @@ object MainForm: TMainForm
             'Создать предмет'
             'Музыка'
           )
-          ItemHeight = 20
-          Options = [lboDrawFocusRect]
+          ItemHeight = 0
           TabOrder = 0
+          TopIndex = -1
         end
         object clbActivationType: TCheckListBox
           Left = 201
-          Height = 68
+          Height = 77
           Hint = 'Тип активации триггера'
           Top = 0
           Width = 128
@@ -599,15 +598,16 @@ object MainForm: TMainForm
             'Выстрел'
             'Монстров нет'
           )
-          ItemHeight = 20
+          ItemHeight = 0
           TabOrder = 1
+          TopIndex = -1
           Data = {
             06000000000000000000
           }
         end
         object clbKeys: TCheckListBox
           Left = 329
-          Height = 68
+          Height = 77
           Hint = 'Ключи для активации'
           Top = 0
           Width = 128
@@ -619,8 +619,9 @@ object MainForm: TMainForm
             'Красная команда'
             'Синяя команда'
           )
-          ItemHeight = 20
+          ItemHeight = 0
           TabOrder = 2
+          TopIndex = -1
           Data = {
             050000000000000000
           }
@@ -749,12 +750,12 @@ object MainForm: TMainForm
     DefaultExt = '.dfz'
     Filter = 'Карты Doom 2D: Forever (*.dfz, *.dfzip, *.zip, *.wad)|*.dfz;*.dfzip;*.zip;*.wad|Старые карты Doom 2D: Forever 0.30 (*.ini)|*.ini|Все файлы (*.*)|*.*'
     Options = [ofHideReadOnly, ofNoChangeDir, ofPathMustExist, ofFileMustExist, ofEnableSizing, ofDontAddToRecent]
-    Left = 32
-    Top = 64
+    left = 32
+    top = 64
   end
   object ImageList: TImageList
-    Left = 32
-    Top = 101
+    left = 32
+    top = 101
     Bitmap = {
       4C7A1E00000010000000100000003A1000000000000078DAED5D4DAC234711F6
       D1471FDFD512A018118209903884102C72F101212B512483E06090001F22300A
@@ -893,13 +894,13 @@ object MainForm: TMainForm
     DefaultExt = '.dfz'
     Filter = 'Карты Doom 2D: Forever (*.dfz)|*.dfz|Карты Doom 2D: Forever (*.dfzip)|*.dfzip|Карты Doom 2D: Forever (*.zip)|*.zip|Карты Doom 2D: Forever (*.wad)|*.wad|Все файлы (*.*)|*.*'
     Options = [ofHideReadOnly, ofNoChangeDir, ofPathMustExist, ofNoReadOnlyReturn, ofEnableSizing, ofDontAddToRecent]
-    Left = 64
-    Top = 64
+    left = 64
+    top = 64
   end
   object MainMenu: TMainMenu
     Images = ImageList
-    Left = 96
-    Top = 64
+    left = 96
+    top = 64
     object miApple: TMenuItem
       Caption = ''
       Enabled = False
@@ -1238,8 +1239,8 @@ object MainForm: TMainForm
   end
   object pmShow: TPopupMenu
     Images = ImageList
-    Left = 128
-    Top = 64
+    left = 128
+    top = 64
     object miLayerP1: TMenuItem
       Caption = 'Фон'
       Checked = True
@@ -1289,8 +1290,8 @@ object MainForm: TMainForm
   object ilToolbar: TImageList
     Height = 24
     Width = 24
-    Left = 64
-    Top = 101
+    left = 64
+    top = 101
     Bitmap = {
       4C7A090000001800000018000000810800000000000078DAED9C4D6C13471886
       73E4C021C71C9020200E415C0C17A2860A0511513797BAD046A610D1084465A4
@@ -1387,12 +1388,12 @@ object MainForm: TMainForm
       'ColorS=F0FBFF'
       'ColorT=A4A0A0'
     )
-    Left = 64
-    Top = 146
+    left = 64
+    top = 146
   end
   object MapTestTimer: TTimer
     OnTimer = MapTestCheck
-    Left = 192
-    Top = 64
+    left = 192
+    top = 64
   end
 end
