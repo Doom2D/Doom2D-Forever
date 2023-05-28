@@ -30,8 +30,10 @@ type
   private
     FSpectrum: TMiniSpectrum;
     FSetResource: String;
+    FSoundEnabled: Boolean;
 
     procedure ShowSpectrum();
+    function CreateSoundWAD(Resource: String): Boolean;
 
   public
     property SetResource: String read FSetResource write FSetResource;
@@ -77,6 +79,7 @@ begin
   Inherited;
 
   res := FMOD_OK;
+  FSoundEnabled := False;
 
 {$IFNDEF NOSOUND}
   try
@@ -104,9 +107,9 @@ begin
     if res <> FMOD_OK then
       raise Exception.Create('FMOD_System_Init failed!');
 
+    FSoundEnabled := True;
   except
-    Application.MessageBox(FMOD_ErrorString(res), 'Initialization', MB_OK or MB_ICONHAND);
-    raise;
+    Application.MessageBox('Sound was disabled. Reason: ' + FMOD_ErrorString(res), 'FMOD Error', MB_OK or MB_ICONWARNING);
   end;
 {$ENDIF}
 
@@ -116,7 +119,7 @@ begin
   FSpectrum.Style := ssBlock;
 end;
 
-function CreateSoundWAD(Resource: String): Boolean;
+function TAddSoundForm.CreateSoundWAD(Resource: String): Boolean;
 var
   FileName, SectionName, ResourceName: String;
   ResLength: Integer;
@@ -129,6 +132,10 @@ begin
   SoundData := nil;
   Sound := nil;
   Channel := nil;
+
+  if FSoundEnabled = False then
+    Exit;
+
 {$IFNDEF NOSOUND}
   g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
   g_ReadResource(FileName, SectionName, ResourceName, SoundData, ResLength);
@@ -174,8 +181,12 @@ begin
     if Playing then
       bbStop.Click();
 
+    if FSoundEnabled = False then
+      Exit;
+
     if not CreateSoundWAD(FFullResourceName) then
       Exit;
+
 {$IFNDEF NOSOUND}
     res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE,
              Sound, False, Channel);
@@ -209,6 +220,10 @@ var
 
 begin
   Inherited;
+
+  if FSoundEnabled = False then
+    Exit;
+
 {$IFNDEF NOSOUND}
   FMOD_System_Update(F_System);
   
@@ -228,6 +243,10 @@ begin
   Inherited;
 
   FSpectrum.Free;
+
+  if FSoundEnabled = False then
+    Exit;
+
 {$IFNDEF NOSOUND}
   res := FMOD_System_Close(F_System);
   if res <> FMOD_OK then
