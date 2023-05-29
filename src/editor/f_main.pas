@@ -4373,6 +4373,8 @@ begin
 // Строка состояния - координаты мыши:
   StatusBar.Panels[1].Text := Format('(%d:%d)',
     [MousePos.X-MapOffset.X, MousePos.Y-MapOffset.Y]);
+
+  RenderPanel.Invalidate;
 end;
 
 procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -6993,12 +6995,14 @@ procedure TMainForm.sbVerticalScroll(Sender: TObject;
   ScrollCode: TScrollCode; var ScrollPos: Integer);
 begin
   MapOffset.Y := -sbVertical.Position;
+  RenderPanel.Invalidate;
 end;
 
 procedure TMainForm.sbHorizontalScroll(Sender: TObject;
   ScrollCode: TScrollCode; var ScrollPos: Integer);
 begin
   MapOffset.X := -sbHorizontal.Position;
+  RenderPanel.Invalidate;
 end;
 
 procedure TMainForm.miOpenWadMapClick(Sender: TObject);
