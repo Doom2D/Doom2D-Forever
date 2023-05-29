@@ -1,7 +1,7 @@
 object MainForm: TMainForm
-  Left = 933
+  Left = 1406
   Height = 480
-  Top = 499
+  Top = 831
   Width = 672
   AllowDropFiles = True
   Caption = '2'
@@ -227,7 +227,7 @@ object MainForm: TMainForm
     ClientHeight = 111
     ClientWidth = 672
     Constraints.MinHeight = 111
-    TabOrder = 3
+    TabOrder = 2
     object pcObjects: TPageControl
       Left = 2
       Height = 107
@@ -638,7 +638,7 @@ object MainForm: TMainForm
     ButtonWidth = 31
     Caption = 'MainToolBar'
     Images = ilToolbar
-    TabOrder = 4
+    TabOrder = 3
     object tbNewMap: TToolButton
       Left = 1
       Hint = 'Очистить карту'

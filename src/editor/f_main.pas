@@ -15,33 +15,44 @@ type
   { TMainForm }
 
   TMainForm = class(TForm)
-    lLoad: TLabel;
-  // Главное меню:
+    MapTestTimer: TTimer;
+    Splitter1: TSplitter;
+    Splitter2: TSplitter;
+    StatusBar: TStatusBar;
+    OpenDialog: TOpenDialog;
+    SaveDialog: TSaveDialog;
+    ColorDialog: TColorDialog;
+
+  // Menu:
     MainMenu: TMainMenu;
+    ImageList: TImageList;
   // Apple menu:
     miApple: TMenuItem;
     miAppleAbout: TMenuItem;
     miAppleLine0: TMenuItem;
     miApplePref: TMenuItem;
     miAppleLine1: TMenuItem;
-  // "Файл":
+  // File menu:
     miMenuFile: TMenuItem;
     miNewMap: TMenuItem;
     miOpenMap: TMenuItem;
+    miMacRecentSubMenu: TMenuItem;
+    miMacRecentEnd: TMenuItem;
+    miMacRecentClear: TMenuItem;
+    Separator1: TMenuItem;
     miSaveMap: TMenuItem;
     miSaveMapAs: TMenuItem;
-    miMacRecentSubMenu: TMenuItem;
-    miMacRecentClear: TMenuItem;
     miOpenWadMap: TMenuItem;
     miLine1: TMenuItem;
     miReopenMap: TMenuItem;
     miSaveMiniMap: TMenuItem;
     miDeleteMap: TMenuItem;
     miPackMap: TMenuItem;
+    miWinRecentStart: TMenuItem;
     miWinRecent: TMenuItem;
     miLine2: TMenuItem;
     miExit: TMenuItem;
-  // "Правка":
+  // Edit menu:
     miMenuEdit: TMenuItem;
     miUndo: TMenuItem;
     miLine3: TMenuItem;
@@ -51,11 +62,16 @@ type
     miLine4: TMenuItem;
     miSelectAll: TMenuItem;
     miLine5: TMenuItem;
+    miSnapToGrid: TMenuItem;
+    miSwitchGrid: TMenuItem;
+    Separator2: TMenuItem;
     miToFore: TMenuItem;
     miToBack: TMenuItem;
+    miLine6: TMenuItem;
+    miMapOptions: TMenuItem;
+    miOptions: TMenuItem;
   // View menu:
     miMenuView: TMenuItem;
-    miShowEdges: TMenuItem;
     miLayers: TMenuItem;
     miLayer1: TMenuItem;
     miLayer2: TMenuItem;
@@ -68,14 +84,10 @@ type
     miLayer9: TMenuItem;
     miViewLine1: TMenuItem;
     miMiniMap: TMenuItem;
+    miShowEdges: TMenuItem;
     miViewLine2: TMenuItem;
     miMapPreview: TMenuItem;
-    miSnapToGrid: TMenuItem;
-    miSwitchGrid: TMenuItem;
-    miLine6: TMenuItem;
-    miOptions: TMenuItem;
-    miMapOptions: TMenuItem;
-  // "Сервис":
+  // Service menu:
     miMenuService: TMenuItem;
     miCheckMap: TMenuItem;
     miOptimmization: TMenuItem;
@@ -84,22 +96,17 @@ type
     miMenuWindow: TMenuItem;
     miMacMinimize: TMenuItem;
     miMacZoom: TMenuItem;
-  // "Справка":
+  // Help Menu:
     miMenuHelp: TMenuItem;
     miAbout: TMenuItem;
-  // Скрытый пункт меню для Ctrl+Tab:
+  // HIDDEN menu:
     miMenuHidden: TMenuItem;
     minexttab: TMenuItem;
+    selectall1: TMenuItem;
 
-  // Панель инструментов:
+  // Toolbar:
+    ilToolbar: TImageList;
     MainToolBar: TToolBar;
-    pbLoad: TProgressBar;
-    pLoadProgress: TPanel;
-    RenderPanel: TOpenGLControl;
-    Separator1: TMenuItem;
-    miMacRecentEnd: TMenuItem;
-    miWinRecentStart: TMenuItem;
-    Separator2: TMenuItem;
     tbNewMap: TToolButton;
     tbOpenMap: TToolButton;
     tbSaveMap: TToolButton;
@@ -108,12 +115,6 @@ type
     tbShowMap: TToolButton;
     tbLine2: TToolButton;
     tbShow: TToolButton;
-    tbLine3: TToolButton;
-    tbGridOn: TToolButton;
-    tbGrid: TToolButton;
-    tbLine4: TToolButton;
-    tbTestMap: TToolButton;
-  // Всплывающее меню для кнопки слоев:
     pmShow: TPopupMenu;
     miLayerP1: TMenuItem;
     miLayerP2: TMenuItem;
@@ -124,29 +125,37 @@ type
     miLayerP7: TMenuItem;
     miLayerP8: TMenuItem;
     miLayerP9: TMenuItem;
+    tbLine3: TToolButton;
+    tbGridOn: TToolButton;
+    tbGrid: TToolButton;
+    tbLine4: TToolButton;
+    tbTestMap: TToolButton;
 
-  // Панель карты:
+  // Progress bar:
+    pLoadProgress: TPanel;
+    lLoad: TLabel;
+    pbLoad: TProgressBar;
+
+  // Map edit area:
     PanelMap: TPanel;
-  // Полосы прокрутки:
+    RenderPanel: TOpenGLControl;
     sbHorizontal: TScrollBar;
     sbVertical: TScrollBar;
 
-  // Панель свойств:
+  // Object propertiy editor:
     PanelProps: TPanel;
-  // Панель применения свойств:
     PanelPropApply: TPanel;
     bApplyProperty: TButton;
-    MapTestTimer: TTimer;
-  // Редактор свойств объектов:
     vleObjectProperty: TValueListEditor;
 
-  // Панель объектов - вкладки:
+  // Object palette:
     PanelObjs: TPanel;
     pcObjects: TPageControl;
-  // Вкладка "Панели":
+  // Panels Tab:
     tsPanels: TTabSheet;
+    PanelPanelType: TPanel;
+    lbPanelType: TListBox;
     lbTextureList: TListBox;
-  // Панель настройки текстур:
     PanelTextures: TPanel;
     LabelTxW: TLabel;
     lTextureWidth: TLabel;
@@ -156,42 +165,26 @@ type
     bbAddTexture: TBitBtn;
     bbRemoveTexture: TBitBtn;
     bClearTexture: TButton;
-  // Панель типов панелей:
-    PanelPanelType: TPanel;
-    lbPanelType: TListBox;
-  // Вкладка "Предметы":
+  // Items Tab:
     tsItems: TTabSheet;
     lbItemList: TListBox;
     cbOnlyDM: TCheckBox;
     cbFall: TCheckBox;
-  // Вкладка "Монстры":
+  // Monsters Tab:
     tsMonsters: TTabSheet;
     lbMonsterList: TListBox;
     rbMonsterLeft: TRadioButton;
     rbMonsterRight: TRadioButton;
-  // Вкладка "Области":
+  // Areas Tab:
     tsAreas: TTabSheet;
     lbAreasList: TListBox;
     rbAreaLeft: TRadioButton;
     rbAreaRight: TRadioButton;
-  // Вкладка "Триггеры":
+  // Triggers Tab:
     tsTriggers: TTabSheet;
     lbTriggersList: TListBox;
     clbActivationType: TCheckListBox;
     clbKeys: TCheckListBox;
-
-  // Остальные панели
-    Splitter1: TSplitter;
-    Splitter2: TSplitter;
-    StatusBar: TStatusBar;
-
-  // Специальные объекты:
-    ImageList: TImageList;
-    ilToolbar: TImageList;
-    OpenDialog: TOpenDialog;
-    SaveDialog: TSaveDialog;
-    selectall1: TMenuItem;
-    ColorDialog: TColorDialog;
 
     procedure aAboutExecute(Sender: TObject);
     procedure aCheckMapExecute(Sender: TObject);

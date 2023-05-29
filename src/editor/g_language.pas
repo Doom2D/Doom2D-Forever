@@ -339,17 +339,23 @@ Interface
     MsgHintWidth = 'Width: %d';
     MsgHintHeight = 'Height: %d';
 
+    MsgMenuAppleAbout = 'About Editor';
+    MsgMenuApplePref = 'Preferences...';
+
     MsgMenuFile = 'File';
     MsgMenuFileNew = 'New';
     MsgMenuFileOpen = 'Open...';
+    MsgMenuFileRecentMac = 'Open Recent';
+    MsgMenuFileRecentClearMac = 'Clear Recent';
     MsgMenuFileSave = 'Save';
     MsgMenuFileSaveAs = 'Save As...';
     MsgMenuFileOpenWad = 'Select Map...';
     MsgMenuFileReopen = 'Revert to Saved';
     MsgMenuFileSaveMini = 'Save Minimap...';
-    MsgMenuFileDelete = 'Delete from WAD...';
+    MsgMenuFileDelete = 'Remove from WAD...';
     MsgMenuFilePackMap = 'Pack to WAD...';
-    MsgMenuFileExit = 'Exit';
+    MsgMenuFileRecentWin = 'Recent Files';
+    MsgMenuFileExitWin = 'Exit';
 
     MsgMenuEdit = 'Edit';
     MsgMenuEditUndo = 'Undo';
@@ -357,29 +363,30 @@ Interface
     MsgMenuEditCut = 'Cut';
     MsgMenuEditPaste = 'Paste';
     MsgMenuEditSelectAll = 'Select All';
+    MsgMenuEditSnapGrid = 'Snap to Grid';
+    MsgMenuEditStepGrid = 'Switch Grid Granularity';
     MsgMenuEditToFore = 'Bring to Front';
     MsgMenuEditToBack = 'Send to Back';
+    MsgMenuEditMapProps = 'Map Properties...';
+    MsgMenuEditPrefWin = 'Preferences...';
 
-    MsgMenuTools = 'Tools';
-    MsgMenuToolsSnapGrid = 'Snap to Grid';
-    MsgMenuToolsMinimap = 'Show Minimap';
-    MsgMenuToolsStepGrid = 'Switch Grid Granularity';
-    MsgMenuToolsShowEdges = 'Show Map Bounds';
-    MsgMenuToolsLayers = 'Layers';
+    MsgMenuView = 'View';
+    MsgMenuViewLayers = 'Layers';
+    MsgMenuViewMinimap = 'Show Minimap';
+    MsgMenuViewBounds = 'Show Map Bounds';
+    MsgMenuViewPreview = 'Preview Mode';
 
     MsgMenuServ = 'Service';
     MsgMenuServTest = 'Analyse Map...';
     MsgMenuServOpt = 'Optimize Map...';
-    MsgMenuServPreview = 'Preview Mode';
     MsgMenuServLaunch = 'Run Test';
 
-    MsgMenuSets = 'Settings';
-    MsgMenuSetsMap = 'Map Properties...';
-    MsgMenuSetsEditor = 'Preferences...';
-    MsgMenuSetsLaunch = 'In-game test settings';
+    MsgMenuWindow = 'Window';
+    MsgMenuWindowMinimize = 'Minimize';
+    MsgMenuWindowZoom = 'Zoom';
 
     MsgMenuHelp = 'Help';
-    MsgMenuHelpAbout = 'About';
+    MsgMenuHelpAboutWin = 'About Editor';
 
     MsgMenuLayerBack = '1. Background';
     MsgMenuLayerWall = '2. Walls';
@@ -881,11 +888,16 @@ begin
       end
     else
       Caption := FormCaption;
-  // Главное меню:
-  // "Файл":
+
+  // Apple menu:
+    miAppleAbout.Caption := MsgMenuAppleAbout;
+    miApplePref.Caption := MsgMenuApplePref;
+  // File menu:
     miMenuFile.Caption := MsgMenuFile;
     miNewMap.Caption := MsgMenuFileNew;
     miOpenMap.Caption := MsgMenuFileOpen;
+    miMacRecentSubMenu.Caption := MsgMenuFileRecentMac;
+    miMacRecentClear.Caption := MsgMenuFileRecentClearMac;
     miSaveMap.Caption := MsgMenuFileSave;
     miSaveMapAs.Caption := MsgMenuFileSaveAs;
     miOpenWadMap.Caption := MsgMenuFileOpenWad;
@@ -893,22 +905,24 @@ begin
     miSaveMiniMap.Caption := MsgMenuFileSaveMini;
     miDeleteMap.Caption := MsgMenuFileDelete;
     miPackMap.Caption := MsgMenuFilePackMap;
-    miExit.Caption := MsgMenuFileExit;
-  // "Правка":
+    miWinRecent.Caption := MsgMenuFileRecentWin;
+    miExit.Caption := MsgMenuFileExitWin;
+  // Edit menu:
     miMenuEdit.Caption := MsgMenuEdit;
     miUndo.Caption := MsgMenuEditUndo;
     miCopy.Caption := MsgMenuEditCopy;
     miCut.Caption := MsgMenuEditCut;
     miPaste.Caption := MsgMenuEditPaste;
     miSelectAll.Caption := MsgMenuEditSelectAll;
+    miSnapToGrid.Caption := MsgMenuEditSnapGrid;
+    miSwitchGrid.Caption := MsgMenuEditStepGrid;
     miToFore.Caption := MsgMenuEditToFore;
     miToBack.Caption := MsgMenuEditToBack;
-  // "Инструменты":
-    miSnapToGrid.Caption := MsgMenuToolsSnapGrid;
-    miMiniMap.Caption := MsgMenuToolsMinimap;
-    miSwitchGrid.Caption := MsgMenuToolsStepGrid;
-    miShowEdges.Caption := MsgMenuToolsShowEdges;
-    miLayers.Caption := MsgMenuToolsLayers;
+    miMapOptions.Caption := MsgMenuEditMapProps;
+    miOptions.Caption := MsgMenuEditPrefWin;
+  // View menu:
+    miMenuView.Caption := MsgMenuView;
+    miLayers.Caption := MsgMenuViewLayers;
     miLayer1.Caption := MsgMenuLayerBack;
     miLayer2.Caption := MsgMenuLayerWall;
     miLayer3.Caption := MsgMenuLayerFore;
@@ -918,29 +932,29 @@ begin
     miLayer7.Caption := MsgMenuLayerMonster;
     miLayer8.Caption := MsgMenuLayerArea;
     miLayer9.Caption := MsgMenuLayerTrigger;
-    miMapOptions.Caption := MsgMenuSetsMap;
-    miOptions.Caption := MsgMenuSetsEditor;
-  // "Сервис":
+    miMiniMap.Caption := MsgMenuViewMinimap;
+    miShowEdges.Caption := MsgMenuViewBounds;
+    miMapPreview.Caption := MsgMenuViewPreview;
+  // Service menu:
     miMenuService.Caption := MsgMenuServ;
     miCheckMap.Caption := MsgMenuServTest;
     miOptimmization.Caption := MsgMenuServOpt;
-    miMapPreview.Caption := MsgMenuServPreview;
     miTestMap.Caption := MsgMenuServLaunch;
-  // "Справка":
+  // Window menu:
+    miMenuWindow.Caption := MsgMenuWindow;
+    miMacMinimize.Caption := MsgMenuWindowMinimize;
+    miMacZoom.Caption := MsgMenuWindowZoom;
+  // Help menu:
     miMenuHelp.Caption := MsgMenuHelp;
-    miAbout.Caption := MsgMenuHelpAbout;
+    miAbout.Caption := MsgMenuHelpAboutWin;
 
-  // Панель инструментов:
+  // Toolbar:
     tbNewMap.Hint := MsgMenuTbNew;
     tbOpenMap.Hint := MsgMenuTbOpen;
     tbSaveMap.Hint := MsgMenuTbSave;
     tbOpenWadMap.Hint := MsgMenuTbOpenWad;
     tbShowMap.Hint := MsgMenuTbMinimap;
     tbShow.Hint := MsgMenuTbLayers;
-    tbGridOn.Hint := MsgMenuTbGrid;
-    tbGrid.Hint := MsgMenuTbGridStep;
-    tbTestMap.Hint := MsgMenuTbLaunch;
-  // Всплывающее меню для кнопки слоев:
     miLayerP1.Caption := MsgMenuLayerBack;
     miLayerP2.Caption := MsgMenuLayerWall;
     miLayerP3.Caption := MsgMenuLayerFore;
@@ -950,18 +964,19 @@ begin
     miLayerP7.Caption := MsgMenuLayerMonster;
     miLayerP8.Caption := MsgMenuLayerArea;
     miLayerP9.Caption := MsgMenuLayerTrigger;
+    tbGridOn.Hint := MsgMenuTbGrid;
+    tbGrid.Hint := MsgMenuTbGridStep;
+    tbTestMap.Hint := MsgMenuTbLaunch;
 
-  // Кнопка применения свойств:
+  // Object property editor:
     bApplyProperty.Caption := MsgBtnApplyProps;
-  // Редактор свойств объектов:
     vleObjectProperty.TitleCaptions[0] := MsgCtrlPropKey;
     vleObjectProperty.TitleCaptions[1] := MsgCtrlPropValue;
 
-  // Вкладка "Панели":
+  // Panels Tab:
     tsPanels.Caption := MsgCtrlPanels;
     lbPanelType.Hint := MsgPropPanelType;
     lbTextureList.Hint := MsgCtrlListTexture;
-  // Панель настройки текстур:
     LabelTxW.Caption := MsgLabTexWidth;
     LabelTxH.Caption := MsgLabTexHeight;
     cbPreview.Caption := MsgCtrlPreview;
@@ -969,25 +984,25 @@ begin
     bbRemoveTexture.Hint := MsgBtnTextureDelete;
     bClearTexture.Hint := MsgBtnTextureEmpty;
 
-  // Вкладка "Предметы":
+  // Items Tab:
     tsItems.Caption := MsgCtrlItems;
     lbItemList.Hint := MsgCtrlListItem;
     cbOnlyDM.Caption := MsgCtrlItemDm;
     cbFall.Caption := MsgCtrlItemFalls;
 
-  // Вкладка "Монстры":
+  // Monters Tab:
     tsMonsters.Caption := MsgCtrlMonsters;
     lbMonsterList.Hint := MsgCtrlListMonster;
     rbMonsterLeft.Caption := MsgCtrlLeft;
     rbMonsterRight.Caption := MsgCtrlRight;
 
-  // Вкладка "Области":
+  // Areas Tab:
     tsAreas.Caption := MsgCtrlAreas;
     lbAreasList.Hint := MsgCtrlListArea;
     rbAreaLeft.Caption := MsgCtrlLeft;
     rbAreaRight.Caption := MsgCtrlRight;
 
-  // Вкладка "Триггеры":
+  // Triggers Tab:
     tsTriggers.Caption := MsgCtrlTriggers;
     lbTriggersList.Hint := MsgCtrlListTrigger;
     clbActivationType.Hint := MsgCtrlListActive;
