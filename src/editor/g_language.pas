@@ -631,6 +631,9 @@ Interface
 
     MsgFileFilterAll = 'Doom 2D: Forever Maps (*.dfz, *.dfzip, *.zip, *.wad)|*.dfz;*.dfzip;*.zip;*.wad|Doom 2D: Forever 0.30 Maps (*.ini)|*.ini|All Files (*.*)|*.*';
     MsgFileFilterWad = 'Doom 2D: Forever Maps (*.dfz)|*.dfz|Doom 2D: Forever Maps (*.dfzip)|*.dfzip|Doom 2D: Forever Maps (*.zip)|*.zip|Doom 2D: Forever Maps (*.wad)|*.wad|All Files (*.*)|*.*';
+    MsgFileFilterExeMac = 'Doom 2D Forever.app|*.app|Doom 2D Forever (Unix Executable)|Doom2DF;*';
+    MsgFileFilterExeWin = 'Doom2DF.exe|Doom2DF.exe;*.exe';
+    MsgFileFilterExeUnix = 'Doom2DF|Doom2DF;*';
 
     MsgEditorTitle = 'Doom 2D: Forever Map Editor';
 
@@ -1192,12 +1195,17 @@ begin
     LabelScore.Caption := MsgLabLaunchScore;
     {$IF DEFINED(DARWIN)}
       LabelPath.Caption := MsgLabLaunchPathMac;
+      ExeEdit.DialogTitle := MsgCtrlLaunchOpen;
+      ExeEdit.Filter := MsgFileFilterExeMac;
     {$ELSEIF DEFINED(WINDOWS)}
       LabelPath.Caption := MsgLabLaunchPathWin;
+      ExeEdit.DialogTitle := MsgCtrlLaunchOpen;
+      ExeEdit.Filter := MsgFileFilterExeWin;
     {$ELSE}
       LabelPath.Caption := MsgLabLaunchPathUnix;
+      ExeEdit.DialogTitle := MsgCtrlLaunchOpen;
+      ExeEdit.Filter := MsgFileFilterExeUnix;
     {$ENDIF}
-    FindD2dDialog.Title := MsgCtrlLaunchOpen;
     LabelArgs.Caption := MsgLabLaunchArgs;
   end;
 

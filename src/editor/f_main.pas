@@ -2835,14 +2835,8 @@ begin
     gAlphaTriggerArea := ALPHA_AREA;
   gAlphaMonsterRect := config.ReadInt('Editor', 'MonsterRectAlpha', 0);
   gAlphaAreaRect := config.ReadInt('Editor', 'AreaRectAlpha', 0);
-  if config.ReadInt('Editor', 'Scale', 0) = 1 then
-    Scale := 2
-  else
-    Scale := 1;
-  if config.ReadInt('Editor', 'DotSize', 0) = 1 then
-    DotSize := 2
-  else
-    DotSize := 1;
+  Scale := Max(config.ReadInt('Editor', 'Scale', 1), 1);
+  DotSize := Max(config.ReadInt('Editor', 'DotSize', 1), 1);
   OpenDialog.InitialDir := config.ReadStr('Editor', 'LastOpenDir', MapsDir);
   SaveDialog.InitialDir := config.ReadStr('Editor', 'LastSaveDir', MapsDir);
 

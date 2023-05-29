@@ -1224,6 +1224,12 @@ g_language.MsgFileFilterAll$ = "Doom 2D: Forever Maps (*.dfz, *.dfzip, *.zip, *.
 g_language.MsgFileFilterAll  = "Карты Doom 2D: Forever (*.dfz, *.dfzip, *.zip, *.wad)|*.dfz;*.dfzip;*.zip;*.wad|Старые карты Doom 2D: Forever 0.30 (*.ini)|*.ini|Все файлы (*.*)|*.*"
 g_language.MsgFileFilterWad$ = "Doom 2D: Forever Maps (*.dfz)|*.dfz|Doom 2D: Forever Maps (*.dfzip)|*.dfzip|Doom 2D: Forever Maps (*.zip)|*.zip|Doom 2D: Forever Maps (*.wad)|*.wad|All Files (*.*)|*.*"
 g_language.MsgFileFilterWad  = "Карты Doom 2D: Forever (*.dfz)|*.dfz|Карты Doom 2D: Forever (*.dfzip)|*.dfzip|Карты Doom 2D: Forever (*.zip)|*.zip|Карты Doom 2D: Forever (*.wad)|*.wad|Все файлы (*.*)|*.*"
+g_language.MsgFileFilterExeMac$ = "Doom 2D Forever.app|*.app|Doom 2D Forever (Unix Executable)|Doom2DF;*"
+g_language.MsgFileFilterExeMac  = "Doom 2D Forever.app|*.app|Doom 2D Forever (Исполняемый файл)|Doom2DF;*"
+g_language.MsgFileFilterExeWin$ = "Doom2DF.exe|Doom2DF.exe;*.exe"
+g_language.MsgFileFilterExeWin  = "Doom2DF.exe|Doom2DF.exe;*.exe"
+g_language.MsgFileFilterExeUnix$ = "Doom2DF|Doom2DF;*"
+g_language.MsgFileFilterExeUnix  = "Doom2DF|Doom2DF;*"
 
 g_language.MsgEditorTitle$ = "Doom 2D: Forever Map Editor"
 g_language.MsgEditorTitle  = "Редактор карт Doom 2D: Forever"
