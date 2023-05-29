@@ -423,7 +423,7 @@ Interface
     MsgCapOpt = 'Optimize Map';
     MsgCapSets = 'Map Properties';
     MsgCapLaunch = 'In-game test Settings';
-    MsgCapEs = 'Editor Preferences';
+    MsgCapEs = 'Preferences';
     MsgCapPack = 'Pack Map';
     MsgCapSave = 'Save Map';
     MsgCapMini = 'Save Minimap';
@@ -487,6 +487,7 @@ Interface
     MsgCtrlSetsStats = 'Statistics:';
     MsgCtrlSetsSizes = 'Map Size:';
 
+    MsgCtrlEsTesting = 'Testing';
     MsgCtrlLaunchDm = 'Deathmatch';
     MsgCtrlLaunchTdm = 'Team Deathmatch';
     MsgCtrlLaunchCtf = 'Capture the Flag';
@@ -499,6 +500,7 @@ Interface
     MsgCtrlLaunchClose = 'Close the game after exiting the map';
     MsgCtrlLaunchOpen = 'Select Doom 2D: Forever executable';
 
+    MsgCtrlEsGeneral = 'General';
     MsgCtrlEsGrid = 'Show Grid';
     MsgCtrlEsTexture = 'Show Panel Texture';
     MsgCtrlEsPanelSize = 'Show Panel Size';
@@ -546,7 +548,9 @@ Interface
     MsgLabLaunchTime = 'Time Limit:';
     MsgLabLaunchSecs = 'seconds';
     MsgLabLaunchScore = 'Score Limit:';
-    MsgLabLaunchPath = 'Path to Doom2DF.exe:';
+    MsgLabLaunchPathWin = 'Path to Doom2DF.exe:';
+    MsgLabLaunchPathMac = 'Path to Doom 2D Forever.app:';
+    MsgLabLaunchPathUnix = 'Path to Doom2DF:';
     MsgLabLaunchArgs = 'Launch Arguments:';
 
     MsgLabEsGrid = 'Grid Step:';
@@ -557,6 +561,9 @@ Interface
     MsgLabEsMinimap = 'Mini-map Scale:';
     MsgLabEsRecent = 'Recent Maps List Contains:';
     MsgLabEsLanguage = 'Language:';
+    MsgLabEsLanguageAuto = 'System Default';
+
+    MsgCtrlEsFiles = 'Files';
     MsgLabEsCompress = 'Compress archive when save';
     MsgLabEsBackup = 'Make backup before save';
 
@@ -1144,13 +1151,14 @@ begin
     bCancel.Caption := MsgBtnCancel;
   end;
 
-// From "Editor settings":
+// Form preferences:
   with OptionsForm do
   begin
     Caption := MsgCapEs;
     bOK.Caption := MsgBtnOk;
     bCancel.Caption := MsgBtnCancel;
   // TabGeneral:
+    TabGeneral.Caption := MsgCtrlEsGeneral;
     cbShowDots.Caption := MsgCtrlEsGrid;
     cbShowTexture.Caption := MsgCtrlEsTexture;
     cbShowSize.Caption := MsgCtrlEsPanelSize;
@@ -1163,10 +1171,12 @@ begin
     LabelMinimap.Caption := MsgLabEsMinimap;
     LabelLanguage.Caption := MsgLabEsLanguage;
   // TabFiles:
+    TabFiles.Caption := MsgCtrlEsFiles;
     cbCompress.Caption := MsgLabEsCompress;
     cbBackup.Caption := MsgLabEsBackup;
     LabelRecent.Caption := MsgLabEsRecent;
   // TabTesting:
+    TabTesting.Caption := MsgCtrlEsTesting;
     rbDM.Caption := MsgCtrlLaunchDm;
     rbTDM.Caption := MsgCtrlLaunchTdm;
     rbCTF.Caption := MsgCtrlLaunchCtf;
@@ -1180,7 +1190,13 @@ begin
     LabelTime.Caption := MsgLabLaunchTime;
     LabelSecs.Caption := MsgLabLaunchSecs;
     LabelScore.Caption := MsgLabLaunchScore;
-    LabelPath.Caption := MsgLabLaunchPath;
+    {$IF DEFINED(DARWIN)}
+      LabelPath.Caption := MsgLabLaunchPathMac;
+    {$ELSEIF DEFINED(WINDOWS)}
+      LabelPath.Caption := MsgLabLaunchPathWin;
+    {$ELSE}
+      LabelPath.Caption := MsgLabLaunchPathUnix;
+    {$ENDIF}
     FindD2dDialog.Title := MsgCtrlLaunchOpen;
     LabelArgs.Caption := MsgLabLaunchArgs;
   end;

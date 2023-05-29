@@ -238,7 +238,7 @@ object OptionsForm: TOptionsForm
         Left = 304
         Height = 26
         Top = 192
-        Width = 68
+        Width = 120
         ItemHeight = 0
         Style = csDropDownList
         TabOrder = 13
@@ -252,7 +252,7 @@ object OptionsForm: TOptionsForm
         Left = 8
         Height = 21
         Top = 8
-        Width = 249
+        Width = 208
         Caption = 'Сжимать архив при сохранении'
         TabOrder = 2
       end
@@ -260,7 +260,7 @@ object OptionsForm: TOptionsForm
         Left = 8
         Height = 21
         Top = 32
-        Width = 258
+        Width = 218
         Caption = 'Резервная копия при сохранении'
         TabOrder = 3
       end
@@ -346,7 +346,7 @@ object OptionsForm: TOptionsForm
         Left = 8
         Height = 21
         Top = 104
-        Width = 103
+        Width = 91
         Caption = 'Deathmatch'
         Checked = True
         TabOrder = 0
@@ -356,7 +356,7 @@ object OptionsForm: TOptionsForm
         Left = 8
         Height = 21
         Top = 120
-        Width = 142
+        Width = 124
         Caption = 'Team Deathmatch'
         TabOrder = 1
       end
@@ -364,7 +364,7 @@ object OptionsForm: TOptionsForm
         Left = 8
         Height = 21
         Top = 136
-        Width = 131
+        Width = 114
         Caption = 'Capture the Flag'
         TabOrder = 2
       end
@@ -372,7 +372,7 @@ object OptionsForm: TOptionsForm
         Left = 8
         Height = 21
         Top = 152
-        Width = 102
+        Width = 92
         Caption = 'Cooperative'
         TabOrder = 3
       end
@@ -380,7 +380,7 @@ object OptionsForm: TOptionsForm
         Left = 168
         Height = 21
         Top = 104
-        Width = 101
+        Width = 89
         Caption = 'Два игрока'
         TabOrder = 4
       end
@@ -388,7 +388,7 @@ object OptionsForm: TOptionsForm
         Left = 168
         Height = 21
         Top = 120
-        Width = 164
+        Width = 141
         Caption = 'Урон своей команде'
         TabOrder = 5
       end
@@ -396,7 +396,7 @@ object OptionsForm: TOptionsForm
         Left = 168
         Height = 21
         Top = 136
-        Width = 141
+        Width = 122
         Caption = 'Выход из уровня'
         Checked = True
         State = cbChecked
@@ -406,7 +406,7 @@ object OptionsForm: TOptionsForm
         Left = 168
         Height = 21
         Top = 152
-        Width = 145
+        Width = 125
         Caption = 'Оружие остается'
         TabOrder = 7
       end
@@ -414,7 +414,7 @@ object OptionsForm: TOptionsForm
         Left = 168
         Height = 21
         Top = 168
-        Width = 124
+        Width = 103
         Caption = 'Монстры в DM'
         TabOrder = 8
       end
@@ -462,7 +462,7 @@ object OptionsForm: TOptionsForm
         Left = 8
         Height = 21
         Top = 256
-        Width = 287
+        Width = 241
         Caption = 'Закрыть игру после выхода из карты'
         TabOrder = 11
       end

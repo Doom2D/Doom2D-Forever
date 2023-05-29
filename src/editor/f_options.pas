@@ -171,7 +171,7 @@ begin
   try
     cbLanguage.Items.BeginUpdate;
     cbLanguage.Items.Clear;
-    cbLanguage.Items.Add('Auto');
+    cbLanguage.Items.Add(MsgLabEsLanguageAuto);
     list := g_Language_GetList();
     cbLanguage.Items.AddStrings(list);
     list.Free();
