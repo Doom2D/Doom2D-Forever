@@ -9,7 +9,6 @@ imagingnetworkgraphics = true
 ; don't care about rtl, lazarus libraris and standard libraries
 math              = true
 custapp           = true
-lclstrconsts      = true
 rtlconsts         = true
 sysconst          = true
 lazutilsstrconsts = true
@@ -23,6 +22,9 @@ process           = true
 registry          = true
 inifiles          = true
 stdconvs          = true
+
+; translate it partially
+lclstrconsts      = true
 
 [resourcestring]
 g_language.MsgNotAccessible$ = "N/A"
@@ -1233,3 +1235,144 @@ g_language.MsgFileFilterExeUnix  = "Doom2DF|Doom2DF;*"
 
 g_language.MsgEditorTitle$ = "Doom 2D: Forever Map Editor"
 g_language.MsgEditorTitle  = "Редактор карт Doom 2D: Forever"
+
+; ----------------------------------------------------------------------------
+; LCL Strings
+;   See lazarus sources to get more string identifiers
+;     lazarus-2.2.4/lcl/lclstrconsts.pas
+;     lazarus-2.2.4/lcl/languages/lclstrconsts.ru.po
+; ----------------------------------------------------------------------------
+
+; Dialog buttons
+lclstrconsts.rsMbYes$      = "&Yes"
+lclstrconsts.rsMbYes       = "&Да"
+lclstrconsts.rsMbNo$       = "&No"
+lclstrconsts.rsMbNo        = "&Нет"
+lclstrconsts.rsMbOK$       = "&OK"
+lclstrconsts.rsMbOK        = "&ОК"
+lclstrconsts.rsMbCancel$   = "Cancel"
+lclstrconsts.rsMbCancel    = "Отмена"
+lclstrconsts.rsMbAbort$    = "Abort"
+lclstrconsts.rsMbAbort     = "Прервать"
+lclstrconsts.rsMbRetry$    = "&Retry"
+lclstrconsts.rsMbRetry     = "&Повтор"
+lclstrconsts.rsMbIgnore$   = "&Ignore"
+lclstrconsts.rsMbIgnore    = "&Пропустить"
+lclstrconsts.rsMbAll$      = "&All"
+lclstrconsts.rsMbAll       = "&Все"
+lclstrconsts.rsMbNoToAll$  = "No to all"
+lclstrconsts.rsMbNoToAll   = "Нет для всех"
+lclstrconsts.rsMbYesToAll$ = "Yes to &All"
+lclstrconsts.rsMbYesToAll  = "Да для &всех"
+lclstrconsts.rsMbHelp$     = "&Help"
+lclstrconsts.rsMbHelp      = "&Справка"
+lclstrconsts.rsMbClose$    = "&Close"
+lclstrconsts.rsMbClose     = "&Закрыть"
+lclstrconsts.rsmbOpen$     = "&Open"
+lclstrconsts.rsmbOpen      = "&Открыть"
+lclstrconsts.rsmbSave$     = "&Save"
+lclstrconsts.rsmbSave      = "&Сохранить"
+lclstrconsts.rsmbUnlock$   = "&Unlock"
+lclstrconsts.rsmbUnlock    = "&Разблокировать"
+
+; Dialog titles
+lclstrconsts.rsMtWarning$        = "Warning"
+lclstrconsts.rsMtWarning         = "Предупреждение"
+lclstrconsts.rsMtError$          = "Error"
+lclstrconsts.rsMtError           = "Ошибка"
+lclstrconsts.rsMtInformation$    = "Information"
+lclstrconsts.rsMtInformation     = "Сведения"
+lclstrconsts.rsMtConfirmation$   = "Confirmation"
+lclstrconsts.rsMtConfirmation    = "Подтверждение"
+lclstrconsts.rsMtAuthentication$ = "Authentication"
+lclstrconsts.rsMtAuthentication  = "Проверка подлинности"
+lclstrconsts.rsMtCustom$         = "Custom"
+lclstrconsts.rsMtCustom          = "Пользовательский"
+
+; Save/Open dialog
+lclstrconsts.rsfdOpenFile$           = "Open existing file"
+lclstrconsts.rsfdOpenFile            = "Открыть существующий файл"
+lclstrconsts.rsfdOverwriteFile$      = "Overwrite file ?"
+lclstrconsts.rsfdOverwriteFile       = "Перезаписать файл?"
+lclstrconsts.rsfdFileAlreadyExists$  = "The file "%s" already exists. Overwrite ?"
+lclstrconsts.rsfdFileAlreadyExists   = "Файл "%s" уже существует. Перезаписать?"
+lclstrconsts.rsfdPathMustExist$      = "Path must exist"
+lclstrconsts.rsfdPathMustExist       = "Путь должен существовать"
+lclstrconsts.rsfdPathNoExist$        = "The path "%s" does not exist."
+lclstrconsts.rsfdPathNoExist         = "Путь "%s" не существует."
+lclstrconsts.rsfdFileMustExist$      = "File must exist"
+lclstrconsts.rsfdFileMustExist       = "Файл должен существовать"
+lclstrconsts.rsfdDirectoryMustExist$ = "Directory must exist"
+lclstrconsts.rsfdDirectoryMustExist  = "Каталог должен существовать"
+lclstrconsts.rsfdFileNotExist$       = "The file "%s" does not exist."
+lclstrconsts.rsfdFileNotExist        = "Файл "%s" не существует"
+lclstrconsts.rsfdDirectoryNotExist$  = "The directory "%s" does not exist."
+lclstrconsts.rsfdDirectoryNotExist   = "Каталог "%s" не существует."
+lclstrconsts.rsfdFileReadOnlyTitle$  = "File is not writable"
+lclstrconsts.rsfdFileReadOnlyTitle   = "Файл не доступен для записи"
+lclstrconsts.rsfdFileReadOnly$       = "The file "%s" is not writable."
+lclstrconsts.rsfdFileReadOnly        = "Файл "%s" не доступен для записи."
+lclstrconsts.rsfdFileSaveAs$         = "Save file as"
+lclstrconsts.rsfdFileSaveAs          = "Сохранить файл как"
+lclstrconsts.rsAllFiles$             = "All files (%s)|%s|%s"
+lclstrconsts.rsAllFiles              = "Все файлы (%s)|%s|%s"
+lclstrconsts.rsfdSelectDirectory$    = "Select Directory"
+lclstrconsts.rsfdSelectDirectory     = "Выберите каталог"
+lclstrconsts.rsDirectory$            = "&Directory"
+lclstrconsts.rsDirectory             = "&Каталог"
+
+; Color dialog
+lclstrconsts.rsSelectcolorTitle$ = "Select color"
+lclstrconsts.rsSelectcolorTitle  = "Выбрать цвет"
+
+; Font dialog
+lclstrconsts.rsSelectFontTitle$ = "Select a font"
+lclstrconsts.rsSelectFontTitle  = "Выбрать шрифт"
+
+; Find dialog
+lclstrconsts.rsFind$            = "Find"
+lclstrconsts.rsFind             = "Найти"
+lclstrconsts.rsFindMore$        = "Find more"
+lclstrconsts.rsFindMore         = "Найти далее"
+lclstrconsts.rsReplace$         = "Replace"
+lclstrconsts.rsReplace          = "Заменить"
+lclstrconsts.rsReplaceAll$      = "Replace all"
+lclstrconsts.rsReplaceAll       = "Заменить всё"
+
+; Help menu
+lclstrconsts.rsHelp$ = "Help"
+lclstrconsts.rsHelp  = "Справка"
+
+; OSX specific
+lclstrconsts.rsMacOSMenuHide$       = "Hide %s"
+lclstrconsts.rsMacOSMenuHide        = "Скрыть %s"
+lclstrconsts.rsMacOSMenuHideOthers$ = "Hide Others"
+lclstrconsts.rsMacOSMenuHideOthers  = "Скрыть остальные"
+lclstrconsts.rsMacOSMenuQuit$       = "Quit %s"
+lclstrconsts.rsMacOSMenuQuit        = "Завершить %s"
+lclstrconsts.rsMacOSMenuServices$   = "Services"
+lclstrconsts.rsMacOSMenuServices    = "Службы"
+lclstrconsts.rsMacOSMenuShowAll$    = "Show All"
+lclstrconsts.rsMacOSMenuShowAll     = "Показать все"
+lclstrconsts.rsMacOSFileFormat$     = "File Format:"
+lclstrconsts.rsMacOSFileFormat      = "Формат файла:"
+
+; GTK specific
+lclstrconsts.rsFileInformation$      = "File information"
+lclstrconsts.rsFileInformation       = "Сведения о файле"
+lclstrconsts.rsgtkFilter$            = "Filter:"
+lclstrconsts.rsgtkFilter             = "Фильтр:"
+lclstrconsts.rsgtkHistory$           = "History:"
+lclstrconsts.rsgtkHistory            = "История:"
+lclstrconsts.rsDefaultFileInfoValue$ = "permissions user group size date time"
+lclstrconsts.rsDefaultFileInfoValue  = "права пользователь группа размер дата время"
+lclstrconsts.rsBlank$                = "Blank"
+lclstrconsts.rsBlank                 = "Пустой"
+
+; WIN32 specific
+rsWin32Warning$ = "Warning:"
+rsWin32Warning  = "Предупреждение:"
+rsWin32Error$   = "Error:"
+rsWin32Error    = "Ошибка:"
+
+; probably need more strings to translatate
