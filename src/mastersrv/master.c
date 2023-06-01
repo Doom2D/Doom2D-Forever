@@ -6,7 +6,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <time.h>
-#include <errno.h>
+#include <signal.h>
 
 #include <enet/enet.h>
 #include <enet/types.h>
@@ -469,6 +469,16 @@ static ban_record_t *ban_record_add_ip(const char *ip, const int cnt, const time
   return ban_record_add_addr(addr.host, mask, cnt, cur);
 }
 
+static void ban_free_list(void) {
+  ban_record_t *rec = banlist;
+  while (rec) {
+    ban_record_t *next = rec->next;
+    free(rec);
+    rec = next;
+  }
+  banlist = NULL;
+}
+
 static void ban_load_list(const char *fname) {
   FILE *f = fopen(fname, "r");
   if (!f) {
@@ -568,12 +578,23 @@ static inline void ban_peer(ENetPeer *peer, const char *reason) {
 
 static void deinit(void) {
   // ban_save_list(MS_BAN_FILE);
+  ban_free_list();
   if (ms_host) {
     enet_host_destroy(ms_host);
     ms_host = NULL;
   }
   enet_deinitialize();
 }
+
+#ifdef SIGUSR1
+static void sigusr_handler(int signum) {
+  if (signum == SIGUSR1) {
+    u_log(LOG_WARN, "received SIGUSR1, reloading banlist");
+    ban_free_list();
+    ban_load_list(MS_BAN_FILE);
+  }
+}
+#endif
 
 static bool handle_msg(const enet_uint8 msgid, ENetPeer *peer) {
   server_t *sv = NULL;
@@ -819,6 +840,10 @@ int main(int argc, char **argv) {
   ban_load_list(MS_BAN_FILE);
 
   atexit(deinit);
+
+#ifdef SIGUSR1
+  signal(SIGUSR1, sigusr_handler);
+#endif
 
   ENetAddress addr;
   addr.host = 0;
