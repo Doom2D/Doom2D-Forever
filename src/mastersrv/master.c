@@ -700,6 +700,7 @@ static bool handle_msg(const enet_uint8 msgid, ENetPeer *peer) {
 
     case NET_MSG_LIST:
       buf_send.pos = 0;
+      buf_send.overflow = 0;
       b_write_uint8(&buf_send, NET_MSG_LIST);
 
       clientver[0] = 0;
@@ -820,6 +821,7 @@ static bool spam_filter(ENetPeer *peer) {
         u_log(LOG_WARN, "address %s is sending packets too fast", u_iptostr(peer->address.host));
       if (++cl_spam_cnt >= ms_spam_cap) {
         ban_peer(peer, "spam");
+        cl_last_addr = 0;
         return true;
       }
     } else {
@@ -871,10 +873,9 @@ int main(int argc, char **argv) {
   enet_uint8 msgid = 0;
   ENetEvent event;
   while (running) {
-    while (enet_host_service(ms_host, &event, 5000) > 0) {
+    while (enet_host_service(ms_host, &event, 1000) > 0) {
       bool filtered = !event.peer || ban_check(event.peer->address.host);
-      if (!filtered && event.type != ENET_EVENT_TYPE_DISCONNECT)
-        filtered = spam_filter(event.peer);
+      if (!filtered && ms_spam_cap) filtered = spam_filter(event.peer);
 
       if (!filtered) {
         switch (event.type) {
@@ -909,9 +910,6 @@ int main(int argc, char **argv) {
 
       if (event.packet) {
         buf_recv.data = NULL;
-        buf_recv.pos = 0;
-        buf_recv.size = 0;
-        buf_recv.overflow = 0;
         enet_packet_destroy(event.packet);
       }
     }
