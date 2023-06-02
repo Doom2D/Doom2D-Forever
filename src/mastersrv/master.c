@@ -22,7 +22,6 @@
 #define DEFAULT_MAX_SERVERS MS_MAX_SERVERS
 #define DEFAULT_MAX_PER_HOST 4
 #define DEFAULT_TIMEOUT 100
-#define DEFAULT_BAN_TIME (3 * 86400)
 #define DEFAULT_PORT 25665
 
 #define NET_BUFSIZE 65536
@@ -158,14 +157,14 @@ static const char *u_strtime(const time_t t) {
 
 static inline const char *u_logprefix(const enum log_severity_e s) {
   switch (s) {
-    case LOG_WARN: return "WARNING:";
-    case LOG_ERROR: return "ERROR:";
+    case LOG_WARN: return "WARNING: ";
+    case LOG_ERROR: return "ERROR: ";
     default: return "";
   }
 }
 
 static void u_log(const enum log_severity_e severity, const char *fmt, ...) {
-  printf("[%s] %s ", u_strtime(time(NULL)), u_logprefix(severity));
+  printf("[%s] %s", u_strtime(time(NULL)), u_logprefix(severity));
   va_list args;
   va_start(args, fmt);
   vprintf(fmt, args);
@@ -190,6 +189,17 @@ static bool u_strisprint(const char *str) {
   for (const char *p = str; *p; ++p) {
     // only stuff before space, DEL, NBSP and SHY are considered garbage since we're on 1251
     if (*p < 0x20 || *p == 0x7F || *p == 0xA0 || *p == 0xAD)
+      return false;
+  }
+  return true;
+}
+
+static bool u_strisver(const char *str) {
+  if (!str || !*str)
+    return false;
+  for (const char *p = str; *p; ++p) {
+    // version strings consist of 0-9 . and space
+    if (!isdigit(*p) && *p != '.' && *p != ' ')
       return false;
   }
   return true;
@@ -709,6 +719,11 @@ static bool handle_msg(const enet_uint8 msgid, ENetPeer *peer) {
         return true;
       }
 
+      if (clientver[0] && !u_strisver(clientver)) {
+        ban_peer(peer, "malformed MSG_LIST clientver");
+        return true;
+      }
+
       for (int i = 0; i < max_servers; ++i) {
         if (servers[i].host)
           b_write_server(&buf_send, servers + i);
@@ -772,7 +787,7 @@ static bool parse_args(int argc, char **argv) {
   if (argc < 2)
     return true;
 
-  if (!strcmp(argv[0], "-h")) {
+  if (!strcmp(argv[1], "-h")) {
     print_usage();
     return false;
   }
@@ -857,42 +872,47 @@ int main(int argc, char **argv) {
   ENetEvent event;
   while (running) {
     while (enet_host_service(ms_host, &event, 5000) > 0) {
-      if (!event.peer) {
-        continue; // can this even happen?
-      } else if (ban_check(event.peer->address.host)) {
+      bool filtered = !event.peer || ban_check(event.peer->address.host);
+      if (!filtered && event.type != ENET_EVENT_TYPE_DISCONNECT)
+        filtered = spam_filter(event.peer);
+
+      if (!filtered) {
+        switch (event.type) {
+          case ENET_EVENT_TYPE_CONNECT:
+            u_log(LOG_NOTE, "%s:%d connected", u_iptostr(event.peer->address.host), event.peer->address.port);
+            break;
+
+          case ENET_EVENT_TYPE_RECEIVE:
+            if (!event.packet || event.packet->dataLength == 0) {
+              ban_peer(event.peer, "empty packet");
+              break;
+            }
+            // set up receive buffer
+            buf_recv.pos = 0;
+            buf_recv.overflow = 0;
+            buf_recv.data = event.packet->data;
+            buf_recv.size = event.packet->dataLength;
+            // read message id and handle the message
+            msgid = b_read_uint8(&buf_recv);
+            if (!handle_msg(msgid, event.peer)) {
+              // cheeky cunt sending invalid messages
+              ban_peer(event.peer, "unknown message");
+            }
+            break;
+
+          default:
+            break;
+        }
+      } else if (event.peer) {
         enet_peer_reset(event.peer);
-        continue;
       }
 
-      if (event.type != ENET_EVENT_TYPE_DISCONNECT)
-        if (spam_filter(event.peer))
-          continue;
-
-      switch (event.type) {
-        case ENET_EVENT_TYPE_CONNECT:
-          u_log(LOG_NOTE, "%s:%d connected", u_iptostr(event.peer->address.host), event.peer->address.port);
-          break;
-
-        case ENET_EVENT_TYPE_RECEIVE:
-          if (!event.packet || event.packet->dataLength == 0) {
-            ban_peer(event.peer, "empty packet");
-            break;
-          }
-          // set up receive buffer
-          buf_recv.pos = 0;
-          buf_recv.overflow = 0;
-          buf_recv.data = event.packet->data;
-          buf_recv.size = event.packet->dataLength;
-          // read message id and handle the message
-          msgid = b_read_uint8(&buf_recv);
-          if (!handle_msg(msgid, event.peer)) {
-            // cheeky cunt sending invalid messages
-            ban_peer(event.peer, "unknown message");
-          }
-          break;
-
-        default:
-          break;
+      if (event.packet) {
+        buf_recv.data = NULL;
+        buf_recv.pos = 0;
+        buf_recv.size = 0;
+        buf_recv.overflow = 0;
+        enet_packet_destroy(event.packet);
       }
     }
 
