@@ -8,6 +8,7 @@
 #include <time.h>
 #include <signal.h>
 
+#define ENET_DEBUG 1
 #include <enet/enet.h>
 #include <enet/types.h>
 
@@ -21,7 +22,9 @@
 #define DEFAULT_SPAM_CAP 10
 #define DEFAULT_MAX_SERVERS MS_MAX_SERVERS
 #define DEFAULT_MAX_PER_HOST 4
-#define DEFAULT_TIMEOUT 100
+#define DEFAULT_SERVER_TIMEOUT 100
+#define DEFAULT_CLIENT_TIMEOUT 3
+#define DEFAULT_SPAM_TIMEOUT 1
 #define DEFAULT_PORT 25665
 
 #define NET_BUFSIZE 65536
@@ -122,7 +125,9 @@ static ban_record_t *banlist;
 
 // settings
 static int ms_port = DEFAULT_PORT;
-static int ms_timeout = DEFAULT_TIMEOUT;
+static int ms_sv_timeout = DEFAULT_SERVER_TIMEOUT;
+static int ms_cl_timeout = DEFAULT_CLIENT_TIMEOUT;
+static int ms_spam_timeout = DEFAULT_SPAM_TIMEOUT;
 static int ms_spam_cap = DEFAULT_SPAM_CAP;
 static char ms_motd[MAX_STRLEN + 1] = "";
 static char ms_urgent[MAX_STRLEN + 1] = "";
@@ -580,6 +585,7 @@ static void ban_add(const enet_uint32 host, const char *reason) {
 static inline void ban_peer(ENetPeer *peer, const char *reason) {
   if (peer) {
     ban_add(peer->address.host, reason);
+    peer->data = NULL;
     enet_peer_reset(peer);
   }
 }
@@ -648,7 +654,7 @@ static bool handle_msg(const enet_uint8 msgid, ENetPeer *peer) {
           return true;
         }
         // only then update the times
-        sv->death_time = now + ms_timeout;
+        sv->death_time = now + ms_sv_timeout;
         sv->timestamp = now;
         u_log(LOG_NOTE, "updated server #%d:", sv - servers);
         u_printsv(sv);
@@ -675,7 +681,7 @@ static bool handle_msg(const enet_uint8 msgid, ENetPeer *peer) {
         // then add that shit
         *sv = tmpsv;
         sv->host = peer->address.host;
-        sv->death_time = now + ms_timeout;
+        sv->death_time = now + ms_sv_timeout;
         sv->timestamp = now;
         if (!ban_sanity_check(sv)) {
           sv->host = 0;
@@ -741,7 +747,7 @@ static bool handle_msg(const enet_uint8 msgid, ENetPeer *peer) {
 
       ENetPacket *p = enet_packet_create(buf_send.data, buf_send.pos, ENET_PACKET_FLAG_RELIABLE);
       enet_peer_send(peer, NET_CH_MAIN, p);
-      enet_host_flush(ms_host);
+      // enet_host_flush(ms_host);
 
       u_log(LOG_NOTE, "sent server list to %s:%d (ver %s)", u_iptostr(peer->address.host), peer->address.port, clientver[0] ? clientver : "<old>");
       return true;
@@ -758,10 +764,12 @@ static void print_usage(void) {
   printf("Available options:\n");
   printf("-h     show this message and exit\n");
   printf("-p N   listen on port N (default: %d)\n", DEFAULT_PORT);
-  printf("-t N   seconds before server is removed from list (default: %d)\n", DEFAULT_TIMEOUT);
+  printf("-t N   seconds before server is removed from list (default: %d)\n", DEFAULT_SERVER_TIMEOUT);
+  printf("-c N   how long a client is allowed to hold the connection active (default: %d)\n", DEFAULT_CLIENT_TIMEOUT);
   printf("-s N   max number of servers in server list, 1-%d (default: %d)\n", MS_MAX_SERVERS, DEFAULT_MAX_SERVERS);
   printf("-d N   if N > 0, disallow more than N servers on the same IP (default: %d)\n", DEFAULT_MAX_PER_HOST);
-  printf("-f N   crappy spam filter: ban people after they send N requests in a row too fast (default: %d)\n", DEFAULT_SPAM_CAP);
+  printf("-f N   crappy spam filter: ban clients after they send N requests in a row too fast (default: %d)\n", DEFAULT_SPAM_CAP);
+  printf("-w N   how often does a client have to send packets for the filter to kick in, i.e. once every N sec (default: %d)\n", DEFAULT_SPAM_TIMEOUT);
   fflush(stdout);
 }
 
@@ -796,10 +804,12 @@ static bool parse_args(int argc, char **argv) {
   for (int i = 1; i < argc; ++i) {
     const bool success =
          parse_int_arg(argc, argv, i, "-p", 1, 0xFFFF, &ms_port)
-      || parse_int_arg(argc, argv, i, "-t", 1, 0x7FFFFFFF, &ms_timeout)
+      || parse_int_arg(argc, argv, i, "-t", 1, 0x7FFFFFFF, &ms_sv_timeout)
+      || parse_int_arg(argc, argv, i, "-c", 1, 0x7FFFFFFF, &ms_cl_timeout)
       || parse_int_arg(argc, argv, i, "-s", 1, MS_MAX_SERVERS, &max_servers)
       || parse_int_arg(argc, argv, i, "-d", 0, MS_MAX_SERVERS, &max_servers_per_host)
-      || parse_int_arg(argc, argv, i, "-f", 0, 0xFFFF, &ms_spam_cap);
+      || parse_int_arg(argc, argv, i, "-f", 0, 0xFFFF, &ms_spam_cap)
+      || parse_int_arg(argc, argv, i, "-w", 1, 0x7FFFFFFF, &ms_spam_timeout);
     if (success) {
       ++i;
     } else {
@@ -812,11 +822,10 @@ static bool parse_args(int argc, char **argv) {
 }
 
 // a stupid thing to filter sustained spam from a single IP
-static bool spam_filter(ENetPeer *peer) {
-  const time_t now = time(NULL);
+static bool spam_filter(ENetPeer *peer, const time_t now) {
   if (peer->address.host == cl_last_addr) {
     // spam === sending shit faster than once a second
-    if (now - cl_last_time < 1) {
+    if (now - cl_last_time < ms_spam_timeout) {
       if (cl_spam_cnt > 1)
         u_log(LOG_WARN, "address %s is sending packets too fast", u_iptostr(peer->address.host));
       if (++cl_spam_cnt >= ms_spam_cap) {
@@ -833,6 +842,11 @@ static bool spam_filter(ENetPeer *peer) {
   }
   cl_last_time = now;
   return false;
+}
+
+// filter incoming UDP packets before the protocol kicks in
+static int packet_filter(ENetHost *host, ENetEvent *event) {
+  return !!ban_check(host->receivedAddress.host);
 }
 
 int main(int argc, char **argv) {
@@ -869,18 +883,29 @@ int main(int argc, char **argv) {
   if (!ms_host)
     u_fatal("could not create enet host on port %d", ms_port);
 
+  ms_host->intercept = packet_filter;
+
   bool running = true;
   enet_uint8 msgid = 0;
   ENetEvent event;
   while (running) {
-    while (enet_host_service(ms_host, &event, 1000) > 0) {
-      bool filtered = !event.peer || ban_check(event.peer->address.host);
-      if (!filtered && ms_spam_cap) filtered = spam_filter(event.peer);
+    while (enet_host_service(ms_host, &event, 10) > 0) {
+      const time_t now = time(NULL);
+      bool filtered = !event.peer || (ms_spam_cap && spam_filter(event.peer, now));
+      if (!filtered && event.peer->data) {
+        // kick people that have overstayed their welcome
+        const time_t timeout = (time_t)(intptr_t)event.peer->data;
+        if (timeout < now) filtered = true;
+      }
 
       if (!filtered) {
         switch (event.type) {
           case ENET_EVENT_TYPE_CONNECT:
             u_log(LOG_NOTE, "%s:%d connected", u_iptostr(event.peer->address.host), event.peer->address.port);
+            if (event.peer->channelCount != NET_CH_COUNT)
+              ban_peer(event.peer, "what is this");
+            else // store timeout in the data field
+              event.peer->data = (void *)(intptr_t)(now + ms_cl_timeout);
             break;
 
           case ENET_EVENT_TYPE_RECEIVE:
@@ -901,10 +926,16 @@ int main(int argc, char **argv) {
             }
             break;
 
+          case ENET_EVENT_TYPE_DISCONNECT:
+            event.peer->data = NULL;
+            break;
+
           default:
             break;
         }
       } else if (event.peer) {
+        // u_log(LOG_WARN, "filtered event %d from %s", event.type, u_iptostr(event.peer->address.host));
+        event.peer->data = NULL;
         enet_peer_reset(event.peer);
       }
 
