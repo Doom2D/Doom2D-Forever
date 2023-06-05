@@ -6603,7 +6603,7 @@ begin
       if (pl <> nil) then
       begin
         s := g_Net_ClientName_ByID(pl^.ID);
-        enet_peer_disconnect(pl^.Peer, NET_DISC_KICK);
+        g_Net_Host_Kick(pl^.ID, NET_DISC_KICK);
         g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
         MH_SEND_GameEvent(NET_EV_PLAYER_KICK, 0, s);
         g_Net_Slist_ServerPlayerLeaves();
@@ -6647,7 +6647,7 @@ begin
         if NetClients[a].Used and (NetClients[a].Peer <> nil) then
         begin
           s := g_Net_ClientName_ByID(NetClients[a].ID);
-          enet_peer_disconnect(NetClients[a].Peer, NET_DISC_KICK);
+          g_Net_Host_Kick(NetClients[a].ID, NET_DISC_KICK);
           g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
           MH_SEND_GameEvent(NET_EV_PLAYER_KICK, 0, s);
           g_Net_Slist_ServerPlayerLeaves();
@@ -6676,7 +6676,7 @@ begin
       if (pl <> nil) and pl^.Used and (pl^.Peer <> nil) then
       begin
         s := g_Net_ClientName_ByID(pl^.ID);
-        enet_peer_disconnect(pl^.Peer, NET_DISC_KICK);
+        g_Net_Host_Kick(pl^.ID, NET_DISC_KICK);
         g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
         MH_SEND_GameEvent(NET_EV_PLAYER_KICK, 0, s);
         g_Net_Slist_ServerPlayerLeaves();
@@ -6704,7 +6704,7 @@ begin
       begin
         s := g_Net_ClientName_ByID(pl^.ID);
         g_Net_BanHost(pl^.Peer^.address.host, False);
-        enet_peer_disconnect(pl^.Peer, NET_DISC_TEMPBAN);
+        g_Net_Host_Kick(pl^.ID, NET_DISC_TEMPBAN);
         g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
         MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
         g_Net_Slist_ServerPlayerLeaves();
@@ -6734,7 +6734,7 @@ begin
         begin
           s := g_Net_ClientName_ByID(NetClients[a].ID);
           g_Net_BanHost(NetClients[a].Peer^.address.host, False);
-          enet_peer_disconnect(NetClients[a].Peer, NET_DISC_TEMPBAN);
+          g_Net_Host_Kick(NetClients[a].ID, NET_DISC_TEMPBAN);
           g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
           MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
           g_Net_Slist_ServerPlayerLeaves();
@@ -6763,7 +6763,7 @@ begin
       begin
         s := g_Net_ClientName_ByID(pl^.ID);
         g_Net_BanHost(pl^.Peer^.address.host, False);
-        enet_peer_disconnect(pl^.Peer, NET_DISC_TEMPBAN);
+        g_Net_Host_Kick(pl^.ID, NET_DISC_TEMPBAN);
         g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
         MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
         g_Net_Slist_ServerPlayerLeaves();
@@ -6791,7 +6791,7 @@ begin
       begin
         s := g_Net_ClientName_ByID(pl^.ID);
         g_Net_BanHost(pl^.Peer^.address.host);
-        enet_peer_disconnect(pl^.Peer, NET_DISC_BAN);
+        g_Net_Host_Kick(pl^.ID, NET_DISC_BAN);
         g_Net_SaveBanList();
         g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
         MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
@@ -6822,7 +6822,7 @@ begin
         begin
           s := g_Net_ClientName_ByID(NetClients[a].ID);
           g_Net_BanHost(NetClients[a].Peer^.address.host);
-          enet_peer_disconnect(NetClients[a].Peer, NET_DISC_BAN);
+          g_Net_Host_Kick(NetClients[a].ID, NET_DISC_BAN);
           g_Net_SaveBanList();
           g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
           MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
@@ -6852,7 +6852,7 @@ begin
       begin
         s := g_Net_ClientName_ByID(pl^.ID);
         g_Net_BanHost(pl^.Peer^.address.host);
-        enet_peer_disconnect(pl^.Peer, NET_DISC_BAN);
+        g_Net_Host_Kick(pl^.ID, NET_DISC_TEMPBAN);
         g_Net_SaveBanList();
         g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
         MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);

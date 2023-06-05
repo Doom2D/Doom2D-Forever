@@ -209,6 +209,7 @@ function  g_Net_Host(IPAddr: LongWord; Port: enet_uint16; MaxClients: Cardinal =
 procedure g_Net_Host_Die();
 procedure g_Net_Host_Send(ID: Integer; Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
 procedure g_Net_Host_Update();
+procedure g_Net_Host_Kick(ID: Integer; Reason: enet_uint32);
 
 function  g_Net_Connect(IP: string; Port: enet_uint16): Boolean;
 procedure g_Net_Disconnect(Forced: Boolean = False);
@@ -372,7 +373,7 @@ const
 procedure killClientByFT (var nc: TNetClient);
 begin
   e_LogWritefln('disconnected client #%d due to file transfer error', [nc.ID], TMsgType.Warning);
-  enet_peer_disconnect(nc.Peer, NET_DISC_FILE_TIMEOUT);
+  g_Net_Host_Kick(nc.ID, NET_DISC_FILE_TIMEOUT);
   clearNetClientTransfers(nc);
   g_Net_Slist_ServerPlayerLeaves();
 end;
@@ -1676,6 +1677,20 @@ begin
   if NetUseMaster then g_Net_Slist_ServerPlayerLeaves();
 end;
 
+procedure g_Net_Host_Kick(ID: Integer; Reason: enet_uint32);
+var
+  Peer: pENetPeer;
+  TC: pTNetClient;
+begin
+  TC := @NetClients[ID];
+  if (TC <> nil) and TC^.Used and (TC^.Peer <> nil) then
+  begin
+    Peer := TC^.Peer;
+    g_Net_Host_Disconnect_Client(ID);
+    enet_peer_disconnect(Peer, Reason);
+  end;
+end;
+
 procedure g_Net_Host_CheckPings();
 var
   ClAddr: ENetAddress;
@@ -1782,10 +1797,7 @@ begin
             _lc[I_NET_DISC_PROTOCOL]);
           e_WriteLog('NET: Connection request from ' + IP + ' rejected: version mismatch',
             TMsgType.Notify);
-          NetEvent.peer^.data := GetMemory(SizeOf(Byte));
-          Byte(NetEvent.peer^.data^) := 255;
           enet_peer_disconnect(NetEvent.peer, NET_DISC_PROTOCOL);
-          enet_host_flush(NetHost);
           Exit;
         end;
 
@@ -1795,10 +1807,7 @@ begin
             _lc[I_NET_DISC_BAN]);
           e_WriteLog('NET: Connection request from ' + IP + ' rejected: banned',
             TMsgType.Notify);
-          NetEvent.peer^.data := GetMemory(SizeOf(Byte));
-          Byte(NetEvent.peer^.data^) := 255;
           enet_peer_disconnect(NetEvent.Peer, NET_DISC_BAN);
-          enet_host_flush(NetHost);
           Exit;
         end;
 
@@ -1810,10 +1819,7 @@ begin
             _lc[I_NET_DISC_FULL]);
           e_WriteLog('NET: Connection request from ' + IP + ' rejected: server full',
             TMsgType.Notify);
-          NetEvent.Peer^.data := GetMemory(SizeOf(Byte));
-          Byte(NetEvent.peer^.data^) := 255;
           enet_peer_disconnect(NetEvent.peer, NET_DISC_FULL);
-          enet_host_flush(NetHost);
           Exit;
         end;
 
@@ -1851,6 +1857,8 @@ begin
         end
         else
         begin
+          if NetEvent.peer^.data = nil then Exit;
+
           ID := Byte(NetEvent.peer^.data^);
           if ID > High(NetClients) then Exit;
           TC := @NetClients[ID];
@@ -1865,9 +1873,12 @@ begin
 
       ENET_EVENT_TYPE_DISCONNECT:
       begin
-        ID := Byte(NetEvent.peer^.data^);
-        if ID > High(NetClients) then Exit;
-        g_Net_Host_Disconnect_Client(ID);
+        if NetEvent.peer^.data <> nil then
+        begin
+          ID := Byte(NetEvent.peer^.data^);
+          if ID > High(NetClients) then Exit;
+          g_Net_Host_Disconnect_Client(ID);
+        end;
       end;
     end;
   end;
@@ -2297,7 +2308,7 @@ begin
   begin
     s := '#' + IntToStr(C^.ID); // can't be arsed
     g_Net_BanHost(C^.Peer^.address.host, NetAutoBanPerm);
-    enet_peer_disconnect(C^.Peer, NET_DISC_BAN);
+    g_Net_Host_Kick(C^.ID, NET_DISC_BAN);
     g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
     MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
     g_Net_Slist_ServerPlayerLeaves();
@@ -2507,7 +2518,7 @@ begin
                 if b > NetMaxClients then
                 begin
                   s := g_Player_Get(NetClients[a].Player).Name;
-                  enet_peer_disconnect(NetClients[a].Peer, NET_DISC_FULL);
+                  g_Net_Host_Kick(NetClients[a].ID, NET_DISC_FULL);
                   g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
                   MH_SEND_GameEvent(NET_EV_PLAYER_KICK, 0, s);
                 end;

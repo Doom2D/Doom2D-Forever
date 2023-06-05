@@ -341,7 +341,7 @@ procedure MH_MalformedPacket(C: pTNetClient);
 begin
   g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
     _lc[I_NET_DISC_PROTOCOL]);
-  enet_peer_disconnect(C^.Peer, NET_DISC_PROTOCOL);
+  g_Net_Host_Kick(C^.ID, NET_DISC_PROTOCOL);
 end;
 
 procedure MH_RECV_Chat(C: pTNetClient; var M: TMsg);
@@ -414,7 +414,7 @@ begin
   begin
     g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
       _lc[I_NET_DISC_VERSION]);
-    enet_peer_disconnect(C^.Peer, NET_DISC_VERSION);
+    g_Net_Host_Kick(C^.ID, NET_DISC_VERSION);
     Exit;
   end;
 
@@ -424,13 +424,13 @@ begin
     begin
       g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
         _lc[I_NET_DISC_BAN]);
-      enet_peer_disconnect(C^.Peer, NET_DISC_BAN);
+      g_Net_Host_Kick(C^.ID, NET_DISC_BAN);
     end
     else
     begin
       g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
         _lc[I_NET_DISC_BAN]);
-      enet_peer_disconnect(C^.Peer, NET_DISC_TEMPBAN);
+      g_Net_Host_Kick(C^.ID, NET_DISC_TEMPBAN);
     end;
     Exit;
   end;
@@ -440,7 +440,7 @@ begin
     begin
       g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
         _lc[I_NET_DISC_PASSWORD]);
-      enet_peer_disconnect(C^.Peer, NET_DISC_PASSWORD);
+      g_Net_Host_Kick(C^.ID, NET_DISC_PASSWORD);
       Exit;
     end;
 
