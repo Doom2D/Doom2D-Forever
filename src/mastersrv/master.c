@@ -349,11 +349,11 @@ static inline void sv_remove(server_t *sv) {
     // drop the associated peer, if any
     if (sv->peer && sv->peer->state == ENET_PEER_STATE_CONNECTED && sv->peer->data == sv) {
       sv->peer->data = NULL;
-      sv->peer = NULL;
       enet_peer_reset(sv->peer);
     }
     sv->host = 0;
     sv->port = 0;
+    sv->peer = NULL;
     --num_servers;
   }
 }
@@ -405,6 +405,14 @@ static inline server_t *sv_find_or_add(const enet_uint32 host, const enet_uint32
       empty = s; // remember the first empty slot in case it's needed later
   }
   return empty;
+}
+
+static inline void sv_clear_peer(ENetPeer *peer) {
+  server_t *sv = peer->data;
+  if (sv) {
+    sv->peer = NULL;
+    peer->data = NULL;
+  }
 }
 
 /* ban list functions */
@@ -594,7 +602,7 @@ static void ban_add(const enet_uint32 host, const char *reason) {
 static inline void ban_peer(ENetPeer *peer, const char *reason) {
   if (peer) {
     ban_add(peer->address.host, reason);
-    peer->data = NULL;
+    sv_clear_peer(peer);
     enet_peer_reset(peer);
   }
 }
@@ -668,9 +676,12 @@ static bool handle_msg(const enet_uint8 msgid, ENetPeer *peer) {
         // check if we're updating from a new peer
         if (sv->peer != peer) {
           // if there was an old one, kill it
-          if (sv->peer)
-            enet_peer_reset(peer);
+          if (sv->peer) {
+            sv->peer->data = NULL;
+            enet_peer_reset(sv->peer);
+          }
           sv->peer = peer;
+          peer->data = sv;
         }
         u_log(LOG_NOTE, "updated server #%d:", sv - servers);
         u_printsv(sv);
@@ -721,7 +732,7 @@ static bool handle_msg(const enet_uint8 msgid, ENetPeer *peer) {
       }
       sv_remove_by_addr(peer->address.host, tmpsv.port);
       // this peer can be disconnected pretty much immediately since he has no servers left, tell him to fuck off
-      peer->data = NULL;
+      sv_clear_peer(peer);
       enet_peer_disconnect_later(peer, 0);
       return true;
 
@@ -771,6 +782,7 @@ static bool handle_msg(const enet_uint8 msgid, ENetPeer *peer) {
       // enet_host_flush(ms_host);
 
       // this peer can be disconnected pretty much immediately after receiving the server list, tell him to fuck off
+      sv_clear_peer(peer);
       enet_peer_disconnect_later(peer, 0);
 
       u_log(LOG_NOTE, "sent server list to %s:%d (ver %s)", u_iptostr(peer->address.host), peer->address.port, clientver[0] ? clientver : "<old>");
@@ -913,7 +925,7 @@ int main(int argc, char **argv) {
   enet_uint8 msgid = 0;
   ENetEvent event;
   while (running) {
-    while (enet_host_service(ms_host, &event, 500) > 0) {
+    while (enet_host_service(ms_host, &event, 10) > 0) {
       const time_t now = time(NULL);
       const bool filtered = !event.peer || (ms_spam_cap && spam_filter(event.peer, now));
 
@@ -946,7 +958,7 @@ int main(int argc, char **argv) {
             break;
 
           case ENET_EVENT_TYPE_DISCONNECT:
-            event.peer->data = NULL;
+
             // u_log(LOG_NOTE, "%s:%d disconnected", u_iptostr(event.peer->address.host), event.peer->address.port);
             break;
 
@@ -955,7 +967,7 @@ int main(int argc, char **argv) {
         }
       } else if (event.peer) {
         // u_log(LOG_WARN, "filtered event %d from %s", event.type, u_iptostr(event.peer->address.host));
-        event.peer->data = NULL;
+        sv_clear_peer(event.peer);
         enet_peer_reset(event.peer);
       }
 
