@@ -879,7 +879,7 @@ int main(int argc, char **argv) {
   ENetAddress addr;
   addr.host = 0;
   addr.port = ms_port;
-  ms_host = enet_host_create(&addr, MS_MAX_CLIENTS, NET_CH_COUNT, 0, 0);
+  ms_host = enet_host_create(&addr, MS_MAX_CLIENTS, NET_CH_COUNT + 1, 0, 0);
   if (!ms_host)
     u_fatal("could not create enet host on port %d", ms_port);
 
@@ -923,11 +923,15 @@ int main(int argc, char **argv) {
             if (!handle_msg(msgid, event.peer)) {
               // cheeky cunt sending invalid messages
               ban_peer(event.peer, "unknown message");
+            } else {
+              // can't reset connection right now because we still have packets to dispatch
+              enet_peer_disconnect_later(event.peer, 0);
             }
             break;
 
           case ENET_EVENT_TYPE_DISCONNECT:
             event.peer->data = NULL;
+            // u_log(LOG_NOTE, "%s:%d disconnected", u_iptostr(event.peer->address.host), event.peer->address.port);
             break;
 
           default:
@@ -946,6 +950,8 @@ int main(int argc, char **argv) {
     }
 
     const time_t now = time(NULL);
+
+    // time out servers
     for (int i = 0; i < max_servers; ++i) {
       if (servers[i].host) {
         if (servers[i].death_time <= now) {
@@ -953,6 +959,21 @@ int main(int argc, char **argv) {
           servers[i].host = 0;
           servers[i].port = 0;
           --num_servers;
+        }
+      }
+    }
+
+    // time out clients
+    if (ms_host && ms_host->peers) {
+      for (size_t i = 0; i < ms_host->peerCount; ++i) {
+        ENetPeer *peer = ms_host->peers + i;
+        if ((peer->state >= ENET_PEER_STATE_CONNECTING && peer->state <= ENET_PEER_STATE_DISCONNECT_LATER) && peer->data) {
+          const time_t timeout = (time_t)(intptr_t)peer->data;
+          if (timeout < now) {
+            u_log(LOG_NOTE, "client %s:%d timed out", u_iptostr(peer->address.host), peer->address.port);
+            peer->data = NULL;
+            enet_peer_reset(peer);
+          }
         }
       }
     }
