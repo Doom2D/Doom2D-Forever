@@ -92,6 +92,7 @@ typedef struct server_s {
   char        map[MAX_STRLEN + 2];
   time_t      death_time;
   time_t      timestamp;
+  ENetPeer   *peer; // who sent this server in
 } server_t;
 
 // real servers
@@ -343,24 +344,32 @@ void b_write_server(enet_buf_t *buf, const server_t *s) {
 
 /* server functions */
 
-static void sv_remove(const enet_uint32 host, const enet_uint16 port) {
-  for (int i = 0; i < max_servers; ++i) {
-    if (servers[i].host == host && servers[i].port == port) {
-      servers[i].host = 0;
-      servers[i].port = 0;
-      --num_servers;
+static inline void sv_remove(server_t *sv) {
+  if (sv->host) {
+    // drop the associated peer, if any
+    if (sv->peer && sv->peer->state == ENET_PEER_STATE_CONNECTED && sv->peer->data == sv) {
+      sv->peer->data = NULL;
+      sv->peer = NULL;
+      enet_peer_reset(sv->peer);
     }
+    sv->host = 0;
+    sv->port = 0;
+    --num_servers;
+  }
+}
+
+static void sv_remove_by_addr(const enet_uint32 host, const enet_uint16 port) {
+  for (int i = 0; i < max_servers; ++i) {
+    if (servers[i].host == host && servers[i].port == port)
+      sv_remove(servers + i);
   }
 }
 
 static void sv_remove_by_host(enet_uint32 host, enet_uint32 mask) {
   host &= mask;
   for (int i = 0; i < max_servers; ++i) {
-    if (servers[i].host && (servers[i].host & mask) == host) {
-      servers[i].host = 0;
-      servers[i].port = 0;
-      --num_servers;
-    }
+    if (servers[i].host && (servers[i].host & mask) == host)
+      sv_remove(servers + i);
   }
 }
 
@@ -656,6 +665,13 @@ static bool handle_msg(const enet_uint8 msgid, ENetPeer *peer) {
         // only then update the times
         sv->death_time = now + ms_sv_timeout;
         sv->timestamp = now;
+        // check if we're updating from a new peer
+        if (sv->peer != peer) {
+          // if there was an old one, kill it
+          if (sv->peer)
+            enet_peer_reset(peer);
+          sv->peer = peer;
+        }
         u_log(LOG_NOTE, "updated server #%d:", sv - servers);
         u_printsv(sv);
       } else {
@@ -689,6 +705,8 @@ static bool handle_msg(const enet_uint8 msgid, ENetPeer *peer) {
           ban_peer(peer, "tripped sanity check");
           return true;
         }
+        sv->peer = peer;
+        peer->data = sv;
         ++num_servers;
         u_log(LOG_NOTE, "added new server #%d:", sv - servers);
         u_printsv(sv);
@@ -701,7 +719,10 @@ static bool handle_msg(const enet_uint8 msgid, ENetPeer *peer) {
         ban_peer(peer, "malformed MSG_RM");
         return true;
       }
-      sv_remove(peer->address.host, tmpsv.port);
+      sv_remove_by_addr(peer->address.host, tmpsv.port);
+      // this peer can be disconnected pretty much immediately since he has no servers left, tell him to fuck off
+      peer->data = NULL;
+      enet_peer_disconnect_later(peer, 0);
       return true;
 
     case NET_MSG_LIST:
@@ -748,6 +769,9 @@ static bool handle_msg(const enet_uint8 msgid, ENetPeer *peer) {
       ENetPacket *p = enet_packet_create(buf_send.data, buf_send.pos, ENET_PACKET_FLAG_RELIABLE);
       enet_peer_send(peer, NET_CH_MAIN, p);
       // enet_host_flush(ms_host);
+
+      // this peer can be disconnected pretty much immediately after receiving the server list, tell him to fuck off
+      enet_peer_disconnect_later(peer, 0);
 
       u_log(LOG_NOTE, "sent server list to %s:%d (ver %s)", u_iptostr(peer->address.host), peer->address.port, clientver[0] ? clientver : "<old>");
       return true;
@@ -891,12 +915,7 @@ int main(int argc, char **argv) {
   while (running) {
     while (enet_host_service(ms_host, &event, 10) > 0) {
       const time_t now = time(NULL);
-      bool filtered = !event.peer || (ms_spam_cap && spam_filter(event.peer, now));
-      if (!filtered && event.peer->data) {
-        // kick people that have overstayed their welcome
-        const time_t timeout = (time_t)(intptr_t)event.peer->data;
-        if (timeout < now) filtered = true;
-      }
+      const bool filtered = !event.peer || (ms_spam_cap && spam_filter(event.peer, now));
 
       if (!filtered) {
         switch (event.type) {
@@ -904,8 +923,8 @@ int main(int argc, char **argv) {
             u_log(LOG_NOTE, "%s:%d connected", u_iptostr(event.peer->address.host), event.peer->address.port);
             if (event.peer->channelCount != NET_CH_COUNT)
               ban_peer(event.peer, "what is this");
-            else // store timeout in the data field
-              event.peer->data = (void *)(intptr_t)(now + ms_cl_timeout);
+            else
+              enet_peer_timeout(event.peer, 0, 0, ms_cl_timeout * 1000);
             break;
 
           case ENET_EVENT_TYPE_RECEIVE:
@@ -923,9 +942,6 @@ int main(int argc, char **argv) {
             if (!handle_msg(msgid, event.peer)) {
               // cheeky cunt sending invalid messages
               ban_peer(event.peer, "unknown message");
-            } else {
-              // can't reset connection right now because we still have packets to dispatch
-              enet_peer_disconnect_later(event.peer, 0);
             }
             break;
 
@@ -953,28 +969,9 @@ int main(int argc, char **argv) {
 
     // time out servers
     for (int i = 0; i < max_servers; ++i) {
-      if (servers[i].host) {
-        if (servers[i].death_time <= now) {
-          u_log(LOG_NOTE, "server #%d %s:%d timed out", i, u_iptostr(servers[i].host), servers[i].port);
-          servers[i].host = 0;
-          servers[i].port = 0;
-          --num_servers;
-        }
-      }
-    }
-
-    // time out clients
-    if (ms_host && ms_host->peers) {
-      for (size_t i = 0; i < ms_host->peerCount; ++i) {
-        ENetPeer *peer = ms_host->peers + i;
-        if ((peer->state >= ENET_PEER_STATE_CONNECTING && peer->state <= ENET_PEER_STATE_DISCONNECT_LATER) && peer->data) {
-          const time_t timeout = (time_t)(intptr_t)peer->data;
-          if (timeout < now) {
-            u_log(LOG_NOTE, "client %s:%d timed out", u_iptostr(peer->address.host), peer->address.port);
-            peer->data = NULL;
-            enet_peer_reset(peer);
-          }
-        }
+      if (servers[i].host && servers[i].death_time <= now) {
+        u_log(LOG_NOTE, "server #%d %s:%d timed out", i, u_iptostr(servers[i].host), servers[i].port);
+        sv_remove(servers + i);
       }
     }
   }
