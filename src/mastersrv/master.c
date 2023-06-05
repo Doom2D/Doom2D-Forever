@@ -913,7 +913,7 @@ int main(int argc, char **argv) {
   enet_uint8 msgid = 0;
   ENetEvent event;
   while (running) {
-    while (enet_host_service(ms_host, &event, 10) > 0) {
+    while (enet_host_service(ms_host, &event, 500) > 0) {
       const time_t now = time(NULL);
       const bool filtered = !event.peer || (ms_spam_cap && spam_filter(event.peer, now));
 
