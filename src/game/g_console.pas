@@ -95,7 +95,8 @@ implementation
 uses
   g_textures, g_main, e_graphics, e_input, g_game, g_gfx, g_player, g_items,
   SysUtils, g_basic, g_options, Math, g_touch, e_res,
-  g_menu, g_gui, g_language, g_net, g_netmsg, e_log, conbuf, g_weapons;
+  g_menu, g_gui, g_language, g_net, g_netmsg, e_log, conbuf, g_weapons,
+  Keyboard;
 
 const
   autoexecScript = 'autoexec.cfg';
@@ -162,6 +163,7 @@ var
   ChatTop: BOOLEAN;
   ConsoleStep: Single;
   ConsoleTrans: Single;
+  ConsoleStdIn: Boolean;
 
 
 procedure g_Console_Switch;
@@ -963,6 +965,28 @@ begin
   end
 end;
 
+procedure ReadStdIn;
+var
+  K: Char;
+  KEv: TKeyEvent;
+begin
+  gConsoleShow := True;
+  InputReady := True;
+  // one key per frame
+  KEv := PollKeyEvent();
+  if KEv <> 0 then
+  begin
+    K := GetKeyEventChar(TranslateKeyEvent(GetKeyEvent()));
+    Write(K);
+    case K of
+      #8: g_Console_Control(IK_BACKSPACE);
+      #10, #13: g_Console_Control(IK_RETURN);
+      #32..#126: g_Console_Char(K);
+      // arrow keys and DEL all return 0 for some reason, so fuck em
+    end;
+  end;
+end;
+
 procedure g_Console_SysInit;
   var a: Integer;
 begin
@@ -1234,12 +1258,24 @@ begin
   g_Texture_CreateWAD(ID, GameWAD+':TEXTURES\CONSOLE');
   g_Console_Add(Format(_lc[I_CONSOLE_WELCOME], [GAME_VERSION]));
   g_Console_Add('');
+{$IFDEF HEADLESS}
+  if ConsoleStdIn then
+  begin
+    InitKeyboard();
+    conbufStdOutRawMode := true;
+  end;
+{$ENDIF}
 end;
 
 procedure g_Console_Update;
 var
   a, b, Step: Integer;
 begin
+{$IFDEF HEADLESS}
+  if ConsoleStdIn then
+    ReadStdIn();
+{$ENDIF}
+
   if Cons_Shown then
   begin
     Step := Max(1, Round(Floor(gScreenHeight * ConsoleHeight) * ConsoleStep));
@@ -2316,6 +2352,7 @@ begin
   conRegVar('console_height', @ConsoleHeight, 0.0, 1.0, 'set console size', 'set console size');
   conRegVar('console_trans', @ConsoleTrans, 0.0, 1.0, 'set console transparency', 'set console transparency');
   conRegVar('console_step', @ConsoleStep, 0.0, 1.0, 'set console animation speed', 'set console animation speed');
+  conRegVar('console_stdin', @ConsoleStdIn, 'enable reading commands from stdin', 'enable reading commands from stdin');
 {$IFDEF ANDROID}
   ChatTop := True;
   ConsoleHeight := 0.35;
@@ -2325,6 +2362,11 @@ begin
 {$ENDIF}
   ConsoleTrans := 0.1;
   ConsoleStep := 0.07;
+{$IFDEF HEADLESS}
+  ConsoleStdIn := True;
+{$ELSE}
+  ConsoleStdIn := False;
+{$ENDIF}
   conRegVar('d_eres', @debug_e_res, '', '');
   for i := 1 to e_MaxJoys do
     conRegVar('joy' + IntToStr(i) + '_deadzone', @e_JoystickDeadzones[i - 1], '', '')
@@ -2332,4 +2374,11 @@ end;
 
 initialization
   Init
+
+{$IFDEF HEADLESS}
+finalization
+  DoneKeyboard;
+  conbufStdOutRawMode := false;
+{$ENDIF}
+
 end.

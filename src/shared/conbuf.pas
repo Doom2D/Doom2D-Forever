@@ -41,7 +41,7 @@ procedure cbufClear ();
 var
   conbufDumpToStdOut: Boolean = false;
   conbufConPrefix: Boolean = true;
-
+  conbufStdOutRawMode: Boolean = false;
 
 implementation
 
@@ -83,6 +83,8 @@ begin
           if conbufConPrefix then write(stdout, 'CON: ');
           needCon := false;
         end;
+        if conbufStdOutRawMode and (buf[np] = #10) then
+          write(stdout, #13); // force carriage return in raw mode
         write(stdout, buf[np]);
         needCon := (buf[np] = #10);
       end;
