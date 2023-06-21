@@ -84,43 +84,21 @@ implementation
     result := Copy(path, 1, i-1)  // exclude the trailing separator
   end;
 
-  function HasRelativeDirs (name: AnsiString): Boolean;
-    var i: Integer; ch: Char;
+  function IsRelativePath (name: AnsiString): Boolean;
   begin
-    i := 1;
-    result := false;
-    while (result = false) and (name[i] <> #0) do
-    begin
-      ch := name[i];
-      if (ch = '/') or (ch = '\') then
-      begin
-        Inc(i);
-        if name[i] = '.' then
-        begin
-          Inc(i);
-          if name[i] = '.' then
-          begin
-            Inc(i);
-            ch := name[i];
-            result := (ch = #0) or (ch = '/') or (ch = '\')
-          end
-        end
-      end
-      else
-      begin
-        Inc(i)
-      end
-    end
+    result := (copy(name, 1, 3) = '../') or (pos('/../', name) <> 0) or (copy(name, Length(name) - 2) = '/..') or
+              (copy(name, 1, 3) = '..\') or (pos('\..\', name) <> 0) or (copy(name, Length(name) - 2) = '\..') or
+              (name = '..');
   end;
 
-  function HasAbsoluteDirs (name: AnsiString): Boolean;
+  function IsAbsolutePath (name: AnsiString): Boolean;
   begin
-    result := (name = '') or (name[1] = '/') or (name[1] = '\')
+    result := ExpandFileName(name) = name;
   end;
 
   function e_IsValidResourceName (name: AnsiString): Boolean;
   begin
-    result := (HasAbsoluteDirs(name) = false) and (HasRelativeDirs(name) = false)
+    result := (IsAbsolutePath(name) = false) and (IsRelativePath(name) = false)
   end;
 
   function SpawnStream (dirs: SSArray; name: AnsiString; p: SpawnProc; createNewDir: Boolean): TStream;

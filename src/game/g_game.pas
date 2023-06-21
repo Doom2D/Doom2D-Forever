@@ -7211,6 +7211,10 @@ begin
         g_Console_Add(_lc[I_MSG_GM_UNAVAIL])
       end
     end
+    else if not e_IsValidResourceName(P[1]) then
+    begin
+      g_Console_Add('wad name must not be absolute or relative');
+    end
     else
     begin
       if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
@@ -7337,6 +7341,10 @@ begin
           nm := False;
           g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
         end;
+      end
+      else if not e_IsValidResourceName(P[1]) then
+      begin
+        g_Console_Add('wad name must not be absolute or relative');
       end
       else
       begin
