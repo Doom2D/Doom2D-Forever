@@ -9,7 +9,7 @@ else
 	BIN := bin/d2df_master
 	DEL := rm -f
 	LDFLAGS := -lenet
-	CFLAGS += -Llibs -I.
+	CFLAGS += -Llibs -I. -DENABLE_PIPE
 endif
 
 all: master

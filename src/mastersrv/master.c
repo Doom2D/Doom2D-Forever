@@ -22,8 +22,11 @@
 #include <string.h>
 #include <time.h>
 #include <signal.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
-#define ENET_DEBUG 1
 #include <enet/enet.h>
 #include <enet/types.h>
 
@@ -33,6 +36,7 @@
 #define MS_URGENT_FILE "urgent.txt"
 #define MS_MOTD_FILE "motd.txt"
 #define MS_BAN_FILE "master_bans.txt"
+#define MS_PIPE_FILE "d2df_master.pipe"
 
 #define DEFAULT_SPAM_CAP 10
 #define DEFAULT_MAX_SERVERS MS_MAX_SERVERS
@@ -161,6 +165,17 @@ static int cl_spam_cnt;
 
 /* common utility functions */
 
+static char *u_strstrip(char *p) {
+  if (!p) return p;
+  while (isspace(*p)) ++p;
+  const size_t len = strlen(p);
+  if (len) {
+    for (size_t i = len - 1; i && isspace(p[i]); --i)
+      p[i] = '\0';
+  }
+  return p;
+}
+
 static char *u_vabuf(void) {
   static char vabuf[4][MAX_STRLEN];
   static int idx = 0;
@@ -258,7 +273,7 @@ static inline enet_uint32 u_prefixtomask(const enet_uint32 prefix) {
 }
 
 static inline enet_uint32 u_masktoprefix(const enet_uint32 mask) {
-  return (32 - __builtin_ctz(mask));
+  return (32 - __builtin_ctz(ENET_NET_TO_HOST_32(mask)));
 }
 
 static inline void u_printsv(const server_t *sv) {
@@ -492,7 +507,7 @@ static ban_record_t *ban_record_add_addr(const enet_uint32 host, const enet_uint
   return rec;
 }
 
-static ban_record_t *ban_record_add_ip(const char *ip, const int cnt, const time_t cur) {
+static enet_uint32 ban_parse_ip_mask(const char *ip, enet_uint32 *out_mask) {
   enet_uint32 prefix = 32;
 
   // find and get the prefix length, if any
@@ -505,15 +520,23 @@ static ban_record_t *ban_record_add_ip(const char *ip, const int cnt, const time
   }
 
   ENetAddress addr = { 0 };
-  if (enet_address_set_host_ip(&addr, ip_copy) != 0) {
-    u_log(LOG_ERROR, "banlist: `%s` is not a valid IP address", ip_copy);
-    return NULL;
-  }
+  if (enet_address_set_host_ip(&addr, ip_copy) != 0)
+    return 0;
 
   // transform prefix length into mask
-  const enet_uint32 mask = u_prefixtomask(prefix);
+  *out_mask = u_prefixtomask(prefix);
 
-  return ban_record_add_addr(addr.host, mask, cnt, cur);
+  return addr.host;
+}
+
+static ban_record_t *ban_record_add_ip(const char *ip, const int cnt, const time_t cur) {
+  enet_uint32 mask = 0;
+  const enet_uint32 host = ban_parse_ip_mask(ip, &mask);
+  if (!host) {
+    u_log(LOG_ERROR, "banlist: `%s` is not a valid address", ip);
+    return NULL;
+  }
+  return ban_record_add_addr(host, mask, cnt, cur);
 }
 
 static void ban_free_list(void) {
@@ -544,13 +567,14 @@ static void ban_load_list(const char *fname) {
       continue;
 
     char ip[21] = { 0 }; // optionally includes the "/nn" prefix length at the end
-    time_t exp = 0;
+    int64_t exp64 = 0;
     int count = 0;
-    if (sscanf(ln, "%20s %ld %d", ip, &exp, &count) < 3) {
+    if (sscanf(ln, "%20s %lld %d", ip, &exp64, &count) < 3) {
       u_log(LOG_ERROR, "banlist: malformed line: `%s`", ln);
       continue;
     }
 
+    const time_t exp = (time_t)exp64; // shut up gcc
     if (ban_record_add_ip(ip, count, exp))
       u_log(LOG_NOTE, "banlist: banned %s until %s (ban level %d)", ip, u_strtime(exp), count);
   }
@@ -567,7 +591,7 @@ static void ban_save_list(const char *fname) {
 
   for (ban_record_t *rec = banlist; rec; rec = rec->next) {
     if (rec->ban_count)
-      fprintf(f, "%s/%u %ld %d\n", u_iptostr(rec->host), u_masktoprefix(rec->mask), rec->cur_ban, rec->ban_count);
+      fprintf(f, "%s/%u %lld %d\n", u_iptostr(rec->host), u_masktoprefix(rec->mask), (int64_t)rec->cur_ban, rec->ban_count);
   }
 
   fclose(f);
@@ -593,6 +617,25 @@ static bool ban_sanity_check(const server_t *srv) {
   if (srv->flags > SV_FL_MAX)
     return false;
   return true;
+}
+
+static void ban_add_mask(const enet_uint32 host, const enet_uint32 mask, const char *reason) {
+  const time_t now = time(NULL);
+
+  ban_record_t *rec = ban_record_add_addr(host, mask, 0, 0);
+  if (!rec) u_fatal("OOM trying to ban %s", u_iptostr(host));
+
+  rec->cur_ban = now + ban_get_time(rec->ban_count);
+  rec->ban_count++;
+
+  u_log(LOG_NOTE, "banned %s until %s, reason: %s, ban level: %d", u_iptostr(rec->host), u_strtime(rec->cur_ban), reason, rec->ban_count);
+
+  ban_save_list(MS_BAN_FILE);
+
+  sv_remove_by_host(host, mask);
+
+  if (host == cl_last_addr)
+    cl_last_addr = 0;
 }
 
 static void ban_add(const enet_uint32 host, const char *reason) {
@@ -624,6 +667,66 @@ static inline void ban_peer(ENetPeer *peer, const char *reason) {
 
 /* main */
 
+#if ENABLE_PIPE
+
+static int io_fd = -1;
+
+static bool io_install_pipe(void) {
+  const int rc = mkfifo(MS_PIPE_FILE, 0664);
+  if (rc < 0 && errno != EEXIST) {
+    u_log(LOG_ERROR, "io_install_pipe(): mkfifo(): %s", strerror(errno));
+    return false;
+  }
+
+  io_fd = open(MS_PIPE_FILE, O_RDONLY | O_NONBLOCK);
+  if (io_fd < 0) {
+    u_log(LOG_ERROR, "io_install_pipe(): open(): %s", strerror(errno));
+    remove(MS_PIPE_FILE);
+    return false;
+  }
+
+  return true;
+}
+
+static void io_uninstall_pipe(void) {
+  if (io_fd >= 0) {
+    close(io_fd);
+    io_fd = -1;
+  }
+  remove(MS_PIPE_FILE);
+}
+
+static void io_read_commands(void) {
+  if (io_fd < 0)
+    return;
+
+  char cmd[128];
+  const int cmd_len = read(io_fd, cmd, sizeof(cmd) - 1);
+  if (cmd_len < 1)
+    return;
+  cmd[cmd_len] = '\0';
+
+  if (!strncmp(cmd, "ban ", 4)) {
+    const char *ip = u_strstrip(cmd + 4); // skip "ban "
+    enet_uint32 mask = 0;
+    enet_uint32 host = ban_parse_ip_mask(ip, &mask);
+    if (!host) {
+      u_log(LOG_ERROR, "ban: `%s` is not a valid address", ip);
+      return;
+    }
+    ban_add_mask(host, mask, "banned by console");
+  } else if (!strncmp(cmd, "reload", 6)) {
+    u_log(LOG_WARN, "reloading banlist");
+    ban_free_list();
+    ban_load_list(MS_BAN_FILE);
+  } else if (!strncmp(cmd, "die", 3)) {
+    u_log(LOG_WARN, "shutting down");
+    exit(0);
+  }
+}
+
+#endif
+
 static void deinit(void) {
   // ban_save_list(MS_BAN_FILE);
   ban_free_list();
@@ -632,17 +735,10 @@ static void deinit(void) {
     ms_host = NULL;
   }
   enet_deinitialize();
-}
-
-#ifdef SIGUSR1
-static void sigusr_handler(int signum) {
-  if (signum == SIGUSR1) {
-    u_log(LOG_WARN, "received SIGUSR1, reloading banlist");
-    ban_free_list();
-    ban_load_list(MS_BAN_FILE);
-  }
-}
+#ifdef ENABLE_PIPE
+  io_uninstall_pipe();
 #endif
+}
 
 static bool handle_msg(const enet_uint8 msgid, ENetPeer *peer) {
   server_t *sv = NULL;
@@ -923,8 +1019,8 @@ int main(int argc, char **argv) {
 
   atexit(deinit);
 
-#ifdef SIGUSR1
-  signal(SIGUSR1, sigusr_handler);
+#ifdef ENABLE_PIPE
+  io_install_pipe();
 #endif
 
   ENetAddress addr;
@@ -1001,5 +1097,10 @@ int main(int argc, char **argv) {
         sv_remove(servers + i);
       }
     }
+
+#ifdef ENABLE_PIPE
+    // read commands from pipe
+    io_read_commands();
+#endif
   }
 }
