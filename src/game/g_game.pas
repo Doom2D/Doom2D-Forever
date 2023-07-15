@@ -6559,6 +6559,7 @@ var
   nm: Boolean;
   listen: LongWord;
   found: Boolean;
+  t: Byte;
 begin
 // Общие команды:
   cmd := LowerCase(P[0]);
@@ -6990,10 +6991,19 @@ begin
     begin
       if Length(P) = 2 then
         g_Bot_AddList(TEAM_NONE, P[1], StrToIntDef(P[1], -1))
-      else if Length(P) = 3 then
-        g_Bot_AddList(TEAM_NONE, P[1], StrToIntDef(P[1], -1), StrToIntDef(P[2], 100))
       else
-        g_Bot_AddList(IfThen(P[2] = 'red', TEAM_RED, TEAM_BLUE), P[1], StrToIntDef(P[1], -1));
+      begin
+        if P[2] = 'red' then
+          t := TEAM_RED
+        else if P[2] = 'blue' then
+          t := TEAM_BLUE
+        else 
+          t := TEAM_NONE;
+
+        if Length(P) = 3
+          then g_Bot_AddList(t, P[1], StrToIntDef(P[1], -1))
+          else g_Bot_AddList(t, P[1], StrToIntDef(P[1], -1), StrToIntDef(P[3], 100));
+      end;
     end;
   end
   else if cmd = 'bot_removeall' then
