@@ -6978,32 +6978,29 @@ begin
   else if (cmd = 'addbot') or
      (cmd = 'bot_add') then
   begin
-    if Length(P) > 2 then
-      g_Bot_Add(TEAM_NONE, StrToIntDef(P[1], 2), StrToIntDef(P[2], 100))
-    else if Length(P) > 1 then
-      g_Bot_Add(TEAM_NONE, StrToIntDef(P[1], 2))
+    case Length(P) of
+      1: g_Bot_Add(TEAM_NONE, 2);
+      2: g_Bot_Add(TEAM_NONE, StrToIntDef(P[1], 2));
     else
-      g_Bot_Add(TEAM_NONE, 2);
+      g_Bot_Add(TEAM_NONE, StrToIntDef(P[1], 2), StrToIntDef(P[2], 100));
+    end;
   end
   else if cmd = 'bot_addlist' then
   begin
-    if Length(P) > 1 then
-    begin
-      if Length(P) = 2 then
-        g_Bot_AddList(TEAM_NONE, P[1], StrToIntDef(P[1], -1))
-      else
-      begin
-        if P[2] = 'red' then
-          t := TEAM_RED
-        else if P[2] = 'blue' then
-          t := TEAM_BLUE
-        else 
-          t := TEAM_NONE;
+    case Length(P) of
+      1: g_Bot_AddList(TEAM_NONE, '');
+      2: g_Bot_AddList(TEAM_NONE, P[1], StrToIntDef(P[1], -1));
+    else
+      if P[2] = 'red' then
+        t := TEAM_RED
+      else if P[2] = 'blue' then
+        t := TEAM_BLUE
+      else 
+        t := TEAM_NONE;
 
-        if Length(P) = 3
-          then g_Bot_AddList(t, P[1], StrToIntDef(P[1], -1))
-          else g_Bot_AddList(t, P[1], StrToIntDef(P[1], -1), StrToIntDef(P[3], 100));
-      end;
+      if Length(P) = 3
+        then g_Bot_AddList(t, P[1], StrToIntDef(P[1], -1))
+        else g_Bot_AddList(t, P[1], StrToIntDef(P[1], -1), StrToIntDef(P[3], 100));
     end;
   end
   else if cmd = 'bot_removeall' then

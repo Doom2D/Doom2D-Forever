@@ -1096,18 +1096,23 @@ begin
         Team := BotList[num].team; // CTF / TDM
 
 // Выбираем настройки бота из списка по номеру или имени:
-  lName := AnsiLowerCase(lName);
-  if (num < 0) or (num > Length(BotList)-1) then
-    num := -1;
-  if (num = -1) and (lName <> '') and (BotList <> nil) then
-    for a := 0 to High(BotList) do
-      if AnsiLowerCase(BotList[a].name) = lName then
-      begin
-        num := a;
-        Break;
-      end;
-  if num = -1 then
-    Exit;
+  if lName = '' then 
+    num := Random(Length(BotList))
+  else
+  begin
+    if (num < 0) or (num > Length(BotList)-1) then
+      num := -1;
+    if (num = -1) and (BotList <> nil) then
+      lName := AnsiLowerCase(lName);
+      for a := 0 to High(BotList) do
+        if AnsiLowerCase(BotList[a].name) = lName then
+        begin
+          num := a;
+          Break;
+        end;
+    if num = -1 then
+      Exit;
+  end;
 
 // Имя бота:
   _name := BotList[num].name;
