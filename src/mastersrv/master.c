@@ -549,6 +549,30 @@ static void ban_free_list(void) {
   banlist = NULL;
 }
 
+static bool ban_record_remove_addr(const enet_uint32 host, const enet_uint32 mask) {
+  for (ban_record_t *b = banlist; b; b = b->next) {
+    if ((b->host == host) && (b->mask == mask)) {
+      if (b == banlist)
+        banlist = b->next;
+      if (b->next) b->next->prev = b->prev;
+      if (b->prev) b->prev->next = b->next;
+      free(b);
+      return true;
+    }
+  }
+  return false;
+}
+
+static bool ban_record_remove_ip(const char *ip) {
+  enet_uint32 mask = 0;
+  const enet_uint32 host = ban_parse_ip_mask(ip, &mask);
+  if (!host) {
+    u_log(LOG_ERROR, "unban: `%s` is not a valid address", ip);
+    return NULL;
+  }
+  return ban_record_remove_addr(host, mask);
+}
+
 static void ban_load_list(const char *fname) {
   FILE *f = fopen(fname, "r");
   if (!f) {
@@ -657,6 +681,15 @@ static void ban_add(const enet_uint32 host, const char *reason) {
     cl_last_addr = 0;
 }
 
+static void ban_remove_mask(const enet_uint32 host, const enet_uint32 mask) {
+  if (!ban_record_remove_addr(host, mask)) {
+    u_log(LOG_ERROR, "could not find %s in ban list", u_iptostr(host));
+    return;
+  }
+  u_log(LOG_NOTE, "unbanned %s", u_iptostr(host));
+  ban_save_list(MS_BAN_FILE);
+}
+
 static inline void ban_peer(ENetPeer *peer, const char *reason) {
   if (peer) {
     ban_add(peer->address.host, reason);
@@ -715,6 +748,15 @@ static void io_read_commands(void) {
       return;
     }
     ban_add_mask(host, mask, "banned by console");
+  } else if (!strncmp(cmd, "unban ", 6)) {
+    const char *ip = u_strstrip(cmd + 6); // skip "unban "
+    enet_uint32 mask = 0;
+    enet_uint32 host = ban_parse_ip_mask(ip, &mask);
+    if (!host) {
+      u_log(LOG_ERROR, "ban: `%s` is not a valid address", ip);
+      return;
+    }
+    ban_remove_mask(host, mask);
   } else if (!strncmp(cmd, "reload", 6)) {
     u_log(LOG_WARN, "reloading banlist");
     ban_free_list();
