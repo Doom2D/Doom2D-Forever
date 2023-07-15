@@ -992,7 +992,7 @@ begin
   NetOut.Write(gGameSettings.Options);
   NetOut.Write(gTime);
 
-  g_Net_Host_Send(ID, True, NET_CHAN_SERVICE);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_Chat(Txt: string; Mode: Byte; ID: Integer = NET_EVERYONE);
@@ -1014,7 +1014,7 @@ begin
         NetOut.Write(Byte(NET_MSG_CHAT));
         NetOut.Write(Txt);
         NetOut.Write(Mode);
-        g_Net_Host_Send(gPlayers[i].FClientID, True, NET_CHAN_CHAT);
+        g_Net_Host_Send(gPlayers[i].FClientID, True);
       end;
     Team := ID;
     ID := NET_EVERYONE;
@@ -1024,7 +1024,7 @@ begin
     NetOut.Write(Byte(NET_MSG_CHAT));
     NetOut.Write(Txt);
     NetOut.Write(Mode);
-    g_Net_Host_Send(ID, True, NET_CHAN_CHAT);
+    g_Net_Host_Send(ID, True);
   end;
 
   if Mode = NET_CHAT_SYSTEM then
@@ -1073,7 +1073,7 @@ begin
   NetOut.Write(Y);
   NetOut.Write(Ang);
 
-  g_Net_Host_Send(ID, False, NET_CHAN_GAME);
+  g_Net_Host_Send(ID, False);
 end;
 
 procedure MH_SEND_Sound(X, Y: Integer; Name: string; Pos: Boolean = True; ID: Integer = NET_EVERYONE);
@@ -1089,7 +1089,7 @@ begin
   else
     NetOut.Write(Byte(0));
 
-  g_Net_Host_Send(ID, False, NET_CHAN_GAME);
+  g_Net_Host_Send(ID, False);
 end;
 
 procedure MH_SEND_CreateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
@@ -1107,7 +1107,7 @@ begin
   NetOut.Write(Shots[Proj].Obj.Vel.X);
   NetOut.Write(Shots[Proj].Obj.Vel.Y);
 
-  g_Net_Host_Send(ID, True, NET_CHAN_SHOTS);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_UpdateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
@@ -1121,7 +1121,7 @@ begin
   NetOut.Write(Shots[Proj].Obj.Vel.X);
   NetOut.Write(Shots[Proj].Obj.Vel.Y);
 
-  g_Net_Host_Send(ID, False, NET_CHAN_SHOTS);
+  g_Net_Host_Send(ID, False);
 end;
 
 procedure MH_Send_DeleteShot(Proj: LongInt; X, Y: LongInt; Loud: Boolean = True; ID: Integer = NET_EVERYONE);
@@ -1132,7 +1132,7 @@ begin
   NetOut.Write(X);
   NetOut.Write(Y);
 
-  g_Net_Host_Send(ID, True, NET_CHAN_SHOTS);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_GameStats(ID: Integer = NET_EVERYONE);
@@ -1150,7 +1150,7 @@ begin
       NetOut.Write(gCoopSecretsFound);
     end;
 
-  g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_CoopStats(ID: Integer = NET_EVERYONE);
@@ -1179,7 +1179,7 @@ begin
   end else
     NetOut.Write(Byte(0));
 
-  g_Net_Host_Send(ID, True, NET_CHAN_SERVICE);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_FlagEvent(EvType: Byte; Flag: Byte; PID: Word; Quiet: Boolean = False; ID: Integer = NET_EVERYONE);
@@ -1197,7 +1197,7 @@ begin
   NetOut.Write(gFlags[Flag].Obj.Vel.Y);
   NetOut.Write(Byte(gFlags[Flag].Direction));
 
-  g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_FlagPos(Flag: Byte; ID: Integer = NET_EVERYONE);
@@ -1209,7 +1209,7 @@ begin
   NetOut.Write(gFlags[Flag].Obj.Vel.X);
   NetOut.Write(gFlags[Flag].Obj.Vel.Y);
 
-  g_Net_Host_Send(ID, False, NET_CHAN_IMPORTANT);
+  g_Net_Host_Send(ID, False);
 end;
 
 procedure MH_SEND_GameSettings(ID: Integer = NET_EVERYONE);
@@ -1221,7 +1221,7 @@ begin
   NetOut.Write(gGameSettings.MaxLives);
   NetOut.Write(gGameSettings.Options);
 
-  g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
+  g_Net_Host_Send(ID, True);
 end;
 
 // PLAYER (SEND)
@@ -1243,7 +1243,7 @@ begin
   NetOut.Write(P.FColor.B);
   NetOut.Write(P.Team);
 
-  g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT)
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_PlayerPos(Reliable: Boolean; PID: Word; ID: Integer = NET_EVERYONE);
@@ -1288,7 +1288,7 @@ begin
     NetOut.Write(GameAccelY);
   end;
 
-  g_Net_Host_Send(ID, Reliable, NET_CHAN_PLAYERPOS);
+  g_Net_Host_Send(ID, Reliable);
 end;
 
 procedure MH_SEND_PlayerStats(PID: Word; ID: Integer = NET_EVERYONE);
@@ -1346,7 +1346,7 @@ begin
     NetOut.Write(FSpawnInvul);
   end;
 
-  g_Net_Host_Send(ID, True, NET_CHAN_PLAYER);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_PlayerDamage(PID: Word; Kind: Byte; Attacker, Value: Word; VX, VY: Integer; ID: Integer = NET_EVERYONE);
@@ -1359,7 +1359,7 @@ begin
   NetOut.Write(VX);
   NetOut.Write(VY);
 
-  g_Net_Host_Send(ID, False, NET_CHAN_PLAYER);
+  g_Net_Host_Send(ID, False);
 end;
 
 procedure MH_SEND_PlayerDeath(PID: Word; KillType, DeathType: Byte; Attacker: Word; ID: Integer = NET_EVERYONE);
@@ -1370,7 +1370,7 @@ begin
   NetOut.Write(DeathType);
   NetOut.Write(Attacker);
 
-  g_Net_Host_Send(ID, True, NET_CHAN_PLAYER);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_PlayerFire(PID: Word; Weapon: Byte; X, Y, AX, AY: Integer; ShotID: Integer = -1; ID: Integer = NET_EVERYONE);
@@ -1384,7 +1384,7 @@ begin
   NetOut.Write(AY);
   NetOut.Write(ShotID);
 
-  g_Net_Host_Send(ID, True, NET_CHAN_SHOTS);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_PlayerDelete(PID: Word; ID: Integer = NET_EVERYONE);
@@ -1392,7 +1392,7 @@ begin
   NetOut.Write(Byte(NET_MSG_PLRDEL));
   NetOut.Write(PID);
 
-  g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_PlayerSettings(PID: Word; Mdl: string = ''; ID: Integer = NET_EVERYONE);
@@ -1414,7 +1414,7 @@ begin
   NetOut.Write(Pl.FColor.B);
   NetOut.Write(Pl.Team);
 
-  g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
+  g_Net_Host_Send(ID, True);
 end;
 
 // ITEM (SEND)
@@ -1439,7 +1439,7 @@ begin
   NetOut.Write(it.Obj.Vel.X);
   NetOut.Write(it.Obj.Vel.Y);
 
-  g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_ItemDestroy(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
@@ -1448,7 +1448,7 @@ begin
   NetOut.Write(IID);
   NetOut.Write(Byte(Quiet));
 
-  g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_ItemPos(IID: Word; ID: Integer = NET_EVERYONE);
@@ -1464,7 +1464,7 @@ begin
   NetOut.Write(it.Obj.Vel.X);
   NetOut.Write(it.Obj.Vel.Y);
 
-  g_Net_Host_Send(ID, False, NET_CHAN_LARGEDATA);
+  g_Net_Host_Send(ID, False);
 end;
 
 // PANEL
@@ -1486,7 +1486,7 @@ begin
     NetOut.Write(AnimLoop);
   end;
 
-  g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_PanelState(PGUID: Integer; ID: Integer = NET_EVERYONE);
@@ -1520,7 +1520,7 @@ begin
   if TP.moveOnce then mpflags := mpflags or 2;
   NetOut.Write(Byte(mpflags));
 
-  g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
+  g_Net_Host_Send(ID, True);
 end;
 
 // TRIGGER
@@ -1580,7 +1580,7 @@ begin
     NetOut.Write(Byte(GameDirection));
   end;
 
-  g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_MonsterPos(UID: Word; ID: Integer = NET_EVERYONE);
@@ -1602,7 +1602,7 @@ begin
     NetOut.Write(Byte(GameDirection));
   end;
 
-  g_Net_Host_Send(ID, False, NET_CHAN_MONSTERPOS);
+  g_Net_Host_Send(ID, False);
 end;
 
 procedure MH_SEND_MonsterState(UID: Word; ForcedAnim: Byte = 255; ID: Integer = NET_EVERYONE);
@@ -1629,7 +1629,7 @@ begin
     NetOut.Write(FFireTime);
   end;
 
-  g_Net_Host_Send(ID, True, NET_CHAN_MONSTER);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_MonsterShot(UID: Word; X, Y, VX, VY: Integer; ID: Integer = NET_EVERYONE);
@@ -1641,7 +1641,7 @@ begin
   NetOut.Write(VX);
   NetOut.Write(VY);
 
-  g_Net_Host_Send(ID, True, NET_CHAN_MONSTER);
+  g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_MonsterDelete(UID: Word; ID: Integer = NET_EVERYONE);
@@ -1654,7 +1654,7 @@ begin
   NetOut.Write(Byte(NET_MSG_MDEL));
   NetOut.Write(UID);
 
-  g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
+  g_Net_Host_Send(ID, True);
 end;
 
 // MISC
@@ -1664,7 +1664,7 @@ begin
   NetOut.Write(Byte(NET_MSG_TIME_SYNC));
   NetOut.Write(Time);
 
-  g_Net_Host_Send(ID, False, NET_CHAN_SERVICE);
+  g_Net_Host_Send(ID, False);
 end;
 
 procedure MH_SEND_VoteEvent(EvType: Byte;
@@ -1679,7 +1679,7 @@ begin
   NetOut.Write(StrArg1);
   NetOut.Write(StrArg2);
 
-  g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
+  g_Net_Host_Send(ID, True);
 end;
 
 // CLIENT MESSAGES //
@@ -3183,7 +3183,7 @@ begin
   NetOut.Write(gPlayer1Settings.SwitchToEmpty);
   NetOut.Write(gPlayer1Settings.SkipFist);
 
-  g_Net_Client_Send(True, NET_CHAN_SERVICE);
+  g_Net_Client_Send(True);
 end;
 
 procedure MC_SEND_Chat(Txt: string; Mode: Byte);
@@ -3192,7 +3192,7 @@ begin
   NetOut.Write(Txt);
   NetOut.Write(Mode);
 
-  g_Net_Client_Send(True, NET_CHAN_CHAT);
+  g_Net_Client_Send(True);
 end;
 
 procedure MC_SEND_PlayerPos();
@@ -3306,7 +3306,7 @@ begin
   NetOut.Write(WeaponAct);
   NetOut.Write(WeaponSelect);
   //e_WriteLog(Format('S:ws=%d', [WeaponSelect]), MSG_WARNING);
-  g_Net_Client_Send(True, NET_CHAN_PLAYERPOS);
+  g_Net_Client_Send(True);
 
   //kBytePrev := kByte;
   //kDirPrev := gPlayer1.Direction;
@@ -3317,7 +3317,7 @@ begin
   NetOut.Write(Byte(NET_MSG_VOTE_EVENT));
   NetOut.Write(Byte(Start));
   NetOut.Write(Command);
-  g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
+  g_Net_Client_Send(True);
 end;
 
 procedure MC_SEND_PlayerSettings();
@@ -3336,14 +3336,14 @@ begin
   NetOut.Write(gPlayer1Settings.SwitchToEmpty);
   NetOut.Write(gPlayer1Settings.SkipFist);
 
-  g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
+  g_Net_Client_Send(True);
 end;
 
 procedure MC_SEND_FullStateRequest();
 begin
   NetOut.Write(Byte(NET_MSG_REQFST));
 
-  g_Net_Client_Send(True, NET_CHAN_SERVICE);
+  g_Net_Client_Send(True);
 end;
 
 procedure MC_SEND_CheatRequest(Kind: Byte);
@@ -3351,21 +3351,21 @@ begin
   NetOut.Write(Byte(NET_MSG_CHEAT));
   NetOut.Write(Kind);
 
-  g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
+  g_Net_Client_Send(True);
 end;
 procedure MC_SEND_RCONPassword(Password: string);
 begin
   NetOut.Write(Byte(NET_MSG_RCON_AUTH));
   NetOut.Write(Password);
 
-  g_Net_Client_Send(True, NET_CHAN_SERVICE);
+  g_Net_Client_Send(True);
 end;
 procedure MC_SEND_RCONCommand(Cmd: string);
 begin
   NetOut.Write(Byte(NET_MSG_RCON_CMD));
   NetOut.Write(Cmd);
 
-  g_Net_Client_Send(True, NET_CHAN_SERVICE);
+  g_Net_Client_Send(True);
 end;
 
 

@@ -22,22 +22,16 @@ uses
 
 const
   NET_PROTOCOL_VER = 188;
-
   NET_MAXCLIENTS = 24;
-  NET_CHANS = 12;
 
-  NET_CHAN_SERVICE = 0;
-  NET_CHAN_IMPORTANT = 1;
-  NET_CHAN_GAME = 2;
-  NET_CHAN_PLAYER = 3;
-  NET_CHAN_PLAYERPOS = 4;
-  NET_CHAN_MONSTER = 5;
-  NET_CHAN_MONSTERPOS = 6;
-  NET_CHAN_LARGEDATA = 7;
-  NET_CHAN_CHAT = 8;
-  NET_CHAN_DOWNLOAD = 9;
-  NET_CHAN_SHOTS = 10;
-  NET_CHAN_DOWNLOAD_EX = 11;
+  // NOTE: We use different channels for unreliable and reliable packets because ENet seems to
+  // discard preceeding RELIABLE packets if a later UNRELIABLE (but not UNSEQUENCED) packet sent
+  // on the same channel has arrived earlier, which is useful for occasional full-state updates.
+  // However, we use a separate download channel to avoid being delayed by other reliable packets.
+  NET_CHAN_UNRELIABLE = 2;
+  NET_CHAN_RELIABLE = 1;
+  NET_CHAN_DOWNLOAD = 11;
+  NET_CHANNELS = 12;  // TODO: Reduce to 3 and re-enumerate channels. Requires protocol increment.
 
   NET_NONE = 0;
   NET_SERVER = 1;
@@ -207,22 +201,18 @@ procedure g_Net_Flush();
 
 function  g_Net_Host(IPAddr: LongWord; Port: enet_uint16; MaxClients: Cardinal = 16): Boolean;
 procedure g_Net_Host_Die();
-procedure g_Net_Host_Send(ID: Integer; Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
+procedure g_Net_Host_Send(ID: Integer; Reliable: Boolean);
 procedure g_Net_Host_Update();
 procedure g_Net_Host_Kick(ID: Integer; Reason: enet_uint32);
 
 function  g_Net_Connect(IP: string; Port: enet_uint16): Boolean;
 procedure g_Net_Disconnect(Forced: Boolean = False);
-procedure g_Net_Client_Send(Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
+procedure g_Net_Client_Send(Reliable: Boolean);
 procedure g_Net_Client_Update();
 
 function  g_Net_Client_ByName(Name: string): pTNetClient;
 function  g_Net_Client_ByPlayer(PID: Word): pTNetClient;
 function  g_Net_ClientName_ByID(ID: Integer): string;
-
-procedure g_Net_SendData(Data: AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_DOWNLOAD);
-//function  g_Net_Wait_Event(msgId: Word): TMemoryStream;
-//function g_Net_Wait_FileInfo (var tf: TNetFileTransfer; asMap: Boolean; out resList: TStringList): Integer;
 
 function  IpToStr(IP: LongWord): string;
 function  StrToIp(IPstr: string; var IP: LongWord): Boolean;
@@ -388,7 +378,7 @@ begin
   if (m.CurSize < 1) then exit;
   pkt := enet_packet_create(m.Data, m.CurSize, ENET_PACKET_FLAG_RELIABLE);
   if not Assigned(pkt) then begin killClientByFT(nc); exit; end;
-  if (enet_peer_send(nc.Peer, NET_CHAN_DOWNLOAD_EX, pkt) <> 0) then begin killClientByFT(nc); exit; end;
+  if (enet_peer_send(nc.Peer, NET_CHAN_DOWNLOAD, pkt) <> 0) then begin killClientByFT(nc); exit; end;
   result := true;
 end;
 
@@ -402,7 +392,7 @@ begin
   if (m.CurSize < 1) then exit;
   pkt := enet_packet_create(m.Data, m.CurSize, ENET_PACKET_FLAG_RELIABLE);
   if not Assigned(pkt) then exit;
-  if (enet_peer_send(NetPeer, NET_CHAN_DOWNLOAD_EX, pkt) <> 0) then exit;
+  if (enet_peer_send(NetPeer, NET_CHAN_DOWNLOAD, pkt) <> 0) then exit;
   result := true;
 end;
 
@@ -815,7 +805,7 @@ begin
           ENET_EVENT_TYPE_RECEIVE:
             begin
               freePacket := true;
-              if (ev.channelID <> NET_CHAN_DOWNLOAD_EX) then
+              if (ev.channelID <> NET_CHAN_DOWNLOAD) then
               begin
                 //e_LogWritefln('g_Net_Wait_MapInfo: skip message from non-transfer channel', []);
                 freePacket := false;
@@ -864,7 +854,7 @@ begin
                   rc := msg.ReadLongInt();
                   if (rc < 0) or (rc > 1024) then
                   begin
-                    e_LogWritefln('g_Net_Wait_Event: invalid number of map external resources (%d)', [rc]);
+                    e_LogWritefln('g_Net_Wait_MapInfo: invalid number of map external resources (%d)', [rc]);
                     Result := -1;
                     exit;
                   end;
@@ -898,7 +888,7 @@ begin
                 end
                 else
                 begin
-                  e_LogWritefln('g_Net_Wait_Event: invalid server packet type', []);
+                  e_LogWritefln('g_Net_Wait_MapInfo: invalid server packet type', []);
                   Result := -1;
                   exit;
                 end;
@@ -997,9 +987,9 @@ begin
           ENET_EVENT_TYPE_RECEIVE:
             begin
               freePacket := true;
-              if (ev.channelID <> NET_CHAN_DOWNLOAD_EX) then
+              if (ev.channelID <> NET_CHAN_DOWNLOAD) then
               begin
-                //e_LogWriteln('g_Net_Wait_Event: skip message from non-transfer channel');
+                //e_LogWriteln('g_Net_RequestResFileInfo: skip message from non-transfer channel');
                 freePacket := false;
                 g_Net_Client_HandlePacket(ev.packet, g_Net_ClientLightMsgHandler);
                 if (g_Res_received_map_start < 0) then begin result := -666; exit; end;
@@ -1009,7 +999,7 @@ begin
                 ett := getNewTimeoutEnd();
                 if (ev.packet.dataLength < 1) then
                 begin
-                  e_LogWriteln('g_Net_Wait_Event: invalid server packet (no data)');
+                  e_LogWriteln('g_Net_RequestResFileInfo: invalid server packet (no data)');
                   Result := -1;
                   exit;
                 end;
@@ -1182,9 +1172,9 @@ begin
           ENET_EVENT_TYPE_RECEIVE:
             begin
               freePacket := true;
-              if (ev.channelID <> NET_CHAN_DOWNLOAD_EX) then
+              if (ev.channelID <> NET_CHAN_DOWNLOAD) then
               begin
-                //e_LogWritefln('g_Net_Wait_Event: skip message from non-transfer channel', []);
+                //e_LogWritefln('g_Net_ReceiveResourceFile: skip message from non-transfer channel', []);
                 freePacket := false;
                 g_Net_Client_HandlePacket(ev.packet, g_Net_ClientLightMsgHandler);
                 if (g_Res_received_map_start < 0) then begin result := -666; exit; end;
@@ -1391,7 +1381,7 @@ var
   I: Integer;
 begin
   F := 0;
-  Chan := NET_CHAN_GAME;
+  Chan := NET_CHAN_UNRELIABLE;
 
   if NetMode = NET_SERVER then
     for T := NET_UNRELIABLE to NET_RELIABLE do
@@ -1408,7 +1398,7 @@ begin
 
       // next and last iteration is always RELIABLE
       F := LongWord(ENET_PACKET_FLAG_RELIABLE);
-      Chan := NET_CHAN_IMPORTANT;
+      Chan := NET_CHAN_RELIABLE;
     end
   else if NetMode = NET_CLIENT then
     for T := NET_UNRELIABLE to NET_RELIABLE do
@@ -1422,7 +1412,7 @@ begin
       end;
       // next and last iteration is always RELIABLE
       F := LongWord(ENET_PACKET_FLAG_RELIABLE);
-      Chan := NET_CHAN_IMPORTANT;
+      Chan := NET_CHAN_RELIABLE;
     end;
 end;
 
@@ -1511,7 +1501,7 @@ begin
   NetAddr.host := IPAddr;
   NetAddr.port := Port;
 
-  NetHost := enet_host_create(@NetAddr, NET_MAXCLIENTS, NET_CHANS, 0, 0);
+  NetHost := enet_host_create(@NetAddr, NET_MAXCLIENTS, NET_CHANNELS, 0, 0);
 
   if (NetHost = nil) then
   begin
@@ -1592,14 +1582,13 @@ begin
 end;
 
 
-procedure g_Net_Host_Send(ID: Integer; Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
+procedure g_Net_Host_Send(ID: Integer; Reliable: Boolean);
 var
   T: Integer;
 begin
-  if (Reliable) then
-    T := NET_RELIABLE
-  else
-    T := NET_UNRELIABLE;
+  if Reliable
+    then T := NET_RELIABLE
+    else T := NET_UNRELIABLE;
 
   if (ID >= 0) then
   begin
@@ -1849,7 +1838,7 @@ begin
       ENET_EVENT_TYPE_RECEIVE:
       begin
         //e_LogWritefln('RECEIVE: chan=%u', [NetEvent.channelID]);
-        if (NetEvent.channelID = NET_CHAN_DOWNLOAD_EX) then
+        if (NetEvent.channelID = NET_CHAN_DOWNLOAD) then
         begin
           ProcessDownloadExPacket();
         end
@@ -1935,14 +1924,13 @@ begin
   e_WriteLog('NET: Disconnected', TMsgType.Notify);
 end;
 
-procedure g_Net_Client_Send(Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
+procedure g_Net_Client_Send(Reliable: Boolean);
 var
   T: Integer;
 begin
-  if (Reliable) then
-    T := NET_RELIABLE
-  else
-    T := NET_UNRELIABLE;
+  if Reliable
+    then T := NET_RELIABLE
+    else T := NET_UNRELIABLE;
 
   // write size first
   NetBuf[T].Write(Integer(NetOut.CurSize));
@@ -2001,7 +1989,7 @@ begin
       NetInitDone := True;
   end;
 
-  NetHost := enet_host_create(nil, 1, NET_CHANS, 0, 0);
+  NetHost := enet_host_create(nil, 1, NET_CHANNELS, 0, 0);
 
   if (NetHost = nil) then
   begin
@@ -2014,7 +2002,7 @@ begin
   enet_address_set_host(@NetAddr, PChar(Addr(IP[1])));
   NetAddr.port := Port;
 
-  NetPeer := enet_host_connect(NetHost, @NetAddr, NET_CHANS, NET_PROTOCOL_VER);
+  NetPeer := enet_host_connect(NetHost, @NetAddr, NET_CHANNELS, NET_PROTOCOL_VER);
 
   if (NetPeer = nil) then
   begin
@@ -2141,28 +2129,6 @@ begin
       if pl = nil then Exit;
       Result := pl.Name;
     end;
-end;
-
-procedure g_Net_SendData(Data: AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_DOWNLOAD);
-var
-  P: pENetPacket;
-  F: enet_uint32;
-  dataLength: Cardinal;
-begin
-  dataLength := Length(Data);
-
-  if Reliable
-    then F := LongWord(ENET_PACKET_FLAG_RELIABLE)
-    else F := 0;
-
-  P := enet_packet_create(@Data[0], dataLength, F);
-  if not Assigned(P) then exit;
-
-  if peer <> nil
-    then enet_peer_send(peer, Chan, P)
-    else enet_host_broadcast(NetHost, Chan, P);
-
-  enet_host_flush(NetHost);
 end;
 
 function g_Net_IsHostBanned(IP: LongWord; Perm: Boolean = False): Boolean;
