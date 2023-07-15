@@ -1396,14 +1396,6 @@ begin
   if NetMode = NET_SERVER then
     for T := NET_UNRELIABLE to NET_RELIABLE do
     begin
-      if NetBuf[T].CurSize > 0 then
-      begin
-        P := enet_packet_create(NetBuf[T].Data, NetBuf[T].CurSize, F);
-        if not Assigned(P) then continue;
-        enet_host_broadcast(NetHost, Chan, P);
-        NetBuf[T].Clear();
-      end;
-
       for I := Low(NetClients) to High(NetClients) do
       begin
         if not NetClients[I].Used then continue;
@@ -1619,9 +1611,15 @@ begin
   end
   else
   begin
-    // write size first
-    NetBuf[T].Write(Integer(NetOut.CurSize));
-    NetBuf[T].Write(NetOut);
+    for ID := Low(NetClients) to High(NetClients) do
+    begin
+      if NetClients[ID].Used then
+      begin
+        // write size first
+        NetClients[ID].NetOut[T].Write(Integer(NetOut.CurSize));
+        NetClients[ID].NetOut[T].Write(NetOut);
+      end;
+    end;
   end;
 
   if NetDump then g_Net_DumpSendBuffer();
