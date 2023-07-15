@@ -1116,6 +1116,13 @@ begin
 
 // Имя бота:
   _name := BotList[num].name;
+  if (_name = '') and (BotNames <> nil) then
+    for a := 0 to High(BotNames) do
+      if g_Player_ExistingName(BotNames[a]) then
+      begin
+        _name := BotNames[a];
+        Break;
+      end;
 
 // Модель:
   _model := BotList[num].model;
@@ -1126,7 +1133,10 @@ begin
 // Создаем бота:
   with g_Player_Get(g_Player_Create(_model, BotList[num].color, Team, True)) as TBot do
   begin
-    Name := _name;
+  // Если имени нет, делаем его из UID бота
+    if _name = ''
+      then Name := Format('DFBOT%.5d', [UID])
+      else Name := _name;
 
     FDifficult.DiagFire := BotList[num].diag_fire;
     FDifficult.InvisFire := BotList[num].invis_fire;
