@@ -567,14 +567,14 @@ static void ban_load_list(const char *fname) {
       continue;
 
     char ip[21] = { 0 }; // optionally includes the "/nn" prefix length at the end
-    int64_t exp64 = 0;
+    int expd = 0;
     int count = 0;
-    if (sscanf(ln, "%20s %lld %d", ip, &exp64, &count) < 3) {
+    if (sscanf(ln, "%20s %d %d", ip, &expd, &count) < 3) {
       u_log(LOG_ERROR, "banlist: malformed line: `%s`", ln);
       continue;
     }
 
-    const time_t exp = (time_t)exp64; // shut up gcc
+    const time_t exp = (time_t)expd; // shut up gcc
     if (ban_record_add_ip(ip, count, exp))
       u_log(LOG_NOTE, "banlist: banned %s until %s (ban level %d)", ip, u_strtime(exp), count);
   }
@@ -591,7 +591,7 @@ static void ban_save_list(const char *fname) {
 
   for (ban_record_t *rec = banlist; rec; rec = rec->next) {
     if (rec->ban_count)
-      fprintf(f, "%s/%u %lld %d\n", u_iptostr(rec->host), u_masktoprefix(rec->mask), (int64_t)rec->cur_ban, rec->ban_count);
+      fprintf(f, "%s/%u %d %d\n", u_iptostr(rec->host), u_masktoprefix(rec->mask), (int)rec->cur_ban, rec->ban_count);
   }
 
   fclose(f);
