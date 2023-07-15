@@ -623,7 +623,7 @@ procedure g_Player_ResetAll(Force, Silent: Boolean);
 function  g_Player_Get(UID: Word): TPlayer;
 function  g_Player_GetCount(): Byte;
 function  g_Player_GetStats(): TPlayerStatArray;
-function  g_Player_ValidName(Name: String): Boolean;
+function  g_Player_ExistingName(Name: String): Boolean;
 function  g_Player_CreateCorpse(Player: TPlayer): Integer;
 procedure g_Player_CreateGibs(fX, fY: Integer; ModelName: String; fColor: TRGB);
 procedure g_Player_CreateShell(fX, fY, dX, dY: Integer; T: Byte);
@@ -1024,7 +1024,7 @@ begin
   _name := '';
   if BotNames <> nil then
     for a := 0 to High(BotNames) do
-      if g_Player_ValidName(BotNames[a]) then
+      if g_Player_ExistingName(BotNames[a]) then
       begin
         _name := BotNames[a];
         Break;
@@ -1116,11 +1116,6 @@ begin
 
 // Имя бота:
   _name := BotList[num].name;
-// Занято - выбираем случайное:
-  if not g_Player_ValidName(_name) then
-  repeat
-    _name := Format('DFBOT%.2d', [Random(100)]);
-  until g_Player_ValidName(_name);
 
 // Модель:
   _model := BotList[num].model;
@@ -5559,7 +5554,7 @@ begin
             (y >= 0) and (y <= PLAYER_RECT.Height);
 end;
 
-function g_Player_ValidName(Name: string): Boolean;
+function g_Player_ExistingName(Name: string): Boolean;
 var
   a: Integer;
 begin
