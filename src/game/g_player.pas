@@ -1271,12 +1271,17 @@ begin
         model := config.ReadStr(IntToStr(a), 'model', '');  // Модель
 
         // Команда
-        if config.ReadStr(IntToStr(a), 'team', 'red') = 'red'
-          then team := TEAM_RED
-          else team := TEAM_BLUE;
+        s := config.ReadStr(IntToStr(a), 'team', '');
+        if s = 'red' then
+          team := TEAM_RED
+        else if s = 'blue' then
+          team := TEAM_BLUE
+        else
+          team := TEAM_NONE;
 
         // Цвет модели
         sa := parse(config.ReadStr(IntToStr(a), 'color', ''));
+        SetLength(sa, 3);
         color.R := StrToIntDef(sa[0], 0);
         color.G := StrToIntDef(sa[1], 0);
         color.B := StrToIntDef(sa[2], 0);
