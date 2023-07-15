@@ -1217,90 +1217,91 @@ var
   path: AnsiString;
 begin
   BotNames := nil;
+  BotList := nil;
 
   path := BOTNAMES_FILENAME;
-  if e_FindResource(DataDirs, path) = false then
-    Exit;
-
-// Читаем возможные имена ботов из файла:
-  AssignFile(F, path);
-  Reset(F);
-
-  while not EOF(F) do
+  if e_FindResource(DataDirs, path) then
   begin
-    ReadLn(F, s);
+    // Читаем возможные имена ботов из файла:
+    AssignFile(F, path);
+    Reset(F);
 
-    s := Trim(s);
-    if s = '' then
-      Continue;
-
-    SetLength(BotNames, Length(BotNames)+1);
-    BotNames[High(BotNames)] := s;
-  end;
-
-  CloseFile(F);
-
-// Перемешиваем их:
-  g_Bot_MixNames();
-
-// Читаем файл с параметрами ботов:
-  config := TConfig.CreateFile(path);
-  BotList := nil;
-  a := 0;
-
-  while config.SectionExists(IntToStr(a)) do
-  begin
-    SetLength(BotList, Length(BotList)+1);
-
-    with BotList[High(BotList)] do
+    while not EOF(F) do
     begin
-    // Имя бота:
-      name := config.ReadStr(IntToStr(a), 'name', '');
-    // Модель:
-      model := config.ReadStr(IntToStr(a), 'model', '');
-    // Команда:
-      if config.ReadStr(IntToStr(a), 'team', 'red') = 'red' then
-        team := TEAM_RED
-      else
-        team := TEAM_BLUE;
-    // Цвет модели:
-      sa := parse(config.ReadStr(IntToStr(a), 'color', ''));
-      color.R := StrToIntDef(sa[0], 0);
-      color.G := StrToIntDef(sa[1], 0);
-      color.B := StrToIntDef(sa[2], 0);
-    // Вероятность стрельбы под углом:
-      diag_fire := config.ReadInt(IntToStr(a), 'diag_fire', 0);
-    // Вероятность ответного огня по невидимому сопернику:
-      invis_fire := config.ReadInt(IntToStr(a), 'invis_fire', 0);
-    // Точность стрельбы под углом:
-      diag_precision := config.ReadInt(IntToStr(a), 'diag_precision', 0);
-    // Точность стрельбы в полете:
-      fly_precision := config.ReadInt(IntToStr(a), 'fly_precision', 0);
-    // Точность уклонения от снарядов:
-      cover := config.ReadInt(IntToStr(a), 'cover', 0);
-    // Вероятность прыжка при приближении соперника:
-      close_jump := config.ReadInt(IntToStr(a), 'close_jump', 0);
-    // Приоритеты оружия для дальнего боя:
-      sa := parse(config.ReadStr(IntToStr(a), 'w_prior1', ''));
-      if Length(sa) = 10 then
-        for b := 0 to 9 do
-          w_prior1[b] := EnsureRange(StrToInt(sa[b]), 0, 9);
-    // Приоритеты оружия для ближнего боя:
-      sa := parse(config.ReadStr(IntToStr(a), 'w_prior2', ''));
-      if Length(sa) = 10 then
-        for b := 0 to 9 do
-          w_prior2[b] := EnsureRange(StrToInt(sa[b]), 0, 9);
+      ReadLn(F, s);
 
-      {sa := parse(config.ReadStr(IntToStr(a), 'w_prior3', ''));
-      if Length(sa) = 10 then
-        for b := 0 to 9 do
-          w_prior3[b] := EnsureRange(StrToInt(sa[b]), 0, 9);}
+      s := Trim(s);
+      if s = '' then
+        Continue;
+
+      SetLength(BotNames, Length(BotNames)+1);
+      BotNames[High(BotNames)] := s;
     end;
 
-    a := a + 1;
+    CloseFile(F);
+
+    // Перемешиваем их:
+    g_Bot_MixNames();
   end;
 
-  config.Free();
+  path := BOTLIST_FILENAME;
+  if e_FindResource(DataDirs, path) then
+  begin
+    // Читаем файл с параметрами ботов:
+    config := TConfig.CreateFile(path);
+    a := 0;
+
+    while config.SectionExists(IntToStr(a)) do
+    begin
+      SetLength(BotList, Length(BotList)+1);
+
+      with BotList[High(BotList)] do
+      begin
+        name := config.ReadStr(IntToStr(a), 'name', '');  // Имя бота
+        model := config.ReadStr(IntToStr(a), 'model', '');  // Модель
+
+        // Команда
+        if config.ReadStr(IntToStr(a), 'team', 'red') = 'red'
+          then team := TEAM_RED
+          else team := TEAM_BLUE;
+
+        // Цвет модели
+        sa := parse(config.ReadStr(IntToStr(a), 'color', ''));
+        color.R := StrToIntDef(sa[0], 0);
+        color.G := StrToIntDef(sa[1], 0);
+        color.B := StrToIntDef(sa[2], 0);
+
+        diag_fire := config.ReadInt(IntToStr(a), 'diag_fire', 0);  // Вероятность стрельбы под углом
+        invis_fire := config.ReadInt(IntToStr(a), 'invis_fire', 0);  // Вероятность ответного огня по невидимому сопернику
+        diag_precision := config.ReadInt(IntToStr(a), 'diag_precision', 0);  // Точность стрельбы под углом
+        fly_precision := config.ReadInt(IntToStr(a), 'fly_precision', 0);  // Точность стрельбы в полете
+        cover := config.ReadInt(IntToStr(a), 'cover', 0);  // Точность уклонения от снарядов
+        close_jump := config.ReadInt(IntToStr(a), 'close_jump', 0);  // Вероятность прыжка при приближении соперника
+
+        // Приоритеты оружия для дальнего боя
+        sa := parse(config.ReadStr(IntToStr(a), 'w_prior1', ''));
+        if Length(sa) = 10 then
+          for b := 0 to 9 do
+            w_prior1[b] := EnsureRange(StrToInt(sa[b]), 0, 9);
+
+        // Приоритеты оружия для ближнего боя
+        sa := parse(config.ReadStr(IntToStr(a), 'w_prior2', ''));
+        if Length(sa) = 10 then
+          for b := 0 to 9 do
+            w_prior2[b] := EnsureRange(StrToInt(sa[b]), 0, 9);
+
+        {sa := parse(config.ReadStr(IntToStr(a), 'w_prior3', ''));
+        if Length(sa) = 10 then
+          for b := 0 to 9 do
+            w_prior3[b] := EnsureRange(StrToInt(sa[b]), 0, 9);}
+      end;
+
+      a += 1;
+    end;
+
+    config.Free();
+  end;
+
   SetLength(SavedStates, 0);
 end;
 
