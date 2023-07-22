@@ -5194,7 +5194,7 @@ begin
           end;
         end;
 
-    g_Net_UnbanNonPermHosts();
+    g_Net_UnbanNonPerm();
   end;
 
   if gLastMap then
@@ -6702,14 +6702,8 @@ begin
 
       pl := g_Net_Client_ByName(P[1]);
       if (pl <> nil) then
-      begin
-        s := g_Net_ClientName_ByID(pl^.ID);
-        g_Net_BanHost(pl^.Peer^.address.host, False);
-        g_Net_Host_Kick(pl^.ID, NET_DISC_TEMPBAN);
-        g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
-        MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
-        g_Net_Slist_ServerPlayerLeaves();
-      end else
+        g_Net_Host_Ban(pl, False)
+      else
         g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);
@@ -6732,14 +6726,7 @@ begin
       a := StrToIntDef(P[1], 0);
       if (NetClients <> nil) and (a <= High(NetClients)) then
         if NetClients[a].Used and (NetClients[a].Peer <> nil) then
-        begin
-          s := g_Net_ClientName_ByID(NetClients[a].ID);
-          g_Net_BanHost(NetClients[a].Peer^.address.host, False);
-          g_Net_Host_Kick(NetClients[a].ID, NET_DISC_TEMPBAN);
-          g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
-          MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
-          g_Net_Slist_ServerPlayerLeaves();
-        end;
+          g_Net_Host_Ban(pl, False);
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);
   end
@@ -6761,14 +6748,7 @@ begin
       a := StrToIntDef(P[1], 0);
       pl := g_Net_Client_ByPlayer(a);
       if (pl <> nil) and pl^.Used and (pl^.Peer <> nil) then
-      begin
-        s := g_Net_ClientName_ByID(pl^.ID);
-        g_Net_BanHost(pl^.Peer^.address.host, False);
-        g_Net_Host_Kick(pl^.ID, NET_DISC_TEMPBAN);
-        g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
-        MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
-        g_Net_Slist_ServerPlayerLeaves();
-      end;
+        g_Net_Host_Ban(pl, False);
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);
   end
@@ -6789,15 +6769,8 @@ begin
 
       pl := g_Net_Client_ByName(P[1]);
       if (pl <> nil) then
-      begin
-        s := g_Net_ClientName_ByID(pl^.ID);
-        g_Net_BanHost(pl^.Peer^.address.host);
-        g_Net_Host_Kick(pl^.ID, NET_DISC_BAN);
-        g_Net_SaveBanList();
-        g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
-        MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
-        g_Net_Slist_ServerPlayerLeaves();
-      end else
+        g_Net_Host_Ban(pl, True)
+      else
         g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);
@@ -6820,15 +6793,7 @@ begin
       a := StrToIntDef(P[1], 0);
       if (NetClients <> nil) and (a <= High(NetClients)) then
         if NetClients[a].Used and (NetClients[a].Peer <> nil) then
-        begin
-          s := g_Net_ClientName_ByID(NetClients[a].ID);
-          g_Net_BanHost(NetClients[a].Peer^.address.host);
-          g_Net_Host_Kick(NetClients[a].ID, NET_DISC_BAN);
-          g_Net_SaveBanList();
-          g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
-          MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
-          g_Net_Slist_ServerPlayerLeaves();
-        end;
+          g_Net_Host_Ban(@NetClients[a], True);
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);
   end
@@ -6850,15 +6815,7 @@ begin
       a := StrToIntDef(P[1], 0);
       pl := g_Net_Client_ByPlayer(a);
       if (pl <> nil) and pl^.Used and (pl^.Peer <> nil) then
-      begin
-        s := g_Net_ClientName_ByID(pl^.ID);
-        g_Net_BanHost(pl^.Peer^.address.host);
-        g_Net_Host_Kick(pl^.ID, NET_DISC_TEMPBAN);
-        g_Net_SaveBanList();
-        g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
-        MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
-        g_Net_Slist_ServerPlayerLeaves();
-      end;
+        g_Net_Host_Ban(pl, True);
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);
   end
@@ -6877,7 +6834,7 @@ begin
         Exit;
       end;
 
-      g_Net_BanHost(P[1]);
+      g_Net_BanAddress(P[1]);
       g_Net_SaveBanList();
       g_Console_Add(Format(_lc[I_PLAYER_BAN], [P[1]]));
     end else
@@ -6898,7 +6855,7 @@ begin
         Exit;
       end;
 
-      if g_Net_UnbanHost(P[1]) then
+      if g_Net_UnbanAddress(P[1]) then
       begin
         g_Console_Add(Format(_lc[I_MSG_UNBAN_OK], [P[1]]));
         g_Net_SaveBanList();

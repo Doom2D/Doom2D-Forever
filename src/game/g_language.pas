@@ -404,6 +404,7 @@ type
     I_NET_DISC_PASSWORD,
     I_NET_DISC_TEMPBAN,
     I_NET_DISC_BAN,
+    I_NET_DISC_BADMSG,
 
     I_NET_SLIST,
     I_NET_SLIST_NOSERVERS,
@@ -1418,6 +1419,8 @@ const
                                        'Вы забанены до конца раунда.'),
     ('NET DISC BAN',                   'You are banned. Contact the server administrator.',
                                        'Вы забанены. Свяжитесь с администратором сервера.'),
+    ('NET DISC BADMSG'                 'Malformed net message.',
+                                       'Неверный формат пакета.'),
 
     ('NET SLIST',                      'Server list',
                                        'Список серверов'),

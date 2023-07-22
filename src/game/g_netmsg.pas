@@ -340,8 +340,8 @@ end;
 procedure MH_MalformedPacket(C: pTNetClient);
 begin
   g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
-    _lc[I_NET_DISC_PROTOCOL]);
-  g_Net_Host_Kick(C^.ID, NET_DISC_PROTOCOL);
+    _lc[I_NET_DISC_BADMSG]);
+  g_Net_Host_Ban(C, True);
 end;
 
 procedure MH_RECV_Chat(C: pTNetClient; var M: TMsg);
@@ -418,9 +418,9 @@ begin
     Exit;
   end;
 
-  if g_Net_IsHostBanned(C^.Peer^.address.host) then
+  if g_Net_IsAddressBanned(C^.Peer^.address.host) then
   begin
-    if g_Net_IsHostBanned(C^.Peer^.address.host, True) then
+    if g_Net_IsAddressBanned(C^.Peer^.address.host, True) then
     begin
       g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
         _lc[I_NET_DISC_BAN]);

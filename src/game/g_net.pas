@@ -204,6 +204,8 @@ procedure g_Net_Host_Die();
 procedure g_Net_Host_Send(ID: Integer; Reliable: Boolean);
 procedure g_Net_Host_Update();
 procedure g_Net_Host_Kick(ID: Integer; Reason: enet_uint32);
+procedure g_Net_Host_Ban(ID: Integer; Perm: Boolean);
+procedure g_Net_Host_Ban(C: pTNetClient; Perm: Boolean);
 
 function  g_Net_Connect(IP: string; Port: enet_uint16): Boolean;
 procedure g_Net_Disconnect(Forced: Boolean = False);
@@ -217,12 +219,12 @@ function  g_Net_ClientName_ByID(ID: Integer): string;
 function  IpToStr(IP: LongWord): string;
 function  StrToIp(IPstr: string; var IP: LongWord): Boolean;
 
-function  g_Net_IsHostBanned(IP: LongWord; Perm: Boolean = False): Boolean;
-procedure g_Net_BanHost(IP: LongWord; Perm: Boolean = True); overload;
-procedure g_Net_BanHost(IP: string; Perm: Boolean = True); overload;
-function  g_Net_UnbanHost(IP: string): Boolean; overload;
-function  g_Net_UnbanHost(IP: LongWord): Boolean; overload;
-procedure g_Net_UnbanNonPermHosts();
+function  g_Net_IsAddressBanned(IP: LongWord; Perm: Boolean = False): Boolean;
+procedure g_Net_BanAddress(IP: LongWord; Perm: Boolean = True); overload;
+procedure g_Net_BanAddress(IP: string; Perm: Boolean = True); overload;
+function  g_Net_UnbanAddress(IP: string): Boolean; overload;
+function  g_Net_UnbanAddress(IP: LongWord): Boolean; overload;
+procedure g_Net_UnbanNonPerm();
 procedure g_Net_SaveBanList();
 
 procedure g_Net_Penalize(C: pTNetClient; Reason: string);
@@ -1363,7 +1365,7 @@ begin
     begin
       Readln(F, IPstr);
       if StrToIp(IPstr, IP) then
-        g_Net_BanHost(IP);
+        g_Net_BanAddress(IP);
     end;
     CloseFile(F);
     g_Net_SaveBanList();
@@ -1788,7 +1790,7 @@ begin
           Exit;
         end;
 
-        if g_Net_IsHostBanned(NetEvent.Peer^.address.host) then
+        if g_Net_IsAddressBanned(NetEvent.Peer^.address.host) then
         begin
           g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
             _lc[I_NET_DISC_BAN]);
@@ -2128,10 +2130,12 @@ begin
       pl := g_Player_Get(NetClients[a].Player);
       if pl = nil then Exit;
       Result := pl.Name;
+      Exit;
     end;
-end;
+  Result := 'Client #' + IntToStr(ID);
+ end;
 
-function g_Net_IsHostBanned(IP: LongWord; Perm: Boolean = False): Boolean;
+function g_Net_IsAddressBanned(IP: LongWord; Perm: Boolean = False): Boolean;
 var
   I: Integer;
 begin
@@ -2146,13 +2150,13 @@ begin
     end;
 end;
 
-procedure g_Net_BanHost(IP: LongWord; Perm: Boolean = True); overload;
+procedure g_Net_BanAddress(IP: LongWord; Perm: Boolean = True); overload;
 var
   I, P: Integer;
 begin
   if IP = 0 then
     Exit;
-  if g_Net_IsHostBanned(IP, Perm) then
+  if g_Net_IsAddressBanned(IP, Perm) then
     Exit;
 
   P := -1;
@@ -2173,17 +2177,17 @@ begin
   NetBannedHosts[P].Perm := Perm;
 end;
 
-procedure g_Net_BanHost(IP: string; Perm: Boolean = True); overload;
+procedure g_Net_BanAddress(IP: string; Perm: Boolean = True); overload;
 var
   a: LongWord;
   b: Boolean;
 begin
   b := StrToIp(IP, a);
   if b then
-    g_Net_BanHost(a, Perm);
+    g_Net_BanAddress(a, Perm);
 end;
 
-procedure g_Net_UnbanNonPermHosts();
+procedure g_Net_UnbanNonPerm();
 var
   I: Integer;
 begin
@@ -2197,16 +2201,16 @@ begin
     end;
 end;
 
-function g_Net_UnbanHost(IP: string): Boolean; overload;
+function g_Net_UnbanAddress(IP: string): Boolean; overload;
 var
   a: LongWord;
 begin
   Result := StrToIp(IP, a);
   if Result then
-    Result := g_Net_UnbanHost(a);
+    Result := g_Net_UnbanAddress(a);
 end;
 
-function g_Net_UnbanHost(IP: LongWord): Boolean; overload;
+function g_Net_UnbanAddress(IP: LongWord): Boolean; overload;
 var
   I: Integer;
 begin
@@ -2245,6 +2249,36 @@ begin
   end
 end;
 
+procedure g_Net_Host_Ban(C: pTNetClient; Perm: Boolean);
+var
+  KickReason: enet_uint32;
+  Name: string;
+begin
+  if (not C^.Used) then
+    exit;
+
+  if Perm then
+    KickReason := NET_DISC_BAN
+  else
+    KickReason := NET_DISC_TEMPBAN;
+
+  Name := g_Net_ClientName_ByID(C^.ID);
+
+  g_Net_BanAddress(C^.Peer^.address.host, Perm);
+  g_Net_Host_Kick(C^.ID, KickReason);
+  g_Console_Add(Format(_lc[I_PLAYER_BAN], [Name]));
+  MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, Name);
+  g_Net_Slist_ServerPlayerLeaves();
+  g_Net_SaveBanList();
+end;
+
+procedure g_Net_Host_Ban(ID: Integer; Perm: Boolean);
+begin
+  if (ID < 0) or (ID > High(NetClients)) then
+    exit;
+  g_Net_Host_Ban(@NetClients[ID], Perm);
+end;
+
 procedure g_Net_Penalize(C: pTNetClient; Reason: string);
 var
   s: string;
@@ -2270,12 +2304,7 @@ begin
 
   if (C^.Crimes >= NetAutoBanLimit) then
   begin
-    s := '#' + IntToStr(C^.ID); // can't be arsed
-    g_Net_BanHost(C^.Peer^.address.host, NetAutoBanPerm);
-    g_Net_Host_Kick(C^.ID, NET_DISC_BAN);
-    g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
-    MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
-    g_Net_Slist_ServerPlayerLeaves();
+
   end;
 end;
 
