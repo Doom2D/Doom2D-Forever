@@ -1988,7 +1988,7 @@ begin
     if list <> nil then
     begin
       Items := list;
-      ItemIndex := Length(list)
+      ItemIndex := -1; (* nothing selected *)
     end
     else
     begin
@@ -2004,7 +2004,7 @@ begin
 
   TempResScale := Round(r_pixel_scale - 1);
   with TGUISwitch(menu.GetControl('swResFactor')) do
-    ItemIndex := Min(TempResScale, gRC_Width div 640 - 1);
+    ItemIndex := Max(Min(TempResScale, gRC_Width div 640 - 1), 0);
 end;
 
 procedure ProcApplyVideoOptions();
