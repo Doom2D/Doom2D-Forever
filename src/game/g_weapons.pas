@@ -2278,10 +2278,7 @@ begin
           // В воде шлейф - пузыри, в воздухе шлейф - дым:
             if WordBool(st and MOVE_INWATER) then
             begin
-              g_GFX_Bubbles(cx, cy, 1+Random(3), 16, 16);
-              if Random(2) = 0
-                then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', cx, cy)
-                else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', cx, cy);
+              g_Game_Effect_Bubbles(cx, cy, 1+Random(3), 16, 16);
             end
             else if g_Frames_Get(_id, 'FRAMES_SMOKE') then
             begin
@@ -2413,12 +2410,8 @@ begin
                 end;
               end
               else
-              begin
-                g_GFX_Bubbles(cx, cy, 1+Random(3), 16, 16);
-                if Random(2) = 0
-                  then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', cx, cy)
-                  else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', cx, cy);
-              end;
+                g_Game_Effect_Bubbles(cx, cy, 1+Random(3), 16, 16);
+
               ShotType := 0;
               Continue;
             end;

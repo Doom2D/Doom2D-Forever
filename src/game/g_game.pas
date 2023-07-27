@@ -131,6 +131,7 @@ procedure g_Game_ChatSound(Text: String; Taunt: Boolean = True);
 procedure g_Game_Announce_GoodShot(SpawnerUID: Word);
 procedure g_Game_Announce_KillCombo(Param: Integer);
 procedure g_Game_Announce_BodyKill(SpawnerUID: Word);
+procedure g_Game_Effect_Bubbles(fX, fY: Integer; count: Word; devX, devY: Byte; Silent: Boolean = False);
 procedure g_Game_StartVote(Command, Initiator: string);
 procedure g_Game_CheckVote;
 procedure g_TakeScreenShot(Filename: string = '');
@@ -667,7 +668,7 @@ end;
 
 // saves a shitty CSV containing the game stats passed to it
 procedure SaveGameStat(Stat: TEndCustomGameStat; Path: string);
-var 
+var
   s: TextFile;
   dir, fname, map, mode, etime: String;
   I: Integer;
@@ -709,7 +710,7 @@ begin
       //   if it's a coop game: monsters killed, monsters total, secrets found, secrets total
       //   otherwise nothing
       if Stat.GameMode in [GM_TDM, GM_CTF] then
-        WriteLn(s, 
+        WriteLn(s,
           Format('red_score,blue_score' + LineEnding + '%d,%d', [Stat.TeamStat[TEAM_RED].Score, Stat.TeamStat[TEAM_BLUE].Score]))
       else if Stat.GameMode in [GM_COOP, GM_SINGLE] then
         WriteLn(s,
@@ -5857,7 +5858,7 @@ begin
         // if someone has a higher score, set it to that instead
         gsScoreLimit := max(gsScoreLimit, b);
         gGameSettings.ScoreLimit := gsScoreLimit;
- 
+
         if g_Game_IsNet then MH_SEND_GameSettings;
       end;
     end;
@@ -6070,13 +6071,13 @@ begin
     'p1_priority_kastet':
       begin
         if (Length(P) = 2) then
-          gPlayer1Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1); 
+          gPlayer1Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
         end;
     'p2_priority_kastet':
       begin
         if (Length(P) = 2) then
-          gPlayer2Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1); 
-      end;        
+          gPlayer2Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
     'p1_priority_saw':
       begin
         if (Length(P) = 2) then
@@ -6090,13 +6091,13 @@ begin
     'p1_priority_pistol':
       begin
         if (Length(P) = 2) then
-          gPlayer1Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1); 
+          gPlayer1Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
         end;
     'p2_priority_pistol':
       begin
         if (Length(P) = 2) then
-          gPlayer2Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1); 
-      end;         
+          gPlayer2Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
     'p1_priority_shotgun1':
       begin
         if (Length(P) = 2) then
@@ -6176,17 +6177,17 @@ begin
       begin
         if (Length(P) = 2) then
           gPlayer2Settings.WeaponPreferences[WEAPON_FLAMETHROWER] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
-      end;      
+      end;
     'p1_priority_berserk':
       begin
         if (Length(P) = 2) then
-          gPlayer1Settings.WeaponPreferences[WP_LAST+1] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1); 
+          gPlayer1Settings.WeaponPreferences[WP_LAST+1] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
         end;
     'p2_priority_berserk':
       begin
         if (Length(P) = 2) then
-          gPlayer2Settings.WeaponPreferences[WP_LAST+1] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1); 
-      end;                                                                                  
+          gPlayer2Settings.WeaponPreferences[WP_LAST+1] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+      end;
   end;
 end;
 
@@ -6952,7 +6953,7 @@ begin
         t := TEAM_RED
       else if P[2] = 'blue' then
         t := TEAM_BLUE
-      else 
+      else
         t := TEAM_NONE;
 
       if Length(P) = 3
@@ -7850,7 +7851,7 @@ begin
       DateTimeToString(date, 'yyyy-mm-dd-hh-nn-ss', t);
       Filename := 'screenshot-' + date;
     end;
-    
+
     name := e_CatPath(dir, Filename + '.png');
     s := createDiskFile(name);
     try
@@ -8200,6 +8201,14 @@ begin
       Exit;
 
   hahasnd[Random(3)].Play();
+end;
+
+procedure g_Game_Effect_Bubbles (fX, fY: Integer; count: Word; devX, devY: Byte; Silent: Boolean);
+begin
+  g_GFX_Bubbles(fX, fY, count, devX, devY);
+  if not Silent then if Random(2) = 0
+    then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', fX, fY)
+    else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', fX, fY);
 end;
 
 procedure g_Game_StartVote(Command, Initiator: string);

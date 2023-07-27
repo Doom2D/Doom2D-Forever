@@ -2468,7 +2468,7 @@ var
   a, b, sx, sy, wx, wy, oldvelx: Integer;
   st: Word;
   o, co: TObj;
-  fall, bubbles: Boolean;
+  fall: Boolean;
   mon: TMonster;
   mit: PMonster;
   it: TMonsterGrid.Iter;
@@ -2476,7 +2476,6 @@ label
   _end;
 begin
   fall := True;
-  bubbles := True;
 
 // ћонстр статичен пока идет warmup
   if (gLMSRespawn > LMS_RESPAWN_NONE) then exit;
@@ -2575,23 +2574,18 @@ begin
 
 // ¬озможно, создаем пузырьки в воде:
   if WordBool(st and MOVE_INWATER) and (Random(32) = 0) then
-  begin
     case FMonsterType of
       MONSTER_FISH:
-        if Random(4) <> 0 then bubbles := False else
-          g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
-                        FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
+        if Random(4) = 0 then
+          g_Game_Effect_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
+                                FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
       MONSTER_ROBO, MONSTER_BARREL:
-        g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
-                      FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
+        g_Game_Effect_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
+                              FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
       else
-        g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width-4),
-                      FObj.Y+FObj.Rect.Y + Random(4), 5, 4, 4);
+        g_Game_Effect_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width-4),
+                              FObj.Y+FObj.Rect.Y + Random(4), 5, 4, 4);
     end;
-    if bubbles then if Random(2) = 0
-      then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
-      else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
-  end;
 
 // ≈сли прошел первый кадр анимации взрыва бочки, то взрыв:
   if FMonsterType = MONSTER_BARREL then
@@ -3463,14 +3457,13 @@ var
   a, b, sx, sy, oldvelx: Integer;
   st: Word;
   o, co: TObj;
-  fall, bubbles: Boolean;
+  fall: Boolean;
 label
   _end;
 begin
   sx := 0; // SHUT UP COMPILER
   sy := 0;
   fall := True;
-  bubbles := True;
 
 // ћонстр статичен пока идет warmup
   if (gLMSRespawn > LMS_RESPAWN_NONE) then exit;
@@ -3537,23 +3530,18 @@ begin
 
 // ¬озможно, создаем пузырьки в воде:
   if WordBool(st and MOVE_INWATER) and (Random(32) = 0) then
-  begin
     case FMonsterType of
       MONSTER_FISH:
-        if Random(4) <> 0 then bubbles := False else
-          g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
-                        FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
+        if Random(4) = 0 then
+          g_Game_Effect_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
+                                FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
       MONSTER_ROBO, MONSTER_BARREL:
-        g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
-                      FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
+        g_Game_Effect_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
+                              FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
       else
-        g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width-4),
-                      FObj.Y+FObj.Rect.Y + Random(4), 5, 4, 4);
+        g_Game_Effect_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width-4),
+                              FObj.Y+FObj.Rect.Y + Random(4), 5, 4, 4);
     end;
-    if bubbles then if Random(2) = 0
-      then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
-      else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
-  end;
 
 // ≈сли прошел первый кадр анимации взрыва бочки, то взрыв:
   if FMonsterType = MONSTER_BARREL then
