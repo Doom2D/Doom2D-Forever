@@ -49,6 +49,7 @@ var
   WadDownloadDirs: SSArray;
 
   GameWADName: string = 'GAME';
+  date: AnsiString;
 
 implementation
 
@@ -344,7 +345,7 @@ begin
         Inc(i);
         rwdir := ParamStr(i);
         (* RW *)
-        AddDir(LogDirs, e_CatPath(rwdir, ''));
+        AddDir(LogDirs, e_CatPath(rwdir, 'logs'));
         AddDir(SaveDirs, e_CatPath(rwdir, 'data'));
         AddDir(CacheDirs, e_CatPath(rwdir, 'data/cache'));
         AddDir(ConfigDirs, e_CatPath(rwdir, ''));
@@ -402,7 +403,7 @@ begin
 
   (* RW *)
   rwdirs := GetDefaultRWDirs();
-  AddDef(LogDirs, rwdirs, '');
+  AddDef(LogDirs, rwdirs, 'logs');
   AddDef(SaveDirs, rwdirs, 'data');
   AddDef(CacheDirs, rwdirs, 'data/cache');
   AddDef(ConfigDirs, rwdirs, '');
@@ -422,10 +423,11 @@ begin
     rwdir := e_GetWriteableDir(LogDirs, false);
     if rwdir <> '' then
     begin
+      DateTimeToString(date, 'yyyy-mm-dd-hh-nn-ss', Now());
       {$IFDEF HEADLESS}
-        LogFileName := e_CatPath(rwdir, 'Doom2DF_H.log');
+        LogFileName := e_CatPath(rwdir, 'dfserver-' + date + '.log');
       {$ELSE}
-        LogFileName := e_CatPath(rwdir, 'Doom2DF.log');
+        LogFileName := e_CatPath(rwdir, 'dfclient-' + date + '.log');
       {$ENDIF}
     end
   end;
