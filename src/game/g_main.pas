@@ -346,7 +346,7 @@ begin
         rwdir := ParamStr(i);
         (* RW *)
         AddDir(LogDirs, e_CatPath(rwdir, 'logs'));
-        AddDir(SaveDirs, e_CatPath(rwdir, 'data'));
+        AddDir(SaveDirs, e_CatPath(rwdir, 'data/saves'));
         AddDir(CacheDirs, e_CatPath(rwdir, 'data/cache'));
         AddDir(ConfigDirs, e_CatPath(rwdir, ''));
         AddDir(MapDownloadDirs, e_CatPath(rwdir, 'maps/downloads'));
@@ -404,7 +404,7 @@ begin
   (* RW *)
   rwdirs := GetDefaultRWDirs();
   AddDef(LogDirs, rwdirs, 'logs');
-  AddDef(SaveDirs, rwdirs, 'data');
+  AddDef(SaveDirs, rwdirs, 'data/saves');
   AddDef(CacheDirs, rwdirs, 'data/cache');
   AddDef(ConfigDirs, rwdirs, '');
   AddDef(MapDownloadDirs, rwdirs, 'maps/downloads');
