@@ -2415,12 +2415,12 @@ begin
     with AddSwitch(_lc[I_MENU_ENABLE_RULEZ_RANDOM]) do
     begin
       Name := 'swRulezRandom';
-      AddItem(_lc[I_MENU_NO]);
       AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
       if LongBool(gsGameFlags and GAME_OPTION_RULEZRANDOM) then
-        ItemIndex := 0
+        ItemIndex := 1
       else
-        ItemIndex := 1;
+        ItemIndex := 0;
     end;
     with AddSwitch(_lc[I_MENU_BOTS_VS]) do
     begin
@@ -2682,8 +2682,8 @@ begin
     with AddSwitch(_lc[I_MENU_ENABLE_RULEZ_RANDOM]) do
     begin
       Name := 'swRulezRandom';
-      AddItem(_lc[I_MENU_NO]);
       AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
       if LongBool(gsGameFlags and GAME_OPTION_RULEZRANDOM) then
         ItemIndex := 0
       else

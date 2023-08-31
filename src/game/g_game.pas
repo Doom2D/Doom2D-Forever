@@ -5614,9 +5614,9 @@ begin
   begin
     ParseGameFlag(GAME_OPTION_TEAMHITPROJECTILE, I_MSG_FRIENDLY_PROJECT_TRACE_OFF, I_MSG_FRIENDLY_PROJECT_TRACE_ON);
   end
-  else if cmd = 'g_rulez_randomize_respawn' then
+  else if cmd = 'g_powerup_randomize_respawn' then
   begin
-    ParseGameFlag(GAME_OPTION_RULEZRANDOM, I_MSG_RULEZ_RANDOM_ON, I_MSG_RULEZ_RANDOM_OFF);
+    ParseGameFlag(GAME_OPTION_RULEZRANDOM, I_MSG_RULEZ_RANDOM_OFF, I_MSG_RULEZ_RANDOM_ON);
   end
   else if cmd = 'g_weaponstay' then
   begin
@@ -5714,7 +5714,7 @@ begin
     g_Console_Add(Format('%s %d', [cmd, Integer(gsItemRespawnTime)]));
     if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
   end
-  else if cmd = 'g_rulez_time_multiplier' then
+  else if cmd = 'g_powerup_time_multiplier' then
   begin
     if Length(P) > 1 then
     begin

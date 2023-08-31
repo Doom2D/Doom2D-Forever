@@ -1117,8 +1117,8 @@ begin
   AddCommand('g_warmup_time', GameCVars);
   AddCommand('g_spawn_invul', GameCVars);
   AddCommand('g_item_respawn_time', GameCVars);
-  AddCommand('g_rulez_randomize_respawn', GameCVars);
-  AddCommand('g_rulez_time_multiplier', GameCVars);
+  AddCommand('g_powerup_randomize_respawn', GameCVars);
+  AddCommand('g_powerup_time_multiplier', GameCVars);
   AddCommand('sv_intertime', GameCVars);
 
   AddCommand('sv_name', NetServerCVars);
@@ -1248,8 +1248,8 @@ begin
   WhitelistCommand('g_warmup_time');
   WhitelistCommand('g_spawn_invul');
   WhitelistCommand('g_item_respawn_time');
-  WhitelistCommand('g_rulez_randomize_respawn');
-  WhitelistCommand('g_rulez_time_multiplier');
+  WhitelistCommand('g_powerup_randomize_respawn');
+  WhitelistCommand('g_powerup_time_multiplier');
 
   g_Console_ResetBinds;
   g_Console_ReadConfig(gConfigScript);
@@ -2238,14 +2238,14 @@ begin
   WriteLn(f, 'g_timelimit ', gsTimeLimit);
   WriteLn(f, 'g_maxlives ', gsMaxLives);
   WriteLn(f, 'g_item_respawn_time ', gsItemRespawnTime);
-  WriteLn(f, 'g_rulez_time_multiplier ', gsRulezTimeMultiplier);
+  WriteLn(f, 'g_powerup_time_multiplier ', gsRulezTimeMultiplier);
   WriteLn(f, 'g_spawn_invul ', gsSpawnInvul);
   WriteLn(f, 'g_warmup_time ', gsWarmupTime);
 
   WriteFlag('g_friendlyfire ', GAME_OPTION_TEAMDAMAGE);
   WriteFlag('g_friendly_hit_trace ', GAME_OPTION_TEAMHITTRACE);
   WriteFlag('g_friendly_hit_projectile ', GAME_OPTION_TEAMHITPROJECTILE);
-  WriteFlag('g_rulez_randomize_respawn ', GAME_OPTION_RULEZRANDOM);
+  WriteFlag('g_powerup_randomize_respawn ', GAME_OPTION_RULEZRANDOM);
   WriteFlag('g_allow_exit ', GAME_OPTION_ALLOWEXIT);
   WriteFlag('g_allow_monsters ', GAME_OPTION_MONSTERS);
   WriteFlag('g_allow_dropflag ', GAME_OPTION_ALLOWDROPFLAG);
