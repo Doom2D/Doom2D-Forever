@@ -743,6 +743,8 @@ begin
     gsGameFlags := 0;
     if TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0 then
       gsGameFlags := gsGameFlags or GAME_OPTION_TEAMDAMAGE;
+    if TGUISwitch(GetControl('swTeamAbsorbDamage')).ItemIndex = 0 then
+      gsGameFlags := gsGameFlags or GAME_OPTION_TEAMABSORBDAMAGE;
     if TGUISwitch(GetControl('swDeathmatchKeys')).ItemIndex = 0 then
       gsGameFlags := gsGameFlags or GAME_OPTION_DMKEYS;
     if TGUISwitch(GetControl('swEnableExits')).ItemIndex = 0 then
@@ -2372,6 +2374,16 @@ begin
       else
         ItemIndex := 3;
     end;
+    with AddSwitch(_lc[I_MENU_ENABLE_TEAM_DAMAGE_ABSOBR]) do
+    begin
+      Name := 'swTeamAbsorbDamage';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      if LongBool(gsGameFlags and GAME_OPTION_TEAMABSORBDAMAGE) then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
+    end;
     with AddSwitch(_lc[I_MENU_DEATHMATCH_KEYS]) do
     begin
       Name := 'swDeathmatchKeys';
@@ -2638,6 +2650,16 @@ begin
         ItemIndex := 2
       else
         ItemIndex := 3;
+    end;
+    with AddSwitch(_lc[I_MENU_ENABLE_TEAM_DAMAGE_ABSOBR]) do
+    begin
+      Name := 'swTeamAbsorbDamage';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      if LongBool(gsGameFlags and GAME_OPTION_TEAMABSORBDAMAGE) then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_DEATHMATCH_KEYS]) do
     begin
