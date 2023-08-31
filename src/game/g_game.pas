@@ -33,6 +33,7 @@ type
     WarmupTime: Word;
     SpawnInvul: Word;
     ItemRespawnTime: Word;
+    RulezTimeMultiplier: Word;
     MaxLives: Byte;
     Options: LongWord;
     WAD: String;
@@ -195,6 +196,7 @@ const
   GAME_OPTION_TEAMABSORBDAMAGE  = 1024;
   GAME_OPTION_ALLOWDROPFLAG     = 2048;
   GAME_OPTION_THROWFLAG         = 4096;
+  GAME_OPTION_RULEZRANDOM       = 8192;
 
   STATE_NONE        = 0;
   STATE_MENU        = 1;
@@ -4495,6 +4497,7 @@ begin
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_BOTVSMONSTER;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_TEAMHITPROJECTILE;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_TEAMHITTRACE;
+  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_RULEZRANDOM;
   gSwitchGameMode := GM_SINGLE;
 
   gLMSRespawn := LMS_RESPAWN_NONE;
@@ -5531,6 +5534,7 @@ var
   a, b: Integer;
   stat: TPlayerStatArray;
   cmd: string;
+  it: PItem;
 
   procedure ParseGameFlag(Flag: LongWord; OffMsg, OnMsg: TStrings_Locale; OnMapChange: Boolean = False);
   var
@@ -5609,6 +5613,10 @@ begin
   else if cmd = 'g_friendly_hit_projectile' then
   begin
     ParseGameFlag(GAME_OPTION_TEAMHITPROJECTILE, I_MSG_FRIENDLY_PROJECT_TRACE_OFF, I_MSG_FRIENDLY_PROJECT_TRACE_ON);
+  end
+  else if cmd = 'g_rulez_randomize_respawn' then
+  begin
+    ParseGameFlag(GAME_OPTION_RULEZRANDOM, I_MSG_RULEZ_RANDOM_ON, I_MSG_RULEZ_RANDOM_OFF);
   end
   else if cmd = 'g_weaponstay' then
   begin
@@ -5704,6 +5712,21 @@ begin
     end;
 
     g_Console_Add(Format('%s %d', [cmd, Integer(gsItemRespawnTime)]));
+    if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+  end
+  else if cmd = 'g_rulez_time_multiplier' then
+  begin
+    if Length(P) > 1 then
+    begin
+      gsRulezTimeMultiplier := nclamp(StrToIntDef(P[1], gsRulezTimeMultiplier), 0, $FFFF);
+      if g_Game_IsServer then
+      begin
+        gGameSettings.RulezTimeMultiplier := gsRulezTimeMultiplier;
+        if g_Game_IsNet then MH_SEND_GameSettings;
+      end;
+    end;
+
+    g_Console_Add(Format('%s %d', [cmd, Integer(gsRulezTimeMultiplier)]));
     if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
   end
   else if cmd = 'sv_intertime' then

@@ -740,9 +740,18 @@ begin
     ggItems[ID].Obj.oldY := ggItems[ID].Obj.Y;
     ggItems[ID].alive := false;
     ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.ItemRespawnTime, 15) * 36;
+
+    if ((gGameSettings.Options and GAME_OPTION_RULEZRANDOM) = 0) then // Random powerup respawn
+    begin
+      if ggItems[ID].ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL,
+                                ITEM_INVIS, ITEM_MEDKIT_BLACK, ITEM_JETPACK] then
+      begin
+        ggItems[ID].RespawnTime := Random(gGameSettings.RulezTimeMultiplier) * 36;
+        //e_logwritefln ('Randomized number', []);
+      end;
+    end;
   end;
 end;
-
 
 procedure g_Items_Remove (ID: DWORD);
 var
