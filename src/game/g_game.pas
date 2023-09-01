@@ -5616,7 +5616,7 @@ begin
   end
   else if cmd = 'g_powerup_randomize_respawn' then
   begin
-    ParseGameFlag(GAME_OPTION_RULEZRANDOM, I_MSG_RULEZ_RANDOM_OFF, I_MSG_RULEZ_RANDOM_ON);
+    ParseGameFlag(GAME_OPTION_RULEZRANDOM, I_MSG_RULEZ_RANDOM_OFF, I_MSG_RULEZ_RANDOM_ON, False);
   end
   else if cmd = 'g_weaponstay' then
   begin

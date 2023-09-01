@@ -2430,9 +2430,9 @@ begin
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
       if LongBool(gsGameFlags and GAME_OPTION_RULEZRANDOM) then
-        ItemIndex := 1
+        ItemIndex := 0
       else
-        ItemIndex := 0;
+        ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_BOTS_VS]) do
     begin
