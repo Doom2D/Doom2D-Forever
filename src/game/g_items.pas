@@ -546,13 +546,14 @@ var
   i, j, k: Integer;
   ID: DWord;
   Anim: TAnimation;
-  m, ItemRespawnTime: Word;
+  m, ItemRespawnTime, RulezRespawnTime: Word;
   r, nxt: Boolean;
 begin
   if (ggItems = nil) then exit;
 
   // respawn items in 15 seconds regardless of settings during warmup
   ItemRespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.ItemRespawnTime, 15);
+  RulezRespawnTime :=  IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.RulezRespawnTime, 15);
 
   for i := 0 to High(ggItems) do
   begin
@@ -739,15 +740,24 @@ begin
     ggItems[ID].Obj.oldX := ggItems[ID].Obj.X;
     ggItems[ID].Obj.oldY := ggItems[ID].Obj.Y;
     ggItems[ID].alive := false;
+
+    // Items respawn timer
     ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.ItemRespawnTime, 15) * 36;
+
+    // Rulez respawn timer
+    if ggItems[ID].ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL,
+                         ITEM_INVIS, ITEM_MEDKIT_BLACK, ITEM_JETPACK, ITEM_SUIT] then
+    begin
+      ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.RulezRespawnTime, 15) * 36;
+    end;
 
     if LongBool(gGameSettings.Options and GAME_OPTION_RULEZRANDOM) then // Random powerup respawn
     begin
       if ggItems[ID].ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL,
-                                ITEM_INVIS, ITEM_MEDKIT_BLACK, ITEM_JETPACK, ITEM_SUIT] then
+                           ITEM_INVIS, ITEM_MEDKIT_BLACK, ITEM_JETPACK, ITEM_SUIT] then
       begin
-        ggItems[ID].RespawnTime := Random(gGameSettings.RulezTimeMultiplier) * 36;
-        e_logwritefln ('Randomized number', []);
+        ggItems[ID].RespawnTime := Max(1, (gGameSettings.RulezRespawnTime + RandomRange(-gGameSettings.RulezRespawnRandom, gGameSettings.RulezRespawnRandom + 1)) * 36);
+        //e_logwritefln ('Randomized number: %s', [ggItems[ID].RespawnTime]);
       end;
     end;
   end;

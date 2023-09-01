@@ -736,7 +736,8 @@ begin
     gsScoreLimit := StrToIntDef(TGUIEdit(GetControl('edScoreLimit')).Text, 0);
     gsMaxLives := StrToIntDef(TGUIEdit(GetControl('edMaxLives')).Text, 0);
     gsItemRespawnTime := StrToIntDef(TGUIEdit(GetControl('edItemRespawnTime')).Text, 0);
-    gsRulezTimeMultiplier := StrToIntDef(TGUIEdit(GetControl('edRulezTimeMultiplier')).Text, 0);
+    gsRulezRespawnTime := StrToIntDef(TGUIEdit(GetControl('edRulezRespawnTime')).Text, 0);
+    gsRulezRespawnRandom := StrToIntDef(TGUIEdit(GetControl('edRulezRespawnRandom')).Text, 0);
     gsPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex;
     gsMap := Map;
 
@@ -776,7 +777,8 @@ begin
 
     // TODO: get this crap out of here
     gGameSettings.ItemRespawnTime := gsItemRespawnTime;
-    gGameSettings.RulezTimeMultiplier := gsRulezTimeMultiplier;
+    gGameSettings.RulezRespawnTime := gsRulezRespawnTime;
+    gGameSettings.RulezRespawnRandom := gsRulezRespawnRandom;
     gGameSettings.WarmupTime := gsWarmupTime;
     gGameSettings.SpawnInvul := gsSpawnInvul;
   end;
@@ -2331,15 +2333,36 @@ begin
       if gsItemRespawnTime > 0 then
         Text := IntToStr(gsItemRespawnTime);
     end;
-    with AddEdit(_lc[I_MENU_RULEZ_RESPAWN_MULTIPLIER]) do
+    AddSpace(); // Rulez Respawn block
+    with AddEdit(_lc[I_MENU_RULEZ_RESPAWN_TIME]) do
     begin
-      Name := 'edRulezTimeMultiplier';
+      Name := 'edRulezRespawnTime';
       OnlyDigits := True;
       Width := 4;
       MaxLength := 5;
-      if gsRulezTimeMultiplier > 0 then
-        Text := IntToStr(gsRulezTimeMultiplier);
+      if gsRulezRespawnTime > 0 then
+        Text := IntToStr(gsRulezRespawnTime);
     end;
+    with AddEdit(_lc[I_MENU_RULEZ_RESPAWN_RANDOM]) do
+    begin
+      Name := 'edRulezRespawnRandom';
+      OnlyDigits := True;
+      Width := 4;
+      MaxLength := 5;
+      if gsRulezRespawnRandom > 0 then
+        Text := IntToStr(gsRulezRespawnRandom);
+    end;
+    with AddSwitch(_lc[I_MENU_ENABLE_RULEZ_RANDOM]) do
+    begin
+      Name := 'swRulezRandom';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      if LongBool(gsGameFlags and GAME_OPTION_RULEZRANDOM) then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
+    end;
+    AddSpace();
     with AddSwitch(_lc[I_MENU_PLAYERS]) do
     begin
       Name := 'swPlayers';
@@ -2420,16 +2443,6 @@ begin
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
       if LongBool(gsGameFlags and GAME_OPTION_MONSTERS) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
-    end;
-    with AddSwitch(_lc[I_MENU_ENABLE_RULEZ_RANDOM]) do
-    begin
-      Name := 'swRulezRandom';
-      AddItem(_lc[I_MENU_YES]);
-      AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_RULEZRANDOM) then
         ItemIndex := 0
       else
         ItemIndex := 1;
@@ -2608,15 +2621,36 @@ begin
       if gsItemRespawnTime > 0 then
         Text := IntToStr(gsItemRespawnTime);
     end;
-    with AddEdit(_lc[I_MENU_RULEZ_RESPAWN_MULTIPLIER]) do
+    AddSpace(); // Rulez Respawn block
+    with AddEdit(_lc[I_MENU_RULEZ_RESPAWN_TIME]) do
     begin
-      Name := 'edRulezTimeMultiplier';
+      Name := 'edRulezRespawnTime';
       OnlyDigits := True;
       Width := 4;
       MaxLength := 5;
-      if gsRulezTimeMultiplier > 0 then
-        Text := IntToStr(gsRulezTimeMultiplier);
+      if gsRulezRespawnTime > 0 then
+        Text := IntToStr(gsRulezRespawnTime);
     end;
+    with AddEdit(_lc[I_MENU_RULEZ_RESPAWN_RANDOM]) do
+    begin
+      Name := 'edRulezRespawnRandom';
+      OnlyDigits := True;
+      Width := 4;
+      MaxLength := 5;
+      if gsRulezRespawnRandom > 0 then
+        Text := IntToStr(gsRulezRespawnRandom);
+    end;
+    with AddSwitch(_lc[I_MENU_ENABLE_RULEZ_RANDOM]) do
+    begin
+      Name := 'swRulezRandom';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      if LongBool(gsGameFlags and GAME_OPTION_RULEZRANDOM) then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
+    end;
+    AddSpace();
     with AddSwitch(_lc[I_MENU_PLAYERS]) do
     begin
       Name := 'swPlayers';
@@ -2697,16 +2731,6 @@ begin
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
       if LongBool(gsGameFlags and GAME_OPTION_MONSTERS) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
-    end;
-    with AddSwitch(_lc[I_MENU_ENABLE_RULEZ_RANDOM]) do
-    begin
-      Name := 'swRulezRandom';
-      AddItem(_lc[I_MENU_YES]);
-      AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_RULEZRANDOM) then
         ItemIndex := 0
       else
         ItemIndex := 1;

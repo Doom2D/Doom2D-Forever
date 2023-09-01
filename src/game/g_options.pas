@@ -74,7 +74,8 @@ var
   gsGameFlags: LongWord;
   gsSpawnInvul: Integer = 0;
   gsItemRespawnTime: Word = 60;
-  gsRulezTimeMultiplier: Word = 60;
+  gsRulezRespawnTime: Word = 60;
+  gsRulezRespawnRandom: Word = 0;
   gsWarmupTime: Word = 30;
 
 implementation
@@ -268,7 +269,8 @@ begin
   gsPlayers := 1;
   gsSpawnInvul := 0;
   gsItemRespawnTime := 60;
-  gsRulezTimeMultiplier := 60;
+  gsRulezRespawnTime := 60;
+  gsRulezRespawnRandom := 0;
   gsGameFlags := GAME_OPTION_ALLOWEXIT or GAME_OPTION_DMKEYS or
     GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER or
     GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE or
@@ -317,7 +319,8 @@ begin
     MaxLives := gsMaxLives;
     SpawnInvul := gsSpawnInvul;
     ItemRespawnTime := gsItemRespawnTime;
-    RulezTimeMultiplier := gsRulezTimeMultiplier;
+    RulezRespawnTime := gsRulezRespawnTime;
+    RulezRespawnRandom := gsRulezRespawnRandom;
     WarmupTime := gsWarmupTime;
     Options := gsGameFlags;
   end;

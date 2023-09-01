@@ -33,7 +33,8 @@ type
     WarmupTime: Word;
     SpawnInvul: Word;
     ItemRespawnTime: Word;
-    RulezTimeMultiplier: Word;
+    RulezRespawnTime: Word;
+    RulezRespawnRandom: Word;
     MaxLives: Byte;
     Options: LongWord;
     WAD: String;
@@ -5714,19 +5715,34 @@ begin
     g_Console_Add(Format('%s %d', [cmd, Integer(gsItemRespawnTime)]));
     if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
   end
-  else if cmd = 'g_powerup_time_multiplier' then
+  else if cmd = 'g_powerup_respawn_time' then
   begin
     if Length(P) > 1 then
     begin
-      gsRulezTimeMultiplier := nclamp(StrToIntDef(P[1], gsRulezTimeMultiplier), 0, $FFFF);
+      gsRulezRespawnTime := nclamp(StrToIntDef(P[1], gsRulezRespawnTime), 0, $FFFF);
       if g_Game_IsServer then
       begin
-        gGameSettings.RulezTimeMultiplier := gsRulezTimeMultiplier;
+        gGameSettings.RulezRespawnTime := gsRulezRespawnTime;
         if g_Game_IsNet then MH_SEND_GameSettings;
       end;
     end;
 
-    g_Console_Add(Format('%s %d', [cmd, Integer(gsRulezTimeMultiplier)]));
+    g_Console_Add(Format('%s %d', [cmd, Integer(gsRulezRespawnTime)]));
+    if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+  end
+  else if cmd = 'g_powerup_time_random' then
+  begin
+    if Length(P) > 1 then
+    begin
+      gsRulezRespawnRandom := nclamp(StrToIntDef(P[1], gsRulezRespawnRandom), 0, $FFFF);
+      if g_Game_IsServer then
+      begin
+        gGameSettings.RulezRespawnRandom := gsRulezRespawnRandom;
+        if g_Game_IsNet then MH_SEND_GameSettings;
+      end;
+    end;
+
+    g_Console_Add(Format('%s %d', [cmd, Integer(gsRulezRespawnRandom)]));
     if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
   end
   else if cmd = 'sv_intertime' then

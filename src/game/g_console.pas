@@ -1118,7 +1118,8 @@ begin
   AddCommand('g_spawn_invul', GameCVars);
   AddCommand('g_item_respawn_time', GameCVars);
   AddCommand('g_powerup_randomize_respawn', GameCVars);
-  AddCommand('g_powerup_time_multiplier', GameCVars);
+  AddCommand('g_powerup_respawn_time', GameCVars);
+  AddCommand('g_powerup_time_random', GameCVars);
   AddCommand('sv_intertime', GameCVars);
 
   AddCommand('sv_name', NetServerCVars);
@@ -1249,7 +1250,8 @@ begin
   WhitelistCommand('g_spawn_invul');
   WhitelistCommand('g_item_respawn_time');
   WhitelistCommand('g_powerup_randomize_respawn');
-  WhitelistCommand('g_powerup_time_multiplier');
+  WhitelistCommand('g_powerup_respawn_time');
+  WhitelistCommand('g_powerup_time_random');
 
   g_Console_ResetBinds;
   g_Console_ReadConfig(gConfigScript);
@@ -2238,7 +2240,8 @@ begin
   WriteLn(f, 'g_timelimit ', gsTimeLimit);
   WriteLn(f, 'g_maxlives ', gsMaxLives);
   WriteLn(f, 'g_item_respawn_time ', gsItemRespawnTime);
-  WriteLn(f, 'g_powerup_time_multiplier ', gsRulezTimeMultiplier);
+  WriteLn(f, 'g_powerup_respawn_time ', gsRulezRespawnTime);
+  WriteLn(f, 'g_powerup_time_random ', gsRulezRespawnRandom);
   WriteLn(f, 'g_spawn_invul ', gsSpawnInvul);
   WriteLn(f, 'g_warmup_time ', gsWarmupTime);
 
