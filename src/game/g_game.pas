@@ -6440,8 +6440,8 @@ begin
       if cmd = 'greenarmor' then begin plr.GiveItem(ITEM_ARMOR_GREEN); g_Console_Add('player got a security armor'); continue; end;
       if cmd = 'bluearmor' then begin plr.GiveItem(ITEM_ARMOR_BLUE); g_Console_Add('player got a combat armor'); continue; end;
 
-      if (cmd = 'megasphere') or (cmd = 'mega') then begin plr.GiveItem(ITEM_SPHERE_BLUE); g_Console_Add('player got a megasphere'); continue; end;
-      if (cmd = 'soulsphere') or (cmd = 'soul')then begin plr.GiveItem(ITEM_SPHERE_WHITE); g_Console_Add('player got a soul sphere'); continue; end;
+      if (cmd = 'soulsphere') or (cmd = 'soul') then begin plr.GiveItem(ITEM_SPHERE_BLUE); g_Console_Add('player got a soul sphere'); continue; end;
+      if (cmd = 'megasphere') or (cmd = 'mega') then begin plr.GiveItem(ITEM_SPHERE_WHITE); g_Console_Add('player got a megasphere'); continue; end;
 
       if (cmd = 'invul') or (cmd = 'invulnerability') then begin plr.GiveItem(ITEM_INVUL); g_Console_Add('player got invulnerability'); continue; end;
       if (cmd = 'invis') or (cmd = 'invisibility') then begin plr.GiveItem(ITEM_INVIS); g_Console_Add('player got invisibility'); continue; end;
