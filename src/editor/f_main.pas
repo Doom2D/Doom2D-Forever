@@ -407,8 +407,7 @@ const
 
 type
   TUndoRec = record
-    UndoType: Byte;
-    case Byte of
+    case UndoType: Byte of
       UNDO_DELETE_PANEL:   (Panel: ^TPanel);
       UNDO_DELETE_ITEM:    (Item: TItem);
       UNDO_DELETE_AREA:    (Area: TArea);
@@ -429,9 +428,8 @@ type
   end;
 
   TCopyRec = record
-    ObjectType: Byte;
     ID: Cardinal;
-    case Byte of
+    case ObjectType: Byte of
       OBJECT_PANEL: (Panel: ^TPanel);
       OBJECT_ITEM: (Item: TItem);
       OBJECT_AREA: (Area: TArea);
@@ -5715,7 +5713,7 @@ begin
     QuickSortCopyBuffer(0, b);
   end;
 
-// Пестановка ссылок триггеров:
+// Постановка ссылок триггеров:
   for a := 0 to Length(CopyBuffer)-1 do
     if CopyBuffer[a].ObjectType = OBJECT_TRIGGER then
     begin
