@@ -5820,21 +5820,25 @@ var
   swad, ssec, sres: String;
   NoTextureID: DWORD;
   pmin: TPoint;
+  xadj, yadj: LongInt;
 begin
   CopyBuffer := nil;
   NoTextureID := 0;
+
   pmin.X := High(pmin.X);
   pmin.Y := High(pmin.Y);
 
   StringToCopyBuffer(ClipBoard.AsText, CopyBuffer, pmin);
-  rel := not(ssShift in GetKeyShiftState());
-
   if CopyBuffer = nil then
     Exit;
 
+  rel := not(ssShift in GetKeyShiftState());
+  h := High(CopyBuffer);
   RemoveSelectFromObjects();
 
-  h := High(CopyBuffer);
+  xadj := -pmin.X - Floor((MapOffset.X - 32) / DotStep) * DotStep;
+  yadj := -pmin.Y - Floor((MapOffset.Y - 32) / DotStep) * DotStep;
+
   for a := 0 to h do
     with CopyBuffer[a] do
     begin
@@ -5844,8 +5848,8 @@ begin
           begin
             if rel then
             begin
-              Panel^.X := Panel^.X - pmin.X - MapOffset.X + 32;
-              Panel^.Y := Panel^.Y - pmin.Y - MapOffset.Y + 32;
+              Panel^.X += xadj;
+              Panel^.Y += yadj;
             end;
 
             Panel^.TextureID := TEXTURE_SPECIAL_NONE;
@@ -5903,8 +5907,8 @@ begin
           begin
             if rel then
             begin
-              Item.X := Item.X - pmin.X - MapOffset.X + 32;
-              Item.Y := Item.Y - pmin.Y - MapOffset.Y + 32;
+              Item.X += xadj;
+              Item.Y += yadj;
             end;
 
             ID := AddItem(Item);
@@ -5916,8 +5920,8 @@ begin
           begin
             if rel then
             begin
-              Monster.X := Monster.X - pmin.X - MapOffset.X + 32;
-              Monster.Y := Monster.Y - pmin.Y - MapOffset.Y + 32;
+              Monster.X += xadj;
+              Monster.Y += yadj;
             end;
 
             ID := AddMonster(Monster);
@@ -5929,8 +5933,8 @@ begin
           begin
             if rel then
             begin
-              Area.X := Area.X - pmin.X - MapOffset.X + 32;
-              Area.Y := Area.Y - pmin.Y - MapOffset.Y + 32;
+              Area.X += xadj;
+              Area.Y += yadj;
             end;
 
             ID := AddArea(Area);
@@ -5943,42 +5947,34 @@ begin
             if rel then
               with Trigger do
               begin
-                X := X - pmin.X - MapOffset.X + 32;
-                Y := Y - pmin.Y - MapOffset.Y + 32;
+                X += xadj;
+                Y += yadj;
 
                 case TriggerType of
                   TRIGGER_TELEPORT:
                     begin
-                      Data.TargetPoint.X :=
-                      Data.TargetPoint.X - pmin.X - MapOffset.X + 32;
-                      Data.TargetPoint.Y :=
-                      Data.TargetPoint.Y - pmin.Y - MapOffset.Y + 32;
+                      Data.TargetPoint.X += xadj;
+                      Data.TargetPoint.Y += yadj;
                     end;
                   TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF:
                     begin
-                      Data.tX := Data.tX - pmin.X - MapOffset.X + 32;
-                      Data.tY := Data.tY - pmin.Y - MapOffset.Y + 32;
+                      Data.tX += xadj;
+                      Data.tY += yadj;
                     end;
                   TRIGGER_SPAWNMONSTER:
                     begin
-                      Data.MonPos.X :=
-                      Data.MonPos.X - pmin.X - MapOffset.X + 32;
-                      Data.MonPos.Y :=
-                      Data.MonPos.Y - pmin.Y - MapOffset.Y + 32;
+                      Data.MonPos.X += xadj;
+                      Data.MonPos.Y += yadj;
                     end;
                   TRIGGER_SPAWNITEM:
                     begin
-                      Data.ItemPos.X :=
-                      Data.ItemPos.X - pmin.X - MapOffset.X + 32;
-                      Data.ItemPos.Y :=
-                      Data.ItemPos.Y - pmin.Y - MapOffset.Y + 32;
+                      Data.ItemPos.X += xadj;
+                      Data.ItemPos.Y += yadj;
                     end;
                   TRIGGER_SHOT:
                     begin
-                      Data.ShotPos.X :=
-                      Data.ShotPos.X - pmin.X - MapOffset.X + 32;
-                      Data.ShotPos.Y :=
-                      Data.ShotPos.Y - pmin.Y - MapOffset.Y + 32;
+                      Data.ShotPos.X += xadj;
+                      Data.ShotPos.Y += yadj;
                     end;
                 end;
               end;
