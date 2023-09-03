@@ -5836,8 +5836,16 @@ begin
   h := High(CopyBuffer);
   RemoveSelectFromObjects();
 
-  xadj := -pmin.X - Floor((MapOffset.X - 32) / DotStep) * DotStep;
-  yadj := -pmin.Y - Floor((MapOffset.Y - 32) / DotStep) * DotStep;
+  if h > 0 then
+  begin
+    xadj := -pmin.X - Floor((MapOffset.X - 32) / DotStep) * DotStep;
+    yadj := -pmin.Y - Floor((MapOffset.Y - 32) / DotStep) * DotStep;
+  end
+  else
+  begin
+    xadj := DotStep;
+    yadj := DotStep;
+  end;
 
   for a := 0 to h do
     with CopyBuffer[a] do
