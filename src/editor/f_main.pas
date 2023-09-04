@@ -4539,7 +4539,7 @@ begin
       end
     end;
 
-    if Key = Ord('V') then
+    if Key = Ord('I') then
     begin // Поворот монстров и областей:
       if (SelectedObjects <> nil) then
       begin
