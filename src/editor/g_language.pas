@@ -564,8 +564,6 @@ Interface
     MsgLabEsLanguageAuto = 'System Default';
 
     MsgCtrlEsFiles = 'Files';
-    MsgLabEsCompress = 'Compress archive when save';
-    MsgLabEsBackup = 'Make backup before save';
 
     MsgLabPackSaveTo = 'Save to:';
     MsgLabPackMapName = 'Map Resource Name:';
@@ -629,8 +627,8 @@ Interface
     MsgWadSpecialMap = '<MAP WAD-FILE>';
     MsgWadSpecialTexs = '<EXTRA TEXTURES>';
 
-    MsgFileFilterAll = 'Doom 2D: Forever Maps (*.dfz, *.dfzip, *.zip, *.wad)|*.dfz;*.dfzip;*.zip;*.wad|Doom 2D: Forever 0.30 Maps (*.ini)|*.ini|All Files (*.*)|*.*';
-    MsgFileFilterWad = 'Doom 2D: Forever Maps (*.dfz)|*.dfz|Doom 2D: Forever Maps (*.dfzip)|*.dfzip|Doom 2D: Forever Maps (*.zip)|*.zip|Doom 2D: Forever Maps (*.wad)|*.wad|All Files (*.*)|*.*';
+    MsgFileFilterAll = 'Doom 2D: Forever Maps (*.wad)|*.wad|Doom 2D: Forever 0.30 Maps (*.ini)|*.ini|All Files (*.*)|*.*';
+    MsgFileFilterWad = 'Doom 2D: Forever Maps (*.wad)|*.wad|All Files (*.*)|*.*';
     MsgFileFilterExeMac = 'Doom 2D Forever.app|*.app|Doom 2D Forever (Unix Executable)|Doom2DF;*';
     MsgFileFilterExeWin = 'Doom2DF.exe|Doom2DF.exe;*.exe';
     MsgFileFilterExeUnix = 'Doom2DF|Doom2DF;*';
@@ -1175,8 +1173,6 @@ begin
     LabelLanguage.Caption := MsgLabEsLanguage;
   // TabFiles:
     TabFiles.Caption := MsgCtrlEsFiles;
-    cbCompress.Caption := MsgLabEsCompress;
-    cbBackup.Caption := MsgLabEsBackup;
     LabelRecent.Caption := MsgLabEsRecent;
   // TabTesting:
     TabTesting.Caption := MsgCtrlEsTesting;

@@ -746,8 +746,8 @@ object MainForm: TMainForm
     end
   end
   object OpenDialog: TOpenDialog
-    DefaultExt = '.dfz'
-    Filter = 'Карты Doom 2D: Forever (*.dfz, *.dfzip, *.zip, *.wad)|*.dfz;*.dfzip;*.zip;*.wad|Старые карты Doom 2D: Forever 0.30 (*.ini)|*.ini|Все файлы (*.*)|*.*'
+    DefaultExt = '.wad'
+    Filter = 'Карты Doom 2D: Forever (*.wad)|*.wad|Старые карты Doom 2D: Forever (*.ini)|*.ini|Все файлы (*.*)|*.*'
     Options = [ofHideReadOnly, ofNoChangeDir, ofPathMustExist, ofFileMustExist, ofEnableSizing, ofDontAddToRecent]
     Left = 32
     Top = 64
@@ -890,8 +890,8 @@ object MainForm: TMainForm
     }
   end
   object SaveDialog: TSaveDialog
-    DefaultExt = '.dfz'
-    Filter = 'Карты Doom 2D: Forever (*.dfz)|*.dfz|Карты Doom 2D: Forever (*.dfzip)|*.dfzip|Карты Doom 2D: Forever (*.zip)|*.zip|Карты Doom 2D: Forever (*.wad)|*.wad|Все файлы (*.*)|*.*'
+    DefaultExt = '.wad'
+    Filter = 'Карты Doom 2D: Forever (*.wad)|*.wad|Все файлы (*.*)|*.*'
     Options = [ofHideReadOnly, ofNoChangeDir, ofPathMustExist, ofNoReadOnlyReturn, ofEnableSizing, ofDontAddToRecent]
     Left = 64
     Top = 64

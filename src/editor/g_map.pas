@@ -246,7 +246,7 @@ implementation
 
 uses
   BinEditor, g_textures, Dialogs, SysUtils, CONFIG, f_main,
-  Forms, Math, f_addresource_texture, WADEDITOR, g_language, g_resources, g_options;
+  Forms, Math, f_addresource_texture, WADEDITOR, g_language, g_options;
 
 const
   OLD_ITEM_MEDKIT_SMALL          = 1;
@@ -1053,6 +1053,7 @@ end;
 
 function SaveMap(Res: String): Pointer;
 var
+  WAD: TWADEditor_1;
   MapWriter: TMapWriter_1;
   textures: TTexturesRec1Array;
   panels: TPanelsRec1Array;
@@ -1070,6 +1071,7 @@ var
   Len: LongWord;
 
 begin
+  WAD := nil;
   textures := nil;
   panels := nil;
   items := nil;
@@ -1080,6 +1082,17 @@ begin
   MonsterTable := nil;
   Data := nil;
   Len := 0;
+
+// Открываем WAD, если надо:
+  if Res <> '' then
+  begin
+    WAD := TWADEditor_1.Create();
+    g_ProcessResourceStr(Res, FileName, SectionName, ResName);
+    if not WAD.ReadFile(FileName) then
+      WAD.FreeWAD();
+
+    WAD.CreateImage();
+  end;
 
   MapWriter := TMapWriter_1.Create();
 
@@ -1337,17 +1350,19 @@ begin
 
 // Записываем в WAD, если надо:
   if Res <> '' then
-  begin
-    g_ProcessResourceStr(Res, FileName, SectionName, ResName);
-    g_AddResource(FileName, SectionName, ResName, Data, Len, a);
-    ASSERT(a = 0);
-    FreeMem(Data);
-    Result := nil
-  end
+    begin
+      s := utf2win(ResName);
+      WAD.RemoveResource('', s);
+      WAD.AddResource(Data, Len, s, '');
+      WAD.SaveTo(FileName);
+
+      FreeMem(Data);
+      WAD.Free();
+
+      Result := nil;
+    end
   else
-  begin
-    Result := Data
-  end
+    Result := Data;
 end;
 
 procedure AddTexture(res: String; Error: Boolean);
@@ -1368,6 +1383,7 @@ end;
 
 function LoadMap(Res: String): Boolean;
 var
+  WAD: TWADEditor_1;
   MapReader: TMapReader_1;
   Header: TMapHeaderRec_1;
   textures: TTexturesRec1Array;
@@ -1407,10 +1423,24 @@ begin
   MainForm.lLoad.Caption := MsgLoadWad;
   Application.ProcessMessages();
 
-// Читаем ресурс карты
+// Открываем WAD:
+  WAD := TWADEditor_1.Create();
   g_ProcessResourceStr(Res, FileName, SectionName, ResName);
-  g_ReadResource(FileName, SectionName, ResName, pData, Len);
-  if pData = nil then Exit;
+
+  if not WAD.ReadFile(FileName) then
+  begin
+    WAD.Free();
+    Exit;
+  end;
+
+// Читаем ресурс карты:
+  if not WAD.GetResource('', utf2win(ResName), pData, Len) then
+  begin
+    WAD.Free();
+    Exit;
+  end;
+
+  WAD.Free();
 
   MapReader := TMapReader_1.Create();
 

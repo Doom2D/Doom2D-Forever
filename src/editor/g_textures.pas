@@ -28,7 +28,7 @@ procedure g_DeleteAllTextures();
 implementation
 
 uses
-  e_log, WADEDITOR, g_basic, SysUtils, g_resources;
+  e_log, WADEDITOR, g_basic, SysUtils;
 
 type
   _TTexture = record
@@ -65,26 +65,32 @@ begin
  end;
 end;
 
-function g_SimpleCreateTextureWAD (var ID: DWORD; Resource: string): Boolean;
-  var
-    TextureData: Pointer;
-    ResourceLength: Integer;
-    FileName, SectionName, ResourceName: string;
+function g_SimpleCreateTextureWAD(var ID: DWORD; Resource: string): Boolean;
+var
+  WAD: TWADEditor_1;
+  FileName,
+  SectionName,
+  ResourceName: string;
+  TextureData: Pointer;
+  ResourceLength: Integer;
 begin
-  Result := False;
-  g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
-  g_ReadResource(FileName, SectionName, ResourceName, TextureData, ResourceLength);
-  if TextureData <> nil then
-  begin
-    if e_CreateTextureMem(TextureData, ResourceLength, ID) then
-      Result := True;
-    FreeMem(TextureData)
-  end
+ Result := False;
+ g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
+
+ WAD := TWADEditor_1.Create;
+ WAD.ReadFile(FileName);
+
+ if WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), TextureData, ResourceLength) then
+ begin
+  if e_CreateTextureMem(TextureData, ResourceLength, ID) then Result := True;
+  FreeMem(TextureData);
+ end
   else
-  begin
-    e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING)
-    //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
-  end;
+ begin
+  e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
+  e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+ end;
+ WAD.Destroy;
 end;
 
 function g_CreateTextureMemorySize(pData: Pointer; dataLen: Integer; Name: ShortString; X, Y,
@@ -115,88 +121,108 @@ begin
 end;
 
 function g_CreateTextureWAD(TextureName: ShortString; Resource: string; flag: Byte = 0): Boolean;
-  var
-    TextureData: Pointer;
-    ResourceLength: Integer;
-    FileName, SectionName, ResourceName: string;
-    find_id: DWORD;
+var
+  WAD: TWADEditor_1;
+  FileName,
+  SectionName,
+  ResourceName: string;
+  TextureData: Pointer;
+  find_id: DWORD;
+  ResourceLength: Integer;
 begin
-   find_id := FindTexture;
-   g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
-   g_ReadResource(FileName, SectionName, ResourceName, TextureData, ResourceLength);
-   if TextureData <> nil then
-   begin
-     Result := e_CreateTextureMem(TextureData, ResourceLength, TexturesArray[find_id].ID);
-     FreeMem(TextureData);
-     if Result then
-     begin
-       e_GetTextureSize(
-         TexturesArray[find_id].ID,
-         @TexturesArray[find_id].Width,
-         @TexturesArray[find_id].Height
-       );
-       TexturesArray[find_id].Name := TextureName;
-       TexturesArray[find_id].flag := flag
-     end
-   end
-   else
-   begin
-     e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
-     //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
-     Result := False
-   end
-end;
+ g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
 
-function g_SimpleCreateTextureWADSize(var ID: DWORD; Resource: String; X, Y, Width, Height: Word): Boolean;
-  var
-    TextureData: Pointer;
-    ResourceLength: Integer;
-    FileName, SectionName, ResourceName: String;
-begin
-   Result := False;
-   g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
-   g_ReadResource(FileName, SectionName, ResourceName, TextureData, ResourceLength);
-   if TextureData <> nil then
-   begin
-     if e_CreateTextureMemEx(TextureData, ResourceLength, ID, X, Y, Width, Height) then
-       Result := True;
-     FreeMem(TextureData)
-   end
-   else
-   begin
-     e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING)
-     //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING)
-   end
-end;
+ find_id := FindTexture;
 
-function g_CreateTextureWADSize(TextureName: ShortString; Resource: String; X, Y, Width, Height: Word; flag: Byte = 0): Boolean;
-  var
-    TextureData: Pointer;
-    ResourceLength: Integer;
-    FileName, SectionName, ResourceName: String;
-    find_id: DWORD;
-begin
-  find_id := FindTexture;
-  g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
-  g_ReadResource(FileName, SectionName, ResourceName, TextureData, ResourceLength);
-  if TextureData <> nil then
+ WAD := TWADEditor_1.Create;
+ WAD.ReadFile(FileName);
+
+ if WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), TextureData, ResourceLength) then
+ begin
+  Result := e_CreateTextureMem(TextureData, ResourceLength, TexturesArray[find_id].ID);
+  FreeMem(TextureData);
+  if Result then
   begin
-    Result := e_CreateTextureMemEx(TextureData, ResourceLength, TexturesArray[find_id].ID, X, Y, Width, Height);
-    FreeMem(TextureData);
-    if Result then
-    begin
-      TexturesArray[find_id].Width := Width;
-      TexturesArray[find_id].Height := Height;
-      TexturesArray[find_id].Name := TextureName;
-      TexturesArray[find_id].flag := flag
-    end
-  end
+   e_GetTextureSize(TexturesArray[find_id].ID, @TexturesArray[find_id].Width,
+                    @TexturesArray[find_id].Height);
+   TexturesArray[find_id].Name := TextureName;
+   TexturesArray[find_id].flag := flag;
+  end;
+ end
   else
+ begin
+  e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
+  e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+  Result := False;
+ end;
+ WAD.Destroy;
+end;
+
+function g_SimpleCreateTextureWADSize(var ID: DWORD; Resource: string; X, Y, Width, Height: Word): Boolean;
+var
+  WAD: TWADEditor_1;
+  FileName,
+  SectionName,
+  ResourceName: String;
+  TextureData: Pointer;
+  ResourceLength: Integer;
+begin
+ Result := False;
+ g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
+
+ WAD := TWADEditor_1.Create;
+ WAD.ReadFile(FileName);
+
+ if WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), TextureData, ResourceLength) then
+ begin
+  if e_CreateTextureMemEx(TextureData, ResourceLength, ID, X, Y, Width, Height) then Result := True;
+  FreeMem(TextureData);
+ end
+  else
+ begin
+  e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
+  e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+ end;
+ WAD.Destroy;
+end;
+
+function g_CreateTextureWADSize(TextureName: ShortString; Resource: string;
+                                X, Y, Width, Height: Word; flag: Byte = 0): Boolean;
+var
+  WAD: TWADEditor_1;
+  FileName,
+  SectionName,
+  ResourceName: String;
+  TextureData: Pointer;
+  find_id: DWORD;
+  ResourceLength: Integer;
+begin
+ g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
+
+ find_id := FindTexture;
+
+ WAD := TWADEditor_1.Create;
+ WAD.ReadFile(FileName);
+
+ if WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), TextureData, ResourceLength) then
+ begin
+  Result := e_CreateTextureMemEx(TextureData, ResourceLength, TexturesArray[find_id].ID, X, Y, Width, Height);
+  FreeMem(TextureData);
+  if Result then
   begin
-    e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
-    //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
-    Result := False
-  end
+   TexturesArray[find_id].Width := Width;
+   TexturesArray[find_id].Height := Height;
+   TexturesArray[find_id].Name := TextureName;
+   TexturesArray[find_id].flag := flag;
+  end;
+ end
+  else
+ begin
+  e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
+  e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+  Result := False;
+ end;
+ WAD.Destroy;
 end;
 
 function g_GetTexture(TextureName: ShortString; var ID: DWORD): Boolean;

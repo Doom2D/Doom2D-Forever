@@ -31,7 +31,7 @@ var
 implementation
 
 uses
-  WADEDITOR, f_main, g_language, g_resources;
+  BinEditor, WADEDITOR, f_main, g_language;
 
 {$R *.lfm}
 
@@ -47,14 +47,23 @@ var
 
   TextureData:  Pointer;
   ImageSize:    Integer;
+  WAD:          TWADEditor_1;
   WADName:      String;
   SectionName:  String;
   ResourceName: String;
 
 begin
   Result := nil;
+
+// Загружаем ресурс текстуры из WAD:
   g_ProcessResourceStr(ResourceStr, WADName, SectionName, ResourceName);
-  g_ReadResource(WADName, SectionName, ResourceName, TextureData, ImageSize);
+
+  WAD := TWADEditor_1.Create();
+  WAD.ReadFile(WADName);
+
+  WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), TextureData, ImageSize);
+
+  WAD.Free();
 
   (* !!! copypaste from f_addresource_texture.CreateBitMap *)
 

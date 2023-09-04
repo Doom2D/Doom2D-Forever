@@ -53,7 +53,7 @@ implementation
 
 uses
   BinEditor, WADEDITOR, g_map, MAPREADER, MAPWRITER, MAPSTRUCT,
-  f_main, math, g_language, g_resources, g_options, e_log;
+  f_main, math, g_language, g_options, e_log;
 
 {$R *.lfm}
 
@@ -70,43 +70,66 @@ begin
     eWAD.Text := SaveDialog.FileName;
 end;
 
-function ProcessResource(wad_to, section_to, filename, section, resource: String): Boolean;
-  var
-    data: Pointer;
-    res, len: Integer;
-    us, un: String;
+function ProcessResource(wad_to: TWADEditor_1; section_to, filename, section, resource: String): Boolean;
+var
+  wad2: TWADEditor_1;
+  data: Pointer;
+  reslen: Integer;
+  //s: string;
+
 begin
-  Result := True;
+  Result := False;
+
   if filename = '' then
-    g_GetResourceSection(OpenedMap, filename, us, un)
+    g_ProcessResourceStr(OpenedMap, @filename, nil, nil)
   else
     filename := WadsDir + DirectorySeparator + filename;
-  e_WriteLog('ProcessResource: "' + wad_to + '" "' + section_to + '" "' + filename + '" "' + section + '" "' + resource + '"', MSG_NOTIFY);
 
-  if resource = '' then Exit;
+// Читаем ресурс из WAD-файла карты или какого-то другого:
+  wad2 := TWADEditor_1.Create();
 
-  g_ReadResource(filename, section, resource, data, len);
-  if data <> nil then
+  if not wad2.ReadFile(filename) then
   begin
-    (* Write resource only if it does not exists *)
-    g_ExistsResource(wad_to, section_to, resource, res);
-    if res <> 0 then
-    begin
-      g_AddResource(wad_to, section_to, resource, data, len, res);
-      ASSERT(res = 0)
-    end;
-    FreeMem(data);
-  end
-  else
+    Application.MessageBox(PChar(Format(MsgMsgWadError, [ExtractFileName(filename)])), PChar(MsgMsgError), MB_OK + MB_ICONERROR);
+    wad2.Free();
+    Exit;
+  end;
+
+  if not wad2.GetResource(utf2win(section), utf2win(resource), data, reslen) then
   begin
-    //Application.MessageBox(PChar(Format(MsgMsgWadError, [ExtractFileName(filename)])), PChar(MsgMsgError), MB_OK + MB_ICONERROR);
     Application.MessageBox(PChar(Format(MsgMsgResError, [filename, section, resource])), PChar(MsgMsgError), MB_OK + MB_ICONERROR);
-    Result := False
-  end
+    wad2.Free();
+    Exit;
+  end;
+
+  wad2.Free();
+
+ {if wad_to.HaveResource(utf2win(section_to), utf2win(resource)) then
+ begin
+  for a := 2 to 256 do
+  begin
+   s := IntToStr(a);
+   if not wad_to.HaveResource(utf2win(section_to), utf2win(resource+s)) then Break;
+  end;
+  resource := resource+s;
+ end;}
+
+// Если такого ресурса нет в WAD-файле-назначении, то копируем:
+  if not wad_to.HaveResource(utf2win(section_to), utf2win(resource)) then
+  begin
+    if not wad_to.HaveSection(utf2win(section_to)) then
+      wad_to.AddSection(utf2win(section_to));
+    wad_to.AddResource(data, reslen, utf2win(resource), utf2win(section_to));
+  end;
+
+  FreeMem(data);
+
+  Result := True;
 end;
 
 procedure TPackMapForm.bPackClick(Sender: TObject);
 var
+  WAD: TWADEditor_1;
   mr: TMapReader_1;
   mw: TMapWriter_1;
   data: Pointer;
@@ -131,8 +154,12 @@ begin
   if data = nil then
     Exit;
 
-  if not cbAdd.Checked then
-    g_DeleteFile(eWAD.Text, '.bak0');
+  WAD := TWADEditor_1.Create();
+
+// Не перезаписывать WAD, а дополнить:
+  if cbAdd.Checked then
+    if WAD.ReadFile(eWAD.Text) then
+      WAD.CreateImage();
 
 // Читаем карту из памяти:
   mr := TMapReader_1.Create();
@@ -150,7 +177,7 @@ begin
       if IsSpecialTexture(res) then
         Continue;
 
-      g_GetResourceSection(res, filename, section, resource);
+      g_ProcessResourceStr(res, @filename, @section, @resource);
 
     // Не записывать стандартные текстуры:
       if (not cbNonStandart.Checked) or
@@ -158,9 +185,10 @@ begin
            (AnsiLowerCase(filename) <> SHRSHADE_WAD) ) then
       begin
       // Копируем ресурс текстуры:
-        if not f_packmap.ProcessResource(eWAD.Text, tsection, filename, section, resource) then
+        if not f_packmap.ProcessResource(WAD, tsection, filename, section, resource) then
         begin
           mr.Free();
+          WAD.Free();
           Exit;
         end;
 
@@ -178,7 +206,7 @@ begin
   if cbSky.Checked then
   begin
     res := win2utf(header.SkyName);
-    g_GetResourceSection(res, filename, section, resource);
+    g_ProcessResourceStr(res, @filename, @section, @resource);
 
   // Не записывать стандартное небо:
     if (not cbNonStandart.Checked) or
@@ -186,9 +214,10 @@ begin
          (AnsiLowerCase(filename) <> SHRSHADE_WAD) ) then
     begin
     // Копируем ресурс неба:
-      if not f_packmap.ProcessResource(eWAD.Text, ssection, filename, section, resource) then
+      if not f_packmap.ProcessResource(WAD, ssection, filename, section, resource) then
       begin
         mr.Free();
+        WAD.Free();
         Exit;
       end;
 
@@ -203,7 +232,7 @@ begin
   if cbMusic.Checked then
   begin
     res := win2utf(header.MusicName);
-    g_GetResourceSection(res, filename, section, resource);
+    g_ProcessResourceStr(res, @filename, @section, @resource);
 
   // Не записывать стандартную музыку:
     if (not cbNonStandart.Checked) or
@@ -211,9 +240,10 @@ begin
          (AnsiLowerCase(filename) <> SHRSHADE_WAD) ) then
     begin
     // Копируем ресурс музыки:
-      if not f_packmap.ProcessResource(eWAD.Text, msection, filename, section, resource) then
+      if not f_packmap.ProcessResource(WAD, msection, filename, section, resource) then
       begin
         mr.Free();
+        WAD.Free();
         Exit;
       end;
 
@@ -263,7 +293,7 @@ begin
           if res = '' then
             Break;
 
-          g_GetResourceSection(res, @filename, @section, @resource);
+          g_ProcessResourceStr(res, @filename, @section, @resource);
 
         // Не записывать стандартные дополнительные текстуры:
           if (not cbNonStandart.Checked) or
@@ -271,7 +301,7 @@ begin
                (AnsiLowerCase(filename) <> SHRSHADE_WAD) ) then
           begin
           // Копируем ресурс дополнительной текстуры:
-            if f_packmap.ProcessResource(eWAD.Text, tsection, filename, section, resource) then
+            if f_packmap.ProcessResource(WAD, tsection, filename, section, resource) then
             begin
 
               Нужно проверять есть такая текстура textures и есть ли она вообще?
@@ -303,13 +333,15 @@ begin
 
 // Сохраняем карту из памяти под новым именем в WAD-файл:
   len := mw.SaveMap(data);
-  g_AddResource(eWAD.Text, '', eResource.Text, data, len, a);
+  WAD.AddResource(data, len, eResource.Text, '');
+  WAD.SaveTo(eWAD.Text);
+
   mw.Free();
   mr.Free();
-  Close();
+  WAD.Free();
 
-  ASSERT(a = 0); (* saved *)
   MessageDlg(Format(MsgMsgPacked, [eResource.Text, ExtractFileName(eWAD.Text)]), mtInformation, [mbOK], 0);
+  Close();
 end;
 
 procedure TPackMapForm.FormCreate(Sender: TObject);

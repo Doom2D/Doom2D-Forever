@@ -10,16 +10,11 @@ uses
   ExtCtrls, ComCtrls, ActnList, Spin, EditBtn, Registry, Math, Types;
 
 type
-
-  { TOptionsForm }
-
   TOptionsForm = class (TForm)
     bOK: TButton;
     bCancel: TButton;
     cbAllowExit: TCheckBox;
-    cbBackup: TCheckBox;
     cbCheckerboard: TCheckBox;
-    cbCompress: TCheckBox;
     cbLanguage: TComboBox;
     cbMapOnce: TCheckBox;
     cbMonstersDM: TCheckBox;
@@ -77,7 +72,7 @@ procedure RegisterFileType(ext: String; FileName: String);
 implementation
 
 uses
-  LazFileUtils, f_main, StdConvs, CONFIG, g_language, g_resources, g_options;
+  LazFileUtils, f_main, StdConvs, CONFIG, g_language, g_options;
 
 {$R *.lfm}
 
@@ -136,8 +131,6 @@ begin
   end;
 
   // Files Tab:
-  cbCompress.Checked := Compress;
-  cbBackup.Checked   := Backup;
   SpinEdit3.Value    := RecentCount;
 
   // Testing Tab:
@@ -194,8 +187,6 @@ begin
 
   // Files tab:
   re := SpinEdit3.Value;
-  Compress := cbCompress.Checked;
-  Backup := cbBackup.Checked;
 
   // Testing tab:
   TestD2DExe  := ExeEdit.Text;
@@ -240,8 +231,6 @@ begin
   config.WriteStr('Editor', 'Language', gLanguage);
 
   config.WriteInt('Editor', 'RecentCount', re);
-  config.WriteBool('Editor', 'Compress', Compress);
-  config.WriteBool('Editor', 'Backup', Backup);
 
   config.WriteStr('TestRun', 'GameMode', TestGameMode);
   config.WriteStr('TestRun', 'LimTime', TestLimTime);

@@ -49,48 +49,196 @@ implementation
 
 uses
   BinEditor, WADEDITOR, WADSTRUCT, f_main, g_textures, CONFIG, g_map,
-  g_language, e_Log, g_resources;
+  g_language;
 
 {$R *.lfm}
 
 function IsAnim(Res: String): Boolean;
-  var
-    data: Pointer;
-    len: Integer;
-    WADName, SectionName, ResourceName: String;
+var
+  WAD:          TWADEditor_1;
+  WADName:      String;
+  SectionName:  String;
+  ResourceName: String;
+  Data:         Pointer;
+  Size:         Integer;
+  Sign:         Array [0..4] of Char;
+  Sections,
+  Resources:    SArray;
+  a:            Integer;
+  ok:           Boolean;
+
 begin
+  Result := False;
+  Data := nil;
+  Size := 0;
+
+// Читаем файл и ресурс в нем:
   g_ProcessResourceStr(Res, WADName, SectionName, ResourceName);
-  (* just check file existance *)
-  g_ReadSubResource(WADName, SectionName, ResourceName, 'TEXT', 'ANIM', data, len);
-  (* TODO check section TEXTURES *)
-  Result := data <> nil;
-  if data <> nil then
-    FreeMem(data)
+
+  WAD := TWADEditor_1.Create();
+
+  if (not WAD.ReadFile(WADName)) or
+     (not WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), Data, Size)) then
+  begin
+    WAD.Free();
+    Exit;
+  end;
+
+  WAD.FreeWAD();
+
+// Проверка сигнатуры. Если есть - это WAD внутри WAD:
+  CopyMemory(@Sign[0], Data, 5);
+
+  if not (Sign = DFWAD_SIGNATURE) then
+  begin
+    WAD.Free();
+    FreeMem(Data);
+    Exit;
+  end;
+
+// Пробуем прочитать данные:
+  if not WAD.ReadMemory(Data, Size) then
+  begin
+    WAD.Free();
+    FreeMem(Data);
+    Exit;
+  end;
+
+  FreeMem(Data);
+
+// Читаем секции:
+  Sections := WAD.GetSectionList();
+
+  if Sections = nil then
+  begin
+    WAD.Free();
+    Exit;
+  end;
+
+// Ищем в секциях "TEXT":
+  ok := False;
+  for a := 0 to High(Sections) do
+    if Sections[a] = 'TEXT' then
+    begin
+      ok := True;
+      Break;
+    end;
+
+// Ищем в секциях лист текстур - "TEXTURES":
+  for a := 0 to High(Sections) do
+    if Sections[a] = 'TEXTURES' then
+    begin
+      ok := ok and True;
+      Break;
+    end;
+
+  if not ok then
+  begin
+    WAD.Free();
+    Exit;
+  end;
+
+// Получаем ресурсы секции "TEXT":
+  Resources := WAD.GetResourcesList('TEXT');
+
+  if Resources = nil then
+  begin
+    WAD.Free();
+    Exit;
+  end;
+
+// Ищем в них описание анимации - "ANIM":
+  ok := False;
+  for a := 0 to High(Resources) do
+    if Resources[a] = 'ANIM' then
+    begin
+      ok := True;
+      Break;
+    end;
+
+  WAD.Free();
+
+// Если все получилось, то это аним. текстура:
+  Result := ok;
 end;
 
-function GetFrame (Res: String; var Data: Pointer; var DataLen: Integer; var Width, Height: Word): Boolean;
-  var
-    Len: Integer;
-    TextData: Pointer;
-    WADName, SectionName, ResourceName: String;
-    config: TConfig;
+function GetFrame(Res: String; var Data: Pointer; var DataLen: Integer; var Width, Height: Word): Boolean;
+var
+  AnimWAD:      Pointer;
+  WAD:          TWADEditor_1;
+  WADName:      String;
+  SectionName:  String;
+  ResourceName: String;
+  Len:          Integer;
+  config:       TConfig;
+  TextData:     Pointer;
+
 begin
-  Result := False; Data := nil; DataLen := 0; Width := 0; Height := 0;
+  Result := False;
+  AnimWAD := nil;
+  Len := 0;
+  TextData := nil;
+
+// Читаем WAD:
   g_ProcessResourceStr(Res, WADName, SectionName, ResourceName);
-  g_ReadSubResource(WADName, SectionName, ResourceName, 'TEXT', 'ANIM', TextData, Len);
-  if TextData <> nil then
+
+  WAD := TWADEditor_1.Create();
+
+  if not WAD.ReadFile(WADName) then
   begin
-    config := TConfig.CreateMem(TextData, Len);
-    g_ReadSubResource(WADName, SectionName, ResourceName, 'TEXTURES', config.ReadStr('', 'resource', ''), Data, DataLen);
-    if Data <> nil then
-    begin
-      Height := config.ReadInt('', 'frameheight', 0);
-      Width := config.ReadInt('', 'framewidth', 0);
-      Result := True
-    end;
-    config.Free();
-    FreeMem(TextData)
-  end
+    WAD.Free();
+    Exit;
+  end;
+
+// Читаем WAD-ресурс из WAD:
+  if not WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), AnimWAD, Len) then
+  begin
+    WAD.Free();
+    Exit;
+  end;
+
+  WAD.FreeWAD();
+
+// Читаем WAD в WAD'е:
+  if not WAD.ReadMemory(AnimWAD, Len) then
+  begin
+    FreeMem(AnimWAD);
+    WAD.Free();
+    Exit;
+  end;
+
+// Читаем описание анимации:
+  if not WAD.GetResource('TEXT', 'ANIM', TextData, Len) then
+  begin
+    FreeMem(TextData);
+    FreeMem(AnimWAD);
+    WAD.Free();
+    Exit;
+  end;
+
+  config := TConfig.CreateMem(TextData, Len);
+
+// Читаем ресурс - лист текстур:
+  if not WAD.GetResource('TEXTURES', config.ReadStr('', 'resource', ''), Data, Len) then
+  begin
+    FreeMem(TextData);
+    FreeMem(AnimWAD);
+    WAD.Free();
+    Exit;
+  end;
+
+  DataLen := Len;
+
+  Height := config.ReadInt('', 'frameheight', 0);
+  Width := config.ReadInt('', 'framewidth', 0);
+
+  config.Free();
+  WAD.Free();
+
+  FreeMem(TextData);
+  FreeMem(AnimWAD);
+
+  Result := True;
 end;
 
 function CreateBitMap (Data: Pointer; DataSize: Cardinal): TBitMap;
@@ -144,44 +292,94 @@ begin
 end;
 
 function ShowAnim(Res: String): TBitMap;
-  var
-    Len: Integer;
-    TextData, TextureData: Pointer;
-    WADName, SectionName, ResourceName: String;
-    config: TConfig;
+var
+  AnimWAD:      Pointer;
+  WAD:          TWADEditor_1;
+  WADName:      String;
+  SectionName:  String;
+  ResourceName: String;
+  Len:          Integer;
+  config:       TConfig;
+  TextData:     Pointer;
+  TextureData:  Pointer;
+
 begin
   Result := nil;
+  AnimWAD := nil;
+  Len := 0;
+  TextData := nil;
+  TextureData := nil;
+
+// Читаем WAD файл и ресурс в нем:
   g_ProcessResourceStr(Res, WADName, SectionName, ResourceName);
-  g_ReadSubResource(WADName, SectionName, ResourceName, 'TEXT', 'ANIM', TextData, Len);
-  if TextData <> nil then
+
+  WAD := TWADEditor_1.Create();
+  WAD.ReadFile(WADName);
+  WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), AnimWAD, Len);
+  WAD.FreeWAD();
+
+// Читаем описание анимации:
+  WAD.ReadMemory(AnimWAD, Len);
+  WAD.GetResource('TEXT', 'ANIM', TextData, Len);
+
+  config := TConfig.CreateMem(TextData, Len);
+
+// Читаем лист текстур:
+  WAD.GetResource('TEXTURES', config.ReadStr('', 'resource', ''), TextureData, Len);
+  NumFrames := config.ReadInt('', 'framecount', 0);
+
+  if (TextureData <> nil) and
+     (WAD.GetLastError = DFWAD_NOERROR) then
   begin
-    config := TConfig.CreateMem(TextData, Len);
-    g_ReadSubResource(WADName, SectionName, ResourceName, 'TEXTURES', config.ReadStr('', 'resource', ''), TextureData, Len);
-    if TextureData <> nil then
-    begin
-      Result := CreateBitMap(TextureData, Len);
-      (* view only first frame *)
-      NumFrames := config.ReadInt('', 'framecount', 0);
-      Result.Height := config.ReadInt('', 'frameheight', 0);
-      Result.Width := config.ReadInt('', 'framewidth', 0);
-      FreeMem(TextureData)
-    end;
-    config.Free();
-    FreeMem(TextData)
-  end
+  // Создаем BitMap из листа текстур:
+    Result := CreateBitMap(TextureData, Len);
+
+  // Размеры одного кадра - виден только первый кадр:
+    Result.Height := config.ReadInt('', 'frameheight', 0);
+    Result.Width := config.ReadInt('', 'framewidth', 0);
+  end;
+
+  config.Free();
+  WAD.Free();
+
+  FreeMem(TextureData);
+  FreeMem(TextData);
+  FreeMem(AnimWAD);
 end;
 
 function ShowTGATexture(ResourceStr: String): TBitMap;
-  var
-    Len: Integer;
-    TextureData: Pointer;
-    WADName, SectionName, ResourceName: String;
+var
+  TextureData:  Pointer;
+  WAD:          TWADEditor_1;
+  WADName:      String;
+  SectionName:  String;
+  ResourceName: String;
+  Len:          Integer;
+
 begin
   Result := nil;
+  TextureData := nil;
+  Len := 0;
+
+// Читаем WAD:
   g_ProcessResourceStr(ResourceStr, WADName, SectionName, ResourceName);
-  g_ReadResource(WADName, SectionName, ResourceName, TextureData, Len);
-  if TextureData <> nil then
-    Result := CreateBitMap(TextureData, Len)
+
+  WAD := TWADEditor_1.Create();
+  if not WAD.ReadFile(WADName) then
+  begin
+    WAD.Free();
+    Exit;
+  end;
+
+// Читаем ресурс текстуры в нем:
+  WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), TextureData, Len);
+
+  WAD.Free();
+
+// Создаем на его основе BitMap:
+  Result := CreateBitMap(TextureData, Len);
+
+  FreeMem(TextureData);
 end;
 
 procedure TAddTextureForm.FormActivate(Sender: TObject);

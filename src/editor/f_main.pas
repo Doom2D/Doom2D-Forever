@@ -349,10 +349,10 @@ uses
   f_mapoptions, g_basic, f_about, f_mapoptimization,
   f_mapcheck, f_addresource_texture, g_textures,
   f_activationtype, f_keys, wadreader, fileutil,
-  MAPREADER, f_selectmap, f_savemap, WADEDITOR, MAPDEF,
+  MAPREADER, f_selectmap, f_savemap, WADEDITOR, WADSTRUCT, MAPDEF,
   g_map, f_saveminimap, f_addresource, CONFIG, f_packmap,
   f_addresource_sound, f_choosetype,
-  g_language, ClipBrd, g_resources, g_options;
+  g_language, ClipBrd, g_options;
 
 const
   UNDO_DELETE_PANEL   = 1;
@@ -2649,13 +2649,21 @@ var
   cwdt, chgt: Byte;
   spc: ShortInt;
   ID: DWORD;
+  wad: TWADEditor_1;
   cfgdata: Pointer;
   cfglen: Integer;
   config: TConfig;
 begin
+  cfgdata := nil;
+  cfglen := 0;
   ID := 0;
-  g_ReadResource(GameWad, 'FONTS', cfgres, cfgdata, cfglen);
-  if cfgdata <> nil then
+
+  wad := TWADEditor_1.Create;
+  if wad.ReadFile(GameWad) then
+    wad.GetResource('FONTS', cfgres, cfgdata, cfglen);
+  wad.Free();
+
+  if cfglen <> 0 then
   begin
     if not g_CreateTextureWAD('FONT_STD', GameWad + ':FONTS\' + texture) then
       e_WriteLog('ERROR ERROR ERROR', MSG_WARNING);
@@ -2666,15 +2674,14 @@ begin
     spc := Min(Max(config.ReadInt('FontMap', 'Kerning', 0), -128), 127);
 
     if g_GetTexture('FONT_STD', ID) then
-      e_TextureFontBuild(ID, FontID, cwdt, chgt, spc - 2);
+      e_TextureFontBuild(ID, FontID, cwdt, chgt, spc-2);
 
     config.Free();
-    FreeMem(cfgdata)
   end
   else
-  begin
-    e_WriteLog('Could not load FONT_STD', MSG_WARNING)
-  end
+    e_WriteLog('Could not load FONT_STD', MSG_WARNING);
+
+  if cfglen <> 0 then FreeMem(cfgdata);
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
@@ -2821,9 +2828,6 @@ begin
 
   s := config.ReadStr('Editor', 'Language', '');
   gLanguage := s;
-
-  Compress := config.ReadBool('Editor', 'Compress', True);
-  Backup := config.ReadBool('Editor', 'Backup', True);
 
   TestGameMode := config.ReadStr('TestRun', 'GameMode', 'DM');
   TestLimTime := config.ReadStr('TestRun', 'LimTime', '0');
@@ -6394,47 +6398,65 @@ end;
 
 procedure TMainForm.aDeleteMap(Sender: TObject);
 var
-  res: Integer;
-  FileName: String;
-  MapName: String;
+  WAD: TWADEditor_1;
+  MapList: SArray;
+  MapName: Char16;
+  a: Integer;
+  str: String;
 begin
   OpenDialog.Filter := MsgFileFilterWad;
 
   if not OpenDialog.Execute() then
     Exit;
 
-  FileName := OpenDialog.FileName;
-  SelectMapForm.Caption := MsgCapRemove;
-  SelectMapForm.lbMapList.Items.Clear();
-  SelectMapForm.GetMaps(FileName);
+  WAD := TWADEditor_1.Create();
 
-  if SelectMapForm.ShowModal() <> mrOK then
-    Exit;
-
-  MapName := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
-  if Application.MessageBox(PChar(Format(MsgMsgDeleteMapPrompt, [MapName, OpenDialog.FileName])), PChar(MsgMsgDeleteMap), MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON2) <> mrYes then
-    Exit;
-
-  g_DeleteResource(FileName, '', MapName, res);
-  if res <> 0 then
+  if not WAD.ReadFile(OpenDialog.FileName) then
   begin
-    Application.MessageBox(PChar('Cant delete map res=' + IntToStr(res)), PChar('Map not deleted!'), MB_ICONINFORMATION or MB_OK or MB_DEFBUTTON1);
-    Exit
+    WAD.Free();
+    Exit;
   end;
 
-  Application.MessageBox(
-    PChar(Format(MsgMsgMapDeletedPrompt, [MapName])),
-    PChar(MsgMsgMapDeleted),
-    MB_ICONINFORMATION or MB_OK or MB_DEFBUTTON1
-  );
+  WAD.CreateImage();
+
+  MapList := WAD.GetResourcesList('');
+
+  SelectMapForm.Caption := MsgCapRemove;
+  SelectMapForm.lbMapList.Items.Clear();
+
+  if MapList <> nil then
+    for a := 0 to High(MapList) do
+      SelectMapForm.lbMapList.Items.Add(win2utf(MapList[a]));
+
+  if (SelectMapForm.ShowModal() = mrOK) then
+  begin
+    str := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
+    MapName := '';
+    Move(str[1], MapName[0], Min(16, Length(str)));
+
+    if Application.MessageBox(PChar(Format(MsgMsgDeleteMapPrompt, [MapName, OpenDialog.FileName])), PChar(MsgMsgDeleteMap), MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON2) <> mrYes then
+      Exit;
+
+    WAD.RemoveResource('', utf2win(MapName));
+
+    Application.MessageBox(
+      PChar(Format(MsgMsgMapDeletedPrompt, [MapName])),
+      PChar(MsgMsgMapDeleted),
+      MB_ICONINFORMATION or MB_OK or MB_DEFBUTTON1
+    );
+
+    WAD.SaveTo(OpenDialog.FileName);
 
   // Удалили текущую карту - сохранять по старому ее нельзя:
-  if OpenedMap = (FileName + ':\' + MapName) then
-  begin
-    OpenedMap := '';
-    OpenedWAD := '';
-    MainForm.Caption := FormCaption
-  end
+    if OpenedMap = (OpenDialog.FileName+':\'+MapName) then
+    begin
+      OpenedMap := '';
+      OpenedWAD := '';
+      MainForm.Caption := FormCaption;
+    end;
+  end;
+
+  WAD.Free();
 end;
 
 procedure TMainForm.vleObjectPropertyKeyDown(Sender: TObject;
