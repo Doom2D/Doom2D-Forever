@@ -2568,7 +2568,7 @@ begin
     OpenMap(fn, g_ExtractFilePathName(s))
   else
     Application.MessageBox('', 'File not available anymore', MB_OK);
-//  if Application.MessageBox(PChar(MsgMsgDelRecentPromt), PChar(MsgMsgDelRecent), MB_ICONQUESTION or MB_YESNO) = idYes then
+//  if Application.MessageBox(PChar(MsgMsgDelRecentPrompt), PChar(MsgMsgDelRecent), MB_ICONQUESTION or MB_YESNO) = idYes then
 //  begin
 //    RecentFiles.Delete(n);
 //    RefreshRecentMenu();
@@ -4352,7 +4352,7 @@ end;
 
 procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
-  CanClose := Application.MessageBox(PChar(MsgMsgExitPromt),
+  CanClose := Application.MessageBox(PChar(MsgMsgExitPrompt),
                          PChar(MsgMsgExit),
                          MB_ICONQUESTION or MB_YESNO or
                          MB_DEFBUTTON1) = idYes;
@@ -4891,7 +4891,7 @@ begin
   if OpenedMap = '' then
     Exit;
 
-  if Application.MessageBox(PChar(MsgMsgReopenMapPromt),
+  if Application.MessageBox(PChar(MsgMsgReopenMapPrompt),
   PChar(MsgMenuFileReopen), MB_ICONQUESTION or MB_YESNO) <> idYes then
     Exit;
 
@@ -5521,7 +5521,7 @@ begin
   if i = -1 then
     Exit;
 
-  if Application.MessageBox(PChar(Format(MsgMsgDelTexturePromt,
+  if Application.MessageBox(PChar(Format(MsgMsgDelTexturePrompt,
                                 [SelectedTexture()])),
                 PChar(MsgMsgDelTexture),
                 MB_ICONQUESTION or MB_YESNO or
@@ -5547,7 +5547,7 @@ end;
 
 procedure TMainForm.aNewMapExecute(Sender: TObject);
 begin
-  if Application.MessageBox(PChar(MsgMsgClearMapPromt), PChar(MsgMsgClearMap), MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON1) = mrYes then
+  if Application.MessageBox(PChar(MsgMsgClearMapPrompt), PChar(MsgMsgClearMap), MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON1) = mrYes then
     FullClear();
 end;
 
@@ -6412,7 +6412,7 @@ begin
     Exit;
 
   MapName := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
-  if Application.MessageBox(PChar(Format(MsgMsgDeleteMapPromt, [MapName, OpenDialog.FileName])), PChar(MsgMsgDeleteMap), MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON2) <> mrYes then
+  if Application.MessageBox(PChar(Format(MsgMsgDeleteMapPrompt, [MapName, OpenDialog.FileName])), PChar(MsgMsgDeleteMap), MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON2) <> mrYes then
     Exit;
 
   g_DeleteResource(FileName, '', MapName, res);
@@ -6423,7 +6423,7 @@ begin
   end;
 
   Application.MessageBox(
-    PChar(Format(MsgMsgMapDeletedPromt, [MapName])),
+    PChar(Format(MsgMsgMapDeletedPrompt, [MapName])),
     PChar(MsgMsgMapDeleted),
     MB_ICONINFORMATION or MB_OK or MB_DEFBUTTON1
   );
