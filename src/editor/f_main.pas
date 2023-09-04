@@ -215,6 +215,7 @@ type
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormResize(Sender: TObject);
     procedure FormWindowStateChange(Sender: TObject);
+    procedure miRecentFileExecute(Sender: TObject);
     procedure miMacRecentClearClick(Sender: TObject);
     procedure miMacZoomClick(Sender: TObject);
     procedure lbTextureListClick(Sender: TObject);
@@ -2557,29 +2558,14 @@ end;
 //Закончились вспомогательные процедуры
 //----------------------------------------
 
-type
-  TRecentHandler = class
-    private
-      FForm: TMainForm;
-      FPath: String;
-    public
-      constructor Create (form: TMainForm; path: String);
-      procedure Execute (Sender: TObject);
-  end;
-
-constructor TRecentHandler.Create (form: TMainForm; path: String);
+procedure TMainForm.miRecentFileExecute (Sender: TObject);
+var
+  s, fn: AnsiString;
 begin
-  Assert(form <> nil);
-  FForm := form;
-  FPath := path;
-end;
-
-procedure TRecentHandler.Execute (Sender: TObject);
-  var fn: AnsiString;
-begin
-  fn := g_ExtractWadName(FPath);
+  s := RecentFiles[(Sender as TMenuItem).Tag];
+  fn := g_ExtractWadName(s);
   if FileExists(fn) then
-    OpenMap(fn, g_ExtractFilePathName(FPath))
+    OpenMap(fn, g_ExtractFilePathName(s))
   else
     Application.MessageBox('', 'File not available anymore', MB_OK);
 //  if Application.MessageBox(PChar(MsgMsgDelRecentPromt), PChar(MsgMsgDelRecent), MB_ICONQUESTION or MB_YESNO) = idYes then
@@ -2590,40 +2576,35 @@ begin
 end;
 
 procedure TMainForm.RefillRecentMenu (menu: TMenuItem; start: Integer; fmt: AnsiString);
-  var i: Integer; MI: TMenuItem; cb: TMethod; h: TRecentHandler; s: AnsiString;
+  var i: Integer; MI: TMenuItem; s: AnsiString;
 begin
   Assert(menu <> nil);
   Assert(start >= 0);
   Assert(start <= menu.Count);
 
-  // clear all recent entries from menu
+  // clear all the recent entries from menu
   i := start;
   while i < menu.Count do
   begin
     MI := menu.Items[i];
-    cb := TMethod(MI.OnClick);
-    if cb.Code = @TRecentHandler.Execute then
-    begin
-      // this is recent menu entry
-      // remove it and free callback handler
-      h := TRecentHandler(cb.Data);
-      menu.Delete(i);
-      MI.Free();
-      h.Free();
-    end
+    if @MI.OnClick <> @TMainForm.miRecentFileExecute then
+      i += 1
     else
-      Inc(i);
+    begin
+      menu.Delete(i);
+      MI.Destroy();
+    end;
   end;
 
   // fill with a new ones
-  for i := 0 to RecentFiles.Count - 1 do
+  for i := 0 to RecentFiles.Count-1 do
   begin
-    s := RecentFiles[i];
-    h := TRecentHandler.Create(self, s);
     MI := TMenuItem.Create(menu);
-    MI.Caption := Format(fmt, [i + 1, g_ExtractWadNameNoPath(s), g_ExtractFilePathName(s)]);
-    MI.OnClick := h.Execute;
-    menu.Insert(start + i, MI);
+    s := RecentFiles[i];
+    MI.Caption := Format(fmt, [i+1, g_ExtractWadNameNoPath(s), g_ExtractFilePathName(s)]);
+    MI.OnClick := miRecentFileExecute;
+    MI.Tag := i;
+    menu.Insert(start + i, MI);  // transfers ownership
   end;
 end;
 
@@ -2645,7 +2626,7 @@ begin
   begin
     // Reconstruct Windows-like recent list
     start := miMenuFile.IndexOf(miWinRecent);
-    if start < 0 then start := miMenuFile.Count else start := start + 1;
+    if start < 0 then start := miMenuFile.Count else start += 1;
     RefillRecentMenu(miMenuFile, start, '%0:d %1:s:%2:s');
     miWinRecent.Enabled := False;
     miWinRecent.Visible := RecentFiles.Count = 0;
