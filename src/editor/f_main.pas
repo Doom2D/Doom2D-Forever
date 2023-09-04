@@ -5836,8 +5836,8 @@ begin
 
   if h > 0 then
   begin
-    xadj := -pmin.X - Floor((MapOffset.X - 32) / DotStep) * DotStep;
-    yadj := -pmin.Y - Floor((MapOffset.Y - 32) / DotStep) * DotStep;
+    xadj := Floor((-pmin.X - MapOffset.X + 32) / DotStep) * DotStep;
+    yadj := Floor((-pmin.Y - MapOffset.Y + 32) / DotStep) * DotStep;
   end
   else
   begin
