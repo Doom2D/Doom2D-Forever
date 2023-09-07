@@ -150,7 +150,7 @@ begin
   msection := eMSection.Text;
 
 // Сохраняем карту в память:
-  data := SaveMap('');
+  data := SaveMap('', '');
   if data = nil then
     Exit;
 

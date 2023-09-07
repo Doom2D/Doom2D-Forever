@@ -16,6 +16,8 @@ uses
   MAPWRITER in '../shared/MAPWRITER.pas',
   MAPDEF in '../shared/MAPDEF.pas',
   WADEDITOR in '../shared/WADEDITOR.pas',
+  WADEDITOR_dfwad in '../shared/WADEDITOR_dfwad.pas',
+  WADEDITOR_dfzip in '../shared/WADEDITOR_dfzip.pas',
   WADSTRUCT in '../shared/WADSTRUCT.pas',
   CONFIG in '../shared/CONFIG.pas',
   f_about in 'f_about.pas' {AboutForm},

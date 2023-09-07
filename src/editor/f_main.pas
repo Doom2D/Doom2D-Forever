@@ -6351,7 +6351,7 @@ begin
 
   g_ProcessResourceStr(OpenedMap, FileName, Section, Res);
 
-  SaveMap(FileName+':\'+Res);
+  SaveMap(FileName+':\'+Res, '');
 end;
 
 procedure TMainForm.aOpenMapExecute(Sender: TObject);
@@ -6607,35 +6607,59 @@ begin
 end;
 
 procedure TMainForm.aSaveMapAsExecute(Sender: TObject);
-var
-  idx: Integer;
+  var i, idx: Integer; list: TStringList; fmt: String;
 begin
-  SaveDialog.Filter := MsgFileFilterWad;
+  list := TStringList.Create();
 
-  if not SaveDialog.Execute() then
-    Exit;
+  // TODO: get loclized strings automatically from language files
+  SaveDialog.DefaultExt := '.dfz';
+  SaveDialog.FilterIndex := 1;
+  SaveDialog.Filter := '';
+  gWADEditorFactory.GetRegistredEditors(list);
+  for i := 0 to list.Count - 1 do
+  begin
+    if list[i] = 'DFZIP' then
+      SaveDialog.FilterIndex := i + 1;
 
-  SaveMapForm.GetMaps(SaveDialog.FileName, True);
+    if i <> 0 then
+      SaveDialog.Filter := SaveDialog.Filter + '|';
 
-  if SaveMapForm.ShowModal() <> mrOK then
-    Exit;
+    if list[i] = 'DFWAD' then
+      SaveDialog.Filter := SaveDialog.Filter + MsgFileFilterSaveDFWAD
+    else if list[i] = 'DFZIP' then
+      SaveDialog.Filter := SaveDialog.Filter + MsgFileFilterSaveDFZIP
+    else
+      SaveDialog.Filter := SaveDialog.Filter + list[i] + '|*.*';
+  end;
 
-  SaveDialog.InitialDir := ExtractFileDir(SaveDialog.FileName);
-  OpenedMap := SaveDialog.FileName+':\'+SaveMapForm.eMapName.Text;
-  OpenedWAD := SaveDialog.FileName;
+  if SaveDialog.Execute() then
+  begin
+    i := SaveDialog.FilterIndex - 1;
+    if (i >= 0) and (i < list.Count) then fmt := list[i] else fmt := '';
 
-  idx := RecentFiles.IndexOf(OpenedMap);
-// Такая карта уже недавно открывалась:
-  if idx >= 0 then
-    RecentFiles.Delete(idx);
-  RecentFiles.Insert(0, OpenedMap);
-  RefreshRecentMenu;
+    SaveMapForm.GetMaps(SaveDialog.FileName, True, fmt);
+    if SaveMapForm.ShowModal() = mrOK then
+    begin
+      SaveDialog.InitialDir := ExtractFileDir(SaveDialog.FileName);
+      OpenedMap := SaveDialog.FileName+':\'+SaveMapForm.eMapName.Text;
+      OpenedWAD := SaveDialog.FileName;
 
-  SaveMap(OpenedMap);
+      idx := RecentFiles.IndexOf(OpenedMap);
+      // Такая карта уже недавно открывалась:
+      if idx >= 0 then
+        RecentFiles.Delete(idx);
+      RecentFiles.Insert(0, OpenedMap);
+      RefreshRecentMenu;
 
-  gMapInfo.FileName := SaveDialog.FileName;
-  gMapInfo.MapName := SaveMapForm.eMapName.Text;
-  UpdateCaption(gMapInfo.Name, ExtractFileName(gMapInfo.FileName), gMapInfo.MapName);
+      SaveMap(OpenedMap, fmt);
+
+      gMapInfo.FileName := SaveDialog.FileName;
+      gMapInfo.MapName := SaveMapForm.eMapName.Text;
+      UpdateCaption(gMapInfo.Name, ExtractFileName(gMapInfo.FileName), gMapInfo.MapName);
+    end;
+  end;
+
+  list.Free();
 end;
 
 procedure TMainForm.aSelectAllExecute(Sender: TObject);
@@ -6929,7 +6953,7 @@ begin
     newWad := newWad + '.wad'
   end;
   tempMap := newWAD + ':\' + TEST_MAP_NAME;
-  SaveMap(tempMap);
+  SaveMap(tempMap, '');
 
 // Опции игры:
   opt := 32 + 64;

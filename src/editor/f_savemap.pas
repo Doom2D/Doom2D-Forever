@@ -17,7 +17,7 @@ type
     Panel2: TPanel;
     eMapName: TEdit;
 
-    procedure GetMaps(FileName: String; placeName: Boolean);
+    procedure GetMaps(FileName: String; placeName: Boolean; ArchiveFormat: String);
     procedure FormActivate(Sender: TObject);
     procedure eMapNameChange(Sender: TObject);
     procedure lbMapListClick(Sender: TObject);
@@ -84,9 +84,9 @@ begin
     SaveMapForm.ModalResult := mrCancel;
 end;
 
-procedure TSaveMapForm.GetMaps(FileName: String; placeName: Boolean);
+procedure TSaveMapForm.GetMaps(FileName: String; placeName: Boolean; ArchiveFormat: String);
 var
-  WAD: TWADEditor_1;
+  WAD: TWADEditor;
   a, max_num, j: Integer;
   ResList: SArray;
   Data: Pointer;
@@ -98,8 +98,21 @@ begin
   lbMapList.Items.Clear();
   max_num := 1;
 
-  WAD := TWADEditor_1.Create();
-  WAD.ReadFile(FileName);
+  if ArchiveFormat = '' then
+  begin
+    // format not specified -> try open automatically and append to it (or create new default)
+    WAD := gWADEditorFactory.OpenFile(FileName);
+    if WAD = nil then
+      WAD := gWADEditorFactory.CreateDefaultEditor();
+  end
+  else
+  begin
+    // format specified -> appned using exactly this format (overwrite if not compatible)
+    WAD := gWADEditorFactory.CreateEditor(ArchiveFormat);
+    if WAD.ReadFile(FileName) = False then
+      WAD.FreeWAD();
+  end;
+
   ResList := WAD.GetResourcesList('');
 
   if ResList <> nil then

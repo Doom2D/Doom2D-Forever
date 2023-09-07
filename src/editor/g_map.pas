@@ -233,7 +233,7 @@ function  IsSpecialTexture(TextureName: String): Boolean;
 function  SpecialTextureID(TextureName: String): DWORD;
 
 procedure ClearMap();
-function  SaveMap(Res: String): Pointer;
+function  SaveMap(Res, ArchiveFormat: String): Pointer;
 function  LoadMap(Res: String): Boolean;
 function  LoadMapOld(_FileName: String): Boolean;
 procedure DrawMap();
@@ -1051,9 +1051,9 @@ begin
         Result := TEXTURE_SPECIAL_ACID2;
 end;
 
-function SaveMap(Res: String): Pointer;
+function SaveMap(Res, ArchiveFormat: String): Pointer;
 var
-  WAD: TWADEditor_1;
+  WAD: TWADEditor;
   MapWriter: TMapWriter_1;
   textures: TTexturesRec1Array;
   panels: TPanelsRec1Array;
@@ -1086,11 +1086,22 @@ begin
 // Открываем WAD, если надо:
   if Res <> '' then
   begin
-    WAD := TWADEditor_1.Create();
     g_ProcessResourceStr(Res, FileName, SectionName, ResName);
-    if not WAD.ReadFile(FileName) then
-      WAD.FreeWAD();
 
+    if ArchiveFormat = '' then
+    begin
+      // format not specified -> try open automatically and append to it (or create new default)
+      WAD := gWADEditorFactory.OpenFile(FileName);
+      if WAD = nil then
+        WAD := gWADEditorFactory.CreateDefaultEditor();
+    end
+    else
+    begin
+      // format specified -> appned using exactly this format (overwrite if not compatible)
+      WAD := gWADEditorFactory.CreateEditor(ArchiveFormat);
+      if WAD.ReadFile(FileName) = False then
+        WAD.FreeWAD();
+    end;
     WAD.CreateImage();
   end;
 

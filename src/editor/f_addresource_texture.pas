@@ -61,7 +61,6 @@ var
   ResourceName: String;
   Data:         Pointer;
   Size:         Integer;
-  Sign:         Array [0..4] of Char;
   Sections,
   Resources:    SArray;
   a:            Integer;
@@ -85,16 +84,6 @@ begin
   end;
 
   WAD.FreeWAD();
-
-// Проверка сигнатуры. Если есть - это WAD внутри WAD:
-  CopyMemory(@Sign[0], Data, 5);
-
-  if not (Sign = DFWAD_SIGNATURE) then
-  begin
-    WAD.Free();
-    FreeMem(Data);
-    Exit;
-  end;
 
 // Пробуем прочитать данные:
   if not WAD.ReadMemory(Data, Size) then

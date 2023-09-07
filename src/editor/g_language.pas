@@ -627,8 +627,10 @@ Interface
     MsgWadSpecialMap = '<MAP WAD-FILE>';
     MsgWadSpecialTexs = '<EXTRA TEXTURES>';
 
-    MsgFileFilterAll = 'Doom 2D: Forever Maps (*.wad)|*.wad|Doom 2D: Forever 0.30 Maps (*.ini)|*.ini|All Files (*.*)|*.*';
-    MsgFileFilterWad = 'Doom 2D: Forever Maps (*.wad)|*.wad|All Files (*.*)|*.*';
+    MsgFileFilterSaveDFWAD = 'DFWAD Packed Doom 2D: Forever Maps (*.wad)|*.wad';
+    MsgFileFilterSaveDFZIP = 'DFZIP Packed Doom 2D: Forever Maps (*.dfz)|*.dfz';
+    MsgFileFilterAll = 'Doom 2D: Forever Maps (*.dfz, *.wad)|*.wad;*.dfz|Doom 2D: Forever 0.30 Maps (*.ini)|*.ini|All Files (*.*)|*.*';
+    MsgFileFilterWad = 'Doom 2D: Forever Maps (*.dfz, *.wad)|*.wad;*.dfz|All Files (*.*)|*.*';
     MsgFileFilterExeMac = 'Doom 2D Forever.app|*.app|Doom 2D Forever (Unix Executable)|Doom2DF;*';
     MsgFileFilterExeWin = 'Doom2DF.exe|Doom2DF.exe;*.exe';
     MsgFileFilterExeUnix = 'Doom2DF|Doom2DF;*';
