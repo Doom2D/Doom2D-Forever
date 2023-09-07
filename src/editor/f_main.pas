@@ -2370,10 +2370,10 @@ begin
   Result := Res;
 end;
 
-procedure StringToCopyBuffer(Str: String; var CopyBuf: TCopyRecArray;
-  var pmin: TPoint);
+procedure StringToCopyBuffer(Str: String; var CopyBuf: TCopyRecArray; var pmin: TPoint);
 var
   i, j, t: Integer;
+  minArea, newArea, newX, newY: LongInt;
 
   function GetNext(): String;
   var
@@ -2416,6 +2416,7 @@ var
   end;
 
 begin
+  minArea := High(minArea);
   Str := Trim(Str);
 
   if GetNext() <> CLIPBOARD_SIG then
@@ -2426,8 +2427,7 @@ begin
   // Тип объекта:
     t := StrToIntDef(GetNext(), 0);
 
-    if (t < OBJECT_PANEL) or (t > OBJECT_TRIGGER) or
-       (GetNext() <> ';') then
+    if (t < OBJECT_PANEL) or (t > OBJECT_TRIGGER) or (GetNext() <> ';') then
     begin // Что-то не то => пропускаем:
       t := Pos(';', Str);
       Delete(Str, 1, t);
@@ -2453,13 +2453,14 @@ begin
             PanelType := StrToIntDef(GetNext(), PANEL_WALL);
             X := StrToIntDef(GetNext(), 0);
             Y := StrToIntDef(GetNext(), 0);
-            pmin.X := Min(X, pmin.X);
-            pmin.Y := Min(Y, pmin.Y);
             Width := StrToIntDef(GetNext(), 16);
             Height := StrToIntDef(GetNext(), 16);
             TextureName := GetNext();
             Alpha := StrToIntDef(GetNext(), 0);
             Blending := (GetNext() = '1');
+            newArea := X * Y - Width * Height;
+            newX := X;
+            newY := Y;
           end;
         end;
 
@@ -2469,10 +2470,11 @@ begin
           ItemType := StrToIntDef(GetNext(), ITEM_MEDKIT_SMALL);
           X := StrToIntDef(GetNext(), 0);
           Y := StrToIntDef(GetNext(), 0);
-          pmin.X := Min(X, pmin.X);
-          pmin.Y := Min(Y, pmin.Y);
           OnlyDM := (GetNext() = '1');
           Fall := (GetNext() = '1');
+          newArea := X * Y;
+          newX := X;
+          newY := Y;
         end;
 
       OBJECT_MONSTER:
@@ -2481,13 +2483,12 @@ begin
           MonsterType := StrToIntDef(GetNext(), MONSTER_DEMON);
           X := StrToIntDef(GetNext(), 0);
           Y := StrToIntDef(GetNext(), 0);
-          pmin.X := Min(X, pmin.X);
-          pmin.Y := Min(Y, pmin.Y);
-
-          if GetNext() = '1' then
-            Direction := D_LEFT
-          else
-            Direction := D_RIGHT;
+          if GetNext() = '1'
+            then Direction := D_LEFT
+            else Direction := D_RIGHT;
+          newArea := X * Y;
+          newX := X;
+          newY := Y;
         end;
 
       OBJECT_AREA:
@@ -2496,12 +2497,12 @@ begin
           AreaType := StrToIntDef(GetNext(), AREA_PLAYERPOINT1);
           X := StrToIntDef(GetNext(), 0);
           Y := StrToIntDef(GetNext(), 0);
-          pmin.X := Min(X, pmin.X);
-          pmin.Y := Min(Y, pmin.Y);
-          if GetNext() = '1' then
-            Direction := D_LEFT
-          else
-            Direction := D_RIGHT;
+          if GetNext() = '1'
+            then Direction := D_LEFT
+            else Direction := D_RIGHT;
+          newArea := X * Y;
+          newX := X;
+          newY := Y;
         end;
 
       OBJECT_TRIGGER:
@@ -2510,46 +2511,25 @@ begin
           TriggerType := StrToIntDef(GetNext(), TRIGGER_EXIT);
           X := StrToIntDef(GetNext(), 0);
           Y := StrToIntDef(GetNext(), 0);
-          pmin.X := Min(X, pmin.X);
-          pmin.Y := Min(Y, pmin.Y);
           Width := StrToIntDef(GetNext(), 16);
           Height := StrToIntDef(GetNext(), 16);
           ActivateType := StrToIntDef(GetNext(), 0);
           Key := StrToIntDef(GetNext(), 0);
           Enabled := (GetNext() = '1');
           TexturePanel := StrToIntDef(GetNext(), 0);
-
-          for j := 0 to 127 do
-            Data.Default[j] := StrToIntDef(GetNext(), 0);
-
-          case TriggerType of
-            TRIGGER_TELEPORT:
-              begin
-                pmin.X := Min(Data.TargetPoint.X, pmin.X);
-                pmin.Y := Min(Data.TargetPoint.Y, pmin.Y);
-              end;
-            TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF:
-              begin
-                pmin.X := Min(Data.tX, pmin.X);
-                pmin.Y := Min(Data.tY, pmin.Y);
-              end;
-            TRIGGER_SPAWNMONSTER:
-              begin
-                pmin.X := Min(Data.MonPos.X, pmin.X);
-                pmin.Y := Min(Data.MonPos.Y, pmin.Y);
-              end;
-            TRIGGER_SPAWNITEM:
-              begin
-                pmin.X := Min(Data.ItemPos.X, pmin.X);
-                pmin.Y := Min(Data.ItemPos.Y, pmin.Y);
-              end;
-            TRIGGER_SHOT:
-              begin
-                pmin.X := Min(Data.ShotPos.X, pmin.X);
-                pmin.Y := Min(Data.ShotPos.Y, pmin.Y);
-              end;
-          end;
+          for j := 0 to 127
+            do Data.Default[j] := StrToIntDef(GetNext(), 0);
+          newArea := X * Y - Width * Height;
+          newX := X;
+          newY := Y;
         end;
+    end;
+
+    if newArea < minArea then
+    begin
+      minArea := newArea;
+      pmin.X := newX;
+      pmin.Y := newY;
     end;
   end;
 end;
@@ -5819,15 +5799,16 @@ begin
   h := High(CopyBuffer);
   RemoveSelectFromObjects();
 
-  if h > 0 then
-  begin
-    xadj := Floor((-pmin.X - MapOffset.X + 32) / DotStep) * DotStep;
-    yadj := Floor((-pmin.Y - MapOffset.Y + 32) / DotStep) * DotStep;
-  end
-  else
+  if g_CollidePoint(
+    pmin.X, pmin.Y, -MapOffset.X-32, -MapOffset.Y-32, RenderPanel.Width, RenderPanel.Height) then
   begin
     xadj := DotStep;
     yadj := DotStep;
+  end
+  else
+  begin
+    xadj := Floor((-pmin.X - MapOffset.X + 32) / DotStep) * DotStep;
+    yadj := Floor((-pmin.Y - MapOffset.Y + 32) / DotStep) * DotStep;
   end;
 
   for a := 0 to h do
