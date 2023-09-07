@@ -65,7 +65,7 @@ begin
   FFullResourceName := '';
   FResourceSelected := False;
 
-  if FindFirst(WadsDir + DirectorySeparator + '*.*', faAnyFile, SR) = 0 then
+  if FindFirst(WadsDir + DirectorySeparator + '*.*', faReadOnly, SR) = 0 then
   repeat
     cbWADList.Items.Add(SR.Name);
   until FindNext(SR) <> 0;

@@ -1343,7 +1343,7 @@ begin
   list := TStringList.Create;
   list.Duplicates := dupIgnore;
   list.Add(InSourceLanguage);
-  if FindFirst(LangDir + DirectorySeparator + langfilename + '.*.lng', faAnyFile, info) = 0 then
+  if FindFirst(LangDir + DirectorySeparator + langfilename + '.*.lng', faReadOnly, info) = 0 then
   begin
     repeat
       list.Add(Copy(ExtractFileNameWithoutExt(info.Name), Length(langfilename) + 2));
