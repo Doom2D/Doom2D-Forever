@@ -5624,6 +5624,22 @@ begin
   begin
     ParseGameFlag(GAME_OPTION_TEAMHITPROJECTILE, I_MSG_FRIENDLY_PROJECT_TRACE_OFF, I_MSG_FRIENDLY_PROJECT_TRACE_ON);
   end
+  else if cmd = 'g_items_all_respawn_random' then
+  begin
+    ParseGameFlag(GAME_OPTION_ITEMALLRANDOM, I_MSG_ITEM_ALL_RANDOM_OFF, I_MSG_ITEM_ALL_RANDOM_ON, False);
+  end
+  else if cmd = 'g_items_help_respawn_random' then
+  begin
+    ParseGameFlag(GAME_OPTION_ITEMHELPRANDOM, I_MSG_ITEM_HELP_RANDOM_OFF, I_MSG_ITEM_HELP_RANDOM_ON, False);
+  end
+  else if cmd = 'g_items_ammo_respawn_random' then
+  begin
+    ParseGameFlag(GAME_OPTION_ITEMAMMORANDOM, I_MSG_ITEM_AMMO_RANDOM_OFF, I_MSG_ITEM_AMMO_RANDOM_ON, False);
+  end
+  else if cmd = 'g_items_weapon_respawn_random' then
+  begin
+    ParseGameFlag(GAME_OPTION_ITEMWEAPONRANDOM, I_MSG_ITEM_WEAPON_RANDOM_OFF, I_MSG_ITEM_WEAPON_RANDOM_ON);
+  end
   else if cmd = 'g_powerup_randomize_respawn' then
   begin
     ParseGameFlag(GAME_OPTION_RULEZRANDOM, I_MSG_RULEZ_RANDOM_OFF, I_MSG_RULEZ_RANDOM_ON, False);

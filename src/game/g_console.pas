@@ -1118,6 +1118,10 @@ begin
   AddCommand('g_spawn_invul', GameCVars);
   AddCommand('g_item_respawn_time', GameCVars);
   AddCommand('g_item_time_random', GameCVars);
+  AddCommand('g_items_all_respawn_random', GameCVars);
+  AddCommand('g_items_help_respawn_random', GameCVars);
+  AddCommand('g_items_ammo_respawn_random', GameCVars);
+  AddCommand('g_items_weapon_respawn_random', GameCVars);
   AddCommand('g_powerup_randomize_respawn', GameCVars);
   AddCommand('g_powerup_respawn_time', GameCVars);
   AddCommand('g_powerup_time_random', GameCVars);
@@ -1251,6 +1255,10 @@ begin
   WhitelistCommand('g_spawn_invul');
   WhitelistCommand('g_item_respawn_time');
   WhitelistCommand('g_item_time_random');
+  WhitelistCommand('g_items_all_respawn_random');
+  WhitelistCommand('g_items_help_respawn_random');
+  WhitelistCommand('g_items_ammo_respawn_random');
+  WhitelistCommand('g_items_weapon_respawn_random');
   WhitelistCommand('g_powerup_randomize_respawn');
   WhitelistCommand('g_powerup_respawn_time');
   WhitelistCommand('g_powerup_time_random');
@@ -2252,6 +2260,10 @@ begin
   WriteFlag('g_friendly_hit_trace ', GAME_OPTION_TEAMHITTRACE);
   WriteFlag('g_friendly_hit_projectile ', GAME_OPTION_TEAMHITPROJECTILE);
   WriteFlag('g_powerup_randomize_respawn ', GAME_OPTION_RULEZRANDOM);
+  WriteFlag('g_items_all_respawn_random ', GAME_OPTION_ITEMALLRANDOM);
+  WriteFlag('g_items_help_respawn_random ', GAME_OPTION_ITEMHELPRANDOM);
+  WriteFlag('g_items_ammo_respawn_random ', GAME_OPTION_ITEMAMMORANDOM);
+  WriteFlag('g_items_weapon_respawn_random ', GAME_OPTION_ITEMWEAPONRANDOM);
   WriteFlag('g_allow_exit ', GAME_OPTION_ALLOWEXIT);
   WriteFlag('g_allow_monsters ', GAME_OPTION_MONSTERS);
   WriteFlag('g_allow_dropflag ', GAME_OPTION_ALLOWDROPFLAG);
