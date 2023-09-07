@@ -758,7 +758,7 @@ begin
                            ITEM_INVIS, ITEM_MEDKIT_BLACK, ITEM_JETPACK, ITEM_SUIT] then
       begin
         ggItems[ID].RespawnTime := Max(1, (gGameSettings.RulezRespawnTime + RandomRange(-gGameSettings.RulezRespawnRandom, gGameSettings.RulezRespawnRandom + 1)) * 36);
-        e_logwritefln ('Randomized rulez time: %s', [ggItems[ID].RespawnTime]);
+        //e_logwritefln ('Randomized rulez time: %s', [ggItems[ID].RespawnTime]);
       end;
     end;
 
@@ -777,7 +777,7 @@ begin
                                   ITEM_WEAPON_FLAMETHROWER] then
       begin
         ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime + RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
-        e_logwritefln ('Randomized item time: %s', [ggItems[ID].RespawnTime]);
+        //e_logwritefln ('Randomized item time: %s', [ggItems[ID].RespawnTime]);
       end;
     end;
 
@@ -789,7 +789,7 @@ begin
                                   ITEM_AMMO_BACKPACK] then
       begin
         ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime + RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
-        e_logwritefln ('Randomized help item time: %s', [ggItems[ID].RespawnTime]);
+        //e_logwritefln ('Randomized help item time: %s', [ggItems[ID].RespawnTime]);
       end;
     end;
 
@@ -801,7 +801,7 @@ begin
                                   ITEM_AMMO_CELL, ITEM_AMMO_CELL_BIG, ITEM_AMMO_FUELCAN] then
       begin
         ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime + RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
-        e_logwritefln ('Randomized ammo time: %s', [ggItems[ID].RespawnTime]);
+        //e_logwritefln ('Randomized ammo time: %s', [ggItems[ID].RespawnTime]);
       end;
     end;
 
@@ -813,7 +813,7 @@ begin
                                   ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_WEAPON_FLAMETHROWER] then
       begin
         ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime + RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
-        e_logwritefln ('Randomized weapons time: %s', [ggItems[ID].RespawnTime]);
+        //e_logwritefln ('Randomized weapons time: %s', [ggItems[ID].RespawnTime]);
       end;
     end;
   end;
