@@ -1064,7 +1064,7 @@ object MainForm: TMainForm
         OnClick = miSnapToGridClick
       end
       object miSwitchGrid: TMenuItem
-        Caption = 'Switch Grid Granularity'
+        Caption = 'Switch Grid Step'
         ImageIndex = 19
         ShortCut = 16453
         OnClick = miSwitchGridClick
@@ -1159,7 +1159,7 @@ object MainForm: TMainForm
         Caption = '-'
       end
       object miMiniMap: TMenuItem
-        Caption = 'Show Minimap'
+        Caption = 'Show Minimap Navigator'
         ImageIndex = 14
         ShortCut = 16471
         OnClick = miMiniMapClick

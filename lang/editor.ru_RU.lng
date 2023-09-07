@@ -6,7 +6,7 @@ imaginggif        = true
 imagingcanvases   = true
 imagingnetworkgraphics = true
 
-; don't care about rtl, lazarus libraris and standard libraries
+; don't care about rtl, lazarus libraries and standard libraries
 math              = true
 custapp           = true
 rtlconsts         = true
@@ -122,7 +122,7 @@ g_language.MsgArrayItemChaingun  = "Пулемёт"
 g_language.MsgArrayItemRocketLauncher$ = "Rocket Launcher"
 g_language.MsgArrayItemRocketLauncher  = "Ракетница"
 g_language.MsgArrayItemPlasmaRifle$ = "Plasma Rifle"
-g_language.MsgArrayItemPlasmaRifle  = "Плазмаган"
+g_language.MsgArrayItemPlasmaRifle  = "Плазмопушка"
 g_language.MsgArrayItemBfg$ = "BFG9000"
 g_language.MsgArrayItemBfg  = "BFG9000"
 g_language.MsgArrayItemSuperMinigun$ = "Super Chaingun"
@@ -691,7 +691,7 @@ g_language.MsgMenuFileOpen  = "Открыть..."
 g_language.MsgMenuFileRecentMac$ = "Open Recent"
 g_language.MsgMenuFileRecentMac  = "Открыть недавно использованные"
 g_language.MsgMenuFileRecentClearMac$ = "Clear Recent"
-g_language.MsgMenuFileRecentClearMac  = "Отчистить меню"
+g_language.MsgMenuFileRecentClearMac  = "Очистить меню"
 g_language.MsgMenuFileSave$ = "Save"
 g_language.MsgMenuFileSave  = "Сохранить"
 g_language.MsgMenuFileSaveAs$ = "Save As..."
@@ -725,7 +725,7 @@ g_language.MsgMenuEditSelectAll$ = "Select All"
 g_language.MsgMenuEditSelectAll  = "Выделить всё"
 g_language.MsgMenuEditSnapGrid$ = "Snap to Grid"
 g_language.MsgMenuEditSnapGrid  = "Привязывать к сетке"
-g_language.MsgMenuEditStepGrid$ = "Switch Grid Granularity"
+g_language.MsgMenuEditStepGrid$ = "Switch Grid Step"
 g_language.MsgMenuEditStepGrid  = "Переключить шаг сетки"
 g_language.MsgMenuEditToFore$ = "Bring to Front"
 g_language.MsgMenuEditToFore  = "Передвинуть вперёд"
@@ -740,8 +740,8 @@ g_language.MsgMenuView$ = "View"
 g_language.MsgMenuView  = "Вид"
 g_language.MsgMenuViewLayers$ = "Layers"
 g_language.MsgMenuViewLayers  = "Слои"
-g_language.MsgMenuViewMinimap$ = "Show Minimap"
-g_language.MsgMenuViewMinimap  = "Показывать мини-карту"
+g_language.MsgMenuViewMinimap$ = "Show Minimap Navigator"
+g_language.MsgMenuViewMinimap  = "Показывать навигатор (мини-карту)"
 g_language.MsgMenuViewBounds$ = "Show Map Bounds"
 g_language.MsgMenuViewBounds  = "Показывать границы карты"
 g_language.MsgMenuViewPreview$ = "Preview Mode"
@@ -1219,13 +1219,13 @@ g_language.MsgOptPanelsAfter  = "Панелей после оптимизаци�
 
 g_language.MsgWadSpecialMap$ = "<MAP WAD-FILE>"
 g_language.MsgWadSpecialMap  = "<WAD-ФАЙЛ КАРТЫ>"
-g_language.MsgWadSpecialTexs$ = "<EXTRA TEXTURES>"
+g_language.MsgWadSpecialTexs$ = "<COLORFILTERS>"
 g_language.MsgWadSpecialTexs  = "<СПЕЦТЕКСТУРЫ>"
 
-g_language.MsgFileFilterSaveDFWAD$ = "DFWAD Packed Doom 2D: Forever Maps (*.wad)|*.wad"
-g_language.MsgFileFilterSaveDFWAD  = "Карты Doom 2D: Forever упакованные в DFWAD (*.wad)|*.wad"
-g_language.MsgFileFilterSaveDFZIP$ = "DFZIP Packed Doom 2D: Forever Maps (*.dfz)|*.dfz"
-g_language.MsgFileFilterSaveDFZIP  = "Карты Doom 2D: Forever упакованные в DFZIP (*.dfz)|*.dfz"
+g_language.MsgFileFilterSaveDFWAD$ = "Doom 2D: Forever Maps in DFWAD packages (*.wad)|*.wad"
+g_language.MsgFileFilterSaveDFWAD  = "Карты Doom 2D: Forever в DFWAD-сборках (*.wad)|*.wad"
+g_language.MsgFileFilterSaveDFZIP$ = "Doom 2D: Forever Maps in DFZIP archives (*.dfz)|*.dfz"
+g_language.MsgFileFilterSaveDFZIP  = "Карты Doom 2D: Forever в DFZIP-архивах (*.dfz)|*.dfz"
 g_language.MsgFileFilterAll$ = "Doom 2D: Forever Maps (*.dfz, *.wad)|*.wad;*.dfz|Doom 2D: Forever 0.30 Maps (*.ini)|*.ini|All Files (*.*)|*.*"
 g_language.MsgFileFilterAll  = "Карты Doom 2D: Forever Maps (*.dfz, *.wad)|*.wad;*.dfz|Старые карты Doom 2D: Forever 0.30 (*.ini)|*.ini|Все файлы (*.*)|*.*"
 g_language.MsgFileFilterWad$ = "Doom 2D: Forever Maps (*.dfz, *.wad)|*.wad;*.dfz|All Files (*.*)|*.*"
@@ -1379,4 +1379,4 @@ rsWin32Warning  = "Предупреждение:"
 rsWin32Error$   = "Error:"
 rsWin32Error    = "Ошибка:"
 
-; probably need more strings to translatate
+; probably need more strings to translate

@@ -364,7 +364,7 @@ Interface
     MsgMenuEditPaste = 'Paste';
     MsgMenuEditSelectAll = 'Select All';
     MsgMenuEditSnapGrid = 'Snap to Grid';
-    MsgMenuEditStepGrid = 'Switch Grid Granularity';
+    MsgMenuEditStepGrid = 'Switch Grid Step';
     MsgMenuEditToFore = 'Bring to Front';
     MsgMenuEditToBack = 'Send to Back';
     MsgMenuEditMapProps = 'Map Properties...';
@@ -372,7 +372,7 @@ Interface
 
     MsgMenuView = 'View';
     MsgMenuViewLayers = 'Layers';
-    MsgMenuViewMinimap = 'Show Minimap';
+    MsgMenuViewMinimap = 'Show Minimap Navigator';
     MsgMenuViewBounds = 'Show Map Bounds';
     MsgMenuViewPreview = 'Preview Mode';
 
@@ -625,10 +625,10 @@ Interface
     MsgOptPanelsAfter = 'Panels after Optimization:';
 
     MsgWadSpecialMap = '<MAP WAD-FILE>';
-    MsgWadSpecialTexs = '<EXTRA TEXTURES>';
+    MsgWadSpecialTexs = '<COLORFILTERS>';
 
-    MsgFileFilterSaveDFWAD = 'DFWAD Packed Doom 2D: Forever Maps (*.wad)|*.wad';
-    MsgFileFilterSaveDFZIP = 'DFZIP Packed Doom 2D: Forever Maps (*.dfz)|*.dfz';
+    MsgFileFilterSaveDFWAD = 'Doom 2D: Forever Maps in DFWAD packages (*.wad)|*.wad';
+    MsgFileFilterSaveDFZIP = 'Doom 2D: Forever Maps in DFZIP archives (*.dfz)|*.dfz';
     MsgFileFilterAll = 'Doom 2D: Forever Maps (*.dfz, *.wad)|*.wad;*.dfz|Doom 2D: Forever 0.30 Maps (*.ini)|*.ini|All Files (*.*)|*.*';
     MsgFileFilterWad = 'Doom 2D: Forever Maps (*.dfz, *.wad)|*.wad;*.dfz|All Files (*.*)|*.*';
     MsgFileFilterExeMac = 'Doom 2D Forever.app|*.app|Doom 2D Forever (Unix Executable)|Doom2DF;*';

@@ -107,7 +107,7 @@ begin
   end
   else
   begin
-    // format specified -> appned using exactly this format (overwrite if not compatible)
+    // format specified -> append using exactly this format (overwrite if not compatible)
     WAD := gWADEditorFactory.CreateEditor(ArchiveFormat);
     if WAD.ReadFile(FileName) = False then
       WAD.FreeWAD();
