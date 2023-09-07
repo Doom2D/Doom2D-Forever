@@ -3759,7 +3759,12 @@ begin
   if Button = mbMiddle then
     MouseMDown := False;
 
-  DrawRect := nil;
+  if DrawRect <> nil then
+  begin
+    Dispose(DrawRect);
+    DrawRect := nil;
+  end;
+
   ResizeType := RESIZETYPE_NONE;
   TextureID := 0;
 
@@ -4324,8 +4329,11 @@ begin
   end;
 
 // Клавиши мыши не зажаты:
-  if (not MouseRDown) and (not MouseLDown) then
+  if (not MouseRDown) and (not MouseLDown) and (DrawRect <> nil) then
+  begin
+    Dispose(DrawRect);
     DrawRect := nil;
+  end;
 
 // Строка состояния - координаты мыши:
   StatusBar.Panels[1].Text := Format('(%d:%d)',
