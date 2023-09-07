@@ -735,9 +735,6 @@ begin
     gsTimeLimit := StrToIntDef(TGUIEdit(GetControl('edTimeLimit')).Text, 0);
     gsScoreLimit := StrToIntDef(TGUIEdit(GetControl('edScoreLimit')).Text, 0);
     gsMaxLives := StrToIntDef(TGUIEdit(GetControl('edMaxLives')).Text, 0);
-    gsItemRespawnTime := StrToIntDef(TGUIEdit(GetControl('edItemRespawnTime')).Text, 0);
-    gsRulezRespawnTime := StrToIntDef(TGUIEdit(GetControl('edRulezRespawnTime')).Text, 0);
-    gsRulezRespawnRandom := StrToIntDef(TGUIEdit(GetControl('edRulezRespawnRandom')).Text, 0);
     gsPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex;
     gsMap := Map;
 
@@ -754,8 +751,6 @@ begin
       gsGameFlags := gsGameFlags or GAME_OPTION_WEAPONSTAY;
     if TGUISwitch(GetControl('swMonsters')).ItemIndex = 0 then
       gsGameFlags := gsGameFlags or GAME_OPTION_MONSTERS;
-    if TGUISwitch(GetControl('swRulezRandom')).ItemIndex = 0 then
-      gsGameFlags := gsGameFlags or GAME_OPTION_RULEZRANDOM;
 
     case TGUISwitch(GetControl('swTeamHit')).ItemIndex of
       1: gsGameFlags := gsGameFlags or GAME_OPTION_TEAMHITTRACE;
@@ -776,11 +771,33 @@ begin
     end;
 
     // TODO: get this crap out of here
-    gGameSettings.ItemRespawnTime := gsItemRespawnTime;
-    gGameSettings.RulezRespawnTime := gsRulezRespawnTime;
-    gGameSettings.RulezRespawnRandom := gsRulezRespawnRandom;
     gGameSettings.WarmupTime := gsWarmupTime;
     gGameSettings.SpawnInvul := gsSpawnInvul;
+  end;
+
+  // HACK: We keep the variables for the items in a different menu
+  with TGUIMenu(g_GUI_GetWindow('ItemsRespawnMenu').GetControl('mItemsRespawnMenu')) do
+  begin
+    gsItemRespawnTime := StrToIntDef(TGUIEdit(GetControl('edItemRespawnTime')).Text, 0);
+    gsItemRespawnRandom := StrToIntDef(TGUIEdit(GetControl('edItemRespawnRandom')).Text, 0);
+    gsRulezRespawnTime := StrToIntDef(TGUIEdit(GetControl('edRulezRespawnTime')).Text, 0);
+    gsRulezRespawnRandom := StrToIntDef(TGUIEdit(GetControl('edRulezRespawnRandom')).Text, 0);
+
+    if TGUISwitch(GetControl('swRulezRandom')).ItemIndex = 0 then
+      gsGameFlags := gsGameFlags or GAME_OPTION_RULEZRANDOM;
+
+    case TGUISwitch(GetControl('swItemsRandom')).ItemIndex of
+      1: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMHELPRANDOM;
+      2: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMAMMORANDOM;
+      3: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMWEAPONRANDOM;
+      0: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMALLRANDOM;
+    end;
+
+    // TODO: get this crap out of here
+    gGameSettings.ItemRespawnTime := gsItemRespawnTime;
+    gGameSettings.ItemRespawnRandom := gsItemRespawnRandom;
+    gGameSettings.RulezRespawnTime := gsRulezRespawnTime;
+    gGameSettings.RulezRespawnRandom := gsRulezRespawnRandom;
   end;
 end;
 
@@ -1740,6 +1757,15 @@ begin
   end;
 end;
 
+procedure ProcItemsRespawnMenu();
+var
+  menu: TGUIMenu;
+begin
+  menu := TGUIMenu(g_GUI_GetWindow('ItemsRespawnMenu').GetControl('mItemsRespawnMenu'));
+
+  g_GUI_ShowWindow('ItemsRespawnMenu');
+end;
+
 procedure ReadGameSettings();
 var
   menu: TGUIMenu;
@@ -2324,43 +2350,11 @@ begin
       if gsMaxLives > 0 then
         Text := IntToStr(gsMaxLives);
     end;
-    with AddEdit(_lc[I_MENU_ITEM_RESPAWN_TIME]) do
+    with AddLabel(_lc[I_MENU_SELECT_ITEM_RESPAWN]) do
     begin
-      Name := 'edItemRespawnTime';
-      OnlyDigits := True;
-      Width := 4;
-      MaxLength := 5;
-      if gsItemRespawnTime > 0 then
-        Text := IntToStr(gsItemRespawnTime);
-    end;
-    AddSpace(); // Rulez Respawn block
-    with AddEdit(_lc[I_MENU_RULEZ_RESPAWN_TIME]) do
-    begin
-      Name := 'edRulezRespawnTime';
-      OnlyDigits := True;
-      Width := 4;
-      MaxLength := 5;
-      if gsRulezRespawnTime > 0 then
-        Text := IntToStr(gsRulezRespawnTime);
-    end;
-    with AddEdit(_lc[I_MENU_RULEZ_RESPAWN_RANDOM]) do
-    begin
-      Name := 'edRulezRespawnRandom';
-      OnlyDigits := True;
-      Width := 4;
-      MaxLength := 5;
-      if gsRulezRespawnRandom > 0 then
-        Text := IntToStr(gsRulezRespawnRandom);
-    end;
-    with AddSwitch(_lc[I_MENU_ENABLE_RULEZ_RANDOM]) do
-    begin
-      Name := 'swRulezRandom';
-      AddItem(_lc[I_MENU_YES]);
-      AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_RULEZRANDOM) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      Name := 'lbItemsRespawn';
+      FixedLength := 16;
+      OnClick := @ProcItemsRespawnMenu;
     end;
     AddSpace();
     with AddSwitch(_lc[I_MENU_PLAYERS]) do
@@ -2612,43 +2606,11 @@ begin
       if gsMaxLives > 0 then
         Text := IntToStr(gsMaxLives);
     end;
-    with AddEdit(_lc[I_MENU_ITEM_RESPAWN_TIME]) do
+    with AddLabel(_lc[I_MENU_SELECT_ITEM_RESPAWN]) do
     begin
-      Name := 'edItemRespawnTime';
-      OnlyDigits := True;
-      Width := 4;
-      MaxLength := 5;
-      if gsItemRespawnTime > 0 then
-        Text := IntToStr(gsItemRespawnTime);
-    end;
-    AddSpace(); // Rulez Respawn block
-    with AddEdit(_lc[I_MENU_RULEZ_RESPAWN_TIME]) do
-    begin
-      Name := 'edRulezRespawnTime';
-      OnlyDigits := True;
-      Width := 4;
-      MaxLength := 5;
-      if gsRulezRespawnTime > 0 then
-        Text := IntToStr(gsRulezRespawnTime);
-    end;
-    with AddEdit(_lc[I_MENU_RULEZ_RESPAWN_RANDOM]) do
-    begin
-      Name := 'edRulezRespawnRandom';
-      OnlyDigits := True;
-      Width := 4;
-      MaxLength := 5;
-      if gsRulezRespawnRandom > 0 then
-        Text := IntToStr(gsRulezRespawnRandom);
-    end;
-    with AddSwitch(_lc[I_MENU_ENABLE_RULEZ_RANDOM]) do
-    begin
-      Name := 'swRulezRandom';
-      AddItem(_lc[I_MENU_YES]);
-      AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_RULEZRANDOM) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      Name := 'lbItemsRespawn';
+      FixedLength := 16;
+      OnClick := @ProcItemsRespawnMenu;
     end;
     AddSpace();
     with AddSwitch(_lc[I_MENU_PLAYERS]) do
@@ -2897,6 +2859,84 @@ begin
   end;
   Menu.OnClose := ProcSetMap;
   Menu.DefControl := 'mSelectMapMenu';
+  g_GUI_AddWindow(Menu);
+
+  Menu := TGUIWindow.Create('ItemsRespawnMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_ITEM_RESPAWN]))) do
+  begin
+    Name := 'mItemsRespawnMenu';
+
+    // Switches separate from the time entry fields
+    with AddSwitch(_lc[I_MENU_ENABLE_RULEZ_RANDOM]) do
+    begin
+      Name := 'swRulezRandom';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      if LongBool(gsGameFlags and GAME_OPTION_RULEZRANDOM) then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
+    end;
+    with AddSwitch(_lc[I_MENU_ENABLE_ITEM_RANDOM]) do
+    begin
+      Name := 'swItemsRandom';
+      AddItem(_lc[I_MENU_ITEM_RANDOM_ALL]);
+      AddItem(_lc[I_MENU_ITEM_RANDOM_HELP_ONLY]);
+      AddItem(_lc[I_MENU_ITEM_RANDOM_AMMO_ONLY]);
+      AddItem(_lc[I_MENU_ITEM_RANDOM_WEAPON_ONLY]);
+      AddItem(_lc[I_MENU_ITEM_RANDOM_NOTHING]);
+      if LongBool(gsGameFlags and GAME_OPTION_ITEMALLRANDOM) then
+        ItemIndex := 0
+      else if LongBool(gsGameFlags and GAME_OPTION_ITEMHELPRANDOM) then
+        ItemIndex := 1
+      else if LongBool(gsGameFlags and GAME_OPTION_ITEMAMMORANDOM) then
+        ItemIndex := 2
+      else if LongBool(gsGameFlags and GAME_OPTION_ITEMWEAPONRANDOM) then
+        ItemIndex := 3
+      else
+        ItemIndex := 4;
+    end;
+    AddSpace();// Items Respawn block
+    with AddEdit(_lc[I_MENU_ITEM_RESPAWN_TIME]) do
+    begin
+      Name := 'edItemRespawnTime';
+      OnlyDigits := True;
+      Width := 4;
+      MaxLength := 5;
+      if gsItemRespawnTime > 0 then
+        Text := IntToStr(gsItemRespawnTime);
+    end;
+    with AddEdit(_lc[I_MENU_ITEM_RESPAWN_RANDOM]) do
+    begin
+      Name := 'edItemRespawnRandom';
+      OnlyDigits := True;
+      Width := 4;
+      MaxLength := 5;
+      if gsItemRespawnTime > 0 then
+        Text := IntToStr(gsItemRespawnRandom);
+    end;
+    // Rulez Respawn block
+    with AddEdit(_lc[I_MENU_RULEZ_RESPAWN_TIME]) do
+    begin
+      Name := 'edRulezRespawnTime';
+      OnlyDigits := True;
+      Width := 4;
+      MaxLength := 5;
+      if gsRulezRespawnTime > 0 then
+        Text := IntToStr(gsRulezRespawnTime);
+    end;
+    with AddEdit(_lc[I_MENU_RULEZ_RESPAWN_RANDOM]) do
+    begin
+      Name := 'edRulezRespawnRandom';
+      OnlyDigits := True;
+      Width := 4;
+      MaxLength := 5;
+      if gsRulezRespawnRandom > 0 then
+        Text := IntToStr(gsRulezRespawnRandom);
+    end;
+    AddSpace();
+  end;
+  Menu.DefControl := 'mItemsRespawnMenu';
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('OptionsMenu');

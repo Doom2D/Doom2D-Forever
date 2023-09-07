@@ -33,6 +33,7 @@ type
     WarmupTime: Word;
     SpawnInvul: Word;
     ItemRespawnTime: Word;
+    ItemRespawnRandom: Word;
     RulezRespawnTime: Word;
     RulezRespawnRandom: Word;
     MaxLives: Byte;
@@ -198,6 +199,10 @@ const
   GAME_OPTION_ALLOWDROPFLAG     = 2048;
   GAME_OPTION_THROWFLAG         = 4096;
   GAME_OPTION_RULEZRANDOM       = 8192;
+  GAME_OPTION_ITEMALLRANDOM     = 16384;
+  GAME_OPTION_ITEMHELPRANDOM    = 32768;
+  GAME_OPTION_ITEMAMMORANDOM    = 65536;
+  GAME_OPTION_ITEMWEAPONRANDOM  = 131072;
 
   STATE_NONE        = 0;
   STATE_MENU        = 1;
@@ -4499,6 +4504,10 @@ begin
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_TEAMHITPROJECTILE;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_TEAMHITTRACE;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_RULEZRANDOM;
+  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ITEMALLRANDOM;
+  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ITEMHELPRANDOM;
+  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ITEMAMMORANDOM;
+  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ITEMWEAPONRANDOM;
   gSwitchGameMode := GM_SINGLE;
 
   gLMSRespawn := LMS_RESPAWN_NONE;
@@ -5713,6 +5722,21 @@ begin
     end;
 
     g_Console_Add(Format('%s %d', [cmd, Integer(gsItemRespawnTime)]));
+    if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+  end
+  else if cmd = 'g_item_time_random' then
+  begin
+    if Length(P) > 1 then
+    begin
+      gsItemRespawnRandom := nclamp(StrToIntDef(P[1], gsItemRespawnRandom), 0, $FFFF);
+      if g_Game_IsServer then
+      begin
+        gGameSettings.ItemRespawnRandom := gsItemRespawnRandom;
+        if g_Game_IsNet then MH_SEND_GameSettings;
+      end;
+    end;
+
+    g_Console_Add(Format('%s %d', [cmd, Integer(gsItemRespawnRandom)]));
     if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
   end
   else if cmd = 'g_powerup_respawn_time' then
