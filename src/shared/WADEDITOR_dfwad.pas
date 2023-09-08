@@ -703,15 +703,20 @@ begin
   end;
 
   BlockRead(WADFile, FHeader, SizeOf(TWADHeaderRec_1));
+  FHeader.RecordsCount := LEtoN(FHeader.RecordsCount);
   SetLength(FResTable, FHeader.RecordsCount);
   if FResTable <> nil then
   begin
    BlockRead(WADFile, FResTable[0], SizeOf(TResourceTableRec_1)*FHeader.RecordsCount);
 
    for a := 0 to High(FResTable) do
+   begin
+    FResTable[a].Address := LEtoN(FResTable[a].Address);
+    FResTable[a].Length := LEtoN(FResTable[a].Length);
     if FResTable[a].Length <> 0 then
      FResTable[a].Address := FResTable[a].Address-6-(LongWord(SizeOf(TWADHeaderRec_1)+
                              SizeOf(TResourceTableRec_1)*Length(FResTable)));
+   end;
   end;
 
   CloseFile(WADFile);
@@ -750,6 +755,7 @@ begin
  end;
 
  CopyMemory(@FHeader, Pointer(PtrUInt(Data)+6), SizeOf(TWADHeaderRec_1));
+ FHeader.RecordsCount := LEtoN(FHeader.RecordsCount);
 
  SetLength(FResTable, FHeader.RecordsCount);
  if FResTable <> nil then
@@ -758,9 +764,13 @@ begin
              SizeOf(TResourceTableRec_1)*FHeader.RecordsCount);
 
   for a := 0 to High(FResTable) do
+  begin
+   FResTable[a].Address := LEtoN(FResTable[a].Address);
+   FResTable[a].Length := LEtoN(FResTable[a].Length);
    if FResTable[a].Length <> 0 then
     FResTable[a].Address := FResTable[a].Address-6-(LongWord(SizeOf(TWADHeaderRec_1)+
                             SizeOf(TResourceTableRec_1)*Length(FResTable)));
+  end;
  end;
 
  GetMem(FResData, Len);
@@ -836,29 +846,47 @@ var
   WADFile: File;
   sign: string;
   ver: Byte;
-  Header: TWADHeaderRec_1;
+  Header, HeaderLE: TWADHeaderRec_1;
   i: Integer;
 begin
  sign := DFWAD_SIGNATURE;
  ver := DFWAD_VERSION;
 
  Header.RecordsCount := Length(FResTable);
+ HeaderLE := Header;
+ HeaderLE.RecordsCount := NtoLE(HeaderLE.RecordsCount);
 
  if FResTable <> nil then
   for i := 0 to High(FResTable) do
+  begin
    if FResTable[i].Length <> 0 then
     FResTable[i].Address := FResTable[i].Address+6+SizeOf(TWADHeaderRec_1)+
                             SizeOf(TResourceTableRec_1)*Header.RecordsCount;
+{$IFDEF FPC_BIG_ENDIAN}
+    FResTable[i].Address := NtoLE(FResTable[i].Address);
+    FResTable[i].Length := NtoLE(FResTable[i].Length);
+{$ENDIF}
+  end;
 
  AssignFile(WADFile, FileName);
  Rewrite(WADFile, 1);
   BlockWrite(WADFile, sign[1], 5);
   BlockWrite(WADFile, ver, 1);
-  BlockWrite(WADFile, Header, SizeOf(TWADHeaderRec_1));
+  BlockWrite(WADFile, HeaderLE, SizeOf(TWADHeaderRec_1));
   if FResTable <> nil then BlockWrite(WADFile, FResTable[0],
                                       SizeOf(TResourceTableRec_1)*Header.RecordsCount);
   if FResData <> nil then BlockWrite(WADFile, FResData^, FDataSize);
  CloseFile(WADFile);
+
+{$IFDEF FPC_BIG_ENDIAN}
+ // restore back to native endian
+ if FResTable <> nil then
+  for i := 0 to High(FResTable) do
+  begin
+    FResTable[i].Address := LEtoN(FResTable[i].Address);
+    FResTable[i].Length := LEtoN(FResTable[i].Length);
+  end;
+{$ENDIF}
 end;
 
 function TWADEditor_1.GetLastError: Integer;
