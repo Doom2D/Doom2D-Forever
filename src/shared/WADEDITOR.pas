@@ -128,55 +128,47 @@ interface
 
 implementation
 
-  uses SysUtils, utils;
+  uses SysUtils, Math, utils;
 
   var
     uWADEditorFactory: TWADEditorFactory;
 
+  // EBNF:
+  // Resource = [Archive ":"] [{slash} Section {slash}slash] Name.
+  // slash    = "/" | "\".
   procedure g_ProcessResourceStr(ResourceStr: String; var FileName, SectionName, ResourceName: String);
-    var a, i: Integer;
   begin
-    for i := Length(ResourceStr) downto 1 do
-      if ResourceStr[i] = ':' then
-        Break;
-
-    FileName := Copy(ResourceStr, 1, i-1);
-
-    for a := i+1 to Length(ResourceStr) do
-      if (ResourceStr[a] = '\') or (ResourceStr[a] = '/') then Break;
-
-    ResourceName := Copy(ResourceStr, a+1, Length(ResourceStr)-Abs(a));
-    SectionName := Copy(ResourceStr, i+1, Length(ResourceStr)-Length(ResourceName)-Length(FileName)-2);
+    g_ProcessResourceStr(ResourceStr, @FileName, @SectionName, @ResourceName);
   end;
 
   procedure g_ProcessResourceStr(ResourceStr: AnsiString; FileName, SectionName, ResourceName: PAnsiString);
-    var a, i, l1, l2: Integer;
+    var i, j: Integer; sn: AnsiString;
   begin
-    for i := Length(ResourceStr) downto 1 do
-      if ResourceStr[i] = ':' then
-        Break;
+    i := Max(1, LastDelimiter(':', ResourceStr));
 
     if FileName <> nil then
+      FileName^ := LeftStr(ResourceStr, i - 1);
+
+    if (SectionName <> nil) or (ResourceName <> nil) then
+    begin
+      for i := i to High(ResourceStr) do
+        if ResourceStr[i] in ['\', '/', ':'] = False then
+          break;
+      sn := Copy(ResourceStr, i);
+
+      j := LastDelimiter('/\', sn);
+      if ResourceName <> nil then
+        ResourceName^ := Copy(sn, j + 1);
+
+      if SectionName <> nil then
       begin
-        FileName^ := Copy(ResourceStr, 1, i-1);
-        l1 := Length(FileName^);
-      end
-    else
-      l1 := 0;
-
-    for a := i+1 to Length(ResourceStr) do
-      if (ResourceStr[a] = '\') or (ResourceStr[a] = '/') then Break;
-
-    if ResourceName <> nil then
-      begin
-        ResourceName^ := Copy(ResourceStr, a+1, Length(ResourceStr)-Abs(a));
-        l2 := Length(ResourceName^);
-      end
-    else
-      l2 := 0;
-
-    if SectionName <> nil then
-      SectionName^ := Copy(ResourceStr, i+1, Length(ResourceStr)-l2-l1-2);
+        for j := j downto 0 do
+          if (j > 0) and (sn[j] in ['\', '/'] = False) then
+            break;
+        if SectionName <> nil then
+          SectionName^ := LeftStr(sn, j);
+      end;
+    end;
   end;
 
 { TWADEditor }
