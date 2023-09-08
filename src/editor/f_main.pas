@@ -2862,6 +2862,23 @@ begin
   e_TextureFontPrintEx(X, Y, Text, FontID, 0, 0, 0, 1.0);
 end;
 
+procedure InitGraphics;
+begin
+  // FIXME: this is a shitty hack
+  if not gDataLoaded then
+  begin
+    e_WriteLog('Init OpenGL', MSG_NOTIFY);
+    e_InitGL();
+    e_WriteLog('Loading data', MSG_NOTIFY);
+    LoadStdFont('STDTXT', 'STDFONT', gEditorFont);
+    e_WriteLog('Loading more data', MSG_NOTIFY);
+    LoadData();
+    e_WriteLog('Loading even more data', MSG_NOTIFY);
+    gDataLoaded := True;
+    MainForm.FormResize(nil);
+  end;
+end;
+
 procedure TMainForm.Draw();
 var
   x, y: Integer;
@@ -2876,6 +2893,8 @@ begin
   PID := 0;
   Width := 0;
   Height := 0;
+
+  InitGraphics();
 
   e_BeginRender();
 
@@ -6697,20 +6716,6 @@ end;
 procedure TMainForm.OnIdle(Sender: TObject; var Done: Boolean);
   var f: AnsiString;
 begin
-  // FIXME: this is a shitty hack
-  if not gDataLoaded then
-  begin
-    e_WriteLog('Init OpenGL', MSG_NOTIFY);
-    e_InitGL();
-    e_WriteLog('Loading data', MSG_NOTIFY);
-    LoadStdFont('STDTXT', 'STDFONT', gEditorFont);
-    e_WriteLog('Loading more data', MSG_NOTIFY);
-    LoadData();
-    e_WriteLog('Loading even more data', MSG_NOTIFY);
-    gDataLoaded := True;
-    MainForm.FormResize(nil);
-  end;
-  Draw();
   if StartMap <> '' then
   begin
     f := StartMap;
