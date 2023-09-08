@@ -36,7 +36,7 @@ type
 
 var
   e_DummyTextures: Boolean = False;
-  e_glLegacyNPOT: Boolean = False;
+  e_glLegacyNPOT: Boolean = True;
   TEXTUREFILTER: Integer = GL_NEAREST;
 
 function CreateTexture (var tex: GLTexture; Width, Height, aFormat: Word; pData: Pointer): Boolean;

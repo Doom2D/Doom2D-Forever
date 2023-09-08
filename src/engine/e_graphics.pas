@@ -172,6 +172,8 @@ type
     Pixels: Pointer;
   end;
 
+  ArrayOfAnsiString = array of AnsiString;
+
 var
   e_Textures: array of TTexture = nil;
   e_TextureFonts: array of TTextureFont = nil;
@@ -179,6 +181,43 @@ var
   //e_SavedTextures: array of TSavedTexture;
 
 //function e_getTextGLId (ID: DWORD): GLuint; begin result := e_Textures[ID].tx.id; end;
+
+function GLExtensionList(): ArrayOfAnsiString;
+  var s: PChar; i, j, num: GLint;
+begin
+  result := nil;
+  s := glGetString(GL_EXTENSIONS);
+  if s <> nil then
+  begin
+    num := 0;
+    i := 0;
+    j := 0;
+    while (s[i] <> #0) and (s[i] = ' ') do Inc(i);
+    while (s[i] <> #0) do
+    begin
+      while (s[i] <> #0) and (s[i] <> ' ') do Inc(i);
+      SetLength(Result, num + 1);
+      Result[num] := Copy(s, j + 1, i - j);
+      while (s[i] <> #0) and (s[i] = ' ') do Inc(i);
+      j := i;
+      Inc(num);
+    end;
+  end;
+end;
+
+function GLExtensionSupported(ext: AnsiString): Boolean;
+  var e: AnsiString;
+begin
+  result := false;
+  for e in GLExtensionList() do
+  begin
+    if CompareText(e, ext) = 0 then
+    begin
+      Result := True;
+      exit;
+    end;
+  end;
+end;
 
 //------------------------------------------------------------------
 // Инициализирует OpenGL
@@ -190,6 +229,7 @@ begin
     e_DummyTextures := True;
     Exit;
   end;
+  e_glLegacyNPOT := not (GLExtensionSupported('GL_ARB_texture_non_power_of_two') or GLExtensionSupported('GL_OES_texture_npot'));
   e_Colors.R := 255;
   e_Colors.G := 255;
   e_Colors.B := 255;
