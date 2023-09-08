@@ -790,6 +790,9 @@ begin
       1: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMHELPRANDOM;
       2: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMAMMORANDOM;
       3: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMWEAPONRANDOM;
+      4: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMHELPRANDOM or GAME_OPTION_ITEMAMMORANDOM;
+      5: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMHELPRANDOM or GAME_OPTION_ITEMWEAPONRANDOM;
+      6: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMAMMORANDOM or GAME_OPTION_ITEMWEAPONRANDOM;
       0: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMALLRANDOM;
     end;
 
@@ -2884,6 +2887,9 @@ begin
       AddItem(_lc[I_MENU_ITEM_RANDOM_HELP_ONLY]);
       AddItem(_lc[I_MENU_ITEM_RANDOM_AMMO_ONLY]);
       AddItem(_lc[I_MENU_ITEM_RANDOM_WEAPON_ONLY]);
+      AddItem(_lc[I_MENU_ITEM_RANDOM_HELP_AMMO]);
+      AddItem(_lc[I_MENU_ITEM_RANDOM_HELP_WEAPON]);
+      AddItem(_lc[I_MENU_ITEM_RANDOM_WEAPON_AMMO]);
       AddItem(_lc[I_MENU_ITEM_RANDOM_NOTHING]);
       if LongBool(gsGameFlags and GAME_OPTION_ITEMALLRANDOM) then
         ItemIndex := 0
@@ -2893,8 +2899,14 @@ begin
         ItemIndex := 2
       else if LongBool(gsGameFlags and GAME_OPTION_ITEMWEAPONRANDOM) then
         ItemIndex := 3
+      else if (gsGameFlags and (GAME_OPTION_ITEMHELPRANDOM or GAME_OPTION_ITEMAMMORANDOM)) = (GAME_OPTION_ITEMHELPRANDOM or GAME_OPTION_ITEMAMMORANDOM) then
+        ItemIndex := 4
+      else if (gsGameFlags and (GAME_OPTION_ITEMHELPRANDOM or GAME_OPTION_ITEMWEAPONRANDOM)) = (GAME_OPTION_ITEMHELPRANDOM or GAME_OPTION_ITEMWEAPONRANDOM) then
+        ItemIndex := 5
+      else if (gsGameFlags and (GAME_OPTION_ITEMAMMORANDOM or GAME_OPTION_ITEMWEAPONRANDOM)) = (GAME_OPTION_ITEMAMMORANDOM or GAME_OPTION_ITEMWEAPONRANDOM) then
+        ItemIndex := 6
       else
-        ItemIndex := 4;
+        ItemIndex := 7;
     end;
     AddSpace();// Items Respawn block
     with AddEdit(_lc[I_MENU_ITEM_RESPAWN_TIME]) do
