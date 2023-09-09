@@ -442,7 +442,6 @@ implementation
           Result := True;
         except
           s.Free();
-          raise;
         end;
       end;
     end;
@@ -541,10 +540,16 @@ implementation
               Assert(p.csize = p.usize);
               GetMem(ptr, p.usize);
               try
-                src.ReadBuffer(ptr[0], p.usize);
-                Result := True;
-              except
-                FreeMem(ptr);
+                try
+                  src.ReadBuffer(ptr[0], p.usize);
+                  Result := True;
+                except
+                  FreeMem(ptr);
+                  raise;
+                end;
+              except on e: EReadError do
+                if gWADEditorLogLevel >= DFWAD_LOG_WARN then
+                  e_WriteLog('DFZIP: Failed to read STOREd data, reason: ' + e.Message, MSG_WARNING);
               end;
             end;
           ZIP_COMP_DEFLATE:
@@ -557,20 +562,22 @@ implementation
                   Result := True;
                 except
                   FreeMem(ptr);
+                  raise;
                 end;
               finally
                 tmp.Free();
               end;
             except
-              on e: Exception do
+              on e: EStreamError do
               begin
                 if gWADEditorLogLevel >= DFWAD_LOG_INFO then
-                  e_WriteLog('DFZIP: Failed to decompress by DEFLATE method, reason: ' + e.Message, MSG_WARNING);
+                  e_WriteLog('DFZIP: Failed to decompress DEFLATEd data, reason: ' + e.Message, MSG_WARNING);
                 raise e;
               end;
             end;
           otherwise
-            raise Exception.Create('Unknown compression method: ' + IntToStr(p.comp));
+            if gWADEditorLogLevel >= DFWAD_LOG_INFO then
+              e_WriteLog('DFZIP: Unsupported compression method: ' + IntToStr(p.comp), MSG_WARNING);
         end;
       end
       else
@@ -802,7 +809,7 @@ implementation
                   ZIP_COMP_AE:
                     raise Exception.Create('Encrypted archives not supported');
                   otherwise
-                    raise Exception.Create('Unsupported compression method ' + IntToStr(comp));
+                    raise Exception.Create('Unknown compression method ' + IntToStr(comp));
                 end;
                 // TODO: check bit 11 (UTF8 name and comment)
                 GetMem(name, UInt32(fnlen) + 1);
@@ -940,7 +947,7 @@ implementation
         raise Exception.Create('EOCD not found (corrupted file?)');
     end
     else
-      raise Exception.Create('Not DFZIP file');
+      raise Exception.Create('Not DFZIP formated file');
   end;
 
   function TZIPEditor.ReadFile2(FileName: String): Boolean;
@@ -966,14 +973,13 @@ implementation
           if gWADEditorLogLevel >= DFWAD_LOG_INFO then
             e_WriteLog('ZIP: Failed to read ZIP from file ' + FileName + ', reason: ' + e.Message, MSG_WARNING);
           FreeWAD();
-          raise e;
         end;
       end;
     except
       on e: EFOpenError do
       begin
         if gWADEditorLogLevel >= DFWAD_LOG_INFO then
-          e_WriteLog('ZIP: Failed to open file ' + FileName + ', reason: ' + e.Message, MSG_WARNING);
+          e_WriteLog('DFZIP: Failed to open file ' + FileName + ', reason: ' + e.Message, MSG_WARNING);
         if FileExists(FileName) then
           FLastError := DFWAD_ERROR_CANTOPENWAD
         else
@@ -1005,9 +1011,8 @@ implementation
       on e: Exception do
       begin
         if gWADEditorLogLevel >= DFWAD_LOG_INFO then
-          e_WriteLog('ZIP: Failed to read ZIP from memory, reason: ' + e.Message, MSG_WARNING);
+          e_WriteLog('DFZIP: Failed to read ZIP from memory, reason: ' + e.Message, MSG_WARNING);
         FreeWAD();
-        raise e;
       end;
     end;
   end;
