@@ -35,6 +35,16 @@ interface
     DFWAD_ERROR_READWAD          = -7;
     DFWAD_ERROR_WRONGVERSION     = -8;
 
+  const
+    DFWAD_LOG_SILENT  = 0;
+    DFWAD_LOG_FATAL   = 1;
+    DFWAD_LOG_ERROR   = 2;
+    DFWAD_LOG_WARN    = 3;
+    DFWAD_LOG_INFO    = 4;
+    DFWAD_LOG_DEBUG   = 5;
+    DFWAD_LOG_TRACE   = 6;
+    DFWAD_LOG_DEFAULT = DFWAD_LOG_INFO;
+
   type
     SArray = array of ShortString;
 
@@ -125,6 +135,9 @@ interface
   procedure g_ProcessResourceStr(ResourceStr: String; FileName, SectionName, ResourceName: PString); overload;
 
   function gWADEditorFactory: TWADEditorFactory;
+
+  var
+    gWADEditorLogLevel: Integer = DFWAD_LOG_INFO;
 
 implementation
 
@@ -256,7 +269,7 @@ implementation
       fname := findFileCIStr(FileName);
       for i := 0 to FMappings.Count - 1 do
       begin
-        tmp := gWADEditorFactory.CreateEditor(FMappings[i]);
+        tmp := TWADEditorMapping(FMappings.Objects[i]).WADEditorClass.Create();
         if tmp.ReadFile2(fname) then
         begin
           Result := tmp;
@@ -275,7 +288,7 @@ implementation
     begin
       for i := 0 to FMappings.Count - 1 do
       begin
-        tmp := gWADEditorFactory.CreateEditor(FMappings[i]);
+        tmp := TWADEditorMapping(FMappings.Objects[i]).WADEditorClass.Create();
         if tmp.ReadMemory(Data, Len) then
         begin
           Result := tmp;

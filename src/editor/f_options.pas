@@ -72,7 +72,7 @@ procedure RegisterFileType(ext: String; FileName: String);
 implementation
 
 uses
-  LazFileUtils, f_main, StdConvs, CONFIG, g_language, g_options;
+  LazFileUtils, f_main, StdConvs, CONFIG, WADEDITOR, g_language, g_options;
 
 {$R *.lfm}
 
@@ -215,6 +215,8 @@ begin
 
   // save into config
   config := TConfig.CreateFile(CfgFileName);
+
+  config.WriteInt('WADEditor', 'LogLevel', gWADEditorLogLevel);
 
   config.WriteInt('Editor', 'DotColor', DotColor);
   config.WriteBool('Editor', 'DotEnable', DotEnable);

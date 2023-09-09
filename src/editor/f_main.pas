@@ -2756,6 +2756,8 @@ begin
 
   config := TConfig.CreateFile(CfgFileName);
 
+  gWADEditorLogLevel := config.ReadInt('WADEditor', 'LogLevel', DFWAD_LOG_DEFAULT);
+
   if config.ReadInt('Editor', 'XPos', -1) = -1 then
     Position := poDesktopCenter
   else begin
@@ -4381,6 +4383,8 @@ var
   i: Integer;
 begin
   config := TConfig.CreateFile(CfgFileName);
+
+  config.WriteInt('WADEditor', 'LogLevel', gWADEditorLogLevel);
 
   if WindowState <> wsMaximized then
   begin

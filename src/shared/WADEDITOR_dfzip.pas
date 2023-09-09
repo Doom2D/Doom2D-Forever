@@ -56,10 +56,10 @@ interface
         function Preload(p: PResource): Boolean;
         function GetSourceStream(p: PResource): TStream;
 
-        function ReadLFH(s: TStream; fname: AnsiString; xcsize, xusize, xcomp, xcrc: UInt32): Boolean;
-        function ReadCDR(s: TStream): Boolean;
+        procedure ReadLFH(s: TStream; fname: AnsiString; xcsize, xusize, xcomp, xcrc: UInt32);
+        procedure ReadCDR(s: TStream; cdrid: Integer);
         function FindEOCD(s: TStream): Boolean;
-        function ReadEOCD(s: TStream): Boolean;
+        procedure ReadEOCD(s: TStream);
 
         procedure WriteLFH(s: TStream; comp, crc, csize, usize: UInt32; const afname: AnsiString);
         procedure WriteCDR(s: TStream; comp, crc, csize, usize, attr, offset: UInt32; const afname: AnsiString);
@@ -100,8 +100,30 @@ implementation
     ZIP_SIGN_EOCD = 'PK'#5#6;
 
   const
-    ZIP_COMP_STORE   = 0;
-    ZIP_COMP_DEFLATE = 8;
+    ZIP_COMP_STORE     = 0;
+    ZIP_COMP_SHRUNK    = 1;
+    ZIP_COMP_REDUCE1   = 2;
+    ZIP_COMP_REDUCE2   = 3;
+    ZIP_COMP_REDUCE3   = 4;
+    ZIP_COMP_REDUCE4   = 5;
+    ZIP_COMP_IMPLODE   = 6;
+    ZIP_COMP_TOKENIZED = 7;
+    ZIP_COMP_DEFLATE   = 8;
+    ZIP_COMP_DEFLATE64 = 9;
+    ZIP_COMP_TERSE1    = 10;
+    ZIP_COMP_BZIP2     = 12;
+    ZIP_COMP_LZMA      = 14;
+    ZIP_COMP_CMPSC     = 16;
+    ZIP_COMP_TERSE2    = 18;
+    ZIP_COMP_LZ77      = 19;
+    ZIP_COMP_ZSTD1     = 20;
+    ZIP_COMP_ZSTD2     = 93;
+    ZIP_COMP_MP3       = 94;
+    ZIP_COMP_XZ        = 95;
+    ZIP_COMP_JPEG      = 96;
+    ZIP_COMP_WAVPACK   = 97;
+    ZIP_COMP_PPMD      = 98;
+    ZIP_COMP_AE        = 99;
 
   const
     ZIP_SYSTEM     = 0;  // DOS / FAT
@@ -332,7 +354,7 @@ implementation
     Result := False;
     FLastError := DFWAD_ERROR_READWAD;
     try
-      s := TFileStream.Create(FileName, fmOpenRead, fmShareDenyWrite);
+      s := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
       try
         GetMem(ptr, s.Size);
         try
@@ -345,8 +367,13 @@ implementation
       finally
         s.Free();
       end;
-    except on e: EFOpenError do
-      FLastError := DFWAD_ERROR_CANTOPENWAD;
+    except
+      on e: EFOpenError do
+      begin
+        if gWADEditorLogLevel >= DFWAD_LOG_INFO then
+          e_WriteLog('DFZIP: AddResource: failed to open file ' + FileName, MSG_NOTIFY);
+        FLastError := DFWAD_ERROR_CANTOPENWAD;
+      end;
     end;
   end;
 
@@ -426,10 +453,14 @@ implementation
   begin
     if FStream = nil then
     begin
+      if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+        e_WriteLog('DFZIP: CreateImage: File not assigned', MSG_NOTIFY);
       FLastError := DFWAD_ERROR_WADNOTLOADED;
     end
     else if FStream is TMemoryStream then
     begin
+      if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+        e_WriteLog('DFZIP: CreateImage: Memory stream', MSG_NOTIFY);
       FLastError := DFWAD_NOERROR;
     end
     else
@@ -444,6 +475,8 @@ implementation
             begin
               if Preload(@FSection[i].list[j]) = False then
               begin
+                if gWADEditorLogLevel >= DFWAD_LOG_WARN then
+                  e_WriteLog('DFZIP: CreateImage: failed to preload resource [' + FSection[i].name + '][' + FSection[i].list[j].name + ']', MSG_WARNING);
                 FLastError := DFWAD_ERROR_CANTOPENWAD;
                 exit;
               end;
@@ -459,7 +492,7 @@ implementation
   procedure TZIPEditor.AddSection(Name: String);
   begin
     if InsertSection(Name) = nil then
-      raise Exception.Create('ZIP: AddSection: failed to add section');
+      raise Exception.Create('DFZIP: AddSection[' + Name + ']: failed to insert');
   end;
 
   function TZIPEditor.HaveResource(Section, Resource: String): Boolean;
@@ -504,8 +537,8 @@ implementation
       begin
         case p.comp of
           ZIP_COMP_STORE:
-            if p.csize = p.usize then
             begin
+              Assert(p.csize = p.usize);
               GetMem(ptr, p.usize);
               try
                 src.ReadBuffer(ptr[0], p.usize);
@@ -515,7 +548,7 @@ implementation
               end;
             end;
           ZIP_COMP_DEFLATE:
-            begin
+            try
               tmp := TDecompressionStream.Create(src, True);
               try
                 GetMem(ptr, p.usize);
@@ -528,11 +561,22 @@ implementation
               finally
                 tmp.Free();
               end;
+            except
+              on e: Exception do
+              begin
+                if gWADEditorLogLevel >= DFWAD_LOG_INFO then
+                  e_WriteLog('DFZIP: Failed to decompress by DEFLATE method, reason: ' + e.Message, MSG_WARNING);
+                raise e;
+              end;
             end;
+          otherwise
+            raise Exception.Create('Unknown compression method: ' + IntToStr(p.comp));
         end;
       end
       else
       begin
+        if gWADEditorLogLevel >= DFWAD_LOG_WARN then
+          e_WriteLog('DFZIP: No available source for file data', MSG_WARNING);
         FLastError := DFWAD_ERROR_WADNOTLOADED;
       end;
       if Result = True then
@@ -548,12 +592,16 @@ implementation
         end
         else
         begin
+          if gWADEditorLogLevel >= DFWAD_LOG_INFO then
+            e_WriteLog('DFZIP: File integrity check failed: expected CRC32 $' + IntToHex(p.chksum, 8) + ', calculated CRC32 $' + IntToHex(crc, 8), MSG_WARNING);
           FreeMem(ptr);
         end;
       end;
     end
     else
     begin
+      if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+        e_WriteLog('DFZIP: Resource not found', MSG_NOTIFY);
       FLastError := DFWAD_ERROR_RESOURCENOTFOUND;
     end;
   end;
@@ -587,21 +635,23 @@ implementation
     end;
   end;
 
-  function TZIPEditor.ReadLFH(s: TStream; fname: AnsiString; xcsize, xusize, xcomp, xcrc: UInt32): Boolean;
+  procedure TZIPEditor.ReadLFH(s: TStream; fname: AnsiString; xcsize, xusize, xcomp, xcrc: UInt32);
     var sig: packed array [0..3] of Char;
-    var v, flags, comp: UInt16;
+    var va, vb, flags, comp: UInt16;
     var mtime, crc, csize, usize: UInt32;
     var fnlen, extlen: UInt16;
-    var datapos: UInt64;
+    var mypos, datapos: UInt64;
     var section, name: AnsiString;
+    var p: Pointer;
   begin
-    Result := False;
-    if s.Position + 30 <= s.Size then
+    mypos := s.Position;
+    if mypos + 30 <= s.Size then
     begin
       s.ReadBuffer(sig[0], 4);
       if sig = ZIP_SIGN_LFH then
       begin
-        v := LEtoN(s.ReadWord());
+        va := s.ReadByte(); // Min Version
+        vb := s.ReadByte(); // Min System
         flags := LEtoN(s.ReadWord());
         comp := LEtoN(s.ReadWord());
         mtime := LEtoN(s.ReadDWord());
@@ -611,36 +661,73 @@ implementation
         fnlen := LEtoN(s.ReadWord());
         extlen := LEtoN(s.ReadWord());
         datapos := s.Position + fnlen + extlen;
-        if datapos + xcsize <= s.Size then
+        if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
         begin
-          // Valid Record Size
-          ToSectionFile(fname, section, name);
-          if name = '' then
-            Result := InsertSection(section) <> nil
-          else
-            Result := InsertFileInfo(section, name, datapos, xcsize, xusize, xcomp, xcrc) <> nil;
+          e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Min Version       : ' + IntToStr(va), MSG_NOTIFY);
+          e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Min System        : ' + IntToStr(vb), MSG_NOTIFY);
+          e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Flags             : $' + IntToHex(flags, 4), MSG_NOTIFY);
+          e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Compression       : ' + IntToStr(comp), MSG_NOTIFY);
+          e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Modification Time : $' + IntToHex(mtime, 8), MSG_NOTIFY);
+          e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': CRC-32            : $' + IntToHex(crc, 8), MSG_NOTIFY);
+          e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Compressed size   : ' + IntToStr(csize), MSG_NOTIFY);
+          e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Decompressed size : ' + IntToStr(usize), MSG_NOTIFY);
+          e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Name Length       : ' + IntToStr(fnlen), MSG_NOTIFY);
+          e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Extension Length  : ' + IntToStr(extlen), MSG_NOTIFY);
+          e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': <DATA OFFSET>     : $' + IntToHex(datapos, 8), MSG_NOTIFY);
         end;
-      end;
-    end;
+        if (va >= 10) and (va <= ZIP_MAXVERSION) then
+        begin
+          if datapos + xcsize <= s.Size then
+          begin
+            ToSectionFile(fname, section, name);
+            if name = '' then
+            begin
+              p := FindSectionRAW(section, True);
+              if p = nil then
+                p := InsertSectionRAW(section)
+            end
+            else
+            begin
+              p := InsertFileInfo(section, name, datapos, xcsize, xusize, xcomp, xcrc);
+            end;
+            if p = nil then
+              raise Exception.Create('Failed to register resource [' + fname + ']');
+          end
+          else
+            raise Exception.Create('Invalid LFH size (corrupted file?)');
+        end
+        else
+        begin
+          FLastError := DFWAD_ERROR_WRONGVERSION;
+          raise Exception.Create('Unsupported CDR version ' + IntToStr(va) + ', not in range [10..' + IntToStr(ZIP_MAXVERSION) + ']');
+        end;
+      end
+      else
+        raise Exception.Create('Invalid LFH signature $' +IntToHex(Ord(sig[0]), 2) + ' $' +IntToHex(Ord(sig[1]), 2) + ' $' +IntToHex(Ord(sig[2]), 2) + ' $' +IntToHex(Ord(sig[3]), 2) + ' (corrupted file?)');
+    end
+    else
+      raise Exception.Create('Invalid LFH size (corrupted file?)');
   end;
 
-  function TZIPEditor.ReadCDR(s: TStream): Boolean;
+  procedure TZIPEditor.ReadCDR(s: TStream; cdrid: Integer);
+    const ZIP_ENCRYPTION_MASK = (1 << 0) or (1 << 6) or (1 << 13);
     var sig: packed array [0..3] of Char;
-    var v, va, vb, flags, comp: UInt16;
+    var vva, vvb, va, vb, flags, comp: UInt16;
     var mtime, crc, csize, usize: UInt32;
     var fnlen, extlen, comlen, disk, iattr: UInt16;
     var eattr, offset: UInt32;
-    var next: UInt64;
+    var mypos, next: UInt64;
     var name: PChar;
   begin
-    Result := False;
+    mypos := s.Position;
     s.ReadBuffer(sig[0], 4);
     if sig = ZIP_SIGN_CDR then
     begin
       // Valid Central Directory Signature
-      v := LEtoN(s.ReadWord());
-      va := s.ReadByte(); // Min Version
-      vb := s.ReadByte(); // Min System
+      vva := s.ReadByte(); // Writer Version
+      vvb := s.ReadByte(); // Writer System
+      va := s.ReadByte();  // Min Version
+      vb := s.ReadByte();  // Min System
       flags := LEtoN(s.ReadWord());
       comp := LEtoN(s.ReadWord());
       mtime := LEtoN(s.ReadDWord());
@@ -656,51 +743,107 @@ implementation
       offset := LEtoN(s.ReadDWord());
       next := s.Position + fnlen + extlen + comlen;
       FVersion := va;
-      if va <= ZIP_MAXVERSION then
+      if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
       begin
-        if (flags and ((1 << 0) or (1 << 6) or (1 << 13))) = 0 then
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Writer Version    : ' + IntToStr(vva), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Writer System     : ' + IntToStr(vvb), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Min Version       : ' + IntToStr(va), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Min System        : ' + IntToStr(vb), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Flags             : $' + IntToHex(flags, 4), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Compression       : ' + IntToStr(comp), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Modification Time : $' + IntToHex(mtime, 8), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': CRC-32            : $' + IntToHex(crc, 8), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Compressed size   : ' + IntToStr(csize), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Decompressed size : ' + IntToStr(usize), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name Length       : ' + IntToStr(fnlen), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Extension Length  : ' + IntToStr(extlen), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Comment Length    : ' + IntToStr(comlen), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Disk              : ' + IntToStr(disk), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Internal Attrib   : $' + IntToHex(iattr, 4), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': External Attrib   : $' + IntToHex(iattr, 8), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': LFH Offset        : $' + IntToHex(offset, 8), MSG_NOTIFY);
+      end;
+      if (va >= 10) and (va <= ZIP_MAXVERSION) then
+      begin
+        if (flags and ZIP_ENCRYPTION_MASK) = 0 then
         begin
-          // TODO: check bit 11 (UTF8 name and comment)
           if (csize <> $ffffffff) and (usize <> $ffffffff) and (disk <> $ffff) and (offset <> $ffffffff) then
           begin
-            // Old Style ZIP
             if disk = 0 then
             begin
-              // Single Volume ZIP
               if (next <= s.Size) and (fnlen > 0) then
               begin
-                // Valid Central Directory Entry
+                case comp of
+                  ZIP_COMP_STORE:
+                    if csize <> usize then
+                      raise Exception.Create('Compressed size ' + IntToStr(csize) + ' != Descompressed size ' + IntToStr(usize) + 'for STORE method (corrupted file?)');
+                  ZIP_COMP_SHRUNK,
+                  ZIP_COMP_REDUCE1,
+                  ZIP_COMP_REDUCE2,
+                  ZIP_COMP_REDUCE3,
+                  ZIP_COMP_REDUCE4,
+                  ZIP_COMP_IMPLODE,
+                  ZIP_COMP_DEFLATE,
+                  ZIP_COMP_DEFLATE64,
+                  ZIP_COMP_TERSE1,
+                  ZIP_COMP_BZIP2,
+                  ZIP_COMP_LZMA,
+                  ZIP_COMP_CMPSC,
+                  ZIP_COMP_TERSE2,
+                  ZIP_COMP_LZ77,
+                  ZIP_COMP_ZSTD1,
+                  ZIP_COMP_ZSTD2,
+                  ZIP_COMP_MP3,
+                  ZIP_COMP_XZ,
+                  ZIP_COMP_JPEG,
+                  ZIP_COMP_WAVPACK,
+                  ZIP_COMP_PPMD:
+                    ; // ok
+                  ZIP_COMP_AE:
+                    raise Exception.Create('Encrypted archives not supported');
+                  otherwise
+                    raise Exception.Create('Unsupported compression method ' + IntToStr(comp));
+                end;
+                // TODO: check bit 11 (UTF8 name and comment)
                 GetMem(name, UInt32(fnlen) + 1);
                 try
                   s.ReadBuffer(name[0], fnlen);
                   name[fnlen] := #0;
+                  if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+                    e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name              : "' + name + '"', MSG_NOTIFY);
                   s.Seek(offset, TSeekOrigin.soBeginning);
-                  Result := ReadLFH(s, name, csize, usize, comp, crc);
+                  ReadLFH(s, name, csize, usize, comp, crc);
                 finally
                   s.Seek(next, TSeekOrigin.soBeginning);
                   FreeMem(name);
                 end;
-              end;
-            end;
+              end
+              else
+                raise Exception.Create('Empty files names not supported');
+            end
+            else
+              raise Exception.Create('Splitted archives not supported');
           end
           else
           begin
-            // ZIP64
             FLastError := DFWAD_ERROR_WRONGVERSION;
+            raise Exception.Create('ZIP64 not supported');
           end;
         end
         else
         begin
-          // Encrypted file
           FLastError := DFWAD_ERROR_READWAD;
+          raise Exception.Create('Encrypted archives not supported');
         end;
       end
       else
       begin
-        // Unsupported version
         FLastError := DFWAD_ERROR_WRONGVERSION;
+        raise Exception.Create('Unsupported CDR version ' + IntToStr(va) + ', not in range [10..' + IntToStr(ZIP_MAXVERSION) + ']');
       end;
-    end;
+    end
+    else
+      raise Exception.Create('Invalid CDR signature $' + IntToHex(Ord(sig[0]), 2) + ' $' +IntToHex(Ord(sig[1]), 2) + ' $' +IntToHex(Ord(sig[2]), 2) + ' $' +IntToHex(Ord(sig[3]), 2) + ' (corrupted file?)');
   end;
 
   function TZIPEditor.FindEOCD(s: TStream): Boolean;
@@ -724,12 +867,12 @@ implementation
     end;
   end;
 
-  function TZIPEditor.ReadEOCD(s: TStream): Boolean;
+  procedure TZIPEditor.ReadEOCD(s: TStream);
     var sig: packed array [0..3] of Char;
     var idisk, ndisk, nrec, total, comlen: UInt16;
     var csize, cpos, i: UInt32;
+    var mypos: UInt64;
   begin
-    Result := False;
     FLastError := DFWAD_ERROR_FILENOTWAD;
     FVersion := 0;
     s.ReadBuffer(sig[0], 4);
@@ -739,6 +882,7 @@ implementation
       begin
         // End of Central Directory found
         FLastError := DFWAD_ERROR_READWAD;
+        mypos := s.Position - 4;
         idisk := LEtoN(s.ReadWord());
         ndisk := LEtoN(s.ReadWord());
         nrec := LEtoN(s.ReadWord());
@@ -746,43 +890,57 @@ implementation
         csize := LEtoN(s.ReadDWord());
         cpos := LEtoN(s.ReadDWord());
         comlen := LEtoN(s.ReadWord());
+        if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+        begin
+          e_WriteLog('==============================================', MSG_NOTIFY);
+          e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Disk ID           : ' + IntToStr(idisk), MSG_NOTIFY);
+          e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Disk ID with CD   : ' + IntToStr(ndisk), MSG_NOTIFY);
+          e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Available CDR''s   : ' + IntToStr(nrec), MSG_NOTIFY);
+          e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Total CDR''s       : ' + IntToStr(total), MSG_NOTIFY);
+          e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': CD Length         : ' + IntToStr(csize), MSG_NOTIFY);
+          e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': CD Offset         : $' + IntToHex(cpos, 8), MSG_NOTIFY);
+          e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Comment Length    : ' + IntToStr(comlen), MSG_NOTIFY);
+        end;
         if (idisk <> $ffff) and (ndisk <> $ffff) and (nrec <> $ffff) and (total <> $ffff) and (csize <> $ffffffff) and (cpos <> $ffffffff) then
         begin
-          // Old Style ZIP
           if s.Position + comlen = s.Size then
           begin
-            // Valid End of Central Directory size (located exactly at the end of file)
             if (idisk = 0) and (ndisk = 0) and (nrec = total) then
             begin
-              // Single volume ZIP
-              if (UInt64(cpos) + csize <= s.Size) then
+              if (nrec * 46 <= csize) and (UInt64(cpos) + csize <= s.Size) then
               begin
-                // Valid Cental Directry Record position and size
-                Result := True;
                 if total > 0 then
                 begin
-                  // At least one Central Directry present
                   i := 0;
                   s.Seek(cpos, TSeekOrigin.soBeginning);
-                  while (i < nrec) and (Result = True) do
+                  while i < nrec do
                   begin
-                    Result := ReadCDR(s);
+                    if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+                      e_WriteLog('==============================================', MSG_NOTIFY);
+                    ReadCDR(s, i);
                     Inc(i);
                   end;
-                  // if Result = False then
-                  //   writeln('Invalid Central Directory #', i - 1);
+                  if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+                    e_WriteLog('==============================================', MSG_NOTIFY);
                 end;
-              end;
-            end;
-          end;
+              end
+              else
+                raise Exception.Create('Central Directory too big (corrupted file?)');
+            end
+            else
+              raise Exception.Create('Splitted archives not supported');
+          end
+          else
+            raise Exception.Create('EOCD too big (corrupted file?)');
         end
         else
-        begin
-          // ZIP64
-          FLastError := DFWAD_ERROR_WRONGVERSION;
-        end;
-      end;
-    end;
+          raise Exception.Create('ZIP64 not supported');
+      end
+      else
+        raise Exception.Create('EOCD not found (corrupted file?)');
+    end
+    else
+      raise Exception.Create('Not DFZIP file');
   end;
 
   function TZIPEditor.ReadFile2(FileName: String): Boolean;
@@ -791,27 +949,36 @@ implementation
     FreeWAD();
     Result := False;
     try
-      s := TFileStream.Create(FileName, fmOpenRead, fmShareDenyWrite);
       try
-        Result := ReadEOCD(s);
-        if Result = True then
-        begin
+        s := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+        try
+          ReadEOCD(s);
           FStream := s;
           FLastError := DFWAD_NOERROR;
-        end
-        else
-        begin
-          FStream := nil;
+          Result := True;
+        except
           s.Free();
+          raise;
         end;
       except
-        s.Free();
+        on e: Exception do
+        begin
+          if gWADEditorLogLevel >= DFWAD_LOG_INFO then
+            e_WriteLog('ZIP: Failed to read ZIP from file ' + FileName + ', reason: ' + e.Message, MSG_WARNING);
+          FreeWAD();
+          raise e;
+        end;
       end;
-    except on e: EFOpenError do
-      if FileExists(FileName) then
-        FLastError := DFWAD_ERROR_CANTOPENWAD
-      else
-        FLastError := DFWAD_ERROR_WADNOTFOUND;
+    except
+      on e: EFOpenError do
+      begin
+        if gWADEditorLogLevel >= DFWAD_LOG_INFO then
+          e_WriteLog('ZIP: Failed to open file ' + FileName + ', reason: ' + e.Message, MSG_WARNING);
+        if FileExists(FileName) then
+          FLastError := DFWAD_ERROR_CANTOPENWAD
+        else
+          FLastError := DFWAD_ERROR_WADNOTFOUND;
+      end;
     end;
   end;
 
@@ -820,25 +987,28 @@ implementation
   begin
     FreeWAD();
     Result := False;
-    s := TMemoryStream.Create;
     try
-      s.SetSize(Len);
-      s.WriteBuffer(PByte(Data)[0], Len);
-      s.Seek(0, soBeginning);
-      Result := ReadEOCD(s);
-      if Result = True then
-      begin
+      s := TMemoryStream.Create;
+      try
+        s.SetSize(Len);
+        s.WriteBuffer(PByte(Data)[0], Len);
+        s.Seek(0, soBeginning);
+        ReadEOCD(s);
         FStream := s;
         FLastError := DFWAD_NOERROR;
-      end
-      else
-      begin
-        FStream := nil;
+        Result := True;
+      except
         s.Free();
+        raise;
       end;
     except
-      s.Free();
-      raise;
+      on e: Exception do
+      begin
+        if gWADEditorLogLevel >= DFWAD_LOG_INFO then
+          e_WriteLog('ZIP: Failed to read ZIP from memory, reason: ' + e.Message, MSG_WARNING);
+        FreeWAD();
+        raise e;
+      end;
     end;
   end;
 
@@ -936,7 +1106,7 @@ implementation
             end
             else
             begin
-              raise Exception.Create('ZIP: SaveToStream: No data source available');
+              raise Exception.Create('No data source available (somethig very wrong)');
             end;
           end;
         end
@@ -992,11 +1162,20 @@ implementation
   procedure TZIPEditor.SaveTo(FileName: String);
     var s: TFileStream;
   begin
-    s := TFileStream.Create(FileName, fmCreate);
     try
-      SaveToStream(s);
-    finally
-      s.Free();
+      s := TFileStream.Create(FileName, fmCreate);
+      try
+        SaveToStream(s);
+      finally
+        s.Free();
+      end;
+    except
+      on e: Exception do
+      begin
+        if gWADEditorLogLevel >= DFWAD_LOG_INFO then
+          e_WriteLog('ZIP: Failed to create file ' + FileName + ', reason: ' + e.Message, MSG_WARNING);
+        raise e;
+      end;
     end;
   end;
 
@@ -1016,7 +1195,7 @@ implementation
       DFWAD_ERROR_WADNOTLOADED: Result := 'DFZIP file is not loaded';
       DFWAD_ERROR_READRESOURCE: Result := 'Read resource error';
       DFWAD_ERROR_READWAD: Result := 'Read DFZIP error';
-      otherwise Result := '';
+      otherwise Result := IntToStr(FLastError);
     end;
   end;
 
