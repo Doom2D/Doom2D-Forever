@@ -62,7 +62,7 @@ interface
         procedure ReadEOCD(s: TStream);
 
         procedure WriteLFH(s: TStream; comp, crc, csize, usize: UInt32; const afname: AnsiString);
-        procedure WriteCDR(s: TStream; comp, crc, csize, usize, attr, offset: UInt32; const afname: AnsiString);
+        procedure WriteCDR(s: TStream; comp, crc, csize, usize, eattr, offset: UInt32; const afname: AnsiString; cdrid: Integer);
         procedure SaveToStream(s: TStream);
 
       public
@@ -92,7 +92,7 @@ interface
 
 implementation
 
-  uses SysUtils, StrUtils, zstream, crc, e_log;
+  uses SysUtils, StrUtils, utils, zstream, crc, e_log;
 
   const
     ZIP_SIGN_CDR  = 'PK'#1#2;
@@ -767,7 +767,7 @@ implementation
         e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Comment Length    : ' + IntToStr(comlen), MSG_NOTIFY);
         e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Disk              : ' + IntToStr(disk), MSG_NOTIFY);
         e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Internal Attrib   : $' + IntToHex(iattr, 4), MSG_NOTIFY);
-        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': External Attrib   : $' + IntToHex(iattr, 8), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': External Attrib   : $' + IntToHex(eattr, 8), MSG_NOTIFY);
         e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': LFH Offset        : $' + IntToHex(offset, 8), MSG_NOTIFY);
       end;
       if (va >= 10) and (va <= ZIP_MAXVERSION) then
@@ -1035,48 +1035,87 @@ implementation
   end;
 
   procedure TZIPEditor.WriteLFH(s: TStream; comp, crc, csize, usize: UInt32; const afname: AnsiString);
-    var fname: PChar; flen: UInt16;
+    var fname: PChar; fnlen: UInt16; mypos: UInt64;
   begin
+    mypos := s.Position;
     fname := PChar(afname);
-    flen := Length(fname);
+    fnlen := Length(fname);
+    if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+    begin
+      e_WriteLog('==============================================', MSG_NOTIFY);
+      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Min Version       : ' + IntToStr(ZIP_VERSION), MSG_NOTIFY);
+      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Min System        : ' + IntToStr(ZIP_SYSTEM), MSG_NOTIFY);
+      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Flags             : $' + IntToHex(0, 4), MSG_NOTIFY);
+      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Compression       : ' + IntToStr(comp), MSG_NOTIFY);
+      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Modification Time : $' + IntToHex(0, 8), MSG_NOTIFY);
+      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': CRC-32            : $' + IntToHex(crc, 8), MSG_NOTIFY);
+      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Compressed size   : ' + IntToStr(csize), MSG_NOTIFY);
+      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Decompressed size : ' + IntToStr(usize), MSG_NOTIFY);
+      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Name Length       : ' + IntToStr(fnlen), MSG_NOTIFY);
+      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Extension Length  : ' + IntToStr(0), MSG_NOTIFY);
+      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Name              : "' + fname + '"', MSG_NOTIFY);
+    end;
     s.WriteBuffer(ZIP_SIGN_LFH, 4); // LFH Signature
     s.WriteByte(ZIP_VERSION);       // Min version
     s.WriteByte(ZIP_SYSTEM);        // System
-    s.WriteWord(NtoLE(0));          // Flags
-    s.WriteWord(NtoLE(comp));       // Compression method
-    s.WriteDWord(NtoLE(0));         // Modification time/date
-    s.WriteDWord(NtoLE(crc));       // CRC-32
-    s.WriteDWord(NtoLE(csize));     // Compressed size
-    s.WriteDWord(NtoLE(usize));     // Decompressed size
-    s.WriteWord(NtoLE(flen));       // Name field length
-    s.WriteWord(NtoLE(0));          // Extra field length
-    s.WriteBuffer(fname[0], flen);  // File Name
+    WriteInt(s, UInt16(0));         // Flags
+    WriteInt(s, UInt16(comp));      // Compression method
+    WriteInt(s, UInt32(0));         // Modification time/date
+    WriteInt(s, UInt32(crc));       // CRC-32
+    WriteInt(s, UInt32(csize));     // Compressed size
+    WriteInt(s, UInt32(usize));     // Decompressed size
+    WriteInt(s, UInt16(fnlen));     // Name field length
+    WriteInt(s, UInt16(0));         // Extra field length
+    s.WriteBuffer(fname[0], fnlen); // File Name
   end;
 
-  procedure TZIPEditor.WriteCDR(s: TStream; comp, crc, csize, usize, attr, offset: UInt32; const afname: AnsiString);
-    var fname: PChar; flen: UInt16;
+  procedure TZIPEditor.WriteCDR(s: TStream; comp, crc, csize, usize, eattr, offset: UInt32; const afname: AnsiString; cdrid: Integer);
+    var fname: PChar; fnlen: UInt16; mypos: UInt64;
   begin
+    mypos := s.Position;
     fname := PChar(afname);
-    flen := Length(fname);
+    fnlen := Length(fname);
+    if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+    begin
+      e_WriteLog('==============================================', MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Writer Version    : ' + IntToStr(ZIP_MAXVERSION), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Writer System     : ' + IntToStr(ZIP_SYSTEM), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Min Version       : ' + IntToStr(ZIP_VERSION), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Min System        : ' + IntToStr(ZIP_SYSTEM), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Flags             : $' + IntToHex(0, 4), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Compression       : ' + IntToStr(comp), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Modification Time : $' + IntToHex(0, 8), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': CRC-32            : $' + IntToHex(crc, 8), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Compressed size   : ' + IntToStr(csize), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Decompressed size : ' + IntToStr(usize), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name Length       : ' + IntToStr(fnlen), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Extension Length  : ' + IntToStr(0), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Comment Length    : ' + IntToStr(0), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Disk              : ' + IntToStr(0), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Internal Attrib   : $' + IntToHex(0, 4), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': External Attrib   : $' + IntToHex(eattr, 8), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': LFH Offset        : $' + IntToHex(offset, 8), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name              : "' + fname + '"', MSG_NOTIFY);
+    end;
     s.WriteBuffer(ZIP_SIGN_CDR, 4); // CDR Signature
     s.WriteByte(ZIP_MAXVERSION);    // Used version
     s.WriteByte(ZIP_SYSTEM);        // Used system
     s.WriteByte(ZIP_VERSION);       // Min version
     s.WriteByte(ZIP_SYSTEM);        // Min system
-    s.WriteWord(NtoLE(0));          // Flags
-    s.WriteWord(NtoLE(comp));       // Compression method
-    s.WriteDWord(NtoLE(0));         // Modification time/date
-    s.WriteDWord(NtoLE(crc));       // CRC-32
-    s.WriteDWord(NtoLE(csize));     // Compressed size
-    s.WriteDWord(NtoLE(usize));     // Decompressed size
-    s.WriteWord(NtoLE(flen));       // Name field length
-    s.WriteWord(NtoLE(0));          // Extra field length
-    s.WriteWord(NtoLE(0));          // Comment field length
-    s.WriteWord(NtoLE(0));          // Disk
-    s.WriteWord(NtoLE(0));          // Internal attributes
-    s.WriteDWord(NtoLE(attr));      // External attributes
-    s.WriteDWord(NtoLE(offset));    // LFH offset
-    s.WriteBuffer(fname[0], flen);  // File Name
+    WriteInt(s, UInt16(0));         // Flags
+    WriteInt(s, UInt16(comp));      // Compression method
+    WriteInt(s, UInt32(0));         // Modification time/date
+    WriteInt(s, UInt32(crc));       // CRC-32
+    WriteInt(s, UInt32(csize));     // Compressed size
+    WriteInt(s, UInt32(usize));     // Decompressed size
+    WriteInt(s, UInt16(fnlen));     // Name field length
+    WriteInt(s, UInt16(0));         // Extra field length
+    WriteInt(s, UInt16(0));         // Comment field length
+    WriteInt(s, UInt16(0));         // Disk
+    WriteInt(s, UInt16(0));         // Internal attributes
+    WriteInt(s, UInt32(eattr));     // External attributes
+    WriteInt(s, UInt32(offset));    // LFH offset
+    s.WriteBuffer(fname[0], fnlen); // File Name
   end;
 
   procedure TZIPEditor.SaveToStream(s: TStream);
@@ -1084,6 +1123,7 @@ implementation
     var start, offset, loffset, size, zcrc, count: UInt32;
     var p: PResource;
     var afname: AnsiString;
+    var mypos: UInt64;
   begin
     // Write LFH headers and data
     start := s.Position;
@@ -1124,7 +1164,7 @@ implementation
     end;
     // Write CDR headers
     count := 0;
-    loffset := start;
+    loffset := 0;
     offset := s.Position - start;
     if FSection <> nil then
     begin
@@ -1136,7 +1176,7 @@ implementation
           begin
             p := @FSection[i].list[j];
             afname := GetFileName(FSection[i].name, p.name);
-            WriteCDR(s, p.comp, p.chksum, p.csize, p.usize, 0, loffset - start, afname);
+            WriteCDR(s, p.comp, p.chksum, p.csize, p.usize, $00, loffset, afname, i);
             loffset := loffset + 30 + Length(afname) + p.csize;
             Inc(count);
           end;
@@ -1144,7 +1184,7 @@ implementation
         else
         begin
           afname := GetFileName(FSection[i].name, '');
-          WriteCDR(s, ZIP_COMP_STORE, zcrc, 0, 0, $10, loffset - start, afname);
+          WriteCDR(s, ZIP_COMP_STORE, zcrc, 0, 0, $10, loffset, afname, i);
           loffset := loffset + 30 + Length(afname) + 0;
           Inc(count);
         end;
@@ -1154,14 +1194,27 @@ implementation
     Assert(count < $ffff);
     size := s.Position - start - offset;
     // Write EOCD header
+    mypos := s.Position;
+    if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+    begin
+      e_WriteLog('==============================================', MSG_NOTIFY);
+      e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Disk ID           : ' + IntToStr(0), MSG_NOTIFY);
+      e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Disk ID with CD   : ' + IntToStr(0), MSG_NOTIFY);
+      e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Available CDR''s   : ' + IntToStr(count), MSG_NOTIFY);
+      e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Total CDR''s       : ' + IntToStr(count), MSG_NOTIFY);
+      e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': CD Length         : ' + IntToStr(size), MSG_NOTIFY);
+      e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': CD Offset         : $' + IntToHex(offset, 8), MSG_NOTIFY);
+      e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Comment Length    : ' + IntToStr(0), MSG_NOTIFY);
+      e_WriteLog('==============================================', MSG_NOTIFY);
+    end;
     s.WriteBuffer(ZIP_SIGN_EOCD, 4); // EOCD Signature
-    s.WriteWord(NtoLE(0));           // Disk
-    s.WriteWord(NtoLE(0));           // Num of Disks
-    s.WriteWord(NtoLE(count));       // Num of CDRs
-    s.WriteWord(NtoLE(count));       // Total CDR entries
-    s.WriteDWord(NtoLE(size));       // Central Directory size
-    s.WriteDWord(NtoLE(offset));     // Central Directory offset
-    s.WriteWord(NtoLE(0));           // Comment field length
+    WriteInt(s, UInt16(0));          // Disk
+    WriteInt(s, UInt16(0));          // Num of Disks
+    WriteInt(s, UInt16(count));      // Num of CDRs
+    WriteInt(s, UInt16(count));      // Total CDR entries
+    WriteInt(s, UInt32(size));       // Central Directory size
+    WriteInt(s, UInt32(offset));     // Central Directory offset
+    WriteInt(s, UInt16(0));          // Comment field length
   end;
 
   procedure TZIPEditor.SaveTo(FileName: String);
