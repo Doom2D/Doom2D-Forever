@@ -271,6 +271,7 @@ type
     procedure FormKeyUp(Sender: TObject; var Key: Word;
       Shift: TShiftState);
   private
+    LastDrawTime: UInt64;
     procedure Draw();
     procedure OnIdle(Sender: TObject; var Done: Boolean);
     procedure RefillRecentMenu (menu: TMenuItem; start: Integer; fmt: AnsiString);
@@ -2671,6 +2672,7 @@ var
   s: String;
 begin
   Randomize();
+  LastDrawTime := 0;
 
   {$IFDEF DARWIN}
     miApple.Enabled := True;
@@ -2891,6 +2893,7 @@ var
   ObjCount: Word;
   aX, aY, aX2, aY2, XX, ScaleSz: Integer;
 begin
+  LastDrawTime := GetTickCount64();
   ID := 0;
   PID := 0;
   Width := 0;
@@ -6719,8 +6722,15 @@ begin
 end;
 
 procedure TMainForm.OnIdle(Sender: TObject; var Done: Boolean);
+  const MaxFPS = 60;
   var f: AnsiString;
 begin
+  // TODO: move refresh to user actions (ask to repaint only when something changed)
+  if GetTickCount64() - LastDrawTime >= 1000 div MaxFPS then
+  begin
+    PanelMap.Refresh;
+  end;
+
   if StartMap <> '' then
   begin
     f := StartMap;
