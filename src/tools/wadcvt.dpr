@@ -607,7 +607,7 @@ begin
   Move(fu[1], result[9], length(fu));
 end;
 {$ELSE}
-const UtfFlags = (1 shl 10); // bit 11
+const UtfFlags = (1 shl 11); // bit 11
 {$ENDIF}
 
 function ZipOne (ds: TStream; fname: AnsiString; st: TStream; dopack: Boolean=true): TFileInfo;
