@@ -1777,7 +1777,7 @@ type
    TSDL_SysWm = ( SDL_SYSWM_X11 ) ;
 {$ENDIF}
 
-{$IFDEF WINDOWS}
+{$IF DEFINED(WINDOWS)}
   PSDL_SysWMmsg = ^TSDL_SysWMmsg;
   TSDL_SysWMmsg = record
     version: TSDL_version;
@@ -1786,7 +1786,7 @@ type
     w_Param: WPARAM; // WORD message parameter
     lParam: LPARAM;  // LONG message parameter
   end;
-{$ELSIF DEFINED(Unix)}
+{$ELSEIF DEFINED(Unix)}
   PSDL_SysWMmsg = ^TSDL_SysWMmsg;
   TSDL_SysWMmsg = record
     version : TSDL_version;
