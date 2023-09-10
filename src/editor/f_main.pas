@@ -2949,22 +2949,23 @@ begin
     else
       a := 0;
 
+    glDisable(GL_TEXTURE_2D);
+    glColor3ub(GetRValue(DotColor), GetGValue(DotColor), GetBValue(DotColor));
+    glPointSize(DotSize);
+    glBegin(GL_POINTS);
     x := MapOffset.X mod DotStep;
-    y := MapOffset.Y mod DotStep;
-
     while x < RenderPanel.Width do
     begin
+      y := MapOffset.Y mod DotStep;
       while y < RenderPanel.Height do
       begin
-        e_DrawPoint(DotSize, x + a, y + a,
-                    GetRValue(DotColor),
-                    GetGValue(DotColor),
-                    GetBValue(DotColor));
+        glVertex2i(x + a, y + a);
         y += DotStep;
       end;
       x += DotStep;
-      y := MapOffset.Y mod DotStep;
     end;
+    glEnd();
+    glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
   end;
 
 // Превью текстуры:
