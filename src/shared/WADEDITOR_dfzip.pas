@@ -6,7 +6,7 @@ unit WADEDITOR_dfzip;
 // - File must start with LFH or EOCD signature
 // - EOCD must be located strictly at the end of file
 // - Multi-disk ZIP files are not supported
-// - UTF-8 not supported yet, expected WIN1251 encoding
+// - Expect UTF-8 or CP1251 encoded names
 // - ZIP64 not supported
 // - Encryption not supported
 // - Zero-length file names not supported
@@ -132,6 +132,20 @@ implementation
   const
     ZIP_ENCRYPTION_MASK = (1 << 0) or (1 << 6) or (1 << 13);
     ZIP_UTF8_MASK = (1 << 11);
+
+  function IsASCII(const s: AnsiString): Boolean;
+    var i: Integer;
+  begin
+    for i := 1 to Length(s) do
+    begin
+      if s[i] >= #$80 then
+      begin
+        Result := False;
+        exit;
+      end;
+    end;
+    Result := True;
+  end;
 
   procedure ToSectionFile(fname: AnsiString; out section, name: AnsiString); inline;
     var i: SizeInt;
@@ -773,6 +787,13 @@ implementation
         e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': External Attrib   : $' + IntToHex(eattr, 8), MSG_NOTIFY);
         e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': LFH Offset        : $' + IntToHex(offset, 8), MSG_NOTIFY);
       end;
+      if (vva = $10) and (vvb = $0A) and (va = $10) and (vb = $00) and (flags = (1 << 10)) and (mtime = 0) and (iattr = 0) and (eattr = 0) then
+      begin
+        // HACK: Editor and wadcvt for long time sets incorrent flag for UTF-8
+        if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+          e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': WADCVT BUG        : YES', MSG_NOTIFY);
+        flags := ZIP_UTF8_MASK;
+      end;
       if (va >= 10) and (va <= ZIP_MAXVERSION) then
       begin
         if (flags and ZIP_ENCRYPTION_MASK) = 0 then
@@ -818,11 +839,16 @@ implementation
                 try
                   s.ReadBuffer(name[0], fnlen);
                   name[fnlen] := #0;
-                  // TODO: when packer version < 63 detect utf8 by hands?
-                  if flags and ZIP_UTF8_MASK = 0 then
-                    aname := win2utf(name)
-                  else
-                    aname := name;
+                  aname := name;
+                  if (flags and ZIP_UTF8_MASK = 0) and (IsASCII(name) = False) then
+                  begin
+                    // TODO: Detect UTF-8
+                    //       Older or invalid packers does not set bit 11
+                    //       Some newer packers may write UTF-8 names into extended data
+                    if gWADEditorLogLevel >= DFWAD_LOG_WARN then
+                      e_WriteLog('ZIP: Non UTF-8 encoded name, threat it as CP1251', MSG_WARNING);
+                    aname := win2utf(aname);
+                  end;
                   if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
                     e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name              : "' + aname + '"', MSG_NOTIFY);
                   s.Seek(offset, TSeekOrigin.soBeginning);
@@ -1039,20 +1065,6 @@ implementation
       end;
       SetLength(p.list, High(p.list));
     end;
-  end;
-
-  function IsASCII(const s: AnsiString): Boolean;
-    var i: Integer;
-  begin
-    for i := 1 to Length(s) do
-    begin
-      if s[i] >= #$80 then
-      begin
-        Result := False;
-        exit;
-      end;
-    end;
-    Result := True;
   end;
 
   function GetZIPVersion(const afname: AnsiString; flags, comp: UInt16): UInt8;
