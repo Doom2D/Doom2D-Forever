@@ -92,7 +92,7 @@ interface
 
 implementation
 
-  uses SysUtils, StrUtils, utils, zstream, crc, e_log;
+  uses SysUtils, StrUtils, Math, utils, zstream, crc, e_log;
 
   const
     ZIP_SIGN_CDR  = 'PK'#1#2;
@@ -127,8 +127,11 @@ implementation
 
   const
     ZIP_SYSTEM     = 0;  // DOS / FAT
-    ZIP_VERSION    = 20; // Min version
     ZIP_MAXVERSION = 63; // Max supported version
+
+  const
+    ZIP_ENCRYPTION_MASK = (1 << 0) or (1 << 6) or (1 << 13);
+    ZIP_UTF8_MASK = (1 << 11);
 
   procedure ToSectionFile(fname: AnsiString; out section, name: AnsiString); inline;
     var i: SizeInt;
@@ -382,7 +385,7 @@ implementation
     FSection := nil;
     FStream := nil;
     FLastError := DFWAD_NOERROR;
-    FVersion := ZIP_VERSION;
+    FVersion := 10;
     FreeWAD();
   end;
 
@@ -418,7 +421,7 @@ implementation
       FreeAndNil(FStream);
     end;
     FLastError := DFWAD_NOERROR;
-    FVersion := ZIP_VERSION;
+    FVersion := 10;
   end;
 
   function TZIPEditor.Preload(p: PResource): Boolean;
@@ -717,7 +720,6 @@ implementation
   end;
 
   procedure TZIPEditor.ReadCDR(s: TStream; cdrid: Integer);
-    const ZIP_ENCRYPTION_MASK = (1 << 0) or (1 << 6) or (1 << 13);
     var sig: packed array [0..3] of Char;
     var vva, vvb, va, vb, flags, comp: UInt16;
     var mtime, crc, csize, usize: UInt32;
@@ -725,6 +727,7 @@ implementation
     var eattr, offset: UInt32;
     var mypos, next: UInt64;
     var name: PChar;
+    var aname: AnsiString;
   begin
     mypos := s.Position;
     s.ReadBuffer(sig[0], 4);
@@ -811,15 +814,19 @@ implementation
                   otherwise
                     raise Exception.Create('Unknown compression method ' + IntToStr(comp));
                 end;
-                // TODO: check bit 11 (UTF8 name and comment)
                 GetMem(name, UInt32(fnlen) + 1);
                 try
                   s.ReadBuffer(name[0], fnlen);
                   name[fnlen] := #0;
+                  // TODO: when packer version < 63 detect utf8 by hands?
+                  if flags and ZIP_UTF8_MASK = 0 then
+                    aname := win2utf(name)
+                  else
+                    aname := name;
                   if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
-                    e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name              : "' + name + '"', MSG_NOTIFY);
+                    e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name              : "' + aname + '"', MSG_NOTIFY);
                   s.Seek(offset, TSeekOrigin.soBeginning);
-                  ReadLFH(s, name, csize, usize, comp, crc);
+                  ReadLFH(s, aname, csize, usize, comp, crc);
                 finally
                   s.Seek(next, TSeekOrigin.soBeginning);
                   FreeMem(name);
@@ -1034,18 +1041,73 @@ implementation
     end;
   end;
 
+  function IsASCII(const s: AnsiString): Boolean;
+    var i: Integer;
+  begin
+    for i := 1 to Length(s) do
+    begin
+      if s[i] >= #$80 then
+      begin
+        Result := False;
+        exit;
+      end;
+    end;
+    Result := True;
+  end;
+
+  function GetZIPVersion(const afname: AnsiString; flags, comp: UInt16): UInt8;
+    var version: UInt8;
+  begin
+    version := 10; // Base version
+    case comp of
+      ZIP_COMP_STORE:     version := 10;
+      ZIP_COMP_SHRUNK:    version := 10;
+      ZIP_COMP_REDUCE1:   version := 10;
+      ZIP_COMP_REDUCE2:   version := 10;
+      ZIP_COMP_REDUCE3:   version := 10;
+      ZIP_COMP_REDUCE4:   version := 10;
+      ZIP_COMP_IMPLODE:   version := 10;
+      ZIP_COMP_TOKENIZED: version := 20;
+      ZIP_COMP_DEFLATE:   version := 20;
+      ZIP_COMP_DEFLATE64: version := 21;
+      ZIP_COMP_TERSE1:    version := 25; // PKWARE DCL Implode
+      ZIP_COMP_BZIP2:     version := 46;
+      ZIP_COMP_LZMA:      version := 63;
+      ZIP_COMP_CMPSC:     version := 63;
+      ZIP_COMP_TERSE2:    version := 63;
+      ZIP_COMP_LZ77:      version := 63;
+      ZIP_COMP_ZSTD1:     version := 63;
+      ZIP_COMP_ZSTD2:     version := 63;
+      ZIP_COMP_MP3:       version := 63;
+      ZIP_COMP_XZ:        version := 63;
+      ZIP_COMP_JPEG:      version := 63;
+      ZIP_COMP_WAVPACK:   version := 63;
+      ZIP_COMP_PPMD:      version := 63;
+      ZIP_COMP_AE:        version := 63;
+    end;
+    if afname[Length(afname)] = '/' then
+      version := Max(20, version); // Folder
+    if flags and ZIP_UTF8_MASK <> 0 then
+      version := Max(63, version); // UTF-8 name
+    Result := version;
+  end;
+
   procedure TZIPEditor.WriteLFH(s: TStream; comp, crc, csize, usize: UInt32; const afname: AnsiString);
-    var fname: PChar; fnlen: UInt16; mypos: UInt64;
+    var fname: PChar; version: UInt8; fnlen, flags: UInt16; mypos: UInt64;
   begin
     mypos := s.Position;
     fname := PChar(afname);
     fnlen := Length(fname);
+    flags := 0;
+    if IsASCII(afname) = False then
+      flags := flags or ZIP_UTF8_MASK;
+    version := GetZIPVersion(afname, flags, comp);
     if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
     begin
       e_WriteLog('==============================================', MSG_NOTIFY);
-      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Min Version       : ' + IntToStr(ZIP_VERSION), MSG_NOTIFY);
+      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Min Version       : ' + IntToStr(version), MSG_NOTIFY);
       e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Min System        : ' + IntToStr(ZIP_SYSTEM), MSG_NOTIFY);
-      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Flags             : $' + IntToHex(0, 4), MSG_NOTIFY);
+      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Flags             : $' + IntToHex(flags, 4), MSG_NOTIFY);
       e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Compression       : ' + IntToStr(comp), MSG_NOTIFY);
       e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Modification Time : $' + IntToHex(0, 8), MSG_NOTIFY);
       e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': CRC-32            : $' + IntToHex(crc, 8), MSG_NOTIFY);
@@ -1056,9 +1118,9 @@ implementation
       e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Name              : "' + fname + '"', MSG_NOTIFY);
     end;
     s.WriteBuffer(ZIP_SIGN_LFH, 4); // LFH Signature
-    s.WriteByte(ZIP_VERSION);       // Min version
+    s.WriteByte(version);           // Min version
     s.WriteByte(ZIP_SYSTEM);        // System
-    WriteInt(s, UInt16(0));         // Flags
+    WriteInt(s, UInt16(flags));     // Flags
     WriteInt(s, UInt16(comp));      // Compression method
     WriteInt(s, UInt32(0));         // Modification time/date
     WriteInt(s, UInt32(crc));       // CRC-32
@@ -1070,19 +1132,23 @@ implementation
   end;
 
   procedure TZIPEditor.WriteCDR(s: TStream; comp, crc, csize, usize, eattr, offset: UInt32; const afname: AnsiString; cdrid: Integer);
-    var fname: PChar; fnlen: UInt16; mypos: UInt64;
+    var fname: PChar; version: UInt8; fnlen, flags: UInt16; mypos: UInt64;
   begin
     mypos := s.Position;
     fname := PChar(afname);
     fnlen := Length(fname);
+    flags := 0;
+    if IsASCII(afname) = False then
+      flags := flags or ZIP_UTF8_MASK;
+    version := GetZIPVersion(afname, flags, comp);
     if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
     begin
       e_WriteLog('==============================================', MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Writer Version    : ' + IntToStr(ZIP_MAXVERSION), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Writer System     : ' + IntToStr(ZIP_SYSTEM), MSG_NOTIFY);
-      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Min Version       : ' + IntToStr(ZIP_VERSION), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Min Version       : ' + IntToStr(version), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Min System        : ' + IntToStr(ZIP_SYSTEM), MSG_NOTIFY);
-      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Flags             : $' + IntToHex(0, 4), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Flags             : $' + IntToHex(flags, 4), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Compression       : ' + IntToStr(comp), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Modification Time : $' + IntToHex(0, 8), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': CRC-32            : $' + IntToHex(crc, 8), MSG_NOTIFY);
@@ -1100,9 +1166,9 @@ implementation
     s.WriteBuffer(ZIP_SIGN_CDR, 4); // CDR Signature
     s.WriteByte(ZIP_MAXVERSION);    // Used version
     s.WriteByte(ZIP_SYSTEM);        // Used system
-    s.WriteByte(ZIP_VERSION);       // Min version
+    s.WriteByte(version);           // Min version
     s.WriteByte(ZIP_SYSTEM);        // Min system
-    WriteInt(s, UInt16(0));         // Flags
+    WriteInt(s, UInt16(flags));     // Flags
     WriteInt(s, UInt16(comp));      // Compression method
     WriteInt(s, UInt32(0));         // Modification time/date
     WriteInt(s, UInt32(crc));       // CRC-32
