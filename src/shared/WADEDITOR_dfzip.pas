@@ -28,12 +28,14 @@ interface
       chksum: UInt32;
       mtime: UInt32;
       flags: UInt32;
+      comment: AnsiString;
       stream: TMemoryStream;
     end;
 
     TSection = record
       name: AnsiString;
       mtime: UInt32;
+      comment: AnsiString;
       list: array of TResource;
     end;
 
@@ -44,28 +46,29 @@ interface
       private
         FSection: array of TSection;
         FStream: TStream;
+        FComment: AnsiString;
         FLastError: Integer;
         FVersion: Byte;
 
         function FindSectionIDRAW(name: AnsiString; caseSensitive: Boolean): Integer;
         function FindSectionRAW(name: AnsiString; caseSensitive: Boolean): PSection;
-        function InsertSectionRAW(name: AnsiString; mtime: UInt32): PSection;
+        function InsertSectionRAW(name: AnsiString; mtime: UInt32; comment: AnsiString): PSection;
 
         function FindSectionID(name: AnsiString): Integer;
         function FindSection(name: AnsiString): PSection;
-        function InsertSection(name: AnsiString; mtime: UInt32): PSection;
+        function InsertSection(name: AnsiString; mtime: UInt32; comment: AnsiString): PSection;
 
-        function InsertFileInfo(const section, name: AnsiString; pos, csize, usize, comp, crc, mtime, flags: UInt32): PResource;
+        function InsertFileInfo(const section, name: AnsiString; pos, csize, usize, comp, crc, mtime, flags: UInt32; comment: AnsiString): PResource;
         function Preload(p: PResource): Boolean;
         function GetSourceStream(p: PResource): TStream;
 
-        procedure ReadLFH(s: TStream; fname: AnsiString; xcsize, xusize, xcomp, xcrc, xtime, xflags: UInt32);
+        procedure ReadLFH(s: TStream; fname, xcomment: AnsiString; xcsize, xusize, xcomp, xcrc, xtime, xflags: UInt32);
         procedure ReadCDR(s: TStream; cdrid: Integer);
         function FindEOCD(s: TStream): Boolean;
         procedure ReadEOCD(s: TStream);
 
-        procedure WriteLFH(s: TStream; flags, comp, mtime, crc, csize, usize: UInt32; const afname: AnsiString);
-        procedure WriteCDR(s: TStream; flags, comp, mtime, crc, csize, usize, eattr, offset: UInt32; const afname: AnsiString; cdrid: Integer);
+        procedure WriteLFH(s: TStream; flags, comp, mtime, crc, csize, usize: UInt32; const name: AnsiString);
+        procedure WriteCDR(s: TStream; flags, comp, mtime, crc, csize, usize, eattr, offset: UInt32; const name, com: AnsiString; cdrid: Integer);
         procedure SaveToStream(s: TStream);
 
       public
@@ -302,7 +305,7 @@ implementation
       Result := nil;
   end;
 
-  function TZIPEditor.InsertSectionRAW(name: AnsiString; mtime: UInt32): PSection;
+  function TZIPEditor.InsertSectionRAW(name: AnsiString; mtime: UInt32; comment: AnsiString): PSection;
     var i: Integer;
   begin
     if FSection = nil then i := 0 else i := Length(FSection);
@@ -310,6 +313,7 @@ implementation
     FSection[i] := Default(TSection);
     FSection[i].name := name;
     FSection[i].mtime := mtime;
+    FSection[i].comment := comment;
     Result := @FSection[i];
   end;
 
@@ -333,21 +337,21 @@ implementation
       Result := FindSectionRAW(fixName, False); // CASENAME
   end;
 
-  function TZIPEditor.InsertSection(name: AnsiString; mtime: UInt32): PSection;
+  function TZIPEditor.InsertSection(name: AnsiString; mtime: UInt32; comment: AnsiString): PSection;
   begin
     Result := FindSection(name);
     if Result = nil then
-      Result := InsertSectionRAW(name, mtime);
+      Result := InsertSectionRAW(name, mtime, comment);
   end;
 
 
 
-  function TZIPEditor.InsertFileInfo(const section, name: AnsiString; pos, csize, usize, comp, crc, mtime, flags: UInt32): PResource;
+  function TZIPEditor.InsertFileInfo(const section, name: AnsiString; pos, csize, usize, comp, crc, mtime, flags: UInt32; comment: AnsiString): PResource;
     var p: PSection; i: Integer;
   begin
     p := FindSectionRAW(section, True);
     if p = nil then
-      p := InsertSectionRAW(section, mtime);
+      p := InsertSectionRAW(section, mtime, '');
     if p.list = nil then i := 0 else i := Length(p.list);
     SetLength(p.list, i + 1);
     p.list[i] := Default(TResource);
@@ -359,6 +363,7 @@ implementation
     p.list[i].chksum := crc;
     p.list[i].mtime := mtime;
     p.list[i].flags := flags;
+    p.list[i].comment := comment;
     p.list[i].stream := nil;
     Result := @p.list[i];
   end;
@@ -406,7 +411,7 @@ implementation
         end;
         crc := crc32(0, nil, 0);
         crc := crc32(crc, data, len);
-        p := InsertFileInfo(Section, Name, $ffffffff, s.Size, Len, comp, crc, DateTimeToDosDateTime(Now()), 0);
+        p := InsertFileInfo(Section, Name, $ffffffff, s.Size, Len, comp, crc, DateTimeToDosDateTime(Now()), 0, '');
         p.stream := s;
         Result := True;
       except
@@ -449,6 +454,7 @@ implementation
   begin
     FSection := nil;
     FStream := nil;
+    FComment := '';
     FLastError := DFWAD_NOERROR;
     FVersion := 10;
     FreeWAD();
@@ -485,6 +491,7 @@ implementation
     begin
       FreeAndNil(FStream);
     end;
+    FComment := '';
     FLastError := DFWAD_NOERROR;
     FVersion := 10;
   end;
@@ -559,7 +566,7 @@ implementation
   procedure TZIPEditor.AddSection(Name: String);
   begin
     Name := win2utf(Name);
-    if InsertSection(Name, DateTimeToDosDateTime(Now())) = nil then
+    if InsertSection(Name, DateTimeToDosDateTime(Now()), '') = nil then
       raise Exception.Create('DFZIP: AddSection[' + Name + ']: failed to insert');
   end;
 
@@ -717,7 +724,7 @@ implementation
     end;
   end;
 
-  procedure TZIPEditor.ReadLFH(s: TStream; fname: AnsiString; xcsize, xusize, xcomp, xcrc, xtime, xflags: UInt32);
+  procedure TZIPEditor.ReadLFH(s: TStream; fname, xcomment: AnsiString; xcsize, xusize, xcomp, xcrc, xtime, xflags: UInt32);
     var sig: packed array [0..3] of Char;
     var va, vb, flags, comp: UInt16;
     var mtime, crc, csize, usize: UInt32;
@@ -766,11 +773,11 @@ implementation
             begin
               p := FindSectionRAW(section, True);
               if p = nil then
-                p := InsertSectionRAW(section, xtime);
+                p := InsertSectionRAW(section, xtime, xcomment);
             end
             else
             begin
-              p := InsertFileInfo(section, name, datapos, xcsize, xusize, xcomp, xcrc, xtime, xflags and ZIP_COMP_MASK);
+              p := InsertFileInfo(section, name, datapos, xcsize, xusize, xcomp, xcrc, xtime, xflags and ZIP_COMP_MASK, xcomment);
             end;
             if p = nil then
               raise Exception.Create('Failed to register resource [' + fname + ']');
@@ -798,8 +805,8 @@ implementation
     var fnlen, extlen, comlen, disk, iattr: UInt16;
     var eattr, offset: UInt32;
     var mypos, next: UInt64;
-    var name: PChar;
-    var aname: AnsiString;
+    var tmp: PChar;
+    var name, comment: AnsiString;
     var cvtbug, utf8: Boolean;
   begin
     mypos := s.Position;
@@ -896,28 +903,52 @@ implementation
                   otherwise
                     raise Exception.Create('Unknown compression method ' + IntToStr(comp));
                 end;
-                GetMem(name, UInt32(fnlen) + 1);
+
+                // Read Name
+                GetMem(tmp, UInt32(fnlen) + 1);
                 try
-                  s.ReadBuffer(name[0], fnlen);
-                  name[fnlen] := #0;
-                  aname := name;
-                  utf8 := True;
-                  if (flags and ZIP_UTF8_MASK = 0) and (IsUTF8(name) = False) then
-                  begin
-                    aname := win2utf(aname);
-                    utf8 := False;
-                  end;
-                  if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
-                  begin
-                    e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': UTF-8 Comatible   : ' + BoolToStr(utf8, True), MSG_NOTIFY);
-                    e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name              : "' + aname + '"', MSG_NOTIFY);
-                  end;
-                  s.Seek(offset, TSeekOrigin.soBeginning);
-                  ReadLFH(s, aname, csize, usize, comp, crc, mtime, flags);
+                  s.ReadBuffer(tmp[0], fnlen);
+                  tmp[fnlen] := #0;
+                  name := tmp;
                 finally
-                  s.Seek(next, TSeekOrigin.soBeginning);
-                  FreeMem(name);
+                  FreeMem(tmp);
                 end;
+                // Skip ZIP extensions
+                s.Seek(extlen, TSeekOrigin.soCurrent);
+                // Read Comment
+                comment := '';
+                if comlen > 0 then
+                begin
+                  GetMem(tmp, UInt32(comlen) + 1);
+                  try
+                    s.ReadBuffer(tmp[0], comlen);
+                    tmp[comlen] := #0;
+                    comment := tmp;
+                  finally
+                    FreeMem(tmp);
+                  end;
+                end;
+
+                utf8 := True;
+                if (utf8 = False) or (flags and ZIP_UTF8_MASK = 0) and (IsUTF8(name) = False) then
+                begin
+                  name := win2utf(name);
+                  utf8 := False;
+                end;
+                if (utf8 = False) or (flags and ZIP_UTF8_MASK = 0) and (IsUTF8(comment) = False) then
+                begin
+                  comment := win2utf(comment);
+                  utf8 := False;
+                end;
+                if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+                begin
+                  e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': UTF-8 Comatible   : ' + BoolToStr(utf8, True), MSG_NOTIFY);
+                  e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name              : "' + name + '"', MSG_NOTIFY);
+                  e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Comment           : "' + comment + '"', MSG_NOTIFY);
+                end;
+                s.Seek(offset, TSeekOrigin.soBeginning);
+                ReadLFH(s, name, comment, csize, usize, comp, crc, mtime, flags);
+                s.Seek(next, TSeekOrigin.soBeginning);
               end
               else
                 raise Exception.Create('Empty files names not supported');
@@ -973,6 +1004,8 @@ implementation
     var idisk, ndisk, nrec, total, comlen: UInt16;
     var csize, cpos, i: UInt32;
     var mypos: UInt64;
+    var tmp: PChar;
+    var utf8: Boolean;
   begin
     FLastError := DFWAD_ERROR_FILENOTWAD;
     FVersion := 0;
@@ -1012,6 +1045,28 @@ implementation
               begin
                 if total > 0 then
                 begin
+                  utf8 := True;
+                  if comlen > 0 then
+                  begin
+                    GetMem(tmp, UInt32(comlen) + 1);
+                    try
+                      s.ReadBuffer(tmp[0], comlen);
+                      tmp[comlen] := #0;
+                      FComment := tmp;
+                      if IsUTF8(FComment) = False then
+                      begin
+                        FComment := win2utf(FComment);
+                        utf8 := False;
+                      end;
+                    finally
+                      FreeMem(tmp);
+                    end;
+                  end;
+                  if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+                  begin
+                    e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': UTF8 Comaptible   : ' + BoolToStr(utf8, True), MSG_NOTIFY);
+                    e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Comment           : "' + FComment + '"', MSG_NOTIFY);
+                  end;
                   i := 0;
                   s.Seek(cpos, TSeekOrigin.soBeginning);
                   while i < nrec do
@@ -1167,15 +1222,14 @@ implementation
     Result := version;
   end;
 
-  procedure TZIPEditor.WriteLFH(s: TStream; flags, comp, mtime, crc, csize, usize: UInt32; const afname: AnsiString);
-    var fname: PChar; version: UInt8; fnlen: UInt16; mypos: UInt64;
+  procedure TZIPEditor.WriteLFH(s: TStream; flags, comp, mtime, crc, csize, usize: UInt32; const name: AnsiString);
+    var version: UInt8; fnlen: UInt16; mypos: UInt64;
   begin
     mypos := s.Position;
-    fname := PChar(afname);
-    fnlen := Length(fname);
-    if IsASCII(afname) = False then
+    fnlen := Length(name);
+    if IsASCII(name) = False then
       flags := flags or ZIP_UTF8_MASK;
-    version := GetZIPVersion(afname, flags, comp);
+    version := GetZIPVersion(name, flags, comp);
     if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
     begin
       e_WriteLog('==============================================', MSG_NOTIFY);
@@ -1189,7 +1243,7 @@ implementation
       e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Decompressed size : ' + IntToStr(usize), MSG_NOTIFY);
       e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Name Length       : ' + IntToStr(fnlen), MSG_NOTIFY);
       e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Extension Length  : ' + IntToStr(0), MSG_NOTIFY);
-      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Name              : "' + fname + '"', MSG_NOTIFY);
+      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Name              : "' + name + '"', MSG_NOTIFY);
     end;
     s.WriteBuffer(ZIP_SIGN_LFH, 4); // LFH Signature
     s.WriteByte(version);           // Min version
@@ -1202,18 +1256,18 @@ implementation
     WriteInt(s, UInt32(usize));     // Decompressed size
     WriteInt(s, UInt16(fnlen));     // Name field length
     WriteInt(s, UInt16(0));         // Extra field length
-    s.WriteBuffer(fname[0], fnlen); // File Name
+    s.WriteBuffer(name[1], fnlen);  // File Name
   end;
 
-  procedure TZIPEditor.WriteCDR(s: TStream; flags, comp, mtime, crc, csize, usize, eattr, offset: UInt32; const afname: AnsiString; cdrid: Integer);
-    var fname: PChar; version: UInt8; fnlen: UInt16; mypos: UInt64;
+  procedure TZIPEditor.WriteCDR(s: TStream; flags, comp, mtime, crc, csize, usize, eattr, offset: UInt32; const name, com: AnsiString; cdrid: Integer);
+    var version: UInt8; fnlen, fclen: UInt16; mypos: UInt64;
   begin
     mypos := s.Position;
-    fname := PChar(afname);
-    fnlen := Length(fname);
-    if IsASCII(afname) = False then
+    fnlen := Length(name);
+    fclen := Length(com);
+    if (IsASCII(name) = False) or (IsASCII(com) = False) then
       flags := flags or ZIP_UTF8_MASK;
-    version := GetZIPVersion(afname, flags, comp);
+    version := GetZIPVersion(name, flags, comp);
     if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
     begin
       e_WriteLog('==============================================', MSG_NOTIFY);
@@ -1229,12 +1283,13 @@ implementation
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Decompressed size : ' + IntToStr(usize), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name Length       : ' + IntToStr(fnlen), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Extension Length  : ' + IntToStr(0), MSG_NOTIFY);
-      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Comment Length    : ' + IntToStr(0), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Comment Length    : ' + IntToStr(fclen), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Disk              : ' + IntToStr(0), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Internal Attrib   : $' + IntToHex(0, 4), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': External Attrib   : $' + IntToHex(eattr, 8), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': LFH Offset        : $' + IntToHex(offset, 8), MSG_NOTIFY);
-      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name              : "' + fname + '"', MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name              : "' + name + '"', MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Comment           : "' + com + '"', MSG_NOTIFY);
     end;
     s.WriteBuffer(ZIP_SIGN_CDR, 4); // CDR Signature
     s.WriteByte(ZIP_MAXVERSION);    // Used version
@@ -1249,17 +1304,18 @@ implementation
     WriteInt(s, UInt32(usize));     // Decompressed size
     WriteInt(s, UInt16(fnlen));     // Name field length
     WriteInt(s, UInt16(0));         // Extra field length
-    WriteInt(s, UInt16(0));         // Comment field length
+    WriteInt(s, UInt16(fclen));     // Comment field length
     WriteInt(s, UInt16(0));         // Disk
     WriteInt(s, UInt16(0));         // Internal attributes
     WriteInt(s, UInt32(eattr));     // External attributes
     WriteInt(s, UInt32(offset));    // LFH offset
-    s.WriteBuffer(fname[0], fnlen); // File Name
+    s.WriteBuffer(name[1], fnlen);  // File Name
+    s.WriteBuffer(com[1], fclen);   // Comment
   end;
 
   procedure TZIPEditor.SaveToStream(s: TStream);
     var i, j: Integer;
-    var start, offset, loffset, size, zcrc, count: UInt32;
+    var start, offset, loffset, size, zcrc, count, comlen: UInt32;
     var p: PResource;
     var afname: AnsiString;
     var mypos: UInt64;
@@ -1315,7 +1371,7 @@ implementation
           begin
             p := @FSection[i].list[j];
             afname := GetFileName(FSection[i].name, p.name);
-            WriteCDR(s, p.flags, p.comp, p.mtime, p.chksum, p.csize, p.usize, $00, loffset, afname, i);
+            WriteCDR(s, p.flags, p.comp, p.mtime, p.chksum, p.csize, p.usize, $00, loffset, afname, p.comment, i);
             loffset := loffset + 30 + Length(afname) + p.csize;
             Inc(count);
           end;
@@ -1323,7 +1379,7 @@ implementation
         else
         begin
           afname := GetFileName(FSection[i].name, '');
-          WriteCDR(s, 0, ZIP_COMP_STORE, FSection[i].mtime, zcrc, 0, 0, $10, loffset, afname, i);
+          WriteCDR(s, 0, ZIP_COMP_STORE, FSection[i].mtime, zcrc, 0, 0, $10, loffset, afname, FSection[i].comment, i);
           loffset := loffset + 30 + Length(afname) + 0;
           Inc(count);
         end;
@@ -1334,6 +1390,7 @@ implementation
     size := s.Position - start - offset;
     // Write EOCD header
     mypos := s.Position;
+    comlen := Length(FComment);
     if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
     begin
       e_WriteLog('==============================================', MSG_NOTIFY);
@@ -1343,7 +1400,8 @@ implementation
       e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Total CDR''s       : ' + IntToStr(count), MSG_NOTIFY);
       e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': CD Length         : ' + IntToStr(size), MSG_NOTIFY);
       e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': CD Offset         : $' + IntToHex(offset, 8), MSG_NOTIFY);
-      e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Comment Length    : ' + IntToStr(0), MSG_NOTIFY);
+      e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Comment Length    : ' + IntToStr(comlen), MSG_NOTIFY);
+      e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Comment           : "' + FComment + '"', MSG_NOTIFY);
       e_WriteLog('==============================================', MSG_NOTIFY);
     end;
     s.WriteBuffer(ZIP_SIGN_EOCD, 4); // EOCD Signature
@@ -1353,7 +1411,8 @@ implementation
     WriteInt(s, UInt16(count));      // Total CDR entries
     WriteInt(s, UInt32(size));       // Central Directory size
     WriteInt(s, UInt32(offset));     // Central Directory offset
-    WriteInt(s, UInt16(0));          // Comment field length
+    WriteInt(s, UInt16(comlen));     // Comment field length
+    s.WriteBuffer(FComment[1], comlen); // Comment
   end;
 
   procedure TZIPEditor.SaveTo(FileName: String);
