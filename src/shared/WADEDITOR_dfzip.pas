@@ -26,11 +26,13 @@ interface
       usize: UInt32;
       comp: UInt32;
       chksum: UInt32;
+      mtime: UInt32;
       stream: TMemoryStream;
     end;
 
     TSection = record
       name: AnsiString;
+      mtime: UInt32;
       list: array of TResource;
     end;
 
@@ -46,23 +48,23 @@ interface
 
         function FindSectionIDRAW(name: AnsiString; caseSensitive: Boolean): Integer;
         function FindSectionRAW(name: AnsiString; caseSensitive: Boolean): PSection;
-        function InsertSectionRAW(name: AnsiString): PSection;
+        function InsertSectionRAW(name: AnsiString; mtime: UInt32): PSection;
 
         function FindSectionID(name: AnsiString): Integer;
         function FindSection(name: AnsiString): PSection;
-        function InsertSection(name: AnsiString): PSection;
+        function InsertSection(name: AnsiString; mtime: UInt32): PSection;
 
-        function InsertFileInfo(const section, name: AnsiString; pos, csize, usize, comp, crc: UInt32): PResource;
+        function InsertFileInfo(const section, name: AnsiString; pos, csize, usize, comp, crc, mtime: UInt32): PResource;
         function Preload(p: PResource): Boolean;
         function GetSourceStream(p: PResource): TStream;
 
-        procedure ReadLFH(s: TStream; fname: AnsiString; xcsize, xusize, xcomp, xcrc: UInt32);
+        procedure ReadLFH(s: TStream; fname: AnsiString; xcsize, xusize, xcomp, xcrc, xtime: UInt32);
         procedure ReadCDR(s: TStream; cdrid: Integer);
         function FindEOCD(s: TStream): Boolean;
         procedure ReadEOCD(s: TStream);
 
-        procedure WriteLFH(s: TStream; comp, crc, csize, usize: UInt32; const afname: AnsiString);
-        procedure WriteCDR(s: TStream; comp, crc, csize, usize, eattr, offset: UInt32; const afname: AnsiString; cdrid: Integer);
+        procedure WriteLFH(s: TStream; comp, mtime, crc, csize, usize: UInt32; const afname: AnsiString);
+        procedure WriteCDR(s: TStream; comp, mtime, crc, csize, usize, eattr, offset: UInt32; const afname: AnsiString; cdrid: Integer);
         procedure SaveToStream(s: TStream);
 
       public
@@ -92,7 +94,7 @@ interface
 
 implementation
 
-  uses SysUtils, StrUtils, Math, utils, zstream, crc, e_log;
+  uses SysUtils, StrUtils, DateUtils, Math, utils, zstream, crc, e_log;
 
   const
     ZIP_SIGN_CDR  = 'PK'#1#2;
@@ -175,6 +177,15 @@ implementation
       end;
     end;
     Result := True;
+  end;
+
+  function DosToStr(dostime: UInt32): AnsiString;
+  begin
+    try
+      DateTimeToString(Result, 'yyyy/mm/dd hh:nn:ss', DosDateTimeToDateTime(dostime));
+    except on e: EConvertError do
+      Result := 'INVALID ($' + IntToHex(dostime, 8) + ')';
+    end;
   end;
 
   procedure ToSectionFile(fname: AnsiString; out section, name: AnsiString); inline;
@@ -286,13 +297,14 @@ implementation
       Result := nil;
   end;
 
-  function TZIPEditor.InsertSectionRAW(name: AnsiString): PSection;
+  function TZIPEditor.InsertSectionRAW(name: AnsiString; mtime: UInt32): PSection;
     var i: Integer;
   begin
     if FSection = nil then i := 0 else i := Length(FSection);
     SetLength(FSection, i + 1);
     FSection[i] := Default(TSection);
     FSection[i].name := name;
+    FSection[i].mtime := mtime;
     Result := @FSection[i];
   end;
 
@@ -316,21 +328,21 @@ implementation
       Result := FindSectionRAW(fixName, False); // CASENAME
   end;
 
-  function TZIPEditor.InsertSection(name: AnsiString): PSection;
+  function TZIPEditor.InsertSection(name: AnsiString; mtime: UInt32): PSection;
   begin
     Result := FindSection(name);
     if Result = nil then
-      Result := InsertSectionRAW(name);
+      Result := InsertSectionRAW(name, mtime);
   end;
 
 
 
-  function TZIPEditor.InsertFileInfo(const section, name: AnsiString; pos, csize, usize, comp, crc: UInt32): PResource;
+  function TZIPEditor.InsertFileInfo(const section, name: AnsiString; pos, csize, usize, comp, crc, mtime: UInt32): PResource;
     var p: PSection; i: Integer;
   begin
     p := FindSectionRAW(section, True);
     if p = nil then
-      p := InsertSectionRAW(section);
+      p := InsertSectionRAW(section, mtime);
     if p.list = nil then i := 0 else i := Length(p.list);
     SetLength(p.list, i + 1);
     p.list[i] := Default(TResource);
@@ -340,6 +352,7 @@ implementation
     p.list[i].usize := usize;
     p.list[i].comp := comp;
     p.list[i].chksum := crc;
+    p.list[i].mtime := mtime;
     p.list[i].stream := nil;
     Result := @p.list[i];
   end;
@@ -385,7 +398,7 @@ implementation
         end;
         crc := crc32(0, nil, 0);
         crc := crc32(crc, data, len);
-        p := InsertFileInfo(Section, Name, $ffffffff, s.Size, Len, comp, crc);
+        p := InsertFileInfo(Section, Name, $ffffffff, s.Size, Len, comp, crc, DateTimeToDosDateTime(Now()));
         p.stream := s;
         Result := True;
       except
@@ -537,7 +550,7 @@ implementation
 
   procedure TZIPEditor.AddSection(Name: String);
   begin
-    if InsertSection(Name) = nil then
+    if InsertSection(Name, DateTimeToDosDateTime(Now())) = nil then
       raise Exception.Create('DFZIP: AddSection[' + Name + ']: failed to insert');
   end;
 
@@ -689,7 +702,7 @@ implementation
     end;
   end;
 
-  procedure TZIPEditor.ReadLFH(s: TStream; fname: AnsiString; xcsize, xusize, xcomp, xcrc: UInt32);
+  procedure TZIPEditor.ReadLFH(s: TStream; fname: AnsiString; xcsize, xusize, xcomp, xcrc, xtime: UInt32);
     var sig: packed array [0..3] of Char;
     var va, vb, flags, comp: UInt16;
     var mtime, crc, csize, usize: UInt32;
@@ -721,7 +734,7 @@ implementation
           e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Min System        : ' + IntToStr(vb), MSG_NOTIFY);
           e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Flags             : $' + IntToHex(flags, 4), MSG_NOTIFY);
           e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Compression       : ' + IntToStr(comp), MSG_NOTIFY);
-          e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Modification Time : $' + IntToHex(mtime, 8), MSG_NOTIFY);
+          e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Modification Time : ' + DosToStr(mtime), MSG_NOTIFY);
           e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': CRC-32            : $' + IntToHex(crc, 8), MSG_NOTIFY);
           e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Compressed size   : ' + IntToStr(csize), MSG_NOTIFY);
           e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Decompressed size : ' + IntToStr(usize), MSG_NOTIFY);
@@ -738,11 +751,11 @@ implementation
             begin
               p := FindSectionRAW(section, True);
               if p = nil then
-                p := InsertSectionRAW(section)
+                p := InsertSectionRAW(section, xtime);
             end
             else
             begin
-              p := InsertFileInfo(section, name, datapos, xcsize, xusize, xcomp, xcrc);
+              p := InsertFileInfo(section, name, datapos, xcsize, xusize, xcomp, xcrc, xtime);
             end;
             if p = nil then
               raise Exception.Create('Failed to register resource [' + fname + ']');
@@ -806,7 +819,7 @@ implementation
         e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Min System        : ' + IntToStr(vb), MSG_NOTIFY);
         e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Flags             : $' + IntToHex(flags, 4), MSG_NOTIFY);
         e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Compression       : ' + IntToStr(comp), MSG_NOTIFY);
-        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Modification Time : $' + IntToHex(mtime, 8), MSG_NOTIFY);
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Modification Time : ' + DosToStr(mtime), MSG_NOTIFY);
         e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': CRC-32            : $' + IntToHex(crc, 8), MSG_NOTIFY);
         e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Compressed size   : ' + IntToStr(csize), MSG_NOTIFY);
         e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Decompressed size : ' + IntToStr(usize), MSG_NOTIFY);
@@ -885,7 +898,7 @@ implementation
                     e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name              : "' + aname + '"', MSG_NOTIFY);
                   end;
                   s.Seek(offset, TSeekOrigin.soBeginning);
-                  ReadLFH(s, aname, csize, usize, comp, crc);
+                  ReadLFH(s, aname, csize, usize, comp, crc, mtime);
                 finally
                   s.Seek(next, TSeekOrigin.soBeginning);
                   FreeMem(name);
@@ -1137,7 +1150,7 @@ implementation
     Result := version;
   end;
 
-  procedure TZIPEditor.WriteLFH(s: TStream; comp, crc, csize, usize: UInt32; const afname: AnsiString);
+  procedure TZIPEditor.WriteLFH(s: TStream; comp, mtime, crc, csize, usize: UInt32; const afname: AnsiString);
     var fname: PChar; version: UInt8; fnlen, flags: UInt16; mypos: UInt64;
   begin
     mypos := s.Position;
@@ -1154,7 +1167,7 @@ implementation
       e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Min System        : ' + IntToStr(ZIP_SYSTEM), MSG_NOTIFY);
       e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Flags             : $' + IntToHex(flags, 4), MSG_NOTIFY);
       e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Compression       : ' + IntToStr(comp), MSG_NOTIFY);
-      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Modification Time : $' + IntToHex(0, 8), MSG_NOTIFY);
+      e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Modification Time : ' + DosToStr(mtime), MSG_NOTIFY);
       e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': CRC-32            : $' + IntToHex(crc, 8), MSG_NOTIFY);
       e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Compressed size   : ' + IntToStr(csize), MSG_NOTIFY);
       e_WriteLog('LFH   @' + IntToHex(mypos, 8) + ': Decompressed size : ' + IntToStr(usize), MSG_NOTIFY);
@@ -1167,7 +1180,7 @@ implementation
     s.WriteByte(ZIP_SYSTEM);        // System
     WriteInt(s, UInt16(flags));     // Flags
     WriteInt(s, UInt16(comp));      // Compression method
-    WriteInt(s, UInt32(0));         // Modification time/date
+    WriteInt(s, UInt32(mtime));     // Modification time/date
     WriteInt(s, UInt32(crc));       // CRC-32
     WriteInt(s, UInt32(csize));     // Compressed size
     WriteInt(s, UInt32(usize));     // Decompressed size
@@ -1176,7 +1189,7 @@ implementation
     s.WriteBuffer(fname[0], fnlen); // File Name
   end;
 
-  procedure TZIPEditor.WriteCDR(s: TStream; comp, crc, csize, usize, eattr, offset: UInt32; const afname: AnsiString; cdrid: Integer);
+  procedure TZIPEditor.WriteCDR(s: TStream; comp, mtime, crc, csize, usize, eattr, offset: UInt32; const afname: AnsiString; cdrid: Integer);
     var fname: PChar; version: UInt8; fnlen, flags: UInt16; mypos: UInt64;
   begin
     mypos := s.Position;
@@ -1195,7 +1208,7 @@ implementation
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Min System        : ' + IntToStr(ZIP_SYSTEM), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Flags             : $' + IntToHex(flags, 4), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Compression       : ' + IntToStr(comp), MSG_NOTIFY);
-      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Modification Time : $' + IntToHex(0, 8), MSG_NOTIFY);
+      e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Modification Time : ' + DosToStr(mtime), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': CRC-32            : $' + IntToHex(crc, 8), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Compressed size   : ' + IntToStr(csize), MSG_NOTIFY);
       e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Decompressed size : ' + IntToStr(usize), MSG_NOTIFY);
@@ -1215,7 +1228,7 @@ implementation
     s.WriteByte(ZIP_SYSTEM);        // Min system
     WriteInt(s, UInt16(flags));     // Flags
     WriteInt(s, UInt16(comp));      // Compression method
-    WriteInt(s, UInt32(0));         // Modification time/date
+    WriteInt(s, UInt32(mtime));     // Modification time/date
     WriteInt(s, UInt32(crc));       // CRC-32
     WriteInt(s, UInt32(csize));     // Compressed size
     WriteInt(s, UInt32(usize));     // Decompressed size
@@ -1249,7 +1262,7 @@ implementation
           begin
             p := @FSection[i].list[j];
             afname := GetFileName(FSection[i].name, p.name);
-            WriteLFH(s, p.comp, p.chksum, p.csize, p.usize, afname);
+            WriteLFH(s, p.comp, p.mtime, p.chksum, p.csize, p.usize, afname);
             if p.stream <> nil then
             begin
               Assert(p.stream.Size = p.csize);
@@ -1269,7 +1282,7 @@ implementation
         else
         begin
           afname := GetFileName(FSection[i].name, '');
-          WriteLFH(s, ZIP_COMP_STORE, zcrc, 0, 0, afname);
+          WriteLFH(s, ZIP_COMP_STORE, FSection[i].mtime, zcrc, 0, 0, afname);
         end;
       end;
     end;
@@ -1287,7 +1300,7 @@ implementation
           begin
             p := @FSection[i].list[j];
             afname := GetFileName(FSection[i].name, p.name);
-            WriteCDR(s, p.comp, p.chksum, p.csize, p.usize, $00, loffset, afname, i);
+            WriteCDR(s, p.comp, p.mtime, p.chksum, p.csize, p.usize, $00, loffset, afname, i);
             loffset := loffset + 30 + Length(afname) + p.csize;
             Inc(count);
           end;
@@ -1295,7 +1308,7 @@ implementation
         else
         begin
           afname := GetFileName(FSection[i].name, '');
-          WriteCDR(s, ZIP_COMP_STORE, zcrc, 0, 0, $10, loffset, afname, i);
+          WriteCDR(s, ZIP_COMP_STORE, FSection[i].mtime, zcrc, 0, 0, $10, loffset, afname, i);
           loffset := loffset + 30 + Length(afname) + 0;
           Inc(count);
         end;
