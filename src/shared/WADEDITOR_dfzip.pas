@@ -11,7 +11,7 @@ unit WADEDITOR_dfzip;
 // - Encryption not supported
 // - Zero-length file names not supported
 // - CDR holds most actual data about file, LFH mostly ignored
-// - Attributes, comments and extra data are ignored and not saved
+// - Attributes and extra data are ignored and not preserved
 // - Store and Deflate compression supported
 
 interface
@@ -866,100 +866,108 @@ implementation
       begin
         if (flags and ZIP_ENCRYPTION_MASK) = 0 then
         begin
-          if (csize <> $ffffffff) and (usize <> $ffffffff) and (disk <> $ffff) and (offset <> $ffffffff) then
+          if (flags and ZIP_PATCH_MASK) = 0 then
           begin
-            if disk = 0 then
+            if (csize <> $ffffffff) and (usize <> $ffffffff) and (disk <> $ffff) and (offset <> $ffffffff) then
             begin
-              if (next <= s.Size) and (fnlen > 0) then
+              if disk = 0 then
               begin
-                case comp of
-                  ZIP_COMP_STORE:
-                    if csize <> usize then
-                      raise Exception.Create('Compressed size ' + IntToStr(csize) + ' != Descompressed size ' + IntToStr(usize) + 'for STORE method (corrupted file?)');
-                  ZIP_COMP_SHRUNK,
-                  ZIP_COMP_REDUCE1,
-                  ZIP_COMP_REDUCE2,
-                  ZIP_COMP_REDUCE3,
-                  ZIP_COMP_REDUCE4,
-                  ZIP_COMP_IMPLODE,
-                  ZIP_COMP_DEFLATE,
-                  ZIP_COMP_DEFLATE64,
-                  ZIP_COMP_TERSE1,
-                  ZIP_COMP_BZIP2,
-                  ZIP_COMP_LZMA,
-                  ZIP_COMP_CMPSC,
-                  ZIP_COMP_TERSE2,
-                  ZIP_COMP_LZ77,
-                  ZIP_COMP_ZSTD1,
-                  ZIP_COMP_ZSTD2,
-                  ZIP_COMP_MP3,
-                  ZIP_COMP_XZ,
-                  ZIP_COMP_JPEG,
-                  ZIP_COMP_WAVPACK,
-                  ZIP_COMP_PPMD:
-                    ; // ok
-                  ZIP_COMP_AE:
-                    raise Exception.Create('Encrypted archives not supported');
-                  otherwise
-                    raise Exception.Create('Unknown compression method ' + IntToStr(comp));
-                end;
-
-                // Read Name
-                GetMem(tmp, UInt32(fnlen) + 1);
-                try
-                  s.ReadBuffer(tmp[0], fnlen);
-                  tmp[fnlen] := #0;
-                  name := tmp;
-                finally
-                  FreeMem(tmp);
-                end;
-                // Skip ZIP extensions
-                s.Seek(extlen, TSeekOrigin.soCurrent);
-                // Read Comment
-                comment := '';
-                if comlen > 0 then
+                if (next <= s.Size) and (fnlen > 0) then
                 begin
-                  GetMem(tmp, UInt32(comlen) + 1);
+                  case comp of
+                    ZIP_COMP_STORE:
+                      if csize <> usize then
+                        raise Exception.Create('Compressed size ' + IntToStr(csize) + ' != Descompressed size ' + IntToStr(usize) + 'for STORE method (corrupted file?)');
+                    ZIP_COMP_SHRUNK,
+                    ZIP_COMP_REDUCE1,
+                    ZIP_COMP_REDUCE2,
+                    ZIP_COMP_REDUCE3,
+                    ZIP_COMP_REDUCE4,
+                    ZIP_COMP_IMPLODE,
+                    ZIP_COMP_DEFLATE,
+                    ZIP_COMP_DEFLATE64,
+                    ZIP_COMP_TERSE1,
+                    ZIP_COMP_BZIP2,
+                    ZIP_COMP_LZMA,
+                    ZIP_COMP_CMPSC,
+                    ZIP_COMP_TERSE2,
+                    ZIP_COMP_LZ77,
+                    ZIP_COMP_ZSTD1,
+                    ZIP_COMP_ZSTD2,
+                    ZIP_COMP_MP3,
+                    ZIP_COMP_XZ,
+                    ZIP_COMP_JPEG,
+                    ZIP_COMP_WAVPACK,
+                    ZIP_COMP_PPMD:
+                      ; // ok
+                    ZIP_COMP_AE:
+                      raise Exception.Create('Encrypted archives not supported');
+                    otherwise
+                      raise Exception.Create('Unknown compression method ' + IntToStr(comp));
+                  end;
+
+                  // Read Name
+                  GetMem(tmp, UInt32(fnlen) + 1);
                   try
-                    s.ReadBuffer(tmp[0], comlen);
-                    tmp[comlen] := #0;
-                    comment := tmp;
+                    s.ReadBuffer(tmp[0], fnlen);
+                    tmp[fnlen] := #0;
+                    name := tmp;
                   finally
                     FreeMem(tmp);
                   end;
-                end;
+                  // Skip ZIP extensions
+                  s.Seek(extlen, TSeekOrigin.soCurrent);
+                  // Read Comment
+                  comment := '';
+                  if comlen > 0 then
+                  begin
+                    GetMem(tmp, UInt32(comlen) + 1);
+                    try
+                      s.ReadBuffer(tmp[0], comlen);
+                      tmp[comlen] := #0;
+                      comment := tmp;
+                    finally
+                      FreeMem(tmp);
+                    end;
+                  end;
 
-                utf8 := True;
-                if (utf8 = False) or (flags and ZIP_UTF8_MASK = 0) and (IsUTF8(name) = False) then
-                begin
-                  name := win2utf(name);
-                  utf8 := False;
-                end;
-                if (utf8 = False) or (flags and ZIP_UTF8_MASK = 0) and (IsUTF8(comment) = False) then
-                begin
-                  comment := win2utf(comment);
-                  utf8 := False;
-                end;
-                if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
-                begin
-                  e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': UTF-8 Comatible   : ' + BoolToStr(utf8, True), MSG_NOTIFY);
-                  e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name              : "' + name + '"', MSG_NOTIFY);
-                  e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Comment           : "' + comment + '"', MSG_NOTIFY);
-                end;
-                s.Seek(offset, TSeekOrigin.soBeginning);
-                ReadLFH(s, name, comment, csize, usize, comp, crc, mtime, flags);
-                s.Seek(next, TSeekOrigin.soBeginning);
+                  utf8 := True;
+                  if (utf8 = False) or (flags and ZIP_UTF8_MASK = 0) and (IsUTF8(name) = False) then
+                  begin
+                    name := win2utf(name);
+                    utf8 := False;
+                  end;
+                  if (utf8 = False) or (flags and ZIP_UTF8_MASK = 0) and (IsUTF8(comment) = False) then
+                  begin
+                    comment := win2utf(comment);
+                    utf8 := False;
+                  end;
+                  if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+                  begin
+                    e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': UTF-8 Comatible   : ' + BoolToStr(utf8, True), MSG_NOTIFY);
+                    e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name              : "' + name + '"', MSG_NOTIFY);
+                    e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Comment           : "' + comment + '"', MSG_NOTIFY);
+                  end;
+                  s.Seek(offset, TSeekOrigin.soBeginning);
+                  ReadLFH(s, name, comment, csize, usize, comp, crc, mtime, flags);
+                  s.Seek(next, TSeekOrigin.soBeginning);
+                end
+                else
+                  raise Exception.Create('Empty files names not supported');
               end
               else
-                raise Exception.Create('Empty files names not supported');
+                raise Exception.Create('Splitted archives not supported');
             end
             else
-              raise Exception.Create('Splitted archives not supported');
+            begin
+              FLastError := DFWAD_ERROR_WRONGVERSION;
+              raise Exception.Create('ZIP64 archives not supported');
+            end;
           end
           else
           begin
-            FLastError := DFWAD_ERROR_WRONGVERSION;
-            raise Exception.Create('ZIP64 not supported');
+            FLastError := DFWAD_ERROR_READWAD;
+            raise Exception.Create('Patch archives not supported');
           end;
         end
         else
