@@ -147,6 +147,36 @@ implementation
     Result := True;
   end;
 
+  function IsUTF8(const s: AnsiString): Boolean;
+    var i, j, len: Integer;
+  begin
+    Result := False;
+    i := 1; len := Length(s);
+    while i <= len do
+    begin
+      case Ord(s[i]) of
+        $00..$7F: j := 0;
+        $80..$BF: exit; // invalid encoding
+        $C0..$DF: j := 1;
+        $E0..$EF: j := 2;
+        $F0..$F7: j := 3;
+        otherwise exit; // invalid encoding
+      end;
+      Inc(i);
+      while j > 0 do
+      begin
+        if i > len then exit; // invlid length
+        case Ord(s[i]) of
+          $80..$BF: ; // ok
+          else exit;  // invalid encoding
+        end;
+        Inc(i);
+        Dec(j);
+      end;
+    end;
+    Result := True;
+  end;
+
   procedure ToSectionFile(fname: AnsiString; out section, name: AnsiString); inline;
     var i: SizeInt;
   begin
@@ -742,6 +772,7 @@ implementation
     var mypos, next: UInt64;
     var name: PChar;
     var aname: AnsiString;
+    var cvtbug, utf8: Boolean;
   begin
     mypos := s.Position;
     s.ReadBuffer(sig[0], 4);
@@ -787,13 +818,15 @@ implementation
         e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': External Attrib   : $' + IntToHex(eattr, 8), MSG_NOTIFY);
         e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': LFH Offset        : $' + IntToHex(offset, 8), MSG_NOTIFY);
       end;
+      cvtbug := False;
       if (vva = $10) and (vvb = $0A) and (va = $10) and (vb = $00) and (flags = (1 << 10)) and (mtime = 0) and (iattr = 0) and (eattr = 0) then
       begin
         // HACK: Editor and wadcvt for long time sets incorrent flag for UTF-8
-        if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
-          e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': WADCVT BUG        : YES', MSG_NOTIFY);
         flags := ZIP_UTF8_MASK;
+        cvtbug := True;
       end;
+      if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+        e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': WADCVT BUG        : ' + BoolToStr(cvtbug, True), MSG_NOTIFY);
       if (va >= 10) and (va <= ZIP_MAXVERSION) then
       begin
         if (flags and ZIP_ENCRYPTION_MASK) = 0 then
@@ -840,17 +873,17 @@ implementation
                   s.ReadBuffer(name[0], fnlen);
                   name[fnlen] := #0;
                   aname := name;
-                  if (flags and ZIP_UTF8_MASK = 0) and (IsASCII(name) = False) then
+                  utf8 := True;
+                  if (flags and ZIP_UTF8_MASK = 0) and (IsUTF8(name) = False) then
                   begin
-                    // TODO: Detect UTF-8
-                    //       Older or invalid packers does not set bit 11
-                    //       Some newer packers may write UTF-8 names into extended data
-                    if gWADEditorLogLevel >= DFWAD_LOG_WARN then
-                      e_WriteLog('ZIP: Non UTF-8 encoded name, threat it as CP1251', MSG_WARNING);
                     aname := win2utf(aname);
+                    utf8 := False;
                   end;
                   if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+                  begin
+                    e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': UTF-8 Comatible   : ' + BoolToStr(utf8, True), MSG_NOTIFY);
                     e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name              : "' + aname + '"', MSG_NOTIFY);
+                  end;
                   s.Seek(offset, TSeekOrigin.soBeginning);
                   ReadLFH(s, aname, csize, usize, comp, crc);
                 finally
