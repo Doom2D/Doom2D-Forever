@@ -372,6 +372,8 @@ implementation
     var s: TMemoryStream; cs: TCompressionStream; p: PResource;
     var comp, crc: UInt32;
   begin
+    Name := win2utf(Name);
+    Section := win2utf(Section);
     Result := False;
     if Name <> '' then
     begin
@@ -550,17 +552,21 @@ implementation
 
   procedure TZIPEditor.AddSection(Name: String);
   begin
+    Name := win2utf(Name);
     if InsertSection(Name, DateTimeToDosDateTime(Now())) = nil then
       raise Exception.Create('DFZIP: AddSection[' + Name + ']: failed to insert');
   end;
 
   function TZIPEditor.HaveResource(Section, Resource: String): Boolean;
   begin
+    Section := win2utf(Section);
+    Resource := win2utf(Resource);
     Result := FindResource(FindSection(Section), Resource) <> nil;
   end;
 
   function TZIPEditor.HaveSection(Section: String): Boolean;
   begin
+    Section := win2utf(Section);
     Result := FindSection(Section) <> nil;
   end;
 
@@ -584,6 +590,8 @@ implementation
   function TZIPEditor.GetResource(Section, Resource: String; var pData: Pointer; var Len: Integer): Boolean;
     var p: PResource; ptr: PByte; src: TStream; tmp: TDecompressionStream; crc: UInt32;
   begin
+    Section := win2utf(Section);
+    Resource := win2utf(Resource);
     FLastError := DFWAD_ERROR_CANTOPENWAD;
     Result := False;
     pData := nil;
@@ -676,6 +684,7 @@ implementation
   function TZIPEditor.GetResourcesList(Section: String): SArray;
     var p: PSection; i: Integer;
   begin
+    Section := win2utf(Section);
     Result := nil;
     p := FindSection(Section);
     if (p <> nil) and (p.list <> nil) then
@@ -683,7 +692,7 @@ implementation
       SetLength(Result, Length(p.list));
       for i := 0 to High(p.list) do
       begin
-        Result[i] := p.list[i].name;
+        Result[i] := utf2win(p.list[i].name);
       end;
     end;
   end;
@@ -697,7 +706,7 @@ implementation
       SetLength(Result, Length(FSection));
       for i := 0 to High(FSection) do
       begin
-        Result[i] := FSection[i].name;
+        Result[i] := utf2win(FSection[i].name);
       end;
     end;
   end;
@@ -1099,6 +1108,8 @@ implementation
   procedure TZIPEditor.RemoveResource(Section, Resource: String);
     var p: PSection; i: Integer;
   begin
+    Section := win2utf(Section);
+    Resource := win2utf(Resource);
     p := FindSection(Section);
     i := FindResourceID(p, Resource);
     if i >= 0 then
