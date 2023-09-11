@@ -2548,7 +2548,7 @@ begin
   if FileExists(fn) then
     OpenMap(fn, g_ExtractFilePathName(s))
   else
-    Application.MessageBox('', 'File not available anymore', MB_OK);
+    Application.MessageBox('File not available anymore', '', MB_OK);
 //  if Application.MessageBox(PChar(MsgMsgDelRecentPrompt), PChar(MsgMsgDelRecent), MB_ICONQUESTION or MB_YESNO) = idYes then
 //  begin
 //    RecentFiles.Delete(n);
