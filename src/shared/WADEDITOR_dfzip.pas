@@ -27,6 +27,7 @@ interface
       comp: UInt32;
       chksum: UInt32;
       mtime: UInt32;
+      flags: UInt32;
       stream: TMemoryStream;
     end;
 
@@ -54,17 +55,17 @@ interface
         function FindSection(name: AnsiString): PSection;
         function InsertSection(name: AnsiString; mtime: UInt32): PSection;
 
-        function InsertFileInfo(const section, name: AnsiString; pos, csize, usize, comp, crc, mtime: UInt32): PResource;
+        function InsertFileInfo(const section, name: AnsiString; pos, csize, usize, comp, crc, mtime, flags: UInt32): PResource;
         function Preload(p: PResource): Boolean;
         function GetSourceStream(p: PResource): TStream;
 
-        procedure ReadLFH(s: TStream; fname: AnsiString; xcsize, xusize, xcomp, xcrc, xtime: UInt32);
+        procedure ReadLFH(s: TStream; fname: AnsiString; xcsize, xusize, xcomp, xcrc, xtime, xflags: UInt32);
         procedure ReadCDR(s: TStream; cdrid: Integer);
         function FindEOCD(s: TStream): Boolean;
         procedure ReadEOCD(s: TStream);
 
-        procedure WriteLFH(s: TStream; comp, mtime, crc, csize, usize: UInt32; const afname: AnsiString);
-        procedure WriteCDR(s: TStream; comp, mtime, crc, csize, usize, eattr, offset: UInt32; const afname: AnsiString; cdrid: Integer);
+        procedure WriteLFH(s: TStream; flags, comp, mtime, crc, csize, usize: UInt32; const afname: AnsiString);
+        procedure WriteCDR(s: TStream; flags, comp, mtime, crc, csize, usize, eattr, offset: UInt32; const afname: AnsiString; cdrid: Integer);
         procedure SaveToStream(s: TStream);
 
       public
@@ -133,7 +134,11 @@ implementation
 
   const
     ZIP_ENCRYPTION_MASK = (1 << 0) or (1 << 6) or (1 << 13);
+    ZIP_COMP_MASK = (1 << 1) or (1 << 2) or (1 << 4) or (1 << 12);
+    ZIP_DATA_MASK = (1 << 3);
+    ZIP_PATCH_MASK = (1 << 5);
     ZIP_UTF8_MASK = (1 << 11);
+    ZIP_STREAM_MASK = (1 << 14);
 
   function IsASCII(const s: AnsiString): Boolean;
     var i: Integer;
@@ -337,7 +342,7 @@ implementation
 
 
 
-  function TZIPEditor.InsertFileInfo(const section, name: AnsiString; pos, csize, usize, comp, crc, mtime: UInt32): PResource;
+  function TZIPEditor.InsertFileInfo(const section, name: AnsiString; pos, csize, usize, comp, crc, mtime, flags: UInt32): PResource;
     var p: PSection; i: Integer;
   begin
     p := FindSectionRAW(section, True);
@@ -353,6 +358,7 @@ implementation
     p.list[i].comp := comp;
     p.list[i].chksum := crc;
     p.list[i].mtime := mtime;
+    p.list[i].flags := flags;
     p.list[i].stream := nil;
     Result := @p.list[i];
   end;
@@ -400,7 +406,7 @@ implementation
         end;
         crc := crc32(0, nil, 0);
         crc := crc32(crc, data, len);
-        p := InsertFileInfo(Section, Name, $ffffffff, s.Size, Len, comp, crc, DateTimeToDosDateTime(Now()));
+        p := InsertFileInfo(Section, Name, $ffffffff, s.Size, Len, comp, crc, DateTimeToDosDateTime(Now()), 0);
         p.stream := s;
         Result := True;
       except
@@ -711,7 +717,7 @@ implementation
     end;
   end;
 
-  procedure TZIPEditor.ReadLFH(s: TStream; fname: AnsiString; xcsize, xusize, xcomp, xcrc, xtime: UInt32);
+  procedure TZIPEditor.ReadLFH(s: TStream; fname: AnsiString; xcsize, xusize, xcomp, xcrc, xtime, xflags: UInt32);
     var sig: packed array [0..3] of Char;
     var va, vb, flags, comp: UInt16;
     var mtime, crc, csize, usize: UInt32;
@@ -764,7 +770,7 @@ implementation
             end
             else
             begin
-              p := InsertFileInfo(section, name, datapos, xcsize, xusize, xcomp, xcrc, xtime);
+              p := InsertFileInfo(section, name, datapos, xcsize, xusize, xcomp, xcrc, xtime, xflags and ZIP_COMP_MASK);
             end;
             if p = nil then
               raise Exception.Create('Failed to register resource [' + fname + ']');
@@ -907,7 +913,7 @@ implementation
                     e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name              : "' + aname + '"', MSG_NOTIFY);
                   end;
                   s.Seek(offset, TSeekOrigin.soBeginning);
-                  ReadLFH(s, aname, csize, usize, comp, crc, mtime);
+                  ReadLFH(s, aname, csize, usize, comp, crc, mtime, flags);
                 finally
                   s.Seek(next, TSeekOrigin.soBeginning);
                   FreeMem(name);
@@ -1161,13 +1167,12 @@ implementation
     Result := version;
   end;
 
-  procedure TZIPEditor.WriteLFH(s: TStream; comp, mtime, crc, csize, usize: UInt32; const afname: AnsiString);
-    var fname: PChar; version: UInt8; fnlen, flags: UInt16; mypos: UInt64;
+  procedure TZIPEditor.WriteLFH(s: TStream; flags, comp, mtime, crc, csize, usize: UInt32; const afname: AnsiString);
+    var fname: PChar; version: UInt8; fnlen: UInt16; mypos: UInt64;
   begin
     mypos := s.Position;
     fname := PChar(afname);
     fnlen := Length(fname);
-    flags := 0;
     if IsASCII(afname) = False then
       flags := flags or ZIP_UTF8_MASK;
     version := GetZIPVersion(afname, flags, comp);
@@ -1200,13 +1205,12 @@ implementation
     s.WriteBuffer(fname[0], fnlen); // File Name
   end;
 
-  procedure TZIPEditor.WriteCDR(s: TStream; comp, mtime, crc, csize, usize, eattr, offset: UInt32; const afname: AnsiString; cdrid: Integer);
-    var fname: PChar; version: UInt8; fnlen, flags: UInt16; mypos: UInt64;
+  procedure TZIPEditor.WriteCDR(s: TStream; flags, comp, mtime, crc, csize, usize, eattr, offset: UInt32; const afname: AnsiString; cdrid: Integer);
+    var fname: PChar; version: UInt8; fnlen: UInt16; mypos: UInt64;
   begin
     mypos := s.Position;
     fname := PChar(afname);
     fnlen := Length(fname);
-    flags := 0;
     if IsASCII(afname) = False then
       flags := flags or ZIP_UTF8_MASK;
     version := GetZIPVersion(afname, flags, comp);
@@ -1273,7 +1277,7 @@ implementation
           begin
             p := @FSection[i].list[j];
             afname := GetFileName(FSection[i].name, p.name);
-            WriteLFH(s, p.comp, p.mtime, p.chksum, p.csize, p.usize, afname);
+            WriteLFH(s, p.flags, p.comp, p.mtime, p.chksum, p.csize, p.usize, afname);
             if p.stream <> nil then
             begin
               Assert(p.stream.Size = p.csize);
@@ -1293,7 +1297,7 @@ implementation
         else
         begin
           afname := GetFileName(FSection[i].name, '');
-          WriteLFH(s, ZIP_COMP_STORE, FSection[i].mtime, zcrc, 0, 0, afname);
+          WriteLFH(s, 0, ZIP_COMP_STORE, FSection[i].mtime, zcrc, 0, 0, afname);
         end;
       end;
     end;
@@ -1311,7 +1315,7 @@ implementation
           begin
             p := @FSection[i].list[j];
             afname := GetFileName(FSection[i].name, p.name);
-            WriteCDR(s, p.comp, p.mtime, p.chksum, p.csize, p.usize, $00, loffset, afname, i);
+            WriteCDR(s, p.flags, p.comp, p.mtime, p.chksum, p.csize, p.usize, $00, loffset, afname, i);
             loffset := loffset + 30 + Length(afname) + p.csize;
             Inc(count);
           end;
@@ -1319,7 +1323,7 @@ implementation
         else
         begin
           afname := GetFileName(FSection[i].name, '');
-          WriteCDR(s, ZIP_COMP_STORE, FSection[i].mtime, zcrc, 0, 0, $10, loffset, afname, i);
+          WriteCDR(s, 0, ZIP_COMP_STORE, FSection[i].mtime, zcrc, 0, 0, $10, loffset, afname, i);
           loffset := loffset + 30 + Length(afname) + 0;
           Inc(count);
         end;
