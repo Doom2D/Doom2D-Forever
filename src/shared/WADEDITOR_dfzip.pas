@@ -62,6 +62,8 @@ interface
         function Preload(p: PResource): Boolean;
         function GetSourceStream(p: PResource): TStream;
 
+        procedure Clear();
+
         procedure ReadLFH(s: TStream; fname, xcomment: AnsiString; xcsize, xusize, xcomp, xcrc, xtime, xflags: UInt32);
         procedure ReadCDR(s: TStream; cdrid: Integer);
         function FindEOCD(s: TStream): Boolean;
@@ -457,16 +459,15 @@ implementation
     FComment := '';
     FLastError := DFWAD_NOERROR;
     FVersion := 10;
-    FreeWAD();
   end;
 
   destructor TZIPEditor.Destroy();
   begin
-    FreeWAD();
+    Clear();
     inherited;
   end;
 
-  procedure TZIPEditor.FreeWAD();
+  procedure TZIPEditor.Clear();
     var i, j: Integer;
   begin
     if FSection <> nil then
@@ -492,6 +493,11 @@ implementation
       FreeAndNil(FStream);
     end;
     FComment := '';
+  end;
+
+  procedure TZIPEditor.FreeWAD();
+  begin
+    Clear();
     FLastError := DFWAD_NOERROR;
     FVersion := 10;
   end;
@@ -1129,7 +1135,7 @@ implementation
         begin
           if gWADEditorLogLevel >= DFWAD_LOG_INFO then
             e_WriteLog('ZIP: Failed to read ZIP from file ' + FileName + ', reason: ' + e.Message, MSG_WARNING);
-          FreeWAD();
+          Clear();
         end;
       end;
     except
@@ -1169,7 +1175,7 @@ implementation
       begin
         if gWADEditorLogLevel >= DFWAD_LOG_INFO then
           e_WriteLog('DFZIP: Failed to read ZIP from memory, reason: ' + e.Message, MSG_WARNING);
-        FreeWAD();
+        Clear();
       end;
     end;
   end;
