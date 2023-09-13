@@ -1,914 +1,926 @@
+{$INCLUDE ../shared/a_modes.inc}
+
 unit WADEDITOR_dfwad;
-
-{
------------------------------------
-WADEDITOR.PAS ВЕРСИЯ ОТ 26.08.08
-
-Поддержка вадов версии 1
------------------------------------
-}
 
 interface
 
-uses WADEDITOR, WADSTRUCT;
+  uses Classes, WADEDITOR;
 
-type
-  TWADEditor_1 = class sealed(WADEDITOR.TWADEditor)
-   private
-    FResData:   Pointer;
-    FResTable:  packed array of TResourceTableRec_1;
-    FHeader:    TWADHeaderRec_1;
-    FDataSize:  LongWord;
-    FOffset:    LongWord;
-    FFileName:  string;
-    FWADOpened: Byte;
-    FLastError: Integer;
-    FVersion:   Byte;
-    function LastErrorString(): string;
-    function GetResName(ResName: string): Char16;
-   public
-    constructor Create();
-    destructor Destroy(); override;
-    procedure FreeWAD(); override;
-    function  ReadFile2(FileName: string): Boolean; override;
-    function  ReadMemory(Data: Pointer; Len: LongWord): Boolean; override;
-    procedure CreateImage(); override;
-    function AddResource(Data: Pointer; Len: LongWord; Name: string;
-                         Section: string): Boolean; override; overload;
-    function AddResource(FileName, Name, Section: string): Boolean; override; overload;
-    function AddAlias(Res, Alias: string): Boolean; override;
-    procedure AddSection(Name: string); override;
-    procedure RemoveResource(Section, Resource: string); override;
-    procedure SaveTo(FileName: string); override;
-    function HaveResource(Section, Resource: string): Boolean; override;
-    function HaveSection(Section: string): Boolean; override;
-    function GetResource(Section, Resource: string; var pData: Pointer;
-                         var Len: Integer): Boolean; override;
-    function GetSectionList(): SArray; override;
-    function GetResourcesList(Section: string): SArray; override;
+  type
+    TData = class
+      ref: Integer;          // number of links
+      pos: Int64;            // position in source (if pos < 0 -> not in source file)
+      csize: Int64;          // compressed size
+      usize: Int64;          // decompressed size (usize < 0 -> unknown)
+      stream: TMemoryStream; // copy of compressed data
+    end;
 
-    function GetLastError: Integer; override;
-    function GetLastErrorStr: String; override;
-    function GetResourcesCount: Word; override;
-    function GetVersion: Byte; override;
+    TResource = record
+      name: AnsiString;
+      data: TData;
+    end;
 
-    // property GetLastError: Integer read FLastError;
-    // property GetLastErrorStr: string read LastErrorString;
-    // property GetResourcesCount: Word read FHeader.RecordsCount;
-    // property GetVersion: Byte read FVersion;
-  end;
+    TSection = record
+      name: AnsiString;
+      list: array of TResource;
+    end;
 
-const
-  DFWAD_NOERROR                = 0;
-  DFWAD_ERROR_WADNOTFOUND      = -1;
-  DFWAD_ERROR_CANTOPENWAD      = -2;
-  DFWAD_ERROR_RESOURCENOTFOUND = -3;
-  DFWAD_ERROR_FILENOTWAD       = -4;
-  DFWAD_ERROR_WADNOTLOADED     = -5;
-  DFWAD_ERROR_READRESOURCE     = -6;
-  DFWAD_ERROR_READWAD          = -7;
-  DFWAD_ERROR_WRONGVERSION     = -8;
+    PResource = ^TResource;
+    PSection = ^TSection;
+
+    TDFWEditor = class sealed(WADEDITOR.TWADEditor)
+      private
+        FSection: array of TSection;
+        FData: array of TData;
+        FStream: TStream;
+        FLastError: Integer;
+        FVersion: Byte;
+
+        function FindSectionIDRAW(name: AnsiString; caseSensitive: Boolean): Integer;
+        function FindSectionRAW(name: AnsiString; caseSensitive: Boolean): PSection;
+        function InsertSectionRAW(name: AnsiString): PSection;
+
+        function FindSectionID(name: AnsiString): Integer;
+        function FindSection(name: AnsiString): PSection;
+        function InsertSection(name: AnsiString): PSection;
+
+        function FindDataID(pos: Int64): Integer;
+        function FindData(pos: Int64): TData;
+        function InsertData(ref, pos, csize, usize: Int64; stream: TMemoryStream): TData;
+
+        function InsertFileInfoS(p: PSection; const name: AnsiString; pos, csize, usize: Int64; stream: TMemoryStream): PResource;
+        function InsertFileInfo(const section, name: AnsiString; pos, csize, usize: Int64; stream: TMemoryStream): PResource;
+        function Preload(data: TData): Boolean;
+        function GetSourceStream(p: PResource): TStream;
+
+        procedure Clear();
+        procedure Collect();
+        procedure ReadFromStream(s: TStream);
+        procedure SaveToStream(s: TStream);
+
+      public
+        constructor Create();
+        destructor Destroy(); override;
+        procedure FreeWAD(); override;
+        function  ReadFile2(FileName: string): Boolean; override;
+        function  ReadMemory(Data: Pointer; Len: LongWord): Boolean; override;
+        procedure CreateImage(); override;
+        function AddResource(Data: Pointer; Len: LongWord; Name, Section: String): Boolean; override; overload;
+        function AddResource(FileName, Name, Section: String): Boolean; override; overload;
+        function AddAlias(Res, Alias: String): Boolean; override;
+        procedure AddSection(Name: String); override;
+        procedure RemoveResource(Section, Resource: String); override;
+        procedure SaveTo(FileName: String); override;
+        function HaveResource(Section, Resource: String): Boolean; override;
+        function HaveSection(Section: string): Boolean; override;
+        function GetResource(Section, Resource: String; var pData: Pointer; var Len: Integer): Boolean; override;
+        function GetSectionList(): SArray; override;
+        function GetResourcesList(Section: String): SArray; override;
+
+        function GetLastError: Integer; override;
+        function GetLastErrorStr: String; override;
+        function GetResourcesCount: Word; override;
+        function GetVersion: Byte; override;
+    end;
 
 implementation
 
-uses
-  SysUtils, BinEditor, ZLib, utils, e_log;
+  uses SysUtils, StrUtils, DateUtils, Math, utils, zstream, crc, e_log;
 
-const
-  DFWAD_OPENED_NONE   = 0;
-  DFWAD_OPENED_FILE   = 1;
-  DFWAD_OPENED_MEMORY = 2;
-
-procedure DecompressBuf(const InBuf: Pointer; InBytes: Integer;
-  OutEstimate: Integer; out OutBuf: Pointer; out OutBytes: Integer);
-var
-  strm: TZStreamRec;
-  P: Pointer;
-  BufInc: Integer;
-begin
-  FillChar(strm, sizeof(strm), 0);
-  BufInc := (InBytes + 255) and not 255;
-  if OutEstimate = 0 then
-    OutBytes := BufInc
-  else
-    OutBytes := OutEstimate;
-  GetMem(OutBuf, OutBytes);
-  try
-    strm.next_in := InBuf;
-    strm.avail_in := InBytes;
-    strm.next_out := OutBuf;
-    strm.avail_out := OutBytes;
-    inflateInit_(strm, zlib_version, sizeof(strm));
-    try
-      while inflate(strm, Z_FINISH) <> Z_STREAM_END do
-      begin
-        P := OutBuf;
-        Inc(OutBytes, BufInc);
-        ReallocMem(OutBuf, OutBytes);
-        strm.next_out := PByteF(PChar(OutBuf) + (PChar(strm.next_out) - PChar(P)));
-        strm.avail_out := BufInc;
-      end;
-    finally
-      inflateEnd(strm);
+  function PrepString(const s: AnsiString; caseSensitive, extSensitive: Boolean): AnsiString; inline;
+    var i: Integer;
+  begin
+    Result := s;
+    if caseSensitive = False then
+    begin
+      Result := UpperCase(Result);
     end;
-    ReallocMem(OutBuf, strm.total_out);
-    OutBytes := strm.total_out;
-  except
-    FreeMem(OutBuf);
-    raise
-  end;
-end;
-
-procedure CompressBuf(const InBuf: Pointer; InBytes: Integer;
-                      out OutBuf: Pointer; out OutBytes: Integer);
-var
-  strm: TZStreamRec;
-  P: Pointer;
-begin
-  FillChar(strm, sizeof(strm), 0);
-  OutBytes := ((InBytes + (InBytes div 10) + 12) + 255) and not 255;
-  GetMem(OutBuf, OutBytes);
-  try
-    strm.next_in := InBuf;
-    strm.avail_in := InBytes;
-    strm.next_out := OutBuf;
-    strm.avail_out := OutBytes;
-    deflateInit_(strm, Z_BEST_COMPRESSION, zlib_version, sizeof(strm));
-    try
-      while deflate(strm, Z_FINISH) <> Z_STREAM_END do
-      begin
-        P := OutBuf;
-        Inc(OutBytes, 256);
-        ReallocMem(OutBuf, OutBytes);
-        strm.next_out := PByteF(PtrUInt(OutBuf + (strm.next_out - P)));
-        strm.avail_out := 256;
-      end;
-    finally
-      deflateEnd(strm);
+    if extSensitive = False then
+    begin
+      i := Pos('.', Result); // fix dotfiles
+      if i > 1 then
+        SetLength(Result, i - 1);
     end;
-    ReallocMem(OutBuf, strm.total_out);
-    OutBytes := strm.total_out;
-  except
-    FreeMem(OutBuf);
-    raise
   end;
-end;
 
-{ TWADEditor_1 }
-
-function TWADEditor_1.AddResource(Data: Pointer; Len: LongWord; Name: string;
-                                  Section: string): Boolean;
-var
-  ResCompressed: Pointer;
-  ResCompressedSize: Integer;
-  a, b: Integer;
-begin
- Result := False;
-
- SetLength(FResTable, Length(FResTable)+1);
-
- if Section = '' then
- begin
-  if Length(FResTable) > 1 then
-   for a := High(FResTable) downto 1 do
-    FResTable[a] := FResTable[a-1];
-
-  a := 0;
- end
-  else
- begin
-  Section := AnsiUpperCase(Section);
-  b := -1;
-
-  for a := 0 to High(FResTable) do
-   if (FResTable[a].Length = 0) and (FResTable[a].ResourceName = Section) then
-   begin
-    for b := High(FResTable) downto a+2 do
-     FResTable[b] := FResTable[b-1];
-
-    b := a+1;
-    Break;
-   end;
-
-  if b = -1 then
+  function FindResourceIDRAW(p: PSection; name: AnsiString; caseSensitive, extSensitive: Boolean): Integer;
+    var i: Integer; pname: AnsiString;
   begin
-   SetLength(FResTable, Length(FResTable)-1);
-   Exit;
+    if p <> nil then
+    begin
+      pname := PrepString(name, caseSensitive, extSensitive);
+      for i := 0 to High(p.list) do
+      begin
+        if PrepString(p.list[i].name, caseSensitive, extSensitive) = pname then
+        begin
+          Result := i;
+          exit;
+        end;
+      end;
+    end;
+    Result := -1;
   end;
-  a := b;
- end;
 
- ResCompressed := nil;
- ResCompressedSize := 0;
- CompressBuf(Data, Len, ResCompressed, ResCompressedSize);
- if ResCompressed = nil then Exit;
- e_WriteLog('Fuck me (D)', MSG_NOTIFY);
-
- if FResData = nil then FResData := AllocMem(ResCompressedSize)
-  else ReallocMem(FResData, FDataSize+Cardinal(ResCompressedSize));
-
- FDataSize := FDataSize+LongWord(ResCompressedSize);
-
- CopyMemory(Pointer(PChar(FResData)+FDataSize-PChar(ResCompressedSize)),
-            ResCompressed, ResCompressedSize);
- FreeMemory(ResCompressed);
-
- Inc(FHeader.RecordsCount);
-
- with FResTable[a] do
- begin
-  ResourceName := GetResName(Name);
-  Address := FOffset;
-  Length := ResCompressedSize;
- end;
-
- FOffset := FOffset+Cardinal(ResCompressedSize);
-
- Result := True;
-end;
-
-function TWADEditor_1.AddAlias(Res, Alias: string): Boolean;
-var
-  a, b: Integer;
-  ares: Char16;
-begin
- Result := False;
-
- if FResTable = nil then Exit;
-
- b := -1;
- ares := GetResName(Alias);
- for a := 0 to High(FResTable) do
-  if FResTable[a].ResourceName = Res then
+  function FindResourceID(p: PSection; name: AnsiString): Integer;
+    var i: Integer;
   begin
-   b := a;
-   Break;
+    i := FindResourceIDRAW(p, name, True, True); // CaSeNaMe.Ext
+    if i < 0 then
+    begin
+      i := FindResourceIDRAW(p, name, False, True); // CASENAME.EXT
+      if i < 0 then
+      begin
+        i := FindResourceIDRAW(p, name, True, False); // CaSeNaMe
+        if i < 0 then
+        begin
+          i := FindResourceIDRAW(p, name, False, False); // CASENAME
+        end;
+      end;
+    end;
+    Result := i;
   end;
 
- if b = -1 then Exit;
-
- Inc(FHeader.RecordsCount);
-
- SetLength(FResTable, Length(FResTable)+1);
-
- with FResTable[High(FResTable)] do
- begin
-  ResourceName := ares;
-  Address := FResTable[b].Address;
-  Length := FResTable[b].Length;
- end;
-
- Result := True;
-end;
-
-function TWADEditor_1.AddResource(FileName, Name, Section: string): Boolean;
-var
-  ResCompressed: Pointer;
-  ResCompressedSize: Integer;
-  ResourceFile: File;
-  TempResource: Pointer;
-  OriginalSize: Integer;
-  a, b: Integer;
-begin
- Result := False;
-
- AssignFile(ResourceFile, FileName);
-
- try
-  Reset(ResourceFile, 1);
- except
-  FLastError := DFWAD_ERROR_CANTOPENWAD;
-  Exit;
- end;
-
- OriginalSize := FileSize(ResourceFile);
- GetMem(TempResource, OriginalSize);
-
- try
-  BlockRead(ResourceFile, TempResource^, OriginalSize);
- except
-  FLastError := DFWAD_ERROR_READWAD;
-  FreeMemory(TempResource);
-  CloseFile(ResourceFile);
-  Exit;
- end;
-
- CloseFile(ResourceFile);
-
- ResCompressed := nil;
- ResCompressedSize := 0;
- CompressBuf(TempResource, OriginalSize, ResCompressed, ResCompressedSize);
- FreeMemory(TempResource);
- if ResCompressed = nil then Exit;
-
- SetLength(FResTable, Length(FResTable)+1);
-
- if Section = '' then
- begin
-  if Length(FResTable) > 1 then
-   for a := High(FResTable) downto 1 do
-    FResTable[a] := FResTable[a-1];
-
-  a := 0;
- end
-  else
- begin
-  Section := AnsiUpperCase(Section);
-  b := -1;
-
-  for a := 0 to High(FResTable) do
-   if (FResTable[a].Length = 0) and (FResTable[a].ResourceName = Section) then
-   begin
-    for b := High(FResTable) downto a+2 do
-     FResTable[b] := FResTable[b-1];
-
-    b := a+1;
-    Break;
-   end;
-
-  if b = -1 then
+  function FindResource(p: PSection; name: AnsiString): PResource;
+    var i: Integer;
   begin
-   FreeMemory(ResCompressed);
-   SetLength(FResTable, Length(FResTable)-1);
-   Exit;
+    i := FindResourceID(p, name);
+    if i >= 0 then Result := @p.list[i] else Result := nil;
   end;
 
-  a := b;
- end;
 
- if FResData = nil then FResData := AllocMem(ResCompressedSize)
-  else ReallocMem(FResData, FDataSize+Cardinal(ResCompressedSize));
 
- FDataSize := FDataSize+LongWord(ResCompressedSize);
- CopyMemory(Pointer(PChar(FResData)+FDataSize-PChar(ResCompressedSize)),
-            ResCompressed, ResCompressedSize);
- FreeMemory(ResCompressed);
-
- Inc(FHeader.RecordsCount);
-
- with FResTable[a] do
- begin
-  ResourceName := GetResName(Name);
-  Address := FOffset;
-  Length := ResCompressedSize;
- end;
-
- FOffset := FOffset+Cardinal(ResCompressedSize);
-
- Result := True;
-end;
-
-procedure TWADEditor_1.AddSection(Name: string);
-begin
- if Name = '' then Exit;
-
- Inc(FHeader.RecordsCount);
-
- SetLength(FResTable, Length(FResTable)+1);
- with FResTable[High(FResTable)] do
- begin
-  ResourceName := GetResName(Name);
-  Address := $00000000;
-  Length := $00000000;
- end;
-end;
-
-constructor TWADEditor_1.Create();
-begin
- FResData := nil;
- FResTable := nil;
- FDataSize := 0;
- FOffset := 0;
- FHeader.RecordsCount := 0;
- FFileName := '';
- FWADOpened := DFWAD_OPENED_NONE;
- FLastError := DFWAD_NOERROR;
- FVersion := DFWAD_VERSION;
-end;
-
-procedure TWADEditor_1.CreateImage();
-var
-  WADFile: File;
-  b: LongWord;
-begin
- if FWADOpened = DFWAD_OPENED_NONE then
- begin
-  FLastError := DFWAD_ERROR_WADNOTLOADED;
-  Exit;
- end;
-
- if FWADOpened = DFWAD_OPENED_MEMORY then Exit;
-
- if FResData <> nil then FreeMem(FResData);
-
- try
-  AssignFile(WADFile, FFileName);
-  Reset(WADFile, 1);
-
-  b := 6+SizeOf(TWADHeaderRec_1)+SizeOf(TResourceTableRec_1)*Length(FResTable);
-
-  FDataSize := LongWord(FileSize(WADFile))-b;
-
-  GetMem(FResData, FDataSize);
-
-  Seek(WADFile, b);
-  BlockRead(WADFile, FResData^, FDataSize);
-
-  CloseFile(WADFile);
-
-  FOffset := FDataSize;
- except
-  FLastError := DFWAD_ERROR_CANTOPENWAD;
-  CloseFile(WADFile);
-  Exit;
- end;
-
- FLastError := DFWAD_NOERROR;
-end;
-
-destructor TWADEditor_1.Destroy();
-begin
- FreeWAD();
-
- inherited;
-end;
-
-procedure TWADEditor_1.FreeWAD();
-begin
- if FResData <> nil then FreeMem(FResData);
- FResTable := nil;
- FDataSize := 0;
- FOffset := 0;
- FHeader.RecordsCount := 0;
- FFileName := '';
- FWADOpened := DFWAD_OPENED_NONE;
- FLastError := DFWAD_NOERROR;
- FVersion := DFWAD_VERSION;
-end;
-
-function TWADEditor_1.GetResName(ResName: string): Char16;
-begin
- ZeroMemory(@Result[0], 16);
- if ResName = '' then Exit;
-
- ResName := Trim(UpperCase(ResName));
- if Length(ResName) > 16 then SetLength(ResName, 16);
-
- CopyMemory(@Result[0], @ResName[1], Length(ResName));
-end;
-
-function TWADEditor_1.HaveResource(Section, Resource: string): Boolean;
-var
-  a: Integer;
-  CurrentSection: string;
-begin
- Result := False;
-
- if FResTable = nil then Exit;
-
- CurrentSection := '';
- Section := AnsiUpperCase(Section);
- Resource := AnsiUpperCase(Resource);
-
- for a := 0 to High(FResTable) do
- begin
-  if FResTable[a].Length = 0 then
+  function TDFWEditor.FindSectionIDRAW(name: AnsiString; caseSensitive: Boolean): Integer;
+    var i: Integer; pname: AnsiString;
   begin
-   CurrentSection := FResTable[a].ResourceName;
-   Continue;
+    if FSection <> nil then
+    begin
+      pname := PrepString(name, caseSensitive, True);
+      for i := 0 to High(FSection) do
+      begin
+        if PrepString(FSection[i].name, caseSensitive, True) = pname then
+        begin
+          Result := i;
+          exit;
+        end;
+      end;
+    end;
+    Result := -1;
   end;
 
-  if (FResTable[a].ResourceName = Resource) and
-     (CurrentSection = Section) then
+  function TDFWEditor.FindSectionRAW(name: AnsiString; caseSensitive: Boolean): PSection;
+    var i: Integer;
   begin
-   Result := True;
-   Break;
+    i := FindSectionIDRAW(name, caseSensitive);
+    if i >= 0 then Result := @FSection[i] else Result := nil;
   end;
- end;
-end;
 
-function TWADEditor_1.HaveSection(Section: string): Boolean;
-var
-  a: Integer;
+  function TDFWEditor.InsertSectionRAW(name: AnsiString): PSection;
+    var i: Integer;
+  begin
+    if FSection = nil then i := 0 else i := Length(FSection);
+    SetLength(FSection, i + 1);
+    FSection[i] := Default(TSection);
+    FSection[i].name := name;
+    Result := @FSection[i];
+  end;
+
+
+
+  function TDFWEditor.FindSectionID(name: AnsiString): Integer;
+    var fixName: AnsiString;
+  begin
+    fixName := StringReplace(name, '\', '/', [rfReplaceAll], TStringReplaceAlgorithm.sraManySmall);
+    Result := FindSectionIDRAW(fixName, True); // CaSeNaMe
+    if Result < 0 then
+      Result := FindSectionIDRAW(fixName, False); // CASENAME
+  end;
+
+  function TDFWEditor.FindSection(name: AnsiString): PSection;
+    var fixName: AnsiString;
+  begin
+    fixName := StringReplace(name, '\', '/', [rfReplaceAll], TStringReplaceAlgorithm.sraManySmall);
+    Result := FindSectionRAW(fixName, True); // CaSeNaMe
+    if Result = nil then
+      Result := FindSectionRAW(fixName, False); // CASENAME
+  end;
+
+  function TDFWEditor.InsertSection(name: AnsiString): PSection;
+  begin
+    Result := FindSection(name);
+    if Result = nil then
+      Result := InsertSectionRAW(name);
+  end;
+
+
+
+  function TDFWEditor.FindDataID(pos: Int64): Integer;
+    var i: Integer;
+  begin
+    if (pos >= 0) and (FData <> nil) then
+    begin
+      for i := 0 to High(FData) do
+      begin
+        if FData[i].pos = pos then
+        begin
+          Result := i;
+          exit;
+        end;
+      end;
+    end;
+    Result := -1;
+  end;
+
+  function TDFWEditor.FindData(pos: Int64): TData;
+    var i: Integer;
+  begin
+    i := FindDataID(pos);
+    if i >= 0 then Result := FData[i] else Result := nil;
+  end;
+
+  function TDFWEditor.InsertData(ref, pos, csize, usize: Int64; stream: TMemoryStream): TData;
+    var i: Integer; data: TData;
+  begin
+    data := TData.Create();
+    data.ref := ref;
+    data.pos := pos;
+    data.csize := csize;
+    data.usize := usize;
+    data.stream := stream;
+
+    if FData = nil then i := 0 else i := Length(FData);
+    SetLength(FData, i + 1);
+    FData[i] := data;
+    Result := data;
+  end;
+
+
+
+  function TDFWEditor.InsertFileInfoS(p: PSection; const name: AnsiString; pos, csize, usize: Int64; stream: TMemoryStream): PResource;
+    var i: Integer; data: TData;
+  begin
+    Result := nil;
+    if p = nil then
+      exit;
+
+    data := FindData(pos);
+    if data = nil then
+      data := InsertData(0, pos, csize, usize, stream);
+
+    if p.list = nil then i := 0 else i := Length(p.list);
+    SetLength(p.list, i + 1);
+    Inc(data.ref);
+    p.list[i] := Default(TResource);
+    p.list[i].name := name;
+    p.list[i].data := data;
+    Result := @p.list[i];
+  end;
+
+  function TDFWEditor.InsertFileInfo(const section, name: AnsiString; pos, csize, usize: Int64; stream: TMemoryStream): PResource;
+    var p: PSection;
+  begin
+    p := FindSectionRAW(section, True);
+    if p = nil then
+      p := InsertSectionRAW(section);
+
+    Result := InsertFileInfoS(p, name, pos, csize, usize, stream);
+  end;
+
+
+
+  function TDFWEditor.AddAlias(Res, Alias: String): Boolean;
+  begin
+    // New hard-links are not supported
+    // However, they never created by editor
+    Result := False;
+  end;
+
+  function TDFWEditor.AddResource(Data: Pointer; Len: LongWord; Name, Section: String): Boolean;
+    const level: TCompressionLevel = TCompressionLevel.clMax;
+    var s: TMemoryStream; cs: TCompressionStream; p: PResource;
+  begin
+    Name := win2utf(Name);
+    Section := win2utf(Section);
+    Result := False;
+    if Name <> '' then
+    begin
+      s := TMemoryStream.Create();
+      try
+        cs := TCompressionStream.Create(level, s, False);
+        try
+          cs.WriteBuffer(PByte(Data)[0], Len);
+          cs.Flush();
+        finally
+          cs.Free();
+        end;
+        p := InsertFileInfo(Section, Name, -1, s.Size, Len, s);
+        Result := p <> nil;
+      except
+        s.Free();
+        raise;
+      end;
+    end;
+  end;
+
+  function TDFWEditor.AddResource(FileName, Name, Section: String): Boolean;
+    var s: TFileStream; ptr: PByte;
+  begin
+    Result := False;
+    FLastError := DFWAD_ERROR_READWAD;
+    try
+      s := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+      try
+        GetMem(ptr, s.Size);
+        try
+          s.ReadBuffer(ptr[0], s.Size);
+          Result := AddResource(ptr, s.Size, Name, Section);
+          if Result = True then FLastError := DFWAD_NOERROR;
+        finally
+          FreeMem(ptr);
+        end;
+      finally
+        s.Free();
+      end;
+    except
+      on e: EFOpenError do
+      begin
+        if gWADEditorLogLevel >= DFWAD_LOG_INFO then
+          e_WriteLog('DFWAD: AddResource: failed to open file ' + FileName, MSG_NOTIFY);
+        FLastError := DFWAD_ERROR_CANTOPENWAD;
+      end;
+    end;
+  end;
+
+  constructor TDFWEditor.Create();
+  begin
+    FSection := nil;
+    FData := nil;
+    FStream := nil;
+    FLastError := DFWAD_NOERROR;
+    FVersion := 1;
+    FreeWAD();
+  end;
+
+  destructor TDFWEditor.Destroy();
+  begin
+    Clear();
+    inherited;
+  end;
+
+  procedure TDFWEditor.Clear();
+    var i: Integer;
+  begin
+    if FSection <> nil then
+    begin
+      for i := 0 to High(FSection) do
+        if FSection[i].list <> nil then
+          SetLength(FSection[i].list, 0);
+      SetLength(FSection, 0);
+    end;
+    if FData <> nil then
+    begin
+      for i := 0 to High(FData) do
+      begin
+        if FData[i] <> nil then
+        begin
+          if FData[i].stream <> nil then
+            FreeAndNil(FData[i].stream);
+          FreeAndNil(FData[i]);
+        end;
+      end;
+      SetLength(FData, 0);
+    end;
+    if FStream <> nil then
+      FreeAndNil(FStream);
+  end;
+
+  procedure TDFWEditor.FreeWAD();
+  begin
+    Clear();
+    FLastError := DFWAD_NOERROR;
+    FVersion := 1;
+  end;
+
+  function TDFWEditor.Preload(data: TData): Boolean;
+    var s: TMemoryStream;
+  begin
+    Result := False;
+    if data <> nil then
+    begin
+      Result := data.stream <> nil;
+      if (data.stream = nil) and (FStream <> nil) then
+      begin
+        s := TMemoryStream.Create();
+        try
+          if data.csize > 0 then
+          begin
+            FStream.Seek(data.pos, TSeekOrigin.soBeginning);
+            s.CopyFrom(FStream, data.csize);
+          end;
+          Assert(s.Size = data.csize); // wtf, random size if copied zero bytes!
+          data.stream := s;
+          Result := True;
+        except
+          s.Free();
+        end;
+      end;
+    end;
+  end;
+
+  procedure TDFWEditor.CreateImage();
+    var i, j: Integer;
+  begin
+    if FStream = nil then
+    begin
+      if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+        e_WriteLog('DFWAD: CreateImage: File not assigned', MSG_NOTIFY);
+      FLastError := DFWAD_ERROR_WADNOTLOADED;
+    end
+    else if FStream is TMemoryStream then
+    begin
+      if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+        e_WriteLog('DFWAD: CreateImage: Memory stream', MSG_NOTIFY);
+      FLastError := DFWAD_NOERROR;
+    end
+    else
+    begin
+      if FSection <> nil then
+      begin
+        for i := 0 to High(FData) do
+        begin
+          if Preload(FData[i]) = False then
+          begin
+            if gWADEditorLogLevel >= DFWAD_LOG_WARN then
+              e_WriteLog('DFWAD: CreateImage: failed to preload resource data #' + IntToStr(i), MSG_WARNING);
+            FLastError := DFWAD_ERROR_CANTOPENWAD;
+            exit;
+          end;
+          FData[i].pos := -1;
+        end;
+      end;
+      FreeAndNil(FStream);
+      FLastError := DFWAD_NOERROR;
+    end;
+  end;
+
+  procedure TDFWEditor.AddSection(Name: String);
+  begin
+    Name := win2utf(Name);
+    if InsertSection(Name) = nil then
+      raise Exception.Create('DFWAD: AddSection[' + Name + ']: failed to insert');
+  end;
+
+  function TDFWEditor.HaveResource(Section, Resource: String): Boolean;
+  begin
+    Section := win2utf(Section);
+    Resource := win2utf(Resource);
+    Result := FindResource(FindSection(Section), Resource) <> nil;
+  end;
+
+  function TDFWEditor.HaveSection(Section: String): Boolean;
+  begin
+    Section := win2utf(Section);
+    Result := FindSection(Section) <> nil;
+  end;
+
+  function TDFWEditor.GetSourceStream(p: PResource): TStream;
+    var src: TStream;
+  begin
+    src := nil;
+    if p.data.stream <> nil then
+    begin
+      src := p.data.stream;
+      src.Seek(0, TSeekOrigin.soBeginning);
+    end
+    else if (p.data.pos >= 0) and (FStream <> nil) then
+    begin
+      src := FStream;
+      src.Seek(p.data.pos, TSeekOrigin.soBeginning);
+    end;
+    Result := src;
+  end;
+
+  function TDFWEditor.GetResource(Section, Resource: String; var pData: Pointer; var Len: Integer): Boolean;
+    const BLOCK_STEP = 4096;
+    var p: PResource; src: TStream; tmp: TDecompressionStream; ptr: PByte; size, r: Int64;
+  begin
+    Section := win2utf(Section);
+    Resource := win2utf(Resource);
+    FLastError := DFWAD_ERROR_CANTOPENWAD;
+    Result := False;
+    pData := nil;
+    Len := 0;
+    p := FindResource(FindSection(Section), Resource);
+    if p <> nil then
+    begin
+      src := GetSourceStream(p);
+      if src <> nil then
+      begin
+        try
+          tmp := TDecompressionStream.Create(src, False);
+          try
+            if p.data.usize < 0 then
+            begin
+              size := 0;
+              GetMem(ptr, BLOCK_STEP);
+              try
+                repeat
+                  r := tmp.Read(ptr[size], BLOCK_STEP);
+                  size := size + r;
+                  if r <> 0 then
+                    ReallocMem(ptr, size + BLOCK_STEP);
+                until r = 0;
+                ReallocMem(ptr, size);
+                p.data.usize := size; // cache size
+                pData := ptr;
+                Len := size;
+                Result := True;
+              except
+                FreeMem(ptr);
+                raise;
+              end;
+            end
+            else
+            begin
+              GetMem(ptr, p.data.usize);
+              try
+                tmp.ReadBuffer(ptr[0], p.data.usize);
+                pData := ptr;
+                Len := p.data.usize;
+                Result := True;
+              except
+                FreeMem(ptr);
+                raise;
+              end;
+            end;
+          finally
+            tmp.Free();
+          end;
+        except
+          on e: EStreamError do
+          begin
+            if gWADEditorLogLevel >= DFWAD_LOG_INFO then
+              e_WriteLog('DFWAD: Failed to decompress DEFLATEd data, reason: ' + e.Message, MSG_WARNING);
+            raise e;
+          end;
+        end;
+      end
+      else
+      begin
+        if gWADEditorLogLevel >= DFWAD_LOG_WARN then
+          e_WriteLog('DFWAD: No available source for file data', MSG_WARNING);
+        FLastError := DFWAD_ERROR_WADNOTLOADED;
+      end;
+    end
+    else
+    begin
+      if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
+        e_WriteLog('DFWAD: Resource not found', MSG_NOTIFY);
+      FLastError := DFWAD_ERROR_RESOURCENOTFOUND;
+    end;
+  end;
+
+  function TDFWEditor.GetResourcesList(Section: String): SArray;
+    var p: PSection; i: Integer;
+  begin
+    Section := win2utf(Section);
+    Result := nil;
+    p := FindSection(Section);
+    if (p <> nil) and (p.list <> nil) then
+    begin
+      SetLength(Result, Length(p.list));
+      for i := 0 to High(p.list) do
+      begin
+        Result[i] := utf2win(p.list[i].name);
+      end;
+    end;
+  end;
+
+  function TDFWEditor.GetSectionList(): SArray;
+    var i: Integer;
+  begin
+    Result := nil;
+    if FSection <> nil then
+    begin
+      SetLength(Result, Length(FSection));
+      for i := 0 to High(FSection) do
+      begin
+        Result[i] := utf2win(FSection[i].name);
+      end;
+    end;
+  end;
+
+  procedure TDFWEditor.ReadFromStream(s: TStream);
+    var sig: packed array [0..4] of Char;
+    var ver: UInt8; nrec: UInt16; offset, csize: UInt32;
+    var name1251: packed array [0..16] of Char;
+    var section, name: AnsiString;
+    var i: Integer;
+    var sec: PSection;
+    var res: PResource;
+  begin
+    s.ReadBuffer(sig[0], 5);
+    if sig = 'DFWAD' then
+    begin
+      ver := s.ReadByte();
+      if ver = 1 then
+      begin
+        nrec := LEtoN(s.ReadWord());
+        section := '';
+        for i := 0 to nrec - 1 do
+        begin
+          s.ReadBuffer(name1251[0], 16);
+          name1251[16] := #0;
+          name := win2utf(PChar(@name1251[0]));
+          offset := LEtoN(s.ReadDWord());
+          csize := LEtoN(s.ReadDWord());
+          if csize = 0 then
+          begin
+            section := name;
+            sec := InsertSectionRAW(section);
+            if sec = nil then
+              raise Exception.Create('Failed to register section [' + section + ']');
+          end
+          else
+          begin
+            if sec = nil then
+              sec := InsertSectionRAW('');
+            res := InsertFileInfoS(sec, name, offset, csize, -1, nil);
+            if res = nil then
+              raise Exception.Create('Failed to register resource [' + section + '][' + name + ']');
+            if res.data.csize <> csize then
+              raise Exception.Create('Invalid compressed size for [' + section + '][' + name + '] (corrupted archive?)');
+          end;
+        end;
+      end
+      else
+      begin
+        FLastError := DFWAD_ERROR_WRONGVERSION;
+        raise Exception.Create('Unsupported DFWAD version ' + IntToStr(ver) + ' (expected 1)');
+      end;
+    end
+    else
+    begin
+      FLastError := DFWAD_ERROR_FILENOTWAD;
+      raise Exception.Create('Not DFWAD file');
+    end;
+  end;
+
+  function TDFWEditor.ReadFile2(FileName: String): Boolean;
+    var s: TFileStream;
+  begin
+    FreeWAD();
+    Result := False;
+    try
+      try
+        s := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+        try
+          ReadFromStream(s);
+          FStream := s;
+          FLastError := DFWAD_NOERROR;
+          Result := True;
+        except
+          s.Free();
+          raise;
+        end;
+      except
+        on e: Exception do
+        begin
+          if gWADEditorLogLevel >= DFWAD_LOG_INFO then
+            e_WriteLog('DFWAD: Failed to read DFWAD from file ' + FileName + ', reason: ' + e.Message, MSG_WARNING);
+          Clear();
+        end;
+      end;
+    except
+      on e: EFOpenError do
+      begin
+        if gWADEditorLogLevel >= DFWAD_LOG_INFO then
+          e_WriteLog('DFWAD: Failed to open file ' + FileName + ', reason: ' + e.Message, MSG_WARNING);
+        if FileExists(FileName) then
+          FLastError := DFWAD_ERROR_CANTOPENWAD
+        else
+          FLastError := DFWAD_ERROR_WADNOTFOUND;
+      end;
+    end;
+  end;
+
+  function TDFWEditor.ReadMemory(Data: Pointer; Len: LongWord): Boolean;
+    var s: TMemoryStream;
+  begin
+    FreeWAD();
+    Result := False;
+    try
+      s := TMemoryStream.Create;
+      try
+        s.SetSize(Len);
+        s.WriteBuffer(PByte(Data)[0], Len);
+        s.Seek(0, soBeginning);
+        ReadFromStream(s);
+        FStream := s;
+        FLastError := DFWAD_NOERROR;
+        Result := True;
+      except
+        s.Free();
+        raise;
+      end;
+    except
+      on e: Exception do
+      begin
+        if gWADEditorLogLevel >= DFWAD_LOG_INFO then
+          e_WriteLog('DFWAD: Failed to read DFWAD from memory, reason: ' + e.Message, MSG_WARNING);
+        Clear();
+      end;
+    end;
+  end;
+
+  procedure TDFWEditor.Collect();
+    var i, n: Integer;
+  begin
+    if FData <> nil then
+    begin
+      n := 0;
+      for i := 0 to High(FData) do
+      begin
+        if FData[i] <> nil then
+        begin
+          if FData[i].ref > 0 then
+          begin
+            FData[n] := FData[i];
+            Inc(n);
+          end
+          else
+          begin
+            if FData[i].stream <> nil then
+              FreeAndNil(FData[i].stream);
+            FreeAndNil(FData[i]);
+          end;
+        end;
+      end;
+      SetLength(FData, n);
+    end;
+  end;
+
+  procedure TDFWEditor.RemoveResource(Section, Resource: String);
+    var p: PSection; i: Integer; data: TData;
+  begin
+    Section := win2utf(Section);
+    Resource := win2utf(Resource);
+    p := FindSection(Section);
+    i := FindResourceID(p, Resource);
+    if i >= 0 then
+    begin
+      data := p.list[i].data;
+      for i := i + 1 to High(p.list) do
+      begin
+        p.list[i - 1] := p.list[i];
+      end;
+      SetLength(p.list, High(p.list));
+      Dec(data.ref);
+      if data.ref <= 0 then
+        Collect();
+    end;
+  end;
+
+  procedure TDFWEditor.SaveToStream(s: TStream);
+    type TName16 = packed array [0..16] of Char;
+    var count: UInt16;
+    var name1251: TName16;
+    var i, j: Integer;
+    var p: PResource;
+    var data: TData;
+
+    function GetOffset(data: TData): UInt32;
+      var i: Integer;
+    begin
+      Assert(data <> nil);
+      Result := 6 + 2 + count * 24;
+      for i := 0 to High(FData) do
+      begin
+        if FData[i] = data then
+          exit;
+        if FData[i] <> nil then
+          Result := Result + FData[i].csize;
+      end;
+      raise Exception.Create('Failed to calculate offset (BUG!)');
+    end;
+
+  begin
+    count := GetResourcesCount();
+    s.WriteBuffer('DFWAD', 5);
+    s.WriteByte(1);
+    WriteInt(s, UInt16(count));
+    if FSection <> nil then
+    begin
+      for i := 0 to High(FSection) do
+      begin
+        if (i <> 0) or (FSection[i].name <> '') then
+        begin
+          name1251 := Default(TName16);
+          name1251 := utf2win(FSection[i].name);
+          s.WriteBuffer(name1251[0], 16);
+          WriteInt(s, UInt32(0));
+          WriteInt(s, UInt32(0));
+        end;
+        if FSection[i].list <> nil then
+        begin
+          for j := 0 to High(FSection[i].list) do
+          begin
+            p := @FSection[i].list[j];
+            name1251 := Default(TName16);
+            name1251 := utf2win(p.name);
+            s.WriteBuffer(name1251[0], 16);
+            WriteInt(s, UInt32(GetOffset(p.data)));
+            WriteInt(s, UInt32(p.data.csize));
+          end;
+        end;
+      end;
+      if FData <> nil then
+      begin
+        for i := 0 to High(FData) do
+        begin
+          data := FData[i];
+          if data <> nil then
+          begin
+            Assert(s.Position = GetOffset(data));
+            if data.stream <> nil then
+            begin
+              Assert(data.stream.Size = data.csize);
+              data.stream.SaveToStream(s);
+            end
+            else if (data.pos >= 0) and (FStream <> nil) then
+            begin
+              FStream.Seek(data.pos, TSeekOrigin.soBeginning);
+              s.CopyFrom(FStream, data.csize);
+            end
+            else
+            begin
+              raise Exception.Create('No data source available (somethig very wrong)');
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
+
+  procedure TDFWEditor.SaveTo(FileName: String);
+    var s: TFileStream;
+  begin
+    try
+      s := TFileStream.Create(FileName, fmCreate);
+      try
+        SaveToStream(s);
+      finally
+        s.Free();
+      end;
+    except
+      on e: Exception do
+      begin
+        if gWADEditorLogLevel >= DFWAD_LOG_INFO then
+          e_WriteLog('DFWAD: Failed to create file ' + FileName + ', reason: ' + e.Message, MSG_WARNING);
+        raise e;
+      end;
+    end;
+  end;
+
+  function TDFWEditor.GetLastError: Integer;
+  begin
+    Result := FLastError;
+  end;
+
+  function TDFWEditor.GetLastErrorStr: String;
+  begin
+    case FLastError of
+      DFWAD_NOERROR: Result := '';
+      DFWAD_ERROR_WADNOTFOUND: Result := 'DFWAD file not found';
+      DFWAD_ERROR_CANTOPENWAD: Result := 'Can''t open DFWAD file';
+      DFWAD_ERROR_RESOURCENOTFOUND: Result := 'Resource not found';
+      DFWAD_ERROR_FILENOTWAD: Result := 'File is not DFWAD';
+      DFWAD_ERROR_WADNOTLOADED: Result := 'DFWAD file is not loaded';
+      DFWAD_ERROR_READRESOURCE: Result := 'Read resource error';
+      DFWAD_ERROR_READWAD: Result := 'Read DFWAD error';
+      otherwise Result := IntToStr(FLastError);
+    end;
+  end;
+
+  function TDFWEditor.GetResourcesCount: Word;
+    var i: Integer;
+  begin
+    Result := 0;
+    if FSection <> nil then
+    begin
+      Result := Result + Length(FSection);
+      for i := 0 to High(FSection) do
+        if FSection[i].list <> nil then
+          Result := Result + Length(FSection[i].list);
+      if FSection[0].name = '' then
+        Dec(Result); // First root section not counted
+    end;
+  end;
+
+  function TDFWEditor.GetVersion: Byte;
+  begin
+    Result := FVersion;
+  end;
+
 begin
- Result := False;
-
- if FResTable = nil then Exit;
- if Section = '' then
- begin
-  Result := True;
-  Exit;
- end;
-
- Section := AnsiUpperCase(Section);
-
- for a := 0 to High(FResTable) do
-  if (FResTable[a].Length = 0) and (FResTable[a].ResourceName = Section) then
-  begin
-   Result := True;
-   Exit;
-  end;
-end;
-
-function TWADEditor_1.GetResource(Section, Resource: string;
-  var pData: Pointer; var Len: Integer): Boolean;
-var
-  a: LongWord;
-  i: Integer;
-  WADFile: File;
-  CurrentSection: string;
-  TempData: Pointer;
-  OutBytes: Integer;
-begin
- Result := False;
-
- CurrentSection := '';
-
- if FWADOpened = DFWAD_OPENED_NONE then
- begin
-  FLastError := DFWAD_ERROR_WADNOTLOADED;
-  Exit;
- end;
-
- Section := toLowerCase1251(Section);
- Resource := toLowerCase1251(Resource);
-
- i := -1;
- for a := 0 to High(FResTable) do
- begin
-  if FResTable[a].Length = 0 then
-  begin
-   CurrentSection := toLowerCase1251(FResTable[a].ResourceName);
-   Continue;
-  end;
-
-  if (toLowerCase1251(FResTable[a].ResourceName) = Resource) and
-     (CurrentSection = Section) then
-  begin
-   i := a;
-   Break;
-  end;
- end;
-
- if i = -1 then
- begin
-  FLastError := DFWAD_ERROR_RESOURCENOTFOUND;
-  Exit;
- end;
-
- if FWADOpened = DFWAD_OPENED_FILE then
- begin
-  try
-   AssignFile(WADFile, FFileName);
-   Reset(WADFile, 1);
-
-   Seek(WADFile, FResTable[i].Address+6+
-        LongWord(SizeOf(TWADHeaderRec_1)+SizeOf(TResourceTableRec_1)*Length(FResTable)));
-   TempData := GetMemory(FResTable[i].Length);
-   BlockRead(WADFile, TempData^, FResTable[i].Length);
-   DecompressBuf(TempData, FResTable[i].Length, 0, pData, OutBytes);
-   FreeMem(TempData);
-
-   Len := OutBytes;
-
-   CloseFile(WADFile);
-  except
-   FLastError := DFWAD_ERROR_CANTOPENWAD;
-   CloseFile(WADFile);
-   Exit;
-  end;
- end
-  else
- begin
-  TempData := GetMemory(FResTable[i].Length);
-  CopyMemory(TempData, Pointer(PtrUInt(FResData)+FResTable[i].Address+6+
-             PtrUInt(SizeOf(TWADHeaderRec_1)+SizeOf(TResourceTableRec_1)*Length(FResTable))),
-             FResTable[i].Length);
-  DecompressBuf(TempData, FResTable[i].Length, 0, pData, OutBytes);
-  FreeMem(TempData);
-
-  Len := OutBytes;
- end;
-
- FLastError := DFWAD_NOERROR;
- Result := True;
-end;
-
-function TWADEditor_1.GetResourcesList(Section: string): SArray;
-var
-  a: Integer;
-  CurrentSection: Char16;
-begin
- Result := nil;
-
- if FResTable = nil then Exit;
- if Length(Section) > 16 then Exit;
-
- CurrentSection := '';
-
- for a := 0 to High(FResTable) do
- begin
-  if FResTable[a].Length = 0 then
-  begin
-   CurrentSection := FResTable[a].ResourceName;
-   Continue;
-  end;
-
-  if CurrentSection = Section then
-  begin
-   SetLength(Result, Length(Result)+1);
-   Result[High(Result)] := FResTable[a].ResourceName;
-  end;
- end;
-end;
-
-function TWADEditor_1.GetSectionList(): SArray;
-var
-  i: DWORD;
-begin
- Result := nil;
-
- if FResTable = nil then Exit;
-
- if FResTable[0].Length <> 0 then
- begin
-  SetLength(Result, 1);
-  Result[0] := '';
- end;
-
- for i := 0 to High(FResTable) do
-  if FResTable[i].Length = 0 then
-  begin
-   SetLength(Result, Length(Result)+1);
-   Result[High(Result)] := FResTable[i].ResourceName;
-  end;
-end;
-
-function TWADEditor_1.LastErrorString(): string;
-begin
- case FLastError of
-  DFWAD_NOERROR: Result := '';
-  DFWAD_ERROR_WADNOTFOUND: Result := 'DFWAD file not found';
-  DFWAD_ERROR_CANTOPENWAD: Result := 'Can''t open DFWAD file';
-  DFWAD_ERROR_RESOURCENOTFOUND: Result := 'Resource not found';
-  DFWAD_ERROR_FILENOTWAD: Result := 'File is not DFWAD';
-  DFWAD_ERROR_WADNOTLOADED: Result := 'DFWAD file is not loaded';
-  DFWAD_ERROR_READRESOURCE: Result := 'Read resource error';
-  DFWAD_ERROR_READWAD: Result := 'Read DFWAD error';
- end;
-end;
-
-function TWADEditor_1.ReadFile2(FileName: string): Boolean;
-var
-  WADFile: File;
-  Signature: array[0..4] of Char;
-  a: Integer;
-begin
- FreeWAD();
-
- Result := False;
-
- if not FileExists(FileName) then
- begin
-  FLastError := DFWAD_ERROR_WADNOTFOUND;
-  Exit;
- end;
-
- FFileName := FileName;
-
- AssignFile(WADFile, FFileName);
-
- try
-  Reset(WADFile, 1);
- except
-  FLastError := DFWAD_ERROR_CANTOPENWAD;
-  Exit;
- end;
-
- try
-  BlockRead(WADFile, Signature, 5);
-  if Signature <> DFWAD_SIGNATURE then
-  begin
-   FLastError := DFWAD_ERROR_FILENOTWAD;
-   CloseFile(WADFile);
-   Exit;
-  end;
-
-  BlockRead(WADFile, FVersion, 1);
-  if FVersion <> DFWAD_VERSION then
-  begin
-    FLastError := DFWAD_ERROR_WRONGVERSION;
-    CloseFile(WADFile);
-    Exit;
-  end;
-
-  BlockRead(WADFile, FHeader, SizeOf(TWADHeaderRec_1));
-  FHeader.RecordsCount := LEtoN(FHeader.RecordsCount);
-  SetLength(FResTable, FHeader.RecordsCount);
-  if FResTable <> nil then
-  begin
-   BlockRead(WADFile, FResTable[0], SizeOf(TResourceTableRec_1)*FHeader.RecordsCount);
-
-   for a := 0 to High(FResTable) do
-   begin
-    FResTable[a].Address := LEtoN(FResTable[a].Address);
-    FResTable[a].Length := LEtoN(FResTable[a].Length);
-    if FResTable[a].Length <> 0 then
-     FResTable[a].Address := FResTable[a].Address-6-(LongWord(SizeOf(TWADHeaderRec_1)+
-                             SizeOf(TResourceTableRec_1)*Length(FResTable)));
-   end;
-  end;
-
-  CloseFile(WADFile);
- except
-  FLastError := DFWAD_ERROR_READWAD;
-  CloseFile(WADFile);
-  Exit;
- end;
-
- FWADOpened := DFWAD_OPENED_FILE;
- FLastError := DFWAD_NOERROR;
- Result := True;
-end;
-
-function TWADEditor_1.ReadMemory(Data: Pointer; Len: LongWord): Boolean;
-var
-  Signature: array[0..4] of Char;
-  a: Integer;
-begin
- FreeWAD();
-
- Result := False;
-
- CopyMemory(@Signature[0], Data, 5);
- if Signature <> DFWAD_SIGNATURE then
- begin
-  FLastError := DFWAD_ERROR_FILENOTWAD;
-  Exit;
- end;
-
- CopyMemory(@FVersion, Pointer(PtrUInt(Data)+5), 1);
- if FVersion <> DFWAD_VERSION then
- begin
-   FLastError := DFWAD_ERROR_WRONGVERSION;
-   Exit;
- end;
-
- CopyMemory(@FHeader, Pointer(PtrUInt(Data)+6), SizeOf(TWADHeaderRec_1));
- FHeader.RecordsCount := LEtoN(FHeader.RecordsCount);
-
- SetLength(FResTable, FHeader.RecordsCount);
- if FResTable <> nil then
- begin
-  CopyMemory(@FResTable[0], Pointer(PtrUInt(Data)+6+SizeOf(TWADHeaderRec_1)),
-             SizeOf(TResourceTableRec_1)*FHeader.RecordsCount);
-
-  for a := 0 to High(FResTable) do
-  begin
-   FResTable[a].Address := LEtoN(FResTable[a].Address);
-   FResTable[a].Length := LEtoN(FResTable[a].Length);
-   if FResTable[a].Length <> 0 then
-    FResTable[a].Address := FResTable[a].Address-6-(LongWord(SizeOf(TWADHeaderRec_1)+
-                            SizeOf(TResourceTableRec_1)*Length(FResTable)));
-  end;
- end;
-
- GetMem(FResData, Len);
- CopyMemory(FResData, Data, Len);
-
- FWADOpened := DFWAD_OPENED_MEMORY;
- FLastError := DFWAD_NOERROR;
-
- Result := True;
-end;
-
-procedure TWADEditor_1.RemoveResource(Section, Resource: string);
-var
-  a, i: Integer;
-  CurrentSection: Char16;
-  b, c, d: LongWord;
-begin
- if FResTable = nil then Exit;
-
- e_WriteLog('Fuck me (B) ' + Section + ' ' + Resource, MSG_NOTIFY);
-
- i := -1;
- b := 0;
- c := 0;
- CurrentSection := '';
-
- for a := 0 to High(FResTable) do
- begin
-  if FResTable[a].Length = 0 then
-  begin
-   CurrentSection := FResTable[a].ResourceName;
-   Continue;
-  end;
-
-  if (FResTable[a].ResourceName = Resource) and
-     (CurrentSection = Section) then
-  begin
-   i := a;
-   b := FResTable[a].Length;
-   c := FResTable[a].Address;
-   Break;
-  end;
- end;
-
- if i = -1 then Exit;
-
- e_WriteLog('Fuck me (C) ' + Section + ' ' + Resource, MSG_NOTIFY);
-
- for a := i to High(FResTable)-1 do
-  FResTable[a] := FResTable[a+1];
-
- SetLength(FResTable, Length(FResTable)-1);
-
- d := 0;
- for a := 0 to High(FResTable) do
-  if (FResTable[a].Length <> 0) and (FResTable[a].Address > c) then
-  begin
-   FResTable[a].Address := FResTable[a].Address-b;
-   d := d+FResTable[a].Length;
-  end;
-
- CopyMemory(Pointer(PtrUInt(FResData)+c), Pointer(PtrUInt(FResData)+c+b), d);
-
- FDataSize := FDataSize-b;
- FOffset := FOffset-b;
- ReallocMem(FResData, FDataSize);
-
- FHeader.RecordsCount := FHeader.RecordsCount-1;
-end;
-
-procedure TWADEditor_1.SaveTo(FileName: string);
-var
-  WADFile: File;
-  sign: string;
-  ver: Byte;
-  Header, HeaderLE: TWADHeaderRec_1;
-  i: Integer;
-begin
- sign := DFWAD_SIGNATURE;
- ver := DFWAD_VERSION;
-
- Header.RecordsCount := Length(FResTable);
- HeaderLE := Header;
- HeaderLE.RecordsCount := NtoLE(HeaderLE.RecordsCount);
-
- if FResTable <> nil then
-  for i := 0 to High(FResTable) do
-  begin
-   if FResTable[i].Length <> 0 then
-    FResTable[i].Address := FResTable[i].Address+6+SizeOf(TWADHeaderRec_1)+
-                            SizeOf(TResourceTableRec_1)*Header.RecordsCount;
-{$IFDEF FPC_BIG_ENDIAN}
-    FResTable[i].Address := NtoLE(FResTable[i].Address);
-    FResTable[i].Length := NtoLE(FResTable[i].Length);
-{$ENDIF}
-  end;
-
- AssignFile(WADFile, FileName);
- Rewrite(WADFile, 1);
-  BlockWrite(WADFile, sign[1], 5);
-  BlockWrite(WADFile, ver, 1);
-  BlockWrite(WADFile, HeaderLE, SizeOf(TWADHeaderRec_1));
-  if FResTable <> nil then BlockWrite(WADFile, FResTable[0],
-                                      SizeOf(TResourceTableRec_1)*Header.RecordsCount);
-  if FResData <> nil then BlockWrite(WADFile, FResData^, FDataSize);
- CloseFile(WADFile);
-
-{$IFDEF FPC_BIG_ENDIAN}
- // restore back to native endian
- if FResTable <> nil then
-  for i := 0 to High(FResTable) do
-  begin
-    FResTable[i].Address := LEtoN(FResTable[i].Address);
-    FResTable[i].Length := LEtoN(FResTable[i].Length);
-  end;
-{$ENDIF}
-end;
-
-function TWADEditor_1.GetLastError: Integer;
-begin
-  Result := FLastError;
-end;
-
-function TWADEditor_1.GetLastErrorStr: String;
-begin
-  Result := LastErrorString();
-end;
-
-function TWADEditor_1.GetResourcesCount: Word;
-begin
-  Result := FHeader.RecordsCount;
-end;
-
-function TWADEditor_1.GetVersion: Byte;
-begin
-  Result := FVersion;
-end;
-
-begin
-  gWADEditorFactory.RegisterEditor('DFWAD', TWADEditor_1);
+  gWADEditorFactory.RegisterEditor('DFWAD', TDFWEditor);
 end.
