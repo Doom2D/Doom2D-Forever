@@ -708,11 +708,8 @@ begin
         Exit; // Эти не бьют своих
     end;
 
-// Lost_Soul не может ранить Pain_Elemental'а:
-  if (a = MONSTER_SOUL) and (b = MONSTER_PAIN) then
-    Exit;
-// Pain_Elemental не может ранить Lost_Soul'а:
-  if (b = MONSTER_SOUL) and (a = MONSTER_PAIN) then
+// Pain_Elemental и Lost_Soul не воюют друг с другом:
+  if [a, b] = [MONSTER_PAIN, MONSTER_SOUL] then
     Exit;
 
 // В остальных случаях - будут бить друг друга:
@@ -1349,7 +1346,7 @@ begin
   if MonsterType = MONSTER_SOUL then
   begin
     if soulcount > MAX_SOUL then exit;
-    soulcount := soulcount + 1;
+    soulcount += 1;
   end;
 
   find_id := allocMonster();
@@ -2362,7 +2359,7 @@ begin
     MONSTATE_ATTACK: Anim := ANIM_ATTACK;
     MONSTATE_DIE: Anim := ANIM_DIE;
     MONSTATE_REVIVE:
-      begin // начали восрешаться
+      begin // начали воскрешаться
         Anim := FCurAnim;
         FAnim[Anim, FDirection].Revert(True);
 
@@ -2465,7 +2462,7 @@ end;
 
 procedure TMonster.Update();
 var
-  a, b, sx, sy, wx, wy, oldvelx: Integer;
+  a, b, sx, sy, wx, wy, oldvelx, i: Integer;
   st: Word;
   o, co: TObj;
   fall: Boolean;
@@ -2486,7 +2483,7 @@ begin
       if (FState <> MONSTATE_DIE) and (FState <> MONSTATE_DEAD) then
         fall := False;
 
-// Летающие монтсры:
+// Летающие монстры:
   if ((FMonsterType = MONSTER_SOUL) or
       (FMonsterType = MONSTER_PAIN) or
       (FMonsterType = MONSTER_CACO)) and
@@ -3143,56 +3140,37 @@ _end:
   if vilefire <> nil then
     vilefire.Update();
 
-// Состояние - Умирает и текущая анимация проиграна:
-  if (FState = MONSTATE_DIE) and
-     (FAnim[FCurAnim, FDirection] <> nil) and
-     (FAnim[FCurAnim, FDirection].Played) then
-    begin
-    // Умер:
+  // Состояние - Умирает и текущая анимация проиграна:
+  if (FState = MONSTATE_DIE) and (FAnim[FCurAnim, FDirection] <> nil) then
+  begin
+    if FAnim[FCurAnim, FDirection].Played then
+    begin  // Умер:
       SetState(MONSTATE_DEAD);
+      if g_Game_IsNet then MH_SEND_CoopStats();
 
-    // Pain_Elemental при смерти выпускает 3 Lost_Soul'а:
-      if (FMonsterType = MONSTER_PAIN) then
-      begin
-        mon := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-30,
-                                 FObj.Y+FObj.Rect.Y+20, TDirection.D_LEFT);
-        if mon <> nil then
-        begin
-          mon.SetState(MONSTATE_GO);
-          mon.FNoRespawn := True;
-          Inc(gTotalMonsters);
-          if g_Game_IsNet then MH_SEND_MonsterSpawn(mon.UID);
-        end;
-
-        mon := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
-                                 FObj.Y+FObj.Rect.Y+20, TDirection.D_RIGHT);
-        if mon <> nil then
-        begin
-          mon.SetState(MONSTATE_GO);
-          mon.FNoRespawn := True;
-          Inc(gTotalMonsters);
-          if g_Game_IsNet then MH_SEND_MonsterSpawn(mon.UID);
-        end;
-
-        mon := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-15,
-                                 FObj.Y+FObj.Rect.Y, TDirection.D_RIGHT);
-        if mon <> nil then
-        begin
-          mon.SetState(MONSTATE_GO);
-          mon.FNoRespawn := True;
-          Inc(gTotalMonsters);
-          if g_Game_IsNet then MH_SEND_MonsterSpawn(mon.UID);
-        end;
-
-        if g_Game_IsNet then MH_SEND_CoopStats();
-      end;
-
-    // У этих монстров нет трупов:
-      if (FMonsterType = MONSTER_PAIN) or
-         (FMonsterType = MONSTER_SOUL) or
-         (FMonsterType = MONSTER_BARREL) then
+      // У этих монстров нет трупов:
+      if FMonsterType in [MONSTER_PAIN, MONSTER_SOUL, MONSTER_BARREL] then
         FRemoved := True;
-    end;
+    end
+    else if (FMonsterType = MONSTER_PAIN) and
+        (FAnim[FCurAnim, FDirection].CurrentFrame =
+         FAnim[FCurAnim, FDirection].TotalFrames div 2 + 1) and
+        (FAnim[FCurAnim, FDirection].Counter = 0) then
+      for i := 0 to 2 do  // Pain_Elemental при смерти выпускает 3 Lost_Soul'а посередине анимации:
+      begin
+        // FIXME: lostsouls may stuck in walls here
+        mon := g_Monsters_Create(MONSTER_SOUL,
+                                 FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)+RandomRange(-15,16),
+                                 FObj.Y+FObj.Rect.Y+RandomRange(-7,8), FDirection);
+        if mon <> nil then
+        begin
+          mon.SetState(MONSTATE_GO);
+          mon.FNoRespawn := True;
+          gTotalMonsters += 1;
+          if g_Game_IsNet then MH_SEND_MonsterSpawn(mon.UID);
+        end;
+      end;
+  end;
 
 // Совершение атаки и стрельбы:
   if (FState = MONSTATE_ATTACK) or (FState = MONSTATE_SHOOT) then
@@ -4471,7 +4449,7 @@ end;
 
 function TMonster.alive(): Boolean;
 begin
-  Result := (FState <> MONSTATE_DIE) and (FState <> MONSTATE_DEAD) and (FHealth > 0);
+  Result := (FHealth > 0) and not (FState in [MONSTATE_DIE, MONSTATE_DEAD]);
 end;
 
 procedure TMonster.SetHealth(aH: Integer);
