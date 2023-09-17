@@ -1826,8 +1826,20 @@ begin
   end;
 
   UndoBuffer[i, ii].AddID := ID;
-
   MainForm.miUndo.Enabled := UndoBuffer <> nil;
+end;
+
+procedure DiscardUndoBuffer();
+var
+  i, k: Integer;
+begin
+  for i := 0 to High(UndoBuffer) do
+    for k := 0 to High(UndoBuffer[i]) do
+      with UndoBuffer[i][k] do
+        if UndoType = UNDO_DELETE_PANEL then
+          Dispose(Panel);
+
+  UndoBuffer := nil;
 end;
 
 procedure FullClear();
@@ -1835,7 +1847,7 @@ begin
   RemoveSelectFromObjects();
   ClearMap();
   LoadSky(gMapInfo.SkyName);
-  UndoBuffer := nil;
+  DiscardUndoBuffer();
   slInvalidTextures.Clear();
   MapCheckForm.lbErrorList.Clear();
   MapCheckForm.mErrorDescription.Clear();
@@ -4435,7 +4447,8 @@ begin
   config.SaveFile(CfgFileName);
   config.Free();
 
-  slInvalidTextures.Free;
+  slInvalidTextures.Free();
+  DiscardUndoBuffer();
 end;
 
 procedure TMainForm.FormDropFiles(Sender: TObject;
@@ -4686,8 +4699,7 @@ begin
   end;
 
 // Удалить выделенные объекты:
-  if (Key = VK_DELETE) and (SelectedObjects <> nil) and
-     RenderPanel.Focused() then
+  if (Key = VK_DELETE) and (SelectedObjects <> nil) and RenderPanel.Focused() then
     DeleteSelectedObjects();
 
 // Снять выделение:
@@ -5586,7 +5598,7 @@ begin
         UNDO_DELETE_PANEL:
           begin
             AddPanel(Panel^);
-            Panel := nil;
+            Dispose(Panel);
           end;
         UNDO_DELETE_ITEM: AddItem(Item);
         UNDO_DELETE_AREA: AddArea(Area);
@@ -5601,9 +5613,7 @@ begin
     end;
 
   SetLength(UndoBuffer, Length(UndoBuffer)-1);
-
   RemoveSelectFromObjects();
-
   miUndo.Enabled := UndoBuffer <> nil;
 end;
 
