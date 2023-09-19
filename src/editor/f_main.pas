@@ -2554,8 +2554,10 @@ end;
 procedure TMainForm.miRecentFileExecute (Sender: TObject);
 var
   s, fn: AnsiString;
+  n: LongInt;
 begin
-  s := RecentFiles[(Sender as TMenuItem).Tag];
+  n := (Sender as TMenuItem).Tag;
+  s := RecentFiles[n];
   fn := g_ExtractWadName(s);
   if FileExists(fn) then
     OpenMap(fn, g_ExtractFilePathName(s))
@@ -2585,7 +2587,7 @@ begin
     else
     begin
       menu.Delete(i);
-      MI.Destroy();
+      Application.ReleaseComponent(MI);
     end;
   end;
 
