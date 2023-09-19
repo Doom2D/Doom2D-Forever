@@ -626,6 +626,7 @@ implementation
       begin
         nrec := LEtoN(s.ReadWord());
         section := '';
+        sec := nil;
         for i := 0 to nrec - 1 do
         begin
           s.ReadBuffer(name1251[0], 16);
@@ -644,6 +645,8 @@ implementation
           begin
             if sec = nil then
               sec := InsertSectionRAW('');
+            if res = nil then
+              raise Exception.Create('Failed to create root section');
             res := InsertFileInfoS(sec, name, offset, csize, -1, nil);
             if res = nil then
               raise Exception.Create('Failed to register resource [' + section + '][' + name + ']');
@@ -671,24 +674,15 @@ implementation
     FreeWAD();
     Result := False;
     try
+      s := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
       try
-        s := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
-        try
-          ReadFromStream(s);
-          FStream := s;
-          FLastError := DFWAD_NOERROR;
-          Result := True;
-        except
-          s.Free();
-          raise;
-        end;
+        ReadFromStream(s);
+        FStream := s;
+        FLastError := DFWAD_NOERROR;
+        Result := True;
       except
-        on e: Exception do
-        begin
-          if gWADEditorLogLevel >= DFWAD_LOG_INFO then
-            e_WriteLog('DFWAD: Failed to read DFWAD from file ' + FileName + ', reason: ' + e.Message, MSG_WARNING);
-          Clear();
-        end;
+        s.Free();
+        raise;
       end;
     except
       on e: EFOpenError do
@@ -699,6 +693,12 @@ implementation
           FLastError := DFWAD_ERROR_CANTOPENWAD
         else
           FLastError := DFWAD_ERROR_WADNOTFOUND;
+      end;
+      on e: Exception do
+      begin
+        if gWADEditorLogLevel >= DFWAD_LOG_INFO then
+          e_WriteLog('DFWAD: Failed to read DFWAD from file ' + FileName + ', reason: ' + e.Message, MSG_WARNING);
+        Clear();
       end;
     end;
   end;
