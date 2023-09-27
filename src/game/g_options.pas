@@ -100,7 +100,7 @@ uses
     if Result = '' then
       Result := 'Player' + IntToStr(machine MOD 10000);
     if n = 1 then
-      Result := Copy(Result, 1, 12) + ' '
+      Result := Copy(Result, 1, 12)
     else
       Result := Copy(Result, 1, 10) + ' ' + IntToStr(n)
   end;
