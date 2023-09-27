@@ -63,14 +63,8 @@ end;
     {$ELSE}
       Result := '';
     {$ENDIF}
-    (* invalidate username with non-cp1251 symbols *)
-    i := Low(Result);
-    while i <= High(Result) do
-    begin
-      if Result[i] = '?' then
-        Result := '';
-      Inc(i)
-    end
+    // Remove non 1251 chars
+    Result := StringReplace(Result, Invalid1251Char, '', [rfReplaceAll]);
   end;
 
 end.

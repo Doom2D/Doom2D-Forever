@@ -67,7 +67,7 @@ property fuiFPS: Integer read getFUIFPS write setFUIFPS; // default: 30
 implementation
 
 uses
-  SysUtils, Classes,
+  SysUtils, Classes, utils,
   {$INCLUDE ../nogl/noGLuses.inc}
   {$IF DEFINED(LINUX) OR DEFINED(ANDROID)}
     unixtype, linux
@@ -139,44 +139,6 @@ end;
 function fuiTimeMilli (): UInt64; inline;
 begin
   result := fuiTimeMicro() div 1000;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-var
-  wc2shitmap: array[0..65535] of AnsiChar;
-  wc2shitmapInited: Boolean = false;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-const
-  cp1251: array[0..127] of Word = (
-    $0402,$0403,$201A,$0453,$201E,$2026,$2020,$2021,$20AC,$2030,$0409,$2039,$040A,$040C,$040B,$040F,
-    $0452,$2018,$2019,$201C,$201D,$2022,$2013,$2014,$003F,$2122,$0459,$203A,$045A,$045C,$045B,$045F,
-    $00A0,$040E,$045E,$0408,$00A4,$0490,$00A6,$00A7,$0401,$00A9,$0404,$00AB,$00AC,$00AD,$00AE,$0407,
-    $00B0,$00B1,$0406,$0456,$0491,$00B5,$00B6,$00B7,$0451,$2116,$0454,$00BB,$0458,$0405,$0455,$0457,
-    $0410,$0411,$0412,$0413,$0414,$0415,$0416,$0417,$0418,$0419,$041A,$041B,$041C,$041D,$041E,$041F,
-    $0420,$0421,$0422,$0423,$0424,$0425,$0426,$0427,$0428,$0429,$042A,$042B,$042C,$042D,$042E,$042F,
-    $0430,$0431,$0432,$0433,$0434,$0435,$0436,$0437,$0438,$0439,$043A,$043B,$043C,$043D,$043E,$043F,
-    $0440,$0441,$0442,$0443,$0444,$0445,$0446,$0447,$0448,$0449,$044A,$044B,$044C,$044D,$044E,$044F
-  );
-
-
-procedure initShitMap ();
-var
-  f: Integer;
-begin
-  for f := 0 to High(wc2shitmap) do wc2shitmap[f] := '?';
-  for f := 0 to 127 do wc2shitmap[f] := AnsiChar(f);
-  for f := 0 to 127 do wc2shitmap[cp1251[f]] := AnsiChar(f+128);
-  wc2shitmapInited := true;
-end;
-
-
-function wchar2win (wc: WideChar): AnsiChar; inline;
-begin
-  if not wc2shitmapInited then initShitMap();
-  if (LongWord(wc) > 65535) then result := '?' else result := wc2shitmap[LongWord(wc)];
 end;
 
 

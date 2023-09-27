@@ -12,6 +12,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
+{$DEFINE D2DF_FORCE_OBJFPC}
 {$INCLUDE a_modes.inc}
 unit utils;
 
@@ -25,6 +26,10 @@ uses
 type
   SSArray = array of ShortString;
 
+
+const
+  Invalid1251Char = #$98;          // Undefined 1251 char, we use it as replacement for unknown chars
+  InvalidUnicodeCodepoint = $FFFD; // Unicode REPLACEMENT CHARACTER used to replace an unknown, unrecognised, or unrepresentable character
 
 const wadExtensions: array [0..6] of AnsiString = (
   '.dfz',
@@ -47,7 +52,7 @@ const NilThreadId = 0;
 type
   TUtf8DecoderFast = packed record
   public
-    const Replacement = $FFFD; // replacement char for invalid unicode
+    const Replacement = InvalidUnicodeCodepoint; // replacement char for invalid unicode
     const Accept = 0;
     const Reject = 12;
 
@@ -132,6 +137,7 @@ function utf8to1251 (s: AnsiString): AnsiString;
 // necessarily cleared).
 // last name assumed to be a file, not directory (unless `lastIsDir` flag is set).
 function findFileCI (var pathname: AnsiString; lastIsDir: Boolean=false): Boolean;
+function findFileCIStr (pathname: AnsiString): AnsiString;
 
 // findDiskWad tries to find the wad file using common wad extensions
 // (see `wadExtensions` array).
@@ -333,8 +339,8 @@ function GetDiskFileInfo (fname: AnsiString; var info: TDiskFileInfo): Boolean;
 
 implementation
 
-uses
-  xstreams;
+//uses
+//  xstreams;
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure CopyMemory (Dest: Pointer; Src: Pointer; Len: LongWord); inline;
@@ -540,7 +546,7 @@ var
 const
   cp1251: array[0..127] of Word = (
     $0402,$0403,$201A,$0453,$201E,$2026,$2020,$2021,$20AC,$2030,$0409,$2039,$040A,$040C,$040B,$040F,
-    $0452,$2018,$2019,$201C,$201D,$2022,$2013,$2014,$FFFD,$2122,$0459,$203A,$045A,$045C,$045B,$045F,
+    $0452,$2018,$2019,$201C,$201D,$2022,$2013,$2014,InvalidUnicodeCodepoint,$2122,$0459,$203A,$045A,$045C,$045B,$045F,
     $00A0,$040E,$045E,$0408,$00A4,$0490,$00A6,$00A7,$0401,$00A9,$0404,$00AB,$00AC,$00AD,$00AE,$0407,
     $00B0,$00B1,$0406,$0456,$0491,$00B5,$00B6,$00B7,$0451,$2116,$0454,$00BB,$0458,$0405,$0455,$0457,
     $0410,$0411,$0412,$0413,$0414,$0415,$0416,$0417,$0418,$0419,$041A,$041B,$041C,$041D,$041E,$041F,
@@ -554,7 +560,7 @@ procedure initShitMap ();
 var
   f: Integer;
 begin
-  for f := 0 to High(wc2shitmap) do wc2shitmap[f] := '?';
+  for f := 0 to High(wc2shitmap) do wc2shitmap[f] := Invalid1251Char;
   for f := 0 to 127 do wc2shitmap[f] := AnsiChar(f);
   for f := 0 to 127 do wc2shitmap[cp1251[f]] := AnsiChar(f+128);
   wc2shitmapInited := true;
@@ -622,7 +628,7 @@ end;
 function wchar2win (wc: WideChar): AnsiChar; inline;
 begin
   if not wc2shitmapInited then initShitMap();
-  if (LongWord(wc) > 65535) then result := '?' else result := wc2shitmap[LongWord(wc)];
+  if (LongWord(wc) > 65535) then result := Invalid1251Char else result := wc2shitmap[LongWord(wc)];
 end;
 
 
@@ -655,7 +661,8 @@ var
 
   function utf8Encode (code: Integer): AnsiString;
   begin
-    if (code < 0) or (code > $10FFFF) then begin result := '?'; exit; end;
+    if (code < 0) or (code > $10FFFF) then
+      code := InvalidUnicodeCodepoint;
     if (code <= $7f) then
     begin
       result := AnsiChar(code and $ff);
@@ -677,10 +684,6 @@ var
       result += AnsiChar($80 or ((code shr 12) and $3F));
       result += AnsiChar($80 or ((code shr 6) and $3F));
       result += AnsiChar($80 or (code and $3F));
-    end
-    else
-    begin
-      result := '?';
     end;
   end;
 
@@ -1048,12 +1051,12 @@ end;
 
 function IsValid1251 (ch: Word): Boolean;
 begin
-  result := ((ch = Ord('?')) or (wc2shitmap[ch] <> '?')) and (wc2shitmap[ch] <> #$98)
+  result := wc2shitmap[ch] <> Invalid1251Char
 end;
 
 function IsPrintable1251 (ch: AnsiChar): Boolean;
 begin
-  result := (ch >= #32) and (ch <> #127) and (ch <> #$98)
+  result := (ch >= #32) and (ch <> #127) and (ch <> Invalid1251Char)
 end;
 
 
@@ -1133,7 +1136,7 @@ end;
 const
   uni2wint: array [128..255] of Word = (
     $0402,$0403,$201A,$0453,$201E,$2026,$2020,$2021,$20AC,$2030,$0409,$2039,$040A,$040C,$040B,$040F,
-    $0452,$2018,$2019,$201C,$201D,$2022,$2013,$2014,$003F,$2122,$0459,$203A,$045A,$045C,$045B,$045F,
+    $0452,$2018,$2019,$201C,$201D,$2022,$2013,$2014,InvalidUnicodeCodepoint,$2122,$0459,$203A,$045A,$045C,$045B,$045F,
     $00A0,$040E,$045E,$0408,$00A4,$0490,$00A6,$00A7,$0401,$00A9,$0404,$00AB,$00AC,$00AD,$00AE,$0407,
     $00B0,$00B1,$0406,$0456,$0491,$00B5,$00B6,$00B7,$0451,$2116,$0454,$00BB,$0458,$0405,$0455,$0457,
     $0410,$0411,$0412,$0413,$0414,$0415,$0416,$0417,$0418,$0419,$041A,$041B,$041C,$041D,$041E,$041F,
@@ -1156,7 +1159,7 @@ begin
    *  111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
    *  1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
    *)
-  result := '?';
+  result := Invalid1251Char;
   if pos > length(s) then exit;
 
   b := Byte(s[pos]);
@@ -1271,6 +1274,14 @@ begin
     if not foundher then begin newname := ''; result := false; break; end;
   end;
   if result then pathname := newname;
+end;
+
+
+function findFileCIStr (pathname: AnsiString): AnsiString;
+begin
+  Result := pathname;
+  if findFileCI(Result) = False then
+    Result := pathname;
 end;
 
 
@@ -1457,7 +1468,7 @@ function readBool (st: TStream): Boolean; begin result := (readByte(st) <> 0); e
 
 procedure writeStr (st: TStream; const str: AnsiString; maxlen: LongWord=65535);
 begin
-  if (Length(str) > maxlen) then raise XStreamError.Create('string too long');
+  if (Length(str) > maxlen) then raise EStreamError.Create('string too long');
   if (maxlen <= 65535) then writeInt(st, Word(Length(str))) else writeInt(st, LongWord(Length(str)));
   if (Length(str) > 0) then st.WriteBuffer(str[1], Length(str));
 end;
@@ -1468,7 +1479,7 @@ var
 begin
   result := '';
   if (maxlen <= 65535) then len := readWord(st) else len := Integer(readLongWord(st));
-  if (len < 0) or (len > maxlen) then raise XStreamError.Create('string too long');
+  if (len < 0) or (len > maxlen) then raise EStreamError.Create('string too long');
   if (len > 0) then
   begin
     SetLength(result, len);
