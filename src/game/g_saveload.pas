@@ -375,30 +375,17 @@ begin
         ///// /////
 
         // Загружаем карту:
-        ZeroMemory(@gGameSettings, sizeof(TGameSettings));
+        gGameSettings := Default(TGameSettings);
         gAimLine := false;
         gShowMap := false;
-        if (Game_Type = GT_NONE) or (Game_Type = GT_SINGLE) then
-        begin
-          // Настройки игры
-          gGameSettings.GameType := GT_SINGLE;
-          gGameSettings.MaxLives := 0;
-          gGameSettings.Options := gGameSettings.Options+GAME_OPTION_ALLOWEXIT;
-          gGameSettings.Options := gGameSettings.Options+GAME_OPTION_MONSTERS;
-          gGameSettings.Options := gGameSettings.Options+GAME_OPTION_BOTVSMONSTER;
-          gSwitchGameMode := GM_SINGLE;
-        end
-        else
-        begin
-          // Настройки игры
-          gGameSettings.GameType := GT_CUSTOM;
-          gGameSettings.GameMode := Game_Mode;
-          gSwitchGameMode := Game_Mode;
-          gGameSettings.TimeLimit := Game_TimeLimit;
-          gGameSettings.ScoreLimit := Game_ScoreLimit;
-          gGameSettings.MaxLives := IfThen(Game_Mode = GM_CTF, 0, Game_MaxLives);
-          gGameSettings.Options := Game_Options;
-        end;
+        // Настройки игры
+        gGameSettings.GameType := Game_Type;
+        gGameSettings.GameMode := Game_Mode;
+        gGameSettings.TimeLimit := Game_TimeLimit;
+        gGameSettings.ScoreLimit := Game_ScoreLimit;
+        gGameSettings.MaxLives := Game_MaxLives;
+        gGameSettings.Options := Game_Options;
+        gSwitchGameMode := Game_Mode;
         g_Game_ExecuteEvent('ongamestart');
 
         // Установка размеров окон игроков
