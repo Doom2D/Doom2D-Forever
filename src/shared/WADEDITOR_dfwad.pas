@@ -645,7 +645,7 @@ implementation
           begin
             if sec = nil then
               sec := InsertSectionRAW('');
-            if res = nil then
+            if sec = nil then
               raise Exception.Create('Failed to create root section');
             res := InsertFileInfoS(sec, name, offset, csize, -1, nil);
             if res = nil then
