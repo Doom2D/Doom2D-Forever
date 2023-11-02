@@ -2630,7 +2630,7 @@ begin
           FModel.Draw(fX, fY+fSlope);
       end
       else
-        FModel.Draw(fX, fY+fSlope, 254);
+        FModel.Draw(fX, fY+fSlope, 255);
     end
     else
       FModel.Draw(fX, fY+fSlope);
