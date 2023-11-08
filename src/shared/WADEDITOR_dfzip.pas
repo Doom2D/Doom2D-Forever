@@ -1110,7 +1110,7 @@ implementation
         raise Exception.Create('EOCD not found (corrupted file?)');
     end
     else
-      raise Exception.Create('Not DFZIP formated file');
+      raise Exception.Create('Not DFZIP formatted file');
   end;
 
   function TZIPEditor.ReadFile2(FileName: String): Boolean;

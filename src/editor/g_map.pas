@@ -1392,6 +1392,24 @@ begin
   end;
 end;
 
+function map_CreateAnimTexture(TextureName, Resource: String): Boolean;
+var
+  Data: Pointer = nil;
+  FrameLen: Integer = 0;
+  Width: Word = 0;
+  Height: Word = 0;
+begin
+  Result := GetFrame(Resource, Data, FrameLen, Width, Height);
+  if not Result then // Кадры
+    e_WriteLog(Format('GetFrame() error, res=%s', [TextureName]), MSG_WARNING)
+  else
+  begin
+    Result := g_CreateTextureMemorySize(Data, FrameLen, TextureName, 0, 0, Width, Height, 1);
+    if not Result then // Сама текстура
+      e_WriteLog(Format('g_CreateTextureMemorySize() error, res=%s', [TextureName]), MSG_WARNING);
+  end;
+end;
+
 function LoadMap(Res: String): Boolean;
 var
   WAD: TWADEditor_1;
@@ -1409,23 +1427,18 @@ var
   area: TArea;
   trigger: TTrigger;
   a: Integer;
-  Data: Pointer;
-  Width, Height, m: Word;
+  m: Word;
   FileName, SectionName, ResName, _fn: String;
   TextureRes, ustr: String;
   pData: Pointer;
-  Len, FrameLen: Integer;
-  Error: Boolean;
+  Len: Integer;
+  Success: Boolean;
   NoTextureID: DWORD;
   NW, NH: Word;
 begin
   Result := False;
   pData := nil;
   Len := 0;
-  Data := nil;
-  FrameLen := 0;
-  Width := 0;
-  Height := 0;
   NoTextureID := 0;
   NW := 0;
   NH := 0;
@@ -1475,50 +1488,43 @@ begin
       Application.ProcessMessages();
       ustr := win2utf(textures[a].Resource);
 
-      if IsSpecialTexture(ustr) then
+      Success := True;
+      if not IsSpecialTexture(ustr) then
       begin
-        AddTexture(ustr, False);
-        Continue;
-      end;
+        g_ProcessResourceStr(ustr, @_fn, nil, nil);
 
-      g_ProcessResourceStr(ustr, @_fn, nil, nil);
+        if _fn = ''
+          then TextureRes := FileName + ustr
+          else TextureRes := WadsDir + DirectorySeparator + ustr;
 
-      if _fn = '' then
-        TextureRes := FileName + ustr
-      else
-        TextureRes := WadsDir + DirectorySeparator + ustr;
-
-      Error := False;
-
-      if not ByteBool(textures[a].Anim) then
+        if not Boolean(textures[a].Anim) then
         begin // Обычная текстура
           if not g_CreateTextureWAD(ustr, TextureRes) then
           begin
-            e_WriteLog(Format('g_CreateTextureWAD() error, res=%s',
-                              [ustr]), MSG_WARNING);
-            Error := True;
+            e_WriteLog(Format('g_CreateTextureWAD() error, res=%s', [ustr]), MSG_WARNING);
+            Success := map_CreateAnimTexture(ustr, TextureRes);
+            if Success then
+            begin
+              textures[a].Anim := Byte(ByteBool(True));
+              e_WriteLog(Format('    wrong (outdated?) anim flag hint - texture #%d is actually animated: %s', [a, ustr]), MSG_WARNING);
+            end;
           end;
-
-          AddTexture(ustr, Error);
         end
-      else // Anim
+        else
         begin // Анимированная текстура
-          if not GetFrame(TextureRes, Data, FrameLen, Width, Height) then
-          begin // Кадры
-            e_WriteLog(Format('GetFrame() error, res=%s',
-                              [ustr]), MSG_WARNING);
-            Error := True;
+          if not map_CreateAnimTexture(ustr, TextureRes) then
+          begin
+            Success := g_CreateTextureWAD(ustr, TextureRes);
+            if Success then
+            begin
+              textures[a].Anim := Byte(ByteBool(False));
+              e_WriteLog(Format('    wrong (outdated?) anim flag hint - texture #%d is actually static: %s', [a, ustr]), MSG_WARNING);
+            end;
           end;
-
-          if not g_CreateTextureMemorySize(Data, FrameLen, ustr, 0, 0, Width, Height, 1) then
-          begin // Сама текстура
-            e_WriteLog(Format('g_CreateTextureMemorySize() error, res=%s',
-                              [ustr]), MSG_WARNING);
-            Error := True;
-          end;
-
-          AddTexture(ustr, Error);
         end;
+      end;
+
+      AddTexture(ustr, not Success);
     end;
   end;
 
