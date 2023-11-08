@@ -1847,7 +1847,7 @@ begin
         cnt := -1;
         for rec in mapTextureList do
         begin
-          Inc(cnt);
+          cnt += 1;
           if not usedTextures.has(toLowerCase1251(rec.Resource)) then
           begin
             rec.tagInt := -1; // just in case
@@ -1859,17 +1859,39 @@ begin
             e_LogWritefln('    Loading texture #%d: %s', [cnt, rec.Resource]);
             {$ENDIF}
             //if g_Map_IsSpecialTexture(s) then e_WriteLog('      SPECIAL!', MSG_NOTIFY);
+            // TODO: Unify the texture reader - static textures are a special case of dynamic ones, just with only one frame.
             if rec.Anim then
             begin
               // Анимированная текстура
               ntn := CreateAnimTexture(rec.Resource, FileName, True);
-              if (ntn < 0) then g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_ANIM], [rec.Resource]));
+              if (ntn < 0) then
+              begin
+                // FIXME: I think, CreateAnimTexture() will load static textures too, just as animated ones with one frame.
+                ntn := CreateTexture(rec.Resource, FileName, False);
+                if (ntn < 0) then
+                  g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_ANIM], [rec.Resource]))
+                else
+                begin
+                  rec.user['animated'] := False;
+                  e_LogWritefln('    wrong (outdated?) anim flag hint - texture #%d is actually static: %s', [cnt, rec.Resource]);
+                end;
+              end;
             end
             else
             begin
               // Обычная текстура
               ntn := CreateTexture(rec.Resource, FileName, True);
-              if (ntn < 0) then g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_SIMPLE], [rec.Resource]));
+              if (ntn < 0) then
+              begin
+                ntn := CreateAnimTexture(rec.Resource, FileName, False);
+                if (ntn < 0) then
+                  g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_SIMPLE], [rec.Resource]))
+                else
+                begin
+                  rec.user['animated'] := True;
+                  e_LogWritefln('    wrong (outdated?) anim flag hint - texture #%d is actually animated: %s', [cnt, rec.Resource]);
+                end;
+              end;
             end;
             if (ntn < 0) then ntn := CreateNullTexture(rec.Resource);
 
