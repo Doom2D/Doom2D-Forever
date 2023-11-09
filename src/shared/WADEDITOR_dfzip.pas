@@ -6,13 +6,13 @@ unit WADEDITOR_dfzip;
 // - File must start with LFH or EOCD signature
 // - EOCD must be located strictly at the end of file
 // - Multi-disk ZIP files are not supported
-// - Expect UTF-8 or CP1251 encoded names
-// - ZIP64 not supported
-// - Encryption not supported
-// - Zero-length file names not supported
+// - Expects UTF-8 or CP1251 encoded names
+// - ZIP64 is not supported
+// - Encryption is not supported
+// - Zero-length file names are not supported
 // - CDR holds most actual data about file, LFH mostly ignored
 // - Attributes and extra data are ignored and not preserved
-// - Store and Deflate compression supported
+// - Supports STORE and DEFLATE compression methods
 
 interface
 
@@ -883,7 +883,7 @@ implementation
                   case comp of
                     ZIP_COMP_STORE:
                       if csize <> usize then
-                        raise Exception.Create('Compressed size ' + IntToStr(csize) + ' != Descompressed size ' + IntToStr(usize) + 'for STORE method (corrupted file?)');
+                        raise Exception.Create('Compressed size ' + IntToStr(csize) + ' != Decompressed size ' + IntToStr(usize) + 'for STORE method (corrupted file?)');
                     ZIP_COMP_SHRUNK,
                     ZIP_COMP_REDUCE1,
                     ZIP_COMP_REDUCE2,
@@ -907,7 +907,7 @@ implementation
                     ZIP_COMP_PPMD:
                       ; // ok
                     ZIP_COMP_AE:
-                      raise Exception.Create('Encrypted archives not supported');
+                      raise Exception.Create('Encrypted archives are not supported');
                     otherwise
                       raise Exception.Create('Unknown compression method ' + IntToStr(comp));
                   end;
@@ -950,7 +950,7 @@ implementation
                   end;
                   if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
                   begin
-                    e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': UTF-8 Comatible   : ' + BoolToStr(utf8, True), MSG_NOTIFY);
+                    e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': UTF-8 Compatible  : ' + BoolToStr(utf8, True), MSG_NOTIFY);
                     e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Name              : "' + name + '"', MSG_NOTIFY);
                     e_WriteLog('CDR#' + IntToStr(cdrid) + ' @' + IntToHex(mypos, 8) + ': Comment           : "' + comment + '"', MSG_NOTIFY);
                   end;
@@ -959,27 +959,27 @@ implementation
                   s.Seek(next, TSeekOrigin.soBeginning);
                 end
                 else
-                  raise Exception.Create('Empty files names not supported');
+                  raise Exception.Create('Empty files names are not supported');
               end
               else
-                raise Exception.Create('Splitted archives not supported');
+                raise Exception.Create('Split archives are not supported');
             end
             else
             begin
               FLastError := DFWAD_ERROR_WRONGVERSION;
-              raise Exception.Create('ZIP64 archives not supported');
+              raise Exception.Create('ZIP64 archives are not supported');
             end;
           end
           else
           begin
             FLastError := DFWAD_ERROR_READWAD;
-            raise Exception.Create('Patch archives not supported');
+            raise Exception.Create('Patch archives are not supported');
           end;
         end
         else
         begin
           FLastError := DFWAD_ERROR_READWAD;
-          raise Exception.Create('Encrypted archives not supported');
+          raise Exception.Create('Encrypted archives are not supported');
         end;
       end
       else
@@ -1078,7 +1078,7 @@ implementation
                   end;
                   if gWADEditorLogLevel >= DFWAD_LOG_DEBUG then
                   begin
-                    e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': UTF8 Comaptible   : ' + BoolToStr(utf8, True), MSG_NOTIFY);
+                    e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': UTF-8 Compatible  : ' + BoolToStr(utf8, True), MSG_NOTIFY);
                     e_WriteLog('EOCD  @' + IntToHex(mypos, 8) + ': Comment           : "' + FComment + '"', MSG_NOTIFY);
                   end;
                   i := 0;
@@ -1360,7 +1360,7 @@ implementation
             end
             else
             begin
-              raise Exception.Create('No data source available (somethig very wrong)');
+              raise Exception.Create('No data source available (something very wrong)');
             end;
           end;
         end
