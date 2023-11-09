@@ -534,6 +534,7 @@ implementation
                 pData := ptr;
                 Len := size;
                 Result := True;
+                FLastError := DFWAD_NOERROR;
               except
                 FreeMem(ptr);
                 raise;
@@ -547,6 +548,7 @@ implementation
                 pData := ptr;
                 Len := p.data.usize;
                 Result := True;
+                FLastError := DFWAD_NOERROR;
               except
                 FreeMem(ptr);
                 raise;
