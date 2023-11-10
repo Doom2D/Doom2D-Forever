@@ -113,7 +113,7 @@ const
      ((62), (16)), // WEAPON_ROCKETLAUNCHER
      ((54), (16)), // WEAPON_PLASMA
      ((61), (36)), // WEAPON_BFG
-     ((54), (16)), // WEAPON_SUPERPULEMET
+     ((54), (16)), // WEAPON_SUPERCHAINGUN
      (( 9), (11)), // AMMO_BULLETS
      ((28), (16)), // AMMO_BULLETS_BOX
      ((15), ( 7)), // AMMO_SHELLS
@@ -126,7 +126,7 @@ const
      ((16), (16)), // KEY_RED
      ((16), (16)), // KEY_GREEN
      ((16), (16)), // KEY_BLUE
-     (( 1), ( 1)), // WEAPON_KASTET
+     (( 1), ( 1)), // WEAPON_IRONFIST
      ((43), (16)), // WEAPON_PISTOL
      ((14), (18)), // BOTTLE
      ((16), (15)), // HELMET
@@ -262,7 +262,7 @@ const
   OLD_ITEM_WEAPON_ROCKETLAUNCHER = 11;
   OLD_ITEM_WEAPON_PLASMA         = 12;
   OLD_ITEM_WEAPON_BFG            = 13;
-  OLD_ITEM_WEAPON_SUPERPULEMET   = 14;
+  OLD_ITEM_WEAPON_SUPERCHAINGUN  = 14;
   OLD_ITEM_AMMO_BULLETS          = 15;
   OLD_ITEM_AMMO_BULLETS_BOX      = 16;
   OLD_ITEM_AMMO_SHELLS           = 17;
@@ -294,7 +294,7 @@ const
                  (ITEM_WEAPON_ROCKETLAUNCHER),
                  (ITEM_WEAPON_PLASMA),
                  (ITEM_WEAPON_BFG),
-                 (ITEM_WEAPON_SUPERPULEMET),
+                 (ITEM_WEAPON_SUPERCHAINGUN),
                  (ITEM_AMMO_BULLETS),
                  (ITEM_AMMO_BULLETS_BOX),
                  (ITEM_AMMO_SHELLS),
@@ -330,7 +330,7 @@ const
      ((61), (15)), // WEAPON_ROCKETLAUNCHER
      ((53), (14)), // WEAPON_PLASMA
      ((61), (34)), // WEAPON_BFG
-     ((53), (16)), // WEAPON_SUPERPULEMET
+     ((53), (16)), // WEAPON_SUPERCHAINGUN
      (( 9), (10)), // AMMO_BULLETS
      ((28), (16)), // AMMO_BULLETS_BOX
      ((15), ( 7)), // AMMO_SHELLS
@@ -2221,7 +2221,7 @@ begin
             ITEM_WEAPON_ROCKETLAUNCHER: g_GetTexture('ITEM_WEAPON_ROCKETLAUNCHER', ID);
             ITEM_WEAPON_PLASMA: g_GetTexture('ITEM_WEAPON_PLASMA', ID);
             ITEM_WEAPON_BFG: g_GetTexture('ITEM_WEAPON_BFG', ID);
-            ITEM_WEAPON_SUPERPULEMET: g_GetTexture('ITEM_WEAPON_SUPERPULEMET', ID);
+            ITEM_WEAPON_SUPERCHAINGUN: g_GetTexture('ITEM_WEAPON_SUPERCHAINGUN', ID);
             ITEM_AMMO_BULLETS: g_GetTexture('ITEM_AMMO_BULLETS', ID);
             ITEM_AMMO_BULLETS_BOX: g_GetTexture('ITEM_AMMO_BULLETS_BOX', ID);
             ITEM_AMMO_SHELLS: g_GetTexture('ITEM_AMMO_SHELLS', ID);
@@ -2615,7 +2615,7 @@ begin
                         ITEM_WEAPON_ROCKETLAUNCHER: g_GetTexture('ITEM_WEAPON_ROCKETLAUNCHER', ID);
                         ITEM_WEAPON_PLASMA: g_GetTexture('ITEM_WEAPON_PLASMA', ID);
                         ITEM_WEAPON_BFG: g_GetTexture('ITEM_WEAPON_BFG', ID);
-                        ITEM_WEAPON_SUPERPULEMET: g_GetTexture('ITEM_WEAPON_SUPERPULEMET', ID);
+                        ITEM_WEAPON_SUPERCHAINGUN: g_GetTexture('ITEM_WEAPON_SUPERCHAINGUN', ID);
                         ITEM_AMMO_BULLETS: g_GetTexture('ITEM_AMMO_BULLETS', ID);
                         ITEM_AMMO_BULLETS_BOX: g_GetTexture('ITEM_AMMO_BULLETS_BOX', ID);
                         ITEM_AMMO_SHELLS: g_GetTexture('ITEM_AMMO_SHELLS', ID);
@@ -2913,14 +2913,14 @@ begin
  g_CreateTextureWAD('ITEM_MEDKIT_LARGE', GameWad + ':TEXTURES\MED2');
  g_CreateTextureWAD('ITEM_WEAPON_SAW', GameWad + ':TEXTURES\SAW');
  g_CreateTextureWAD('ITEM_WEAPON_PISTOL', GameWad + ':TEXTURES\PISTOL');
- g_CreateTextureWAD('ITEM_WEAPON_KASTET', GameWad + ':TEXTURES\KASTET');
+ g_CreateTextureWAD('ITEM_WEAPON_IRONFIST', GameWad + ':TEXTURES\IRONFIST');
  g_CreateTextureWAD('ITEM_WEAPON_SHOTGUN1', GameWad + ':TEXTURES\SHOTGUN1');
  g_CreateTextureWAD('ITEM_WEAPON_SHOTGUN2', GameWad + ':TEXTURES\SHOTGUN2');
  g_CreateTextureWAD('ITEM_WEAPON_CHAINGUN', GameWad + ':TEXTURES\MGUN');
  g_CreateTextureWAD('ITEM_WEAPON_ROCKETLAUNCHER', GameWad + ':TEXTURES\RLAUNCHER');
  g_CreateTextureWAD('ITEM_WEAPON_PLASMA', GameWad + ':TEXTURES\PGUN');
  g_CreateTextureWAD('ITEM_WEAPON_BFG', GameWad + ':TEXTURES\BFG');
- g_CreateTextureWAD('ITEM_WEAPON_SUPERPULEMET', GameWad + ':TEXTURES\SPULEMET');
+ g_CreateTextureWAD('ITEM_WEAPON_SUPERCHAINGUN', GameWad + ':TEXTURES\SCHAINGUN');
  g_CreateTextureWAD('ITEM_AMMO_BULLETS', GameWad + ':TEXTURES\CLIP');
  g_CreateTextureWAD('ITEM_AMMO_BULLETS_BOX', GameWad + ':TEXTURES\AMMO');
  g_CreateTextureWAD('ITEM_AMMO_SHELLS', GameWad + ':TEXTURES\SHELL1');
@@ -2992,14 +2992,14 @@ begin
  g_DeleteTexture('ITEM_MEDKIT_LARGE');
  g_DeleteTexture('ITEM_WEAPON_SAW');
  g_DeleteTexture('ITEM_WEAPON_PISTOL');
- g_DeleteTexture('ITEM_WEAPON_KASTET');
+ g_DeleteTexture('ITEM_WEAPON_IRONFIST');
  g_DeleteTexture('ITEM_WEAPON_SHOTGUN1');
  g_DeleteTexture('ITEM_WEAPON_SHOTGUN2');
  g_DeleteTexture('ITEM_WEAPON_CHAINGUN');
  g_DeleteTexture('ITEM_WEAPON_ROCKETLAUNCHER');
  g_DeleteTexture('ITEM_WEAPON_PLASMA');
  g_DeleteTexture('ITEM_WEAPON_BFG');
- g_DeleteTexture('ITEM_WEAPON_SUPERPULEMET');
+ g_DeleteTexture('ITEM_WEAPON_SUPERCHAINGUN');
  g_DeleteTexture('ITEM_AMMO_BULLETS');
  g_DeleteTexture('ITEM_AMMO_BULLETS_BOX');
  g_DeleteTexture('ITEM_AMMO_SHELLS');

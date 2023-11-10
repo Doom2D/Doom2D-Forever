@@ -59,7 +59,7 @@ const
   ITEM_WEAPON_ROCKETLAUNCHER = 15;
   ITEM_WEAPON_PLASMA         = 16;
   ITEM_WEAPON_BFG            = 17;
-  ITEM_WEAPON_SUPERPULEMET   = 18;
+  ITEM_WEAPON_SUPERCHAINGUN  = 18;
   ITEM_AMMO_BULLETS          = 19;
   ITEM_AMMO_BULLETS_BOX      = 20;
   ITEM_AMMO_SHELLS           = 21;
@@ -72,7 +72,7 @@ const
   ITEM_KEY_RED               = 28;
   ITEM_KEY_GREEN             = 29;
   ITEM_KEY_BLUE              = 30;
-  ITEM_WEAPON_KASTET         = 31;
+  ITEM_WEAPON_IRONFIST       = 31;
   ITEM_WEAPON_PISTOL         = 32;
   ITEM_BOTTLE                = 33;
   ITEM_HELMET                = 34;

@@ -59,7 +59,7 @@ Interface
     MsgArrayItemRocketLauncher = 'Rocket Launcher';
     MsgArrayItemPlasmaRifle = 'Plasma Rifle';
     MsgArrayItemBfg = 'BFG9000';
-    MsgArrayItemSuperMinigun = 'Super Chaingun';
+    MsgArrayItemSuperChaingun = 'Super Chaingun';
     MsgArrayItemFlamethrower = 'Flamethrower';
     MsgArrayItemClip = 'Clip';
     MsgArrayItemAmmoBox = 'Box of Bullets';
@@ -731,7 +731,7 @@ begin
   ItemNames[ITEM_WEAPON_ROCKETLAUNCHER] := MsgArrayItemRocketLauncher;
   ItemNames[ITEM_WEAPON_PLASMA] := MsgArrayItemPlasmaRifle;
   ItemNames[ITEM_WEAPON_BFG] := MsgArrayItemBfg;
-  ItemNames[ITEM_WEAPON_SUPERPULEMET] := MsgArrayItemSuperMinigun;
+  ItemNames[ITEM_WEAPON_SUPERCHAINGUN] := MsgArrayItemSuperChaingun;
   ItemNames[ITEM_WEAPON_FLAMETHROWER] := MsgArrayItemFlamethrower;
   ItemNames[ITEM_AMMO_BULLETS] := MsgArrayItemClip;
   ItemNames[ITEM_AMMO_BULLETS_BOX] := MsgArrayItemAmmoBox;
@@ -746,7 +746,7 @@ begin
   ItemNames[ITEM_KEY_RED] := MsgArrayItemKeyRed;
   ItemNames[ITEM_KEY_GREEN] := MsgArrayItemKeyGreen;
   ItemNames[ITEM_KEY_BLUE] := MsgArrayItemKeyBlue;
-  ItemNames[ITEM_WEAPON_KASTET] := '?';
+  ItemNames[ITEM_WEAPON_IRONFIST] := '?';
   ItemNames[ITEM_WEAPON_PISTOL] := '??';
   ItemNames[ITEM_BOTTLE] := MsgArrayItemBottle;
   ItemNames[ITEM_HELMET] := MsgArrayItemHelmet;
