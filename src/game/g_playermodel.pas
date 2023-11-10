@@ -35,22 +35,22 @@ const
   A_ATTACKDOWN = 8;
   A_PAIN       = 9;
   // EXTENDED
-  A_WALKATTACK     = 10;
-  A_WALKSEEUP      = 11;
-  A_WALKSEEDOWN    = 12;
-  A_WALKATTACKUP   = 13;
-  A_WALKATTACKDOWN = 14;
-  A_FISTSTAND      = 15;
-  A_FISTWALK       = 16;
-  A_FISTATTACK     = 17;
-  A_FISTWALKATTACK = 18;
-  A_FISTSEEUP      = 19;
-  A_FISTSEEDOWN    = 20;
-  A_FISTATTACKUP   = 21;
-  A_FISTATTACKDOWN = 22;
+  A_WALKATTACK      = 10;
+  A_WALKSEEUP       = 11;
+  A_WALKSEEDOWN     = 12;
+  A_WALKATTACKUP    = 13;
+  A_WALKATTACKDOWN  = 14;
+  A_MELEESTAND      = 15;
+  A_MELEEWALK       = 16;
+  A_MELEEATTACK     = 17;
+  A_MELEEWALKATTACK = 18;
+  A_MELEESEEUP      = 19;
+  A_MELEESEEDOWN    = 20;
+  A_MELEEATTACKUP   = 21;
+  A_MELEEATTACKDOWN = 22;
 
   A_LASTBASE = A_PAIN;
-  A_LASTEXT  = A_FISTATTACKDOWN;
+  A_LASTEXT  = A_MELEEATTACKDOWN;
   A_LAST     = A_LASTEXT;
 
   MODELSOUND_PAIN = 0;
@@ -186,9 +186,9 @@ const
               'SeeUpAnim','SeeDownAnim','AttackUpAnim','AttackDownAnim','PainAnim',
               // EXTENDED
               'WalkAttackAnim', 'WalkSeeUpAnim', 'WalkSeeDownAnim',
-              'WalkAttackUpAnim', 'WalkAttackDownAnim', 'FistStandAnim', 'FistWalkAnim',
-              'FistAttackAnim', 'FistWalkAttackAnim', 'FistSeeUpAnim', 'FistSeeDownAnim',
-              'FistAttackUpAnim', 'FistAttackDownAnim');
+              'WalkAttackUpAnim', 'WalkAttackDownAnim', 'MeleeStandAnim', 'MeleeWalkAnim',
+              'MeleeAttackAnim', 'MeleeWalkAttackAnim', 'MeleeSeeUpAnim', 'MeleeSeeDownAnim',
+              'MeleeAttackUpAnim', 'MeleeAttackDownAnim');
   WeapNames: Array [WP_FIRST + 1..WP_LAST] of String =
              ('csaw', 'hgun', 'sg', 'ssg', 'mgun', 'rkt', 'plz', 'bfg', 'spl', 'flm');
 

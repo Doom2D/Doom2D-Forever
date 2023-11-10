@@ -353,7 +353,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1WeaponMenu').GetControl('mOptionsPlayersP1WeaponMenu'));
   gPlayer1Settings.WeaponSwitch := TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex;
   gPlayer1Settings.SwitchToEmpty := TGUISwitch(menu.GetControl('swWeaponAllowEmpty')).ItemIndex;
-  gPlayer1Settings.SkipFist := TGUISwitch(menu.GetControl('swWeaponAllowFist')).ItemIndex;
+  gPlayer1Settings.SkipIronFist := TGUISwitch(menu.GetControl('swWeaponAllowIronFist')).ItemIndex;
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP1WeaponMenu').GetControl('mOptionsPreferencesP1WeaponMenu'));
   with menu do
   begin
@@ -366,7 +366,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2WeaponMenu').GetControl('mOptionsPlayersP2WeaponMenu'));
   gPlayer2Settings.WeaponSwitch := TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex;
   gPlayer2Settings.SwitchToEmpty := TGUISwitch(menu.GetControl('swWeaponAllowEmpty')).ItemIndex;
-  gPlayer2Settings.SkipFist := TGUISwitch(menu.GetControl('swWeaponAllowFist')).ItemIndex;
+  gPlayer2Settings.SkipIronFist := TGUISwitch(menu.GetControl('swWeaponAllowIronFist')).ItemIndex;
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP2WeaponMenu').GetControl('mOptionsPreferencesP2WeaponMenu'));
   with menu do
   begin
@@ -393,7 +393,7 @@ begin
       gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
       gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
       gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
-      gPlayer1.SkipFist := gPlayer1Settings.SkipFist;
+      gPlayer1.SkipIronFist := gPlayer1Settings.SkipIronFist;
       if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
     end;
 
@@ -409,7 +409,7 @@ begin
       gPlayer2.WeapSwitchMode := gPlayer2Settings.WeaponSwitch;
       gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
       gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
-      gPlayer2.SkipFist := gPlayer2Settings.SkipFist;
+      gPlayer2.SkipIronFist := gPlayer2Settings.SkipIronFist;
       //if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer2.UID);
     end;
   end;
@@ -646,7 +646,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1WeaponMenu').GetControl('mOptionsPlayersP1WeaponMenu'));
   TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex := gPlayer1Settings.WeaponSwitch;
   TGUISwitch(menu.GetControl('swWeaponAllowEmpty')).ItemIndex := gPlayer1Settings.SwitchToEmpty;
-  TGUISwitch(menu.GetControl('swWeaponAllowFist')).ItemIndex := gPlayer1Settings.SkipFist;
+  TGUISwitch(menu.GetControl('swWeaponAllowIronFist')).ItemIndex := gPlayer1Settings.SkipIronFist;
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP1WeaponMenu').GetControl('mOptionsPreferencesP1WeaponMenu'));
   for i := WP_FIRST to WP_LAST+1 do
   begin
@@ -657,7 +657,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2WeaponMenu').GetControl('mOptionsPlayersP2WeaponMenu'));
   TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex := gPlayer2Settings.WeaponSwitch;
   TGUISwitch(menu.GetControl('swWeaponAllowEmpty')).ItemIndex := gPlayer2Settings.SwitchToEmpty;
-  TGUISwitch(menu.GetControl('swWeaponAllowFist')).ItemIndex := gPlayer2Settings.SkipFist;
+  TGUISwitch(menu.GetControl('swWeaponAllowIronFist')).ItemIndex := gPlayer2Settings.SkipIronFist;
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP2WeaponMenu').GetControl('mOptionsPreferencesP2WeaponMenu'));
   for i := WP_FIRST to WP_LAST+1 do
   begin
@@ -780,11 +780,11 @@ begin
   begin
     gsItemRespawnTime := StrToIntDef(TGUIEdit(GetControl('edItemRespawnTime')).Text, 0);
     gsItemRespawnRandom := StrToIntDef(TGUIEdit(GetControl('edItemRespawnRandom')).Text, 0);
-    gsRulezRespawnTime := StrToIntDef(TGUIEdit(GetControl('edRulezRespawnTime')).Text, 0);
-    gsRulezRespawnRandom := StrToIntDef(TGUIEdit(GetControl('edRulezRespawnRandom')).Text, 0);
+    gsPowerupRespawnTime := StrToIntDef(TGUIEdit(GetControl('edPowerupRespawnTime')).Text, 0);
+    gsPowerupRespawnRandom := StrToIntDef(TGUIEdit(GetControl('edPowerupRespawnRandom')).Text, 0);
 
-    if TGUISwitch(GetControl('swRulezRandom')).ItemIndex = 0 then
-      gsGameFlags := gsGameFlags or GAME_OPTION_RULEZRANDOM;
+    if TGUISwitch(GetControl('swPowerupRandom')).ItemIndex = 0 then
+      gsGameFlags := gsGameFlags or GAME_OPTION_POWERUPRANDOM;
 
     case TGUISwitch(GetControl('swItemsRandom')).ItemIndex of
       1: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMHELPRANDOM;
@@ -799,8 +799,8 @@ begin
     // TODO: get this crap out of here
     gGameSettings.ItemRespawnTime := gsItemRespawnTime;
     gGameSettings.ItemRespawnRandom := gsItemRespawnRandom;
-    gGameSettings.RulezRespawnTime := gsRulezRespawnTime;
-    gGameSettings.RulezRespawnRandom := gsRulezRespawnRandom;
+    gGameSettings.PowerupRespawnTime := gsPowerupRespawnTime;
+    gGameSettings.PowerupRespawnRandom := gsPowerupRespawnRandom;
   end;
 end;
 
@@ -2870,12 +2870,12 @@ begin
     Name := 'mItemsRespawnMenu';
 
     // Switches separate from the time entry fields
-    with AddSwitch(_lc[I_MENU_ENABLE_RULEZ_RANDOM]) do
+    with AddSwitch(_lc[I_MENU_ENABLE_POWERUP_RANDOM]) do
     begin
-      Name := 'swRulezRandom';
+      Name := 'swPowerupRandom';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_RULEZRANDOM) then
+      if LongBool(gsGameFlags and GAME_OPTION_POWERUPRANDOM) then
         ItemIndex := 0
       else
         ItemIndex := 1;
@@ -2927,24 +2927,24 @@ begin
       if gsItemRespawnTime > 0 then
         Text := IntToStr(gsItemRespawnRandom);
     end;
-    // Rulez Respawn block
-    with AddEdit(_lc[I_MENU_RULEZ_RESPAWN_TIME]) do
+    // Powerup Respawn block
+    with AddEdit(_lc[I_MENU_POWERUP_RESPAWN_TIME]) do
     begin
-      Name := 'edRulezRespawnTime';
+      Name := 'edPowerupRespawnTime';
       OnlyDigits := True;
       Width := 4;
       MaxLength := 5;
-      if gsRulezRespawnTime > 0 then
-        Text := IntToStr(gsRulezRespawnTime);
+      if gsPowerupRespawnTime > 0 then
+        Text := IntToStr(gsPowerupRespawnTime);
     end;
-    with AddEdit(_lc[I_MENU_RULEZ_RESPAWN_RANDOM]) do
+    with AddEdit(_lc[I_MENU_POWERUP_RESPAWN_RANDOM]) do
     begin
-      Name := 'edRulezRespawnRandom';
+      Name := 'edPowerupRespawnRandom';
       OnlyDigits := True;
       Width := 4;
       MaxLength := 5;
-      if gsRulezRespawnRandom > 0 then
-        Text := IntToStr(gsRulezRespawnRandom);
+      if gsPowerupRespawnRandom > 0 then
+        Text := IntToStr(gsPowerupRespawnRandom);
     end;
     AddSpace();
   end;
@@ -3419,11 +3419,11 @@ begin
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
     end;
-    with AddSwitch(_lc[I_MENU_KASTET_ALLOW]) do
+    with AddSwitch(_lc[I_MENU_IRONFIST_ALLOW]) do
     begin
-      Name := 'swWeaponAllowFist';
-      AddItem(_lc[I_MENU_KASTET_ALLOW_ALWAYS]);
-      AddItem(_lc[I_MENU_KASTET_ALLOW_BERSERK]);
+      Name := 'swWeaponAllowIronFist';
+      AddItem(_lc[I_MENU_IRONFIST_ALLOW_ALWAYS]);
+      AddItem(_lc[I_MENU_IRONFIST_ALLOW_BERSERK]);
     end;
     AddButton(@ProcOptionsPlayerP1WeaponPreferencesMenu, _lc[I_MENU_WEAPON_SWITCH_PRIORITY]);
     ReAlign();
@@ -3478,11 +3478,11 @@ begin
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
     end;
-    with AddSwitch(_lc[I_MENU_KASTET_ALLOW]) do
+    with AddSwitch(_lc[I_MENU_IRONFIST_ALLOW]) do
     begin
-      Name := 'swWeaponAllowFist';
-      AddItem(_lc[I_MENU_KASTET_ALLOW_ALWAYS]);
-      AddItem(_lc[I_MENU_KASTET_ALLOW_BERSERK]);
+      Name := 'swWeaponAllowIronFist';
+      AddItem(_lc[I_MENU_IRONFIST_ALLOW_ALWAYS]);
+      AddItem(_lc[I_MENU_IRONFIST_ALLOW_BERSERK]);
     end;
     AddButton(@ProcOptionsPlayerP2WeaponPreferencesMenu, _lc[I_MENU_WEAPON_SWITCH_PRIORITY]);
     ReAlign();

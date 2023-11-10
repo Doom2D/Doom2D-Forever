@@ -462,7 +462,7 @@ begin
     WeapSwitchMode := WeapSwitch;
     SetWeaponPrefs(TmpPrefArray);
     SwitchToEmpty := SwitchEmpty;
-    SkipFist := SkipF;
+    SkipIronFist := SkipF;
     if (g_Force_Model_Get() <> 0) then
       SetModel(g_Forced_Model_GetName());
     Reset(True);
@@ -776,8 +776,8 @@ begin
   if (TmpSwEmpty <> Pl.SwitchToEmpty) then
     Pl.SwitchToEmpty := TmpSwEmpty;
 
-  if (TmpSkipF <> Pl.SkipFist) then
-    Pl.SkipFist := TmpSkipF;
+  if (TmpSkipF <> Pl.SkipIronFist) then
+    Pl.SkipIronFist := TmpSkipF;
 
   MH_SEND_PlayerSettings(Pl.UID, TmpModel);
 end;
@@ -1323,13 +1323,13 @@ begin
       NetOut.Write(FMaxAmmo[I]);
 
     for I := MR_SUIT to MR_MAX do
-      NetOut.Write(LongWord(FMegaRulez[I]));
+      NetOut.Write(LongWord(FPowerups[I]));
 
-    NetOut.Write(Byte(R_ITEM_BACKPACK in FRulez));
-    NetOut.Write(Byte(R_KEY_RED in FRulez));
-    NetOut.Write(Byte(R_KEY_GREEN in FRulez));
-    NetOut.Write(Byte(R_KEY_BLUE in FRulez));
-    NetOut.Write(Byte(R_BERSERK in FRulez));
+    NetOut.Write(Byte(R_ITEM_BACKPACK in FInventory));
+    NetOut.Write(Byte(R_KEY_RED in FInventory));
+    NetOut.Write(Byte(R_KEY_GREEN in FInventory));
+    NetOut.Write(Byte(R_KEY_BLUE in FInventory));
+    NetOut.Write(Byte(R_BERSERK in FInventory));
 
     NetOut.Write(Frags);
     NetOut.Write(Death);
@@ -2527,19 +2527,14 @@ begin
       FMaxAmmo[I] := M.ReadWord();
 
     for I := MR_SUIT to MR_MAX do
-      FMegaRulez[I] := M.ReadLongWord();
+      FPowerups[I] := M.ReadLongWord();
 
-    FRulez := [];
-    if (M.ReadByte() <> 0) then
-      FRulez := FRulez + [R_ITEM_BACKPACK];
-    if (M.ReadByte() <> 0) then
-      FRulez := FRulez + [R_KEY_RED];
-    if (M.ReadByte() <> 0) then
-      FRulez := FRulez + [R_KEY_GREEN];
-    if (M.ReadByte() <> 0) then
-      FRulez := FRulez + [R_KEY_BLUE];
-    if (M.ReadByte() <> 0) then
-      FRulez := FRulez + [R_BERSERK];
+    FInventory := [];
+    if (M.ReadByte() <> 0) then FInventory += [R_ITEM_BACKPACK];
+    if (M.ReadByte() <> 0) then FInventory += [R_KEY_RED];
+    if (M.ReadByte() <> 0) then FInventory += [R_KEY_GREEN];
+    if (M.ReadByte() <> 0) then FInventory += [R_KEY_BLUE];
+    if (M.ReadByte() <> 0) then FInventory += [R_BERSERK];
 
     Frags := M.ReadLongInt();
     Death := M.ReadLongInt();
@@ -3181,7 +3176,7 @@ begin
   for i := WP_FIRST to WP_LAST + 1 do
     NetOut.Write(gPlayer1Settings.WeaponPreferences[i]);
   NetOut.Write(gPlayer1Settings.SwitchToEmpty);
-  NetOut.Write(gPlayer1Settings.SkipFist);
+  NetOut.Write(gPlayer1Settings.SkipIronFist);
 
   g_Net_Client_Send(True);
 end;
@@ -3334,7 +3329,7 @@ begin
   for i := WP_FIRST to WP_LAST + 1 do
     NetOut.Write(gPlayer1Settings.WeaponPreferences[i]);
   NetOut.Write(gPlayer1Settings.SwitchToEmpty);
-  NetOut.Write(gPlayer1Settings.SkipFist);
+  NetOut.Write(gPlayer1Settings.SkipIronFist);
 
   g_Net_Client_Send(True);
 end;

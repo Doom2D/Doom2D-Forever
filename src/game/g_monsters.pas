@@ -2681,7 +2681,7 @@ begin
           if (gPlayers <> nil) then
             for a := 0 to High(gPlayers) do
               if (gPlayers[a] <> nil) and (gPlayers[a].alive)
-              and (not gPlayers[a].NoTarget) and (gPlayers[a].FMegaRulez[MR_INVIS] < gTime) then
+              and (not gPlayers[a].NoTarget) and (gPlayers[a].FPowerups[MR_INVIS] < gTime) then
                 with gPlayers[a] do
                   if g_Look(@FObj, @Obj, FDirection) then
                   begin
@@ -4175,7 +4175,7 @@ begin
   (FBehaviour <> BH_CANNIBAL) and (FBehaviour <> BH_GOOD) then
     for a := 0 to High(gPlayers) do
       if (gPlayers[a] <> nil) and (gPlayers[a].alive)
-      and (not gPlayers[a].NoTarget) and (gPlayers[a].FMegaRulez[MR_INVIS] < gTime) then
+      and (not gPlayers[a].NoTarget) and (gPlayers[a].FPowerups[MR_INVIS] < gTime) then
       begin
         if g_Look(@FObj, @gPlayers[a].Obj, FDirection) then
         begin

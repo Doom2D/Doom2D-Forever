@@ -2105,7 +2105,7 @@ begin
                     begin
                       // Кислотный урон не наносится когда есть костюм
                       // "Водяной" урон не наносится когда есть кислород
-                      if not (((tgcKind = HIT_ACID) and (p.FMegaRulez[MR_SUIT] > gTime)) or
+                      if not (((tgcKind = HIT_ACID) and (p.FPowerups[MR_SUIT] > gTime)) or
                               ((tgcKind = HIT_WATER) and (p.Air > 0))) then
                         p.Damage(tgcAmount, 0, 0, 0, tgcKind);
                       if (tgcKind = HIT_FLAME) then p.CatchFire(0);

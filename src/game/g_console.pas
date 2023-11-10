@@ -1064,10 +1064,10 @@ begin
   AddCommand('p2_autoswitch', PlayerSettingsCVars);
   AddCommand('p1_switch_empty', PlayerSettingsCVars);
   AddCommand('p2_switch_empty', PlayerSettingsCVars);
-  AddCommand('p1_skip_fist', PlayerSettingsCVars);
-  AddCommand('p2_skip_fist', PlayerSettingsCVars);
-  AddCommand('p1_priority_kastet', PlayerSettingsCVars);
-  AddCommand('p2_priority_kastet', PlayerSettingsCVars);
+  AddCommand('p1_skip_ironfist', PlayerSettingsCVars);
+  AddCommand('p2_skip_ironfist', PlayerSettingsCVars);
+  AddCommand('p1_priority_ironfist', PlayerSettingsCVars);
+  AddCommand('p2_priority_ironfist', PlayerSettingsCVars);
   AddCommand('p1_priority_saw', PlayerSettingsCVars);
   AddCommand('p2_priority_saw', PlayerSettingsCVars);
   AddCommand('p1_priority_pistol', PlayerSettingsCVars);
@@ -1084,8 +1084,8 @@ begin
   AddCommand('p2_priority_plasma', PlayerSettingsCVars);
   AddCommand('p1_priority_bfg', PlayerSettingsCVars);
   AddCommand('p2_priority_bfg', PlayerSettingsCVars);
-  AddCommand('p1_priority_super', PlayerSettingsCVars);
-  AddCommand('p2_priority_super', PlayerSettingsCVars);
+  AddCommand('p1_priority_superchaingun', PlayerSettingsCVars);
+  AddCommand('p2_priority_superchaingun', PlayerSettingsCVars);
   AddCommand('p1_priority_flamethrower', PlayerSettingsCVars);
   AddCommand('p2_priority_flamethrower', PlayerSettingsCVars);
   AddCommand('p1_priority_berserk', PlayerSettingsCVars);
@@ -2251,15 +2251,15 @@ begin
   WriteLn(f, 'g_maxlives ', gsMaxLives);
   WriteLn(f, 'g_item_respawn_time ', gsItemRespawnTime);
   WriteLn(f, 'g_item_time_random ', gsItemRespawnRandom);
-  WriteLn(f, 'g_powerup_respawn_time ', gsRulezRespawnTime);
-  WriteLn(f, 'g_powerup_time_random ', gsRulezRespawnRandom);
+  WriteLn(f, 'g_powerup_respawn_time ', gsPowerupRespawnTime);
+  WriteLn(f, 'g_powerup_time_random ', gsPowerupRespawnRandom);
   WriteLn(f, 'g_spawn_invul ', gsSpawnInvul);
   WriteLn(f, 'g_warmup_time ', gsWarmupTime);
 
   WriteFlag('g_friendlyfire ', GAME_OPTION_TEAMDAMAGE);
   WriteFlag('g_friendly_hit_trace ', GAME_OPTION_TEAMHITTRACE);
   WriteFlag('g_friendly_hit_projectile ', GAME_OPTION_TEAMHITPROJECTILE);
-  WriteFlag('g_powerup_randomize_respawn ', GAME_OPTION_RULEZRANDOM);
+  WriteFlag('g_powerup_randomize_respawn ', GAME_OPTION_POWERUPRANDOM);
   WriteFlag('g_items_all_respawn_random ', GAME_OPTION_ITEMALLRANDOM);
   WriteFlag('g_items_help_respawn_random ', GAME_OPTION_ITEMHELPRANDOM);
   WriteFlag('g_items_ammo_respawn_random ', GAME_OPTION_ITEMAMMORANDOM);
@@ -2282,19 +2282,18 @@ begin
     WriteLn(f, 'p1_team ', FormatTeam(Team));
     WriteLn(f, 'p1_autoswitch ', WeaponSwitch);
     WriteLn(f, 'p1_switch_empty ', SwitchToEmpty);
-    WriteLn(f, 'p1_priority_kastet ', Max(0, WeaponPreferences[WEAPON_KASTET]));
+    WriteLn(f, 'p1_priority_ironfist ', Max(0, WeaponPreferences[WEAPON_IRONFIST]));
     WriteLn(f, 'p1_priority_saw ', Max(0, WeaponPreferences[WEAPON_SAW]));
     WriteLn(f, 'p1_priority_pistol ', Max(0, WeaponPreferences[WEAPON_PISTOL]));
     WriteLn(f, 'p1_priority_shotgun1 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN1]));    
-    WriteLn(f, 'p1_priority_shotgun2 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN2] ));
+    WriteLn(f, 'p1_priority_shotgun2 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN2]));
     WriteLn(f, 'p1_priority_chaingun ', Max(0, WeaponPreferences[WEAPON_CHAINGUN]));    
     WriteLn(f, 'p1_priority_rocketlauncher ', Max(0, WeaponPreferences[WEAPON_ROCKETLAUNCHER]));    
     WriteLn(f, 'p1_priority_plasma ', Max(0, WeaponPreferences[WEAPON_PLASMA]));    
     WriteLn(f, 'p1_priority_bfg ', Max(0, WeaponPreferences[WEAPON_BFG]));
-    WriteLn(f, 'p1_priority_super ', Max(0, WeaponPreferences[WEAPON_SUPERPULEMET]));                         
+    WriteLn(f, 'p1_priority_superchaingun ', Max(0, WeaponPreferences[WEAPON_SUPERCHAINGUN]));                         
     WriteLn(f, 'p1_priority_flamethrower ', Max(0, WeaponPreferences[WEAPON_FLAMETHROWER]));
     WriteLn(f, 'p1_priority_berserk ', Max(0, WeaponPreferences[WP_LAST+1]));    
-    //
   end;
   with gPlayer2Settings do
   begin
@@ -2304,16 +2303,16 @@ begin
     WriteLn(f, 'p2_team ', FormatTeam(Team));
     WriteLn(f, 'p2_autoswitch ', WeaponSwitch);
     WriteLn(f, 'p2_switch_empty ', SwitchToEmpty);
-    WriteLn(f, 'p2_priority_kastet ', Max(0, WeaponPreferences[WEAPON_KASTET]));
+    WriteLn(f, 'p2_priority_ironfist ', Max(0, WeaponPreferences[WEAPON_IRONFIST]));
     WriteLn(f, 'p2_priority_saw ', Max(0, WeaponPreferences[WEAPON_SAW]));
     WriteLn(f, 'p2_priority_pistol ', Max(0, WeaponPreferences[WEAPON_PISTOL]));
     WriteLn(f, 'p2_priority_shotgun1 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN1]));
-    WriteLn(f, 'p2_priority_shotgun2 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN1]));
+    WriteLn(f, 'p2_priority_shotgun2 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN2]));
     WriteLn(f, 'p2_priority_chaingun ', Max(0, WeaponPreferences[WEAPON_CHAINGUN]));
     WriteLn(f, 'p2_priority_rocketlauncher ', Max(0, WeaponPreferences[WEAPON_ROCKETLAUNCHER]));
     WriteLn(f, 'p2_priority_plasma ', Max(0, WeaponPreferences[WEAPON_PLASMA]));
     WriteLn(f, 'p2_priority_bfg ', Max(0, WeaponPreferences[WEAPON_BFG]));
-    WriteLn(f, 'p2_priority_super ', Max(0, WeaponPreferences[WEAPON_SUPERPULEMET]));
+    WriteLn(f, 'p2_priority_superchaingun ', Max(0, WeaponPreferences[WEAPON_SUPERCHAINGUN]));
     WriteLn(f, 'p2_priority_flamethrower ', Max(0, WeaponPreferences[WEAPON_FLAMETHROWER]));
     WriteLn(f, 'p2_priority_berserk ', Max(0, WeaponPreferences[WP_LAST+1]));       
   end;

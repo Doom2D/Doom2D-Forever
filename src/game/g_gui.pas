@@ -2675,10 +2675,9 @@ begin
   if FModel = nil then
     Exit;
 
-  if FModel.Weapon < WP_LAST then
-    FModel.SetWeapon(FModel.Weapon+1)
-  else
-    FModel.SetWeapon(WEAPON_KASTET);
+  if FModel.Weapon < WP_LAST
+    then FModel.SetWeapon(FModel.Weapon+1)
+    else FModel.SetWeapon(WEAPON_IRONFIST);
 end;
 
 procedure TGUIModelView.OnMessage(var Msg: TMessage);

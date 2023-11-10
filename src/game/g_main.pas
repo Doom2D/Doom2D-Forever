@@ -797,15 +797,15 @@ begin
   // RAMBO
   if CheckCheat(I_GAME_CHEAT_WEAPONS) then
   begin
-    if gPlayer1 <> nil then gPlayer1.AllRulez(False);
-    if gPlayer2 <> nil then gPlayer2.AllRulez(False);
+    if gPlayer1 <> nil then gPlayer1.TankRamboCheats(False);
+    if gPlayer2 <> nil then gPlayer2.TankRamboCheats(False);
     goto Cheated;
   end;
   // TANK
   if CheckCheat(I_GAME_CHEAT_HEALTH) then
   begin
-    if gPlayer1 <> nil then gPlayer1.AllRulez(True);
-    if gPlayer2 <> nil then gPlayer2.AllRulez(True);
+    if gPlayer1 <> nil then gPlayer1.TankRamboCheats(True);
+    if gPlayer2 <> nil then gPlayer2.TankRamboCheats(True);
     goto Cheated;
   end;
   // IDDQD

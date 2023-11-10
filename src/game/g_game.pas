@@ -34,8 +34,8 @@ type
     SpawnInvul: Word;
     ItemRespawnTime: Word;
     ItemRespawnRandom: Word;
-    RulezRespawnTime: Word;
-    RulezRespawnRandom: Word;
+    PowerupRespawnTime: Word;
+    PowerupRespawnRandom: Word;
     MaxLives: Byte;
     Options: LongWord;
     WAD: String;
@@ -69,7 +69,7 @@ type
     WeaponSwitch: Byte;
     WeaponPreferences: Array[WP_FIRST..WP_LAST+1] of Byte;
     SwitchToEmpty: Byte;
-    SkipFist: Byte;
+    SkipIronFist: Byte;
   end;
 
   TMegaWADInfo = record
@@ -185,24 +185,24 @@ const
   EXIT_ENDLEVELSINGLE  = 4;
   EXIT_ENDLEVELCUSTOM  = 5;
 
-  GAME_OPTION_RESERVED          = 1;
-  GAME_OPTION_TEAMDAMAGE        = 2;
-  GAME_OPTION_ALLOWEXIT         = 4;
-  GAME_OPTION_WEAPONSTAY        = 8;
-  GAME_OPTION_MONSTERS          = 16;
-  GAME_OPTION_BOTVSPLAYER       = 32;
-  GAME_OPTION_BOTVSMONSTER      = 64;
-  GAME_OPTION_DMKEYS            = 128;
-  GAME_OPTION_TEAMHITTRACE      = 256;
-  GAME_OPTION_TEAMHITPROJECTILE = 512;
-  GAME_OPTION_TEAMABSORBDAMAGE  = 1024;
-  GAME_OPTION_ALLOWDROPFLAG     = 2048;
-  GAME_OPTION_THROWFLAG         = 4096;
-  GAME_OPTION_RULEZRANDOM       = 8192;
-  GAME_OPTION_ITEMALLRANDOM     = 16384;
-  GAME_OPTION_ITEMHELPRANDOM    = 32768;
-  GAME_OPTION_ITEMAMMORANDOM    = 65536;
-  GAME_OPTION_ITEMWEAPONRANDOM  = 131072;
+  GAME_OPTION_RESERVED          = 1 shl 0;
+  GAME_OPTION_TEAMDAMAGE        = 1 shl 1;
+  GAME_OPTION_ALLOWEXIT         = 1 shl 2;
+  GAME_OPTION_WEAPONSTAY        = 1 shl 3;
+  GAME_OPTION_MONSTERS          = 1 shl 4;
+  GAME_OPTION_BOTVSPLAYER       = 1 shl 5;
+  GAME_OPTION_BOTVSMONSTER      = 1 shl 6;
+  GAME_OPTION_DMKEYS            = 1 shl 7;
+  GAME_OPTION_TEAMHITTRACE      = 1 shl 8;
+  GAME_OPTION_TEAMHITPROJECTILE = 1 shl 9;
+  GAME_OPTION_TEAMABSORBDAMAGE  = 1 shl 10;
+  GAME_OPTION_ALLOWDROPFLAG     = 1 shl 11;
+  GAME_OPTION_THROWFLAG         = 1 shl 12;
+  GAME_OPTION_POWERUPRANDOM     = 1 shl 13;
+  GAME_OPTION_ITEMALLRANDOM     = 1 shl 14;
+  GAME_OPTION_ITEMHELPRANDOM    = 1 shl 15;
+  GAME_OPTION_ITEMAMMORANDOM    = 1 shl 16;
+  GAME_OPTION_ITEMWEAPONRANDOM  = 1 shl 17;
 
   STATE_NONE        = 0;
   STATE_MENU        = 1;
@@ -3873,7 +3873,7 @@ begin
 
   p.DrawPain();
   p.DrawPickup();
-  p.DrawRulez();
+  p.DrawOverlay();
   if gShowMap then DrawMinimap(p, _TRect(0, 0, 128, 128));
   if g_Debug_Player then
     g_Player_DrawDebug(p);
@@ -3885,9 +3885,20 @@ var
   px: Integer = -1;
   py: Integer = -1;
 begin
-  if g_profile_frame_draw and (profileFrameDraw <> nil) then px := px-drawProfiles(px, py, profileFrameDraw);
-  if g_profile_collision and (profMapCollision <> nil) then begin px := px-drawProfiles(px, py, profMapCollision); py -= calcProfilesHeight(profMonsLOS); end;
-  if g_profile_los and (profMonsLOS <> nil) then begin px := px-drawProfiles(px, py, profMonsLOS); py -= calcProfilesHeight(profMonsLOS); end;
+  if g_profile_frame_draw and (profileFrameDraw <> nil) then
+    px -= drawProfiles(px, py, profileFrameDraw);
+
+  if g_profile_collision and (profMapCollision <> nil) then
+  begin
+    px -= drawProfiles(px, py, profMapCollision);
+    py -= calcProfilesHeight(profMonsLOS);
+  end;
+
+  if g_profile_los and (profMonsLOS <> nil) then
+  begin
+    px -= drawProfiles(px, py, profMonsLOS);
+    py -= calcProfilesHeight(profMonsLOS);
+  end;
 end;
 
 procedure g_Game_Draw();
@@ -4376,7 +4387,7 @@ begin
       gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
       gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
       gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
-      gPlayer1.SkipFist := gPlayer1Settings.SkipFist;
+      gPlayer1.SkipIronFist := gPlayer1Settings.SkipIronFist;
       g_Console_Add(Format(_lc[I_PLAYER_JOIN], [gPlayer1.Name]), True);
       if g_Game_IsServer and g_Game_IsNet then
         MH_SEND_PlayerCreate(gPlayer1.UID);
@@ -4410,7 +4421,7 @@ begin
       gPlayer2.WeapSwitchMode := gPlayer2Settings.WeaponSwitch;
       gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
       gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
-      gPlayer2.SkipFist := gPlayer2Settings.SkipFist;
+      gPlayer2.SkipIronFist := gPlayer2Settings.SkipIronFist;
       g_Console_Add(Format(_lc[I_PLAYER_JOIN], [gPlayer2.Name]), True);
       if g_Game_IsServer and g_Game_IsNet then
         MH_SEND_PlayerCreate(gPlayer2.UID);
@@ -4493,21 +4504,21 @@ begin
   g_Game_ClearLoading();
 
 // Настройки игры:
-  FillByte(gGameSettings, SizeOf(TGameSettings), 0);
+  gGameSettings := Default(TGameSettings);
   gAimLine := False;
   gShowMap := False;
   gGameSettings.GameType := GT_SINGLE;
   gGameSettings.MaxLives := 0;
-  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ALLOWEXIT;
-  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_MONSTERS;
-  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_BOTVSMONSTER;
-  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_TEAMHITPROJECTILE;
-  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_TEAMHITTRACE;
-  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_RULEZRANDOM;
-  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ITEMALLRANDOM;
-  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ITEMHELPRANDOM;
-  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ITEMAMMORANDOM;
-  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ITEMWEAPONRANDOM;
+  gGameSettings.Options := GAME_OPTION_ALLOWEXIT
+                        or GAME_OPTION_MONSTERS
+                        or GAME_OPTION_BOTVSMONSTER
+                        or GAME_OPTION_TEAMHITPROJECTILE
+                        or GAME_OPTION_TEAMHITTRACE
+                        or GAME_OPTION_POWERUPRANDOM
+                        or GAME_OPTION_ITEMALLRANDOM
+                        or GAME_OPTION_ITEMHELPRANDOM
+                        or GAME_OPTION_ITEMAMMORANDOM
+                        or GAME_OPTION_ITEMWEAPONRANDOM;
   gSwitchGameMode := GM_SINGLE;
 
   gLMSRespawn := LMS_RESPAWN_NONE;
@@ -4534,7 +4545,7 @@ begin
   gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
   gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
   gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
-  gPlayer1.SkipFist := gPlayer1Settings.SkipFist;
+  gPlayer1.SkipIronFist := gPlayer1Settings.SkipIronFist;
   nPl := 1;
 
 // Создание второго игрока, если есть:
@@ -4553,7 +4564,7 @@ begin
     gPlayer2.WeapSwitchMode := gPlayer2Settings.WeaponSwitch;
     gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
     gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
-    gPlayer2.SkipFist := gPlayer2Settings.SkipFist;
+    gPlayer2.SkipIronFist := gPlayer2Settings.SkipIronFist;
     Inc(nPl);
   end;
 
@@ -4636,7 +4647,7 @@ begin
     gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
     gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
     gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
-    gPlayer1.SkipFist := gPlayer1Settings.SkipFist;
+    gPlayer1.SkipIronFist := gPlayer1Settings.SkipIronFist;
     Inc(nPl);
   end;
 
@@ -4656,7 +4667,7 @@ begin
     gPlayer2.WeapSwitchMode := gPlayer2Settings.WeaponSwitch;
     gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
     gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
-    gPlayer2.SkipFist := gPlayer2Settings.SkipFist;
+    gPlayer2.SkipIronFist := gPlayer2Settings.SkipIronFist;
     Inc(nPl);
   end;
 
@@ -4749,7 +4760,7 @@ begin
     gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
     gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
     gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
-    gPlayer1.SkipFist := gPlayer1Settings.SkipFist;
+    gPlayer1.SkipIronFist := gPlayer1Settings.SkipIronFist;
   end;
 
   if nPlayers >= 2 then
@@ -4768,7 +4779,7 @@ begin
     gPlayer2.WeapSwitchMode := gPlayer2Settings.WeaponSwitch;
     gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
     gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
-    gPlayer2.SkipFist := gPlayer2Settings.SkipFist;
+    gPlayer2.SkipIronFist := gPlayer2Settings.SkipIronFist;
   end;
 
   g_Game_SetLoadingText(_lc[I_LOAD_HOST], 0, False);
@@ -4946,7 +4957,7 @@ begin
           gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
           gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
           gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
-          gPlayer1.SkipFist := gPlayer1Settings.SkipFist;
+          gPlayer1.SkipIronFist := gPlayer1Settings.SkipIronFist;
           gPlayer1.UID := NetPlrUID1;
           gPlayer1.Reset(True);
 
@@ -5395,7 +5406,7 @@ begin
     if gGameSettings.GameMode = GM_COOP then
     begin
       gPlayers[i].Frags := 0;
-      gPlayers[i].RecallState;
+      gPlayers[i].RestoreState;
     end;
     if (gPlayer1 = nil) and (gSpectLatchPID1 > 0) then
       gPlayer1 := g_Player_Get(gSpectLatchPID1);
@@ -5582,403 +5593,371 @@ begin
   stat := nil;
   cmd := LowerCase(P[0]);
 
-  if cmd = 'g_gamemode' then
-  begin
-    if (Length(P) > 1) then
-    begin
-      a := g_Game_TextToMode(P[1]);
-      if a = GM_SINGLE then a := GM_COOP;
-      gsGameMode := g_Game_ModeToText(a);
-      if g_Game_IsServer then
+  case cmd of
+    'g_gamemode': begin
+      if (Length(P) > 1) then
       begin
-        gSwitchGameMode := a;
-        if (gGameOn and (gGameSettings.GameMode = GM_SINGLE)) or
-           (gState = STATE_INTERSINGLE) then
-          gSwitchGameMode := GM_SINGLE;
-        if not gGameOn then
-          gGameSettings.GameMode := gSwitchGameMode;
-      end;
-    end;
-
-    if gSwitchGameMode = gGameSettings.GameMode then
-      g_Console_Add(Format(_lc[I_MSG_GAMEMODE_CURRENT],
-                          [g_Game_ModeToText(gGameSettings.GameMode)]))
-    else
-      g_Console_Add(Format(_lc[I_MSG_GAMEMODE_CHANGE],
-                          [g_Game_ModeToText(gGameSettings.GameMode),
-                           g_Game_ModeToText(gSwitchGameMode)]));
-  end
-  else if cmd = 'g_friendlyfire' then
-  begin
-    ParseGameFlag(GAME_OPTION_TEAMDAMAGE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);
-  end
-  else if cmd = 'g_friendly_absorb_damage' then
-  begin
-    ParseGameFlag(GAME_OPTION_TEAMABSORBDAMAGE, I_MSG_FRIENDLY_ABSORB_DAMAGE_OFF, I_MSG_FRIENDLY_ABSORB_DAMAGE_ON);
-  end
-  else if cmd = 'g_friendly_hit_trace' then
-  begin
-    ParseGameFlag(GAME_OPTION_TEAMHITTRACE, I_MSG_FRIENDLY_HIT_TRACE_OFF, I_MSG_FRIENDLY_HIT_TRACE_ON);
-  end
-  else if cmd = 'g_friendly_hit_projectile' then
-  begin
-    ParseGameFlag(GAME_OPTION_TEAMHITPROJECTILE, I_MSG_FRIENDLY_PROJECT_TRACE_OFF, I_MSG_FRIENDLY_PROJECT_TRACE_ON);
-  end
-  else if cmd = 'g_items_all_respawn_random' then
-  begin
-    ParseGameFlag(GAME_OPTION_ITEMALLRANDOM, I_MSG_ITEM_ALL_RANDOM_OFF, I_MSG_ITEM_ALL_RANDOM_ON, False);
-  end
-  else if cmd = 'g_items_help_respawn_random' then
-  begin
-    ParseGameFlag(GAME_OPTION_ITEMHELPRANDOM, I_MSG_ITEM_HELP_RANDOM_OFF, I_MSG_ITEM_HELP_RANDOM_ON, False);
-  end
-  else if cmd = 'g_items_ammo_respawn_random' then
-  begin
-    ParseGameFlag(GAME_OPTION_ITEMAMMORANDOM, I_MSG_ITEM_AMMO_RANDOM_OFF, I_MSG_ITEM_AMMO_RANDOM_ON, False);
-  end
-  else if cmd = 'g_items_weapon_respawn_random' then
-  begin
-    ParseGameFlag(GAME_OPTION_ITEMWEAPONRANDOM, I_MSG_ITEM_WEAPON_RANDOM_OFF, I_MSG_ITEM_WEAPON_RANDOM_ON);
-  end
-  else if cmd = 'g_powerup_randomize_respawn' then
-  begin
-    ParseGameFlag(GAME_OPTION_RULEZRANDOM, I_MSG_RULEZ_RANDOM_OFF, I_MSG_RULEZ_RANDOM_ON, False);
-  end
-  else if cmd = 'g_weaponstay' then
-  begin
-    ParseGameFlag(GAME_OPTION_WEAPONSTAY, I_MSG_WEAPONSTAY_OFF, I_MSG_WEAPONSTAY_ON);
-  end
-  else if cmd = 'g_allow_exit' then
-  begin
-    ParseGameFlag(GAME_OPTION_ALLOWEXIT, I_MSG_ALLOWEXIT_OFF, I_MSG_ALLOWEXIT_ON, True);
-  end
-  else if cmd = 'g_allow_monsters' then
-  begin
-    ParseGameFlag(GAME_OPTION_MONSTERS, I_MSG_ALLOWMON_OFF, I_MSG_ALLOWMON_ON, True);
-  end
-  else if cmd = 'g_allow_dropflag' then
-  begin
-    ParseGameFlag(GAME_OPTION_ALLOWDROPFLAG, I_MSG_ALLOWDROPFLAG_OFF, I_MSG_ALLOWDROPFLAG_ON);
-  end
-  else if cmd = 'g_throw_flag' then
-  begin
-    ParseGameFlag(GAME_OPTION_THROWFLAG, I_MSG_THROWFLAG_OFF, I_MSG_THROWFLAG_ON);
-  end
-  else if cmd = 'g_bot_vsplayers' then
-  begin
-    ParseGameFlag(GAME_OPTION_BOTVSPLAYER, I_MSG_BOTSVSPLAYERS_OFF, I_MSG_BOTSVSPLAYERS_ON);
-  end
-  else if cmd = 'g_bot_vsmonsters' then
-  begin
-    ParseGameFlag(GAME_OPTION_BOTVSMONSTER, I_MSG_BOTSVSMONSTERS_OFF, I_MSG_BOTSVSMONSTERS_ON);
-  end
-  else if cmd = 'g_dm_keys' then
-  begin
-    ParseGameFlag(GAME_OPTION_DMKEYS, I_MSG_DMKEYS_OFF, I_MSG_DMKEYS_ON, True);
-  end
-  else if cmd = 'g_gameflags' then
-  begin
-    if Length(P) > 1 then
-    begin
-      gsGameFlags := StrToDWordDef(P[1], gsGameFlags);
-      if g_Game_IsServer then
-      begin
-        gGameSettings.Options := gsGameFlags;
-        if g_Game_IsNet then MH_SEND_GameSettings;
-      end;
-    end;
-
-    g_Console_Add(Format('%s %u', [cmd, gsGameFlags]));
-  end
-  else if cmd = 'g_warmup_time' then
-  begin
-    if Length(P) > 1 then
-    begin
-      gsWarmupTime := nclamp(StrToIntDef(P[1], gsWarmupTime), 0, $FFFF);
-      if g_Game_IsServer then
-      begin
-        gGameSettings.WarmupTime := gsWarmupTime;
-        // extend warmup if it's already going
-        if gLMSRespawn = LMS_RESPAWN_WARMUP then
+        a := g_Game_TextToMode(P[1]);
+        if a = GM_SINGLE then a := GM_COOP;
+        gsGameMode := g_Game_ModeToText(a);
+        if g_Game_IsServer then
         begin
-          gLMSRespawnTime := gTime + gsWarmupTime * 1000;
-          if g_Game_IsNet then MH_SEND_GameEvent(NET_EV_LMS_WARMUP, gLMSRespawnTime - gTime);
+          gSwitchGameMode := a;
+          if (gGameOn and (gGameSettings.GameMode = GM_SINGLE)) or
+             (gState = STATE_INTERSINGLE) then
+            gSwitchGameMode := GM_SINGLE;
+          if not gGameOn then
+            gGameSettings.GameMode := gSwitchGameMode;
         end;
-        if g_Game_IsNet then MH_SEND_GameSettings;
       end;
+
+      if gSwitchGameMode = gGameSettings.GameMode then
+        g_Console_Add(Format(_lc[I_MSG_GAMEMODE_CURRENT],
+                            [g_Game_ModeToText(gGameSettings.GameMode)]))
+      else
+        g_Console_Add(Format(_lc[I_MSG_GAMEMODE_CHANGE],
+                            [g_Game_ModeToText(gGameSettings.GameMode),
+                             g_Game_ModeToText(gSwitchGameMode)]));
     end;
 
-    g_Console_Add(Format(_lc[I_MSG_WARMUP], [Integer(gsWarmupTime)]));
-    if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
-  end
-  else if cmd = 'g_spawn_invul' then
-  begin
-    if Length(P) > 1 then
-    begin
-      gsSpawnInvul := nclamp(StrToIntDef(P[1], gsSpawnInvul), 0, $FFFF);
-      if g_Game_IsServer then
-      begin
-        gGameSettings.SpawnInvul := gsSpawnInvul;
-        if g_Game_IsNet then MH_SEND_GameSettings;
-      end;
-    end;
+    'g_friendlyfire':
+      ParseGameFlag(GAME_OPTION_TEAMDAMAGE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);
+    'g_friendly_absorb_damage':
+      ParseGameFlag(GAME_OPTION_TEAMABSORBDAMAGE, I_MSG_FRIENDLY_ABSORB_DAMAGE_OFF, I_MSG_FRIENDLY_ABSORB_DAMAGE_ON);
+    'g_friendly_hit_trace':
+      ParseGameFlag(GAME_OPTION_TEAMHITTRACE, I_MSG_FRIENDLY_HIT_TRACE_OFF, I_MSG_FRIENDLY_HIT_TRACE_ON);
+    'g_friendly_hit_projectile':
+      ParseGameFlag(GAME_OPTION_TEAMHITPROJECTILE, I_MSG_FRIENDLY_PROJECT_TRACE_OFF, I_MSG_FRIENDLY_PROJECT_TRACE_ON);
+    'g_items_all_respawn_random':
+      ParseGameFlag(GAME_OPTION_ITEMALLRANDOM, I_MSG_ITEM_ALL_RANDOM_OFF, I_MSG_ITEM_ALL_RANDOM_ON, False);
+    'g_items_help_respawn_random':
+      ParseGameFlag(GAME_OPTION_ITEMHELPRANDOM, I_MSG_ITEM_HELP_RANDOM_OFF, I_MSG_ITEM_HELP_RANDOM_ON, False);
+    'g_items_ammo_respawn_random':
+      ParseGameFlag(GAME_OPTION_ITEMAMMORANDOM, I_MSG_ITEM_AMMO_RANDOM_OFF, I_MSG_ITEM_AMMO_RANDOM_ON, False);
+    'g_items_weapon_respawn_random':
+      ParseGameFlag(GAME_OPTION_ITEMWEAPONRANDOM, I_MSG_ITEM_WEAPON_RANDOM_OFF, I_MSG_ITEM_WEAPON_RANDOM_ON);
+    'g_powerup_randomize_respawn':
+      ParseGameFlag(GAME_OPTION_POWERUPRANDOM, I_MSG_POWERUP_RANDOM_OFF, I_MSG_POWERUP_RANDOM_ON, False);
+    'g_weaponstay':
+      ParseGameFlag(GAME_OPTION_WEAPONSTAY, I_MSG_WEAPONSTAY_OFF, I_MSG_WEAPONSTAY_ON);
+    'g_allow_exit':
+      ParseGameFlag(GAME_OPTION_ALLOWEXIT, I_MSG_ALLOWEXIT_OFF, I_MSG_ALLOWEXIT_ON, True);
+    'g_allow_monsters':
+      ParseGameFlag(GAME_OPTION_MONSTERS, I_MSG_ALLOWMON_OFF, I_MSG_ALLOWMON_ON, True);
+    'g_allow_dropflag':
+      ParseGameFlag(GAME_OPTION_ALLOWDROPFLAG, I_MSG_ALLOWDROPFLAG_OFF, I_MSG_ALLOWDROPFLAG_ON);
+    'g_throw_flag':
+      ParseGameFlag(GAME_OPTION_THROWFLAG, I_MSG_THROWFLAG_OFF, I_MSG_THROWFLAG_ON);
+    'g_bot_vsplayers':
+      ParseGameFlag(GAME_OPTION_BOTVSPLAYER, I_MSG_BOTSVSPLAYERS_OFF, I_MSG_BOTSVSPLAYERS_ON);
+    'g_bot_vsmonsters':
+      ParseGameFlag(GAME_OPTION_BOTVSMONSTER, I_MSG_BOTSVSMONSTERS_OFF, I_MSG_BOTSVSMONSTERS_ON);
+    'g_dm_keys':
+      ParseGameFlag(GAME_OPTION_DMKEYS, I_MSG_DMKEYS_OFF, I_MSG_DMKEYS_ON, True);
 
-    g_Console_Add(Format('%s %d', [cmd, Integer(gsSpawnInvul)]));
-  end
-  else if cmd = 'g_item_respawn_time' then
-  begin
-    if Length(P) > 1 then
-    begin
-      gsItemRespawnTime := nclamp(StrToIntDef(P[1], gsItemRespawnTime), 0, $FFFF);
-      if g_Game_IsServer then
+    'g_gameflags': begin
+      if Length(P) > 1 then
       begin
-        gGameSettings.ItemRespawnTime := gsItemRespawnTime;
-        if g_Game_IsNet then MH_SEND_GameSettings;
-      end;
-    end;
-
-    g_Console_Add(Format('%s %d', [cmd, Integer(gsItemRespawnTime)]));
-    if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
-  end
-  else if cmd = 'g_item_time_random' then
-  begin
-    if Length(P) > 1 then
-    begin
-      gsItemRespawnRandom := nclamp(StrToIntDef(P[1], gsItemRespawnRandom), 0, $FFFF);
-      if g_Game_IsServer then
-      begin
-        gGameSettings.ItemRespawnRandom := gsItemRespawnRandom;
-        if g_Game_IsNet then MH_SEND_GameSettings;
-      end;
-    end;
-
-    g_Console_Add(Format('%s %d', [cmd, Integer(gsItemRespawnRandom)]));
-    if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
-  end
-  else if cmd = 'g_powerup_respawn_time' then
-  begin
-    if Length(P) > 1 then
-    begin
-      gsRulezRespawnTime := nclamp(StrToIntDef(P[1], gsRulezRespawnTime), 0, $FFFF);
-      if g_Game_IsServer then
-      begin
-        gGameSettings.RulezRespawnTime := gsRulezRespawnTime;
-        if g_Game_IsNet then MH_SEND_GameSettings;
-      end;
-    end;
-
-    g_Console_Add(Format('%s %d', [cmd, Integer(gsRulezRespawnTime)]));
-    if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
-  end
-  else if cmd = 'g_powerup_time_random' then
-  begin
-    if Length(P) > 1 then
-    begin
-      gsRulezRespawnRandom := nclamp(StrToIntDef(P[1], gsRulezRespawnRandom), 0, $FFFF);
-      if g_Game_IsServer then
-      begin
-        gGameSettings.RulezRespawnRandom := gsRulezRespawnRandom;
-        if g_Game_IsNet then MH_SEND_GameSettings;
-      end;
-    end;
-
-    g_Console_Add(Format('%s %d', [cmd, Integer(gsRulezRespawnRandom)]));
-    if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
-  end
-  else if cmd = 'sv_intertime' then
-  begin
-    if (Length(P) > 1) then
-      gDefInterTime := Min(Max(StrToIntDef(P[1], gDefInterTime), -1), 120);
-
-    g_Console_Add(cmd + ' = ' + IntToStr(gDefInterTime));
-  end
-  else if cmd = 'g_max_particles' then
-  begin
-    if Length(p) = 2 then
-    begin
-      a := Max(0, StrToIntDef(p[1], 0));
-      g_GFX_SetMax(a)
-    end
-    else if Length(p) = 1 then
-    begin
-      e_LogWritefln('%s', [g_GFX_GetMax()])
-    end
-    else
-    begin
-      e_LogWritefln('usage: %s <n>', [cmd])
-    end
-  end
-  else if cmd = 'g_max_shells' then
-  begin
-    if Length(p) = 2 then
-    begin
-      a := Max(0, StrToIntDef(p[1], 0));
-      g_Shells_SetMax(a)
-    end
-    else if Length(p) = 1 then
-    begin
-      e_LogWritefln('%s', [g_Shells_GetMax()])
-    end
-    else
-    begin
-      e_LogWritefln('usage: %s <n>', [cmd])
-    end
-  end
-  else if cmd = 'g_max_gibs' then
-  begin
-    if Length(p) = 2 then
-    begin
-      a := Max(0, StrToIntDef(p[1], 0));
-      g_Gibs_SetMax(a)
-    end
-    else if Length(p) = 1 then
-    begin
-      e_LogWritefln('%s', [g_Gibs_GetMax()])
-    end
-    else
-    begin
-      e_LogWritefln('usage: %s <n>', [cmd])
-    end
-  end
-  else if cmd = 'g_max_corpses' then
-  begin
-    if Length(p) = 2 then
-    begin
-      a := Max(0, StrToIntDef(p[1], 0));
-      g_Corpses_SetMax(a)
-    end
-    else if Length(p) = 1 then
-    begin
-      e_LogWritefln('%s', [g_Corpses_GetMax()])
-    end
-    else
-    begin
-      e_LogWritefln('usage: %s <n>', [cmd])
-    end
-  end
-  else if cmd = 'g_force_model' then
-  begin
-    if Length(p) = 2 then
-    begin
-      a := StrToIntDef(p[1], 0);
-      g_Force_Model_Set(a);
-      if (g_Force_Model_Get() <> 0) and (gPlayers <> nil) then
-      begin
-        for a := Low(gPlayers) to High(gPlayers) do
+        gsGameFlags := StrToDWordDef(P[1], gsGameFlags);
+        if g_Game_IsServer then
         begin
-          if (gPlayers[a] <> nil) then
+          gGameSettings.Options := gsGameFlags;
+          if g_Game_IsNet then MH_SEND_GameSettings;
+        end;
+      end;
+
+      g_Console_Add(Format('%s %u', [cmd, gsGameFlags]));
+    end;
+
+    'g_warmup_time': begin
+      if Length(P) > 1 then
+      begin
+        gsWarmupTime := nclamp(StrToIntDef(P[1], gsWarmupTime), 0, $FFFF);
+        if g_Game_IsServer then
+        begin
+          gGameSettings.WarmupTime := gsWarmupTime;
+          // extend warmup if it's already going
+          if gLMSRespawn = LMS_RESPAWN_WARMUP then
           begin
-            if (gPlayers[a].UID = gPlayer1.UID) then
-              continue
-            else if (gPlayer2 <> nil) and (gPlayers[a].UID = gPlayer2.UID) then
-              continue;
-            gPlayers[a].setModel(g_Forced_Model_GetName());
+            gLMSRespawnTime := gTime + gsWarmupTime * 1000;
+            if g_Game_IsNet then MH_SEND_GameEvent(NET_EV_LMS_WARMUP, gLMSRespawnTime - gTime);
           end;
+          if g_Game_IsNet then MH_SEND_GameSettings;
+        end;
+      end;
+
+      g_Console_Add(Format(_lc[I_MSG_WARMUP], [Integer(gsWarmupTime)]));
+      if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+    end;
+
+    'g_spawn_invul': begin
+      if Length(P) > 1 then
+      begin
+        gsSpawnInvul := nclamp(StrToIntDef(P[1], gsSpawnInvul), 0, $FFFF);
+        if g_Game_IsServer then
+        begin
+          gGameSettings.SpawnInvul := gsSpawnInvul;
+          if g_Game_IsNet then MH_SEND_GameSettings;
+        end;
+      end;
+
+      g_Console_Add(Format('%s %d', [cmd, Integer(gsSpawnInvul)]));
+    end;
+
+    'g_item_respawn_time': begin
+      if Length(P) > 1 then
+      begin
+        gsItemRespawnTime := nclamp(StrToIntDef(P[1], gsItemRespawnTime), 0, $FFFF);
+        if g_Game_IsServer then
+        begin
+          gGameSettings.ItemRespawnTime := gsItemRespawnTime;
+          if g_Game_IsNet then MH_SEND_GameSettings;
+        end;
+      end;
+
+      g_Console_Add(Format('%s %d', [cmd, Integer(gsItemRespawnTime)]));
+      if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+    end;
+
+    'g_item_time_random': begin
+      if Length(P) > 1 then
+      begin
+        gsItemRespawnRandom := nclamp(StrToIntDef(P[1], gsItemRespawnRandom), 0, $FFFF);
+        if g_Game_IsServer then
+        begin
+          gGameSettings.ItemRespawnRandom := gsItemRespawnRandom;
+          if g_Game_IsNet then MH_SEND_GameSettings;
+        end;
+      end;
+
+      g_Console_Add(Format('%s %d', [cmd, Integer(gsItemRespawnRandom)]));
+      if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+    end;
+
+    'g_powerup_respawn_time': begin
+      if Length(P) > 1 then
+      begin
+        gsPowerupRespawnTime := nclamp(StrToIntDef(P[1], gsPowerupRespawnTime), 0, $FFFF);
+        if g_Game_IsServer then
+        begin
+          gGameSettings.PowerupRespawnTime := gsPowerupRespawnTime;
+          if g_Game_IsNet then MH_SEND_GameSettings;
+        end;
+      end;
+
+      g_Console_Add(Format('%s %d', [cmd, Integer(gsPowerupRespawnTime)]));
+      if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+    end;
+
+    'g_powerup_time_random': begin
+      if Length(P) > 1 then
+      begin
+        gsPowerupRespawnRandom := nclamp(StrToIntDef(P[1], gsPowerupRespawnRandom), 0, $FFFF);
+        if g_Game_IsServer then
+        begin
+          gGameSettings.PowerupRespawnRandom := gsPowerupRespawnRandom;
+          if g_Game_IsNet then MH_SEND_GameSettings;
+        end;
+      end;
+
+      g_Console_Add(Format('%s %d', [cmd, Integer(gsPowerupRespawnRandom)]));
+      if g_Game_IsServer then g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+    end;
+
+    'sv_intertime': begin
+      if (Length(P) > 1) then
+        gDefInterTime := Min(Max(StrToIntDef(P[1], gDefInterTime), -1), 120);
+
+      g_Console_Add(cmd + ' = ' + IntToStr(gDefInterTime));
+    end;
+
+    'g_max_particles': begin
+      if Length(p) = 2 then
+      begin
+        a := Max(0, StrToIntDef(p[1], 0));
+        g_GFX_SetMax(a)
+      end
+      else if Length(p) = 1 then
+      begin
+        e_LogWritefln('%s', [g_GFX_GetMax()])
+      end
+      else
+      begin
+        e_LogWritefln('usage: %s <n>', [cmd])
+      end
+    end;
+
+    'g_max_shells': begin
+      if Length(p) = 2 then
+      begin
+        a := Max(0, StrToIntDef(p[1], 0));
+        g_Shells_SetMax(a)
+      end
+      else if Length(p) = 1 then
+      begin
+        e_LogWritefln('%s', [g_Shells_GetMax()])
+      end
+      else
+      begin
+        e_LogWritefln('usage: %s <n>', [cmd])
+      end
+    end;
+
+    'g_max_gibs': begin
+      if Length(p) = 2 then
+      begin
+        a := Max(0, StrToIntDef(p[1], 0));
+        g_Gibs_SetMax(a)
+      end
+      else if Length(p) = 1 then
+      begin
+        e_LogWritefln('%s', [g_Gibs_GetMax()])
+      end
+      else
+      begin
+        e_LogWritefln('usage: %s <n>', [cmd])
+      end
+    end;
+
+    'g_max_corpses': begin
+      if Length(p) = 2 then
+      begin
+        a := Max(0, StrToIntDef(p[1], 0));
+        g_Corpses_SetMax(a)
+      end
+      else if Length(p) = 1 then
+      begin
+        e_LogWritefln('%s', [g_Corpses_GetMax()])
+      end
+      else
+      begin
+        e_LogWritefln('usage: %s <n>', [cmd])
+      end
+    end;
+
+    'g_force_model': begin
+      if Length(p) = 2 then
+      begin
+        a := StrToIntDef(p[1], 0);
+        g_Force_Model_Set(a);
+        if (g_Force_Model_Get() <> 0) and (gPlayers <> nil) then
+        begin
+          for a := Low(gPlayers) to High(gPlayers) do
+          begin
+            if (gPlayers[a] <> nil) then
+            begin
+              if (gPlayers[a].UID = gPlayer1.UID) then
+                continue
+              else if (gPlayer2 <> nil) and (gPlayers[a].UID = gPlayer2.UID) then
+                continue;
+              gPlayers[a].setModel(g_Forced_Model_GetName());
+            end;
+          end
+        end
+        else if (g_Force_Model_Get() = 0) and (gPlayers <> nil) then
+        begin
+          for a := Low(gPlayers) to High(gPlayers) do
+          begin
+            if (gPlayers[a] <> nil) then
+            begin
+              if (gPlayers[a].UID = gPlayer1.UID) then
+                continue
+              else if (gPlayer2 <> nil) and (gPlayers[a].UID = gPlayer2.UID) then
+                continue;
+              gPlayers[a].setModel(gPlayers[a].FActualModelName);
+            end;
+          end
         end
       end
-      else if (g_Force_Model_Get() = 0) and (gPlayers <> nil) then
+    end;
+
+    'g_force_model_name': begin
+      if (Length(P) > 1) then
       begin
-        for a := Low(gPlayers) to High(gPlayers) do
+        cmd := b_Text_Unformat(P[1]);
+        g_Forced_Model_SetName(cmd);
+        if (g_Force_Model_Get() <> 0) and (gPlayers <> nil) then
         begin
-          if (gPlayers[a] <> nil) then
+          for a := Low(gPlayers) to High(gPlayers) do
           begin
-            if (gPlayers[a].UID = gPlayer1.UID) then
-              continue
-            else if (gPlayer2 <> nil) and (gPlayers[a].UID = gPlayer2.UID) then
-              continue;
-            gPlayers[a].setModel(gPlayers[a].FActualModelName);
-          end;
+            if (gPlayers[a] <> nil) then
+            begin
+              if (gPlayers[a].UID = gPlayer1.UID) then
+                continue
+              else if (gPlayer2 <> nil) and (gPlayers[a].UID = gPlayer2.UID) then
+                continue;
+              gPlayers[a].setModel(g_Forced_Model_GetName());
+            end;
+          end
         end
       end
-    end
-  end
-  else if cmd = 'g_force_model_name' then
-  begin
-    if (Length(P) > 1) then
-    begin
-      cmd := b_Text_Unformat(P[1]);
-      g_Forced_Model_SetName(cmd);
-      if (g_Force_Model_Get() <> 0) and (gPlayers <> nil) then
+    end;
+
+    'g_scorelimit': begin
+      if Length(P) > 1 then
       begin
-        for a := Low(gPlayers) to High(gPlayers) do
+        gsScoreLimit := nclamp(StrToIntDef(P[1], gsScoreLimit), 0, $FFFF);
+
+        if g_Game_IsServer then
         begin
-          if (gPlayers[a] <> nil) then
-          begin
-            if (gPlayers[a].UID = gPlayer1.UID) then
-              continue
-            else if (gPlayer2 <> nil) and (gPlayers[a].UID = gPlayer2.UID) then
-              continue;
-            gPlayers[a].setModel(g_Forced_Model_GetName());
-          end;
-        end
-      end
-    end
-  end
-  else if cmd = 'g_scorelimit' then
-  begin
-    if Length(P) > 1 then
-    begin
-      gsScoreLimit := nclamp(StrToIntDef(P[1], gsScoreLimit), 0, $FFFF);
+          b := 0;
+          if gGameSettings.GameMode = GM_DM then
+          begin // DM
+            stat := g_Player_GetStats();
+            if stat <> nil then
+              for a := 0 to High(stat) do
+                if stat[a].Frags > b then
+                  b := stat[a].Frags;
+          end
+          else // TDM/CTF
+            b := Max(gTeamStat[TEAM_RED].Score, gTeamStat[TEAM_BLUE].Score);
 
-      if g_Game_IsServer then
-      begin
-        b := 0;
-        if gGameSettings.GameMode = GM_DM then
-        begin // DM
-          stat := g_Player_GetStats();
-          if stat <> nil then
-            for a := 0 to High(stat) do
-              if stat[a].Frags > b then
-                b := stat[a].Frags;
-        end
-        else // TDM/CTF
-          b := Max(gTeamStat[TEAM_RED].Score, gTeamStat[TEAM_BLUE].Score);
+          // if someone has a higher score, set it to that instead
+          gsScoreLimit := max(gsScoreLimit, b);
+          gGameSettings.ScoreLimit := gsScoreLimit;
 
-        // if someone has a higher score, set it to that instead
-        gsScoreLimit := max(gsScoreLimit, b);
-        gGameSettings.ScoreLimit := gsScoreLimit;
-
-        if g_Game_IsNet then MH_SEND_GameSettings;
+          if g_Game_IsNet then MH_SEND_GameSettings;
+        end;
       end;
+
+      g_Console_Add(Format(_lc[I_MSG_SCORE_LIMIT], [Integer(gsScoreLimit)]));
     end;
 
-    g_Console_Add(Format(_lc[I_MSG_SCORE_LIMIT], [Integer(gsScoreLimit)]));
-  end
-  else if cmd = 'g_timelimit' then
-  begin
-    if Length(P) > 1 then
-    begin
-      gsTimeLimit := nclamp(StrToIntDef(P[1], gsTimeLimit), 0, $FFFF);
-      if g_Game_IsServer then
+    'g_timelimit': begin
+      if Length(P) > 1 then
       begin
-        gGameSettings.TimeLimit := gsTimeLimit;
-        if g_Game_IsNet then MH_SEND_GameSettings;
+        gsTimeLimit := nclamp(StrToIntDef(P[1], gsTimeLimit), 0, $FFFF);
+        if g_Game_IsServer then
+        begin
+          gGameSettings.TimeLimit := gsTimeLimit;
+          if g_Game_IsNet then MH_SEND_GameSettings;
+        end;
       end;
-    end;
-    g_Console_Add(Format(_lc[I_MSG_TIME_LIMIT],
-                         [gsTimeLimit div 3600,
-                         (gsTimeLimit div 60) mod 60,
-                          gsTimeLimit mod 60]));
-  end
-  else if cmd = 'g_max_bots' then
-  begin
-    if Length(P) > 1 then
-      gMaxBots := nclamp(StrToIntDef(P[1], gMaxBots), 0, 127);
-    g_Console_Add('g_max_bots = ' + IntToStr(gMaxBots));
-  end
-  else if cmd = 'g_maxlives' then
-  begin
-    if Length(P) > 1 then
-    begin
-      gsMaxLives := nclamp(StrToIntDef(P[1], gsMaxLives), 0, $FFFF);
-      if g_Game_IsServer then
-      begin
-        gGameSettings.MaxLives := gsMaxLives;
-        if g_Game_IsNet then MH_SEND_GameSettings;
-      end;
+      g_Console_Add(Format(_lc[I_MSG_TIME_LIMIT],
+                           [gsTimeLimit div 3600,
+                           (gsTimeLimit div 60) mod 60,
+                            gsTimeLimit mod 60]));
     end;
 
-    g_Console_Add(Format(_lc[I_MSG_LIVES], [Integer(gsMaxLives)]));
+    'g_max_bots': begin
+      if Length(P) > 1 then
+        gMaxBots := nclamp(StrToIntDef(P[1], gMaxBots), 0, 127);
+      g_Console_Add('g_max_bots = ' + IntToStr(gMaxBots));
+    end;
+
+    'g_maxlives': begin
+      if Length(P) > 1 then
+      begin
+        gsMaxLives := nclamp(StrToIntDef(P[1], gsMaxLives), 0, $FFFF);
+        if g_Game_IsServer then
+        begin
+          gGameSettings.MaxLives := gsMaxLives;
+          if g_Game_IsNet then MH_SEND_GameSettings;
+        end;
+      end;
+
+      g_Console_Add(Format(_lc[I_MSG_LIVES], [Integer(gsMaxLives)]));
+    end;
   end;
 end;
 
@@ -6137,25 +6116,25 @@ begin
         if (Length(P) = 2) then
           gPlayer2Settings.SwitchToEmpty := EnsureRange(StrTointDef(P[1], 0), 0, 1);
         end;
-    'p1_skip_fist':
+    'p1_skip_ironfist':
       begin
         if (Length(P) = 2) then
-          gPlayer1Settings.SkipFist := EnsureRange(StrTointDef(P[1], 0), 0, 1);
+          gPlayer1Settings.SkipIronFist := EnsureRange(StrTointDef(P[1], 0), 0, 1);
         end;
-    'p2_skip_fist':
+    'p2_skip_ironfist':
       begin
         if (Length(P) = 2) then
-          gPlayer2Settings.SkipFist := EnsureRange(StrTointDef(P[1], 0), 0, 1);
+          gPlayer2Settings.SkipIronFist := EnsureRange(StrTointDef(P[1], 0), 0, 1);
         end;
-    'p1_priority_kastet':
+    'p1_priority_ironfist':
       begin
         if (Length(P) = 2) then
-          gPlayer1Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+          gPlayer1Settings.WeaponPreferences[WEAPON_IRONFIST] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
         end;
-    'p2_priority_kastet':
+    'p2_priority_ironfist':
       begin
         if (Length(P) = 2) then
-          gPlayer2Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+          gPlayer2Settings.WeaponPreferences[WEAPON_IRONFIST] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
       end;
     'p1_priority_saw':
       begin
@@ -6170,12 +6149,12 @@ begin
     'p1_priority_pistol':
       begin
         if (Length(P) = 2) then
-          gPlayer1Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+          gPlayer1Settings.WeaponPreferences[WEAPON_PISTOL] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
         end;
     'p2_priority_pistol':
       begin
         if (Length(P) = 2) then
-          gPlayer2Settings.WeaponPreferences[WEAPON_KASTET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+          gPlayer2Settings.WeaponPreferences[WEAPON_PISTOL] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
       end;
     'p1_priority_shotgun1':
       begin
@@ -6237,15 +6216,15 @@ begin
         if (Length(P) = 2) then
           gPlayer2Settings.WeaponPreferences[WEAPON_BFG] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
       end;
-    'p1_priority_super':
+    'p1_priority_superchaingun':
       begin
         if (Length(P) = 2) then
-          gPlayer1Settings.WeaponPreferences[WEAPON_SUPERPULEMET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+          gPlayer1Settings.WeaponPreferences[WEAPON_SUPERCHAINGUN] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
       end;
-    'p2_priority_super':
+    'p2_priority_superchaingun':
       begin
         if (Length(P) = 2) then
-          gPlayer2Settings.WeaponPreferences[WEAPON_SUPERPULEMET] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+          gPlayer2Settings.WeaponPreferences[WEAPON_SUPERCHAINGUN] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
       end;
     'p1_priority_flamethrower':
       begin
@@ -6298,7 +6277,7 @@ begin
     if cmd = 'd_window' then
     begin
       g_Console_Add(Format('gScreenWidth = %d, gScreenHeight = %d', [gScreenWidth, gScreenHeight]));
-      g_Console_Add(Format('gScreenWidth = %d, gScreenHeight = %d', [gScreenWidth, gScreenHeight]));
+      g_Console_Add(Format('gWinSizeX = %d, gWinSizeY = %d', [gWinSizeX, gWinSizeY]));
     end
     else if cmd = 'd_sounds' then
     begin
@@ -6445,7 +6424,7 @@ begin
     begin
       cmd := LowerCase(P[f]);
       if cmd = 'health' then begin plr.RestoreHealthArmor(); g_Console_Add('player feels himself better'); continue; end;
-      if (cmd = 'all') {or (cmd = 'weapons')} then begin plr.AllRulez(False); g_Console_Add('player got the gifts'); continue; end;
+      if (cmd = 'all') {or (cmd = 'weapons')} then begin plr.TankRamboCheats(False); g_Console_Add('player got the gifts'); continue; end;
       if cmd = 'exit' then
       begin
         if gTriggers <> nil then
@@ -6504,8 +6483,8 @@ begin
       if cmd = 'plasmagunzz' then begin plr.GiveItem(ITEM_WEAPON_PLASMA); plr.GiveItem(ITEM_AMMO_CELL_BIG); g_Console_Add('player got a plasma gun'); continue; end;
       if cmd = 'bfgzz' then begin plr.GiveItem(ITEM_WEAPON_BFG); plr.GiveItem(ITEM_AMMO_CELL_BIG); g_Console_Add('player got a BFG-9000'); continue; end;
 
-      if cmd = 'superchaingun' then begin plr.GiveItem(ITEM_WEAPON_SUPERPULEMET); g_Console_Add('player got a superchaingun'); continue; end;
-      if cmd = 'superchaingunzz' then begin plr.GiveItem(ITEM_WEAPON_SUPERPULEMET); plr.GiveItem(ITEM_AMMO_BULLETS_BOX); g_Console_Add('player got a superchaingun'); continue; end;
+      if cmd = 'superchaingun' then begin plr.GiveItem(ITEM_WEAPON_SUPERCHAINGUN); g_Console_Add('player got a superchaingun'); continue; end;
+      if cmd = 'superchaingunzz' then begin plr.GiveItem(ITEM_WEAPON_SUPERCHAINGUN); plr.GiveItem(ITEM_AMMO_BULLETS_BOX); g_Console_Add('player got a superchaingun'); continue; end;
 
       if (cmd = 'flamer') or (cmd = 'flamethrower') or (cmd = 'ft') then begin plr.GiveItem(ITEM_WEAPON_FLAMETHROWER); g_Console_Add('player got a flame thrower'); continue; end;
       if (cmd = 'flamerzz') or (cmd = 'flamethrowerzz') or (cmd = 'ftzz') then begin plr.GiveItem(ITEM_WEAPON_FLAMETHROWER); plr.GiveItem(ITEM_AMMO_FUELCAN); g_Console_Add('player got a flame thrower'); continue; end;
@@ -7139,7 +7118,7 @@ begin
       g_Console_Add(cmd + ' <WAD> [MAP] [# players]');
       Exit;
     end;
-    // game not started yet, load fist map from some wad
+    // game not started yet, load first map from some wad
     found := false;
     s := addWadExtension(P[1]);
     found := e_FindResource(AllMapDirs, s);

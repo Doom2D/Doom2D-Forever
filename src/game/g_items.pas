@@ -179,7 +179,7 @@ const
      ((62), (16)), // WEAPON_ROCKETLAUNCHER
      ((54), (16)), // WEAPON_PLASMA
      ((61), (36)), // WEAPON_BFG
-     ((54), (16)), // WEAPON_SUPERPULEMET
+     ((54), (16)), // WEAPON_SUPERCHAINGUN
      (( 9), (11)), // AMMO_BULLETS
      ((28), (16)), // AMMO_BULLETS_BOX
      ((15), ( 7)), // AMMO_SHELLS
@@ -192,7 +192,7 @@ const
      ((16), (16)), // KEY_RED
      ((16), (16)), // KEY_GREEN
      ((16), (16)), // KEY_BLUE
-     (( 1), ( 1)), // WEAPON_KASTET
+     (( 1), ( 1)), // WEAPON_IRONFIST
      ((43), (16)), // WEAPON_PISTOL
      ((14), (18)), // BOTTLE
      ((16), (15)), // HELMET
@@ -206,16 +206,16 @@ begin
   g_Texture_Get('ITEM_MEDKIT_SMALL',     gItemsTexturesID[ITEM_MEDKIT_SMALL]);
   g_Texture_Get('ITEM_MEDKIT_LARGE',     gItemsTexturesID[ITEM_MEDKIT_LARGE]);
   g_Texture_Get('ITEM_MEDKIT_BLACK',     gItemsTexturesID[ITEM_MEDKIT_BLACK]);
-  g_Texture_Get('ITEM_SUIT',             gItemsTexturesID[ITEM_SUIT]);
-  g_Texture_Get('ITEM_OXYGEN',           gItemsTexturesID[ITEM_OXYGEN]);
+  g_Texture_Get('ITEM_WEAPON_IRONFIST',  gItemsTexturesID[ITEM_WEAPON_IRONFIST]);
   g_Texture_Get('ITEM_WEAPON_SAW',       gItemsTexturesID[ITEM_WEAPON_SAW]);
+  g_Texture_Get('ITEM_WEAPON_PISTOL',    gItemsTexturesID[ITEM_WEAPON_PISTOL]);
   g_Texture_Get('ITEM_WEAPON_SHOTGUN1',  gItemsTexturesID[ITEM_WEAPON_SHOTGUN1]);
   g_Texture_Get('ITEM_WEAPON_SHOTGUN2',  gItemsTexturesID[ITEM_WEAPON_SHOTGUN2]);
   g_Texture_Get('ITEM_WEAPON_CHAINGUN',  gItemsTexturesID[ITEM_WEAPON_CHAINGUN]);
   g_Texture_Get('ITEM_WEAPON_ROCKETLAUNCHER', gItemsTexturesID[ITEM_WEAPON_ROCKETLAUNCHER]);
   g_Texture_Get('ITEM_WEAPON_PLASMA',    gItemsTexturesID[ITEM_WEAPON_PLASMA]);
   g_Texture_Get('ITEM_WEAPON_BFG',       gItemsTexturesID[ITEM_WEAPON_BFG]);
-  g_Texture_Get('ITEM_WEAPON_SUPERPULEMET', gItemsTexturesID[ITEM_WEAPON_SUPERPULEMET]);
+  g_Texture_Get('ITEM_WEAPON_SUPERCHAINGUN', gItemsTexturesID[ITEM_WEAPON_SUPERCHAINGUN]);
   g_Texture_Get('ITEM_WEAPON_FLAMETHROWER', gItemsTexturesID[ITEM_WEAPON_FLAMETHROWER]);
   g_Texture_Get('ITEM_AMMO_BULLETS',     gItemsTexturesID[ITEM_AMMO_BULLETS]);
   g_Texture_Get('ITEM_AMMO_BULLETS_BOX', gItemsTexturesID[ITEM_AMMO_BULLETS_BOX]);
@@ -230,8 +230,8 @@ begin
   g_Texture_Get('ITEM_KEY_RED',          gItemsTexturesID[ITEM_KEY_RED]);
   g_Texture_Get('ITEM_KEY_GREEN',        gItemsTexturesID[ITEM_KEY_GREEN]);
   g_Texture_Get('ITEM_KEY_BLUE',         gItemsTexturesID[ITEM_KEY_BLUE]);
-  g_Texture_Get('ITEM_WEAPON_KASTET',    gItemsTexturesID[ITEM_WEAPON_KASTET]);
-  g_Texture_Get('ITEM_WEAPON_PISTOL',    gItemsTexturesID[ITEM_WEAPON_PISTOL]);
+  g_Texture_Get('ITEM_OXYGEN',           gItemsTexturesID[ITEM_OXYGEN]);
+  g_Texture_Get('ITEM_SUIT',             gItemsTexturesID[ITEM_SUIT]);
 end;
 
 procedure g_Items_LoadData();
@@ -239,7 +239,7 @@ begin
   e_WriteLog('Loading items data...', TMsgType.Notify);
 
   g_Sound_CreateWADEx('SOUND_ITEM_RESPAWNITEM', GameWAD+':SOUNDS\RESPAWNITEM');
-  g_Sound_CreateWADEx('SOUND_ITEM_GETRULEZ', GameWAD+':SOUNDS\GETRULEZ');
+  g_Sound_CreateWADEx('SOUND_ITEM_GETPOWERUP', GameWAD+':SOUNDS\GETPOWERUP');
   g_Sound_CreateWADEx('SOUND_ITEM_GETWEAPON', GameWAD+':SOUNDS\GETWEAPON');
   g_Sound_CreateWADEx('SOUND_ITEM_GETITEM', GameWAD+':SOUNDS\GETITEM');
 
@@ -258,16 +258,17 @@ begin
   g_Frames_CreateWAD(nil, 'FRAMES_FLAG_DOM', GameWAD+':TEXTURES\FLAGDOM', 64, 64, 5, False);
   g_Texture_CreateWADEx('ITEM_MEDKIT_SMALL', GameWAD+':TEXTURES\MED1');
   g_Texture_CreateWADEx('ITEM_MEDKIT_LARGE', GameWAD+':TEXTURES\MED2');
+  g_Texture_CreateWADEx('ITEM_MEDKIT_BLACK', GameWAD+':TEXTURES\BMED');
+  g_Texture_CreateWADEx('ITEM_WEAPON_IRONFIST', GameWAD+':TEXTURES\IRONFIST');
   g_Texture_CreateWADEx('ITEM_WEAPON_SAW', GameWAD+':TEXTURES\SAW');
   g_Texture_CreateWADEx('ITEM_WEAPON_PISTOL', GameWAD+':TEXTURES\PISTOL');
-  g_Texture_CreateWADEx('ITEM_WEAPON_KASTET', GameWAD+':TEXTURES\KASTET');
   g_Texture_CreateWADEx('ITEM_WEAPON_SHOTGUN1', GameWAD+':TEXTURES\SHOTGUN1');
   g_Texture_CreateWADEx('ITEM_WEAPON_SHOTGUN2', GameWAD+':TEXTURES\SHOTGUN2');
   g_Texture_CreateWADEx('ITEM_WEAPON_CHAINGUN', GameWAD+':TEXTURES\MGUN');
   g_Texture_CreateWADEx('ITEM_WEAPON_ROCKETLAUNCHER', GameWAD+':TEXTURES\RLAUNCHER');
   g_Texture_CreateWADEx('ITEM_WEAPON_PLASMA', GameWAD+':TEXTURES\PGUN');
   g_Texture_CreateWADEx('ITEM_WEAPON_BFG', GameWAD+':TEXTURES\BFG');
-  g_Texture_CreateWADEx('ITEM_WEAPON_SUPERPULEMET', GameWAD+':TEXTURES\SPULEMET');
+  g_Texture_CreateWADEx('ITEM_WEAPON_SUPERCHAINGUN', GameWAD+':TEXTURES\SCHAINGUN');
   g_Texture_CreateWADEx('ITEM_WEAPON_FLAMETHROWER', GameWAD+':TEXTURES\FLAMETHROWER');
   g_Texture_CreateWADEx('ITEM_AMMO_BULLETS', GameWAD+':TEXTURES\CLIP');
   g_Texture_CreateWADEx('ITEM_AMMO_BULLETS_BOX', GameWAD+':TEXTURES\AMMO');
@@ -284,8 +285,6 @@ begin
   g_Texture_CreateWADEx('ITEM_KEY_BLUE', GameWAD+':TEXTURES\KEYB');
   g_Texture_CreateWADEx('ITEM_OXYGEN', GameWAD+':TEXTURES\OXYGEN');
   g_Texture_CreateWADEx('ITEM_SUIT', GameWAD+':TEXTURES\SUIT');
-  g_Texture_CreateWADEx('ITEM_WEAPON_KASTET', GameWAD+':TEXTURES\KASTET');
-  g_Texture_CreateWADEx('ITEM_MEDKIT_BLACK', GameWAD+':TEXTURES\BMED');
 
   InitTextures();
 
@@ -298,7 +297,7 @@ begin
   e_WriteLog('Releasing items data...', TMsgType.Notify);
 
   g_Sound_Delete('SOUND_ITEM_RESPAWNITEM');
-  g_Sound_Delete('SOUND_ITEM_GETRULEZ');
+  g_Sound_Delete('SOUND_ITEM_GETPOWERUP');
   g_Sound_Delete('SOUND_ITEM_GETWEAPON');
   g_Sound_Delete('SOUND_ITEM_GETITEM');
 
@@ -317,16 +316,17 @@ begin
   g_Frames_DeleteByName('FRAMES_FLAG_DOM');
   g_Texture_Delete('ITEM_MEDKIT_SMALL');
   g_Texture_Delete('ITEM_MEDKIT_LARGE');
+  g_Texture_Delete('ITEM_MEDKIT_BLACK');
+  g_Texture_Delete('ITEM_WEAPON_IRONFIST');
   g_Texture_Delete('ITEM_WEAPON_SAW');
   g_Texture_Delete('ITEM_WEAPON_PISTOL');
-  g_Texture_Delete('ITEM_WEAPON_KASTET');
   g_Texture_Delete('ITEM_WEAPON_SHOTGUN1');
   g_Texture_Delete('ITEM_WEAPON_SHOTGUN2');
   g_Texture_Delete('ITEM_WEAPON_CHAINGUN');
   g_Texture_Delete('ITEM_WEAPON_ROCKETLAUNCHER');
   g_Texture_Delete('ITEM_WEAPON_PLASMA');
   g_Texture_Delete('ITEM_WEAPON_BFG');
-  g_Texture_Delete('ITEM_WEAPON_SUPERPULEMET');
+  g_Texture_Delete('ITEM_WEAPON_SUPERCHAINGUN');
   g_Texture_Delete('ITEM_WEAPON_FLAMETHROWER');
   g_Texture_Delete('ITEM_AMMO_BULLETS');
   g_Texture_Delete('ITEM_AMMO_BULLETS_BOX');
@@ -343,8 +343,6 @@ begin
   g_Texture_Delete('ITEM_KEY_BLUE');
   g_Texture_Delete('ITEM_OXYGEN');
   g_Texture_Delete('ITEM_SUIT');
-  g_Texture_Delete('ITEM_WEAPON_KASTET');
-  g_Texture_Delete('ITEM_MEDKIT_BLACK');
 
   freeIds.Free();
   freeIds := nil;
@@ -546,14 +544,14 @@ var
   i, j, k: Integer;
   ID: DWord;
   Anim: TAnimation;
-  m, ItemRespawnTime, RulezRespawnTime: Word;
+  m, ItemRespawnTime{, PowerupRespawnTime}: Word;
   r, nxt: Boolean;
 begin
   if (ggItems = nil) then exit;
 
   // respawn items in 15 seconds regardless of settings during warmup
   ItemRespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.ItemRespawnTime, 15);
-  RulezRespawnTime :=  IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.RulezRespawnTime, 15);
+  //PowerupRespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.PowerupRespawnTime, 15);
 
   for i := 0 to High(ggItems) do
   begin
@@ -744,26 +742,27 @@ begin
     // Items respawn timer
     ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.ItemRespawnTime, 15) * 36;
 
-    // Rulez respawn timer
+    // Powerup respawn timer
     if ggItems[ID].ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL,
                          ITEM_INVIS, ITEM_MEDKIT_BLACK, ITEM_JETPACK, ITEM_SUIT] then
     begin
-      ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.RulezRespawnTime, 15) * 36;
+      ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.PowerupRespawnTime, 15) * 36;
     end;
 
     // #### Random powerup respawn ####
-    if LongBool(gGameSettings.Options and GAME_OPTION_RULEZRANDOM) then
+    if LongBool(gGameSettings.Options and GAME_OPTION_POWERUPRANDOM) then
     begin
       if ggItems[ID].ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL,
                            ITEM_INVIS, ITEM_MEDKIT_BLACK, ITEM_JETPACK, ITEM_SUIT] then
       begin
-        ggItems[ID].RespawnTime := Max(1, (gGameSettings.RulezRespawnTime + RandomRange(-gGameSettings.RulezRespawnRandom, gGameSettings.RulezRespawnRandom + 1)) * 36);
-        //e_logwritefln ('Randomized rulez %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
+        ggItems[ID].RespawnTime := Max(1, (gGameSettings.PowerupRespawnTime +
+          RandomRange(-gGameSettings.PowerupRespawnRandom, gGameSettings.PowerupRespawnRandom + 1)) * 36);
+        //e_logwritefln ('Randomized powerup %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
       end;
     end;
 
     // #### Random item respawn ####
-    // Randomize respawn for all items (excluding rulez)
+    // Randomize respawn for all items (excluding powerups)
     if LongBool(gGameSettings.Options and GAME_OPTION_ITEMALLRANDOM) then
     begin
       if ggItems[ID].ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE, ITEM_ARMOR_GREEN,
@@ -773,7 +772,7 @@ begin
                                   ITEM_AMMO_CELL, ITEM_AMMO_CELL_BIG, ITEM_AMMO_FUELCAN,
                                   ITEM_AMMO_BACKPACK, ITEM_WEAPON_SAW, ITEM_WEAPON_SHOTGUN1,
                                   ITEM_WEAPON_SHOTGUN2, ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER,
-                                  ITEM_WEAPON_PLASMA, ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET,
+                                  ITEM_WEAPON_PLASMA, ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERCHAINGUN,
                                   ITEM_WEAPON_FLAMETHROWER] then
       begin
         ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime + RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
@@ -810,7 +809,7 @@ begin
     begin
       if ggItems[ID].ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
                                   ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
-                                  ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_WEAPON_FLAMETHROWER] then
+                                  ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERCHAINGUN, ITEM_WEAPON_FLAMETHROWER] then
       begin
         ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime + RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
         //e_logwritefln ('Randomized weapon %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
@@ -1020,14 +1019,14 @@ begin
   it := @ggItems[idx];
   if gSoundEffectsDF then
   begin
-    if it.ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL,
-                       ITEM_INVIS, ITEM_MEDKIT_BLACK, ITEM_JETPACK] then
+    if it.ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL, ITEM_INVIS,
+                       ITEM_JETPACK, ITEM_MEDKIT_BLACK] then
     begin
-      g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ', x, y);
+      g_Sound_PlayExAt('SOUND_ITEM_GETPOWERUP', x, y);
     end
     else if it.ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
                             ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
-                            ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_WEAPON_FLAMETHROWER,
+                            ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERCHAINGUN, ITEM_WEAPON_FLAMETHROWER,
                             ITEM_AMMO_BACKPACK] then
     begin
       g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON', x, y);
@@ -1039,14 +1038,14 @@ begin
   end
   else
   begin
-    if it.ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_SUIT,
-                       ITEM_MEDKIT_BLACK, ITEM_INVUL, ITEM_INVIS, ITEM_JETPACK] then
+    if it.ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL, ITEM_INVIS,
+                       ITEM_SUIT, ITEM_JETPACK, ITEM_MEDKIT_BLACK] then
     begin
-      g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ', x, y);
+      g_Sound_PlayExAt('SOUND_ITEM_GETPOWERUP', x, y);
     end
     else if it.ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
                             ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
-                            ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_WEAPON_FLAMETHROWER] then
+                            ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERCHAINGUN, ITEM_WEAPON_FLAMETHROWER] then
     begin
       g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON', x, y);
     end

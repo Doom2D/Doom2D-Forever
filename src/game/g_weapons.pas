@@ -84,7 +84,7 @@ procedure g_Weapon_LoadState (st: TStream);
 procedure g_Weapon_AddDynLights();
 
 const
-  WEAPON_KASTET         = 0;
+  WEAPON_IRONFIST       = 0;
   WEAPON_SAW            = 1;
   WEAPON_PISTOL         = 2;
   WEAPON_SHOTGUN1       = 3;
@@ -93,7 +93,7 @@ const
   WEAPON_ROCKETLAUNCHER = 6;
   WEAPON_PLASMA         = 7;
   WEAPON_BFG            = 8;
-  WEAPON_SUPERPULEMET   = 9;
+  WEAPON_SUPERCHAINGUN  = 9;
   WEAPON_FLAMETHROWER   = 10;
   WEAPON_ZOMBY_PISTOL   = 20;
   WEAPON_IMP_FIRE       = 21;
@@ -103,7 +103,7 @@ const
   WEAPON_MANCUB_FIRE    = 25;
   WEAPON_SKEL_FIRE      = 26;
 
-  WP_FIRST          = WEAPON_KASTET;
+  WP_FIRST          = WEAPON_IRONFIST;
   WP_LAST           = WEAPON_FLAMETHROWER;
 
 

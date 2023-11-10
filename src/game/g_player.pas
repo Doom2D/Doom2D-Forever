@@ -133,7 +133,7 @@ type
     Ammo:       Array [A_BULLETS..A_HIGH] of Word;
     MaxAmmo:    Array [A_BULLETS..A_HIGH] of Word;
     Weapon:     Array [WP_FIRST..WP_LAST] of Boolean;
-    Rulez:      Set of R_ITEM_BACKPACK..R_BERSERK;
+    Inventory:  Set of R_ITEM_BACKPACK..R_BERSERK;
     Used:       Boolean;
   end;
 
@@ -237,7 +237,7 @@ type
     procedure Jump();
     procedure Use();
 
-    function getNextWeaponIndex (): Byte; // return 255 for "no switch"
+    function getNextWeaponIndex (): Byte;  // returns 255 for "no switch"
     procedure resetWeaponQueue ();
     function hasAmmoForWeapon (weapon: Byte): Boolean;
     function hasAmmoForShooting (weapon: Byte): Boolean;
@@ -253,16 +253,16 @@ type
     FAmmo:      Array [A_BULLETS..A_HIGH] of Word;
     FMaxAmmo:   Array [A_BULLETS..A_HIGH] of Word;
     FWeapon:    Array [WP_FIRST..WP_LAST] of Boolean;
-    FRulez:     Set of R_ITEM_BACKPACK..R_BERSERK;
+    FInventory: Set of R_ITEM_BACKPACK..R_BERSERK;
     FBerserk:   Integer;
-    FMegaRulez: Array [MR_SUIT..MR_MAX] of DWORD;
+    FPowerups:  Array [MR_SUIT..MR_MAX] of DWORD;
     FReloading: Array [WP_FIRST..WP_LAST] of Word;
     FTime:      Array [T_RESPAWN..T_FLAGCAP] of DWORD;
     FKeys:      Array [KEY_LEFT..KEY_CHAT] of TKeyState;
     FWeapSwitchMode: Byte;
     FWeapPreferences: Array [WP_FIRST .. WP_LAST+1] of Byte;
     FSwitchToEmpty: Byte;
-    FSkipFist: Byte;
+    FSkipIronFist: Byte;
     FColor:     TRGB;
     FPreferredTeam: Byte;
     FSpectator: Boolean;
@@ -323,7 +323,7 @@ type
     procedure   SetFlag(Flag: Byte);
     function    DropFlag(Silent: Boolean = True; DoThrow: Boolean = False): Boolean;
     function    TryDropFlag(): Boolean;
-    procedure   AllRulez(Health: Boolean);
+    procedure   TankRamboCheats(Health: Boolean);
     procedure   RestoreHealthArmor();
     procedure   FragCombo();
     procedure   GiveItem(ItemType: Byte);
@@ -339,15 +339,15 @@ type
     procedure   Draw(); virtual;
     procedure   DrawPain();
     procedure   DrawPickup();
-    procedure   DrawRulez();
+    procedure   DrawOverlay();
     procedure   DrawAim();
     procedure   DrawIndicator(Color: TRGB);
     procedure   DrawBubble();
     procedure   DrawGUI();
     procedure   PreUpdate();
     procedure   Update(); virtual;
-    procedure   RememberState();
-    procedure   RecallState();
+    procedure   PreserveState();
+    procedure   RestoreState();
     procedure   SaveState (st: TStream); virtual;
     procedure   LoadState (st: TStream); virtual;
     procedure   PauseSounds(Enable: Boolean);
@@ -388,7 +388,7 @@ type
     property    CurrWeap: Byte read FCurrWeap write FCurrWeap;
     property    WeapSwitchMode: Byte read FWeapSwitchMode write FWeapSwitchMode;
     property    SwitchToEmpty: Byte read FSwitchToEmpty write FSwitchToEmpty;
-    property    SkipFist: Byte read FSkipFist write FSkipFist;
+    property    SkipIronFist: Byte read FSkipIronFist write FSkipIronFist;
     property    MonsterKills: Integer read FMonsterKills write FMonsterKills;
     property    Secrets: Integer read FSecrets;
     property    GodMode: Boolean read FGodMode write FGodMode;
@@ -706,20 +706,20 @@ const
                                 FlyPrecision: 255; Cover: 255; CloseJump: 255;
                                 WeaponPrior:(0,0,0,0,0,0,0,0,0,0,0); CloseWeaponPrior:(0,0,0,0,0,0,0,0,0,0,0));
   WEAPON_PRIOR1: Array [WP_FIRST..WP_LAST] of Byte =
-                                (WEAPON_FLAMETHROWER, WEAPON_SUPERPULEMET,
+                                (WEAPON_FLAMETHROWER, WEAPON_SUPERCHAINGUN,
                                  WEAPON_SHOTGUN2, WEAPON_SHOTGUN1,
                                  WEAPON_CHAINGUN, WEAPON_PLASMA, WEAPON_ROCKETLAUNCHER,
-                                 WEAPON_BFG, WEAPON_PISTOL, WEAPON_SAW, WEAPON_KASTET);
+                                 WEAPON_BFG, WEAPON_PISTOL, WEAPON_SAW, WEAPON_IRONFIST);
   WEAPON_PRIOR2: Array [WP_FIRST..WP_LAST] of Byte =
-                                (WEAPON_FLAMETHROWER, WEAPON_SUPERPULEMET,
+                                (WEAPON_FLAMETHROWER, WEAPON_SUPERCHAINGUN,
                                  WEAPON_BFG, WEAPON_ROCKETLAUNCHER,
                                  WEAPON_SHOTGUN2, WEAPON_PLASMA, WEAPON_SHOTGUN1,
-                                 WEAPON_CHAINGUN, WEAPON_PISTOL, WEAPON_SAW, WEAPON_KASTET);
+                                 WEAPON_CHAINGUN, WEAPON_PISTOL, WEAPON_SAW, WEAPON_IRONFIST);
   //WEAPON_PRIOR3: Array [WP_FIRST..WP_LAST] of Byte =
-  //                              (WEAPON_FLAMETHROWER, WEAPON_SUPERPULEMET,
+  //                              (WEAPON_FLAMETHROWER, WEAPON_SUPERCHAINGUN,
   //                               WEAPON_BFG, WEAPON_PLASMA, WEAPON_SHOTGUN2,
   //                               WEAPON_CHAINGUN, WEAPON_SHOTGUN1, WEAPON_SAW,
-  //                               WEAPON_ROCKETLAUNCHER, WEAPON_PISTOL, WEAPON_KASTET);
+  //                               WEAPON_ROCKETLAUNCHER, WEAPON_PISTOL, WEAPON_IRONFIST);
   WEAPON_RELOAD: Array [WP_FIRST..WP_LAST] of Byte =
                                 (5, 2, 6, 18, 36, 2, 12, 2, 14, 2, 2);
 
@@ -1529,7 +1529,7 @@ var
 begin
   for i := Low(gPlayers) to High(gPlayers) do
     if (gPlayers[i] <> nil) and gPlayers[i].alive then
-      gPlayers[i].RememberState;
+      gPlayers[i].PreserveState;
 end;
 
 procedure g_Player_ResetAll(Force, Silent: Boolean);
@@ -2107,17 +2107,17 @@ begin
   for i := WP_FIRST to WP_LAST do
     if FWeapon[i] and maySwitch(i) and (FWeapPreferences[i] > FWeapPreferences[testedWeap]) then
       testedWeap := i;
-  if (R_BERSERK in FRulez) and (FWeapPreferences[WP_LAST + 1] > FWeapPreferences[testedWeap]) then
-    testedWeap := WEAPON_KASTET;
+  if (R_BERSERK in FInventory) and (FWeapPreferences[WP_LAST + 1] > FWeapPreferences[testedWeap]) then
+    testedWeap := WEAPON_IRONFIST;
   result := testedWeap;
 end;
 
 function TPlayer.maySwitch(Weapon: Byte) : Boolean;
 begin
   result := true;
-  if (Weapon = WEAPON_KASTET) and (FSkipFist <> 0) then
+  if (Weapon = WEAPON_IRONFIST) and (FSkipIronFist <> 0) then
   begin
-    if (FSkipFist = 1) and (not (R_BERSERK in FRulez)) then
+    if (FSkipIronFist = 1) and (not (R_BERSERK in FInventory)) then
       result := false;
   end
   else if (FSwitchToEmpty = 0) and (not hasAmmoForShooting(Weapon)) then
@@ -2185,12 +2185,12 @@ begin
     if not PickItem(ItemType, gItems[i].Respawnable, r) then Continue;
 
     if ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL] then
-     g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ', FObj.X, FObj.Y)
+     g_Sound_PlayExAt('SOUND_ITEM_GETPOWERUP', FObj.X, FObj.Y)
     else if ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE, ITEM_MEDKIT_BLACK] then
      g_Sound_PlayExAt('SOUND_ITEM_GETMED', FObj.X, FObj.Y)
     else g_Sound_PlayExAt('SOUND_ITEM_GETITEM', FObj.X, FObj.Y);
 
-    // Надо убрать с карты, если это не ключ, которым нужно поделится с другим игроком:
+    // Надо убрать с карты, если это не ключ, которым нужно поделиться с другим игроком:
     if r and not ((ItemType in [ITEM_KEY_RED, ITEM_KEY_GREEN, ITEM_KEY_BLUE]) and
                   (gGameSettings.GameType = GT_SINGLE) and
                   (g_Player_GetCount() > 1)) then
@@ -2307,15 +2307,15 @@ begin
       end;
     end;
     // Обнулить действия примочек, чтобы фон пропал
-    FMegaRulez[MR_SUIT] := 0;
-    FMegaRulez[MR_INVUL] := 0;
-    FMegaRulez[MR_INVIS] := 0;
+    FPowerups[MR_SUIT] := 0;
+    FPowerups[MR_INVUL] := 0;
+    FPowerups[MR_INVIS] := 0;
     FSpawnInvul := 0;
     FBerserk := 0;
   end;
 
 // Но от остального спасает:
-  if FMegaRulez[MR_INVUL] >= gTime then
+  if FPowerups[MR_INVUL] >= gTime then
     Exit;
 
 // Чит-код "ГОРЕЦ":
@@ -2603,7 +2603,7 @@ begin
       end;
     end;
 
-    if (FMegaRulez[MR_INVUL] > gTime) and ((gPlayerDrawn <> Self) or (FSpawnInvul >= gTime)) then
+    if (FPowerups[MR_INVUL] > gTime) and ((gPlayerDrawn <> Self) or (FSpawnInvul >= gTime)) then
       if g_Texture_Get('TEXTURE_PLAYER_INVULPENTA', ID) then
       begin
         e_GetTextureSize(ID, @w, @h);
@@ -2615,13 +2615,13 @@ begin
                      fY+FObj.Rect.Y+(FObj.Rect.Height div 2)-(h div 2)-7+fSlope, 0, True, False);
       end;
 
-    if FMegaRulez[MR_INVIS] > gTime then
+    if FPowerups[MR_INVIS] > gTime then
     begin
       if (gPlayerDrawn <> nil) and ((Self = gPlayerDrawn) or
          ((FTeam = gPlayerDrawn.Team) and (gGameSettings.GameMode <> GM_DM))) then
       begin
-        if (FMegaRulez[MR_INVIS] - gTime) <= 2100 then
-          dr := not Odd((FMegaRulez[MR_INVIS] - gTime) div 300)
+        if (FPowerups[MR_INVIS] - gTime) <= 2100 then
+          dr := not Odd((FPowerups[MR_INVIS] - gTime) div 300)
         else
           dr := True;
         if dr then
@@ -2646,7 +2646,7 @@ begin
   end;
 
   if (gChatBubble > 0) and (FKeys[KEY_CHAT].Pressed) and not FGhost then
-    if (FMegaRulez[MR_INVIS] <= gTime) or ((gPlayerDrawn <> nil) and ((Self = gPlayerDrawn) or
+    if (FPowerups[MR_INVIS] <= gTime) or ((gPlayerDrawn <> nil) and ((Self = gPlayerDrawn) or
        ((FTeam = gPlayerDrawn.Team) and (gGameSettings.GameMode <> GM_DM)))) then
       DrawBubble();
  // e_DrawPoint(5, 335, 288, 255, 0, 0); // DL, UR, DL, UR
@@ -2880,10 +2880,9 @@ begin
   e_CharFont_GetSize(gMenuSmallFont, FName, tw, th);
   e_CharFont_PrintEx(gMenuSmallFont, X+98-(tw div 2), Y+8, FName, _RGB(255, 0, 0));
 
-  if R_BERSERK in FRulez then
-    e_Draw(gItemsTexturesID[ITEM_MEDKIT_BLACK], X+37, Y+45, 0, True, False)
-  else
-    e_Draw(gItemsTexturesID[ITEM_MEDKIT_LARGE], X+37, Y+45, 0, True, False);
+  if R_BERSERK in FInventory
+    then e_Draw(gItemsTexturesID[ITEM_MEDKIT_BLACK], X+37, Y+45, 0, True, False)
+    else e_Draw(gItemsTexturesID[ITEM_MEDKIT_LARGE], X+37, Y+45, 0, True, False);
 
   if g_Texture_Get('TEXTURE_PLAYER_ARMORHUD', ID) then
     e_Draw(ID, X+36, Y+77, 0, True, False);
@@ -2899,10 +2898,10 @@ begin
   s := IntToStr(GetAmmoByWeapon(FCurrWeap));
 
   case FCurrWeap of
-    WEAPON_KASTET:
+    WEAPON_IRONFIST:
     begin
       s := '--';
-      ID := gItemsTexturesID[ITEM_WEAPON_KASTET];
+      ID := gItemsTexturesID[ITEM_WEAPON_IRONFIST];
     end;
     WEAPON_SAW:
     begin
@@ -2913,7 +2912,7 @@ begin
     WEAPON_CHAINGUN: ID := gItemsTexturesID[ITEM_WEAPON_CHAINGUN];
     WEAPON_SHOTGUN1: ID := gItemsTexturesID[ITEM_WEAPON_SHOTGUN1];
     WEAPON_SHOTGUN2: ID := gItemsTexturesID[ITEM_WEAPON_SHOTGUN2];
-    WEAPON_SUPERPULEMET: ID := gItemsTexturesID[ITEM_WEAPON_SUPERPULEMET];
+    WEAPON_SUPERCHAINGUN: ID := gItemsTexturesID[ITEM_WEAPON_SUPERCHAINGUN];
     WEAPON_ROCKETLAUNCHER: ID := gItemsTexturesID[ITEM_WEAPON_ROCKETLAUNCHER];
     WEAPON_PLASMA: ID := gItemsTexturesID[ITEM_WEAPON_PLASMA];
     WEAPON_BFG: ID := gItemsTexturesID[ITEM_WEAPON_BFG];
@@ -2924,13 +2923,13 @@ begin
   e_CharFont_PrintEx(gMenuFont, X+178-tw, Y+158, s, _RGB(255, 0, 0));
   e_Draw(ID, X+20, Y+160, 0, True, False);
 
-  if R_KEY_RED in FRulez then
+  if R_KEY_RED in FInventory then
     e_Draw(gItemsTexturesID[ITEM_KEY_RED], X+78, Y+214, 0, True, False);
 
-  if R_KEY_GREEN in FRulez then
+  if R_KEY_GREEN in FInventory then
     e_Draw(gItemsTexturesID[ITEM_KEY_GREEN], X+95, Y+214, 0, True, False);
 
-  if R_KEY_BLUE in FRulez then
+  if R_KEY_BLUE in FInventory then
     e_Draw(gItemsTexturesID[ITEM_KEY_BLUE], X+112, Y+214, 0, True, False);
 
   if FJetFuel > 0 then
@@ -2973,15 +2972,15 @@ begin
   end;
 end;
 
-procedure TPlayer.DrawRulez();
+procedure TPlayer.DrawOverlay();
 var
   dr: Boolean;
 begin
   // При взятии неуязвимости рисуется инверсионный белый фон
-  if (FMegaRulez[MR_INVUL] >= gTime) and (FSpawnInvul < gTime) then
+  if (FPowerups[MR_INVUL] >= gTime) and (FSpawnInvul < gTime) then
   begin
-    if (FMegaRulez[MR_INVUL]-gTime) <= 2100 then
-      dr := not Odd((FMegaRulez[MR_INVUL]-gTime) div 300)
+    if (FPowerups[MR_INVUL]-gTime) <= 2100 then
+      dr := not Odd((FPowerups[MR_INVUL]-gTime) div 300)
     else
       dr := True;
 
@@ -2991,10 +2990,10 @@ begin
   end;
 
   // При взятии защитного костюма рисуется зеленоватый фон
-  if FMegaRulez[MR_SUIT] >= gTime then
+  if FPowerups[MR_SUIT] >= gTime then
   begin
-    if (FMegaRulez[MR_SUIT]-gTime) <= 2100 then
-      dr := not Odd((FMegaRulez[MR_SUIT]-gTime) div 300)
+    if (FPowerups[MR_SUIT]-gTime) <= 2100 then
+      dr := not Odd((FPowerups[MR_SUIT]-gTime) div 300)
     else
       dr := True;
 
@@ -3060,7 +3059,7 @@ begin
     FPunchAnim := nil;
   end;
   st := 'FRAMES_PUNCH';
-  if R_BERSERK in FRulez then
+  if R_BERSERK in FInventory then
     st := st + '_BERSERK';
   if FKeys[KEY_UP].Pressed then
     st := st + '_UP'
@@ -3097,10 +3096,10 @@ begin
   yd := wy+firediry();
 
   case FCurrWeap of
-    WEAPON_KASTET:
+    WEAPON_IRONFIST:
     begin
       DoPunch();
-      if R_BERSERK in FRulez then
+      if R_BERSERK in FInventory then
       begin
         //g_Weapon_punch(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, 75, FUID);
         locobj.X := FObj.X+FObj.Rect.X;
@@ -3236,7 +3235,7 @@ begin
         DidFire := True;
       end;
 
-    WEAPON_SUPERPULEMET:
+    WEAPON_SUPERCHAINGUN:
       if FAmmo[A_SHELLS] > 0 then
       begin
         g_Weapon_shotgun(wx, wy, xd, yd, FUID);
@@ -3293,7 +3292,7 @@ function TPlayer.GetAmmoByWeapon(Weapon: Byte): Word;
 begin
   case Weapon of
     WEAPON_PISTOL, WEAPON_CHAINGUN: Result := FAmmo[A_BULLETS];
-    WEAPON_SHOTGUN1, WEAPON_SHOTGUN2, WEAPON_SUPERPULEMET: Result := FAmmo[A_SHELLS];
+    WEAPON_SHOTGUN1, WEAPON_SHOTGUN2, WEAPON_SUPERCHAINGUN: Result := FAmmo[A_SHELLS];
     WEAPON_ROCKETLAUNCHER: Result := FAmmo[A_ROCKETS];
     WEAPON_PLASMA, WEAPON_BFG: Result := FAmmo[A_CELLS];
     WEAPON_FLAMETHROWER: Result := FAmmo[A_FUEL];
@@ -3358,7 +3357,7 @@ procedure TPlayer.CatchFire(Attacker: Word; Timeout: Integer = PLAYER_BURN_TIME)
 begin
   if Timeout <= 0 then
     exit;
-  if (FMegaRulez[MR_SUIT] > gTime) or (FMegaRulez[MR_INVUL] > gTime) then
+  if (FPowerups[MR_SUIT] > gTime) or (FPowerups[MR_INVUL] > gTime) then
     exit; // Не загораемся когда есть защита
   if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_WATER or PANEL_ACID1 or PANEL_ACID2) then
     exit; // Не подгораем в воде на всякий случай
@@ -3629,7 +3628,7 @@ begin
           WEAPON_ROCKETLAUNCHER: i := ITEM_WEAPON_ROCKETLAUNCHER;
           WEAPON_PLASMA: i := ITEM_WEAPON_PLASMA;
           WEAPON_BFG: i := ITEM_WEAPON_BFG;
-          WEAPON_SUPERPULEMET: i := ITEM_WEAPON_SUPERPULEMET;
+          WEAPON_SUPERCHAINGUN: i := ITEM_WEAPON_SUPERCHAINGUN;
           WEAPON_FLAMETHROWER: i := ITEM_WEAPON_FLAMETHROWER;
           else i := 0;
         end;
@@ -3639,7 +3638,7 @@ begin
       end;
 
 // Выброс рюкзака:
-    if R_ITEM_BACKPACK in FRulez then
+    if R_ITEM_BACKPACK in FInventory then
       PushItem(ITEM_AMMO_BACKPACK);
 
 // Выброс ракетного ранца:
@@ -3650,13 +3649,13 @@ begin
     if (not (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) or
        (not LongBool(gGameSettings.Options and GAME_OPTION_DMKEYS)) then
     begin
-      if R_KEY_RED in FRulez then
+      if R_KEY_RED in FInventory then
         PushItem(ITEM_KEY_RED);
 
-      if R_KEY_GREEN in FRulez then
+      if R_KEY_GREEN in FInventory then
         PushItem(ITEM_KEY_GREEN);
 
-      if R_KEY_BLUE in FRulez then
+      if R_KEY_BLUE in FInventory then
         PushItem(ITEM_KEY_BLUE);
     end;
 
@@ -3843,8 +3842,8 @@ function TPlayer.hasAmmoForWeapon (weapon: Byte): Boolean;
 begin
   result := false;
   case weapon of
-    WEAPON_KASTET, WEAPON_SAW: result := true;
-    WEAPON_SHOTGUN1, WEAPON_SHOTGUN2, WEAPON_SUPERPULEMET: result := (FAmmo[A_SHELLS] > 0);
+    WEAPON_IRONFIST, WEAPON_SAW: result := true;
+    WEAPON_SHOTGUN1, WEAPON_SHOTGUN2, WEAPON_SUPERCHAINGUN: result := (FAmmo[A_SHELLS] > 0);
     WEAPON_PISTOL, WEAPON_CHAINGUN: result := (FAmmo[A_BULLETS] > 0);
     WEAPON_ROCKETLAUNCHER: result := (FAmmo[A_ROCKETS] > 0);
     WEAPON_PLASMA, WEAPON_BFG: result := (FAmmo[A_CELLS] > 0);
@@ -3857,8 +3856,8 @@ function TPlayer.hasAmmoForShooting (weapon: Byte): Boolean;
 begin
   result := false;
   case weapon of
-    WEAPON_KASTET, WEAPON_SAW: result := true;
-    WEAPON_SHOTGUN1, WEAPON_SUPERPULEMET: result := (FAmmo[A_SHELLS] > 0);
+    WEAPON_IRONFIST, WEAPON_SAW: result := true;
+    WEAPON_SHOTGUN1, WEAPON_SUPERCHAINGUN: result := (FAmmo[A_SHELLS] > 0);
     WEAPON_SHOTGUN2: result := (FAmmo[A_SHELLS] > 1);
     WEAPON_PISTOL, WEAPON_CHAINGUN: result := (FAmmo[A_BULLETS] > 0);
     WEAPON_ROCKETLAUNCHER: result := (FAmmo[A_ROCKETS] > 0);
@@ -4210,14 +4209,14 @@ begin
         if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
       end;
 
-    ITEM_WEAPON_SUPERPULEMET:
-      if (FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS]) or not FWeapon[WEAPON_SUPERPULEMET] then
+    ITEM_WEAPON_SUPERCHAINGUN:
+      if (FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS]) or not FWeapon[WEAPON_SUPERCHAINGUN] then
       begin
-        if a and FWeapon[WEAPON_SUPERPULEMET] then Exit;
-        switchWeapon := WEAPON_SUPERPULEMET;
-        hadWeapon := FWeapon[WEAPON_SUPERPULEMET];
+        if a and FWeapon[WEAPON_SUPERCHAINGUN] then Exit;
+        switchWeapon := WEAPON_SUPERCHAINGUN;
+        hadWeapon := FWeapon[WEAPON_SUPERCHAINGUN];
         IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
-        FWeapon[WEAPON_SUPERPULEMET] := True;
+        FWeapon[WEAPON_SUPERCHAINGUN] := True;
         Result := True;
         if gFlash = 2 then Inc(FPickup, 5);
         if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
@@ -4318,7 +4317,7 @@ begin
       end;
 
     ITEM_AMMO_BACKPACK:
-      if not(R_ITEM_BACKPACK in FRulez) or
+      if not(R_ITEM_BACKPACK in FInventory) or
             (FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS]) or
             (FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS]) or
             (FAmmo[A_ROCKETS] < FMaxAmmo[A_ROCKETS]) or
@@ -4342,16 +4341,16 @@ begin
         if FAmmo[A_FUEL] < FMaxAmmo[A_FUEL] then
           IncMax(FAmmo[A_FUEL], 50, FMaxAmmo[A_FUEL]);
 
-        FRulez := FRulez + [R_ITEM_BACKPACK];
+        FInventory += [R_ITEM_BACKPACK];
         Result := True;
         remove := True;
-        if gFlash = 2 then Inc(FPickup, 5);
+        if gFlash = 2 then FPickup += 5;
       end;
 
     ITEM_KEY_RED:
-      if not(R_KEY_RED in FRulez) then
+      if not(R_KEY_RED in FInventory) then
       begin
-        Include(FRulez, R_KEY_RED);
+        FInventory += [R_KEY_RED];
         Result := True;
         remove := (gGameSettings.GameMode <> GM_COOP) and (g_Player_GetCount() < 2);
         if gFlash = 2 then Inc(FPickup, 5);
@@ -4359,9 +4358,9 @@ begin
       end;
 
     ITEM_KEY_GREEN:
-      if not(R_KEY_GREEN in FRulez) then
+      if not(R_KEY_GREEN in FInventory) then
       begin
-        Include(FRulez, R_KEY_GREEN);
+        FInventory += [R_KEY_GREEN];
         Result := True;
         remove := (gGameSettings.GameMode <> GM_COOP) and (g_Player_GetCount() < 2);
         if gFlash = 2 then Inc(FPickup, 5);
@@ -4369,9 +4368,9 @@ begin
       end;
 
     ITEM_KEY_BLUE:
-      if not(R_KEY_BLUE in FRulez) then
+      if not(R_KEY_BLUE in FInventory) then
       begin
-        Include(FRulez, R_KEY_BLUE);
+        FInventory += [R_KEY_BLUE];
         Result := True;
         remove := (gGameSettings.GameMode <> GM_COOP) and (g_Player_GetCount() < 2);
         if gFlash = 2 then Inc(FPickup, 5);
@@ -4379,9 +4378,9 @@ begin
       end;
 
     ITEM_SUIT:
-      if FMegaRulez[MR_SUIT] < gTime+PLAYER_SUIT_TIME then
+      if FPowerups[MR_SUIT] < gTime+PLAYER_SUIT_TIME then
       begin
-        FMegaRulez[MR_SUIT] := gTime+PLAYER_SUIT_TIME;
+        FPowerups[MR_SUIT] := gTime+PLAYER_SUIT_TIME;
         Result := True;
         remove := True;
         FFireTime := 0;
@@ -4399,18 +4398,18 @@ begin
 
     ITEM_MEDKIT_BLACK:
       begin
-        if not (R_BERSERK in FRulez) then
+        if not (R_BERSERK in FInventory) then
         begin
-          Include(FRulez, R_BERSERK);
+          FInventory += [R_BERSERK];
           if (FBFGFireCounter = -1) then
           begin
-            FCurrWeap := WEAPON_KASTET;
+            FCurrWeap := WEAPON_IRONFIST;
             resetWeaponQueue();
-            FModel.SetWeapon(WEAPON_KASTET);
+            FModel.SetWeapon(WEAPON_IRONFIST);
           end;
           if gFlash <> 0 then
           begin
-            Inc(FPain, 100);
+            FPain += 100;
             if gFlash = 2 then Inc(FPickup, 5);
           end;
           FBerserk := gTime+30000;
@@ -4429,9 +4428,9 @@ begin
       end;
 
     ITEM_INVUL:
-      if FMegaRulez[MR_INVUL] < gTime+PLAYER_INVUL_TIME then
+      if FPowerups[MR_INVUL] < gTime+PLAYER_INVUL_TIME then
       begin
-        FMegaRulez[MR_INVUL] := gTime+PLAYER_INVUL_TIME;
+        FPowerups[MR_INVUL] := gTime+PLAYER_INVUL_TIME;
         FSpawnInvul := 0;
         Result := True;
         remove := True;
@@ -4467,9 +4466,9 @@ begin
       end;
 
     ITEM_INVIS:
-      if FMegaRulez[MR_INVIS] < gTime+PLAYER_INVIS_TIME then
+      if FPowerups[MR_INVIS] < gTime+PLAYER_INVIS_TIME then
       begin
-        FMegaRulez[MR_INVIS] := gTime+PLAYER_INVIS_TIME;
+        FPowerups[MR_INVIS] := gTime+PLAYER_INVIS_TIME;
         Result := True;
         remove := True;
         if gFlash = 2 then Inc(FPickup, 5);
@@ -4667,12 +4666,12 @@ begin
   if (gGameSettings.GameType <> GT_SINGLE) and (gGameSettings.GameMode <> GM_COOP) then
     begin // "Своя игра"
     // Берсерк не сохраняется между уровнями:
-      FRulez := FRulez-[R_BERSERK];
+      FInventory -= [R_BERSERK];
     end
   else // "Одиночная игра"/"Кооп"
     begin
     // Берсерк и ключи не сохраняются между уровнями:
-      FRulez := FRulez-[R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE, R_BERSERK];
+      FInventory -= [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE, R_BERSERK];
     end;
 
 // Получаем точку спауна игрока:
@@ -4697,7 +4696,7 @@ begin
     end;
 
     FWeapon[WEAPON_PISTOL] := True;
-    FWeapon[WEAPON_KASTET] := True;
+    FWeapon[WEAPON_IRONFIST] := True;
     FCurrWeap := WEAPON_PISTOL;
     resetWeaponQueue();
 
@@ -4716,9 +4715,9 @@ begin
 
     if (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) and
        LongBool(gGameSettings.Options and GAME_OPTION_DMKEYS) then
-      FRulez := [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE]
+      FInventory := [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE]
     else
-      FRulez := [];
+      FInventory := [];
   end;
 
 // Получаем координаты точки возрождения:
@@ -4750,14 +4749,14 @@ begin
   for a := Low(FTime) to High(FTime) do
     FTime[a] := 0;
 
-  for a := Low(FMegaRulez) to High(FMegaRulez) do
-    FMegaRulez[a] := 0;
+  for a := Low(FPowerups) to High(FPowerups) do
+    FPowerups[a] := 0;
 
 // Respawn invulnerability
   if (gGameSettings.GameType <> GT_SINGLE) and (gGameSettings.SpawnInvul > 0) then
   begin
-    FMegaRulez[MR_INVUL] := gTime + gGameSettings.SpawnInvul * 1000;
-    FSpawnInvul := FMegaRulez[MR_INVUL];
+    FPowerups[MR_INVUL] := gTime + gGameSettings.SpawnInvul * 1000;
+    FSpawnInvul := FPowerups[MR_INVUL];
   end;
 
   FDamageBuffer := 0;
@@ -5332,9 +5331,9 @@ begin
   if FAlive and (FObj.Y > Integer(gMapInfo.Height)+128) and AnyServer then
   begin
     // Обнулить действия примочек, чтобы фон пропал
-    FMegaRulez[MR_SUIT] := 0;
-    FMegaRulez[MR_INVUL] := 0;
-    FMegaRulez[MR_INVIS] := 0;
+    FPowerups[MR_SUIT] := 0;
+    FPowerups[MR_INVUL] := 0;
+    FPowerups[MR_INVIS] := 0;
     Kill(K_FALLKILL, 0, HIT_FALL);
   end;
 
@@ -5402,7 +5401,7 @@ begin
         else
           Dec(FBFGFireCounter);
 
-    if (FMegaRulez[MR_SUIT] < gTime) and AnyServer then
+    if (FPowerups[MR_SUIT] < gTime) and AnyServer then
     begin
       b := g_GetAcidHit(FObj.X+PLAYER_RECT.X, FObj.Y+PLAYER_RECT.Y, PLAYER_RECT.Width, PLAYER_RECT.Height);
 
@@ -5431,9 +5430,9 @@ begin
         FFireTime := 0;
         FFirePainTime := 0;
       end
-      else if FMegaRulez[MR_SUIT] >= gTime then
+      else if FPowerups[MR_SUIT] >= gTime then
       begin
-        if FMegaRulez[MR_SUIT] = gTime then
+        if FPowerups[MR_SUIT] = gTime then
           FFireTime := 1;
         FFirePainTime := 0;
       end
@@ -5448,7 +5447,7 @@ begin
         end;
         FFirePainTime := FFirePainTime - 1;
         FFireTime := FFireTime - 1;
-        if ((FFireTime mod 33) = 0) and (FMegaRulez[MR_INVUL] < gTime) then
+        if ((FFireTime mod 33) = 0) and (FPowerups[MR_INVUL] < gTime) then
           FModel.PlaySound(MODELSOUND_PAIN, 1, FObj.X, FObj.Y);
         if (FFireTime = 0) and g_Game_IsNet and g_Game_IsServer then
           MH_SEND_PlayerStats(FUID);
@@ -5593,9 +5592,9 @@ function TPlayer.GetKeys(): Byte;
 begin
   Result := 0;
 
-  if R_KEY_RED in FRulez then Result := KEY_RED;
-  if R_KEY_GREEN in FRulez then Result := Result or KEY_GREEN;
-  if R_KEY_BLUE in FRulez then Result := Result or KEY_BLUE;
+  if R_KEY_RED in FInventory then Result := Result or KEY_RED;
+  if R_KEY_GREEN in FInventory then Result := Result or KEY_GREEN;
+  if R_KEY_BLUE in FInventory then Result := Result or KEY_BLUE;
 
   if FTeam = TEAM_RED then Result := Result or KEY_REDTEAM;
   if FTeam = TEAM_BLUE then Result := Result or KEY_BLUETEAM;
@@ -5636,11 +5635,11 @@ begin
   YD := AY;
 
   case FCurrWeap of
-    WEAPON_KASTET:
+    WEAPON_IRONFIST:
     begin
       visible := False;
       DoPunch();
-      if R_BERSERK in FRulez then
+      if R_BERSERK in FInventory then
       begin
         //g_Weapon_punch(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, 75, FUID);
         locobj.X := FObj.X+FObj.Rect.X;
@@ -5732,7 +5731,7 @@ begin
       FFireAngle := FAngle;
     end;
 
-    WEAPON_SUPERPULEMET:
+    WEAPON_SUPERCHAINGUN:
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', Gamex, Gamey);
       FFireAngle := FAngle;
@@ -6044,7 +6043,7 @@ begin
   else Result := 0;
 end;
 
-procedure TPlayer.RememberState();
+procedure TPlayer.PreserveState();
 var
   i: Integer;
   SavedState: TPlayerSavedState;
@@ -6062,7 +6061,7 @@ begin
     SavedState.Ammo[i] := FAmmo[i];
   for i := Low(FMaxAmmo) to High(FMaxAmmo) do
     SavedState.MaxAmmo[i] := FMaxAmmo[i];
-  SavedState.Rulez := FRulez - [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE];
+  SavedState.Inventory := FInventory - [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE];
 
   FSavedStateNum := -1;
   for i := Low(SavedStates) to High(SavedStates) do
@@ -6081,7 +6080,7 @@ begin
   SavedStates[FSavedStateNum] := SavedState;
 end;
 
-procedure TPlayer.RecallState();
+procedure TPlayer.RestoreState();
 var
   i: Integer;
   SavedState: TPlayerSavedState;
@@ -6106,7 +6105,7 @@ begin
     FAmmo[i] := SavedState.Ammo[i];
   for i := Low(FMaxAmmo) to High(FMaxAmmo) do
     FMaxAmmo[i] := SavedState.MaxAmmo[i];
-  FRulez := SavedState.Rulez;
+  FInventory := SavedState.Inventory;
 
   if gGameSettings.GameType = GT_SERVER then
     MH_SEND_PlayerStats(FUID);
@@ -6190,17 +6189,17 @@ begin
   // Время перезарядки оружия
   for i := WP_FIRST to WP_LAST do utils.writeInt(st, Word(FReloading[i]));
   // Наличие рюкзака
-  utils.writeBool(st, (R_ITEM_BACKPACK in FRulez));
+  utils.writeBool(st, (R_ITEM_BACKPACK in FInventory));
   // Наличие красного ключа
-  utils.writeBool(st, (R_KEY_RED in FRulez));
+  utils.writeBool(st, (R_KEY_RED in FInventory));
   // Наличие зеленого ключа
-  utils.writeBool(st, (R_KEY_GREEN in FRulez));
+  utils.writeBool(st, (R_KEY_GREEN in FInventory));
   // Наличие синего ключа
-  utils.writeBool(st, (R_KEY_BLUE in FRulez));
+  utils.writeBool(st, (R_KEY_BLUE in FInventory));
   // Наличие берсерка
-  utils.writeBool(st, (R_BERSERK in FRulez));
+  utils.writeBool(st, (R_BERSERK in FInventory));
   // Время действия специальных предметов
-  for i := MR_SUIT to MR_MAX do utils.writeInt(st, LongWord(FMegaRulez[i]));
+  for i := MR_SUIT to MR_MAX do utils.writeInt(st, LongWord(FPowerups[i]));
   // Время до повторного респауна, смены оружия, исользования, захвата флага
   for i := T_RESPAWN to T_FLAGCAP do utils.writeInt(st, LongWord(FTime[i]));
   // Название модели
@@ -6294,17 +6293,17 @@ begin
   // Время перезарядки оружия
   for i := WP_FIRST to WP_LAST do FReloading[i] := utils.readWord(st);
   // Наличие рюкзака
-  if utils.readBool(st) then Include(FRulez, R_ITEM_BACKPACK);
+  if utils.readBool(st) then FInventory += [R_ITEM_BACKPACK];
   // Наличие красного ключа
-  if utils.readBool(st) then Include(FRulez, R_KEY_RED);
+  if utils.readBool(st) then FInventory += [R_KEY_RED];
   // Наличие зеленого ключа
-  if utils.readBool(st) then Include(FRulez, R_KEY_GREEN);
+  if utils.readBool(st) then FInventory += [R_KEY_GREEN];
   // Наличие синего ключа
-  if utils.readBool(st) then Include(FRulez, R_KEY_BLUE);
+  if utils.readBool(st) then FInventory += [R_KEY_BLUE];
   // Наличие берсерка
-  if utils.readBool(st) then Include(FRulez, R_BERSERK);
+  if utils.readBool(st) then FInventory += [R_BERSERK];
   // Время действия специальных предметов
-  for i := MR_SUIT to MR_MAX do FMegaRulez[i] := utils.readLongWord(st);
+  for i := MR_SUIT to MR_MAX do FPowerups[i] := utils.readLongWord(st);
   // Время до повторного респауна, смены оружия, исользования, захвата флага
   for i := T_RESPAWN to T_FLAGCAP do FTime[i] := utils.readLongWord(st);
   // Название модели
@@ -6325,14 +6324,13 @@ begin
   end;
   // Обновляем модель игрока
   SetModel(str);
-  if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
-    FModel.Color := TEAMCOLOR[FTeam]
-  else
-    FModel.Color := FColor;
+  if gGameSettings.GameMode in [GM_TDM, GM_CTF]
+    then FModel.Color := TEAMCOLOR[FTeam]
+    else FModel.Color := FColor;
 end;
 
 
-procedure TPlayer.AllRulez(Health: Boolean);
+procedure TPlayer.TankRamboCheats(Health: Boolean);
 var
   a: Integer;
 begin
@@ -6345,7 +6343,7 @@ begin
 
   for a := WP_FIRST to WP_LAST do FWeapon[a] := True;
   for a := A_BULLETS to A_HIGH do FAmmo[a] := 30000;
-  FRulez := FRulez+[R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE];
+  FInventory += [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE];
 end;
 
 procedure TPlayer.RestoreHealthArmor();
@@ -6387,57 +6385,46 @@ procedure TPlayer.GiveItem(ItemType: Byte);
 begin
   case ItemType of
     ITEM_SUIT:
-      if FMegaRulez[MR_SUIT] < gTime+PLAYER_SUIT_TIME then
-      begin
-        FMegaRulez[MR_SUIT] := gTime+PLAYER_SUIT_TIME;
-      end;
+      if FPowerups[MR_SUIT] < gTime+PLAYER_SUIT_TIME then
+        FPowerups[MR_SUIT] := gTime+PLAYER_SUIT_TIME;
 
     ITEM_OXYGEN:
-      if FAir < AIR_MAX then
-      begin
-        FAir := AIR_MAX;
-      end;
+      if FAir < AIR_MAX then FAir := AIR_MAX;
 
     ITEM_MEDKIT_BLACK:
+    begin
+      if not (R_BERSERK in FInventory) then
       begin
-        if not (R_BERSERK in FRulez) then
+        FInventory += [R_BERSERK];
+        if FBFGFireCounter < 1 then
         begin
-          Include(FRulez, R_BERSERK);
-          if FBFGFireCounter < 1 then
-          begin
-            FCurrWeap := WEAPON_KASTET;
-            resetWeaponQueue();
-            FModel.SetWeapon(WEAPON_KASTET);
-          end;
-          if gFlash <> 0 then
-            Inc(FPain, 100);
-          FBerserk := gTime+30000;
+          FCurrWeap := WEAPON_IRONFIST;
+          resetWeaponQueue();
+          FModel.SetWeapon(WEAPON_IRONFIST);
         end;
-        if FHealth < PLAYER_HP_SOFT then
-        begin
-          FHealth := PLAYER_HP_SOFT;
-          FBerserk := gTime+30000;
-        end;
+        if gFlash <> 0 then FPain += 100;
+        FBerserk := gTime+30000;
       end;
+      if FHealth < PLAYER_HP_SOFT then
+      begin
+        FHealth := PLAYER_HP_SOFT;
+        FBerserk := gTime+30000;
+      end;
+    end;
 
     ITEM_INVUL:
-      if FMegaRulez[MR_INVUL] < gTime+PLAYER_INVUL_TIME then
+      if FPowerups[MR_INVUL] < gTime+PLAYER_INVUL_TIME then
       begin
-        FMegaRulez[MR_INVUL] := gTime+PLAYER_INVUL_TIME;
+        FPowerups[MR_INVUL] := gTime+PLAYER_INVUL_TIME;
         FSpawnInvul := 0;
       end;
 
     ITEM_INVIS:
-      if FMegaRulez[MR_INVIS] < gTime+PLAYER_INVIS_TIME then
-      begin
-        FMegaRulez[MR_INVIS] := gTime+PLAYER_INVIS_TIME;
-      end;
+      if FPowerups[MR_INVIS] < gTime+PLAYER_INVIS_TIME then
+        FPowerups[MR_INVIS] := gTime+PLAYER_INVIS_TIME;
 
     ITEM_JETPACK:
-      if FJetFuel < JET_MAX then
-      begin
-        FJetFuel := JET_MAX;
-      end;
+      if FJetFuel < JET_MAX then FJetFuel := JET_MAX;
 
     ITEM_MEDKIT_SMALL: if FHealth < PLAYER_HP_SOFT then IncMax(FHealth, 10, PLAYER_HP_SOFT);
     ITEM_MEDKIT_LARGE: if FHealth < PLAYER_HP_SOFT then IncMax(FHealth, 25, PLAYER_HP_SOFT);
@@ -6460,7 +6447,7 @@ begin
     ITEM_WEAPON_ROCKETLAUNCHER: FWeapon[WEAPON_ROCKETLAUNCHER] := True;
     ITEM_WEAPON_PLASMA: FWeapon[WEAPON_PLASMA] := True;
     ITEM_WEAPON_BFG: FWeapon[WEAPON_BFG] := True;
-    ITEM_WEAPON_SUPERPULEMET: FWeapon[WEAPON_SUPERPULEMET] := True;
+    ITEM_WEAPON_SUPERCHAINGUN: FWeapon[WEAPON_SUPERCHAINGUN] := True;
     ITEM_WEAPON_FLAMETHROWER: FWeapon[WEAPON_FLAMETHROWER] := True;
 
     ITEM_AMMO_BULLETS: if FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS] then IncMax(FAmmo[A_BULLETS], 10, FMaxAmmo[A_BULLETS]);
@@ -6491,12 +6478,12 @@ begin
         if FAmmo[A_ROCKETS] < FMaxAmmo[A_ROCKETS] then IncMax(FAmmo[A_ROCKETS], 1, FMaxAmmo[A_ROCKETS]);
         if FAmmo[A_CELLS] < FMaxAmmo[A_CELLS] then IncMax(FAmmo[A_CELLS], 40, FMaxAmmo[A_CELLS]);
 
-        FRulez := FRulez + [R_ITEM_BACKPACK];
+        FInventory += [R_ITEM_BACKPACK];
       end;
 
-    ITEM_KEY_RED: if not (R_KEY_RED in FRulez) then Include(FRulez, R_KEY_RED);
-    ITEM_KEY_GREEN: if not (R_KEY_GREEN in FRulez) then Include(FRulez, R_KEY_GREEN);
-    ITEM_KEY_BLUE: if not (R_KEY_BLUE in FRulez) then Include(FRulez, R_KEY_BLUE);
+    ITEM_KEY_RED: if not (R_KEY_RED in FInventory) then FInventory += [R_KEY_RED];
+    ITEM_KEY_GREEN: if not (R_KEY_GREEN in FInventory) then FInventory += [R_KEY_GREEN];
+    ITEM_KEY_BLUE: if not (R_KEY_BLUE in FInventory) then FInventory += [R_KEY_BLUE];
 
     ITEM_BOTTLE: if FHealth < PLAYER_HP_LIMIT then IncMax(FHealth, 4, PLAYER_HP_LIMIT);
     ITEM_HELMET: if FArmor < PLAYER_AP_LIMIT then IncMax(FArmor, 5, PLAYER_AP_LIMIT);
@@ -6941,8 +6928,8 @@ begin
       RemoveAIFlag('NEEDFIRE');
 
       case FCurrWeap of
-        WEAPON_PLASMA, WEAPON_SUPERPULEMET, WEAPON_CHAINGUN: PressKey(KEY_FIRE, 20);
-        WEAPON_SAW, WEAPON_KASTET, WEAPON_FLAMETHROWER: PressKey(KEY_FIRE, 40);
+        WEAPON_PLASMA, WEAPON_SUPERCHAINGUN, WEAPON_CHAINGUN: PressKey(KEY_FIRE, 20);
+        WEAPON_SAW, WEAPON_IRONFIST, WEAPON_FLAMETHROWER: PressKey(KEY_FIRE, 40);
         else PressKey(KEY_FIRE);
       end;
     end;
@@ -7024,7 +7011,7 @@ begin
            (gPlayers[a].FUID <> FUID) and
            (not SameTeam(FUID, gPlayers[a].FUID)) and
            (not gPlayers[a].NoTarget) and
-           (gPlayers[a].FMegaRulez[MR_INVIS] < gTime) then
+           (gPlayers[a].FPowerups[MR_INVIS] < gTime) then
           begin
             if not TargetOnScreen(gPlayers[a].FObj.X + PLAYER_RECT.X,
                                   gPlayers[a].FObj.Y + PLAYER_RECT.Y) then
@@ -7211,7 +7198,7 @@ begin
             begin // Цель - игрок
               pla := g_Player_Get(Target.UID);
               if (pla = nil) or (not pla.alive) or pla.NoTarget or
-                 (pla.FMegaRulez[MR_INVIS] >= gTime) then
+                 (pla.FPowerups[MR_INVIS] >= gTime) then
                 Target.UID := 0; // то забыть цель
             end
           else
@@ -7851,7 +7838,7 @@ begin
     Jump(20);
 
 // Выбираемся из кислоты, если нет костюма, обожглись, или мало здоровья:
-  if (FMegaRulez[MR_SUIT] < gTime) and ((FLastHit = HIT_ACID) or (Healthy() <= 1)) then
+  if (FPowerups[MR_SUIT] < gTime) and ((FLastHit = HIT_ACID) or (Healthy() <= 1)) then
     if BodyInAcid(0, 0) then
       Jump();
 end;
@@ -7881,7 +7868,7 @@ var
       WEAPON_ROCKETLAUNCHER: Result := FAmmo[A_ROCKETS] >= 1;
       WEAPON_PLASMA: Result := FAmmo[A_CELLS] >= 10;
       WEAPON_BFG: Result := FAmmo[A_CELLS] >= 40;
-      WEAPON_SUPERPULEMET: Result := FAmmo[A_SHELLS] >= 1;
+      WEAPON_SUPERCHAINGUN: Result := FAmmo[A_SHELLS] >= 1;
       WEAPON_FLAMETHROWER: Result := FAmmo[A_FUEL] >= 1;
       else Result := True;
     end;
@@ -7933,7 +7920,7 @@ end;
 
 function TBot.Healthy(): Byte;
 begin
-  if FMegaRulez[MR_INVUL] >= gTime then Result := 3
+  if FPowerups[MR_INVUL] >= gTime then Result := 3
   else if (FHealth > 80) or ((FHealth > 50) and (FArmor > 20)) then Result := 3
   else if (FHealth > 50) then Result := 2
   else if (FHealth > 20) then Result := 1

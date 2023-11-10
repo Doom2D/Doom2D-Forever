@@ -75,8 +75,8 @@ var
   gsSpawnInvul: Integer = 0;
   gsItemRespawnTime: Word = 60;
   gsItemRespawnRandom: Word = 0;
-  gsRulezRespawnTime: Word = 60;
-  gsRulezRespawnRandom: Word = 0;
+  gsPowerupRespawnTime: Word = 60;
+  gsPowerupRespawnRandom: Word = 0;
   gsWarmupTime: Word = 30;
 
 implementation
@@ -271,8 +271,8 @@ begin
   gsSpawnInvul := 0;
   gsItemRespawnTime := 60;
   gsItemRespawnRandom := 0;
-  gsRulezRespawnTime := 60;
-  gsRulezRespawnRandom := 0;
+  gsPowerupRespawnTime := 60;
+  gsPowerupRespawnRandom := 0;
   gsGameFlags := GAME_OPTION_ALLOWEXIT or GAME_OPTION_DMKEYS or
     GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER or
     GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE or
@@ -322,8 +322,8 @@ begin
     SpawnInvul := gsSpawnInvul;
     ItemRespawnTime := gsItemRespawnTime;
     ItemRespawnRandom := gsItemRespawnRandom;
-    RulezRespawnTime := gsRulezRespawnTime;
-    RulezRespawnRandom := gsRulezRespawnRandom;
+    PowerupRespawnTime := gsPowerupRespawnTime;
+    PowerupRespawnRandom := gsPowerupRespawnRandom;
     WarmupTime := gsWarmupTime;
     Options := gsGameFlags;
   end;
