@@ -2349,14 +2349,14 @@ begin
 
   // Не создавать выход, если игра без выхода
   if (aTrigger.TriggerType = TRIGGER_EXIT) and
-     (not LongBool(gGameSettings.Options and GAME_OPTION_ALLOWEXIT)) then
+     (not (TGameOption.ALLOW_EXIT in gGameSettings.Options)) then
   begin
     aTrigger.TriggerType := TRIGGER_NONE;
   end;
 
   // Если монстры запрещены, отменяем триггер
   if (aTrigger.TriggerType = TRIGGER_SPAWNMONSTER) and
-     (not LongBool(gGameSettings.Options and GAME_OPTION_MONSTERS)) and
+     (not (TGameOption.MONSTERS in gGameSettings.Options)) and
      (gGameSettings.GameType <> GT_SINGLE) then
   begin
     aTrigger.TriggerType := TRIGGER_NONE;

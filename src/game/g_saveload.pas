@@ -384,7 +384,7 @@ begin
         gGameSettings.TimeLimit := Game_TimeLimit;
         gGameSettings.ScoreLimit := Game_ScoreLimit;
         gGameSettings.MaxLives := Game_MaxLives;
-        gGameSettings.Options := Game_Options;
+        gGameSettings.Options := TGameOptions(Game_Options);
         gSwitchGameMode := Game_Mode;
         g_Game_ExecuteEvent('ongamestart');
 

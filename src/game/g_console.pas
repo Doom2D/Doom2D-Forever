@@ -2189,9 +2189,9 @@ end;
 procedure g_Console_WriteConfig (filename: String);
   var f: TextFile; i, j: Integer;
 
-  procedure WriteFlag(name: string; flag: LongWord);
+  procedure WriteFlag(name: string; flag: TGameOption);
   begin
-    WriteLn(f, name, IfThen(LongBool(gsGameFlags and flag), 1, 0));
+    WriteLn(f, name, Ord(flag in gsGameFlags));
   end;
 
   function FormatTeam(team: Byte): string;
@@ -2256,22 +2256,22 @@ begin
   WriteLn(f, 'g_spawn_invul ', gsSpawnInvul);
   WriteLn(f, 'g_warmup_time ', gsWarmupTime);
 
-  WriteFlag('g_friendlyfire ', GAME_OPTION_TEAMDAMAGE);
-  WriteFlag('g_friendly_hit_trace ', GAME_OPTION_TEAMHITTRACE);
-  WriteFlag('g_friendly_hit_projectile ', GAME_OPTION_TEAMHITPROJECTILE);
-  WriteFlag('g_powerup_randomize_respawn ', GAME_OPTION_POWERUPRANDOM);
-  WriteFlag('g_items_all_respawn_random ', GAME_OPTION_ITEMALLRANDOM);
-  WriteFlag('g_items_help_respawn_random ', GAME_OPTION_ITEMHELPRANDOM);
-  WriteFlag('g_items_ammo_respawn_random ', GAME_OPTION_ITEMAMMORANDOM);
-  WriteFlag('g_items_weapon_respawn_random ', GAME_OPTION_ITEMWEAPONRANDOM);
-  WriteFlag('g_allow_exit ', GAME_OPTION_ALLOWEXIT);
-  WriteFlag('g_allow_monsters ', GAME_OPTION_MONSTERS);
-  WriteFlag('g_allow_dropflag ', GAME_OPTION_ALLOWDROPFLAG);
-  WriteFlag('g_throw_flag ', GAME_OPTION_THROWFLAG);
-  WriteFlag('g_dm_keys ', GAME_OPTION_DMKEYS);
-  WriteFlag('g_weaponstay ', GAME_OPTION_WEAPONSTAY);
-  WriteFlag('g_bot_vsmonsters ', GAME_OPTION_BOTVSMONSTER);
-  WriteFlag('g_bot_vsplayers ', GAME_OPTION_BOTVSPLAYER);
+  WriteFlag('g_friendlyfire ', TGameOption.TEAM_DAMAGE);
+  WriteFlag('g_friendly_hit_trace ', TGameOption.TEAM_HIT_TRACE);
+  WriteFlag('g_friendly_hit_projectile ', TGameOption.TEAM_HIT_PROJECTILE);
+  WriteFlag('g_powerup_randomize_respawn ', TGameOption.POWERUP_RANDOM);
+  WriteFlag('g_items_all_respawn_random ', TGameOption.ITEM_ALL_RANDOM);
+  WriteFlag('g_items_help_respawn_random ', TGameOption.ITEM_LIFE_RANDOM);
+  WriteFlag('g_items_ammo_respawn_random ', TGameOption.ITEM_AMMO_RANDOM);
+  WriteFlag('g_items_weapon_respawn_random ', TGameOption.ITEM_WEAPON_RANDOM);
+  WriteFlag('g_allow_exit ', TGameOption.ALLOW_EXIT);
+  WriteFlag('g_allow_monsters ', TGameOption.MONSTERS);
+  WriteFlag('g_allow_dropflag ', TGameOption.ALLOW_DROP_FLAG);
+  WriteFlag('g_throw_flag ', TGameOption.THROW_FLAG);
+  WriteFlag('g_dm_keys ', TGameOption.DM_KEYS);
+  WriteFlag('g_weaponstay ', TGameOption.WEAPONS_STAY);
+  WriteFlag('g_bot_vsmonsters ', TGameOption.BOTS_VS_MONSTERS);
+  WriteFlag('g_bot_vsplayers ', TGameOption.BOTS_VS_PLAYERS);
 
   // players
   with gPlayer1Settings do

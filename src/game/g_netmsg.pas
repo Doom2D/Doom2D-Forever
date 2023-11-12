@@ -989,7 +989,7 @@ begin
   NetOut.Write(gGameSettings.ScoreLimit);
   NetOut.Write(gGameSettings.TimeLimit);
   NetOut.Write(gGameSettings.MaxLives);
-  NetOut.Write(gGameSettings.Options);
+  NetOut.Write(LongWord(gGameSettings.Options));
   NetOut.Write(gTime);
 
   g_Net_Host_Send(ID, True);
@@ -1219,7 +1219,7 @@ begin
   NetOut.Write(gGameSettings.ScoreLimit);
   NetOut.Write(gGameSettings.TimeLimit);
   NetOut.Write(gGameSettings.MaxLives);
-  NetOut.Write(gGameSettings.Options);
+  NetOut.Write(LongWord(gGameSettings.Options));
 
   g_Net_Host_Send(ID, True);
 end;
@@ -2372,7 +2372,7 @@ begin
   gGameSettings.ScoreLimit := M.ReadWord();
   gGameSettings.TimeLimit := M.ReadWord();
   gGameSettings.MaxLives := M.ReadByte();
-  gGameSettings.Options := M.ReadLongWord();
+  gGameSettings.Options := TGameOptions(M.ReadLongWord());
 end;
 
 // PLAYER

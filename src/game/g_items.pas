@@ -733,88 +733,81 @@ end;
 
 procedure g_Items_Pick (ID: DWORD);
 begin
-  if (ID < Length(ggItems)) then
+  if ID >= Length(ggItems) then exit;
+
+  ggItems[ID].Obj.oldX := ggItems[ID].Obj.X;
+  ggItems[ID].Obj.oldY := ggItems[ID].Obj.Y;
+  ggItems[ID].alive := false;
+
+  // Items respawn timer
+  ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.ItemRespawnTime, 15) * 36;
+
+  // Powerup respawn timer
+  if ggItems[ID].ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL, ITEM_INVIS,
+    ITEM_MEDKIT_BLACK, ITEM_JETPACK, ITEM_SUIT] then
   begin
-    ggItems[ID].Obj.oldX := ggItems[ID].Obj.X;
-    ggItems[ID].Obj.oldY := ggItems[ID].Obj.Y;
-    ggItems[ID].alive := false;
+    ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.PowerupRespawnTime, 15) * 36;
+  end;
 
-    // Items respawn timer
-    ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.ItemRespawnTime, 15) * 36;
+  // #### Random powerup respawn ####
+  if (TGameOption.POWERUP_RANDOM in gGameSettings.Options) and (ggItems[ID].ItemType in [
+    ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL, ITEM_INVIS, ITEM_MEDKIT_BLACK, ITEM_JETPACK,
+    ITEM_SUIT
+  ]) then
+  begin
+    ggItems[ID].RespawnTime := Max(1, (gGameSettings.PowerupRespawnTime +
+      RandomRange(-gGameSettings.PowerupRespawnRandom, gGameSettings.PowerupRespawnRandom + 1)) * 36);
+    //e_logwritefln ('Randomized powerup %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
+  end;
 
-    // Powerup respawn timer
-    if ggItems[ID].ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL,
-                         ITEM_INVIS, ITEM_MEDKIT_BLACK, ITEM_JETPACK, ITEM_SUIT] then
-    begin
-      ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.PowerupRespawnTime, 15) * 36;
-    end;
+  // #### Random item respawn ####
+  // Randomize respawn for all items (excluding powerups)
+  if (TGameOption.ITEM_ALL_RANDOM in gGameSettings.Options) and (ggItems[ID].ItemType in [
+    ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE, ITEM_ARMOR_GREEN, ITEM_ARMOR_BLUE, ITEM_BOTTLE,
+    ITEM_HELMET, ITEM_OXYGEN, ITEM_AMMO_BULLETS, ITEM_AMMO_BULLETS_BOX, ITEM_AMMO_SHELLS,
+    ITEM_AMMO_SHELLS_BOX, ITEM_AMMO_ROCKET, ITEM_AMMO_ROCKET_BOX, ITEM_AMMO_CELL,
+    ITEM_AMMO_CELL_BIG, ITEM_AMMO_FUELCAN, ITEM_AMMO_BACKPACK, ITEM_WEAPON_SAW,
+    ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2, ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER,
+    ITEM_WEAPON_PLASMA, ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERCHAINGUN, ITEM_WEAPON_FLAMETHROWER
+  ]) then
+  begin
+    ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime +
+      RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
+    //e_logwritefln ('Randomized item %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
+  end;
 
-    // #### Random powerup respawn ####
-    if LongBool(gGameSettings.Options and GAME_OPTION_POWERUPRANDOM) then
-    begin
-      if ggItems[ID].ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL,
-                           ITEM_INVIS, ITEM_MEDKIT_BLACK, ITEM_JETPACK, ITEM_SUIT] then
-      begin
-        ggItems[ID].RespawnTime := Max(1, (gGameSettings.PowerupRespawnTime +
-          RandomRange(-gGameSettings.PowerupRespawnRandom, gGameSettings.PowerupRespawnRandom + 1)) * 36);
-        //e_logwritefln ('Randomized powerup %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
-      end;
-    end;
+  // Randomize respawn for heal/armor
+  if (TGameOption.ITEM_LIFE_RANDOM in gGameSettings.Options) and (ggItems[ID].ItemType in [
+    ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE, ITEM_ARMOR_GREEN, ITEM_ARMOR_BLUE, ITEM_BOTTLE,
+    ITEM_HELMET, ITEM_OXYGEN, ITEM_AMMO_BACKPACK
+  ]) then
+  begin
+    ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime +
+      RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
+    //e_logwritefln ('Randomized help item %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
+  end;
 
-    // #### Random item respawn ####
-    // Randomize respawn for all items (excluding powerups)
-    if LongBool(gGameSettings.Options and GAME_OPTION_ITEMALLRANDOM) then
-    begin
-      if ggItems[ID].ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE, ITEM_ARMOR_GREEN,
-                                  ITEM_ARMOR_BLUE, ITEM_BOTTLE, ITEM_HELMET, ITEM_OXYGEN,
-                                  ITEM_AMMO_BULLETS, ITEM_AMMO_BULLETS_BOX, ITEM_AMMO_SHELLS,
-                                  ITEM_AMMO_SHELLS_BOX, ITEM_AMMO_ROCKET, ITEM_AMMO_ROCKET_BOX,
-                                  ITEM_AMMO_CELL, ITEM_AMMO_CELL_BIG, ITEM_AMMO_FUELCAN,
-                                  ITEM_AMMO_BACKPACK, ITEM_WEAPON_SAW, ITEM_WEAPON_SHOTGUN1,
-                                  ITEM_WEAPON_SHOTGUN2, ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER,
-                                  ITEM_WEAPON_PLASMA, ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERCHAINGUN,
-                                  ITEM_WEAPON_FLAMETHROWER] then
-      begin
-        ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime + RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
-        //e_logwritefln ('Randomized item %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
-      end;
-    end;
+  // Randomize respawn for ammo
+  if (TGameOption.ITEM_AMMO_RANDOM in gGameSettings.Options) and (ggItems[ID].ItemType in [
+    ITEM_AMMO_BULLETS, ITEM_AMMO_BULLETS_BOX, ITEM_AMMO_SHELLS, ITEM_AMMO_SHELLS_BOX,
+    ITEM_AMMO_ROCKET, ITEM_AMMO_ROCKET_BOX, ITEM_AMMO_CELL, ITEM_AMMO_CELL_BIG, ITEM_AMMO_FUELCAN
+  ]) then
+  begin
+    ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime +
+      RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
+    //e_logwritefln ('Randomized ammo %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
+  end;
 
-    // Randomize respawn for heal/armor
-    if LongBool(gGameSettings.Options and GAME_OPTION_ITEMHELPRANDOM) then
-    begin
-      if ggItems[ID].ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE, ITEM_ARMOR_GREEN,
-                                  ITEM_ARMOR_BLUE, ITEM_BOTTLE, ITEM_HELMET, ITEM_OXYGEN,
-                                  ITEM_AMMO_BACKPACK] then
-      begin
-        ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime + RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
-        //e_logwritefln ('Randomized help item %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
-      end;
-    end;
-
-    // Randomize respawn for ammo
-    if LongBool(gGameSettings.Options and GAME_OPTION_ITEMAMMORANDOM) then
-    begin
-      if ggItems[ID].ItemType in [ITEM_AMMO_BULLETS, ITEM_AMMO_BULLETS_BOX, ITEM_AMMO_SHELLS,
-                                  ITEM_AMMO_SHELLS_BOX, ITEM_AMMO_ROCKET, ITEM_AMMO_ROCKET_BOX,
-                                  ITEM_AMMO_CELL, ITEM_AMMO_CELL_BIG, ITEM_AMMO_FUELCAN] then
-      begin
-        ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime + RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
-        //e_logwritefln ('Randomized ammo %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
-      end;
-    end;
-
-    // Randomize respawn for weapons
-    if LongBool(gGameSettings.Options and GAME_OPTION_ITEMWEAPONRANDOM) then
-    begin
-      if ggItems[ID].ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
-                                  ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
-                                  ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERCHAINGUN, ITEM_WEAPON_FLAMETHROWER] then
-      begin
-        ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime + RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
-        //e_logwritefln ('Randomized weapon %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
-      end;
-    end;
+  // Randomize respawn for weapons
+  if (TGameOption.ITEM_WEAPON_RANDOM in gGameSettings.Options) and (ggItems[ID].ItemType in [
+    ITEM_WEAPON_SAW, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2, ITEM_WEAPON_CHAINGUN,
+    ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA, ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERCHAINGUN,
+    ITEM_WEAPON_FLAMETHROWER
+  ]) then
+  begin
+    ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime +
+      RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
+    //e_logwritefln ('Randomized weapon %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
   end;
 end;
 

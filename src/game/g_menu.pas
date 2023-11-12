@@ -738,36 +738,36 @@ begin
     gsPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex;
     gsMap := Map;
 
-    gsGameFlags := 0;
+    gsGameFlags := [];
     if TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0 then
-      gsGameFlags := gsGameFlags or GAME_OPTION_TEAMDAMAGE;
+      gsGameFlags += [TGameOption.TEAM_DAMAGE];
     if TGUISwitch(GetControl('swTeamAbsorbDamage')).ItemIndex = 0 then
-      gsGameFlags := gsGameFlags or GAME_OPTION_TEAMABSORBDAMAGE;
+      gsGameFlags += [TGameOption.TEAM_ABSORB_DAMAGE];
     if TGUISwitch(GetControl('swDeathmatchKeys')).ItemIndex = 0 then
-      gsGameFlags := gsGameFlags or GAME_OPTION_DMKEYS;
+      gsGameFlags += [TGameOption.DM_KEYS];
     if TGUISwitch(GetControl('swEnableExits')).ItemIndex = 0 then
-      gsGameFlags := gsGameFlags or GAME_OPTION_ALLOWEXIT;
+      gsGameFlags += [TGameOption.ALLOW_EXIT];
     if TGUISwitch(GetControl('swWeaponStay')).ItemIndex = 0 then
-      gsGameFlags := gsGameFlags or GAME_OPTION_WEAPONSTAY;
+      gsGameFlags += [TGameOption.WEAPONS_STAY];
     if TGUISwitch(GetControl('swMonsters')).ItemIndex = 0 then
-      gsGameFlags := gsGameFlags or GAME_OPTION_MONSTERS;
+      gsGameFlags += [TGameOption.MONSTERS];
 
     case TGUISwitch(GetControl('swTeamHit')).ItemIndex of
-      1: gsGameFlags := gsGameFlags or GAME_OPTION_TEAMHITTRACE;
-      2: gsGameFlags := gsGameFlags or GAME_OPTION_TEAMHITPROJECTILE;
-      0: gsGameFlags := gsGameFlags or GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE;
+      1: gsGameFlags += [TGameOption.TEAM_HIT_TRACE];
+      2: gsGameFlags += [TGameOption.TEAM_HIT_PROJECTILE];
+      0: gsGameFlags += [TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_HIT_PROJECTILE];
     end;
 
     case TGUISwitch(GetControl('swBotsVS')).ItemIndex of
-      1: gsGameFlags := gsGameFlags or GAME_OPTION_BOTVSMONSTER;
-      2: gsGameFlags := gsGameFlags or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
-      else gsGameFlags := gsGameFlags or GAME_OPTION_BOTVSPLAYER;
+      1: gsGameFlags += [TGameOption.BOTS_VS_MONSTERS];
+      2: gsGameFlags += [TGameOption.BOTS_VS_PLAYERS, TGameOption.BOTS_VS_MONSTERS];
+      else gsGameFlags += [TGameOption.BOTS_VS_PLAYERS];
     end;
 
     case TGUISwitch(GetControl('swFlagDrop')).ItemIndex of
-      0: gsGameFlags := gsGameFlags or GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG;
-      1: gsGameFlags := gsGameFlags or GAME_OPTION_ALLOWDROPFLAG;
-      else gsGameFlags := gsGameFlags and not (GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG);
+      0: gsGameFlags += [TGameOption.ALLOW_DROP_FLAG, TGameOption.THROW_FLAG];
+      1: gsGameFlags += [TGameOption.ALLOW_DROP_FLAG];
+      else gsGameFlags -= [TGameOption.ALLOW_DROP_FLAG, TGameOption.THROW_FLAG];
     end;
 
     // TODO: get this crap out of here
@@ -784,16 +784,16 @@ begin
     gsPowerupRespawnRandom := StrToIntDef(TGUIEdit(GetControl('edPowerupRespawnRandom')).Text, 0);
 
     if TGUISwitch(GetControl('swPowerupRandom')).ItemIndex = 0 then
-      gsGameFlags := gsGameFlags or GAME_OPTION_POWERUPRANDOM;
+      gsGameFlags += [TGameOption.POWERUP_RANDOM];
 
     case TGUISwitch(GetControl('swItemsRandom')).ItemIndex of
-      1: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMHELPRANDOM;
-      2: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMAMMORANDOM;
-      3: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMWEAPONRANDOM;
-      4: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMHELPRANDOM or GAME_OPTION_ITEMAMMORANDOM;
-      5: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMHELPRANDOM or GAME_OPTION_ITEMWEAPONRANDOM;
-      6: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMAMMORANDOM or GAME_OPTION_ITEMWEAPONRANDOM;
-      0: gsGameFlags := gsGameFlags or GAME_OPTION_ITEMALLRANDOM;
+      1: gsGameFlags += [TGameOption.ITEM_LIFE_RANDOM];
+      2: gsGameFlags += [TGameOption.ITEM_AMMO_RANDOM];
+      3: gsGameFlags += [TGameOption.ITEM_WEAPON_RANDOM];
+      4: gsGameFlags += [TGameOption.ITEM_LIFE_RANDOM, TGameOption.ITEM_AMMO_RANDOM];
+      5: gsGameFlags += [TGameOption.ITEM_LIFE_RANDOM, TGameOption.ITEM_WEAPON_RANDOM];
+      6: gsGameFlags += [TGameOption.ITEM_AMMO_RANDOM, TGameOption.ITEM_WEAPON_RANDOM];
+      0: gsGameFlags += [TGameOption.ITEM_ALL_RANDOM];
     end;
 
     // TODO: get this crap out of here
@@ -1778,28 +1778,26 @@ begin
   with gGameSettings do
   begin
     with TGUISwitch(menu.GetControl('swTeamDamage')) do
-      if LongBool(Options and GAME_OPTION_TEAMDAMAGE) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      if TGameOption.TEAM_DAMAGE in Options
+        then ItemIndex := 0
+        else ItemIndex := 1;
     with TGUISwitch(menu.GetControl('swTeamHit')) do
-      if (Options and (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE)) = (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE) then
+      if [TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_HIT_PROJECTILE] <= Options then
         ItemIndex := 0
-      else if LongBool(Options and GAME_OPTION_TEAMHITTRACE) then
+      else if TGameOption.TEAM_HIT_TRACE in Options then
         ItemIndex := 1
-      else if LongBool(Options and GAME_OPTION_TEAMHITPROJECTILE) then
+      else if TGameOption.TEAM_HIT_PROJECTILE in Options then
         ItemIndex := 2
       else
         ItemIndex := 3;
     with TGUISwitch(menu.GetControl('swDeathmatchKeys')) do
-      if LongBool(Options and GAME_OPTION_DMKEYS) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      if TGameOption.DM_KEYS in Options
+        then ItemIndex := 0
+        else ItemIndex := 1;
     with TGUISwitch(menu.GetControl('swFlagDrop')) do
-      if LongBool(Options and GAME_OPTION_ALLOWDROPFLAG) and LongBool(Options and GAME_OPTION_THROWFLAG) then
+      if [TGameOption.ALLOW_DROP_FLAG, TGameOption.THROW_FLAG] <= Options then
         ItemIndex := 0
-      else if LongBool(Options and GAME_OPTION_ALLOWDROPFLAG) then
+      else if TGameOption.ALLOW_DROP_FLAG in Options then
         ItemIndex := 1
       else
         ItemIndex := 2;
@@ -1809,65 +1807,63 @@ begin
     TGUIEdit(menu.GetControl('edMaxLives')).Text := IntToStr(MaxLives);
 
     with TGUISwitch(menu.GetControl('swBotsVS')) do
-      if LongBool(Options and GAME_OPTION_BOTVSPLAYER) and
-         LongBool(Options and GAME_OPTION_BOTVSMONSTER) then
+      if [TGameOption.BOTS_VS_PLAYERS, TGameOption.BOTS_VS_MONSTERS] <= Options then
         ItemIndex := 2
+      else if TGameOption.BOTS_VS_MONSTERS in Options then
+        ItemIndex := 1
       else
-        if LongBool(Options and GAME_OPTION_BOTVSMONSTER) then
-          ItemIndex := 1
-        else
-          ItemIndex := 0;
+        ItemIndex := 0;
 
     if GameType in [GT_CUSTOM, GT_SERVER] then
+    begin
+      TGUISwitch(menu.GetControl('swTeamDamage')).Enabled := True;
+      TGUISwitch(menu.GetControl('swTeamHit')).Enabled := True;
+      if (GameMode in [GM_DM, GM_TDM, GM_CTF]) then
       begin
-        TGUISwitch(menu.GetControl('swTeamDamage')).Enabled := True;
-        TGUISwitch(menu.GetControl('swTeamHit')).Enabled := True;
-        if (GameMode in [GM_DM, GM_TDM, GM_CTF]) then
-        begin
-          TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled := True;
-          TGUILabel(menu.GetControlsText('swDeathmatchKeys')).Color := MENU_ITEMSTEXT_COLOR;
-        end
-        else
-        begin
-          TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled := False;
-          TGUILabel(menu.GetControlsText('swDeathmatchKeys')).Color := MENU_UNACTIVEITEMS_COLOR;
-        end;
-        TGUIEdit(menu.GetControl('edTimeLimit')).Enabled := True;
-        TGUILabel(menu.GetControlsText('edTimeLimit')).Color := MENU_ITEMSTEXT_COLOR;
-        TGUIEdit(menu.GetControl('edScoreLimit')).Enabled := True;
-        TGUILabel(menu.GetControlsText('edScoreLimit')).Color := MENU_ITEMSTEXT_COLOR;
-        TGUIEdit(menu.GetControl('edMaxLives')).Enabled := True;
-        TGUILabel(menu.GetControlsText('edMaxLives')).Color := MENU_ITEMSTEXT_COLOR;
-        TGUISwitch(menu.GetControl('swBotsVS')).Enabled := True;
-        TGUISwitch(menu.GetControl('swFlagDrop')).Enabled := True;
+        TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled := True;
+        TGUILabel(menu.GetControlsText('swDeathmatchKeys')).Color := MENU_ITEMSTEXT_COLOR;
       end
-    else
+      else
       begin
-        TGUISwitch(menu.GetControl('swTeamDamage')).Enabled := True;
-        TGUISwitch(menu.GetControl('swTeamHit')).Enabled := True;
         TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled := False;
         TGUILabel(menu.GetControlsText('swDeathmatchKeys')).Color := MENU_UNACTIVEITEMS_COLOR;
-        with TGUIEdit(menu.GetControl('edTimeLimit')) do
-        begin
-          Enabled := False;
-          Text := '';
-        end;
-        TGUILabel(menu.GetControlsText('edTimeLimit')).Color := MENU_UNACTIVEITEMS_COLOR;
-        with TGUIEdit(menu.GetControl('edScoreLimit')) do
-        begin
-          Enabled := False;
-          Text := '';
-        end;
-        TGUILabel(menu.GetControlsText('edScoreLimit')).Color := MENU_UNACTIVEITEMS_COLOR;
-        with TGUIEdit(menu.GetControl('edMaxLives')) do
-        begin
-          Enabled := False;
-          Text := '';
-        end;
-        TGUILabel(menu.GetControlsText('edMaxLives')).Color := MENU_UNACTIVEITEMS_COLOR;
-        TGUISwitch(menu.GetControl('swBotsVS')).Enabled := True;
-        TGUISwitch(menu.GetControl('swFlagDrop')).Enabled := False;
       end;
+      TGUIEdit(menu.GetControl('edTimeLimit')).Enabled := True;
+      TGUILabel(menu.GetControlsText('edTimeLimit')).Color := MENU_ITEMSTEXT_COLOR;
+      TGUIEdit(menu.GetControl('edScoreLimit')).Enabled := True;
+      TGUILabel(menu.GetControlsText('edScoreLimit')).Color := MENU_ITEMSTEXT_COLOR;
+      TGUIEdit(menu.GetControl('edMaxLives')).Enabled := True;
+      TGUILabel(menu.GetControlsText('edMaxLives')).Color := MENU_ITEMSTEXT_COLOR;
+      TGUISwitch(menu.GetControl('swBotsVS')).Enabled := True;
+      TGUISwitch(menu.GetControl('swFlagDrop')).Enabled := True;
+    end
+    else
+    begin
+      TGUISwitch(menu.GetControl('swTeamDamage')).Enabled := True;
+      TGUISwitch(menu.GetControl('swTeamHit')).Enabled := True;
+      TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled := False;
+      TGUILabel(menu.GetControlsText('swDeathmatchKeys')).Color := MENU_UNACTIVEITEMS_COLOR;
+      with TGUIEdit(menu.GetControl('edTimeLimit')) do
+      begin
+        Enabled := False;
+        Text := '';
+      end;
+      TGUILabel(menu.GetControlsText('edTimeLimit')).Color := MENU_UNACTIVEITEMS_COLOR;
+      with TGUIEdit(menu.GetControl('edScoreLimit')) do
+      begin
+        Enabled := False;
+        Text := '';
+      end;
+      TGUILabel(menu.GetControlsText('edScoreLimit')).Color := MENU_UNACTIVEITEMS_COLOR;
+      with TGUIEdit(menu.GetControl('edMaxLives')) do
+      begin
+        Enabled := False;
+        Text := '';
+      end;
+      TGUILabel(menu.GetControlsText('edMaxLives')).Color := MENU_UNACTIVEITEMS_COLOR;
+      TGUISwitch(menu.GetControl('swBotsVS')).Enabled := True;
+      TGUISwitch(menu.GetControl('swFlagDrop')).Enabled := False;
+    end;
   end;
 end;
 
@@ -1885,28 +1881,26 @@ begin
   begin
     if TGUISwitch(menu.GetControl('swTeamDamage')).Enabled then
     begin
-      if TGUISwitch(menu.GetControl('swTeamDamage')).ItemIndex = 0 then
-        Options := Options or GAME_OPTION_TEAMDAMAGE
-      else
-        Options := Options and (not GAME_OPTION_TEAMDAMAGE);
+      if TGUISwitch(menu.GetControl('swTeamDamage')).ItemIndex = 0
+        then Options += [TGameOption.TEAM_DAMAGE]
+        else Options -= [TGameOption.TEAM_DAMAGE];
     end;
 
     if TGUISwitch(menu.GetControl('swTeamHit')).Enabled then
     begin
-      Options := Options and not (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE);
+      Options -= [TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_HIT_PROJECTILE];
       case TGUISwitch(menu.GetControl('swTeamHit')).ItemIndex of
-        1: Options := Options or GAME_OPTION_TEAMHITTRACE;
-        2: Options := Options or GAME_OPTION_TEAMHITPROJECTILE;
-        0: Options := Options or GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE;
+        1: Options += [TGameOption.TEAM_HIT_TRACE];
+        2: Options += [TGameOption.TEAM_HIT_PROJECTILE];
+        0: Options += [TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_HIT_PROJECTILE];
       end;
     end;
 
     if TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled then
     begin
-      if TGUISwitch(menu.GetControl('swDeathmatchKeys')).ItemIndex = 0 then
-        Options := Options or GAME_OPTION_DMKEYS
-      else
-        Options := Options and (not GAME_OPTION_DMKEYS);
+      if TGUISwitch(menu.GetControl('swDeathmatchKeys')).ItemIndex = 0
+        then Options += [TGameOption.DM_KEYS]
+        else Options -= [TGameOption.DM_KEYS];
     end;
 
     if TGUIEdit(menu.GetControl('edTimeLimit')).Enabled then
@@ -1970,30 +1964,25 @@ begin
     if TGUISwitch(menu.GetControl('swBotsVS')).Enabled then
     begin
       case TGUISwitch(menu.GetControl('swBotsVS')).ItemIndex of
-        1:
-          begin
-            Options := Options and (not GAME_OPTION_BOTVSPLAYER);
-            Options := Options or GAME_OPTION_BOTVSMONSTER;
-          end;
-        2:
-          begin
-            Options := Options or GAME_OPTION_BOTVSPLAYER;
-            Options := Options or GAME_OPTION_BOTVSMONSTER;
-          end;
+        1: begin
+          Options -= [TGameOption.BOTS_VS_PLAYERS];
+          Options += [TGameOption.BOTS_VS_MONSTERS];
+        end;
+
+        2: Options += [TGameOption.BOTS_VS_PLAYERS, TGameOption.BOTS_VS_MONSTERS];
+
         else
-          begin
-            Options := Options or GAME_OPTION_BOTVSPLAYER;
-            Options := Options and (not GAME_OPTION_BOTVSMONSTER);
-          end;
+          Options -= [TGameOption.BOTS_VS_MONSTERS];
+          Options += [TGameOption.BOTS_VS_PLAYERS];
       end;
     end;
 
     if TGUISwitch(menu.GetControl('swFlagDrop')).Enabled then
     begin
       case TGUISwitch(menu.GetControl('swFlagDrop')).ItemIndex of
-        0: Options := Options or GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG;
-        1: Options := Options or GAME_OPTION_ALLOWDROPFLAG;
-        else Options := Options and not (GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG);
+        0: Options += [TGameOption.ALLOW_DROP_FLAG, TGameOption.THROW_FLAG];
+        1: Options += [TGameOption.ALLOW_DROP_FLAG];
+        else Options -= [TGameOption.ALLOW_DROP_FLAG, TGameOption.THROW_FLAG];
       end;
     end;
 
@@ -2373,10 +2362,9 @@ begin
       Name := 'swTeamDamage';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_TEAMDAMAGE) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      if TGameOption.TEAM_DAMAGE in gsGameFlags
+        then ItemIndex := 0
+        else ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_TEAM_HIT]) do
     begin
@@ -2385,11 +2373,11 @@ begin
       AddItem(_lc[I_MENU_TEAM_HIT_TRACE]);
       AddItem(_lc[I_MENU_TEAM_HIT_PROJECTILE]);
       AddItem(_lc[I_MENU_TEAM_HIT_NOTHING]);
-      if (gsGameFlags and (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE)) = (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE) then
+      if [TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_HIT_PROJECTILE] <= gsGameFlags then
         ItemIndex := 0
-      else if LongBool(gsGameFlags and GAME_OPTION_TEAMHITTRACE) then
+      else if TGameOption.TEAM_HIT_TRACE in gsGameFlags then
         ItemIndex := 1
-      else if LongBool(gsGameFlags and GAME_OPTION_TEAMHITPROJECTILE) then
+      else if TGameOption.TEAM_HIT_PROJECTILE in gsGameFlags then
         ItemIndex := 2
       else
         ItemIndex := 3;
@@ -2399,50 +2387,45 @@ begin
       Name := 'swTeamAbsorbDamage';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_TEAMABSORBDAMAGE) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      if TGameOption.TEAM_ABSORB_DAMAGE in gsGameFlags
+        then ItemIndex := 0
+        else ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_DEATHMATCH_KEYS]) do
     begin
       Name := 'swDeathmatchKeys';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_DMKEYS) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      if TGameOption.DM_KEYS in gsGameFlags
+        then ItemIndex := 0
+        else ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_ENABLE_EXITS]) do
     begin
       Name := 'swEnableExits';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_ALLOWEXIT) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      if TGameOption.ALLOW_EXIT in gsGameFlags
+        then ItemIndex := 0
+        else ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_WEAPONS_STAY]) do
     begin
       Name := 'swWeaponStay';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_WEAPONSTAY) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      if TGameOption.WEAPONS_STAY in gsGameFlags
+        then ItemIndex := 0
+        else ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_ENABLE_MONSTERS]) do
     begin
       Name := 'swMonsters';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_MONSTERS) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      if TGameOption.MONSTERS in gsGameFlags
+        then ItemIndex := 0
+        else ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_BOTS_VS]) do
     begin
@@ -2451,9 +2434,9 @@ begin
       AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
       AddItem(_lc[I_MENU_BOTS_VS_ALL]);
       ItemIndex := 2;
-      if not LongBool(gsGameFlags and GAME_OPTION_BOTVSMONSTER) then
+      if not (TGameOption.BOTS_VS_MONSTERS in gsGameFlags) then
         ItemIndex := 0;
-      if not LongBool(gsGameFlags and GAME_OPTION_BOTVSPLAYER) then
+      if not (TGameOption.BOTS_VS_PLAYERS in gsGameFlags) then
         ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_FLAG_DROP]) do
@@ -2462,9 +2445,9 @@ begin
       AddItem(_lc[I_MENU_FLAG_THROW]);
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if (gsGameFlags and (GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG)) = (GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG) then
+      if [TGameOption.ALLOW_DROP_FLAG, TGameOption.THROW_FLAG] <= gsGameFlags then
         ItemIndex := 0
-      else if LongBool(gsGameFlags and GAME_OPTION_ALLOWDROPFLAG) then
+      else if TGameOption.ALLOW_DROP_FLAG in gsGameFlags then
         ItemIndex := 1
       else
         ItemIndex := 2;
@@ -2488,7 +2471,7 @@ begin
     with AddEdit(_lc[I_NET_ADDRESS]) do
     begin
       Name := 'edIP';
-      OnlyDigits :=False;
+      OnlyDigits := False;
       Width := 12;
       MaxLength := 64;
       Text := 'localhost';
@@ -2629,10 +2612,9 @@ begin
       Name := 'swTeamDamage';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_TEAMDAMAGE) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      if TGameOption.TEAM_DAMAGE in gsGameFlags
+        then ItemIndex := 0
+        else ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_TEAM_HIT]) do
     begin
@@ -2641,11 +2623,11 @@ begin
       AddItem(_lc[I_MENU_TEAM_HIT_TRACE]);
       AddItem(_lc[I_MENU_TEAM_HIT_PROJECTILE]);
       AddItem(_lc[I_MENU_TEAM_HIT_NOTHING]);
-      if (gsGameFlags and (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE)) = (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE) then
+      if [TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_HIT_PROJECTILE] <= gsGameFlags then
         ItemIndex := 0
-      else if LongBool(gsGameFlags and GAME_OPTION_TEAMHITTRACE) then
+      else if TGameOption.TEAM_HIT_TRACE in gsGameFlags then
         ItemIndex := 1
-      else if LongBool(gsGameFlags and GAME_OPTION_TEAMHITPROJECTILE) then
+      else if TGameOption.TEAM_HIT_PROJECTILE in gsGameFlags then
         ItemIndex := 2
       else
         ItemIndex := 3;
@@ -2655,50 +2637,45 @@ begin
       Name := 'swTeamAbsorbDamage';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_TEAMABSORBDAMAGE) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      if TGameOption.TEAM_ABSORB_DAMAGE in gsGameFlags
+        then ItemIndex := 0
+        else ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_DEATHMATCH_KEYS]) do
     begin
       Name := 'swDeathmatchKeys';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_DMKEYS) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      if TGameOption.DM_KEYS in gsGameFlags
+        then ItemIndex := 0
+        else ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_ENABLE_EXITS]) do
     begin
       Name := 'swEnableExits';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_ALLOWEXIT) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      if TGameOption.ALLOW_EXIT in gsGameFlags
+        then ItemIndex := 0
+        else ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_WEAPONS_STAY]) do
     begin
       Name := 'swWeaponStay';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_WEAPONSTAY) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      if TGameOption.WEAPONS_STAY in gsGameFlags
+        then ItemIndex := 0
+        else ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_ENABLE_MONSTERS]) do
     begin
       Name := 'swMonsters';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_MONSTERS) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      if TGameOption.MONSTERS in gsGameFlags
+        then ItemIndex := 0
+        else ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_BOTS_VS]) do
     begin
@@ -2707,9 +2684,9 @@ begin
       AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
       AddItem(_lc[I_MENU_BOTS_VS_ALL]);
       ItemIndex := 2;
-      if not LongBool(gsGameFlags and GAME_OPTION_BOTVSMONSTER) then
+      if not (TGameOption.BOTS_VS_MONSTERS in gsGameFlags) then
         ItemIndex := 0;
-      if not LongBool(gsGameFlags and GAME_OPTION_BOTVSPLAYER) then
+      if not (TGameOption.BOTS_VS_PLAYERS in gsGameFlags) then
         ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_FLAG_DROP]) do
@@ -2718,9 +2695,9 @@ begin
       AddItem(_lc[I_MENU_FLAG_THROW]);
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if (gsGameFlags and (GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG)) = (GAME_OPTION_ALLOWDROPFLAG or GAME_OPTION_THROWFLAG) then
+      if [TGameOption.ALLOW_DROP_FLAG, TGameOption.THROW_FLAG] <= gsGameFlags then
         ItemIndex := 0
-      else if LongBool(gsGameFlags and GAME_OPTION_ALLOWDROPFLAG) then
+      else if TGameOption.ALLOW_DROP_FLAG in gsGameFlags then
         ItemIndex := 1
       else
         ItemIndex := 2;
@@ -2875,35 +2852,34 @@ begin
       Name := 'swPowerupRandom';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if LongBool(gsGameFlags and GAME_OPTION_POWERUPRANDOM) then
-        ItemIndex := 0
-      else
-        ItemIndex := 1;
+      if TGameOption.POWERUP_RANDOM in gsGameFlags
+        then ItemIndex := 0
+        else ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_ENABLE_ITEM_RANDOM]) do
     begin
       Name := 'swItemsRandom';
       AddItem(_lc[I_MENU_ITEM_RANDOM_ALL]);
-      AddItem(_lc[I_MENU_ITEM_RANDOM_HELP_ONLY]);
+      AddItem(_lc[I_MENU_ITEM_RANDOM_LIFE_ONLY]);
       AddItem(_lc[I_MENU_ITEM_RANDOM_AMMO_ONLY]);
       AddItem(_lc[I_MENU_ITEM_RANDOM_WEAPON_ONLY]);
-      AddItem(_lc[I_MENU_ITEM_RANDOM_HELP_AMMO]);
-      AddItem(_lc[I_MENU_ITEM_RANDOM_HELP_WEAPON]);
+      AddItem(_lc[I_MENU_ITEM_RANDOM_LIFE_AMMO]);
+      AddItem(_lc[I_MENU_ITEM_RANDOM_LIFE_WEAPON]);
       AddItem(_lc[I_MENU_ITEM_RANDOM_WEAPON_AMMO]);
       AddItem(_lc[I_MENU_ITEM_RANDOM_NOTHING]);
-      if LongBool(gsGameFlags and GAME_OPTION_ITEMALLRANDOM) then
+      if TGameOption.ITEM_ALL_RANDOM in gsGameFlags then
         ItemIndex := 0
-      else if LongBool(gsGameFlags and GAME_OPTION_ITEMHELPRANDOM) then
+      else if TGameOption.ITEM_LIFE_RANDOM in gsGameFlags then
         ItemIndex := 1
-      else if LongBool(gsGameFlags and GAME_OPTION_ITEMAMMORANDOM) then
+      else if TGameOption.ITEM_AMMO_RANDOM in gsGameFlags then
         ItemIndex := 2
-      else if LongBool(gsGameFlags and GAME_OPTION_ITEMWEAPONRANDOM) then
+      else if TGameOption.ITEM_WEAPON_RANDOM in gsGameFlags then
         ItemIndex := 3
-      else if (gsGameFlags and (GAME_OPTION_ITEMHELPRANDOM or GAME_OPTION_ITEMAMMORANDOM)) = (GAME_OPTION_ITEMHELPRANDOM or GAME_OPTION_ITEMAMMORANDOM) then
+      else if [TGameOption.ITEM_LIFE_RANDOM, TGameOption.ITEM_AMMO_RANDOM] <= gsGameFlags then
         ItemIndex := 4
-      else if (gsGameFlags and (GAME_OPTION_ITEMHELPRANDOM or GAME_OPTION_ITEMWEAPONRANDOM)) = (GAME_OPTION_ITEMHELPRANDOM or GAME_OPTION_ITEMWEAPONRANDOM) then
+      else if [TGameOption.ITEM_LIFE_RANDOM, TGameOption.ITEM_WEAPON_RANDOM] <= gsGameFlags then
         ItemIndex := 5
-      else if (gsGameFlags and (GAME_OPTION_ITEMAMMORANDOM or GAME_OPTION_ITEMWEAPONRANDOM)) = (GAME_OPTION_ITEMAMMORANDOM or GAME_OPTION_ITEMWEAPONRANDOM) then
+      else if [TGameOption.ITEM_AMMO_RANDOM, TGameOption.ITEM_WEAPON_RANDOM] <= gsGameFlags then
         ItemIndex := 6
       else
         ItemIndex := 7;

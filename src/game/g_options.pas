@@ -18,7 +18,7 @@ unit g_options;
 interface
 
 uses
-  g_language, g_weapons, utils;
+  g_language, g_game, g_weapons, utils;
 
 function GenPlayerName (n: Integer): String;
 
@@ -71,7 +71,7 @@ var
   gsScoreLimit: Word;
   gsMaxLives: Byte;
   gsPlayers: Byte;
-  gsGameFlags: LongWord;
+  gsGameFlags: TGameOptions;
   gsSpawnInvul: Integer = 0;
   gsItemRespawnTime: Word = 60;
   gsItemRespawnRandom: Word = 0;
@@ -87,7 +87,7 @@ uses
     SDL2,
   {$ENDIF}
   e_log, e_input, g_console, g_window, g_sound, g_gfx, g_player, Math,
-  g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_texture,
+  g_map, g_net, g_netmaster, SysUtils, CONFIG, g_main, e_texture,
   g_items, wadreader, e_graphics, g_touch, envvars, g_system;
 
   var
@@ -273,10 +273,9 @@ begin
   gsItemRespawnRandom := 0;
   gsPowerupRespawnTime := 60;
   gsPowerupRespawnRandom := 0;
-  gsGameFlags := GAME_OPTION_ALLOWEXIT or GAME_OPTION_DMKEYS or
-    GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER or
-    GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMHITPROJECTILE or
-    GAME_OPTION_ALLOWDROPFLAG;
+  gsGameFlags := [TGameOption.ALLOW_EXIT, TGameOption.DM_KEYS, TGameOption.BOTS_VS_PLAYERS,
+    TGameOption.BOTS_VS_MONSTERS, TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_HIT_PROJECTILE,
+    TGameOption.ALLOW_DROP_FLAG];
   gsPlayers := 1;
 
   if not gGameOn then

@@ -896,7 +896,7 @@ begin
       // И в конце игроков, но только если положено
       // (или снаряд от монстра, или friendlyfire, или friendly_hit_projectile)
       if (g_GetUIDType(SpawnerUID) <> UID_PLAYER) or
-         LongBool(gGameSettings.Options and (GAME_OPTION_TEAMDAMAGE or GAME_OPTION_TEAMHITPROJECTILE)) then
+         ([TGameOption.TEAM_DAMAGE, TGameOption.TEAM_HIT_PROJECTILE] <= gGameSettings.Options) then
       begin
         if PlayerHit() then
         begin
@@ -942,7 +942,7 @@ begin
 
       // И в конце своих игроков, но только если положено
       // (или friendlyfire, или friendly_hit_projectile)
-      if LongBool(gGameSettings.Options and (GAME_OPTION_TEAMDAMAGE or GAME_OPTION_TEAMHITPROJECTILE)) then
+      if [TGameOption.TEAM_DAMAGE, TGameOption.TEAM_HIT_PROJECTILE] <= gGameSettings.Options then
       begin
         if PlayerHit(1) then
         begin
@@ -1414,10 +1414,10 @@ var
     if (gPlayers[idx] = nil) or not gPlayers[idx].alive then exit;
     if (spawnerPlr <> nil) then
     begin
-      if ((gGameSettings.Options and (GAME_OPTION_TEAMHITTRACE or GAME_OPTION_TEAMDAMAGE)) = 0) and
+      if (not ([TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_DAMAGE] <= gGameSettings.Options)) and
          (spawnerPlr.Team <> TEAM_NONE) and (spawnerPlr.Team = gPlayers[idx].Team) then
       begin
-        if (spawnerPlr <> gPlayers[idx]) and ((gGameSettings.Options and GAME_OPTION_TEAMABSORBDAMAGE) = 0) then
+        if (spawnerPlr <> gPlayers[idx]) and not (TGameOption.TEAM_ABSORB_DAMAGE in gGameSettings.Options) then
           dmg := Max(1, dmg div 2);
         exit;
       end;

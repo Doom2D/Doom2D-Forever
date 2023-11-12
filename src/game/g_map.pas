@@ -1478,7 +1478,7 @@ begin
   if g_Game_IsClient then Exit;
 
   if (gGameSettings.GameType = GT_SINGLE)
-  or LongBool(gGameSettings.Options and GAME_OPTION_MONSTERS) then
+    or (TGameOption.MONSTERS in gGameSettings.Options) then
   begin
     mon := g_Monsters_Create(monster.MonsterType, monster.X, monster.Y, TDirection(monster.Direction));
 

@@ -25,6 +25,28 @@ uses
   g_touch, g_weapons;
 
 type
+  TGameOption = (
+    //RESERVED = 0,  // FIXME: reuse for something
+    TEAM_DAMAGE = 1,
+    ALLOW_EXIT,
+    WEAPONS_STAY,
+    MONSTERS,
+    BOTS_VS_PLAYERS,
+    BOTS_VS_MONSTERS,
+    DM_KEYS,
+    TEAM_HIT_TRACE,
+    TEAM_HIT_PROJECTILE,
+    TEAM_ABSORB_DAMAGE,
+    ALLOW_DROP_FLAG,
+    THROW_FLAG,
+    POWERUP_RANDOM,
+    ITEM_ALL_RANDOM,
+    ITEM_LIFE_RANDOM,
+    ITEM_AMMO_RANDOM,
+    ITEM_WEAPON_RANDOM
+  );
+  TGameOptions = set of TGameOption;
+
   TGameSettings = record
     GameType: Byte;
     GameMode: Byte;
@@ -37,7 +59,7 @@ type
     PowerupRespawnTime: Word;
     PowerupRespawnRandom: Word;
     MaxLives: Byte;
-    Options: LongWord;
+    Options: TGameOptions;
     WAD: String;
   end;
 
@@ -106,8 +128,8 @@ procedure g_Game_RemovePlayer();
 procedure g_Game_Spectate();
 procedure g_Game_SpectateCenterView();
 procedure g_Game_StartSingle(Map: String; TwoPlayers: Boolean; nPlayers: Byte);
-procedure g_Game_StartCustom(Map: String; GameMode: Byte; TimeLimit, ScoreLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte);
-procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, ScoreLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte; IPAddr: LongWord; Port: Word);
+procedure g_Game_StartCustom(Map: String; GameMode: Byte; TimeLimit, ScoreLimit: Word; MaxLives: Byte; Options: TGameOptions; nPlayers: Byte);
+procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, ScoreLimit: Word; MaxLives: Byte; Options: TGameOptions; nPlayers: Byte; IPAddr: LongWord; Port: Word);
 procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
 procedure g_Game_Restart();
 procedure g_Game_RestartLevel();
@@ -184,25 +206,6 @@ const
   EXIT_RESTART         = 3;
   EXIT_ENDLEVELSINGLE  = 4;
   EXIT_ENDLEVELCUSTOM  = 5;
-
-  GAME_OPTION_RESERVED          = 1 shl 0;
-  GAME_OPTION_TEAMDAMAGE        = 1 shl 1;
-  GAME_OPTION_ALLOWEXIT         = 1 shl 2;
-  GAME_OPTION_WEAPONSTAY        = 1 shl 3;
-  GAME_OPTION_MONSTERS          = 1 shl 4;
-  GAME_OPTION_BOTVSPLAYER       = 1 shl 5;
-  GAME_OPTION_BOTVSMONSTER      = 1 shl 6;
-  GAME_OPTION_DMKEYS            = 1 shl 7;
-  GAME_OPTION_TEAMHITTRACE      = 1 shl 8;
-  GAME_OPTION_TEAMHITPROJECTILE = 1 shl 9;
-  GAME_OPTION_TEAMABSORBDAMAGE  = 1 shl 10;
-  GAME_OPTION_ALLOWDROPFLAG     = 1 shl 11;
-  GAME_OPTION_THROWFLAG         = 1 shl 12;
-  GAME_OPTION_POWERUPRANDOM     = 1 shl 13;
-  GAME_OPTION_ITEMALLRANDOM     = 1 shl 14;
-  GAME_OPTION_ITEMHELPRANDOM    = 1 shl 15;
-  GAME_OPTION_ITEMAMMORANDOM    = 1 shl 16;
-  GAME_OPTION_ITEMWEAPONRANDOM  = 1 shl 17;
 
   STATE_NONE        = 0;
   STATE_MENU        = 1;
@@ -678,7 +681,8 @@ end;
 procedure SaveGameStat(Stat: TEndCustomGameStat; Path: string);
 var
   s: TextFile;
-  dir, fname, map, mode, etime: String;
+  dir, fname, map, mode, etime, flags, strf: String;
+  flag: TGameOption;
   I: Integer;
 begin
   try
@@ -700,8 +704,17 @@ begin
         (Stat.GameTime div 1000 div 60) mod 60,
         Stat.GameTime div 1000 mod 60
       ]);
+      flags := '';
+      strf := '';
+      for flag in gGameSettings.Options do
+      begin
+        flags += strf;
+        System.WriteStr(strf, flag);  // FIXME: rename our utils.WriteStr()
+        flags += strf;
+        strf := ', ';
+      end;
       WriteLn(s, 'stats_ver,datetime,server,map,mode,timelimit,scorelimit,dmflags,time,num_players');
-      WriteLn(s, Format('%d,%s,%s,%s,%s,%u,%u,%u,%s,%d', [
+      WriteLn(s, Format('%d,%s,%s,%s,%s,%u,%u,"%s",%s,%d', [
         STATFILE_VERSION,
         StatDate,
         dquoteStr(fname),
@@ -709,7 +722,7 @@ begin
         mode,
         gGameSettings.TimeLimit,
         gGameSettings.ScoreLimit,
-        gGameSettings.Options,
+        flags,
         etime,
         Length(Stat.PlayerStat)
       ]));
@@ -4509,16 +4522,10 @@ begin
   gShowMap := False;
   gGameSettings.GameType := GT_SINGLE;
   gGameSettings.MaxLives := 0;
-  gGameSettings.Options := GAME_OPTION_ALLOWEXIT
-                        or GAME_OPTION_MONSTERS
-                        or GAME_OPTION_BOTVSMONSTER
-                        or GAME_OPTION_TEAMHITPROJECTILE
-                        or GAME_OPTION_TEAMHITTRACE
-                        or GAME_OPTION_POWERUPRANDOM
-                        or GAME_OPTION_ITEMALLRANDOM
-                        or GAME_OPTION_ITEMHELPRANDOM
-                        or GAME_OPTION_ITEMAMMORANDOM
-                        or GAME_OPTION_ITEMWEAPONRANDOM;
+  gGameSettings.Options := [TGameOption.ALLOW_EXIT, TGameOption.MONSTERS,
+    TGameOption.BOTS_VS_MONSTERS, TGameOption.TEAM_HIT_PROJECTILE, TGameOption.TEAM_HIT_TRACE,
+    TGameOption.POWERUP_RANDOM, TGameOption.ITEM_ALL_RANDOM, TGameOption.ITEM_LIFE_RANDOM,
+    TGameOption.ITEM_AMMO_RANDOM, TGameOption.ITEM_WEAPON_RANDOM];
   gSwitchGameMode := GM_SINGLE;
 
   gLMSRespawn := LMS_RESPAWN_NONE;
@@ -4587,7 +4594,7 @@ end;
 procedure g_Game_StartCustom(Map: String; GameMode: Byte;
                              TimeLimit, ScoreLimit: Word;
                              MaxLives: Byte;
-                             Options: LongWord; nPlayers: Byte);
+                             Options: TGameOptions; nPlayers: Byte);
 var
   i, nPl: Integer;
 begin
@@ -4699,7 +4706,7 @@ end;
 
 procedure g_Game_StartServer(Map: String; GameMode: Byte;
                              TimeLimit, ScoreLimit: Word; MaxLives: Byte;
-                             Options: LongWord; nPlayers: Byte;
+                             Options: TGameOptions; nPlayers: Byte;
                              IPAddr: LongWord; Port: Word);
 begin
   g_Game_Free();
@@ -4920,7 +4927,7 @@ begin
           gGameSettings.ScoreLimit := InMsg.ReadWord();
           gGameSettings.TimeLimit := InMsg.ReadWord();
           gGameSettings.MaxLives := InMsg.ReadByte();
-          gGameSettings.Options := InMsg.ReadLongWord();
+          gGameSettings.Options := TGameOptions(InMsg.ReadLongWord());
           T := InMsg.ReadLongWord();
 
           //newResPath := g_Res_SearchSameWAD(MapsDir, WadName, gWADHash);
@@ -5557,33 +5564,32 @@ var
   cmd: string;
   it: PItem;
 
-  procedure ParseGameFlag(Flag: LongWord; OffMsg, OnMsg: TStrings_Locale; OnMapChange: Boolean = False);
+  procedure ParseGameFlag(Flag: TGameOption; OffMsg, OnMsg: TStrings_Locale; OnMapChange: Boolean = False);
   var
     x: Boolean;
   begin
-    if Length(P) > 1 then
+    if Length(P) <= 1 then
+      x := Flag in gsGameFlags
+    else
     begin
       x := P[1] = '1';
 
-      if x then
-        gsGameFlags := gsGameFlags or Flag
-      else
-        gsGameFlags := gsGameFlags and (not Flag);
+      if x
+        then gsGameFlags += [Flag]
+        else gsGameFlags -= [Flag];
 
       if g_Game_IsServer then
       begin
-        if x then
-          gGameSettings.Options := gGameSettings.Options or Flag
-        else
-          gGameSettings.Options := gGameSettings.Options and (not Flag);
+        if x
+          then gGameSettings.Options += [Flag]
+          else gGameSettings.Options -= [Flag];
         if g_Game_IsNet then MH_SEND_GameSettings;
       end;
     end;
 
-    if LongBool(gsGameFlags and Flag) then
-      g_Console_Add(_lc[OnMsg])
-    else
-      g_Console_Add(_lc[OffMsg]);
+    if x
+      then g_Console_Add(_lc[OnMsg])
+      else g_Console_Add(_lc[OffMsg]);
 
     if OnMapChange and g_Game_IsServer then
       g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
@@ -5621,44 +5627,44 @@ begin
     end;
 
     'g_friendlyfire':
-      ParseGameFlag(GAME_OPTION_TEAMDAMAGE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);
+      ParseGameFlag(TGameOption.TEAM_DAMAGE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);
     'g_friendly_absorb_damage':
-      ParseGameFlag(GAME_OPTION_TEAMABSORBDAMAGE, I_MSG_FRIENDLY_ABSORB_DAMAGE_OFF, I_MSG_FRIENDLY_ABSORB_DAMAGE_ON);
+      ParseGameFlag(TGameOption.TEAM_ABSORB_DAMAGE, I_MSG_FRIENDLY_ABSORB_DAMAGE_OFF, I_MSG_FRIENDLY_ABSORB_DAMAGE_ON);
     'g_friendly_hit_trace':
-      ParseGameFlag(GAME_OPTION_TEAMHITTRACE, I_MSG_FRIENDLY_HIT_TRACE_OFF, I_MSG_FRIENDLY_HIT_TRACE_ON);
+      ParseGameFlag(TGameOption.TEAM_HIT_TRACE, I_MSG_FRIENDLY_HIT_TRACE_OFF, I_MSG_FRIENDLY_HIT_TRACE_ON);
     'g_friendly_hit_projectile':
-      ParseGameFlag(GAME_OPTION_TEAMHITPROJECTILE, I_MSG_FRIENDLY_PROJECT_TRACE_OFF, I_MSG_FRIENDLY_PROJECT_TRACE_ON);
+      ParseGameFlag(TGameOption.TEAM_HIT_PROJECTILE, I_MSG_FRIENDLY_PROJECT_TRACE_OFF, I_MSG_FRIENDLY_PROJECT_TRACE_ON);
     'g_items_all_respawn_random':
-      ParseGameFlag(GAME_OPTION_ITEMALLRANDOM, I_MSG_ITEM_ALL_RANDOM_OFF, I_MSG_ITEM_ALL_RANDOM_ON, False);
+      ParseGameFlag(TGameOption.ITEM_ALL_RANDOM, I_MSG_ITEM_ALL_RANDOM_OFF, I_MSG_ITEM_ALL_RANDOM_ON, False);
     'g_items_help_respawn_random':
-      ParseGameFlag(GAME_OPTION_ITEMHELPRANDOM, I_MSG_ITEM_HELP_RANDOM_OFF, I_MSG_ITEM_HELP_RANDOM_ON, False);
+      ParseGameFlag(TGameOption.ITEM_LIFE_RANDOM, I_MSG_ITEM_LIFE_RANDOM_OFF, I_MSG_ITEM_LIFE_RANDOM_ON, False);
     'g_items_ammo_respawn_random':
-      ParseGameFlag(GAME_OPTION_ITEMAMMORANDOM, I_MSG_ITEM_AMMO_RANDOM_OFF, I_MSG_ITEM_AMMO_RANDOM_ON, False);
+      ParseGameFlag(TGameOption.ITEM_AMMO_RANDOM, I_MSG_ITEM_AMMO_RANDOM_OFF, I_MSG_ITEM_AMMO_RANDOM_ON, False);
     'g_items_weapon_respawn_random':
-      ParseGameFlag(GAME_OPTION_ITEMWEAPONRANDOM, I_MSG_ITEM_WEAPON_RANDOM_OFF, I_MSG_ITEM_WEAPON_RANDOM_ON);
+      ParseGameFlag(TGameOption.ITEM_WEAPON_RANDOM, I_MSG_ITEM_WEAPON_RANDOM_OFF, I_MSG_ITEM_WEAPON_RANDOM_ON);
     'g_powerup_randomize_respawn':
-      ParseGameFlag(GAME_OPTION_POWERUPRANDOM, I_MSG_POWERUP_RANDOM_OFF, I_MSG_POWERUP_RANDOM_ON, False);
+      ParseGameFlag(TGameOption.POWERUP_RANDOM, I_MSG_POWERUP_RANDOM_OFF, I_MSG_POWERUP_RANDOM_ON, False);
     'g_weaponstay':
-      ParseGameFlag(GAME_OPTION_WEAPONSTAY, I_MSG_WEAPONSTAY_OFF, I_MSG_WEAPONSTAY_ON);
+      ParseGameFlag(TGameOption.WEAPONS_STAY, I_MSG_WEAPONSTAY_OFF, I_MSG_WEAPONSTAY_ON);
     'g_allow_exit':
-      ParseGameFlag(GAME_OPTION_ALLOWEXIT, I_MSG_ALLOWEXIT_OFF, I_MSG_ALLOWEXIT_ON, True);
+      ParseGameFlag(TGameOption.ALLOW_EXIT, I_MSG_ALLOWEXIT_OFF, I_MSG_ALLOWEXIT_ON, True);
     'g_allow_monsters':
-      ParseGameFlag(GAME_OPTION_MONSTERS, I_MSG_ALLOWMON_OFF, I_MSG_ALLOWMON_ON, True);
+      ParseGameFlag(TGameOption.MONSTERS, I_MSG_ALLOWMON_OFF, I_MSG_ALLOWMON_ON, True);
     'g_allow_dropflag':
-      ParseGameFlag(GAME_OPTION_ALLOWDROPFLAG, I_MSG_ALLOWDROPFLAG_OFF, I_MSG_ALLOWDROPFLAG_ON);
+      ParseGameFlag(TGameOption.ALLOW_DROP_FLAG, I_MSG_ALLOWDROPFLAG_OFF, I_MSG_ALLOWDROPFLAG_ON);
     'g_throw_flag':
-      ParseGameFlag(GAME_OPTION_THROWFLAG, I_MSG_THROWFLAG_OFF, I_MSG_THROWFLAG_ON);
+      ParseGameFlag(TGameOption.THROW_FLAG, I_MSG_THROWFLAG_OFF, I_MSG_THROWFLAG_ON);
     'g_bot_vsplayers':
-      ParseGameFlag(GAME_OPTION_BOTVSPLAYER, I_MSG_BOTSVSPLAYERS_OFF, I_MSG_BOTSVSPLAYERS_ON);
+      ParseGameFlag(TGameOption.BOTS_VS_PLAYERS, I_MSG_BOTSVSPLAYERS_OFF, I_MSG_BOTSVSPLAYERS_ON);
     'g_bot_vsmonsters':
-      ParseGameFlag(GAME_OPTION_BOTVSMONSTER, I_MSG_BOTSVSMONSTERS_OFF, I_MSG_BOTSVSMONSTERS_ON);
+      ParseGameFlag(TGameOption.BOTS_VS_MONSTERS, I_MSG_BOTSVSMONSTERS_OFF, I_MSG_BOTSVSMONSTERS_ON);
     'g_dm_keys':
-      ParseGameFlag(GAME_OPTION_DMKEYS, I_MSG_DMKEYS_OFF, I_MSG_DMKEYS_ON, True);
+      ParseGameFlag(TGameOption.DM_KEYS, I_MSG_DMKEYS_OFF, I_MSG_DMKEYS_ON, True);
 
     'g_gameflags': begin
       if Length(P) > 1 then
       begin
-        gsGameFlags := StrToDWordDef(P[1], gsGameFlags);
+        gsGameFlags := TGameOptions(StrToDWordDef(P[1], LongWord(gsGameFlags)));
         if g_Game_IsServer then
         begin
           gGameSettings.Options := gsGameFlags;
@@ -5666,7 +5672,7 @@ begin
         end;
       end;
 
-      g_Console_Add(Format('%s %u', [cmd, gsGameFlags]));
+      g_Console_Add(Format('%s %u', [cmd, LongWord(gsGameFlags)]));
     end;
 
     'g_warmup_time': begin
@@ -8513,7 +8519,7 @@ var
   map: String;
   GMode, n: Byte;
   LimT, LimS: Integer;
-  Opt: LongWord;
+  Opt: TGameOptions;
   Lives: Integer;
   s: String;
   Port: Integer;
@@ -8592,10 +8598,9 @@ begin
 
   // Options:
     s := Find_Param_Value(pars, '-opt');
-    if (s = '') then
-      Opt := gsGameFlags
-    else
-      Opt := StrToIntDef(s, 0);
+    if (s = '')
+      then Opt := gsGameFlags
+      else Opt := TGameOptions(StrToIntDef(s, 0));
 
   // Close after map:
     s := Find_Param_Value(pars, '--close');
@@ -8637,10 +8642,9 @@ begin
 
   // Start:
     s := Find_Param_Value(pars, '-port');
-    if (s = '') or not TryStrToInt(s, Port) then
-      g_Game_StartCustom(map, GMode, LimT, LimS, Lives, Opt, n)
-    else
-      g_Game_StartServer(map, GMode, LimT, LimS, Lives, Opt, n, 0, Port);
+    if (s = '') or not TryStrToInt(s, Port)
+      then g_Game_StartCustom(map, GMode, LimT, LimS, Lives, Opt, n)
+      else g_Game_StartServer(map, GMode, LimT, LimS, Lives, Opt, n, 0, Port);
   end;
 
 // Execute script when game loads:

@@ -2323,7 +2323,7 @@ begin
     Exit;
 
 // Если есть урон своим, или ранил сам себя, или тебя ранил противник:
-  if LongBool(gGameSettings.Options and GAME_OPTION_TEAMDAMAGE) or
+  if (TGameOption.TEAM_DAMAGE in gGameSettings.Options) or
      (SpawnerUID = FUID) or
      (not SameTeam(FUID, SpawnerUID)) then
   begin
@@ -3647,7 +3647,7 @@ begin
 
 // Выброс ключей:
     if (not (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) or
-       (not LongBool(gGameSettings.Options and GAME_OPTION_DMKEYS)) then
+       (not (TGameOption.DM_KEYS in gGameSettings.Options)) then
     begin
       if R_KEY_RED in FInventory then
         PushItem(ITEM_KEY_RED);
@@ -4055,7 +4055,7 @@ begin
   if g_Game_IsClient then Exit;
 
   // a = true - место спавна предмета:
-  a := LongBool(gGameSettings.Options and GAME_OPTION_WEAPONSTAY) and arespawn;
+  a := (TGameOption.WEAPONS_STAY in gGameSettings.Options) and arespawn;
   remove := not a;
   case ItemType of
     ITEM_MEDKIT_SMALL:
@@ -4714,7 +4714,7 @@ begin
     FMaxAmmo[A_FUEL] := AmmoLimits[0, A_FUEL];
 
     if (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) and
-       LongBool(gGameSettings.Options and GAME_OPTION_DMKEYS) then
+       (TGameOption.DM_KEYS in gGameSettings.Options) then
       FInventory := [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE]
     else
       FInventory := [];
@@ -5936,10 +5936,9 @@ end;
 
 function TPlayer.TryDropFlag(): Boolean;
 begin
-  if LongBool(gGameSettings.Options and GAME_OPTION_ALLOWDROPFLAG) then
-    Result := DropFlag(False, LongBool(gGameSettings.Options and GAME_OPTION_THROWFLAG))
-  else
-    Result := False;
+  if (TGameOption.ALLOW_DROP_FLAG in gGameSettings.Options)
+    then Result := DropFlag(False, TGameOption.THROW_FLAG in gGameSettings.Options)
+    else Result := False;
 end;
 
 function TPlayer.DropFlag(Silent: Boolean = True; DoThrow: Boolean = False): Boolean;
@@ -6915,8 +6914,8 @@ var
   end;
 
 begin
-  vsPlayer := LongBool(gGameSettings.Options and GAME_OPTION_BOTVSPLAYER);
-  vsMonster := LongBool(gGameSettings.Options and GAME_OPTION_BOTVSMONSTER);
+  vsPlayer := TGameOption.BOTS_VS_PLAYERS in gGameSettings.Options;
+  vsMonster := TGameOption.BOTS_VS_MONSTERS in gGameSettings.Options;
 
 // Если текущее оружие не то, что нужно, то меняем:
   if FCurrWeap <> FSelectedWeapon then
@@ -7945,7 +7944,7 @@ begin
     begin
       ok := False;
       if (g_GetUIDType(FLastSpawnerUID) = UID_PLAYER) and
-          LongBool(gGameSettings.Options and GAME_OPTION_BOTVSPLAYER) then
+         (TGameOption.BOTS_VS_PLAYERS in gGameSettings.Options) then
         begin // Игрок
           pla := g_Player_Get(FLastSpawnerUID);
           ok := not TargetOnScreen(pla.FObj.X + PLAYER_RECT.X,
@@ -7953,7 +7952,7 @@ begin
         end
       else
         if (g_GetUIDType(FLastSpawnerUID) = UID_MONSTER) and
-           LongBool(gGameSettings.Options and GAME_OPTION_BOTVSMONSTER) then
+           (TGameOption.BOTS_VS_MONSTERS in gGameSettings.Options) then
         begin // Монстр
           mon := g_Monsters_ByUID(FLastSpawnerUID);
           ok := not TargetOnScreen(mon.Obj.X + mon.Obj.Rect.X,
