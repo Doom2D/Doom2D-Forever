@@ -4,7 +4,6 @@ object MainForm: TMainForm
   Top = 142
   Width = 672
   AllowDropFiles = True
-  Caption = '2'
   ClientHeight = 480
   ClientWidth = 672
   Color = clBtnFace
@@ -635,14 +634,12 @@ object MainForm: TMainForm
     Width = 672
     ButtonHeight = 31
     ButtonWidth = 31
-    Caption = 'MainToolBar'
     Images = ilToolbar
     TabOrder = 3
     object tbNewMap: TToolButton
       Left = 1
       Hint = 'Очистить карту'
       Top = 2
-      Caption = 'tbNewMap'
       ImageIndex = 0
       OnClick = aNewMapExecute
     end
@@ -650,7 +647,6 @@ object MainForm: TMainForm
       Left = 32
       Hint = 'Открыть карту'
       Top = 2
-      Caption = 'tbOpenMap'
       ImageIndex = 1
       OnClick = aOpenMapExecute
     end
@@ -658,7 +654,6 @@ object MainForm: TMainForm
       Left = 63
       Hint = 'Сохранить карту'
       Top = 2
-      Caption = 'tbSaveMap'
       ImageIndex = 2
       OnClick = aSaveMapExecute
     end
@@ -666,7 +661,6 @@ object MainForm: TMainForm
       Left = 94
       Hint = 'Открыть другую карты из этого же WAD''а'
       Top = 2
-      Caption = 'tbOpenWadMap'
       ImageIndex = 8
       OnClick = miOpenWadMapClick
     end
@@ -674,7 +668,6 @@ object MainForm: TMainForm
       Left = 125
       Height = 31
       Top = 2
-      Caption = 'tbLine1'
       ImageIndex = 3
       Style = tbsSeparator
     end
@@ -682,7 +675,6 @@ object MainForm: TMainForm
       Left = 133
       Hint = 'Показать мини-карту'
       Top = 2
-      Caption = 'tbShowMap'
       ImageIndex = 3
       OnClick = miMiniMapClick
     end
@@ -690,7 +682,6 @@ object MainForm: TMainForm
       Left = 164
       Height = 31
       Top = 2
-      Caption = 'tbLine2'
       ImageIndex = 6
       Style = tbsSeparator
     end
@@ -707,7 +698,6 @@ object MainForm: TMainForm
       Left = 215
       Height = 31
       Top = 2
-      Caption = 'tbLine3'
       ImageIndex = 7
       Style = tbsSeparator
     end
@@ -715,7 +705,6 @@ object MainForm: TMainForm
       Left = 223
       Hint = 'Включить/Отключить отображение сетки'
       Top = 2
-      Caption = 'tbGridOn'
       ImageIndex = 6
       OnClick = tbGridOnClick
     end
@@ -723,7 +712,6 @@ object MainForm: TMainForm
       Left = 254
       Hint = 'Изменить шаг сетки'
       Top = 2
-      Caption = 'tbGrid'
       ImageIndex = 5
       OnClick = miSwitchGridClick
     end
@@ -731,7 +719,6 @@ object MainForm: TMainForm
       Left = 285
       Height = 31
       Top = 2
-      Caption = 'tbLine4'
       ImageIndex = 7
       Style = tbsSeparator
     end
@@ -739,7 +726,6 @@ object MainForm: TMainForm
       Left = 293
       Hint = 'Тест карты в игре'
       Top = 2
-      Caption = 'tbTestMap'
       ImageIndex = 7
       OnClick = miTestMapClick
     end
