@@ -696,11 +696,10 @@ object MainForm: TMainForm
     end
     object tbShow: TToolButton
       Left = 172
-      Hint = 'Отрисовка панелей/объектов'
       Top = 2
-      Caption = 'tbShow'
-      DropdownMenu = pmShow
-      ImageIndex = 4
+      Caption = 'Show Layers'
+      ImageIndex = 25
+      MenuItem = miLayers
       OnClick = tbShowClick
       Style = tbsDropDown
     end
@@ -1108,51 +1107,84 @@ object MainForm: TMainForm
       object miLayers: TMenuItem
         Caption = 'Show Layers'
         ImageIndex = 25
-        object miLayer1: TMenuItem
-          Caption = 'Фон'
+        object miLayerBackground: TMenuItem
+          AutoCheck = True
+          Caption = 'Background'
           Checked = True
-          SubMenuImages = ImageList
-          OnClick = miLayer1Click
+          ShortCut = 49
+          OnClick = miLayerClick
         end
-        object miLayer2: TMenuItem
-          Caption = 'Стены'
+        object miLayerWallsDoors: TMenuItem
+          AutoCheck = True
+          Caption = 'Walls && Doors'
           Checked = True
-          OnClick = miLayer2Click
+          ShortCut = 50
+          OnClick = miLayerClick
         end
-        object miLayer3: TMenuItem
-          Caption = 'Передний план'
+        object miLayerForeground: TMenuItem
+          AutoCheck = True
+          Caption = 'Foreground'
           Checked = True
-          OnClick = miLayer3Click
+          ShortCut = 51
+          OnClick = miLayerClick
         end
-        object miLayer4: TMenuItem
-          Caption = 'Лестницы'
-          Checked = True
-          OnClick = miLayer4Click
+        object miLayersSep1: TMenuItem
+          Caption = '-'
         end
-        object miLayer5: TMenuItem
-          Caption = 'Жидкости'
+        object miLayerStreamsZones: TMenuItem
+          AutoCheck = True
+          Caption = 'Streams && Zones'
           Checked = True
-          OnClick = miLayer5Click
+          ShortCut = 52
+          OnClick = miLayerClick
         end
-        object miLayer6: TMenuItem
-          Caption = 'Предметы'
+        object miLayerSteps: TMenuItem
+          AutoCheck = True
+          Caption = 'Steps'
           Checked = True
-          OnClick = miLayer6Click
+          ShortCut = 53
+          OnClick = miLayerClick
         end
-        object miLayer7: TMenuItem
-          Caption = 'Монстры'
+        object miLayerLiquids: TMenuItem
+          AutoCheck = True
+          Caption = 'Liquids'
           Checked = True
-          OnClick = miLayer7Click
+          ShortCut = 54
+          OnClick = miLayerClick
         end
-        object miLayer8: TMenuItem
-          Caption = 'Области'
-          Checked = True
-          OnClick = miLayer8Click
+        object miLayersSep2: TMenuItem
+          Caption = '-'
         end
-        object miLayer9: TMenuItem
-          Caption = 'Триггеры'
+        object miLayerMonsters: TMenuItem
+          AutoCheck = True
+          Caption = 'Monsters'
           Checked = True
-          OnClick = miLayer9Click
+          ShortCut = 55
+          OnClick = miLayerClick
+        end
+        object miLayerAreas: TMenuItem
+          AutoCheck = True
+          Caption = 'Areas'
+          Checked = True
+          ShortCut = 56
+          OnClick = miLayerClick
+        end
+        object miLayerItems: TMenuItem
+          AutoCheck = True
+          Caption = 'Items'
+          Checked = True
+          ShortCut = 57
+          OnClick = miLayerClick
+        end
+        object miLayersSep3: TMenuItem
+          Caption = '-'
+        end
+        object miLayerTriggers: TMenuItem
+          AutoCheck = True
+          Caption = 'Triggers'
+          Checked = True
+          ShortCut = 48
+          OnClick = miLayerClick
         end
       end
       object miViewLine1: TMenuItem
@@ -1234,56 +1266,6 @@ object MainForm: TMainForm
         ShortCut = 49217
         OnClick = selectall1Click
       end
-    end
-  end
-  object pmShow: TPopupMenu
-    Images = ImageList
-    Left = 128
-    Top = 64
-    object miLayerP1: TMenuItem
-      Caption = 'Фон'
-      Checked = True
-      OnClick = miLayer1Click
-    end
-    object miLayerP2: TMenuItem
-      Caption = 'Стены'
-      Checked = True
-      OnClick = miLayer2Click
-    end
-    object miLayerP3: TMenuItem
-      Caption = 'Передний план'
-      Checked = True
-      OnClick = miLayer3Click
-    end
-    object miLayerP4: TMenuItem
-      Caption = 'Лестницы'
-      Checked = True
-      OnClick = miLayer4Click
-    end
-    object miLayerP5: TMenuItem
-      Caption = 'Жидкости'
-      Checked = True
-      OnClick = miLayer5Click
-    end
-    object miLayerP6: TMenuItem
-      Caption = 'Предметы'
-      Checked = True
-      OnClick = miLayer6Click
-    end
-    object miLayerP7: TMenuItem
-      Caption = 'Монстры'
-      Checked = True
-      OnClick = miLayer7Click
-    end
-    object miLayerP8: TMenuItem
-      Caption = 'Области'
-      Checked = True
-      OnClick = miLayer8Click
-    end
-    object miLayerP9: TMenuItem
-      Caption = 'Триггеры'
-      Checked = True
-      OnClick = miLayer9Click
     end
   end
   object ilToolbar: TImageList

@@ -388,15 +388,16 @@ Interface
     MsgMenuHelp = 'Help';
     MsgMenuHelpAboutWin = 'About Editor';
 
-    MsgMenuLayerBack = '1. Background';
-    MsgMenuLayerWall = '2. Walls';
-    MsgMenuLayerFore = '3. Foreground';
-    MsgMenuLayerStair = '4. Steps';
-    MsgMenuLayerWater = '5. Liquids';
-    MsgMenuLayerItem = '6. Items';
-    MsgMenuLayerMonster = '7. Monsters';
-    MsgMenuLayerArea = '8. Areas';
-    MsgMenuLayerTrigger = '9. Triggers';
+    MsgMenuLayerBack = 'Background';
+    MsgMenuLayerWall = 'Walls && Doors';
+    MsgMenuLayerFore = 'Foreground';
+    MsgMenuLayerZones = 'Streams && Zones';
+    MsgMenuLayerStair = 'Steps';
+    MsgMenuLayerWater = 'Liquids';
+    MsgMenuLayerMonster = 'Monsters';
+    MsgMenuLayerArea = 'Areas';
+    MsgMenuLayerItem = 'Items';
+    MsgMenuLayerTrigger = 'Triggers';
 
     MsgMenuTbNew = 'New Map';
     MsgMenuTbOpen = 'Open Map';
@@ -933,15 +934,16 @@ begin
   // View menu:
     miMenuView.Caption := MsgMenuView;
     miLayers.Caption := MsgMenuViewLayers;
-    miLayer1.Caption := MsgMenuLayerBack;
-    miLayer2.Caption := MsgMenuLayerWall;
-    miLayer3.Caption := MsgMenuLayerFore;
-    miLayer4.Caption := MsgMenuLayerStair;
-    miLayer5.Caption := MsgMenuLayerWater;
-    miLayer6.Caption := MsgMenuLayerItem;
-    miLayer7.Caption := MsgMenuLayerMonster;
-    miLayer8.Caption := MsgMenuLayerArea;
-    miLayer9.Caption := MsgMenuLayerTrigger;
+    miLayerBackground.Caption := MsgMenuLayerBack;
+    miLayerWallsDoors.Caption := MsgMenuLayerWall;
+    miLayerForeground.Caption := MsgMenuLayerFore;
+    miLayerStreamsZones.Caption := MsgMenuLayerZones;
+    miLayerSteps.Caption := MsgMenuLayerStair;
+    miLayerLiquids.Caption := MsgMenuLayerWater;
+    miLayerMonsters.Caption := MsgMenuLayerMonster;
+    miLayerAreas.Caption := MsgMenuLayerArea;
+    miLayerItems.Caption := MsgMenuLayerItem;
+    miLayerTriggers.Caption := MsgMenuLayerTrigger;
     miMiniMap.Caption := MsgMenuViewMinimap;
     miShowEdges.Caption := MsgMenuViewBounds;
     miMapPreview.Caption := MsgMenuViewPreview;
@@ -965,15 +967,6 @@ begin
     tbOpenWadMap.Hint := MsgMenuTbOpenWad;
     tbShowMap.Hint := MsgMenuTbMinimap;
     tbShow.Hint := MsgMenuTbLayers;
-    miLayerP1.Caption := MsgMenuLayerBack;
-    miLayerP2.Caption := MsgMenuLayerWall;
-    miLayerP3.Caption := MsgMenuLayerFore;
-    miLayerP4.Caption := MsgMenuLayerStair;
-    miLayerP5.Caption := MsgMenuLayerWater;
-    miLayerP6.Caption := MsgMenuLayerItem;
-    miLayerP7.Caption := MsgMenuLayerMonster;
-    miLayerP8.Caption := MsgMenuLayerArea;
-    miLayerP9.Caption := MsgMenuLayerTrigger;
     tbGridOn.Hint := MsgMenuTbGrid;
     tbGrid.Hint := MsgMenuTbGridStep;
     tbTestMap.Hint := MsgMenuTbLaunch;
@@ -1261,7 +1254,7 @@ type
   end;
   PResArg = ^TResArg;
 
-function gResourceItarator (name, value: AnsiString; hash: LongInt; arg: Pointer): AnsiString;
+function gResourceIterator (name, value: AnsiString; hash: LongInt; arg: Pointer): AnsiString;
   var res: PResArg; orig: AnsiString;
 begin
   res := PResArg(arg);
@@ -1287,7 +1280,7 @@ begin
   end;
 end;
 
-procedure gSetLanguageFormStream (const lang: AnsiString; stream: TStream; out ok: Boolean);
+procedure gSetLanguageFromStream (const lang: AnsiString; stream: TStream; out ok: Boolean);
   var res: TResArg;
 begin
   ok := False;
@@ -1306,11 +1299,11 @@ begin
         res.ignored.CaseSensitive := False;
         res.ini.ReadSection('ignore', res.ignored);
         res.ignored.Sort;
-        SetResourceStrings(gResourceItarator, @res);
-        res.ignored.Free();
+        SetResourceStrings(gResourceIterator, @res);
+        res.ignored.Destroy();
       end;
     finally
-      res.ini.Free();
+      res.ini.Destroy();
     end;
   end;
   if not ok then e_WriteLog('Translation file for ' + lang + ' are invalid ', MSG_FATALERROR);
@@ -1324,9 +1317,9 @@ begin
   try
     stream := TFileStream.Create(name, fmOpenRead);
     try
-      gSetLanguageFormStream(lang, stream, ok);
+      gSetLanguageFromStream(lang, stream, ok);
     finally
-      stream.Free();
+      stream.Destroy();
     end;
   except on E: EFOpenError do
     ok := False;

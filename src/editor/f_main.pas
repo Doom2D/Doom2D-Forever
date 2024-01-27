@@ -73,15 +73,19 @@ type
   // View menu:
     miMenuView: TMenuItem;
     miLayers: TMenuItem;
-    miLayer1: TMenuItem;
-    miLayer2: TMenuItem;
-    miLayer3: TMenuItem;
-    miLayer4: TMenuItem;
-    miLayer5: TMenuItem;
-    miLayer6: TMenuItem;
-    miLayer7: TMenuItem;
-    miLayer8: TMenuItem;
-    miLayer9: TMenuItem;
+    miLayerBackground: TMenuItem;
+    miLayerWallsDoors: TMenuItem;
+    miLayerForeground: TMenuItem;
+    miLayersSep1: TMenuItem;
+    miLayerStreamsZones: TMenuItem;
+    miLayerSteps: TMenuItem;
+    miLayerLiquids: TMenuItem;
+    miLayersSep2: TMenuItem;
+    miLayerItems: TMenuItem;
+    miLayerMonsters: TMenuItem;
+    miLayerAreas: TMenuItem;
+    miLayersSep3: TMenuItem;
+    miLayerTriggers: TMenuItem;
     miViewLine1: TMenuItem;
     miMiniMap: TMenuItem;
     miShowEdges: TMenuItem;
@@ -115,16 +119,6 @@ type
     tbShowMap: TToolButton;
     tbLine2: TToolButton;
     tbShow: TToolButton;
-    pmShow: TPopupMenu;
-    miLayerP1: TMenuItem;
-    miLayerP2: TMenuItem;
-    miLayerP3: TMenuItem;
-    miLayerP4: TMenuItem;
-    miLayerP5: TMenuItem;
-    miLayerP6: TMenuItem;
-    miLayerP7: TMenuItem;
-    miLayerP8: TMenuItem;
-    miLayerP9: TMenuItem;
     tbLine3: TToolButton;
     tbGridOn: TToolButton;
     tbGrid: TToolButton;
@@ -237,15 +231,7 @@ type
                                        Shift: TShiftState);
     procedure tbGridOnClick(Sender: TObject);
     procedure miMapPreviewClick(Sender: TObject);
-    procedure miLayer1Click(Sender: TObject);
-    procedure miLayer2Click(Sender: TObject);
-    procedure miLayer3Click(Sender: TObject);
-    procedure miLayer4Click(Sender: TObject);
-    procedure miLayer5Click(Sender: TObject);
-    procedure miLayer6Click(Sender: TObject);
-    procedure miLayer7Click(Sender: TObject);
-    procedure miLayer8Click(Sender: TObject);
-    procedure miLayer9Click(Sender: TObject);
+    procedure miLayerClick(Sender: TObject);
     procedure tbShowClick(Sender: TObject);
     procedure miSnapToGridClick(Sender: TObject);
     procedure miMiniMapClick(Sender: TObject);
@@ -283,16 +269,6 @@ type
   end;
 
 const
-  LAYER_BACK       = 0;
-  LAYER_WALLS      = 1;
-  LAYER_FOREGROUND = 2;
-  LAYER_STEPS      = 3;
-  LAYER_WATER      = 4;
-  LAYER_ITEMS      = 5;
-  LAYER_MONSTERS   = 6;
-  LAYER_AREAS      = 7;
-  LAYER_TRIGGERS   = 8;
-
   TEST_MAP_NAME = '$$$_TEST_$$$';
   LANGUAGE_FILE_NAME = '_Editor.txt';
 
@@ -325,13 +301,9 @@ var
   TestOptionsAllowExit: Boolean;
   TestOptionsWeaponStay: Boolean;
   TestOptionsMonstersDM: Boolean;
-  TestD2dExe, TestD2DArgs: String;
+  TestD2dExe, TestD2dArgs: String;
   TestMapOnce: Boolean;
 
-  LayerEnabled: Array [LAYER_BACK..LAYER_TRIGGERS] of Boolean =
-    (True, True, True, True, True, True, True, True, True);
-  ContourEnabled: Array [LAYER_BACK..LAYER_TRIGGERS] of Boolean =
-    (False, False, False, False, False, False, False, False, False);
   PreviewMode: Byte = 0;
   gLanguage: String;
 
@@ -2200,66 +2172,6 @@ begin
   end;
 end;
 
-procedure ShowLayer(Layer: Byte; show: Boolean);
-begin
-  LayerEnabled[Layer] := show;
-
-  case Layer of
-    LAYER_BACK:
-      begin
-        MainForm.miLayer1.Checked := show;
-        MainForm.miLayerP1.Checked := show;
-      end;
-    LAYER_WALLS:
-      begin
-        MainForm.miLayer2.Checked := show;
-        MainForm.miLayerP2.Checked := show;
-      end;
-    LAYER_FOREGROUND:
-      begin
-        MainForm.miLayer3.Checked := show;
-        MainForm.miLayerP3.Checked := show;
-      end;
-    LAYER_STEPS:
-      begin
-        MainForm.miLayer4.Checked := show;
-        MainForm.miLayerP4.Checked := show;
-      end;
-    LAYER_WATER:
-      begin
-        MainForm.miLayer5.Checked := show;
-        MainForm.miLayerP5.Checked := show;
-      end;
-    LAYER_ITEMS:
-      begin
-        MainForm.miLayer6.Checked := show;
-        MainForm.miLayerP6.Checked := show;
-      end;
-    LAYER_MONSTERS:
-      begin
-        MainForm.miLayer7.Checked := show;
-        MainForm.miLayerP7.Checked := show;
-      end;
-    LAYER_AREAS:
-      begin
-        MainForm.miLayer8.Checked := show;
-        MainForm.miLayerP8.Checked := show;
-      end;
-    LAYER_TRIGGERS:
-      begin
-        MainForm.miLayer9.Checked := show;
-        MainForm.miLayerP9.Checked := show;
-      end;
-  end;
-
-  RemoveSelectFromObjects();
-end;
-
-procedure SwitchLayer(Layer: Byte);
-begin
-  ShowLayer(Layer, not LayerEnabled[Layer]);
-end;
-
 procedure SwitchMap();
 begin
   ShowMap := not ShowMap;
@@ -2754,16 +2666,6 @@ begin
 
   slInvalidTextures := TStringList.Create;
 
-  ShowLayer(LAYER_BACK, True);
-  ShowLayer(LAYER_WALLS, True);
-  ShowLayer(LAYER_FOREGROUND, True);
-  ShowLayer(LAYER_STEPS, True);
-  ShowLayer(LAYER_WATER, True);
-  ShowLayer(LAYER_ITEMS, True);
-  ShowLayer(LAYER_MONSTERS, True);
-  ShowLayer(LAYER_AREAS, True);
-  ShowLayer(LAYER_TRIGGERS, True);
-
   ClearMap();
 
   FormCaption := MainForm.Caption;
@@ -2843,7 +2745,7 @@ begin
   {$ELSE}
     TestD2dExe := config.ReadStr('TestRun', 'ExeUnix', GameExeFile);
   {$ENDIF}
-  TestD2DArgs := config.ReadStr('TestRun', 'Args', '');
+  TestD2dArgs := config.ReadStr('TestRun', 'Args', '');
 
   RecentCount := config.ReadInt('Editor', 'RecentCount', 5);
   if RecentCount > 10 then
@@ -2865,6 +2767,11 @@ begin
   RefreshRecentMenu();
 
   config.Free();
+
+  // Fixes an LCL issue with TToolButton.ImageIndex forcibly assigned,
+  // even when using a different ImageList, if TToolButton.MenuItem is set.
+  // https://forum.lazarus.freepascal.org/index.php?topic=19260.0
+  tbShow.ImageIndex := 4;
 
   tbShowMap.Down := ShowMap;
   tbGridOn.Down := DotEnable;
@@ -3280,7 +3187,7 @@ begin
     OBJECT_ITEM:
       begin
         res := (gItems <> nil) and
-               LayerEnabled[LAYER_ITEMS] and
+               MainForm.miLayerItems.Checked and
                g_CollidePoint(X, Y, gItems[ID].X, gItems[ID].Y,
                               ItemSize[gItems[ID].ItemType][0],
                               ItemSize[gItems[ID].ItemType][1]);
@@ -3290,7 +3197,7 @@ begin
     OBJECT_MONSTER:
       begin
         res := (gMonsters <> nil) and
-               LayerEnabled[LAYER_MONSTERS] and
+               MainForm.miLayerMonsters.Checked and
                g_CollidePoint(X, Y, gMonsters[ID].X, gMonsters[ID].Y,
                               MonsterSize[gMonsters[ID].MonsterType].Width,
                               MonsterSize[gMonsters[ID].MonsterType].Height);
@@ -3300,7 +3207,7 @@ begin
     OBJECT_AREA:
       begin
         res := (gAreas <> nil) and
-               LayerEnabled[LAYER_AREAS] and
+               MainForm.miLayerAreas.Checked and
                g_CollidePoint(X, Y, gAreas[ID].X, gAreas[ID].Y,
                               AreaSize[gAreas[ID].AreaType].Width,
                               AreaSize[gAreas[ID].AreaType].Height);
@@ -3310,7 +3217,7 @@ begin
     OBJECT_TRIGGER:
       begin
         res := (gTriggers <> nil) and
-               LayerEnabled[LAYER_TRIGGERS] and 
+               MainForm.miLayerTriggers.Checked and
                g_CollidePoint(X, Y, gTriggers[ID].X, gTriggers[ID].Y,
                               gTriggers[ID].Width,
                               gTriggers[ID].Height);
@@ -4510,49 +4417,35 @@ end;
 procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 var
   dx, dy, i: Integer;
+  ContourItem: TMenuItem;
   FileName: String;
-  ok: Boolean;
+  ShowContours: QWordBool;
 begin
   if (not EditingProperties) then
   begin
     if ssCtrl in Shift then
     begin
-      case Chr(Key) of
-        '1': ContourEnabled[LAYER_BACK] := not ContourEnabled[LAYER_BACK];
-        '2': ContourEnabled[LAYER_WALLS] := not ContourEnabled[LAYER_WALLS];
-        '3': ContourEnabled[LAYER_FOREGROUND] := not ContourEnabled[LAYER_FOREGROUND];
-        '4': ContourEnabled[LAYER_STEPS] := not ContourEnabled[LAYER_STEPS];
-        '5': ContourEnabled[LAYER_WATER] := not ContourEnabled[LAYER_WATER];
-        '6': ContourEnabled[LAYER_ITEMS] := not ContourEnabled[LAYER_ITEMS];
-        '7': ContourEnabled[LAYER_MONSTERS] := not ContourEnabled[LAYER_MONSTERS];
-        '8': ContourEnabled[LAYER_AREAS] := not ContourEnabled[LAYER_AREAS];
-        '9': ContourEnabled[LAYER_TRIGGERS] := not ContourEnabled[LAYER_TRIGGERS];
-        '0':
-           begin
-             ok := False;
-             for i := Low(ContourEnabled) to High(ContourEnabled) do
-               if ContourEnabled[i] then
-                 ok := True;
-             for i := Low(ContourEnabled) to High(ContourEnabled) do
-               ContourEnabled[i] := not ok
-           end
-      end
+      case Key of
+        VK_0..VK_9: begin
+          ContourItem := MainMenu.FindItem(PtrInt(Key), fkShortCut);  // must always succeed!
+          ContourItem.Tag := not ContourItem.Tag;
+        end;
+
+        VK_LCL_TILDE: begin
+           ShowContours := True;
+           for ContourItem in miLayers do
+             if ContourItem.IsCheckItem() and QWordBool(ContourItem.Tag) then
+             begin
+               ShowContours := False;
+               break;
+             end;
+           for ContourItem in miLayers do
+             ContourItem.Tag := PtrInt(ShowContours);
+         end;
+      end;
     end
-    else
-    begin
-      case Chr(key) of
-        '1': SwitchLayer(LAYER_BACK);
-        '2': SwitchLayer(LAYER_WALLS);
-        '3': SwitchLayer(LAYER_FOREGROUND);
-        '4': SwitchLayer(LAYER_STEPS);
-        '5': SwitchLayer(LAYER_WATER);
-        '6': SwitchLayer(LAYER_ITEMS);
-        '7': SwitchLayer(LAYER_MONSTERS);
-        '8': SwitchLayer(LAYER_AREAS);
-        '9': SwitchLayer(LAYER_TRIGGERS);
-        '0': tbShowClick(tbShow);
-      end
-    end;
+    else if Key = VK_LCL_TILDE then
+      tbShowClick(Sender);
 
     if Key = Ord('I') then
     begin // Поворот монстров и областей:
@@ -6785,71 +6678,31 @@ begin
   FormResize(Self);
 end;
 
-procedure TMainForm.miLayer1Click(Sender: TObject);
+procedure TMainForm.miLayerClick(Sender: TObject);
 begin
-  SwitchLayer(LAYER_BACK);
-end;
-
-procedure TMainForm.miLayer2Click(Sender: TObject);
-begin
-  SwitchLayer(LAYER_WALLS);
-end;
-
-procedure TMainForm.miLayer3Click(Sender: TObject);
-begin
-  SwitchLayer(LAYER_FOREGROUND);
-end;
-
-procedure TMainForm.miLayer4Click(Sender: TObject);
-begin
-  SwitchLayer(LAYER_STEPS);
-end;
-
-procedure TMainForm.miLayer5Click(Sender: TObject);
-begin
-  SwitchLayer(LAYER_WATER);
-end;
-
-procedure TMainForm.miLayer6Click(Sender: TObject);
-begin
-  SwitchLayer(LAYER_ITEMS);
-end;
-
-procedure TMainForm.miLayer7Click(Sender: TObject);
-begin
-  SwitchLayer(LAYER_MONSTERS);
-end;
-
-procedure TMainForm.miLayer8Click(Sender: TObject);
-begin
-  SwitchLayer(LAYER_AREAS);
-end;
-
-procedure TMainForm.miLayer9Click(Sender: TObject);
-begin
-  SwitchLayer(LAYER_TRIGGERS);
+  // TODO: Deselect only the objects of the layer that was hidden.
+  if not (Sender as TMenuItem).Checked then
+    RemoveSelectFromObjects();
 end;
 
 procedure TMainForm.tbShowClick(Sender: TObject);
 var
-  a: Integer;
-  b: Boolean;
+  LayerItem: TMenuItem;
+  ShowLayers: Boolean;
 begin
-  b := True;
-  for a := 0 to High(LayerEnabled) do
-    b := b and LayerEnabled[a];
+  ShowLayers := False;
+  for LayerItem in miLayers do
+    if LayerItem.IsCheckItem() and not LayerItem.Checked then
+    begin
+      ShowLayers := True;
+      break;
+    end;
 
-  b := not b;
+  if not ShowLayers then
+    RemoveSelectFromObjects();
 
-  ShowLayer(LAYER_BACK, b);
-  ShowLayer(LAYER_WALLS, b);
-  ShowLayer(LAYER_FOREGROUND, b);
-  ShowLayer(LAYER_STEPS, b);
-  ShowLayer(LAYER_WATER, b);
-  ShowLayer(LAYER_ITEMS, b);
-  ShowLayer(LAYER_MONSTERS, b);
-  ShowLayer(LAYER_AREAS, b);
-  ShowLayer(LAYER_TRIGGERS, b);
+  for LayerItem in miLayers do
+    LayerItem.Checked := ShowLayers;
 end;
 
 procedure TMainForm.miMiniMapClick(Sender: TObject);
@@ -7011,7 +6864,7 @@ begin
   if TestMapOnce then
     proc.Parameters.Add('--close');
 
-  args := ParseString(TestD2DArgs);
+  args := ParseString(TestD2dArgs);
   for i := 0 to High(args) do
     proc.Parameters.Add(args[i]);
 

@@ -579,23 +579,20 @@ end;
 function PanelInShownLayer(PanelType: Word): Boolean;
 begin
   case PanelType of
-    PANEL_WALL:
-      Result := LayerEnabled[LAYER_WALLS];
+    PANEL_BACK: Result := MainForm.miLayerBackground.Checked;
+    PANEL_FORE: Result := MainForm.miLayerForeground.Checked;
+    PANEL_STEP: Result := MainForm.miLayerSteps.Checked;
 
-    PANEL_BACK:
-      Result := LayerEnabled[LAYER_BACK];
+    PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR:
+      Result := MainForm.miLayerWallsDoors.Checked;
 
-    PANEL_FORE:
-      Result := LayerEnabled[LAYER_FOREGROUND];
+    PANEL_WATER, PANEL_ACID1, PANEL_ACID2:
+      Result := MainForm.miLayerLiquids.Checked;
 
-    PANEL_STEP:
-      Result := LayerEnabled[LAYER_STEPS];
-
-    PANEL_WATER, PANEL_ACID1, PANEL_ACID2,
-    PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT,
-    PANEL_OPENDOOR, PANEL_CLOSEDOOR,
+    PANEL_LIFTUP, PANEL_LIFTDOWN,
+    PANEL_LIFTLEFT, PANEL_LIFTRIGHT,
     PANEL_BLOCKMON:
-      Result := LayerEnabled[LAYER_WATER];
+      Result := MainForm.miLayerStreamsZones.Checked;
 
     else
       Result := False;
@@ -630,7 +627,7 @@ begin
           end;
 
     OBJECT_ITEM:
-      if LayerEnabled[LAYER_ITEMS] and (gItems <> nil) then
+      if MainForm.miLayerItems.Checked and (gItems <> nil) then
         for a := High(gItems) downto 0 do
           with gItems[a] do
             if (ItemType <> ITEM_NONE) and
@@ -645,7 +642,7 @@ begin
             end;
 
     OBJECT_MONSTER:
-      if LayerEnabled[LAYER_MONSTERS] and (gMonsters <> nil) then
+      if MainForm.miLayerMonsters.Checked and (gMonsters <> nil) then
         for a := High(gMonsters) downto 0 do
           if gMonsters[a].MonsterType <> MONSTER_NONE then
             with MonsterSize[gMonsters[a].MonsterType] do
@@ -661,7 +658,7 @@ begin
               end;
 
     OBJECT_AREA:
-      if LayerEnabled[LAYER_AREAS] and (gAreas <> nil) then
+      if MainForm.miLayerAreas.Checked and (gAreas <> nil) then
         for a := High(gAreas) downto 0 do
           if gAreas[a].AreaType <> AREA_NONE then
             with AreaSize[gAreas[a].AreaType] do
@@ -677,7 +674,7 @@ begin
               end;
 
     OBJECT_TRIGGER:
-      if LayerEnabled[LAYER_TRIGGERS] and (gTriggers <> nil) then
+      if MainForm.miLayerTriggers.Checked and (gTriggers <> nil) then
         for a := High(gTriggers) downto 0 do
           if gTriggers[a].TriggerType <> TRIGGER_NONE then
             with gTriggers[a] do
@@ -2093,30 +2090,25 @@ begin
               DrawTexture(a);
 
             PANEL_LIFTUP:
-              if PreviewMode = 0 then
-                e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
-                               X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
-                               128, 64, 0, 0);
+              e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
+                             X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
+                             128, 64, 0, 0);
             PANEL_LIFTDOWN:
-              if PreviewMode = 0 then
-                e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
-                               X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
-                               90, 154, 138, 0);
+              e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
+                             X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
+                             90, 154, 138, 0);
             PANEL_LIFTLEFT:
-              if PreviewMode = 0 then
-                e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
-                               X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
-                               200, 80,  4, 0);
+              e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
+                             X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
+                             200, 80,  4, 0);
             PANEL_LIFTRIGHT:
-              if PreviewMode = 0 then
-                e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
-                               X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
-                               252, 140, 56, 0);
+              e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
+                             X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
+                             252, 140, 56, 0);
             PANEL_BLOCKMON:
-              if PreviewMode = 0 then
-                e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
-                               X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
-                               192, 0, 192, 0);
+              e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
+                             X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
+                             192, 0, 192, 0);
           end;
         end;
 end;
@@ -2180,21 +2172,22 @@ begin
   end;
 
 // Рисуем панели (если Превью или если включен слой):
-  if LayerEnabled[LAYER_BACK] or (PreviewMode = 1) then
+  if MainForm.miLayerBackground.Checked or (PreviewMode = 1) then
     DrawPanels(PANEL_BACK);
-  if PreviewMode > 0 then
-    DrawPanels(PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT)
-  else
-    if LayerEnabled[LAYER_WATER] then
-      DrawPanels(PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT or
-                 PANEL_OPENDOOR or PANEL_CLOSEDOOR or PANEL_BLOCKMON);
-  if LayerEnabled[LAYER_WALLS] or (PreviewMode = 1) then
+  if MainForm.miLayerStreamsZones.Checked and (PreviewMode = 0) then
+    DrawPanels(PANEL_LIFTUP or PANEL_LIFTDOWN
+      or PANEL_LIFTLEFT or PANEL_LIFTRIGHT
+      or PANEL_BLOCKMON);
+  if MainForm.miLayerWallsDoors.Checked or (PreviewMode = 1) then
+  begin
+    DrawPanels(PANEL_OPENDOOR or PANEL_CLOSEDOOR);
     DrawPanels(PANEL_WALL);
-  if LayerEnabled[LAYER_STEPS] or (PreviewMode = 1) then
+  end;
+  if MainForm.miLayerSteps.Checked or (PreviewMode = 1) then
     DrawPanels(PANEL_STEP);
 
 // Рисуем предметы:
-  if (LayerEnabled[LAYER_ITEMS] or (PreviewMode = 1)) and
+  if (MainForm.miLayerItems.Checked or (PreviewMode = 1)) and
      (gItems <> nil) then
     for a := 0 to High(gItems) do
       if gItems[a].ItemType <> ITEM_NONE then
@@ -2247,7 +2240,7 @@ begin
         end;
 
 // Рисуем монстров:
-  if (LayerEnabled[LAYER_MONSTERS] or (PreviewMode = 1)) and
+  if (MainForm.miLayerMonsters.Checked or (PreviewMode = 1)) and
      (gMonsters <> nil) then
     for a := 0 to High(gMonsters) do
       if gMonsters[a].MonsterType <> MONSTER_NONE then
@@ -2318,12 +2311,11 @@ begin
         end;
 
 // Рисуем закрытые двери после монстров:
-  if ((PreviewMode = 2) and LayerEnabled[LAYER_WATER])
-  or (PreviewMode = 1) then
+  if (PreviewMode = 1) or ((PreviewMode = 2) and MainForm.miLayerWallsDoors.Checked) then
     DrawPanels(PANEL_CLOSEDOOR);
 
 // Рисуем области:
-  if (LayerEnabled[LAYER_AREAS] or (PreviewMode = 1)) and
+  if (MainForm.miLayerAreas.Checked or (PreviewMode = 1)) and
      (gAreas <> nil) then
     for a := 0 to High(gAreas) do
       if gAreas[a].AreaType <> AREA_NONE then
@@ -2367,13 +2359,13 @@ begin
         end;
 
 // Рисуем жидкости и передний план после областей:
-  if LayerEnabled[LAYER_WATER] or (PreviewMode = 1) then
+  if MainForm.miLayerLiquids.Checked or (PreviewMode = 1) then
     DrawPanels(PANEL_WATER or PANEL_ACID1 or PANEL_ACID2);
-  if LayerEnabled[LAYER_FOREGROUND] or (PreviewMode = 1) then
+  if MainForm.miLayerForeground.Checked or (PreviewMode = 1) then
     DrawPanels(PANEL_FORE);
 
 // Рисуем триггеры:
-  if LayerEnabled[LAYER_TRIGGERS] and
+  if MainForm.miLayerTriggers.Checked and
      (PreviewMode = 0) and (gTriggers <> nil) then
     for a := 0 to High(gTriggers) do
       with gTriggers[a] do
@@ -2405,7 +2397,7 @@ begin
           end;
 
           case TriggerType of
-            TRIGGER_EXIT: ;
+            TRIGGER_EXIT, TRIGGER_SECRET: ;
 
             TRIGGER_TELEPORT:
               begin
@@ -2498,8 +2490,6 @@ begin
 
                   end;
               end;
-
-            TRIGGER_SECRET: ;
 
             TRIGGER_SPAWNMONSTER, TRIGGER_SPAWNITEM:
               begin
@@ -2708,21 +2698,23 @@ begin
 
 // Draw panel contours
   mask := 0;
-  if ContourEnabled[LAYER_BACK] then
+  if QWordBool(MainForm.miLayerBackground.Tag) then
     mask := mask or PANEL_BACK;
-  if ContourEnabled[LAYER_WALLS] then
-    mask := mask or PANEL_WALL;
-  if ContourEnabled[LAYER_FOREGROUND] then
+  if QWordBool(MainForm.miLayerWallsDoors.Tag) then
+    mask := mask or PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR;
+  if QWordBool(MainForm.miLayerForeground.Tag) then
     mask := mask or PANEL_FORE;
-  if ContourEnabled[LAYER_STEPS] then
+  if QWordBool(MainForm.miLayerStreamsZones.Tag) then
+    mask := mask or PANEL_LIFTUP or PANEL_LIFTDOWN
+      or PANEL_LIFTLEFT or PANEL_LIFTRIGHT
+      or PANEL_BLOCKMON;
+  if QWordBool(MainForm.miLayerSteps.Tag) then
     mask := mask or PANEL_STEP;
-  if ContourEnabled[LAYER_WATER] then
-    mask := mask or PANEL_WATER or PANEL_ACID1 or PANEL_ACID2
-                 or PANEL_OPENDOOR or PANEL_CLOSEDOOR or PANEL_BLOCKMON
-                 or PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT;
+  if QWordBool(MainForm.miLayerLiquids.Tag) then
+    mask := mask or PANEL_WATER or PANEL_ACID1 or PANEL_ACID2;
   if mask <> 0 then
     DrawContours(mask);
-  if ContourEnabled[LAYER_ITEMS] and (gItems <> nil) then
+  if QWordBool(MainForm.miLayerItems.Tag) and (gItems <> nil) then
     for a := 0 to High(gItems) do
       if gItems[a].ItemType <> ITEM_NONE then
         e_DrawQuad(
@@ -2732,7 +2724,7 @@ begin
           MapOffset.Y + gItems[a].Y + ItemSize[gItems[a].ItemType, 1] - 1,
           0, 255, 255
         );
-  if ContourEnabled[LAYER_MONSTERS] and (gMonsters <> nil) then
+  if QWordBool(MainForm.miLayerMonsters.Tag) and (gMonsters <> nil) then
     for a := 0 to High(gMonsters) do
       if gMonsters[a].MonsterType <> MONSTER_NONE then
         e_DrawQuad(
@@ -2742,7 +2734,7 @@ begin
           MapOffset.Y + gMonsters[a].Y + MonsterSize[gMonsters[a].MonsterType].Height - 1,
           200, 0, 0
         );
-  if ContourEnabled[LAYER_AREAS] and (gAreas <> nil) then
+  if QWordBool(MainForm.miLayerAreas.Tag) and (gAreas <> nil) then
     for a := 0 to High(gAreas) do
       if gAreas[a].AreaType <> AREA_NONE then
         e_DrawQuad(
@@ -2752,7 +2744,7 @@ begin
           MapOffset.Y + gAreas[a].Y + AreaSize[gAreas[a].AreaType].Height - 1,
           0, 255, 255
         );
-  if ContourEnabled[LAYER_TRIGGERS] and (gTriggers <> nil) then
+  if QWordBool(MainForm.miLayerTriggers.Tag) and (gTriggers <> nil) then
     for a := 0 to High(gTriggers) do
       if gTriggers[a].TriggerType <> TRIGGER_NONE then
         e_DrawQuad(
