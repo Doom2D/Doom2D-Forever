@@ -91,4 +91,6 @@ begin
   WAD.Free();
 end;
 
+initialization
+  SelectMapForm := TSelectMapForm.Create(Application);
 end.

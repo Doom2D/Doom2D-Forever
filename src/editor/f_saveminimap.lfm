@@ -12,7 +12,7 @@ object SaveMiniMapForm: TSaveMiniMapForm
   Font.Name = 'MS Sans Serif'
   OnActivate = FormActivate
   Position = poScreenCenter
-  LCLVersion = '1.6.4.0'
+  LCLVersion = '3.0.0.3'
   object pbMiniMap: TPaintBox
     Left = 185
     Height = 225
@@ -30,6 +30,7 @@ object SaveMiniMapForm: TSaveMiniMapForm
     BevelOuter = bvNone
     ClientHeight = 225
     ClientWidth = 185
+    ParentBackground = False
     TabOrder = 0
     object LabelScale: TLabel
       Left = 4
@@ -47,8 +48,8 @@ object SaveMiniMapForm: TSaveMiniMapForm
       Anchors = [akLeft, akBottom]
       Caption = 'Сохранить'
       Default = True
-      OnClick = bSaveClick
       TabOrder = 1
+      OnClick = bSaveClick
     end
     object cbScale: TComboBox
       Left = 98
@@ -61,10 +62,10 @@ object SaveMiniMapForm: TSaveMiniMapForm
         '1/16'
         '1/8'
       )
-      OnChange = cbScaleChange
       Style = csDropDownList
       TabOrder = 0
       Text = '1/16'
+      OnChange = cbScaleChange
     end
     object bClose: TButton
       Left = 2
@@ -74,15 +75,15 @@ object SaveMiniMapForm: TSaveMiniMapForm
       Anchors = [akLeft, akBottom]
       Cancel = True
       Caption = 'Закрыть'
-      OnClick = bCloseClick
       TabOrder = 2
+      OnClick = bCloseClick
     end
   end
   object SaveDialog: TSaveDialog
     DefaultExt = '.bmp'
     Filter = 'BMP files (*.bmp)|*.bmp|All files (*.*)|*.*'
     Options = [ofOverwritePrompt, ofHideReadOnly, ofPathMustExist, ofEnableSizing]
-    left = 8
-    top = 48
+    Left = 8
+    Top = 48
   end
 end

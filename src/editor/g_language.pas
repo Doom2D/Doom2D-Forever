@@ -1374,7 +1374,7 @@ begin
 
   SetupArrays();
   SetupCaptions();
-  RemoveSelectFromObjects();
+  MainForm.RemoveSelectFromObjects();
 end;
 
 End.

@@ -13,7 +13,7 @@ object ChooseTypeForm: TChooseTypeForm
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Position = poScreenCenter
-  LCLVersion = '1.6.4.0'
+  LCLVersion = '3.0.0.3'
   object lbTypeSelect: TListBox
     Left = 2
     Height = 183

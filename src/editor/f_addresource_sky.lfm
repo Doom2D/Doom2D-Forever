@@ -25,6 +25,7 @@ inherited AddSkyForm: TAddSkyForm
     BevelOuter = bvLowered
     ClientHeight = 242
     ClientWidth = 322
+    ParentBackground = False
     TabOrder = 3
     object iPreview: TImage
       Left = 0

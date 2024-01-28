@@ -30,4 +30,6 @@ implementation
 
 {$R *.lfm}
 
+initialization
+  KeysForm := TKeysForm.Create(Application);
 end.

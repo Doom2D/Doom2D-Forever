@@ -76,4 +76,6 @@ begin
    OpenDocument(PChar('mailto:pssxx@mail.ru')); { *Преобразовано из ShellExecute* }
 end;
 
+initialization
+  AboutForm := TAboutForm.Create(Application);
 end.

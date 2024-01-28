@@ -6,7 +6,7 @@ Interface
 
 Uses
   LCLIntf, LCLType, g_basic, e_graphics, MAPREADER, MAPSTRUCT,
-  MAPWRITER, e_log, MAPDEF, utils;
+  MAPWRITER, e_log, MAPDEF, utils, f_main;
 
 Type
   TMapObject = record
@@ -232,7 +232,7 @@ function  GetTriggerType(TriggerName: String): Byte;
 function  IsSpecialTexture(TextureName: String): Boolean;
 function  SpecialTextureID(TextureName: String): DWORD;
 
-procedure ClearMap();
+procedure ClearMap(Sender: TMainForm);
 function  SaveMap(Res, ArchiveFormat: String): Pointer;
 function  LoadMap(Res: String): Boolean;
 function  LoadMapOld(_FileName: String): Boolean;
@@ -245,7 +245,7 @@ procedure ShiftMapObjects(dx, dy: Integer);
 implementation
 
 uses
-  BinEditor, g_textures, Dialogs, SysUtils, CONFIG, f_main,
+  BinEditor, g_textures, Dialogs, SysUtils, CONFIG,
   Forms, Math, f_addresource_texture, WADEDITOR, g_language, g_options;
 
 const
@@ -1968,7 +1968,8 @@ begin
   Result := True;
 end;
 
-procedure ClearMap();
+// TODO: Get rid of 'Sender' here, this is a temporary hack to avoid uninitialized variable access.
+procedure ClearMap(Sender: TMainForm);
 var
   a: Integer;
 
@@ -1993,7 +1994,7 @@ begin
   gMapInfo.Width := 1600;
   gMapInfo.Height := 1600;
 
-  with MainForm.lbTextureList do
+  with Sender.lbTextureList do
   begin
     if Items.Count > 0 then
       for a := Items.Count-1 downto 0 do

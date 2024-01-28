@@ -349,4 +349,6 @@ begin
   SaveDialog.InitialDir := MapsDir;
 end;
 
+initialization
+  PackMapForm := TPackMapForm.Create(Application);
 end.

@@ -79,9 +79,9 @@ begin
     end;
 
   if ok then
-    SaveMapForm.ModalResult := mrOk
+    ModalResult := mrOk
   else
-    SaveMapForm.ModalResult := mrCancel;
+    ModalResult := mrCancel;
 end;
 
 procedure TSaveMapForm.GetMaps(FileName: String; placeName: Boolean; ArchiveFormat: String);
@@ -161,4 +161,6 @@ begin
     eMapName.Text := '';
 end;
 
+initialization
+  SaveMapForm := TSaveMapForm.Create(Application);
 end.

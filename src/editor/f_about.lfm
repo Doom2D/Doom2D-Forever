@@ -13,7 +13,7 @@ object AboutForm: TAboutForm
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Position = poScreenCenter
-  LCLVersion = '1.6.4.0'
+  LCLVersion = '3.0.0.3'
   object ButtonOK: TButton
     Left = 8
     Height = 25
@@ -21,8 +21,8 @@ object AboutForm: TAboutForm
     Width = 281
     Cancel = True
     Caption = 'ОК'
-    OnClick = ButtonOKClick
     TabOrder = 0
+    OnClick = ButtonOKClick
   end
   object PanelAbout: TPanel
     Left = 8
@@ -31,6 +31,7 @@ object AboutForm: TAboutForm
     Width = 281
     ClientHeight = 153
     ClientWidth = 281
+    ParentBackground = False
     TabOrder = 1
     object Bevel1: TBevel
       Left = 6

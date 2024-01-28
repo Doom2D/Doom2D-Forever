@@ -157,4 +157,6 @@ begin
     end;
 end;
 
+initialization
+  MapCheckForm := TMapCheckForm.Create(Application);
 end.

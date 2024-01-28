@@ -344,4 +344,6 @@ begin
   mOptimizationResult.Lines.Add(MsgOptPanelsOpt+' '+IntToStr(panelcount1-panelcount2));
 end;
 
+initialization
+  MapOptimizationForm := TMapOptimizationForm.Create(Application);
 end.

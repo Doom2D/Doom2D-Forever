@@ -19,6 +19,7 @@ inherited AddSoundForm: TAddSoundForm
     Top = 52
     Width = 240
     BevelOuter = bvNone
+    ParentBackground = False
     TabOrder = 5
   end
   object bbPlay: TBitBtn[8]
@@ -74,14 +75,14 @@ inherited AddSoundForm: TAddSoundForm
     Width = 75
     Caption = 'Нет звука'
     ModalResult = 1
-    OnClick = bEmptyClick
     TabOrder = 8
+    OnClick = bEmptyClick
   end
   object Timer: TTimer[11]
     Enabled = False
     Interval = 20
     OnTimer = TimerTimer
-    left = 264
-    top = 144
+    Left = 264
+    Top = 144
   end
 end

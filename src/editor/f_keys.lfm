@@ -13,7 +13,7 @@ object KeysForm: TKeysForm
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Position = poScreenCenter
-  LCLVersion = '1.6.4.0'
+  LCLVersion = '3.0.0.3'
   object cbRedKey: TCheckBox
     Left = 2
     Height = 17

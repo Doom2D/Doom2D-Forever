@@ -12,9 +12,9 @@ inherited AddTextureForm: TAddTextureForm
     Top = 272
     Width = 22
     Default = False
-    OnClick = nil
     TabOrder = 4
     Visible = False
+    OnClick = nil
   end
   inherited bCancel: TButton
     Left = 35
@@ -37,6 +37,7 @@ inherited AddTextureForm: TAddTextureForm
     BevelOuter = bvLowered
     ClientHeight = 258
     ClientWidth = 258
+    ParentBackground = False
     TabOrder = 6
     object iPreview: TImage
       Left = 1
@@ -50,8 +51,8 @@ inherited AddTextureForm: TAddTextureForm
     Height = 21
     Top = 88
     Width = 193
-    OnChange = eTextureNameChange
     TabOrder = 2
+    OnChange = eTextureNameChange
   end
   object bAddTexture: TButton[9]
     Left = 160
@@ -60,8 +61,8 @@ inherited AddTextureForm: TAddTextureForm
     Width = 81
     Caption = 'Добавить'
     Default = True
-    OnClick = bAddTextureClick
     TabOrder = 7
+    OnClick = bAddTextureClick
   end
   object bClose: TButton[10]
     Left = 248
@@ -69,8 +70,8 @@ inherited AddTextureForm: TAddTextureForm
     Top = 269
     Width = 81
     Caption = 'Закрыть'
-    OnClick = bCloseClick
     TabOrder = 8
+    OnClick = bCloseClick
   end
   object bAddClose: TButton[11]
     Left = 336
@@ -78,8 +79,8 @@ inherited AddTextureForm: TAddTextureForm
     Top = 269
     Width = 121
     Caption = 'Добавить и закрыть'
-    OnClick = bAddCloseClick
     TabOrder = 9
+    OnClick = bAddCloseClick
   end
   object lStats: TLabel[12]
     Left = 6

@@ -92,6 +92,8 @@ type
     procedure eMapSizeKeyPress(Sender: TObject; var Key: Char);
 
   private
+    function SetSky(): Boolean;
+    function SetMusic(): Boolean;
     function CalcOffsetX(WidthDiff: Integer): Integer;
     function CalcOffsetY(HeightDiff: Integer): Integer;
 
@@ -110,15 +112,15 @@ uses
 {$R *.lfm}
 
 // Callbacks to receive results from resource choosing dialogs
-function SetSky: Boolean;
+function TMapOptionsForm.SetSky(): Boolean;
 begin
-  MapOptionsForm.eBack.Text := AddSkyForm.ResourceName;
+  eBack.Text := AddSkyForm.ResourceName;
   Result := True;
 end;
 
-function SetMusic: Boolean;
+function TMapOptionsForm.SetMusic(): Boolean;
 begin
-  MapOptionsForm.eMusic.Text := AddSoundForm.ResourceName;
+  eMusic.Text := AddSoundForm.ResourceName;
   Result := True;
 end;
 
@@ -292,4 +294,6 @@ begin
   if cbSnapping.Checked then Result := Trunc(Result / DotStep) * DotStep;
 end;
 
+initialization
+  MapOptionsForm := TMapOptionsForm.Create(Application);
 end.

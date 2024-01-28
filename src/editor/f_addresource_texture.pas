@@ -499,8 +499,7 @@ begin
   for i := 0 to lbResourcesList.Count-1 do
     if lbResourcesList.Selected[i] then
     begin
-      AddTexture(cbWADlist.Text, cbSectionsList.Text,
-                 lbResourcesList.Items[i], False);
+      MainForm.AddTexture(cbWADlist.Text, cbSectionsList.Text, lbResourcesList.Items[i], False);
       lbResourcesList.Selected[i] := False;
     end;
 end;
@@ -511,4 +510,6 @@ begin
   Close();
 end;
 
+initialization
+  AddTextureForm := TAddTextureForm.Create(Application);
 end.

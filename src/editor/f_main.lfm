@@ -23,20 +23,21 @@ object MainForm: TMainForm
   OnKeyUp = FormKeyUp
   OnResize = FormResize
   OnWindowStateChange = FormWindowStateChange
-  LCLVersion = '2.2.4.0'
+  LCLVersion = '3.0.0.3'
   object PanelMap: TPanel
     Left = 0
-    Height = 317
+    Height = 309
     Top = 34
     Width = 518
     Align = alClient
     BevelOuter = bvNone
-    ClientHeight = 317
+    ClientHeight = 309
     ClientWidth = 518
+    ParentBackground = False
     TabOrder = 1
     object RenderPanel: TOpenGLControl
       Left = 0
-      Height = 301
+      Height = 293
       Top = 0
       Width = 502
       Align = alClient
@@ -50,7 +51,7 @@ object MainForm: TMainForm
     object sbHorizontal: TScrollBar
       Left = 0
       Height = 16
-      Top = 301
+      Top = 293
       Width = 518
       Align = alBottom
       LargeChange = 256
@@ -63,7 +64,7 @@ object MainForm: TMainForm
     end
     object sbVertical: TScrollBar
       Left = 502
-      Height = 301
+      Height = 293
       Top = 0
       Width = 16
       Align = alRight
@@ -84,6 +85,7 @@ object MainForm: TMainForm
     Width = 176
     ClientHeight = 56
     ClientWidth = 176
+    ParentBackground = False
     TabOrder = 7
     Visible = False
     object pbLoad: TProgressBar
@@ -105,7 +107,7 @@ object MainForm: TMainForm
   end
   object Splitter1: TSplitter
     Left = 518
-    Height = 317
+    Height = 309
     Top = 34
     Width = 5
     Align = alRight
@@ -119,7 +121,7 @@ object MainForm: TMainForm
     Cursor = crVSplit
     Left = 0
     Height = 3
-    Top = 351
+    Top = 343
     Width = 672
     Align = alBottom
     MinSize = 64
@@ -129,18 +131,19 @@ object MainForm: TMainForm
   end
   object PanelProps: TPanel
     Left = 523
-    Height = 317
+    Height = 309
     Top = 34
     Width = 149
     Align = alRight
     BevelInner = bvRaised
     BevelOuter = bvLowered
-    ClientHeight = 317
+    ClientHeight = 309
     ClientWidth = 149
+    ParentBackground = False
     TabOrder = 0
     object vleObjectProperty: TValueListEditor
       Left = 2
-      Height = 283
+      Height = 275
       Top = 2
       Width = 145
       Align = alClient
@@ -181,12 +184,13 @@ object MainForm: TMainForm
     object PanelPropApply: TPanel
       Left = 2
       Height = 30
-      Top = 285
+      Top = 277
       Width = 145
       Align = alBottom
       BevelOuter = bvNone
       ClientHeight = 30
       ClientWidth = 145
+      ParentBackground = False
       TabOrder = 1
       object bApplyProperty: TButton
         Left = 6
@@ -194,15 +198,15 @@ object MainForm: TMainForm
         Top = 1
         Width = 129
         Caption = 'Применить свойства'
-        OnClick = bApplyPropertyClick
         TabOrder = 0
+        OnClick = bApplyPropertyClick
       end
     end
   end
   object StatusBar: TStatusBar
     Left = 0
-    Height = 15
-    Top = 465
+    Height = 23
+    Top = 457
     Width = 672
     AutoHint = True
     Panels = <    
@@ -218,7 +222,7 @@ object MainForm: TMainForm
   object PanelObjs: TPanel
     Left = 0
     Height = 111
-    Top = 354
+    Top = 346
     Width = 672
     Align = alBottom
     BevelInner = bvRaised
@@ -226,6 +230,7 @@ object MainForm: TMainForm
     ClientHeight = 111
     ClientWidth = 672
     Constraints.MinHeight = 111
+    ParentBackground = False
     TabOrder = 2
     object pcObjects: TPageControl
       Left = 2
@@ -239,40 +244,40 @@ object MainForm: TMainForm
       TabOrder = 0
       object tsPanels: TTabSheet
         Caption = 'Панели'
-        ClientHeight = 68
-        ClientWidth = 662
+        ClientHeight = 80
+        ClientWidth = 660
         ImageIndex = 12
         object lbTextureList: TListBox
           Left = 206
-          Height = 70
+          Height = 80
           Hint = 'Список текстур'
           Top = 0
-          Width = 244
+          Width = 242
           Align = alClient
           Constraints.MaxHeight = 600
           Constraints.MinHeight = 70
           ItemHeight = 13
-          OnClick = lbTextureListClick
-          OnDrawItem = lbTextureListDrawItem
-          Options = [lboDrawFocusRect]
           Style = lbOwnerDrawFixed
           TabOrder = 0
+          OnClick = lbTextureListClick
+          OnDrawItem = lbTextureListDrawItem
         end
         object PanelTextures: TPanel
-          Left = 450
-          Height = 68
+          Left = 448
+          Height = 80
           Top = 0
           Width = 212
           Align = alRight
           BevelOuter = bvNone
-          ClientHeight = 68
+          ClientHeight = 80
           ClientWidth = 212
+          ParentBackground = False
           TabOrder = 1
           object LabelTxH: TLabel
             Left = 33
             Height = 13
             Top = 22
-            Width = 95
+            Width = 91
             Caption = 'Высота текстуры:'
             ParentColor = False
           end
@@ -280,7 +285,7 @@ object MainForm: TMainForm
             Left = 33
             Height = 13
             Top = 0
-            Width = 101
+            Width = 92
             Caption = 'Ширина текстуры:'
             ParentColor = False
           end
@@ -302,9 +307,9 @@ object MainForm: TMainForm
           end
           object cbPreview: TCheckBox
             Left = 35
-            Height = 18
+            Height = 17
             Top = 54
-            Width = 205
+            Width = 163
             Caption = 'Предварительный просмотр'
             TabOrder = 0
           end
@@ -334,23 +339,24 @@ object MainForm: TMainForm
             Hint = 'Убрать выбор текстуры'
             Top = 48
             Width = 25
-            OnClick = bClearTextureClick
             TabOrder = 3
+            OnClick = bClearTextureClick
           end
         end
         object PanelPanelType: TPanel
           Left = 0
-          Height = 68
+          Height = 80
           Top = 0
           Width = 206
           Align = alLeft
           BevelOuter = bvNone
-          ClientHeight = 68
+          ClientHeight = 80
           ClientWidth = 206
+          ParentBackground = False
           TabOrder = 2
           object lbPanelType: TListBox
             Left = 0
-            Height = 68
+            Height = 80
             Hint = 'Тип панели'
             Top = 0
             Width = 201
@@ -369,20 +375,19 @@ object MainForm: TMainForm
               'Лифт вниз'
               'Блокиратор монстров'
             )
-            ItemHeight = 20
-            Options = [lboDrawFocusRect]
+            ItemHeight = 13
             TabOrder = 0
           end
         end
       end
       object tsItems: TTabSheet
         Caption = 'Предметы'
-        ClientHeight = 68
-        ClientWidth = 662
+        ClientHeight = 80
+        ClientWidth = 660
         ImageIndex = 4
         object lbItemList: TListBox
           Left = 0
-          Height = 68
+          Height = 80
           Hint = 'Список предметов'
           Top = 0
           Width = 201
@@ -421,35 +426,34 @@ object MainForm: TMainForm
             'Бутылек здоровья'
             'Часть брони'
           )
-          ItemHeight = 20
-          Options = [lboDrawFocusRect]
+          ItemHeight = 13
           TabOrder = 0
         end
         object cbOnlyDM: TCheckBox
           Left = 208
-          Height = 18
+          Height = 17
           Top = 0
-          Width = 102
+          Width = 84
           Caption = 'Только в DM'
           TabOrder = 1
         end
         object cbFall: TCheckBox
           Left = 208
-          Height = 18
+          Height = 17
           Top = 16
-          Width = 67
+          Width = 55
           Caption = 'Падает'
           TabOrder = 2
         end
       end
       object tsMonsters: TTabSheet
         Caption = 'Монстры'
-        ClientHeight = 68
-        ClientWidth = 662
+        ClientHeight = 80
+        ClientWidth = 660
         ImageIndex = 15
         object lbMonsterList: TListBox
           Left = 0
-          Height = 68
+          Height = 80
           Hint = 'Список монстров'
           Top = 0
           Width = 201
@@ -476,15 +480,14 @@ object MainForm: TMainForm
             'Робот'
             'Приколист'
           )
-          ItemHeight = 20
-          Options = [lboDrawFocusRect]
+          ItemHeight = 13
           TabOrder = 0
         end
         object rbMonsterLeft: TRadioButton
           Left = 208
-          Height = 18
+          Height = 17
           Top = 0
-          Width = 58
+          Width = 49
           Caption = 'Влево'
           Checked = True
           TabOrder = 1
@@ -492,21 +495,21 @@ object MainForm: TMainForm
         end
         object rbMonsterRight: TRadioButton
           Left = 208
-          Height = 18
+          Height = 17
           Top = 16
-          Width = 66
+          Width = 55
           Caption = 'Вправо'
           TabOrder = 2
         end
       end
       object tsAreas: TTabSheet
         Caption = 'Области'
-        ClientHeight = 68
-        ClientWidth = 662
+        ClientHeight = 80
+        ClientWidth = 660
         ImageIndex = 3
         object lbAreasList: TListBox
           Left = 0
-          Height = 68
+          Height = 80
           Hint = 'Список областей'
           Top = 0
           Width = 201
@@ -521,15 +524,14 @@ object MainForm: TMainForm
             'Красная команда'
             'Синяя команда'
           )
-          ItemHeight = 20
-          Options = [lboDrawFocusRect]
+          ItemHeight = 13
           TabOrder = 0
         end
         object rbAreaLeft: TRadioButton
           Left = 208
-          Height = 18
+          Height = 17
           Top = 0
-          Width = 58
+          Width = 49
           Caption = 'Влево'
           Checked = True
           TabOrder = 1
@@ -537,21 +539,21 @@ object MainForm: TMainForm
         end
         object rbAreaRight: TRadioButton
           Left = 208
-          Height = 18
+          Height = 17
           Top = 16
-          Width = 66
+          Width = 55
           Caption = 'Вправо'
           TabOrder = 2
         end
       end
       object tsTriggers: TTabSheet
         Caption = 'Триггеры'
-        ClientHeight = 68
-        ClientWidth = 662
+        ClientHeight = 80
+        ClientWidth = 660
         ImageIndex = 6
         object lbTriggersList: TListBox
           Left = 0
-          Height = 68
+          Height = 80
           Hint = 'Список триггеров'
           Top = 0
           Width = 201
@@ -579,13 +581,12 @@ object MainForm: TMainForm
             'Создать предмет'
             'Музыка'
           )
-          ItemHeight = 20
-          Options = [lboDrawFocusRect]
+          ItemHeight = 13
           TabOrder = 0
         end
         object clbActivationType: TCheckListBox
           Left = 201
-          Height = 68
+          Height = 80
           Hint = 'Тип активации триггера'
           Top = 0
           Width = 128
@@ -598,7 +599,7 @@ object MainForm: TMainForm
             'Выстрел'
             'Монстров нет'
           )
-          ItemHeight = 20
+          ItemHeight = 17
           TabOrder = 1
           Data = {
             06000000000000000000
@@ -606,7 +607,7 @@ object MainForm: TMainForm
         end
         object clbKeys: TCheckListBox
           Left = 329
-          Height = 68
+          Height = 80
           Hint = 'Ключи для активации'
           Top = 0
           Width = 128
@@ -618,7 +619,7 @@ object MainForm: TMainForm
             'Красная команда'
             'Синяя команда'
           )
-          ItemHeight = 20
+          ItemHeight = 17
           TabOrder = 2
           Data = {
             050000000000000000

@@ -25,7 +25,7 @@ type
     procedure bSaveClick(Sender: TObject);
 
   private
-    { Private declarations }
+    procedure DrawMiniMap(canv: TCanvas);
   public
     { Public declarations }
   end;
@@ -40,13 +40,13 @@ uses
 
 {$R *.lfm}
 
-procedure DrawMiniMap(canv: TCanvas);
+procedure TSaveMiniMapForm.DrawMiniMap(canv: TCanvas);
 var
   a, w, h, Scale, aX, aY, aX2, aY2: Integer;
   c: TRGB;
   
 begin
-  if SaveMiniMapForm.cbScale.ItemIndex = 0 then
+  if cbScale.ItemIndex = 0 then
     Scale := 1
   else
     Scale := 2;
@@ -142,7 +142,7 @@ begin
   begin
     bmp := TBitmap.Create();
 
-    if SaveMiniMapForm.cbScale.ItemIndex = 0 then
+    if cbScale.ItemIndex = 0 then
       Scale := 1
     else
       Scale := 2;
@@ -161,4 +161,6 @@ begin
   end;
 end;
 
+initialization
+  SaveMiniMapForm := TSaveMiniMapForm.Create(Application);
 end.

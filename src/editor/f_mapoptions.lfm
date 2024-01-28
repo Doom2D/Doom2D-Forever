@@ -15,7 +15,7 @@ object MapOptionsForm: TMapOptionsForm
   OnShow = FormShow
   Position = poScreenCenter
   ShowHint = True
-  LCLVersion = '1.6.4.0'
+  LCLVersion = '3.0.0.3'
   object LabelDesc: TLabel
     Left = 3
     Height = 13
@@ -94,6 +94,7 @@ object MapOptionsForm: TMapOptionsForm
     Caption = 'Статистика:'
     ClientHeight = 100
     ClientWidth = 154
+    ParentBackground = False
     TabOrder = 3
     object lPanelCount: TLabel
       Left = 80
@@ -199,8 +200,8 @@ object MapOptionsForm: TMapOptionsForm
     Width = 75
     Caption = 'ОК'
     Default = True
-    OnClick = bOKClick
     TabOrder = 11
+    OnClick = bOKClick
   end
   object bCancel: TButton
     Left = 251
@@ -209,8 +210,8 @@ object MapOptionsForm: TMapOptionsForm
     Width = 75
     Cancel = True
     Caption = 'Отмена'
-    OnClick = bCancelClick
     TabOrder = 12
+    OnClick = bCancelClick
   end
   object GBSizes: TGroupBox
     Left = 3
@@ -220,6 +221,7 @@ object MapOptionsForm: TMapOptionsForm
     Caption = 'Размеры:'
     ClientHeight = 87
     ClientWidth = 330
+    ParentBackground = False
     TabOrder = 10
     object LabelWidth: TLabel
       Left = 8
@@ -562,9 +564,9 @@ object MapOptionsForm: TMapOptionsForm
       Top = 0
       Width = 45
       MaxLength = 5
-      OnKeyPress = eMapSizeKeyPress
       TabOrder = 0
       Text = '0'
+      OnKeyPress = eMapSizeKeyPress
     end
     object UpDown1: TUpDown
       Left = 105
@@ -578,7 +580,6 @@ object MapOptionsForm: TMapOptionsForm
       Position = 0
       TabOrder = 1
       Thousands = False
-      Wrap = False
     end
     object eMapHeight: TEdit
       Left = 60
@@ -586,9 +587,9 @@ object MapOptionsForm: TMapOptionsForm
       Top = 26
       Width = 45
       MaxLength = 5
-      OnKeyPress = eMapSizeKeyPress
       TabOrder = 2
       Text = '0'
+      OnKeyPress = eMapSizeKeyPress
     end
     object UpDown2: TUpDown
       Left = 105
@@ -602,7 +603,6 @@ object MapOptionsForm: TMapOptionsForm
       Position = 0
       TabOrder = 3
       Thousands = False
-      Wrap = False
     end
     object cbSnapping: TCheckBox
       Left = 128
@@ -622,8 +622,8 @@ object MapOptionsForm: TMapOptionsForm
     Top = 59
     Width = 174
     MaxLength = 256
-    OnChange = eMapDescriptionChange
     TabOrder = 1
+    OnChange = eMapDescriptionChange
   end
   object eMapName: TEdit
     Left = 3
@@ -631,8 +631,8 @@ object MapOptionsForm: TMapOptionsForm
     Top = 19
     Width = 174
     MaxLength = 32
-    OnChange = eMapNameChange
     TabOrder = 0
+    OnChange = eMapNameChange
   end
   object eBack: TEdit
     Left = 3
@@ -661,8 +661,8 @@ object MapOptionsForm: TMapOptionsForm
     Top = 146
     Width = 23
     Caption = '...'
-    OnClick = bSelectBackClick
     TabOrder = 6
+    OnClick = bSelectBackClick
   end
   object bSelectMusic: TButton
     Left = 311
@@ -671,8 +671,8 @@ object MapOptionsForm: TMapOptionsForm
     Top = 186
     Width = 23
     Caption = '...'
-    OnClick = bSelectMusicClick
     TabOrder = 9
+    OnClick = bSelectMusicClick
   end
   object eAuthor: TEdit
     Left = 3
@@ -680,8 +680,8 @@ object MapOptionsForm: TMapOptionsForm
     Top = 99
     Width = 174
     MaxLength = 32
-    OnChange = eAuthorChange
     TabOrder = 2
+    OnChange = eAuthorChange
   end
   object bRemoveBack: TButton
     Left = 285
@@ -689,8 +689,8 @@ object MapOptionsForm: TMapOptionsForm
     Hint = 'Убрать фон'
     Top = 146
     Width = 23
-    OnClick = bRemoveBackClick
     TabOrder = 5
+    OnClick = bRemoveBackClick
   end
   object bRemoveMusic: TButton
     Left = 285
@@ -698,7 +698,7 @@ object MapOptionsForm: TMapOptionsForm
     Hint = 'Убрать музыку'
     Top = 186
     Width = 23
-    OnClick = bRemoveMusicClick
     TabOrder = 8
+    OnClick = bRemoveMusicClick
   end
 end

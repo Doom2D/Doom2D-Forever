@@ -26,4 +26,6 @@ implementation
 
 {$R *.lfm}
 
+initialization
+  ChooseTypeForm := TChooseTypeForm.Create(Application);
 end.

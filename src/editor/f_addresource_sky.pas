@@ -187,4 +187,6 @@ begin
   end;
 end;
 
+initialization
+  AddSkyForm := TAddSkyForm.Create(Application);
 end.

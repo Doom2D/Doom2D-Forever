@@ -10,7 +10,7 @@ uses
   ExtDlgs, e_Log, e_textures, WADEDITOR;
 
 type
-  TOKFunction = function: Boolean;
+  TOKFunction = function: Boolean of object;
 
   TAddResourceForm = class (TForm)
     LabelWADs: TLabel;
@@ -211,4 +211,6 @@ begin
     end;
 end;
 
+initialization
+  AddResourceForm := TAddResourceForm.Create(Application);
 end.

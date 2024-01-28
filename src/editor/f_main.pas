@@ -261,11 +261,30 @@ type
     procedure Draw();
     procedure OnIdle(Sender: TObject; var Done: Boolean);
     procedure RefillRecentMenu (menu: TMenuItem; start: Integer; fmt: AnsiString);
+    procedure MoveMap(X, Y: Integer);
+    procedure FillProperty();
+    procedure SelectObject(fObjectType: Byte; fID: DWORD; Multi: Boolean);
+    procedure DeleteSelectedObjects();
+    procedure Undo_Add(ObjectType: Byte; ID: DWORD; Group: Boolean = False);
+    procedure FullClear();
+    function CheckProperty(): Boolean;
+    procedure SelectTexture(ID: Integer);
+    procedure UpdateCaption(sMap, sFile, sRes: String);
+    procedure SwitchMap();
+    procedure ShowEdges();
+    function SelectedTexture(): String;
+    function IsSpecialTextureSel(): Boolean;
+    procedure InitGraphics();
+    procedure SelectNextObject(X, Y: Integer; ObjectType: Byte; ID: DWORD);
   public
     procedure RefreshRecentMenu();
     procedure OpenMapFile(FileName: String);
     function RenderMousePos(): TPoint;
     procedure RecountSelectedObjects();
+    procedure OpenMap(FileName: String; mapN: String);
+    function AddTexture(aWAD, aSection, aTex: String; silent: Boolean): Boolean;
+    procedure RemoveSelectFromObjects();
+    procedure ChangeShownProperty(Name: String; NewValue: String);
   end;
 
 const
@@ -273,7 +292,7 @@ const
   LANGUAGE_FILE_NAME = '_Editor.txt';
 
 var
-  MainForm: TMainForm;
+  MainForm: TMainForm;  // TODO: move to Editor.lpr and rename 'f_main' to 'Main'?
   StartMap: String;
   OpenedMap: String;
   OpenedWAD: String;
@@ -308,12 +327,6 @@ var
   gLanguage: String;
 
   FormCaption: String;
-
-
-procedure OpenMap(FileName: String; mapN: String);
-function  AddTexture(aWAD, aSection, aTex: String; silent: Boolean): Boolean;
-procedure RemoveSelectFromObjects();
-procedure ChangeShownProperty(Name: String; NewValue: String);
 
 implementation
 
@@ -672,11 +685,11 @@ begin
   Result := (x div 16) * 16;
 end;
 
-procedure MoveMap(X, Y: Integer);
+procedure TMainForm.MoveMap(X, Y: Integer);
 var
   rx, ry, ScaleSz: Integer;
 begin
-  with MainForm.RenderPanel do
+  with RenderPanel do
   begin
     ScaleSz := 16 div Scale;
   // Размер видимой части карты:
@@ -692,20 +705,20 @@ begin
     MapOffset.X := MapOffset.X - rx;
     MapOffset.Y := MapOffset.Y - ry;
   // Выход за границы:
-    MapOffset.X := EnsureRange(MapOffset.X, MainForm.sbHorizontal.Min, MainForm.sbHorizontal.Max);
-    MapOffset.Y := EnsureRange(MapOffset.Y, MainForm.sbVertical.Min, MainForm.sbVertical.Max);
+    MapOffset.X := EnsureRange(MapOffset.X, sbHorizontal.Min, sbHorizontal.Max);
+    MapOffset.Y := EnsureRange(MapOffset.Y, sbVertical.Min, sbVertical.Max);
   // Кратно 16:
   //  MapOffset.X := Normalize16(MapOffset.X);
   //  MapOffset.Y := Normalize16(MapOffset.Y);
   end;
 
-  MainForm.sbHorizontal.Position := MapOffset.X;
-  MainForm.sbVertical.Position := MapOffset.Y;
+  sbHorizontal.Position := MapOffset.X;
+  sbVertical.Position := MapOffset.Y;
 
   MapOffset.X := -MapOffset.X;
   MapOffset.Y := -MapOffset.Y;
 
-  MainForm.Resize();
+  Resize();
 end;
 
 function IsTexturedPanel(PanelType: Word): Boolean;
@@ -715,13 +728,13 @@ begin
                                     PANEL_WATER or PANEL_ACID1 or PANEL_ACID2));
 end;
 
-procedure FillProperty();
+procedure TMainForm.FillProperty();
 var
   _id: DWORD;
   str: String;
 begin
-  MainForm.vleObjectProperty.Strings.Clear();
-  MainForm.RecountSelectedObjects();
+  vleObjectProperty.Strings.Clear();
+  RecountSelectedObjects();
 
 // Отображаем свойства если выделен только один объект:
   if SelectedObjectCount() <> 1 then
@@ -731,7 +744,7 @@ begin
   if not SelectedObjects[_id].Live then
     Exit;
 
-  with MainForm.vleObjectProperty do
+  with vleObjectProperty do
     with ItemProps[InsertRow(MsgPropId, IntToStr(SelectedObjects[_id].ID), True)] do
     begin
       EditStyle := esSimple;
@@ -741,7 +754,7 @@ begin
   case SelectedObjects[0].ObjectType of
     OBJECT_PANEL:
       begin
-        with MainForm.vleObjectProperty,
+        with vleObjectProperty,
              gPanels[SelectedObjects[_id].ID] do
         begin
           with ItemProps[InsertRow(MsgPropX, IntToStr(X), True)] do
@@ -802,7 +815,7 @@ begin
 
     OBJECT_ITEM:
       begin
-        with MainForm.vleObjectProperty,
+        with vleObjectProperty,
              gItems[SelectedObjects[_id].ID] do
         begin
           with ItemProps[InsertRow(MsgPropX, IntToStr(X), True)] do
@@ -833,7 +846,7 @@ begin
 
     OBJECT_MONSTER:
       begin
-        with MainForm.vleObjectProperty,
+        with vleObjectProperty,
              gMonsters[SelectedObjects[_id].ID] do
         begin
           with ItemProps[InsertRow(MsgPropX, IntToStr(X), True)] do
@@ -858,7 +871,7 @@ begin
 
     OBJECT_AREA:
       begin
-        with MainForm.vleObjectProperty,
+        with vleObjectProperty,
              gAreas[SelectedObjects[_id].ID] do
         begin
           with ItemProps[InsertRow(MsgPropX, IntToStr(X), True)] do
@@ -883,7 +896,7 @@ begin
 
     OBJECT_TRIGGER:
       begin
-        with MainForm.vleObjectProperty,
+        with vleObjectProperty,
              gTriggers[SelectedObjects[_id].ID] do
         begin
           with ItemProps[InsertRow(MsgPropTrType, GetTriggerName(TriggerType), True)] do
@@ -1627,7 +1640,7 @@ begin
   end;
 end;
 
-procedure ChangeShownProperty(Name: String; NewValue: String);
+procedure TMainForm.ChangeShownProperty(Name: String; NewValue: String);
 var
   row: Integer;
 begin
@@ -1637,13 +1650,11 @@ begin
     Exit;
 
 // Есть ли такой ключ:
-  if MainForm.vleObjectProperty.FindRow(Name, row) then
-  begin
-    MainForm.vleObjectProperty.Values[Name] := NewValue;
-  end;
+  if vleObjectProperty.FindRow(Name, row) then
+    vleObjectProperty.Values[Name] := NewValue;
 end;
 
-procedure SelectObject(fObjectType: Byte; fID: DWORD; Multi: Boolean);
+procedure TMainForm.SelectObject(fObjectType: Byte; fID: DWORD; Multi: Boolean);
 var
   a: Integer;
   b: Boolean;
@@ -1687,17 +1698,17 @@ begin
       end;
     end;
 
-  MainForm.miCopy.Enabled := True;
-  MainForm.miCut.Enabled := True;
+  miCopy.Enabled := True;
+  miCut.Enabled := True;
 
   if fObjectType = OBJECT_PANEL then
   begin
-    MainForm.miToFore.Enabled := True;
-    MainForm.miToBack.Enabled := True;
+    miToFore.Enabled := True;
+    miToBack.Enabled := True;
   end;
 end;
 
-procedure RemoveSelectFromObjects();
+procedure TMainForm.RemoveSelectFromObjects();
 begin
   SelectedObjects := nil;
   DrawPressRect := False;
@@ -1708,15 +1719,14 @@ begin
   ResizeType := RESIZETYPE_NONE;
   ResizeDirection := RESIZEDIR_NONE;
 
-  MainForm.vleObjectProperty.Strings.Clear();
-  
-  MainForm.miCopy.Enabled := False;
-  MainForm.miCut.Enabled := False;
-  MainForm.miToFore.Enabled := False;
-  MainForm.miToBack.Enabled := False;
+  vleObjectProperty.Strings.Clear();
+  miCopy.Enabled := False;
+  miCut.Enabled := False;
+  miToFore.Enabled := False;
+  miToBack.Enabled := False;
 end;
 
-procedure DeleteSelectedObjects();
+procedure TMainForm.DeleteSelectedObjects();
 var
   i, a, ii: Integer;
   b: Boolean;
@@ -1770,11 +1780,11 @@ begin
 
   RemoveSelectFromObjects();
 
-  MainForm.miUndo.Enabled := UndoBuffer <> nil;
-  MainForm.RecountSelectedObjects();
+  miUndo.Enabled := UndoBuffer <> nil;
+  RecountSelectedObjects();
 end;
 
-procedure Undo_Add(ObjectType: Byte; ID: DWORD; Group: Boolean = False);
+procedure TMainForm.Undo_Add(ObjectType: Byte; ID: DWORD; Group: Boolean);
 var
   i, ii: Integer;
 begin
@@ -1798,7 +1808,7 @@ begin
   end;
 
   UndoBuffer[i, ii].AddID := ID;
-  MainForm.miUndo.Enabled := UndoBuffer <> nil;
+  miUndo.Enabled := UndoBuffer <> nil;
 end;
 
 procedure DiscardUndoBuffer();
@@ -1814,21 +1824,21 @@ begin
   UndoBuffer := nil;
 end;
 
-procedure FullClear();
+procedure TMainForm.FullClear();
 begin
   RemoveSelectFromObjects();
-  ClearMap();
+  ClearMap(Self);
   LoadSky(gMapInfo.SkyName);
   DiscardUndoBuffer();
   slInvalidTextures.Clear();
   MapCheckForm.lbErrorList.Clear();
   MapCheckForm.mErrorDescription.Clear();
 
-  MainForm.miUndo.Enabled := False;
-  MainForm.sbHorizontal.Position := 0;
-  MainForm.sbVertical.Position := 0;
-  MainForm.FormResize(nil);
-  MainForm.Caption := FormCaption;
+  miUndo.Enabled := False;
+  sbHorizontal.Position := 0;
+  sbVertical.Position := 0;
+  FormResize(nil);
+  Caption := FormCaption;
   OpenedMap := '';
   OpenedWAD := '';
 end;
@@ -1839,7 +1849,7 @@ begin
              MB_ICONINFORMATION or MB_OK or MB_DEFBUTTON1);
 end;
 
-function CheckProperty(): Boolean;
+function TMainForm.CheckProperty(): Boolean;
 var
   _id: Integer;
 begin
@@ -1851,7 +1861,7 @@ begin
     with gPanels[SelectedObjects[_id].ID] do
     begin
       if TextureWidth <> 0 then
-        if StrToIntDef(MainForm.vleObjectProperty.Values[MsgPropWidth], 1) mod TextureWidth <> 0 then
+        if StrToIntDef(vleObjectProperty.Values[MsgPropWidth], 1) mod TextureWidth <> 0 then
         begin
           ErrorMessageBox(Format(MsgMsgWrongTexwidth,
                                  [TextureWidth]));
@@ -1859,7 +1869,7 @@ begin
         end;
 
       if TextureHeight <> 0 then
-        if StrToIntDef(Trim(MainForm.vleObjectProperty.Values[MsgPropHeight]), 1) mod TextureHeight <> 0 then
+        if StrToIntDef(Trim(vleObjectProperty.Values[MsgPropHeight]), 1) mod TextureHeight <> 0 then
         begin
           ErrorMessageBox(Format(MsgMsgWrongTexheight,
                                  [TextureHeight]));
@@ -1867,7 +1877,7 @@ begin
         end;
 
       if IsTexturedPanel(PanelType) and (TextureName <> '') then
-        if not (StrToIntDef(MainForm.vleObjectProperty.Values[MsgPropPanelAlpha], -1) in [0..255]) then
+        if not (StrToIntDef(vleObjectProperty.Values[MsgPropPanelAlpha], -1) in [0..255]) then
         begin
           ErrorMessageBox(MsgMsgWrongAlpha);
           Exit;
@@ -1875,15 +1885,15 @@ begin
     end;
 
   if SelectedObjects[_id].ObjectType in [OBJECT_PANEL, OBJECT_TRIGGER] then
-    if (StrToIntDef(MainForm.vleObjectProperty.Values[MsgPropWidth], 0) <= 0) or
-       (StrToIntDef(MainForm.vleObjectProperty.Values[MsgPropHeight], 0) <= 0) then
+    if (StrToIntDef(vleObjectProperty.Values[MsgPropWidth], 0) <= 0) or
+       (StrToIntDef(vleObjectProperty.Values[MsgPropHeight], 0) <= 0) then
     begin
       ErrorMessageBox(MsgMsgWrongSize);
       Exit;
     end;
 
-  if (Trim(MainForm.vleObjectProperty.Values[MsgPropX]) = '') or
-     (Trim(MainForm.vleObjectProperty.Values[MsgPropY]) = '') then
+  if (Trim(vleObjectProperty.Values[MsgPropX]) = '') or
+     (Trim(vleObjectProperty.Values[MsgPropY]) = '') then
   begin
     ErrorMessageBox(MsgMsgWrongXy);
     Exit;
@@ -1892,13 +1902,13 @@ begin
   Result := True;
 end;
 
-procedure SelectTexture(ID: Integer);
+procedure TMainForm.SelectTexture(ID: Integer);
 begin
-  MainForm.lbTextureList.ItemIndex := ID;
-  MainForm.lbTextureListClick(nil);
+  lbTextureList.ItemIndex := ID;
+  lbTextureListClick(nil);
 end;
 
-function AddTexture(aWAD, aSection, aTex: String; silent: Boolean): Boolean;
+function TMainForm.AddTexture(aWAD, aSection, aTex: String; silent: Boolean): Boolean;
 var
   a, FrameLen: Integer;
   ok: Boolean;
@@ -1944,8 +1954,8 @@ begin
   ok := True;
 
 // Есть ли уже такая текстура:
-  for a := 0 to MainForm.lbTextureList.Items.Count-1 do
-    if ResourceName = MainForm.lbTextureList.Items[a] then
+  for a := 0 to lbTextureList.Items.Count-1 do
+    if ResourceName = lbTextureList.Items[a] then
     begin
       if not silent then
         ErrorMessageBox(Format(MsgMsgTextureAlready,
@@ -1967,7 +1977,7 @@ begin
     a := -1;
     if aWAD = MsgWadSpecialTexs then
     begin
-      a := MainForm.lbTextureList.Items.Add(ResourceName);
+      a := lbTextureList.Items.Add(ResourceName);
       if not silent then
         SelectTexture(a);
       Result := True;
@@ -1982,13 +1992,13 @@ begin
 
         if not g_CreateTextureMemorySize(Data, FrameLen, ResourceName, 0, 0, Width, Height, 1) then
           ok := False;
-        a := MainForm.lbTextureList.Items.Add(ResourceName);
+        a := lbTextureList.Items.Add(ResourceName);
       end
     else // Обычная текстура
       begin
         if not g_CreateTextureWAD(ResourceName, FullResourceName) then
           ok := False;
-        a := MainForm.lbTextureList.Items.Add(ResourceName);
+        a := lbTextureList.Items.Add(ResourceName);
       end;
     if (not ok) and (slInvalidTextures.IndexOf(ResourceName) = -1) then
     begin
@@ -2002,22 +2012,21 @@ begin
   Result := ok;
 end;
 
-procedure UpdateCaption(sMap, sFile, sRes: String);
+procedure TMainForm.UpdateCaption(sMap, sFile, sRes: String);
 begin
-  with MainForm do
-    if (sFile = '') and (sRes = '') and (sMap = '') then
-      Caption := FormCaption
+  if (sFile = '') and (sRes = '') and (sMap = '') then
+    Caption := FormCaption
+  else
+    if sMap = '' then
+      Caption := Format('%s - %s:%s', [FormCaption, sFile, sRes])
     else
-      if sMap = '' then
-        Caption := Format('%s - %s:%s', [FormCaption, sFile, sRes])
+      if (sFile <> '') and (sRes <> '') then
+        Caption := Format('%s - %s (%s:%s)', [FormCaption, sMap, sFile, sRes])
       else
-        if (sFile <> '') and (sRes <> '') then
-          Caption := Format('%s - %s (%s:%s)', [FormCaption, sMap, sFile, sRes])
-        else
-          Caption := Format('%s - %s', [FormCaption, sMap]);
+        Caption := Format('%s - %s', [FormCaption, sMap]);
 end;
 
-procedure OpenMap(FileName: String; mapN: String);
+procedure TMainForm.OpenMap(FileName: String; mapN: String);
 var
   MapName: String;
   idx: Integer;
@@ -2057,34 +2066,31 @@ begin
 
   MapName := SelectMapForm.lbMapList.Items[idx];
 
-  with MainForm do
-  begin
-    FullClear();
+  FullClear();
 
-    pLoadProgress.Left := (RenderPanel.Width div 2)-(pLoadProgress.Width div 2);
-    pLoadProgress.Top := (RenderPanel.Height div 2)-(pLoadProgress.Height div 2);
-    pLoadProgress.Show();
+  pLoadProgress.Left := (RenderPanel.Width div 2)-(pLoadProgress.Width div 2);
+  pLoadProgress.Top := (RenderPanel.Height div 2)-(pLoadProgress.Height div 2);
+  pLoadProgress.Show();
 
-    OpenedMap := FileName+':\'+MapName;
-    OpenedWAD := FileName;
+  OpenedMap := FileName+':\'+MapName;
+  OpenedWAD := FileName;
 
-    idx := RecentFiles.IndexOf(OpenedMap);
-  // Такая карта уже недавно открывалась:
-    if idx >= 0 then
-      RecentFiles.Delete(idx);
-    RecentFiles.Insert(0, OpenedMap);
-    RefreshRecentMenu();
+  idx := RecentFiles.IndexOf(OpenedMap);
+// Такая карта уже недавно открывалась:
+  if idx >= 0 then
+    RecentFiles.Delete(idx);
+  RecentFiles.Insert(0, OpenedMap);
+  RefreshRecentMenu();
 
-    LoadMap(OpenedMap);
+  LoadMap(OpenedMap);
 
-    pLoadProgress.Hide();
-    FormResize(nil);
+  pLoadProgress.Hide();
+  FormResize(nil);
 
-    lbTextureList.Sorted := True;
-    lbTextureList.Sorted := False;
+  lbTextureList.Sorted := True;
+  lbTextureList.Sorted := False;
 
-    UpdateCaption(gMapInfo.Name, ExtractFileName(FileName), MapName);
-  end;
+  UpdateCaption(gMapInfo.Name, ExtractFileName(FileName), MapName);
 end;
 
 procedure MoveSelectedObjects(Wall, alt: Boolean; dx, dy: Integer);
@@ -2172,34 +2178,34 @@ begin
   end;
 end;
 
-procedure SwitchMap();
+procedure TMainForm.SwitchMap();
 begin
   ShowMap := not ShowMap;
-  MainForm.tbShowMap.Down := ShowMap;
-  MainForm.miMiniMap.Checked := ShowMap;
+  tbShowMap.Down := ShowMap;
+  miMiniMap.Checked := ShowMap;
 end;
 
-procedure ShowEdges();
+procedure TMainForm.ShowEdges();
 begin
   if drEdge[3] < 255 then
     drEdge[3] := 255
   else
     drEdge[3] := gAlphaEdge;
-  MainForm.miShowEdges.Checked := drEdge[3] <> 255;
+  miShowEdges.Checked := drEdge[3] <> 255;
 end;
 
-function SelectedTexture(): String;
+function TMainForm.SelectedTexture(): String;
 begin
-  if MainForm.lbTextureList.ItemIndex <> -1 then
-    Result := MainForm.lbTextureList.Items[MainForm.lbTextureList.ItemIndex]
+  if lbTextureList.ItemIndex <> -1 then
+    Result := lbTextureList.Items[lbTextureList.ItemIndex]
   else
     Result := '';
 end;
 
-function IsSpecialTextureSel(): Boolean;
+function TMainForm.IsSpecialTextureSel(): Boolean;
 begin
-  Result := (MainForm.lbTextureList.ItemIndex <> -1) and
-            IsSpecialTexture(MainForm.lbTextureList.Items[MainForm.lbTextureList.ItemIndex]);
+  Result := (lbTextureList.ItemIndex <> -1) and
+            IsSpecialTexture(lbTextureList.Items[lbTextureList.ItemIndex]);
 end;
 
 function CopyBufferToString(var CopyBuf: TCopyRecArray): String;
@@ -2666,9 +2672,9 @@ begin
 
   slInvalidTextures := TStringList.Create;
 
-  ClearMap();
+  ClearMap(Self);
 
-  FormCaption := MainForm.Caption;
+  FormCaption := Caption;
   OpenedMap := '';
   OpenedWAD := '';
 
@@ -2787,7 +2793,7 @@ begin
   e_TextureFontPrintEx(X, Y, Text, FontID, 0, 0, 0, 1.0);
 end;
 
-procedure InitGraphics;
+procedure TMainForm.InitGraphics();
 begin
   // FIXME: this is a shitty hack
   if not gDataLoaded then
@@ -2800,7 +2806,7 @@ begin
     LoadData();
     e_WriteLog('Loading even more data', MSG_NOTIFY);
     gDataLoaded := True;
-    MainForm.FormResize(nil);
+    FormResize(nil);
   end;
 end;
 
@@ -3167,7 +3173,7 @@ begin
   {$ENDIF}
 end;
 
-procedure SelectNextObject(X, Y: Integer; ObjectType: Byte; ID: DWORD);
+procedure TMainForm.SelectNextObject(X, Y: Integer; ObjectType: Byte; ID: DWORD);
 var
   j, j_max: Integer;
   res: Boolean;
@@ -3187,7 +3193,7 @@ begin
     OBJECT_ITEM:
       begin
         res := (gItems <> nil) and
-               MainForm.miLayerItems.Checked and
+               miLayerItems.Checked and
                g_CollidePoint(X, Y, gItems[ID].X, gItems[ID].Y,
                               ItemSize[gItems[ID].ItemType][0],
                               ItemSize[gItems[ID].ItemType][1]);
@@ -3197,7 +3203,7 @@ begin
     OBJECT_MONSTER:
       begin
         res := (gMonsters <> nil) and
-               MainForm.miLayerMonsters.Checked and
+               miLayerMonsters.Checked and
                g_CollidePoint(X, Y, gMonsters[ID].X, gMonsters[ID].Y,
                               MonsterSize[gMonsters[ID].MonsterType].Width,
                               MonsterSize[gMonsters[ID].MonsterType].Height);
@@ -3207,7 +3213,7 @@ begin
     OBJECT_AREA:
       begin
         res := (gAreas <> nil) and
-               MainForm.miLayerAreas.Checked and
+               miLayerAreas.Checked and
                g_CollidePoint(X, Y, gAreas[ID].X, gAreas[ID].Y,
                               AreaSize[gAreas[ID].AreaType].Width,
                               AreaSize[gAreas[ID].AreaType].Height);
@@ -3217,7 +3223,7 @@ begin
     OBJECT_TRIGGER:
       begin
         res := (gTriggers <> nil) and
-               MainForm.miLayerTriggers.Checked and
+               miLayerTriggers.Checked and
                g_CollidePoint(X, Y, gTriggers[ID].X, gTriggers[ID].Y,
                               gTriggers[ID].Width,
                               gTriggers[ID].Height);
@@ -3298,7 +3304,7 @@ var
   monster: TMonster;
   IDArray: DWArray;
 begin
-  MainForm.ActiveControl := RenderPanel;
+  ActiveControl := RenderPanel;
   RenderPanel.SetFocus();
 
   RenderPanelMouseMove(RenderPanel, Shift, X, Y);
@@ -4371,8 +4377,8 @@ end;
 
 procedure TMainForm.RenderPanelResize(Sender: TObject);
 begin
-  if MainForm.Visible then
-    MainForm.Resize();
+  if Visible then
+    Resize();
 end;
 
 procedure TMainForm.Splitter1Moved(Sender: TObject);
@@ -4602,7 +4608,7 @@ begin
     RemoveSelectFromObjects();
 
 // Передвинуть объекты:
-  if MainForm.ActiveControl = RenderPanel then
+  if ActiveControl = RenderPanel then
   begin
     dx := 0;
     dy := 0;
@@ -5803,7 +5809,7 @@ begin
                 else // Спец.текстура:
                   begin
                     Panel^.TextureID := SpecialTextureID(Panel^.TextureName);
-                    with MainForm.lbTextureList.Items do
+                    with lbTextureList.Items do
                       if IndexOf(Panel^.TextureName) = -1 then
                         Add(Panel^.TextureName);
                   end;
@@ -6301,10 +6307,10 @@ begin
 
       LoadMapOld(FileName);
 
-      MainForm.Caption := Format('%s - %s', [FormCaption, ExtractFileName(FileName)]);
+      Caption := Format('%s - %s', [FormCaption, ExtractFileName(FileName)]);
 
       pLoadProgress.Hide();
-      MainForm.FormResize(Self);
+      FormResize(Self);
     end
   else // Карты из WAD:
     begin
@@ -6314,7 +6320,7 @@ end;
 
 procedure TMainForm.FormActivate(Sender: TObject);
 begin
-  MainForm.ActiveControl := RenderPanel;
+  ActiveControl := RenderPanel;
 end;
 
 procedure TMainForm.aDeleteMap(Sender: TObject);
@@ -6373,7 +6379,7 @@ begin
     begin
       OpenedMap := '';
       OpenedWAD := '';
-      MainForm.Caption := FormCaption;
+      Caption := FormCaption;
     end;
   end;
 
@@ -6798,7 +6804,7 @@ end;
 
 procedure TMainForm.miTestMapClick(Sender: TObject);
 var
-  newWAD, oldWAD, tempMap, ext: String;
+  newWAD, oldWAD, tempMap: String;
   args: SSArray;
   opt: LongWord;
   time, i: Integer;
@@ -6818,29 +6824,29 @@ begin
   if OpenedMap <> '' then
   begin
     oldWad := g_ExtractWadName(OpenedMap);
-    newWad := newWad + ExtractFileExt(oldWad);
-    if CopyFile(oldWad, newWad) = false then
+    newWad += ExtractFileExt(oldWad);
+    if not CopyFile(oldWad, newWad) then
       e_WriteLog('MapTest: unable to copy [' + oldWad + '] to [' + newWad + ']', MSG_WARNING)
   end
   else
   begin
-    newWad := newWad + '.wad'
+    newWad += '.wad'
   end;
   tempMap := newWAD + ':\' + TEST_MAP_NAME;
   SaveMap(tempMap, '');
 
 // Опции игры:
-  opt := 32 + 64;
+  opt := 32 or 64;
   if TestOptionsTwoPlayers then
-    opt := opt + 1;
+    opt += 1;
   if TestOptionsTeamDamage then
-    opt := opt + 2;
+    opt += 2;
   if TestOptionsAllowExit then
-    opt := opt + 4;
+    opt += 4;
   if TestOptionsWeaponStay then
-    opt := opt + 8;
+    opt += 8;
   if TestOptionsMonstersDM then
-    opt := opt + 16;
+    opt += 16;
 
 // Запускаем:
   proc := TProcessUTF8.Create(nil);
@@ -6848,7 +6854,8 @@ begin
   {$IFDEF DARWIN}
     // TODO: get real executable name from Info.plist
     if LowerCase(ExtractFileExt(TestD2dExe)) = '.app' then
-      proc.Executable := TestD2dExe + DirectorySeparator + 'Contents' + DirectorySeparator + 'MacOS' + DirectorySeparator + 'Doom2DF';
+      proc.Executable := TestD2dExe + DirectorySeparator + 'Contents' + DirectorySeparator +
+        'MacOS' + DirectorySeparator + 'Doom2DF';
   {$ENDIF}
   proc.Parameters.Add('-map');
   proc.Parameters.Add(tempMap);
@@ -6969,7 +6976,7 @@ end;
 procedure TMainForm.FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
 // Объекты передвигались:
-  if MainForm.ActiveControl = RenderPanel then
+  if ActiveControl = RenderPanel then
   begin
     if (Key = VK_NUMPAD4) or
        (Key = VK_NUMPAD6) or

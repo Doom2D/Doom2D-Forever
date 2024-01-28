@@ -14,7 +14,7 @@ object PackMapForm: TPackMapForm
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
   Position = poScreenCenter
-  LCLVersion = '1.6.4.0'
+  LCLVersion = '3.0.0.3'
   object Panel1: TPanel
     Left = 4
     Height = 189
@@ -24,6 +24,7 @@ object PackMapForm: TPackMapForm
     BevelOuter = bvLowered
     ClientHeight = 189
     ClientWidth = 353
+    ParentBackground = False
     TabOrder = 0
     object LabelSaveTo: TLabel
       Left = 6
@@ -79,8 +80,8 @@ object PackMapForm: TPackMapForm
       Top = 20
       Width = 23
       Caption = '..'
-      OnClick = bSelectWADClick
       TabOrder = 1
+      OnClick = bSelectWADClick
     end
     object eResource: TEdit
       Left = 214
@@ -173,14 +174,14 @@ object PackMapForm: TPackMapForm
     Width = 75
     Caption = 'Упаковать'
     Default = True
-    OnClick = bPackClick
     TabOrder = 1
+    OnClick = bPackClick
   end
   object SaveDialog: TSaveDialog
     DefaultExt = '.wad'
     Filter = 'Карты Doom2D: Forever (*.wad)|*.wad|All files (*.*)|*.*'
     Options = [ofHideReadOnly, ofPathMustExist, ofEnableSizing, ofDontAddToRecent]
-    left = 8
-    top = 200
+    Left = 8
+    Top = 200
   end
 end

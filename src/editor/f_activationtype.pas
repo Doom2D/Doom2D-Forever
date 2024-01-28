@@ -31,4 +31,6 @@ implementation
 
 {$R *.lfm}
 
+initialization
+  ActivationTypeForm := TActivationTypeForm.Create(Application);
 end.

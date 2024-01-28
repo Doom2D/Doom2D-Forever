@@ -15,7 +15,7 @@ object MapOptimizationForm: TMapOptimizationForm
   FormStyle = fsStayOnTop
   OnActivate = FormActivate
   Position = poScreenCenter
-  LCLVersion = '1.6.4.0'
+  LCLVersion = '3.0.0.3'
   object GroupBoxOpt: TGroupBox
     Left = 0
     Height = 193
@@ -24,6 +24,7 @@ object MapOptimizationForm: TMapOptimizationForm
     Caption = 'Оптимизация'
     ClientHeight = 175
     ClientWidth = 253
+    ParentBackground = False
     TabOrder = 0
     object Bevel1: TBevel
       Left = 6
@@ -46,8 +47,8 @@ object MapOptimizationForm: TMapOptimizationForm
       Top = 10
       Width = 129
       Caption = 'Оптимизация текстур'
-      OnClick = rbTexturesOptimizationClick
       TabOrder = 0
+      OnClick = rbTexturesOptimizationClick
     end
     object rbPanelsOptimization: TRadioButton
       Left = 6
@@ -55,8 +56,8 @@ object MapOptimizationForm: TMapOptimizationForm
       Top = 34
       Width = 132
       Caption = 'Оптимизация панелей'
-      OnClick = rbPanelsOptimizationClick
       TabOrder = 1
+      OnClick = rbPanelsOptimizationClick
     end
   end
   object pcOptimizationOptions: TPageControl
@@ -77,20 +78,20 @@ object MapOptimizationForm: TMapOptimizationForm
         Top = 8
         Width = 145
         Caption = 'Начать'
-        OnClick = bBeginTextureOptimizationClick
         TabOrder = 0
+        OnClick = bBeginTextureOptimizationClick
       end
     end
     object tsPanelOptimization: TTabSheet
-      ClientHeight = 0
-      ClientWidth = 0
+      ClientHeight = 164
+      ClientWidth = 161
       ImageIndex = 1
       TabVisible = False
       object cbOptimizeWalls: TCheckBox
         Left = 8
         Height = 17
         Top = 0
-        Width = 97
+        Width = 50
         Caption = 'Стены'
         TabOrder = 0
       end
@@ -100,14 +101,14 @@ object MapOptimizationForm: TMapOptimizationForm
         Top = 152
         Width = 145
         Caption = 'Начать'
-        OnClick = bBeginPanelsOptimizationClick
         TabOrder = 1
+        OnClick = bBeginPanelsOptimizationClick
       end
       object cbOptimizeForeGround: TCheckBox
         Left = 8
         Height = 17
         Top = 16
-        Width = 97
+        Width = 95
         Caption = 'Передний план'
         TabOrder = 2
       end
@@ -115,7 +116,7 @@ object MapOptimizationForm: TMapOptimizationForm
         Left = 8
         Height = 17
         Top = 32
-        Width = 97
+        Width = 82
         Caption = 'Задний план'
         TabOrder = 3
       end
@@ -123,7 +124,7 @@ object MapOptimizationForm: TMapOptimizationForm
         Left = 8
         Height = 17
         Top = 48
-        Width = 97
+        Width = 59
         Caption = 'Ступени'
         TabOrder = 4
       end
@@ -131,7 +132,7 @@ object MapOptimizationForm: TMapOptimizationForm
         Left = 8
         Height = 17
         Top = 64
-        Width = 97
+        Width = 43
         Caption = 'Вода'
         TabOrder = 5
       end
@@ -139,7 +140,7 @@ object MapOptimizationForm: TMapOptimizationForm
         Left = 8
         Height = 17
         Top = 80
-        Width = 97
+        Width = 69
         Caption = 'Кислота 1'
         TabOrder = 6
       end
@@ -147,7 +148,7 @@ object MapOptimizationForm: TMapOptimizationForm
         Left = 8
         Height = 17
         Top = 96
-        Width = 97
+        Width = 69
         Caption = 'Кислота 2'
         TabOrder = 7
       end
@@ -155,7 +156,7 @@ object MapOptimizationForm: TMapOptimizationForm
         Left = 8
         Height = 17
         Top = 112
-        Width = 97
+        Width = 53
         Caption = 'Лифты'
         TabOrder = 8
       end
@@ -163,7 +164,7 @@ object MapOptimizationForm: TMapOptimizationForm
         Left = 8
         Height = 17
         Top = 128
-        Width = 145
+        Width = 130
         Caption = 'Блокиратор монстров'
         TabOrder = 9
       end

@@ -14,7 +14,7 @@ object AddResourceForm: TAddResourceForm
   OnActivate = FormActivate
   Position = poScreenCenter
   ShowHint = True
-  LCLVersion = '1.6.4.0'
+  LCLVersion = '3.0.0.3'
   object LabelWADs: TLabel
     Left = 4
     Height = 13
@@ -39,8 +39,8 @@ object AddResourceForm: TAddResourceForm
     Caption = 'ОК'
     Default = True
     ModalResult = 1
-    OnClick = bOKClick
     TabOrder = 3
+    OnClick = bOKClick
   end
   object bCancel: TButton
     Left = 124
@@ -58,9 +58,9 @@ object AddResourceForm: TAddResourceForm
     Top = 20
     Width = 193
     ItemHeight = 13
-    OnChange = cbWADListChange
     Style = csDropDownList
     TabOrder = 0
+    OnChange = cbWADListChange
   end
   object lbResourcesList: TListBox
     Left = 4
@@ -69,8 +69,8 @@ object AddResourceForm: TAddResourceForm
     Width = 193
     ItemHeight = 0
     MultiSelect = True
-    OnClick = lbResourcesListClick
     TabOrder = 2
+    OnClick = lbResourcesListClick
   end
   object cbSectionsList: TComboBox
     Left = 4
@@ -78,9 +78,9 @@ object AddResourceForm: TAddResourceForm
     Top = 60
     Width = 193
     ItemHeight = 13
-    OnChange = cbSectionsListChange
     Sorted = True
     Style = csDropDownList
     TabOrder = 1
+    OnChange = cbSectionsListChange
   end
 end

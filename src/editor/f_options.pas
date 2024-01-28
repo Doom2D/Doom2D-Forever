@@ -280,4 +280,6 @@ begin
   {$ENDIF}
 end;
 
+initialization
+  OptionsForm := TOptionsForm.Create(Application);
 end.

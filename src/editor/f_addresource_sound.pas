@@ -368,4 +368,6 @@ begin
   ModalResult := mrOk;
 end;
 
+initialization
+  AddSoundForm := TAddSoundForm.Create(Application);
 end.

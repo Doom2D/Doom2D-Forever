@@ -13,7 +13,7 @@ object SelectMapForm: TSelectMapForm
   Font.Name = 'MS Sans Serif'
   OnActivate = FormActivate
   Position = poScreenCenter
-  LCLVersion = '1.6.4.0'
+  LCLVersion = '3.0.0.3'
   object lbMapList: TListBox
     Left = 0
     Height = 238
@@ -21,9 +21,9 @@ object SelectMapForm: TSelectMapForm
     Width = 169
     Align = alClient
     ItemHeight = 0
-    OnClick = lbMapListClick
     Sorted = True
     TabOrder = 0
+    OnClick = lbMapListClick
   end
   object Panel1: TPanel
     Left = 0
@@ -34,6 +34,7 @@ object SelectMapForm: TSelectMapForm
     BevelOuter = bvNone
     ClientHeight = 28
     ClientWidth = 169
+    ParentBackground = False
     TabOrder = 1
     object bOK: TButton
       Left = 0
@@ -53,8 +54,8 @@ object SelectMapForm: TSelectMapForm
       Cancel = True
       Caption = 'Отмена'
       ModalResult = 2
-      OnClick = bCancelClick
       TabOrder = 1
+      OnClick = bCancelClick
     end
   end
 end
