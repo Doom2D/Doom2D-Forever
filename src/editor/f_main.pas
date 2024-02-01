@@ -74,17 +74,18 @@ type
     miMenuView: TMenuItem;
     miLayers: TMenuItem;
     miLayerBackground: TMenuItem;
-    miLayerWallsDoors: TMenuItem;
     miLayerForeground: TMenuItem;
+    miLayerWalls: TMenuItem;
+    miLayerDoors: TMenuItem;
     miLayersSep1: TMenuItem;
-    miLayerStreamsZones: TMenuItem;
     miLayerSteps: TMenuItem;
     miLayerLiquids: TMenuItem;
+    miLayerStreams: TMenuItem;
+    miLayerZones: TMenuItem;
     miLayersSep2: TMenuItem;
-    miLayerItems: TMenuItem;
     miLayerMonsters: TMenuItem;
     miLayerAreas: TMenuItem;
-    miLayersSep3: TMenuItem;
+    miLayerItems: TMenuItem;
     miLayerTriggers: TMenuItem;
     miViewLine1: TMenuItem;
     miMiniMap: TMenuItem;
@@ -4432,7 +4433,7 @@ begin
     if ssCtrl in Shift then
     begin
       case Key of
-        VK_0..VK_9: begin
+        VK_F1..VK_F12: begin
           ContourItem := MainMenu.FindItem(PtrInt(Key), fkShortCut);  // must always succeed!
           ContourItem.Tag := not ContourItem.Tag;
         end;

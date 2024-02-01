@@ -581,18 +581,19 @@ begin
   case PanelType of
     PANEL_BACK: Result := MainForm.miLayerBackground.Checked;
     PANEL_FORE: Result := MainForm.miLayerForeground.Checked;
+    PANEL_WALL: Result := MainForm.miLayerWalls.Checked;
     PANEL_STEP: Result := MainForm.miLayerSteps.Checked;
+    PANEL_BLOCKMON: Result := MainForm.miLayerZones.Checked;
 
-    PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR:
-      Result := MainForm.miLayerWallsDoors.Checked;
+    PANEL_OPENDOOR, PANEL_CLOSEDOOR:
+      Result := MainForm.miLayerDoors.Checked;
 
     PANEL_WATER, PANEL_ACID1, PANEL_ACID2:
       Result := MainForm.miLayerLiquids.Checked;
 
     PANEL_LIFTUP, PANEL_LIFTDOWN,
-    PANEL_LIFTLEFT, PANEL_LIFTRIGHT,
-    PANEL_BLOCKMON:
-      Result := MainForm.miLayerStreamsZones.Checked;
+    PANEL_LIFTLEFT, PANEL_LIFTRIGHT:
+      Result := MainForm.miLayerStreams.Checked;
 
     else
       Result := False;
@@ -2175,15 +2176,17 @@ begin
 // Рисуем панели (если Превью или если включен слой):
   if MainForm.miLayerBackground.Checked or (PreviewMode = 1) then
     DrawPanels(PANEL_BACK);
-  if MainForm.miLayerStreamsZones.Checked and (PreviewMode = 0) then
-    DrawPanels(PANEL_LIFTUP or PANEL_LIFTDOWN
-      or PANEL_LIFTLEFT or PANEL_LIFTRIGHT
-      or PANEL_BLOCKMON);
-  if MainForm.miLayerWallsDoors.Checked or (PreviewMode = 1) then
+  if PreviewMode = 0 then
   begin
-    DrawPanels(PANEL_OPENDOOR or PANEL_CLOSEDOOR);
-    DrawPanels(PANEL_WALL);
+    if MainForm.miLayerStreams.Checked then
+      DrawPanels(PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT);
+    if MainForm.miLayerZones.Checked then
+      DrawPanels(PANEL_BLOCKMON);
   end;
+  if MainForm.miLayerDoors.Checked or (PreviewMode = 1) then
+    DrawPanels(PANEL_OPENDOOR or PANEL_CLOSEDOOR);
+  if MainForm.miLayerWalls.Checked or (PreviewMode = 1) then
+    DrawPanels(PANEL_WALL);
   if MainForm.miLayerSteps.Checked or (PreviewMode = 1) then
     DrawPanels(PANEL_STEP);
 
@@ -2312,7 +2315,7 @@ begin
         end;
 
 // Рисуем закрытые двери после монстров:
-  if (PreviewMode = 1) or ((PreviewMode = 2) and MainForm.miLayerWallsDoors.Checked) then
+  if (PreviewMode = 1) or ((PreviewMode = 2) and MainForm.miLayerDoors.Checked) then
     DrawPanels(PANEL_CLOSEDOOR);
 
 // Рисуем области:
@@ -2701,14 +2704,16 @@ begin
   mask := 0;
   if QWordBool(MainForm.miLayerBackground.Tag) then
     mask := mask or PANEL_BACK;
-  if QWordBool(MainForm.miLayerWallsDoors.Tag) then
-    mask := mask or PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR;
+  if QWordBool(MainForm.miLayerDoors.Tag) then
+    mask := mask or PANEL_OPENDOOR or PANEL_CLOSEDOOR;
+  if QWordBool(MainForm.miLayerWalls.Tag) then
+    mask := mask or PANEL_WALL;
   if QWordBool(MainForm.miLayerForeground.Tag) then
     mask := mask or PANEL_FORE;
-  if QWordBool(MainForm.miLayerStreamsZones.Tag) then
-    mask := mask or PANEL_LIFTUP or PANEL_LIFTDOWN
-      or PANEL_LIFTLEFT or PANEL_LIFTRIGHT
-      or PANEL_BLOCKMON;
+  if QWordBool(MainForm.miLayerStreams.Tag) then
+    mask := mask or PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT;
+  if QWordBool(MainForm.miLayerZones.Tag) then
+    mask := mask or PANEL_BLOCKMON;
   if QWordBool(MainForm.miLayerSteps.Tag) then
     mask := mask or PANEL_STEP;
   if QWordBool(MainForm.miLayerLiquids.Tag) then

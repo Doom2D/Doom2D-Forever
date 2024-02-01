@@ -954,7 +954,6 @@ object MainForm: TMainForm
       object miReopenMap: TMenuItem
         Caption = 'Revert to Saved'
         ImageIndex = 1
-        ShortCut = 116
         OnClick = miReopenMapClick
       end
       object miLine1: TMenuItem
@@ -994,7 +993,6 @@ object MainForm: TMainForm
         Caption = 'Exit'
         Enabled = False
         ImageIndex = 10
-        ShortCut = 121
         Visible = False
         OnClick = aExitExecute
       end
@@ -1098,46 +1096,58 @@ object MainForm: TMainForm
           AutoCheck = True
           Caption = 'Background'
           Checked = True
-          ShortCut = 49
-          OnClick = miLayerClick
-        end
-        object miLayerWallsDoors: TMenuItem
-          AutoCheck = True
-          Caption = 'Walls && Doors'
-          Checked = True
-          ShortCut = 50
+          ShortCut = 112
           OnClick = miLayerClick
         end
         object miLayerForeground: TMenuItem
           AutoCheck = True
           Caption = 'Foreground'
           Checked = True
-          ShortCut = 51
+          ShortCut = 113
           OnClick = miLayerClick
+        end
+        object miLayerWalls: TMenuItem
+          AutoCheck = True
+          Caption = 'Walls'
+          Checked = True
+          ShortCut = 114
+          OnClick = miLayerClick
+        end
+        object miLayerDoors: TMenuItem
+          AutoCheck = True
+          Caption = 'Doors'
+          Checked = True
+          ShortCut = 115
         end
         object miLayersSep1: TMenuItem
           Caption = '-'
-        end
-        object miLayerStreamsZones: TMenuItem
-          AutoCheck = True
-          Caption = 'Streams && Zones'
-          Checked = True
-          ShortCut = 52
-          OnClick = miLayerClick
         end
         object miLayerSteps: TMenuItem
           AutoCheck = True
           Caption = 'Steps'
           Checked = True
-          ShortCut = 53
+          ShortCut = 116
           OnClick = miLayerClick
         end
         object miLayerLiquids: TMenuItem
           AutoCheck = True
           Caption = 'Liquids'
           Checked = True
-          ShortCut = 54
+          ShortCut = 117
           OnClick = miLayerClick
+        end
+        object miLayerStreams: TMenuItem
+          AutoCheck = True
+          Caption = 'Streams'
+          Checked = True
+          ShortCut = 118
+          OnClick = miLayerClick
+        end
+        object miLayerZones: TMenuItem
+          AutoCheck = True
+          Caption = 'Zoning'
+          Checked = True
+          ShortCut = 119
         end
         object miLayersSep2: TMenuItem
           Caption = '-'
@@ -1146,31 +1156,28 @@ object MainForm: TMainForm
           AutoCheck = True
           Caption = 'Monsters'
           Checked = True
-          ShortCut = 55
+          ShortCut = 120
           OnClick = miLayerClick
         end
         object miLayerAreas: TMenuItem
           AutoCheck = True
           Caption = 'Areas'
           Checked = True
-          ShortCut = 56
+          ShortCut = 121
           OnClick = miLayerClick
         end
         object miLayerItems: TMenuItem
           AutoCheck = True
           Caption = 'Items'
           Checked = True
-          ShortCut = 57
+          ShortCut = 122
           OnClick = miLayerClick
-        end
-        object miLayersSep3: TMenuItem
-          Caption = '-'
         end
         object miLayerTriggers: TMenuItem
           AutoCheck = True
           Caption = 'Triggers'
           Checked = True
-          ShortCut = 48
+          ShortCut = 123
           OnClick = miLayerClick
         end
       end
