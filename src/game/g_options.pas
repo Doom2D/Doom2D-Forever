@@ -262,7 +262,7 @@ begin
   gAskLanguage := True;
   gLanguage := LANGUAGE_ENGLISH;
 
-  gsMap := '';
+  gsMap := gDefaultMegawadStart;
   gsGameMode := _lc[I_MENU_GAME_TYPE_DM];
   gsTimeLimit := 0;
   gsScoreLimit := 0;
