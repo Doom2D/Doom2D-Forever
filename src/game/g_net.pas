@@ -2540,7 +2540,7 @@ begin
           else
             g_Console_Add(_lc[I_MSG_NOT_NETGAME]);
         end;
-        g_Console_Add(cmd + ' ' + IntToStr(Ord(NetUseMaster)));
+        g_Console_Add(cmd + ' ' + IntToStr(Ord(NetPort)));
       end;
   end;
 end;
