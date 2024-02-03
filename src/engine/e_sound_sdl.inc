@@ -758,11 +758,11 @@ begin
     chan := Channel;
     if chan < 0 then
     begin
-      //e_WriteLog(Format('IsPlaying: FID=%u; ONA', [FID]), TMsgType.Warning);
+      //e_WriteLog(Format('IsPlaying: FID=%u; FALSE', [FID]), TMsgType.Warning);
       Exit;
     end;
     //Result := (Mix_Playing(chan) > 0)
-    //e_WriteLog(Format('IsPlaying: FID=%u; TAN', [FID]), TMsgType.Warning);
+    //e_WriteLog(Format('IsPlaying: FID=%u; TRUE', [FID]), TMsgType.Warning);
     Result := True;
   end
   else if e_isMusic(FID) then

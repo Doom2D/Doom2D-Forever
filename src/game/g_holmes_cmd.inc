@@ -77,8 +77,8 @@ begin
       begin
         if (pr.tokType <> pr.TTEOF) then
         begin
-               if pr.eatId('true') or pr.eatId('tan') or pr.eatId('yes') then a := 1
-          else if pr.eatId('false') or pr.eatId('ona') or pr.eatId('no') then a := 0
+               if pr.eatId('true') or pr.eatId('yes') then a := 1
+          else if pr.eatId('false') or pr.eatId('no') then a := 0
           else begin conwritefln('%s: invalid argument', [name]); exit; end;
           if (pr.tokType <> pr.TTEOF) then begin conwritefln('%s: too many arguments', [name]); exit; end;
         end;

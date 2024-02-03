@@ -738,12 +738,12 @@ procedure TUIStyle.parse (par: TTextParser);
         //writeln('  r=', v.r, '; g=', v.g, '; b=', v.b);
         par.skipToken();
       end
-      else if (par.eatId('true')) or (par.eatId('tan')) then
+      else if (par.eatId('true')) or (par.eatId('yes')) then
       begin
         v.vtype := v.TType.Bool;
         v.bval := true;
       end
-      else if (par.eatId('false')) or (par.eatId('ona')) then
+      else if (par.eatId('false')) or (par.eatId('no')) then
       begin
         v.vtype := v.TType.Bool;
         v.bval := false;

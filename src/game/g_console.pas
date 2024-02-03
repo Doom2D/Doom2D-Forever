@@ -240,7 +240,7 @@ begin
   if (idx < 0) or (idx > High(p)) then begin result := -1; exit; end;
   result := 0;
   if (p[idx] = '1') or (CompareText(p[idx], 'on') = 0) or (CompareText(p[idx], 'true') = 0) or
-     (CompareText(p[idx], 'tan') = 0) or (CompareText(p[idx], 'yes') = 0) then result := 1
+     (CompareText(p[idx], 'yes') = 0) then result := 1
   else if (CompareText(p[idx], 'toggle') = 0) or (CompareText(p[idx], 'switch') = 0) or
           (CompareText(p[idx], 't') = 0) then result := 666;
 end;
@@ -267,7 +267,7 @@ procedure boolVarHandler (me: PCommand; p: SSArray);
       if flag <> old then
         g_Console_WriteGameConfig();
       if (Length(msg) = 0) then msg := p[0] else msg += ':';
-      if flag then conwritefln('%s tan', [msg]) else conwritefln('%s ona', [msg]);
+      if flag then conwritefln('%s true', [msg]) else conwritefln('%s false', [msg]);
     end;
   end;
 begin
@@ -489,8 +489,7 @@ begin
   begin
     if me.cheat and (not conIsCheatsEnabled) then begin conwriteln('not available'); exit; end;
     if (CompareText(p[1], 'default') = 0) or (CompareText(p[1], 'def') = 0) or
-       (CompareText(p[1], 'd') = 0) or (CompareText(p[1], 'off') = 0) or
-       (CompareText(p[1], 'ona') = 0) then
+       (CompareText(p[1], 'd') = 0) or (CompareText(p[1], 'off') = 0) then
     begin
       pv.val^ := pv.def;
     end

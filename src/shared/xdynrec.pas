@@ -2042,8 +2042,8 @@ begin
   case mType of
     TType.TBool:
       begin
-             if pr.eatId('true') or pr.eatId('tan') or pr.eatId('yes') then mIVal := 1
-        else if pr.eatId('false') or pr.eatId('ona') or pr.eatId('no') then mIVal := 0
+             if pr.eatId('true') or pr.eatId('yes') then mIVal := 1
+        else if pr.eatId('false') or pr.eatId('no') then mIVal := 0
         else raise TDynParseException.CreateFmt(pr, 'invalid bool value for field ''%s''', [mName]);
         mDefined := true;
         pr.expectDelim(';');

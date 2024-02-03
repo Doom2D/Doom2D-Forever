@@ -1290,11 +1290,10 @@ function TUIControl.parseBool (par: TTextParser): Boolean;
 begin
   result :=
     par.eatIdOrStrCI('true') or
-    par.eatIdOrStrCI('yes') or
-    par.eatIdOrStrCI('tan');
+    par.eatIdOrStrCI('yes');
   if not result then
   begin
-    if (not par.eatIdOrStrCI('false')) and (not par.eatIdOrStrCI('no')) and (not par.eatIdOrStrCI('ona')) then
+    if (not par.eatIdOrStrCI('false')) and (not par.eatIdOrStrCI('no')) then
     begin
       par.error('boolean value expected');
     end;
