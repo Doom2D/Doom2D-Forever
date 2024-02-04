@@ -1353,7 +1353,7 @@ const
     ('MENU MODEL COMMENT',             'Description:',
                                        'Комментарий:'),
     ('MENU MODEL OPTIONS',             'Model Options:',
-                                       'Опции модели:'),
+                                       'Свойства модели:'),
     ('MENU MODEL WEAPON',              'Weapon:',
                                        'Оружие:'),
 
