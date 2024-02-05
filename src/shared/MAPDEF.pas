@@ -23,7 +23,7 @@ const
   PANEL_WATER     = 8;
   PANEL_ACID1     = 16;
   PANEL_ACID2     = 32;
-  PANEL_STEP      = 64;
+  PANEL_LADDER    = 64;
   PANEL_LIFTUP    = 128;
   PANEL_LIFTDOWN  = 256;
   PANEL_OPENDOOR  = 512;

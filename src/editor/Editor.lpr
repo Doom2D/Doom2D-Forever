@@ -27,7 +27,7 @@ uses
 {$ENDIF}
 
 type
-  THandlerObject = class(TObject)
+  THandlerObject = class
     procedure ExceptionHandler (Sender: TObject; e: Exception);
   end;
 

@@ -245,7 +245,7 @@ procedure ShiftMapObjects(dx, dy: Integer);
 implementation
 
 uses
-  BinEditor, g_textures, Dialogs, SysUtils, CONFIG,
+  BinEditor, g_textures, Dialogs, SysUtils, StrUtils, CONFIG,
   Forms, Math, f_addresource_texture, WADEDITOR, g_language, g_options;
 
 const
@@ -582,7 +582,7 @@ begin
     PANEL_BACK: Result := MainForm.miLayerBackground.Checked;
     PANEL_FORE: Result := MainForm.miLayerForeground.Checked;
     PANEL_WALL: Result := MainForm.miLayerWalls.Checked;
-    PANEL_STEP: Result := MainForm.miLayerSteps.Checked;
+    PANEL_LADDER: Result := MainForm.miLayerLadders.Checked;
     PANEL_BLOCKMON: Result := MainForm.miLayerZones.Checked;
 
     PANEL_OPENDOOR, PANEL_CLOSEDOOR:
@@ -953,7 +953,7 @@ begin
     PANEL_FORE: Result := PANELNAMES[2];
     PANEL_OPENDOOR: Result := PANELNAMES[3];
     PANEL_CLOSEDOOR: Result := PANELNAMES[4];
-    PANEL_STEP: Result := PANELNAMES[5];
+    PANEL_LADDER: Result := PANELNAMES[5];
     PANEL_WATER: Result := PANELNAMES[6];
     PANEL_ACID1: Result := PANELNAMES[7];
     PANEL_ACID2: Result := PANELNAMES[8];
@@ -968,38 +968,25 @@ end;
 
 function GetPanelType(PanelName: String): Word;
 begin
-  Result := 0;
+  Result := PANEL_NONE;
 
-  if PanelName = PANELNAMES[0] then
-    Result := PANEL_WALL
-  else if PanelName = PANELNAMES[1] then
-    Result := PANEL_BACK
-  else if PanelName = PANELNAMES[2] then
-    Result := PANEL_FORE
-  else if PanelName = PANELNAMES[3] then
-    Result := PANEL_OPENDOOR
-  else if PanelName = PANELNAMES[4] then
-    Result := PANEL_CLOSEDOOR
-  else if PanelName = PANELNAMES[5] then
-    Result := PANEL_STEP
-  else if PanelName = PANELNAMES[6] then
-    Result := PANEL_WATER
-  else if PanelName = PANELNAMES[7] then
-    Result := PANEL_ACID1
-  else if PanelName = PANELNAMES[8] then
-    Result := PANEL_ACID2
-  else if PanelName = PANELNAMES[9] then
-    Result := PANEL_LIFTUP
-  else if PanelName = PANELNAMES[10] then
-    Result := PANEL_LIFTDOWN
-  else if PanelName = PANELNAMES[11] then
-    Result := PANEL_LIFTLEFT
-  else if PanelName = PANELNAMES[12] then
-    Result := PANEL_LIFTRIGHT
-  else if PanelName = PANELNAMES[13] then
-    Result := PANEL_BLOCKMON;
-
-  Assert(Result <> 0);
+  case IndexStr(PanelName, PANELNAMES) of
+    0: Result := PANEL_WALL;
+    1: Result := PANEL_BACK;
+    2: Result := PANEL_FORE;
+    3: Result := PANEL_OPENDOOR;
+    4: Result := PANEL_CLOSEDOOR;
+    5: Result := PANEL_LADDER;
+    6: Result := PANEL_WATER;
+    7: Result := PANEL_ACID1;
+    8: Result := PANEL_ACID2;
+    9: Result := PANEL_LIFTUP;
+    10: Result := PANEL_LIFTDOWN;
+    11: Result := PANEL_LIFTLEFT;
+    12: Result := PANEL_LIFTRIGHT;
+    13: Result := PANEL_BLOCKMON;
+    else Assert(False);
+  end;
 end;
 
 function GetTriggerName(TriggerType: Byte): String;
@@ -1554,7 +1541,7 @@ begin
       panel.TextureName := '';
       panel.TextureID := TEXTURE_SPECIAL_NONE;
 
-      m := PANEL_WALL or PANEL_BACK or PANEL_FORE or PANEL_STEP or
+      m := PANEL_WALL or PANEL_BACK or PANEL_FORE or PANEL_LADDER or
            PANEL_OPENDOOR or PANEL_CLOSEDOOR;
 
       if ByteBool(panels[a].Flags and PANEL_FLAG_WATERTEXTURES) then
@@ -1819,7 +1806,7 @@ begin
       0: panel.PanelType := PANEL_WALL;
       1: panel.PanelType := PANEL_BACK;
       2: panel.PanelType := PANEL_FORE;
-      3: panel.PanelType := PANEL_STEP;
+      3: panel.PanelType := PANEL_LADDER;
       4: panel.PanelType := PANEL_WATER;
       5: panel.PanelType := PANEL_ACID1;
       6: panel.PanelType := PANEL_ACID2;
@@ -1829,7 +1816,7 @@ begin
     panel.Blending := false;
 
   // Текстура панели:
-    if panel.PanelType in [PANEL_WALL, PANEL_BACK, PANEL_FORE, PANEL_STEP] then
+    if panel.PanelType in [PANEL_WALL, PANEL_BACK, PANEL_FORE, PANEL_LADDER] then
       begin
         s := TexturePrefix + UpperCase(win2utf(map.ReadStr(section, 'TextureName', '')));
 
@@ -2087,7 +2074,7 @@ begin
             TextureID := TEXTURE_SPECIAL_NOTEXTURE;
           case PanelType of
             PANEL_WALL, PANEL_BACK, PANEL_FORE,
-            PANEL_STEP, PANEL_OPENDOOR, PANEL_CLOSEDOOR,
+            PANEL_LADDER, PANEL_OPENDOOR, PANEL_CLOSEDOOR,
             PANEL_WATER, PANEL_ACID1, PANEL_ACID2:
               DrawTexture(a);
 
@@ -2134,7 +2121,7 @@ begin
           PANEL_WATER:     e_DrawQuad(xx, yy, ww, hh,   0,   0, 192, 0);
           PANEL_ACID1:     e_DrawQuad(xx, yy, ww, hh,   0, 176,   0, 0);
           PANEL_ACID2:     e_DrawQuad(xx, yy, ww, hh, 176,   0,   0, 0);
-          PANEL_STEP:      e_DrawQuad(xx, yy, ww, hh, 128, 128, 128, 0);
+          PANEL_LADDER:    e_DrawQuad(xx, yy, ww, hh, 128, 128, 128, 0);
           PANEL_LIFTUP:    e_DrawQuad(xx, yy, ww, hh, 116,  72,  36, 0);
           PANEL_LIFTDOWN:  e_DrawQuad(xx, yy, ww, hh, 116, 124,  96, 0);
           PANEL_OPENDOOR:  e_DrawQuad(xx, yy, ww, hh, 100, 220,  92, 0);
@@ -2187,8 +2174,8 @@ begin
     DrawPanels(PANEL_OPENDOOR or PANEL_CLOSEDOOR);
   if MainForm.miLayerWalls.Checked or (PreviewMode = 1) then
     DrawPanels(PANEL_WALL);
-  if MainForm.miLayerSteps.Checked or (PreviewMode = 1) then
-    DrawPanels(PANEL_STEP);
+  if MainForm.miLayerLadders.Checked or (PreviewMode = 1) then
+    DrawPanels(PANEL_LADDER);
 
 // Рисуем предметы:
   if (MainForm.miLayerItems.Checked or (PreviewMode = 1)) and
@@ -2714,8 +2701,8 @@ begin
     mask := mask or PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT;
   if QWordBool(MainForm.miLayerZones.Tag) then
     mask := mask or PANEL_BLOCKMON;
-  if QWordBool(MainForm.miLayerSteps.Tag) then
-    mask := mask or PANEL_STEP;
+  if QWordBool(MainForm.miLayerLadders.Tag) then
+    mask := mask or PANEL_LADDER;
   if QWordBool(MainForm.miLayerLiquids.Tag) then
     mask := mask or PANEL_WATER or PANEL_ACID1 or PANEL_ACID2;
   if mask <> 0 then

@@ -27,9 +27,9 @@ type
   // Оптимизация панелей:
     tsPanelOptimization: TTabSheet;
     cbOptimizeWalls: TCheckBox;
-    cbOptimizeForeGround: TCheckBox;
-    cbOptimizeBackGround: TCheckBox;
-    cbOptimizeSteps: TCheckBox;
+    cbOptimizeForeground: TCheckBox;
+    cbOptimizeBackground: TCheckBox;
+    cbOptimizeLadders: TCheckBox;
     cbOptimizeWater: TCheckBox;
     cbOptimizeAcid1: TCheckBox;
     cbOptimizeAcid2: TCheckBox;
@@ -277,24 +277,24 @@ begin
     mOptimizationResult.Lines.Add(MsgOptPanelsOpt+' '+IntToStr(count)+#13#10);
   end;
 
-  if cbOptimizeForeGround.Checked then
+  if cbOptimizeForeground.Checked then
   begin
     mOptimizationResult.Lines.Add(MsgOptFores);
     count := OptimizePanels(PANEL_FORE);
     mOptimizationResult.Lines.Add(MsgOptPanelsOpt+' '+IntToStr(count)+#13#10);
   end;
 
-  if cbOptimizeBackGround.Checked then
+  if cbOptimizeBackground.Checked then
   begin
     mOptimizationResult.Lines.Add(MsgOptBacks);
     count := OptimizePanels(PANEL_BACK);
     mOptimizationResult.Lines.Add(MsgOptPanelsOpt+' '+IntToStr(count)+#13#10);
   end;
 
-  if cbOptimizeSteps.Checked then
+  if cbOptimizeLadders.Checked then
   begin
-    mOptimizationResult.Lines.Add(MsgOptStairs);
-    count := OptimizePanels(PANEL_STEP);
+    mOptimizationResult.Lines.Add(MsgOptLadders);
+    count := OptimizePanels(PANEL_LADDER);
     mOptimizationResult.Lines.Add(MsgOptPanelsOpt+' '+IntToStr(count)+#13#10);
   end;
 

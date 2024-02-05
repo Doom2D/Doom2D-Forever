@@ -86,7 +86,7 @@ begin
           PANEL_WATER: c := _RGB(0, 0, 252);
           PANEL_ACID1: c := _RGB(200, 80, 4);
           PANEL_ACID2: c := _RGB(252, 140, 56);
-          PANEL_STEP: c := _RGB(128, 128, 128);
+          PANEL_LADDER: c := _RGB(128, 128, 128);
           else Continue;
         end;
 

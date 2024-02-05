@@ -1122,9 +1122,9 @@ object MainForm: TMainForm
         object miLayersSep1: TMenuItem
           Caption = '-'
         end
-        object miLayerSteps: TMenuItem
+        object miLayerLadders: TMenuItem
           AutoCheck = True
-          Caption = 'Steps'
+          Caption = 'Ladders'
           Checked = True
           ShortCut = 116
           OnClick = miLayerClick

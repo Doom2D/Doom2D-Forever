@@ -78,7 +78,7 @@ type
     miLayerWalls: TMenuItem;
     miLayerDoors: TMenuItem;
     miLayersSep1: TMenuItem;
-    miLayerSteps: TMenuItem;
+    miLayerLadders: TMenuItem;
     miLayerLiquids: TMenuItem;
     miLayerStreams: TMenuItem;
     miLayerZones: TMenuItem;
@@ -725,7 +725,7 @@ end;
 function IsTexturedPanel(PanelType: Word): Boolean;
 begin
   Result := WordBool(PanelType and (PANEL_WALL or PANEL_BACK or PANEL_FORE or
-                                    PANEL_STEP or PANEL_OPENDOOR or PANEL_CLOSEDOOR or
+                                    PANEL_LADDER or PANEL_OPENDOOR or PANEL_CLOSEDOOR or
                                     PANEL_WATER or PANEL_ACID1 or PANEL_ACID2));
 end;
 
@@ -3087,7 +3087,7 @@ begin
               PANEL_WATER:     e_DrawFillQuad(aX, aY, aX2, aY2,   0,   0, 192, 0);
               PANEL_ACID1:     e_DrawFillQuad(aX, aY, aX2, aY2,   0, 176,   0, 0);
               PANEL_ACID2:     e_DrawFillQuad(aX, aY, aX2, aY2, 176,   0,   0, 0);
-              PANEL_STEP:      e_DrawFillQuad(aX, aY, aX2, aY2, 128, 128, 128, 0);
+              PANEL_LADDER:    e_DrawFillQuad(aX, aY, aX2, aY2, 128, 128, 128, 0);
               PANEL_LIFTUP:    e_DrawFillQuad(aX, aY, aX2, aY2, 116,  72,  36, 0);
               PANEL_LIFTDOWN:  e_DrawFillQuad(aX, aY, aX2, aY2, 116, 124,  96, 0);
               PANEL_LIFTLEFT:  e_DrawFillQuad(aX, aY, aX2, aY2, 200,  80,   4, 0);
@@ -3509,7 +3509,7 @@ begin
                       if ((gPanels[IDArray[i]].PanelType in
                            [PANEL_WALL, PANEL_BACK, PANEL_FORE,
                             PANEL_WATER, PANEL_ACID1, PANEL_ACID2,
-                            PANEL_STEP]) or
+                            PANEL_LADDER]) or
                           (gPanels[IDArray[i]].PanelType = PANEL_OPENDOOR) or
                           (gPanels[IDArray[i]].PanelType = PANEL_CLOSEDOOR)) and
                          (gPanels[IDArray[i]].TextureName <> '') then
@@ -3577,7 +3577,7 @@ begin
                         if ((gPanels[IDArray[i]].PanelType in
                              [PANEL_WALL, PANEL_BACK, PANEL_FORE,
                               PANEL_WATER, PANEL_ACID1, PANEL_ACID2,
-                              PANEL_STEP]) or
+                              PANEL_LADDER]) or
                             (gPanels[IDArray[i]].PanelType = PANEL_OPENDOOR) or
                             (gPanels[IDArray[i]].PanelType = PANEL_CLOSEDOOR)) and
                            (gPanels[IDArray[i]].TextureName <> '') then
@@ -3747,7 +3747,7 @@ begin
                       2: Panel.PanelType := PANEL_FORE;
                       3: Panel.PanelType := PANEL_OPENDOOR;
                       4: Panel.PanelType := PANEL_CLOSEDOOR;
-                      5: Panel.PanelType := PANEL_STEP;
+                      5: Panel.PanelType := PANEL_LADDER;
                       6: Panel.PanelType := PANEL_WATER;
                       7: Panel.PanelType := PANEL_ACID1;
                       8: Panel.PanelType := PANEL_ACID2;
@@ -6719,10 +6719,9 @@ end;
 
 procedure TMainForm.miSwitchGridClick(Sender: TObject);
 begin
-  if DotStep = DotStepOne then
-    DotStep := DotStepTwo
-  else
-    DotStep := DotStepOne;
+  if DotStep = DotStepOne
+    then DotStep := DotStepTwo
+    else DotStep := DotStepOne;
 
   MousePos.X := (MousePos.X div DotStep) * DotStep;
   MousePos.Y := (MousePos.Y div DotStep) * DotStep;

@@ -27,7 +27,7 @@ Interface
     MsgArrayPanelFront = 'Foreground';
     MsgArrayPanelDoorOpen = 'Open Door';
     MsgArrayPanelDoorClose = 'Closed Door';
-    MsgArrayPanelStair = 'Step';
+    MsgArrayPanelLadder = 'Ladder';
     MsgArrayPanelWater = 'Water';
     MsgArrayPanelAcid1 = 'Acid 1';
     MsgArrayPanelAcid2 = 'Acid 2';
@@ -364,7 +364,7 @@ Interface
     MsgMenuEditPaste = 'Paste';
     MsgMenuEditSelectAll = 'Select All';
     MsgMenuEditSnapGrid = 'Snap to Grid';
-    MsgMenuEditStepGrid = 'Switch Grid Step';
+    MsgMenuEditGridStep = 'Switch Grid Step';
     MsgMenuEditToFore = 'Bring to Front';
     MsgMenuEditToBack = 'Send to Back';
     MsgMenuEditMapProps = 'Map Properties...';
@@ -392,7 +392,7 @@ Interface
     MsgMenuLayerFore = 'Foreground';
     MsgMenuLayerWalls = 'Walls';
     MsgMenuLayerDoors = 'Doors';
-    MsgMenuLayerStairs = 'Steps';
+    MsgMenuLayerLadders = 'Ladders';
     MsgMenuLayerLiquids = 'Liquids';
     MsgMenuLayerStreams = 'Streams';
     MsgMenuLayerZones = 'Zoning';
@@ -479,7 +479,7 @@ Interface
     MsgCtrlOptWall = 'Walls';
     MsgCtrlOptFore = 'Foreground';
     MsgCtrlOptBack = 'Background';
-    MsgCtrlOptStair = 'Steps';
+    MsgCtrlOptLadder = 'Ladders';
     MsgCtrlOptWater = 'Water';
     MsgCtrlOptAcid1 = 'Acid 1';
     MsgCtrlOptAcid2 = 'Acid 2';
@@ -618,7 +618,7 @@ Interface
     MsgOptWalls = 'Walls Optimization...';
     MsgOptFores = 'Foreground Optimization...';
     MsgOptBacks = 'Background Optimization...';
-    MsgOptStairs = 'Steps Optimization...';
+    MsgOptLadders = 'Ladders Optimization...';
     MsgOptWater = 'Water Optimization...';
     MsgOptAcid1 = 'Acid 1 Optimization...';
     MsgOptAcid2 = 'Acid 2 Optimization...';
@@ -700,7 +700,7 @@ begin
   PANELNAMES[2] := MsgArrayPanelFront;
   PANELNAMES[3] := MsgArrayPanelDoorOpen;
   PANELNAMES[4] := MsgArrayPanelDoorClose;
-  PANELNAMES[5] := MsgArrayPanelStair;
+  PANELNAMES[5] := MsgArrayPanelLadder;
   PANELNAMES[6] := MsgArrayPanelWater;
   PANELNAMES[7] := MsgArrayPanelAcid1;
   PANELNAMES[8] := MsgArrayPanelAcid2;
@@ -928,7 +928,7 @@ begin
     miPaste.Caption := MsgMenuEditPaste;
     miSelectAll.Caption := MsgMenuEditSelectAll;
     miSnapToGrid.Caption := MsgMenuEditSnapGrid;
-    miSwitchGrid.Caption := MsgMenuEditStepGrid;
+    miSwitchGrid.Caption := MsgMenuEditGridStep;
     miToFore.Caption := MsgMenuEditToFore;
     miToBack.Caption := MsgMenuEditToBack;
     miMapOptions.Caption := MsgMenuEditMapProps;
@@ -940,7 +940,7 @@ begin
     miLayerForeground.Caption := MsgMenuLayerFore;
     miLayerWalls.Caption := MsgMenuLayerWalls;
     miLayerDoors.Caption := MsgMenuLayerDoors;
-    miLayerSteps.Caption := MsgMenuLayerStairs;
+    miLayerLadders.Caption := MsgMenuLayerLadders;
     miLayerLiquids.Caption := MsgMenuLayerLiquids;
     miLayerStreams.Caption := MsgMenuLayerStreams;
     miLayerZones.Caption := MsgMenuLayerZones;
@@ -1110,9 +1110,9 @@ begin
     bBeginTextureOptimization.Caption := MsgBtnStart;
   // Оптимизация панелей:
     cbOptimizeWalls.Caption := MsgCtrlOptWall;
-    cbOptimizeForeGround.Caption := MsgCtrlOptFore;
-    cbOptimizeBackGround.Caption := MsgCtrlOptBack;
-    cbOptimizeSteps.Caption := MsgCtrlOptStair;
+    cbOptimizeForeground.Caption := MsgCtrlOptFore;
+    cbOptimizeBackground.Caption := MsgCtrlOptBack;
+    cbOptimizeLadders.Caption := MsgCtrlOptLadder;
     cbOptimizeWater.Caption := MsgCtrlOptWater;
     cbOptimizeAcid1.Caption := MsgCtrlOptAcid1;
     cbOptimizeAcid2.Caption := MsgCtrlOptAcid2;

@@ -104,7 +104,7 @@ object MapOptimizationForm: TMapOptimizationForm
         TabOrder = 1
         OnClick = bBeginPanelsOptimizationClick
       end
-      object cbOptimizeForeGround: TCheckBox
+      object cbOptimizeForeground: TCheckBox
         Left = 8
         Height = 17
         Top = 16
@@ -112,7 +112,7 @@ object MapOptimizationForm: TMapOptimizationForm
         Caption = 'Передний план'
         TabOrder = 2
       end
-      object cbOptimizeBackGround: TCheckBox
+      object cbOptimizeBackground: TCheckBox
         Left = 8
         Height = 17
         Top = 32
@@ -120,7 +120,7 @@ object MapOptimizationForm: TMapOptimizationForm
         Caption = 'Задний план'
         TabOrder = 3
       end
-      object cbOptimizeSteps: TCheckBox
+      object cbOptimizeLadders: TCheckBox
         Left = 8
         Height = 17
         Top = 48
