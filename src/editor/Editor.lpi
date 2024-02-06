@@ -96,7 +96,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="24">
+    <Units Count="25">
       <Unit0>
         <Filename Value="Editor.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -244,6 +244,11 @@
         <Filename Value="g_options.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit23>
+      <Unit24>
+        <Filename Value="lclhelpers.pp"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="LclHelpers"/>
+      </Unit24>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

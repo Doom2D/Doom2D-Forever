@@ -24,6 +24,7 @@ object SelectMapForm: TSelectMapForm
     Sorted = True
     TabOrder = 0
     OnClick = lbMapListClick
+    OnDblClick = lbMapListDblClick
   end
   object Panel1: TPanel
     Left = 0
@@ -55,7 +56,6 @@ object SelectMapForm: TSelectMapForm
       Caption = 'Отмена'
       ModalResult = 2
       TabOrder = 1
-      OnClick = bCancelClick
     end
   end
 end

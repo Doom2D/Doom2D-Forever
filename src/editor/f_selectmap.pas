@@ -18,7 +18,7 @@ type
     procedure GetMaps(FileName: String);
     procedure FormActivate(Sender: TObject);
     procedure lbMapListClick(Sender: TObject);
-    procedure bCancelClick(Sender: TObject);
+    procedure lbMapListDblClick(Sender: TObject);
 
   private
     { Private declarations }
@@ -32,7 +32,8 @@ var
 implementation
 
 uses
-  BinEditor, MAPREADER, WADEDITOR, WADSTRUCT, MAPSTRUCT;
+  BinEditor, MAPREADER, WADEDITOR, WADSTRUCT, MAPSTRUCT,
+  LclHelpers;
 
 {$R *.lfm}
 
@@ -48,9 +49,10 @@ begin
     bOK.Enabled := True;
 end;
 
-procedure TSelectMapForm.bCancelClick(Sender: TObject);
+procedure TSelectMapForm.lbMapListDblClick(Sender: TObject);
 begin
-  Close();
+  if (lbMapList.ItemIndex <> -1) and lbMapList.IsItemClick() then
+    bOK.Click();
 end;
 
 procedure TSelectMapForm.GetMaps(FileName: String);
