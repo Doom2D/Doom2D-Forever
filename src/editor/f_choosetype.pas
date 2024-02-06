@@ -10,6 +10,7 @@ uses
 
 type
   TChooseTypeForm = class (TForm)
+  var
     lbTypeSelect: TListBox;
     bOK: TButton;
 

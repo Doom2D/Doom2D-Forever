@@ -10,6 +10,7 @@ uses
 
 type
   TSelectMapForm = class (TForm)
+  var
     lbMapList: TListBox;
     Panel1: TPanel;
     bOK: TButton;

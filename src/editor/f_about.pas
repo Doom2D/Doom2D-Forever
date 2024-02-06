@@ -11,6 +11,7 @@ uses
 
 type
   TAboutForm = class (TForm)
+  var
     PanelAbout: TPanel;
     LabelTitle: TLabel;
     LabelVer: TLabel;

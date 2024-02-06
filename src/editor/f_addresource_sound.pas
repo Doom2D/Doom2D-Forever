@@ -11,6 +11,7 @@ uses
 
 type
   TAddSoundForm = class (TAddResourceForm)
+  var
     pSpectrum: TPanel;
     bbPlay: TBitBtn;
     bbStop: TBitBtn;

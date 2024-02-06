@@ -15,6 +15,7 @@ type
   { TMainForm }
 
   TMainForm = class(TForm)
+  var
     MapTestTimer: TTimer;
     Splitter1: TSplitter;
     Splitter2: TSplitter;

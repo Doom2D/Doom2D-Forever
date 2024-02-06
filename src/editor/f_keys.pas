@@ -10,6 +10,7 @@ uses
 
 type
   TKeysForm = class (TForm)
+  var
     cbRedKey: TCheckBox;
     cbGreenKey: TCheckBox;
     cbBlueKey: TCheckBox;

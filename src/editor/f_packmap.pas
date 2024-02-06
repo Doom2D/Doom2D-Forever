@@ -10,6 +10,7 @@ uses
 
 type
   TPackMapForm = class (TForm)
+  var
     bPack: TButton;
     SaveDialog: TSaveDialog;
     Panel1: TPanel;

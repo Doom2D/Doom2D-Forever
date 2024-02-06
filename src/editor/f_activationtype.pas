@@ -10,6 +10,7 @@ uses
 
 type
   TActivationTypeForm = class (TForm)
+  var
     cbPlayerCollide: TCheckBox;
     cbMonsterCollide: TCheckBox;
     cbPlayerPress: TCheckBox;

@@ -11,6 +11,7 @@ uses
 
 type
   TMapOptionsForm = class (TForm)
+  var
   // Имя карты:
     LabelName: TLabel;
     lCharCountName: TLabel;

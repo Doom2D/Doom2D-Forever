@@ -11,6 +11,7 @@ uses
 
 type
   TOptionsForm = class (TForm)
+  var
     bOK: TButton;
     bCancel: TButton;
     cbAllowExit: TCheckBox;

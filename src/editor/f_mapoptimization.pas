@@ -11,6 +11,7 @@ uses
 
 type
   TMapOptimizationForm = class (TForm)
+  var
   // Выбор оптимизации:
     GroupBoxOpt: TGroupBox;
     Bevel1: TBevel;

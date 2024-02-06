@@ -13,6 +13,7 @@ type
   TOKFunction = function: Boolean of object;
 
   TAddResourceForm = class (TForm)
+  var
     LabelWADs: TLabel;
     cbWADList: TComboBox;
     LabelSections: TLabel;

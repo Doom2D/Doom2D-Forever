@@ -11,6 +11,7 @@ uses
 
 type
   TAddSkyForm = class (TAddResourceForm)
+  var
     PanelTexPreview: TPanel;
     iPreview: TImage;
 

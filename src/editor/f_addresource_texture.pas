@@ -14,6 +14,7 @@ type
   { TAddTextureForm }
 
   TAddTextureForm = class (TAddResourceForm)
+  var
     lStats: TLabel;
     PanelTexPreview: TPanel;
     iPreview: TImage;

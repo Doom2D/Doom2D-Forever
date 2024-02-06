@@ -10,6 +10,7 @@ uses
 
 type
   TSaveMiniMapForm = class(TForm)
+  var
     SaveDialog: TSaveDialog;
     pbMiniMap: TPaintBox;
     Panel1: TPanel;

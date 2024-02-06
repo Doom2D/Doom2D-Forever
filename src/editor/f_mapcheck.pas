@@ -10,6 +10,7 @@ uses
 
 type
   TMapCheckForm = class (TForm)
+  var
     PanelResults: TPanel;
     lbErrorList: TListBox;
     mErrorDescription: TMemo;
