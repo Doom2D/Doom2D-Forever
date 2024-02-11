@@ -954,6 +954,7 @@ object MainForm: TMainForm
       object miReopenMap: TMenuItem
         Caption = 'Revert to Saved'
         ImageIndex = 1
+        ShortCut = 16466
         OnClick = miReopenMapClick
       end
       object miLine1: TMenuItem
