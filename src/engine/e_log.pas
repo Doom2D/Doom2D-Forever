@@ -228,16 +228,24 @@ begin
   end;
 
   xlogPrefix := '';
-  if writeTime then begin xlogPrefix += '['; xlogPrefix += TimeToStr(Time); xlogPrefix += '] '; end;
+  if writeTime then
+  begin
+    xlogPrefix += '[';
+    xlogPrefix += TimeToStr(Time);
+    xlogPrefix += '] ';
+  end;
   case category of
     TMsgType.Fatal: xlogPrefix += '!!!';
     TMsgType.Warning: xlogPrefix += '!  ';
     TMsgType.Notify: xlogPrefix += '***';
   end;
+
   xlogLastWasEOL := true; // to output prefix
   xlogWantSpace := true; // after prefix
   formatstrf(fmt, args, logwriter);
-  if not xlogLastWasEOL then writeln(xlogFile, '') else writeln(xlogFile, xlogPrefix);
+  if not xlogLastWasEOL
+    then writeln(xlogFile, '')
+    else writeln(xlogFile, xlogPrefix);
 
   if xlogSlowAndSafe and xlogFileOpened then
   begin

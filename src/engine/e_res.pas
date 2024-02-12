@@ -73,7 +73,7 @@ implementation
     SpawnProc = function (pathname: AnsiString): Tstream;
 
   var
-    writeableDirs: THashStrCIStr = nil;
+    writeableDirs: THashStrCIStr;
 
 
   function e_UpperDir (path: AnsiString): AnsiString;
@@ -333,4 +333,6 @@ implementation
     result := '';
   end;
 
+finalization
+  writeableDirs.Free();
 end.

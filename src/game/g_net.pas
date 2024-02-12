@@ -2578,9 +2578,12 @@ initialization
   NetBuf[NET_UNRELIABLE].Alloc(NET_BUFSIZE*2);
   NetBuf[NET_RELIABLE].Alloc(NET_BUFSIZE*2);
   trans_omsg.Alloc(NET_BUFSIZE);
+
 finalization
   NetIn.Free();
   NetOut.Free();
   NetBuf[NET_UNRELIABLE].Free();
   NetBuf[NET_RELIABLE].Free();
+  trans_omsg.Free();
+
 end.

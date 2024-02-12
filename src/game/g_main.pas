@@ -437,17 +437,18 @@ begin
   if rwdir <> '' then CreateDir(rwdir + '/stats');
 end;
 
-procedure InitPrep;
+function InitPrep: Boolean;
   var i: Integer;
 begin
-  {$IFDEF HEADLESS}
-    conbufDumpToStdOut := true;
-  {$ENDIF}
+  Result := False;
+{$IFDEF HEADLESS}
+  conbufDumpToStdOut := True;
+{$ENDIF}
   for i := 1 to ParamCount do
   begin
     case ParamStr(i) of
-      '--con-stdout': conbufDumpToStdOut := true;
-      '--no-fbo': glRenderToFBO := false;
+      '--con-stdout': conbufDumpToStdOut := True;
+      '--no-fbo': glRenderToFBO := False;
     end
   end;
 
@@ -483,17 +484,19 @@ begin
   begin
     e_WriteLog('WAD ' + GameWADName + ' not found in data directories.', TMsgType.Fatal);
     {$IF DEFINED(USE_SDL2) AND NOT DEFINED(HEADLESS)}
-      if forceBinDir = false then
+      if not forceBinDir then
         SDL_ShowSimpleMessageBox(
           SDL_MESSAGEBOX_ERROR, 
-          'Doom 2D Forever',
+          'Doom2D Forever',
           PChar('WAD ' + GameWADName + ' not found in data directories.'),
           nil
         );
     {$ENDIF}
     e_DeinitLog;
-    Halt(1);
+    exit;  // Halt(1) here will cause a memleak of strings GameWAD and "WAD <...> not found <...>"
   end;
+
+  Result := True;
 end;
 
 procedure Main();
@@ -502,7 +505,7 @@ procedure Main();
 {$ENDIF}
 begin
   InitPath;
-  InitPrep;
+  if not InitPrep then Halt(1);
   e_InitInput;
   sys_Init;
 

@@ -2367,8 +2367,9 @@ begin
   end
 end;
 
-procedure Init;
-  var i: Integer;
+procedure Init();
+var
+  i: Integer;
 begin
   conRegVar('chat_at_top', @ChatTop, 'draw chat at top border', 'draw chat at top border');
   conRegVar('console_height', @ConsoleHeight, 0.0, 1.0, 'set console size', 'set console size');
@@ -2394,13 +2395,23 @@ begin
     conRegVar('joy' + IntToStr(i) + '_deadzone', @e_JoystickDeadzones[i - 1], '', '')
 end;
 
-initialization
-  Init
+procedure Cleanup();
+var
+  C: TCommand;
+begin
+  for C in commands do
+    if @C.procEx = @singleVarHandler then
+      FreeMem(C.ptr);
+end;
 
-{$IFDEF HEADLESS}
+initialization
+  Init();
+
 finalization
+{$IFDEF HEADLESS}
   DoneKeyboard;
   conbufStdOutRawMode := false;
 {$ENDIF}
+  Cleanup();
 
 end.

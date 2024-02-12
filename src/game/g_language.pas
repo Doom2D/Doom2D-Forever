@@ -1432,8 +1432,8 @@ const
                                        'Отключение выполнено.'),
     ('NET MSG KICK',                   'You were dropped from the game! Reason: ',
                                        'Вас выбросило с сервера! Причина: '),
-    ('NET MSG PORTS',                  'Make sure ports %d and %d are forwarded on the server.',
-                                       'Спросите админа, пробросил ли он порты %d и %d на роутере.'),
+    ('NET MSG PORTS',                  'Make sure that hoster has forwarded the ports %d and %d on the modem router.',
+                                       'Уточните у создателя сервера, проброшены ли порты %d и %d на его модеме.'),
     ('NET MSG TIMEOUT WARN',           'Connection is taking too long.',
                                        'Сервер не отвечает уже довольно долго.'),
 
