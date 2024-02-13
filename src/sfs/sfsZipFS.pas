@@ -44,11 +44,11 @@ type
     function OpenFileByIndex (const index: Integer): TStream; override;
   end;
 
-  TSFSZipVolumeFactory = class(TSFSVolumeFactory)
+  TSFSZipVolumeFactory = class (TSFSVolumeFactoryMethods)
   public
-    function IsMyVolumePrefix (const prefix: AnsiString): Boolean; override;
-    function Produce (const prefix, fileName: AnsiString; st: TStream): TSFSVolume; override;
-    procedure Recycle (vol: TSFSVolume); override;
+    class function IsMyVolumePrefix (const prefix: AnsiString): Boolean; override;
+    class function Produce (const prefix, fileName: AnsiString; st: TStream): TSFSVolume; override;
+    class procedure Recycle (vol: TSFSVolume); override;
   end;
 
 
@@ -411,7 +411,7 @@ end;
 
 
 { TSFSZipVolumeFactory }
-function TSFSZipVolumeFactory.IsMyVolumePrefix (const prefix: AnsiString): Boolean;
+class function TSFSZipVolumeFactory.IsMyVolumePrefix (const prefix: AnsiString): Boolean;
 begin
   result :=
     StrEquCI1251(prefix, 'zip') or
@@ -421,12 +421,12 @@ begin
     StrEquCI1251(prefix, 'dfzip');
 end;
 
-procedure TSFSZipVolumeFactory.Recycle (vol: TSFSVolume);
+class procedure TSFSZipVolumeFactory.Recycle (vol: TSFSVolume);
 begin
   vol.Free();
 end;
 
-function TSFSZipVolumeFactory.Produce (const prefix, fileName: AnsiString; st: TStream): TSFSVolume;
+class function TSFSZipVolumeFactory.Produce (const prefix, fileName: AnsiString; st: TStream): TSFSVolume;
 var
   vt: TSFSZipVolumeType;
 begin
@@ -454,12 +454,6 @@ begin
   end;
 end;
 
-
-var
-  zipf: TSFSZipVolumeFactory;
 initialization
-  zipf := TSFSZipVolumeFactory.Create();
-  SFSRegisterVolumeFactory(zipf);
-//finalization
-//  SFSUnregisterVolumeFactory(zipf);
+  SFSRegisterVolumeFactory(TSFSZipVolumeFactory);
 end.

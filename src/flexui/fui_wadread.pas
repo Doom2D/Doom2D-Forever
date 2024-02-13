@@ -64,7 +64,7 @@ begin
   if not SFSAddDataFile(awadname, true) then raise Exception.Create('cannot open wad');
   wadname := awadname;
   iter := SFSFileList(awadname);
-  {$IFDEF FUI_WADREAD_DEBUG}
+{$IFDEF FUI_WADREAD_DEBUG}
   if (iter <> nil) then
   begin
     writeln('==== ', awadname, ' ====');
@@ -75,14 +75,13 @@ begin
     end;
     writeln('========');
   end;
-  {$ENDIF}
+{$ENDIF}
 end;
 
 
 destructor TFUIWad.Destroy ();
 begin
-  wadname := '';
-  FreeAndNil(iter);
+  iter.Free();
   inherited;
 end;
 
@@ -122,8 +121,15 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  wadlist: array of TFUIWad = nil;
+  wadlist: array of TFUIWad;
 
+procedure Cleanup();
+var
+  wad: TFUIWad;
+begin
+  for wad in wadlist do
+    wad.Destroy();
+end;
 
 function fuiAddWad (const wadfile: AnsiString): Boolean;
 var
@@ -240,5 +246,7 @@ begin
   result := nil;
 end;
 
+finalization
+  Cleanup();
 
 end.

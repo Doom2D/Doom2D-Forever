@@ -156,7 +156,7 @@ implementation
   function InitWindow (w, h, bpp: Integer; fullScreen, maximized: Boolean): Boolean;
     var flags: UInt32; x, y: cint; title: AnsiString;
   begin
-    // note: on window close make: if assigned(oglDeinitCB) then oglDeinitCB;
+    // NB: On window close, do this for FlexUI: if @oglDeinitCB <> nil then oglDeinitCB();
     e_LogWritefln('InitWindow %s %s %s %s', [w, h, bpp, fullScreen]);
     result := false;
     if window = nil then

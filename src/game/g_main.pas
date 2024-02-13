@@ -501,7 +501,8 @@ end;
 
 procedure Main();
 {$IFDEF ENABLE_HOLMES}
-  var flexloaded: Boolean;
+var
+  flexloaded: Boolean;
 {$ENDIF}
 begin
   InitPath;
@@ -518,12 +519,12 @@ begin
   e_WriteLog(gLanguage, TMsgType.Notify);
   g_Language_Set(gLanguage);
 
-{$IF not DEFINED(HEADLESS) and DEFINED(ENABLE_HOLMES)}
-  flexloaded := true;
+{$IFDEF ENABLE_HOLMES}
+  flexloaded := True;
   if not fuiAddWad('flexui.wad') then
-  begin
-    if not fuiAddWad('./data/flexui.wad') then fuiAddWad('./flexui.wad');
-  end;
+    if not fuiAddWad('./data/flexui.wad') then
+      fuiAddWad('./flexui.wad');
+
   try
     fuiGfxLoadFont('win8', 'flexui/fonts/win8.fuifont');
     fuiGfxLoadFont('win14', 'flexui/fonts/win14.fuifont');
@@ -533,16 +534,17 @@ begin
   except on e: Exception do
     begin
       writeln('ERROR loading FlexUI fonts');
-      flexloaded := false;
+      flexloaded := False;
       //raise;
     end;
   else
     begin
-      flexloaded := false;
+      flexloaded := False;
       //raise;
     end;
   end;
-  if (flexloaded) then
+
+  if flexloaded then
   begin
     try
       e_LogWriteln('FlexUI: loading stylesheet...');
@@ -560,31 +562,33 @@ begin
       end;
     end;
   end;
-  g_holmes_imfunctional := not flexloaded;
 
-  if (not g_holmes_imfunctional) then
+  g_holmes_nonfunctional := not flexloaded;
+  if not g_holmes_nonfunctional then
   begin
+    if @oglInitCB <> nil then oglInitCB();
     uiInitialize();
     uiContext.font := 'win14';
   end;
-
-  if assigned(oglInitCB) then oglInitCB;
 {$ENDIF}
 
   //g_Res_CreateDatabases(true); // it will be done before connecting to the server for the first time
 
   e_WriteLog('Entering PerformExecution', TMsgType.Notify);
-
 {$WARNINGS OFF}
   PerformExecution();
 {$WARNINGS ON}
 
 {$IFDEF ENABLE_HOLMES}
-  if assigned(oglDeinitCB) then oglDeinitCB;
+  if not g_holmes_nonfunctional then
+  begin
+    uiDeinitialize();
+    if @oglDeinitCB <> nil then oglDeinitCB();
+  end;
 {$ENDIF}
 
-  g_Console_WriteGameConfig;
-  sys_Final;
+  g_Console_WriteGameConfig();
+  sys_Final();
 end;
 
 procedure Init();

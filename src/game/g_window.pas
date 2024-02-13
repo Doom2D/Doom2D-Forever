@@ -289,7 +289,7 @@ begin
         itmp := 0;
         val(ParamStr(idx), itmp, valres);
         {$IFNDEF HEADLESS}
-        if (valres = 0) and (not g_holmes_imfunctional) then
+        if (valres = 0) and (not g_holmes_nonfunctional) then
         begin
           case itmp of
             8: uiContext.font := 'win8';

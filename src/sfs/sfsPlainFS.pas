@@ -40,11 +40,11 @@ type
     function OpenFileByIndex (const index: Integer): TStream; override;
   end;
 
-  TSFSPlainVolumeFactory = class (TSFSVolumeFactory)
+  TSFSPlainVolumeFactory = class (TSFSVolumeFactoryMethods)
   public
-    function IsMyVolumePrefix (const prefix: AnsiString): Boolean; override;
-    function Produce (const prefix, fileName: AnsiString; st: TStream): TSFSVolume; override;
-    procedure Recycle (vol: TSFSVolume); override;
+    class function IsMyVolumePrefix (const prefix: AnsiString): Boolean; override;
+    class function Produce (const prefix, fileName: AnsiString; st: TStream): TSFSVolume; override;
+    class procedure Recycle (vol: TSFSVolume); override;
   end;
 
 
@@ -89,19 +89,19 @@ end;
 
 
 { TSFSPlainVolumeFactory }
-function TSFSPlainVolumeFactory.IsMyVolumePrefix (const prefix: AnsiString): Boolean;
+class function TSFSPlainVolumeFactory.IsMyVolumePrefix (const prefix: AnsiString): Boolean;
 begin
   result :=
     StrEquCI1251(prefix, 'pak') or
     StrEquCI1251(prefix, 'sin');
 end;
 
-procedure TSFSPlainVolumeFactory.Recycle (vol: TSFSVolume);
+class procedure TSFSPlainVolumeFactory.Recycle (vol: TSFSVolume);
 begin
   vol.Free();
 end;
 
-function TSFSPlainVolumeFactory.Produce (const prefix, fileName: AnsiString; st: TStream): TSFSVolume;
+class function TSFSPlainVolumeFactory.Produce (const prefix, fileName: AnsiString; st: TStream): TSFSVolume;
 var
   vt: TSFSPlainVolumeType;
   sign: packed array [0..3] of Char;
@@ -135,12 +135,6 @@ begin
   end;
 end;
 
-
-var
-  pakf: TSFSPlainVolumeFactory;
 initialization
-  pakf := TSFSPlainVolumeFactory.Create();
-  SFSRegisterVolumeFactory(pakf);
-//finalization
-//  SFSUnregisterVolumeFactory(pakf);
+  SFSRegisterVolumeFactory(TSFSPlainVolumeFactory);
 end.

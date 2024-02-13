@@ -575,7 +575,7 @@ procedure uiDeinitialize ();
 // ////////////////////////////////////////////////////////////////////////// //
 var
   fuiRenderScale: Single = 1.0;
-  uiContext: TGxContext = nil;
+  uiContext: TGxContext;
 
 
 implementation
@@ -586,9 +586,9 @@ uses
 
 
 var
-  uiInsideDispatcher: Boolean = false;
-  uiTopList: array of TUIControl = nil;
-  uiGrabCtl: TUIControl = nil;
+  uiInsideDispatcher: Boolean;
+  uiTopList: array of TUIControl;
+  uiGrabCtl: TUIControl;
 
 
 // ////////////////////////////////////////////////////////////////////////// //

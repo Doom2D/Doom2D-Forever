@@ -2443,11 +2443,13 @@ begin
   if not WAD.GetResource(g_ExtractFilePathName(Resource), p, len) then
   begin
     gChatSounds := nil;
-    WAD.Free();
+    WAD.Destroy();
     Exit;
   end;
+  WAD.Destroy();
 
   cfg := TConfig.CreateMem(p, len);
+  FreeMem(p);
   cnt := cfg.ReadInt('ChatSounds', 'Count', 0);
 
   SetLength(gChatSounds, cnt);
@@ -2467,8 +2469,7 @@ begin
     gChatSounds[i].FullWord := cfg.ReadBool(IntToStr(i), 'FullWord', False);
   end;
 
-  cfg.Free();
-  WAD.Free();
+  cfg.Destroy();
 end;
 
 procedure g_Game_FreeChatSounds();

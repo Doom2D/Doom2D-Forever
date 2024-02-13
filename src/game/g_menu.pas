@@ -1068,18 +1068,16 @@ var
   spc: ShortInt;
   ID: DWORD;
   wad: TWADFile;
-  cfgdata: Pointer;
-  cfglen: Integer;
+  cfgdata: Pointer = nil;
+  cfglen: Integer = 0;
   config: TConfig;
 begin
-  cfglen := 0;
-
-  wad := TWADFile.Create;
+  wad := TWADFile.Create();
   if wad.ReadFile(GameWAD) then
     wad.GetResource('FONTS/'+cfgres, cfgdata, cfglen);
-  wad.Free();
+  wad.Destroy();
 
-  if cfglen <> 0 then
+  if (cfgdata <> nil) and (cfglen <> 0) then
   begin
     g_Texture_CreateWADEx('FONT_STD', GameWAD+':FONTS\'+texture);
 
@@ -1094,7 +1092,7 @@ begin
     config.Free();
   end;
 
-  if cfglen <> 0 then FreeMem(cfgdata);
+  FreeMem(cfgdata);
 end;
 
 procedure LoadFont(txtres, fntres: string; var FontID: DWORD);
@@ -1109,18 +1107,19 @@ var
   chrwidth: Integer;
   a: Byte;
 begin
+  cfgdata := nil;
+  fntdata := nil;
   cfglen := 0;
-  fntlen := 0;
 
-  wad := TWADFile.Create;
+  wad := TWADFile.Create();
   if wad.ReadFile(GameWAD) then
   begin
     wad.GetResource('FONTS/'+txtres, cfgdata, cfglen);
     wad.GetResource('FONTS/'+fntres, fntdata, fntlen);
   end;
-  wad.Free();
+  wad.Destroy();
 
-  if cfglen <> 0 then
+  if (cfgdata <> nil) and (fntdata <> nil) and (cfglen <> 0) then
   begin
     config := TConfig.CreateMem(cfgdata, cfglen);
     cwdt := Min(Max(config.ReadInt('FontMap', 'CharWidth', 0), 0), 255);
@@ -1142,8 +1141,8 @@ begin
     config.Free();
   end;
 
-  if cfglen <> 0 then FreeMem(cfgdata);
-  if fntlen <> 0 then FreeMem(fntdata);
+  FreeMem(cfgdata);
+  FreeMem(fntdata);
 end;
 
 procedure MenuLoadData();

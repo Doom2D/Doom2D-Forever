@@ -166,11 +166,11 @@ type
   TBinaryHeapHitTimes = specialize TBinaryHeapBase<Integer, TBinHeapKeyHitTime>;
 
 var
-  WaterMap: array of array of DWORD = nil;
-  //wgunMonHash: THashIntInt = nil;
-  wgunHitHeap: TBinaryHeapHitTimes = nil;
-  wgunHitTime: array of THitTime = nil;
-  wgunHitTimeUsed: Integer = 0;
+  WaterMap: array of array of DWORD;
+  //wgunMonHash: THashIntInt;
+  wgunHitHeap: TBinaryHeapHitTimes;
+  wgunHitTime: array of THitTime;
+  wgunHitTimeUsed: Integer;
 
 
 class function TBinHeapKeyHitTime.less (const a, b: Integer): Boolean;
@@ -1240,6 +1240,9 @@ begin
   g_Frames_DeleteByName('FRAMES_SMOKE');
   g_Frames_DeleteByName('FRAMES_WEAPON_BARONFIRE');
   g_Frames_DeleteByName('FRAMES_EXPLODE_BARONFIRE');
+
+  //wgunMonHash.Destroy();
+  wgunHitHeap.Destroy();
 end;
 
 

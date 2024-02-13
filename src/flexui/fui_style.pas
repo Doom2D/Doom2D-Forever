@@ -126,8 +126,17 @@ uses
 
 
 var
-  styles: array of TUIStyle = nil;
+  styles: array of TUIStyle;
 
+
+procedure FreeStyles();
+var
+  stl: TUIStyle;
+begin
+  for stl in styles do
+    stl.Destroy();
+  styles := nil;
+end;
 
 {
 function createDefaultStyle (): TUIStyle;
@@ -187,7 +196,7 @@ var
 begin
   if (st = nil) then raise Exception.Create('cannot load UI styles from nil stream');
   par := TFileTextParser.Create(st, false, [par.TOption.SignedNumbers, par.TOption.DollarIsId, par.TOption.DashIsId, par.TOption.HtmlColors]);
-  styles := nil;
+  FreeStyles();
   try
     while (not par.isEOF) do
     begin
@@ -195,7 +204,12 @@ begin
       stl.parse(par);
       //writeln('new style: <', stl.mId, '>');
       f := 0;
-      while (f < Length(styles)) do begin if (strEquCI1251(styles[f].mId, stl.mId)) then break; Inc(f); end;
+      while (f < Length(styles)) do
+      begin
+        if (strEquCI1251(styles[f].mId, stl.mId)) then
+          break;
+        f += 1;
+      end;
       if (f < Length(styles)) then
       begin
         FreeAndNil(styles[f]);
@@ -274,7 +288,10 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure freeSectionCB (var v: TStyleSection); begin FreeAndNil(v); end;
+procedure freeSectionCB (var v: TStyleSection);
+begin
+  FreeAndNil(v);
+end;
 
 
 function splitPath (const path: AnsiString; out name, hash, ctl: AnsiString): Boolean;
@@ -340,10 +357,6 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TStyleSection.Create ();
 begin
-  mParent := nil;
-  mInherits := '';
-  mHashName := '';
-  mCtlName := '';
   mVals := THashStrStyleVal.Create(freeValueCB);
   mHashes := THashStrSection.Create(freeSectionCB);
   mCtls := THashStrSection.Create(freeSectionCB);
@@ -352,21 +365,18 @@ end;
 
 destructor TStyleSection.Destroy ();
 begin
-  FreeAndNil(mVals);
-  FreeAndNil(mHashes);
-  FreeAndNil(mCtls);
-  mParent := nil;
-  mInherits := '';
-  mHashName := '';
-  mCtlName := '';
+  mVals.Destroy();
+  mHashes.Destroy();
+  mCtls.Destroy();
   inherited;
 end;
 
 
 function TStyleSection.getTopLevel (): TStyleSection; inline;
 begin
-  result := self;
-  while (result.mParent <> nil) do result := result.mParent;
+  Result := Self;
+  while Result.mParent <> nil do
+    Result := Result.mParent;
 end;
 
 
@@ -568,7 +578,8 @@ end;
 destructor TUIStyle.Destroy ();
 begin
   mId := '';
-  FreeAndNil(mMain);
+  mMain.Free();
+  inherited;
 end;
 
 
@@ -785,5 +796,7 @@ begin
   if (not par.eatDelim(';')) then parseSection(mMain, true, true);
 end;
 
+finalization
+  FreeStyles();
 
 end.

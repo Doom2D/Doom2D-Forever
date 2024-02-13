@@ -375,7 +375,7 @@ begin
       end;
 {$ENDIF}
       Len := Integer(fs.size);
-      GetMem(pData, Len);
+      pData := GetMem(Len);
       fpp := pData;
       try
         fs.ReadBuffer(pData^, Len);

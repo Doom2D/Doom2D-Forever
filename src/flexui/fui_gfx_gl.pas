@@ -641,7 +641,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  fontList: array of TGxBmpFont = nil;
+  fontList: array of TGxBmpFont;
   defaultFontName: AnsiString = 'win14';
 
 
@@ -683,53 +683,62 @@ begin
 end;
 
 
-{
+
 procedure deleteFonts ();
 var
   f: Integer;
 begin
-  for f := 0 to High(fontList) do freeAndNil(fontList[f]);
+  for f := 0 to High(fontList) do
+    fontList[f].Free();
   fontList := nil;
 end;
-}
+
 
 
 procedure fuiGfxLoadFont (const fontname: AnsiString; const fontFile: AnsiString; proportional: Boolean=false);
 var
   st: TStream;
 begin
-  if (Length(fontname) = 0) then raise Exception.Create('FlexUI: cannot load nameless font '''+fontFile+'''');
+  if (Length(fontname) = 0) then
+    raise Exception.Create('FlexUI: cannot load nameless font '''+fontFile+'''');
+
   st := fuiOpenFile(fontFile);
-  if (st = nil) then raise Exception.Create('FlexUI: cannot load font '''+fontFile+'''');
+  if (st = nil) then
+    raise Exception.Create('FlexUI: cannot load font '''+fontFile+'''');
+
   try
     fuiGfxLoadFont(fontname, st, proportional);
   except on e: Exception do
     begin
-      writeln('FlexUI font loadin error: ', e.message);
-      FreeAndNil(st);
+      writeln('FlexUI font loading error: ', e.message);
+      st.Destroy();
       raise Exception.Create('FlexUI: cannot load font '''+fontFile+'''');
     end;
   else
     raise;
   end;
-  FreeAndNil(st);
+
+  st.Destroy();
 end;
 
 
 procedure fuiGfxLoadFont (const fontname: AnsiString; st: TStream; proportional: Boolean=false);
 var
-  fnt: TGxBmpFont = nil;
+  fnt: TGxBmpFont;
   f: Integer;
 begin
-  if (Length(fontname) = 0) then raise Exception.Create('FlexUI: cannot load nameless font');
+  if (Length(fontname) = 0) then
+    raise Exception.Create('FlexUI: cannot load nameless font');
+
   fnt := TGxBmpFont.Create(fontname, st, proportional);
   try
     for f := 0 to High(fontList) do
     begin
-      if (strEquCI(fontList[f].name, fontname)) then
+      if strEquCI(fontList[f].name, fontname) then
       begin
-        if (fontList[f].mTexId <> 0) then raise Exception.Create('FlexUI: cannot reload generated font named '''+fontname+'''');
-        FreeAndNil(fontList[f]);
+        if (fontList[f].mTexId <> 0) then
+          raise Exception.Create('FlexUI: cannot reload generated font named '''+fontname+'''');
+        fontList[f].Destroy();
         fontList[f] := fnt;
         exit;
       end;
@@ -737,7 +746,7 @@ begin
     SetLength(fontList, Length(fontList)+1);
     fontList[High(fontList)] := fnt;
   except
-    FreeAndNil(fnt);
+    fnt.Destroy();
     raise;
   end;
 end;
@@ -747,7 +756,9 @@ procedure oglInitFonts ();
 var
   f: Integer;
 begin
-  for f := 0 to High(fontList) do if (fontList[f] <> nil) then fontList[f].oglCreateTexture();
+  for f := 0 to High(fontList) do
+    if (fontList[f] <> nil) then
+      fontList[f].oglCreateTexture();
 end;
 
 
@@ -755,7 +766,9 @@ procedure oglDeinitFonts ();
 var
   f: Integer;
 begin
-  for f := 0 to High(fontList) do if (fontList[f] <> nil) then fontList[f].oglDestroyTexture();
+  for f := 0 to High(fontList) do
+    if (fontList[f] <> nil) then
+      fontList[f].oglDestroyTexture();
 end;
 
 
@@ -1438,7 +1451,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 initialization
-  savedGLState := TSavedGLState.Create(false);
+  savedGLState := TSavedGLState.Create(False);
   //createFonts();
   //winFocusCB := onWinFocus;
   //winBlurCB := onWinBlur;
@@ -1446,4 +1459,8 @@ initialization
   postrenderFrameCB := onPostRender;
   oglInitCB := onInit;
   oglDeinitCB := onDeinit;
+
+finalization
+  deleteFonts();
+
 end.

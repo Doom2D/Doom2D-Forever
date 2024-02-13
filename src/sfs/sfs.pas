@@ -115,7 +115,10 @@ type
   // фабрика НЕ ДОЛЖНА убиваться никак иначе, чем при помощи вызова
   // SFSUnregisterVolumeFactory()! это гарантирует, что движок
   // перед расстрелом отдаст ей все её тома.
-  TSFSVolumeFactory = class
+  // -- upd 2024-02-14 by ЧД: а зачем нам, собственно, их вообще прибивать? вот и я так подумал!
+  // поэтому вместо фабрик прибил саму функцию SFSUnregisterVolumeFactory(), гыг. она кривая была.
+  // а все фабрики вообще переделал в метаклассы, то есть теперь их и создавать не надо. %-)
+  TSFSVolumeFactoryMethods = class
   public
     // если добавляем файл данных файл с именем типа "zip:....", то
     // SFS извлечёт это "zip" и передаст в сию функцию.
@@ -123,17 +126,18 @@ type
     // файла. если ни одна фабрика префикс не признает, то файл не откроют.
     // используется для скипания автодетекта.
     // SFS НЕ СЧИТАЕТ ПРЕФИКСОМ СТРОКУ КОРОЧЕ ТРЁХ СИМВОЛОВ!
-    function IsMyVolumePrefix (const prefix: AnsiString): Boolean; virtual; abstract;
+    class function IsMyVolumePrefix (const prefix: AnsiString): Boolean; virtual; abstract;
     // проверяет, может ли фабрика сделать том для данного файла.
     // st -- открытый для чтения файловй поток. указатель чтения стоит в начале.
     // этот поток нельзя закрывать!
     // prefix: то, что было передано в IsMyVolumePrefix() или ''.
     // исключение считается ошибкой, возврат NIL считается ошибкой.
-    function Produce (const prefix, fileName: AnsiString; st: TStream): TSFSVolume; virtual; abstract;
+    class function Produce (const prefix, fileName: AnsiString; st: TStream): TSFSVolume; virtual; abstract;
     // когда том больше не нужен, он будет отдан фабрике на переработку.
     // далее движок не будет юзать сей том.
-    procedure Recycle (vol: TSFSVolume); virtual; abstract;
+    class procedure Recycle (vol: TSFSVolume); virtual; abstract;
   end;
+  TSFSVolumeFactory = class of TSFSVolumeFactoryMethods;
 
   // "итератор", возвращаемый SFSFileList()
   TSFSFileList = class
@@ -160,8 +164,6 @@ type
 
 
 procedure SFSRegisterVolumeFactory (factory: TSFSVolumeFactory);
-// эта функция автоматически прибьёт factory.
-procedure SFSUnregisterVolumeFactory (factory: TSFSVolumeFactory);
 
 // добавить сборник в постоянный список.
 // если сборник с таким именем уже открыт, то не открывает его повторно.
@@ -439,9 +441,9 @@ type
 
 
 var
-  factories: TObjectList; // TSFSVolumeFactory
-  volumes: TObjectList;   // TVolumeInfo
-  gcdisabled: Integer = 0; // >0: disabled
+  factories: TFPList;  // TSFSVolumeFactory
+  volumes: TFPObjectList;  // TVolumeInfo
+  gcdisabled: Integer;  // >0: disabled
 
 
 procedure sfsGCCollect ();
@@ -908,25 +910,10 @@ begin
   if factories.IndexOf(factory) <> -1 then
     raise ESFSError.Create('duplicate factories are not allowed');
   f := factories.IndexOf(nil);
-  if f = -1 then factories.Add(factory) else factories[f] := factory;
+  if f = -1
+    then factories.Add(factory)
+    else factories[f] := factory;
 end;
-
-procedure SFSUnregisterVolumeFactory (factory: TSFSVolumeFactory);
-var
-  f: Integer;
-  c: Integer;
-begin
-  if factory = nil then exit;
-  f := factories.IndexOf(factory);
-  if f = -1 then raise ESFSError.Create('can''t unregister nonexisting factory');
-  c := 0; while c < volumes.Count do
-  begin
-    if (volumes[c] <> nil) and (TVolumeInfo(volumes[c]).fFactory = factory) then volumes[c] := nil;
-    Inc(c);
-  end;
-  factories[f] := nil;
-end;
-
 
 function SFSAddDataFileEx (dataFileName: AnsiString; ds: TStream; top, permanent: Integer): Integer;
 // dataFileName может иметь префикс типа "zip:" (см. выше: IsMyPrefix).
@@ -1262,11 +1249,12 @@ begin
   end;
 end;
 
-
 initialization
-  factories := TObjectList.Create(true);
-  volumes := TObjectList.Create(true);
-//finalization
-  //volumes.Free(); // it fails for some reason... Runtime 217 (^C hit). wtf?!
-  //factories.Free(); // not need to be done actually...
+  factories := TFPList.Create();
+  volumes := TFPObjectList.Create(True);
+
+finalization
+  volumes.Destroy();
+  factories.Destroy();
+
 end.
