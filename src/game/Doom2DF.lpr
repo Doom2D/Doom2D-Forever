@@ -198,7 +198,7 @@ function SDL_main(argc: CInt; argv: PPChar): CInt; cdecl;
 
 var
   f: Integer;
-  noct: Boolean = false;
+  gdb_mode: Boolean = false;
 {$IFDEF ANDROID}
   storage: String;
 {$ENDIF}
@@ -215,9 +215,9 @@ begin
   while f <= ParamCount do
   begin
     case ParamStr(f) of
-    '--gdb': noct := true;
-    '--log': conbufDumpToStdOut := true;
-    '--safe-log': e_SetSafeSlowLog(true);
+    '--gdb': gdb_mode := True;
+    '--log': conbufDumpToStdOut := True;
+    '--safe-log': e_SetSafeSlowLog(True);
     '--log-file':
       if f + 1 <= ParamCount then
       begin
@@ -228,39 +228,35 @@ begin
     Inc(f)
   end;
 
-  if noct then
-  begin
-    Main()
-  end
-  else
-  begin
-    try
-      Main();
-      e_WriteLog('Shutdown with no errors.', TMsgType.Notify);
-    except
-      on e: Exception do
-        begin
-          e_WriteStackTrace(e.message);
-          //e_WriteLog(Format(_lc[I_SYSTEM_ERROR_MSG], [E.Message]), MSG_FATALERROR);
-          (*
-          AssignFile(tfo, GameDir+'/trace.log');
-          {$I-}
-          Append(tfo);
-          if (IOResult <> 0) then Rewrite(tfo);
-          if (IOResult = 0) then begin writeln(tfo, '====================='); DumpExceptionBackTrace(tfo); CloseFile(tfo); end;
-          *)
-        end
-      else
-        begin
-          //e_WriteLog(Format(_lc[I_SYSTEM_ERROR_UNKNOWN], [NativeUInt(ExceptAddr())]), MSG_FATALERROR);
-          e_WriteStackTrace('FATAL ERROR');
-        end;
+  try
+    Main();
+    e_WriteLog('Shutdown with no errors.', TMsgType.Notify);
+  except
+    on e: Exception do
+    begin
+      e_WriteStackTrace(e.message);
+      //e_WriteLog(Format(_lc[I_SYSTEM_ERROR_MSG], [E.Message]), MSG_FATALERROR);
+      (*
+      AssignFile(tfo, GameDir+'/trace.log');
+      {$I-}
+      Append(tfo);
+      if (IOResult <> 0) then Rewrite(tfo);
+      if (IOResult = 0) then begin writeln(tfo, '====================='); DumpExceptionBackTrace(tfo); CloseFile(tfo); end;
+      *)
+    end
+    else
+    begin
+      //e_WriteLog(Format(_lc[I_SYSTEM_ERROR_UNKNOWN], [NativeUInt(ExceptAddr())]), MSG_FATALERROR);
+      e_WriteStackTrace('FATAL ERROR');
     end;
+
+    if gdb_mode then raise;
   end;
-  e_DeinitLog();
+
+  e_DeinitLog();  // I hope at least this lonely thing can get by without fatal errors.
 
 {$IFDEF ANDROID}
-  result := 0;
+  Result := 0;
 end; // SDL_main
 exports SDL_main;
 {$ENDIF ANDROID}

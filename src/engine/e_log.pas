@@ -286,7 +286,12 @@ begin
     AssignFile(tfo, FileName);
     Append(tfo);
     if (IOResult <> 0) then Rewrite(tfo);
-    if (IOResult = 0) then begin writeln(tfo, '====================='); DumpExceptionBackTrace(tfo); CloseFile(tfo); end;
+    if (IOResult = 0) then
+    begin
+      writeln(tfo, '=====================');
+      DumpExceptionBacktrace(tfo);
+      CloseFile(tfo);
+    end;
   end;
 end;
 
