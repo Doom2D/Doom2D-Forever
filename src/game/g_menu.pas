@@ -1237,40 +1237,45 @@ var
   snd: TPlayableSound;
   res: Boolean;
 begin
-  if yes then
+  if not yes then
   begin
-    g_Game_StopAllSounds(True);
-    case (Random(18)) of
-      0: s := 'SOUND_MONSTER_PAIN';
-      1: s := 'SOUND_MONSTER_DIE_3';
-      2: s := 'SOUND_MONSTER_SLOP';
-      3: s := 'SOUND_MONSTER_DEMON_DIE';
-      4: s := 'SOUND_MONSTER_IMP_DIE_2';
-      5: s := 'SOUND_MONSTER_MAN_DIE';
-      6: s := 'SOUND_MONSTER_BSP_DIE';
-      7: s := 'SOUND_MONSTER_VILE_DIE';
-      8: s := 'SOUND_MONSTER_SKEL_DIE';
-      9: s := 'SOUND_MONSTER_MANCUB_ALERT';
-      10: s := 'SOUND_MONSTER_PAIN_PAIN';
-      11: s := 'SOUND_MONSTER_BARON_DIE';
-      12: s := 'SOUND_MONSTER_CACO_DIE';
-      13: s := 'SOUND_MONSTER_CYBER_DIE';
-      14: s := 'SOUND_MONSTER_KNIGHT_ALERT';
-      15: s := 'SOUND_MONSTER_SPIDER_ALERT';
-      else s := 'SOUND_PLAYER_FALL';
-    end;
-    snd := TPlayableSound.Create();
-    res := snd.SetByName(s);
-    if not res then res := snd.SetByName('SOUND_PLAYER_FALL');
-    if res then
-    begin
-      snd.Play(True);
-      while snd.IsPlaying() do begin end;
-    end;
-    g_Game_Quit();
+    g_GUI_HideWindow();
     exit;
   end;
-  g_GUI_HideWindow();
+
+  g_Game_StopAllSounds(True);
+  case (Random(18)) of
+    0: s := 'SOUND_MONSTER_PAIN';
+    1: s := 'SOUND_MONSTER_DIE_3';
+    2: s := 'SOUND_MONSTER_SLOP';
+    3: s := 'SOUND_MONSTER_DEMON_DIE';
+    4: s := 'SOUND_MONSTER_IMP_DIE_2';
+    5: s := 'SOUND_MONSTER_MAN_DIE';
+    6: s := 'SOUND_MONSTER_BSP_DIE';
+    7: s := 'SOUND_MONSTER_VILE_DIE';
+    8: s := 'SOUND_MONSTER_SKEL_DIE';
+    9: s := 'SOUND_MONSTER_MANCUB_ALERT';
+    10: s := 'SOUND_MONSTER_PAIN_PAIN';
+    11: s := 'SOUND_MONSTER_BARON_DIE';
+    12: s := 'SOUND_MONSTER_CACO_DIE';
+    13: s := 'SOUND_MONSTER_CYBER_DIE';
+    14: s := 'SOUND_MONSTER_KNIGHT_ALERT';
+    15: s := 'SOUND_MONSTER_SPIDER_ALERT';
+    else s := 'SOUND_PLAYER_FALL';
+  end;
+
+  snd := TPlayableSound.Create();
+  res := snd.SetByName(s);
+  if not res then
+    res := snd.SetByName('SOUND_PLAYER_FALL');
+
+  if res then
+  begin
+    snd.Play(True);
+    repeat until not snd.IsPlaying();
+  end;
+
+  gExit := EXIT_QUIT;
 end;
 
 procedure ProcLoadMenu();

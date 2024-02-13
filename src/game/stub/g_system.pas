@@ -30,7 +30,7 @@ interface
   procedure sys_Repaint;
 
   (* --- Input --- *)
-  function sys_HandleInput (): Boolean;
+  function sys_HandleEvents (): Boolean;
   procedure sys_RequestQuit;
 
   (* --- Init --- *)
@@ -65,19 +65,19 @@ implementation
 
   function sys_GetDisplayModes (bpp: Integer): SSArray;
   begin
-    result := nil
+    Result := nil
   end;
 
   function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
   begin
-    result := true
+    Result := True
   end;
 
   (* --------- Input --------- *)
 
-  function sys_HandleInput (): Boolean;
+  function sys_HandleEvents (): Boolean;
   begin
-    result := false
+    Result := False
   end;
 
   procedure sys_RequestQuit;

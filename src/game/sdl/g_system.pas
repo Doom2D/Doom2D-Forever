@@ -30,7 +30,7 @@ interface
   procedure sys_Repaint;
 
   (* --- Input --- *)
-  function sys_HandleInput (): Boolean;
+  function sys_HandleEvents (): Boolean;
   procedure sys_RequestQuit;
 
   (* --- Init --- *)
@@ -660,7 +660,7 @@ implementation
       InitWindow(ev.w, ev.h, gBPP, gFullscreen)
   end;
 
-  function sys_HandleInput (): Boolean;
+  function sys_HandleEvents (): Boolean;
     var ev: TSDL_Event;
   begin
     result := false;

@@ -1048,7 +1048,7 @@ begin
 
         if gMapOnce  then
           begin // Это был тест
-            g_Game_Quit();
+            gExit := EXIT_QUIT;
           end
         else
           begin // Выход в главное меню
@@ -1527,6 +1527,7 @@ end;
 
 procedure g_Game_Free(freeTextures: Boolean=true);
 begin
+  e_WriteLog('g_Game_Free: completion of the gameplay', TMsgType.Notify);
   if NetMode = NET_CLIENT then g_Net_Disconnect();
   if NetMode = NET_SERVER then g_Net_Host_Die();
 
@@ -1909,7 +1910,7 @@ begin
               if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER] then
               begin
               // Выход в главное меню:
-                g_Game_Free;
+                g_Game_Free();
                 g_GUI_ShowWindow('MainMenu');
                 gMusic.SetByName('MUSIC_MENU');
                 gMusic.Play();
@@ -2742,7 +2743,7 @@ var
 begin
   e_TextureFontGetSize(gStdFont, ww2, hh2);
 
-  sys_HandleInput;
+  sys_HandleEvents();
 
   if g_Console_Action(ACTION_SCORES) then
   begin
@@ -4286,8 +4287,11 @@ begin
   g_Touch_Draw;
 end;
 
+// FIXME: This cannot be called from anywhere other than ProcessMessages(), because otherwise
+// remaining events in the system queue may cause use-after-free! Do 'gExit := EXIT_QUIT' instead.
 procedure g_Game_Quit();
 begin
+  e_WriteLog('g_Game_Quit: cleanup assets before shutting down', TMsgType.Notify);
   g_Game_StopAllSounds(True);
   gMusic.Free();
   g_Game_FreeData();
@@ -4295,7 +4299,7 @@ begin
   g_Texture_DeleteAll();
   g_Frames_DeleteAll();
 {$IFNDEF HEADLESS}
-  //g_Menu_Free(); //k8: this segfaults after resolution change; who cares?
+  g_Menu_Free();
 {$ENDIF}
 
   if NetInitDone then g_Net_Free;
@@ -4304,8 +4308,7 @@ begin
   if gMapToDelete <> '' then
     g_Game_DeleteTestMap();
 
-  gExit := EXIT_QUIT;
-  sys_RequestQuit;
+  sys_RequestQuit();  // FIXME: this posts an event that have no sense anymore at this moment.
 end;
 
 procedure g_FatalError(Text: String);
@@ -7844,7 +7847,7 @@ begin
     'exit', 'quit':
       begin
         g_Game_Free();
-        g_Game_Quit();
+        gExit := EXIT_QUIT;
       end;
     'r_reset':
       begin

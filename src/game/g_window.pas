@@ -20,7 +20,7 @@ interface
 uses
   utils;
 
-function SDLMain (): Integer;
+function PerformExecution (): Integer;
 procedure ResetTimer ();
 procedure ProcessLoading (forceUpdate: Boolean = False);
 
@@ -55,7 +55,6 @@ var
   flag: Boolean;
   wNeedTimeReset: Boolean = false;
   wMinimized: Boolean = false;
-  wLoadingQuit: Boolean = false;
 
 procedure ResetTimer ();
 begin
@@ -73,7 +72,7 @@ var
   stt: UInt64;
 {$ENDIF}
 begin
-  if sys_HandleInput() = True then
+  if sys_HandleEvents() then
     Exit;
 
 {$IFNDEF HEADLESS}
@@ -121,7 +120,14 @@ function ProcessMessage (): Boolean;
 var
   i, t: Integer;
 begin
-  result := sys_HandleInput();
+  // BEWARE: Short-circuit evaluation matters here!
+  Result := (gExit = EXIT_QUIT) or sys_HandleEvents();
+  if Result then
+  begin
+    g_Game_Free();
+    g_Game_Quit();
+    exit;
+  end;
 
   Time := sys_GetTicks();
   Time_Delta := Time-Time_Old;
@@ -148,18 +154,6 @@ begin
 
   g_Map_ProfilersEnd();
   g_Mons_ProfilersEnd();
-
-  if wLoadingQuit then
-  begin
-    g_Game_Free();
-    g_Game_Quit();
-  end;
-
-  if (gExit = EXIT_QUIT) then
-  begin
-    result := true;
-    exit;
-  end;
 
   // Время предыдущего обновления
   if flag then
@@ -236,7 +230,7 @@ begin
   e_LogWritefln('GL Extensions: %s', [glGetString(GL_EXTENSIONS)]);
 end;
 
-function SDLMain (): Integer;
+function PerformExecution (): Integer;
 var
   idx: Integer;
   arg: AnsiString;
@@ -374,7 +368,7 @@ begin
   e_WriteLog('Entering the main loop', TMsgType.Notify);
 
   // main loop
-  while not ProcessMessage() do begin end;
+  repeat until ProcessMessage();
 
   g_Net_Slist_ShutdownAll();
 

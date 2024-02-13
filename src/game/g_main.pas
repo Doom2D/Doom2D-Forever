@@ -573,35 +573,36 @@ begin
 
   //g_Res_CreateDatabases(true); // it will be done before connecting to the server for the first time
 
-  e_WriteLog('Entering SDLMain', TMsgType.Notify);
+  e_WriteLog('Entering PerformExecution', TMsgType.Notify);
 
-  {$WARNINGS OFF}
-    SDLMain();
-  {$WARNINGS ON}
+{$WARNINGS OFF}
+  PerformExecution();
+{$WARNINGS ON}
 
-  {$IFDEF ENABLE_HOLMES}
-    if assigned(oglDeinitCB) then oglDeinitCB;
-  {$ENDIF}
+{$IFDEF ENABLE_HOLMES}
+  if assigned(oglDeinitCB) then oglDeinitCB;
+{$ENDIF}
 
   g_Console_WriteGameConfig;
   sys_Final;
 end;
 
 procedure Init();
-  {$IFDEF USE_SDLMIXER}
-    var timiditycfg: AnsiString;
-    var oldcwd, newcwd: RawByteString;
-  {$ENDIF}
-  var NoSound: Boolean;
+var
+{$IFDEF USE_SDLMIXER}
+  timiditycfg: AnsiString;
+  oldcwd, newcwd: RawByteString;
+{$ENDIF}
+  NoSound: Boolean;
 begin
   Randomize;
 
 {$IFDEF HEADLESS}
- {$IFDEF USE_SDLMIXER}
+  {$IFDEF USE_SDLMIXER}
   NoSound := False; // hope env has set SDL_AUDIODRIVER to dummy
- {$ELSE}
+  {$ELSE}
   NoSound := True; // FMOD backend will sort it out
- {$ENDIF}
+  {$ENDIF}
 {$ELSE}
   NoSound := False;
 {$ENDIF}

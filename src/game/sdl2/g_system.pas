@@ -30,7 +30,7 @@ interface
   procedure sys_Repaint;
 
   (* --- Input --- *)
-  function sys_HandleInput (): Boolean;
+  function sys_HandleEvents (): Boolean;
   procedure sys_RequestQuit;
 
   (* --- Init --- *)
@@ -263,10 +263,7 @@ implementation
 
   procedure sys_EnableVSync (yes: Boolean);
   begin
-    if yes then
-      SDL_GL_SetSwapInterval(1)
-    else
-      SDL_GL_SetSwapInterval(0)
+    SDL_GL_SetSwapInterval(Ord(yes));
   end;
 
   function sys_GetDisplayModes (bpp: Integer): SSArray;
@@ -275,7 +272,7 @@ implementation
     result := nil;
     num := SDL_GetNumDisplayModes(display);
     if num < 0 then
-      e_LogWritefln('SDL: unable to get numer of available display modes: %s', [SDL_GetError]);
+      e_LogWritefln('SDL: unable to get number of available display modes: %s', [SDL_GetError]);
     if num > 0 then
     begin
       e_LogWritefln('Video modes for display %s:', [display]);
@@ -537,7 +534,7 @@ implementation
       CharPress(sch);
   end;
 
-  function sys_HandleInput (): Boolean;
+  function sys_HandleEvents (): Boolean;
     var ev: TSDL_Event;
   begin
     result := false;

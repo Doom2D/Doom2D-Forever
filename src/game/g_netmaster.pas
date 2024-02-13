@@ -1893,7 +1893,7 @@ begin
   if gConsoleShow or gChatShow then
     Exit;
 
-  qm := sys_HandleInput(); // this updates kbd
+  qm := sys_HandleEvents(); // this updates kbd
 
   if qm or e_KeyPressed(IK_ESCAPE) or e_KeyPressed(VK_ESCAPE) or
      e_KeyPressed(JOY0_JUMP) or e_KeyPressed(JOY1_JUMP) or
