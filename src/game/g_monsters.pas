@@ -284,10 +284,6 @@ function g_Mons_AlongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB; log: B
 }
 
 
-var
-  gmon_debug_use_sqaccel: Boolean = true;
-
-
 //HACK!
 procedure g_Mons_ProfilersBegin ();
 procedure g_Mons_ProfilersEnd ();
@@ -295,21 +291,15 @@ procedure g_Mons_ProfilersEnd ();
 procedure g_Mons_LOS_Start (); inline;
 procedure g_Mons_LOS_End (); inline;
 
-var
-  profMonsLOS: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
-
-
 type
   TMonsterGrid = specialize TBodyGridBase<TMonster>;
 
 var
-  monsGrid: TMonsterGrid = nil; // DO NOT USE! public for debugging only!
-
-
-var
-  gmon_debug_think: Boolean = true;
-  gmon_debug_one_think_step: Boolean = false;
-
+  profMonsLOS: TProfiler; //WARNING: FOR DEBUGGING ONLY!
+  gmon_debug_use_sqaccel: Boolean = True;
+  monsGrid: TMonsterGrid; // DO NOT USE! public for debugging only!
+  gmon_debug_think: Boolean = True;
+  gmon_debug_one_think_step: Boolean;
 
 implementation
 
@@ -4892,5 +4882,7 @@ begin
   end;
 end;
 
+finalization
+  profMonsLOS.Free();
 
 end.

@@ -228,17 +228,17 @@ var
   gLiftMap: array of array of DWORD;
   gWADHash: TMD5Digest;
   BackID:  DWORD = DWORD(-1);
-  gExternalResources: array of TDiskFileInfo = nil;
-  gMovingWallIds: array of Integer = nil;
+  gExternalResources: array of TDiskFileInfo;
+  gMovingWallIds: array of Integer;
 
-  gdbg_map_use_accel_render: Boolean = true;
-  gdbg_map_use_accel_coldet: Boolean = true;
-  profMapCollision: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
-  gDrawPanelList: TBinHeapPanelDraw = nil; // binary heap of all walls we have to render, populated by `g_Map_CollectDrawPanels()`
+  gdbg_map_use_accel_render: Boolean = True;
+  gdbg_map_use_accel_coldet: Boolean = True;
+  profMapCollision: TProfiler; //WARNING: FOR DEBUGGING ONLY!
+  gDrawPanelList: TBinHeapPanelDraw; // binary heap of all walls we have to render, populated by `g_Map_CollectDrawPanels()`
 
-  gCurrentMap: TDynRecord = nil;
-  gCurrentMapFileName: AnsiString = ''; // so we can skip texture reloading
-  gTestMap: String = '';
+  gCurrentMap: TDynRecord;
+  gCurrentMapFileName: AnsiString; // so we can skip texture reloading
+  gTestMap: String;
 
 
 function panelTypeToTag (panelType: Word): Integer; // returns GridTagXXX
@@ -3418,7 +3418,10 @@ begin
   end;
 end;
 
-
-begin
+initialization
   DynWarningCB := mapWarningCB;
+
+finalization
+  profMapCollision.Free();
+
 end.

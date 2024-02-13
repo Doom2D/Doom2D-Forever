@@ -400,7 +400,6 @@ procedure g_DynLightExplosion (x, y, radius: Integer; r, g, b: Single);
 function conIsCheatsEnabled (): Boolean; inline;
 function gPause (): Boolean; inline;
 
-
 implementation
 
 uses
@@ -416,16 +415,16 @@ uses
   ENet, e_msg, g_netmsg, g_netmaster,
   sfs, wadreader, g_system;
 
-
 var
-  hasPBarGfx: Boolean = false;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-function gPause (): Boolean; inline; begin result := gPauseMain or gPauseHolmes; end;
-
+  hasPBarGfx: Boolean;
+  profileFrameDraw: TProfiler;
 
 // ////////////////////////////////////////////////////////////////////////// //
+function gPause (): Boolean; inline;
+begin
+  Result := gPauseMain or gPauseHolmes;
+end;
+
 function conIsCheatsEnabled (): Boolean; inline;
 begin
   result := false;
@@ -438,12 +437,6 @@ begin
   end;
   result := true;
 end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-var
-  profileFrameDraw: TProfiler = nil;
-
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
@@ -8691,7 +8684,7 @@ begin
   SetLength(pars, 0);
 end;
 
-begin
+initialization
   conRegVar('pf_draw_frame', @g_profile_frame_draw, 'draw frame rendering profiles', 'render profiles');
   //conRegVar('pf_update_frame', @g_profile_frame_update, 'draw frame updating profiles', 'update profiles');
   conRegVar('pf_coldet', @g_profile_collision, 'draw collision detection profiles', 'coldet profiles');
@@ -8732,4 +8725,8 @@ begin
   conRegVar('r_showspect', @gSpectHUD, 'show spectator hud', 'show spectator hud');
   conRegVar('r_showstat', @gShowStat, 'show stats', 'show stats');
   conRegVar('r_showpids', @gShowPIDs, 'show PIDs', 'show PIDs');
+
+finalization
+  profileFrameDraw.Free();
+
 end.
