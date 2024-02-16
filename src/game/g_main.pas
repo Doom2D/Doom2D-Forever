@@ -261,17 +261,17 @@ procedure InitPath;
         AddDir(result, '/usr/local/share/doom2df');
         home := GetEnvironmentVariable('HOME');
         if home <> '' then
-          AddDir(result, e_CatPath(home, '.doom2df'));
+          AddDir(result, ConcatPaths([home, '.doom2df']));
       {$ENDIF}
       {$IFDEF DARWIN}
         bundle := GetBundlePath();
         if bundle <> '' then
-          AddDir(result, e_CatPath(bundle, 'Contents/Resources'));
+          AddDir(result, ConcatPaths([bundle, 'Contents/Resources']));
         dirArr := NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true);
         for i := 0 to dirArr.count - 1 do
         begin
           s := NSStringToAnsiString(dirArr.objectAtIndex(i));
-          AddDir(result, e_CatPath(s, 'Doom 2D Forever'))
+          AddDir(result, ConcatPaths([s, 'Doom 2D Forever']));
         end;
       {$ENDIF}
       {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
@@ -314,14 +314,14 @@ procedure InitPath;
       {$IF DEFINED(UNIX) AND NOT DEFINED(DARWIN) AND NOT DEFINED(ANDROID)}
         home := GetEnvironmentVariable('HOME');
         if home <> '' then
-          AddDir(result, e_CatPath(home, '.doom2df'));
+          AddDir(result, ConcatPaths([home, '.doom2df']));
       {$ENDIF}
       {$IFDEF DARWIN}
         dirArr := NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true);
         for i := 0 to dirArr.count - 1 do
         begin
           s := NSStringToAnsiString(dirArr.objectAtIndex(i));
-          AddDir(result, e_CatPath(s, 'Doom 2D Forever'))
+          AddDir(result, ConcatPaths([s, 'Doom 2D Forever']));
         end;
       {$ENDIF}
       {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}

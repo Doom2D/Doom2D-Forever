@@ -108,7 +108,7 @@ implementation
         if debug_e_res then
           e_LogWritefln('  %s', [dirs[i]]);
         if (createNewDir = false) or (ForceDirectories(dirs[i]) = true) then
-          result := p(ConcatPaths([dirs[i], name]))
+          result := p(ConcatPaths([AnsiString(dirs[i]), name]))
       finally
         Dec(i)
       end
@@ -153,7 +153,7 @@ implementation
     i := High(dirs); dir := name;
     while (i >= 0) and (result = false) do
     begin
-      dir := ConcatPaths([dirs[i], name]);
+      dir := ConcatPaths([AnsiString(dirs[i]), name]);
       result := findFileCI(dir, nameIsDir);
       if debug_e_res then
         e_LogWritefln('  %s -> %s', [dir, result]);

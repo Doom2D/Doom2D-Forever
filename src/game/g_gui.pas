@@ -3249,7 +3249,7 @@ begin
   i := High(FBaseList);
   while i >= 0 do
   begin
-    path := ConcatPaths([FBaseList[i], FSubPath]);
+    path := ConcatPaths([AnsiString(FBaseList[i]), FSubPath]);
     if FDirs then
     begin
       if FindFirst(path + '/' + '*', faDirectory, SR) = 0 then
@@ -3269,7 +3269,7 @@ begin
   i := High(FBaseList);
   while i >= 0 do
   begin
-    path := ConcatPaths([FBaseList[i], FSubPath]);
+    path := ConcatPaths([AnsiString(FBaseList[i]), FSubPath]);
     sm := FFileMask;
     while sm <> '' do
     begin
