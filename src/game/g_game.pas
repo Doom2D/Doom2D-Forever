@@ -681,9 +681,9 @@ begin
   try
     dir := e_GetWriteableDir(StatsDirs);
     // stats are placed in stats/yy/mm/dd/*.csv
-    fname := e_CatPath(dir, Path);
+    fname := ConcatPaths([dir, Path]);
     ForceDirectories(fname); // ensure yy/mm/dd exists within the stats dir
-    fname := e_CatPath(fname, StatFilename + '.csv');
+    fname := ConcatPaths([fname, StatFilename + '.csv']);
     AssignFile(s, fname);
     try
       SetTextCodePage(s, CP_UTF8);
@@ -7913,7 +7913,7 @@ begin
       Filename := 'screenshot-' + date;
     end;
 
-    name := e_CatPath(dir, Filename + '.png');
+    name := ConcatPaths([dir, Filename + '.png']);
     s := createDiskFile(name);
     try
       e_MakeScreenshot(s, gWinSizeX, gWinSizeY);

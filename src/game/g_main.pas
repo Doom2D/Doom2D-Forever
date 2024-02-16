@@ -222,7 +222,7 @@ procedure InitPath;
   begin
     if Length(dirs) = 0 then
       for s in base do
-        AddDir(dirs, e_CatPath(s, append));
+        AddDir(dirs, ConcatPaths([s, append]));
     OptimizeDirs(dirs)
   end;
 
@@ -345,31 +345,31 @@ begin
         Inc(i);
         rwdir := ParamStr(i);
         (* RW *)
-        AddDir(LogDirs, e_CatPath(rwdir, 'logs'));
-        AddDir(SaveDirs, e_CatPath(rwdir, 'data/saves'));
-        AddDir(CacheDirs, e_CatPath(rwdir, 'data/cache'));
-        AddDir(ConfigDirs, e_CatPath(rwdir, ''));
-        AddDir(MapDownloadDirs, e_CatPath(rwdir, 'maps/downloads'));
-        AddDir(WadDownloadDirs, e_CatPath(rwdir, 'wads/downloads'));
-        AddDir(ScreenshotDirs, e_CatPath(rwdir, 'screenshots'));
-        AddDir(StatsDirs, e_CatPath(rwdir, 'stats'));
+        AddDir(LogDirs, ConcatPaths([rwdir, 'logs']));
+        AddDir(SaveDirs, ConcatPaths([rwdir, 'data/saves']));
+        AddDir(CacheDirs, ConcatPaths([rwdir, 'data/cache']));
+        AddDir(ConfigDirs, ConcatPaths([rwdir, '']));
+        AddDir(MapDownloadDirs, ConcatPaths([rwdir, 'maps/downloads']));
+        AddDir(WadDownloadDirs, ConcatPaths([rwdir, 'wads/downloads']));
+        AddDir(ScreenshotDirs, ConcatPaths([rwdir, 'screenshots']));
+        AddDir(StatsDirs, ConcatPaths([rwdir, 'stats']));
         (* RO *)
-        AddDir(DataDirs, e_CatPath(rwdir, 'data'));
-        AddDir(ModelDirs, e_CatPath(rwdir, 'data/models'));
-        AddDir(MegawadDirs, e_CatPath(rwdir, 'maps/megawads'));
-        AddDir(MapDirs, e_CatPath(rwdir, 'maps'));
-        AddDir(WadDirs, e_CatPath(rwdir, 'wads'));
+        AddDir(DataDirs, ConcatPaths([rwdir, 'data']));
+        AddDir(ModelDirs, ConcatPaths([rwdir, 'data/models']));
+        AddDir(MegawadDirs, ConcatPaths([rwdir, 'maps/megawads']));
+        AddDir(MapDirs, ConcatPaths([rwdir, 'maps']));
+        AddDir(WadDirs, ConcatPaths([rwdir, 'wads']));
       end;
     '--ro-dir':
       begin
         Inc(i);
         rodir := ParamStr(i);
         (* RO *)
-        AddDir(DataDirs, e_CatPath(rodir, 'data'));
-        AddDir(ModelDirs, e_CatPath(rodir, 'data/models'));
-        AddDir(MegawadDirs, e_CatPath(rodir, 'maps/megawads'));
-        AddDir(MapDirs, e_CatPath(rodir, 'maps'));
-        AddDir(WadDirs, e_CatPath(rodir, 'wads'));
+        AddDir(DataDirs, ConcatPaths([rodir, 'data']));
+        AddDir(ModelDirs, ConcatPaths([rodir, 'data/models']));
+        AddDir(MegawadDirs, ConcatPaths([rodir, 'maps/megawads']));
+        AddDir(MapDirs, ConcatPaths([rodir, 'maps']));
+        AddDir(WadDirs, ConcatPaths([rodir, 'wads']));
       end;
     '--game-wad':
       begin
@@ -424,11 +424,8 @@ begin
     if rwdir <> '' then
     begin
       DateTimeToString(date, 'yyyy-mm-dd-hh-nn-ss', Now());
-      {$IFDEF HEADLESS}
-        LogFileName := e_CatPath(rwdir, 'dfserver-' + date + '.log');
-      {$ELSE}
-        LogFileName := e_CatPath(rwdir, 'dfclient-' + date + '.log');
-      {$ENDIF}
+      LogFileName := ConcatPaths([rwdir, {$IFNDEF HEADLESS}'dfclient-'{$ELSE}'DFSERVER-'{$ENDIF}
+        + date + '.log']);
     end
   end;
   

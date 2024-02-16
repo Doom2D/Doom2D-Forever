@@ -2046,8 +2046,7 @@ begin
     end;
 
     ProcessLoading(True);
-    if e_KeyPressed(IK_SPACE) or e_KeyPressed(IK_ESCAPE) or e_KeyPressed(VK_ESCAPE) or
-       e_KeyPressed(JOY0_JUMP) or e_KeyPressed(JOY1_JUMP) or e_KeyPressed(JOY2_JUMP) or e_KeyPressed(JOY3_JUMP) then
+    if e_KeyPressed(IK_SPACE) or g_Net_UserRequestExit() then
       OuterLoop := False;
   end;
 
@@ -2238,7 +2237,7 @@ begin
   path := e_GetWriteableDir(DataDirs);
   if path <> '' then
   begin
-    path := e_CatPath(path, BANLIST_FILENAME);
+    path := ConcatPaths([path, BANLIST_FILENAME]);
     Assign(F, path);
     Rewrite(F);
     if NetBannedHosts <> nil then

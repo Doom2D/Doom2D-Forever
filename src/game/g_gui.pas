@@ -3206,7 +3206,7 @@ begin
                     begin
                       s := Copy(AnsiString(FItems[FIndex]), 2);
                       //e_LogWritefln('TGUIFileListBox: Enter dir "%s" -> "%s"', [FSubPath, e_CatPath(FSubPath, s)]);
-                      FSubPath := e_CatPath(FSubPath, s);
+                      FSubPath := ConcatPaths([FSubPath, s]);
                     end;
                     ScanDirs;
                     FIndex := 0;
@@ -3249,7 +3249,7 @@ begin
   i := High(FBaseList);
   while i >= 0 do
   begin
-    path := e_CatPath(FBaseList[i], FSubPath);
+    path := ConcatPaths([FBaseList[i], FSubPath]);
     if FDirs then
     begin
       if FindFirst(path + '/' + '*', faDirectory, SR) = 0 then
@@ -3269,7 +3269,7 @@ begin
   i := High(FBaseList);
   while i >= 0 do
   begin
-    path := e_CatPath(FBaseList[i], FSubPath);
+    path := ConcatPaths([FBaseList[i], FSubPath]);
     sm := FFileMask;
     while sm <> '' do
     begin
@@ -3308,8 +3308,8 @@ begin
   result := '';
   if (FIndex >= 0) and (FIndex <= High(FItems)) and (FItems[FIndex][1] <> '/') and (FItems[FIndex][1] <> '\') then
   begin
-    s := e_CatPath(FSubPath, FItems[FIndex]);
-    if e_FindResource(FBaseList, s) = true then
+    s := ConcatPaths([FSubPath, FItems[FIndex]]);
+    if e_FindResource(FBaseList, s) then
       result := ExpandFileName(s)
   end;
   e_LogWritefln('TGUIFileListBox.SelectedItem -> "%s"', [result]);

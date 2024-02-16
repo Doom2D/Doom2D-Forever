@@ -690,7 +690,7 @@ begin
     if Length(p) = 2 then
     begin
       s := e_GetWriteableDir(ConfigDirs);
-      g_Console_WriteConfig(e_CatPath(s, p[1]))
+      g_Console_WriteConfig(ConcatPaths([s, p[1]]))
     end
     else
     begin
@@ -2363,7 +2363,7 @@ begin
   if gParsingBinds = false then
   begin
     s := e_GetWriteableDir(ConfigDirs);
-    g_Console_WriteConfig(e_CatPath(s, gConfigScript))
+    g_Console_WriteConfig(ConcatPaths([s, gConfigScript]))
   end
 end;
 

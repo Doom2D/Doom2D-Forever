@@ -204,6 +204,10 @@ var
 {$ENDIF}
   //tfo: Text;
 begin
+{$IF DECLARED(UseHeapTrace)}
+  heaptrc.HaltOnError := False;  // continue execution even in case of a heap error
+{$ENDIF}
+
 {$IFDEF ANDROID}
   System.argc := argc;
   System.argv := argv;
@@ -221,11 +225,11 @@ begin
     '--log-file':
       if f + 1 <= ParamCount then
       begin
-        Inc(f);
+        f += 1;
         LogFileName := ParamStr(f)
       end;
     end;
-    Inc(f)
+    f += 1;
   end;
 
   try
@@ -255,9 +259,17 @@ begin
 
   e_DeinitLog();  // I hope at least this lonely thing can get by without fatal errors.
 
+{$IF DECLARED(UseHeapTrace)}
+  // Heaptrc will append its report to the completed log after the program finish. Note that
+  // Heaptrc allows to set the output file by specifying the "LOG=" environment variable, but we
+  // don't support this because the Heaptrc API doesn't provide a way to check this directly.
+  heaptrc.SetHeapTraceOutput(LogFileName);
+{$ENDIF}
+
 {$IFDEF ANDROID}
   Result := 0;
 end; // SDL_main
 exports SDL_main;
 {$ENDIF ANDROID}
+
 end.

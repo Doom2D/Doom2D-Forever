@@ -22,12 +22,6 @@ interface
   var
     debug_e_res: Boolean;
 
-  {-------------------------------------------}
-  {--- insert separator beetwin a and b    ---}
-  {--- result are correct if (a or b) = '' ---}
-  {--- - - - - - - - - - - - - - - - - - - ---}
-  function e_CatPath (a, b: AnsiString): AnsiString;
-
   {--- remove last entry from path ---}
   function e_UpperDir (path: AnsiString): AnsiString;
 
@@ -114,7 +108,7 @@ implementation
         if debug_e_res then
           e_LogWritefln('  %s', [dirs[i]]);
         if (createNewDir = false) or (ForceDirectories(dirs[i]) = true) then
-          result := p(e_CatPath(dirs[i], name))
+          result := p(ConcatPaths([dirs[i], name]))
       finally
         Dec(i)
       end
@@ -148,16 +142,6 @@ implementation
       raise Exception.Create('can''t create resource "' + name + '"')
   end;
 
-  function e_CatPath (a, b: AnsiString): AnsiString;
-  begin
-    if a = '' then
-      result := b
-    else if b = '' then
-      result := a
-    else
-      result := a + '/' + b
-  end;
-
   function e_FindResource (dirs: SSArray; var name: AnsiString; nameIsDir: Boolean = false): Boolean;
     var i: Integer; dir: AnsiString;
   begin
@@ -169,7 +153,7 @@ implementation
     i := High(dirs); dir := name;
     while (i >= 0) and (result = false) do
     begin
-      dir := e_CatPath(dirs[i], name);
+      dir := ConcatPaths([dirs[i], name]);
       result := findFileCI(dir, nameIsDir);
       if debug_e_res then
         e_LogWritefln('  %s -> %s', [dir, result]);
