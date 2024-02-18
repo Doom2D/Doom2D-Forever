@@ -970,7 +970,7 @@ function GetPanelType(PanelName: String): Word;
 begin
   Result := PANEL_NONE;
 
-  case IndexStr(PanelName, PANELNAMES) of
+  case AnsiIndexStr(PanelName, PANELNAMES) of
     0: Result := PANEL_WALL;
     1: Result := PANEL_BACK;
     2: Result := PANEL_FORE;
