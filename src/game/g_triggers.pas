@@ -93,10 +93,10 @@ procedure g_Triggers_LoadState (st: TStream);
 
 
 var
-  gTriggerClientID: Integer = 0;
+  gTriggerClientID: Integer;
   gTriggers: array of TTrigger;
-  gSecretsCount: Integer = 0;
-  gMonstersSpawned: array of LongInt = nil;
+  gSecretsCount: Integer;
+  gMonstersSpawned: array of LongInt;
 
 
 implementation
@@ -246,8 +246,8 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  tgscope: TTrigScope = nil;
-  tgclist: TMyConstList = nil;
+  tgscope: TTrigScope;
+  tgclist: TMyConstList;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -2572,7 +2572,7 @@ type
   TSimpleMonsterList = specialize TSimpleList<TMonster>;
 
 var
-  tgMonsList: TSimpleMonsterList = nil;
+  tgMonsList: TSimpleMonsterList;
 
 procedure g_Triggers_Update();
 var
@@ -3068,6 +3068,8 @@ procedure g_Triggers_Free ();
 var
   a: Integer;
 begin
+  FreeAndNil(tgMonsList);
+
   for a := 0 to High(gTriggers) do
   begin
     if (gTriggers[a].TriggerType = TRIGGER_SOUND) then

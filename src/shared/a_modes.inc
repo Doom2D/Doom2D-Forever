@@ -91,13 +91,13 @@
 {$IFDEF HEADLESS}
   {$DEFINE USE_SYSSTUB}
   {$IF DEFINED(USE_SDL) OR DEFINED(USE_SDL2)}
-    {$WARNING System drivers not supported in headless mode. Force stub driver...}
+    {$WARNING System drivers are not supported in headless mode. Force stub driver...}
     {$UNDEF USE_SDL}
     {$UNDEF USE_SDL2}
   {$ENDIF}
   {$DEFINE USE_GLSTUB}
   {$IF DEFINED(USE_GLES1) OR DEFINED(USE_OPENGL)}
-    {$WARNING Render drivers not needed in headless mode. Force stub driver...}
+    {$WARNING Rendering drivers are not needed in headless mode. Force stub driver...}
     {$UNDEF USE_GLES1}
     {$UNDEF USE_OPENGL}
   {$ENDIF}
@@ -150,26 +150,26 @@
 
 {$IF DEFINED(USE_GLSTUB)}
   {$IF DEFINED(USE_GLES1) OR DEFINED(USE_OPENGL)}
-    {$ERROR Only one render driver must be selected!}
+    {$ERROR Only one rendering driver must be selected!}
   {$ENDIF}
 {$ELSEIF DEFINED(USE_GLES1)}
   {$IF DEFINED(USE_GLSTUB) OR DEFINED(USE_OPENGL)}
-    {$ERROR Only one render driver must be selected!}
+    {$ERROR Only one rendering driver must be selected!}
   {$ENDIF}
 {$ELSEIF DEFINED(USE_OPENGL)}
   {$IF DEFINED(USE_GLSTUB) OR DEFINED(USE_GLES1)}
-    {$ERROR Only one render driver must be selected!}
+    {$ERROR Only one rendering driver must be selected!}
   {$ENDIF}
 {$ELSE}
   {$DEFINE USE_OPENGL}
-  {.$ERROR Render driver not selected. Use -dUSE_GLSTUB or -dUSE_GLES1 or -dUSE_OPENGL}
+  {.$ERROR Rendering driver not selected. Use -dUSE_GLSTUB or -dUSE_GLES1 or -dUSE_OPENGL}
 {$ENDIF}
 
 {$IFDEF ENABLE_HOLMES}
   {$IFNDEF USE_SDL2}
-    {$ERROR Holmes supported only with SDL2}
+    {$ERROR Holmes is supported only with SDL2}
   {$ENDIF}
   {$IFNDEF USE_OPENGL}
-    {$ERROR Holmes supported only with desktop OpenGL}
+    {$ERROR Holmes is supported only with desktop OpenGL}
   {$ENDIF}
 {$ENDIF}

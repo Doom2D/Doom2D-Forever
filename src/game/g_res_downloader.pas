@@ -30,7 +30,7 @@ function g_Res_DownloadMapWAD (FileName: AnsiString; const mapHash: TMD5Digest):
 function g_Res_FindReplacementWad (oldname: AnsiString): AnsiString;
 
 // call this somewhere in startup sequence
-procedure g_Res_CreateDatabases (allowRescan: Boolean=false);
+procedure g_Res_CreateDatabases (allowRescan: Boolean = False);
 
 
 implementation
@@ -40,13 +40,13 @@ uses g_language, sfs, utils, wadreader, g_game, hashtable, fhashdb, e_res;
 var
   // cvars
   g_res_ignore_names: AnsiString = 'standart;shrshade';
-  g_res_ignore_enabled: Boolean = true;
-  g_res_save_databases: Boolean = true;
+  g_res_ignore_enabled: Boolean = True;
+  g_res_save_databases: Boolean = True;
   // other vars
-  replacements: THashStrStr = nil;
-  knownMaps: TFileHashDB = nil;
-  knownRes: TFileHashDB = nil;
-  saveDBsToDiskEnabled: Boolean = false; // this will be set to `true` if initial database saving succeed
+  replacements: THashStrStr;
+  knownMaps: TFileHashDB;
+  knownRes: TFileHashDB;
+  saveDBsToDiskEnabled: Boolean;  // this will be set to `true` if initial database saving succeed
 
 
 //==========================================================================
@@ -100,13 +100,13 @@ end;
 //  g_Res_CreateDatabases
 //
 //==========================================================================
-procedure g_Res_CreateDatabases (allowRescan: Boolean=false);
+procedure g_Res_CreateDatabases (allowRescan: Boolean);
 var
   st: TStream;
   upmap: Boolean;
   upres: Boolean;
   forcesave: Boolean;
-  ccdir: AnsiString = '';
+  ccdir: AnsiString;
 begin
   if not assigned(knownMaps) then
   begin
@@ -589,9 +589,14 @@ begin
   if saveDBsToDiskEnabled and (mapdbUpdated or resdbUpdated) then saveDatabases(mapdbUpdated, resdbUpdated);
 end;
 
-
 initialization
   conRegVar('rdl_ignore_names', @g_res_ignore_names, 'list of resource wad names (without extensions) to ignore in dl hash checks', 'dl ignore wads');
   conRegVar('rdl_ignore_enabled', @g_res_ignore_enabled, 'enable dl hash check ignore list', 'dl hash check ignore list active');
   conRegVar('rdl_hashdb_save_enabled', @g_res_save_databases, 'enable saving map/resource hash databases to disk', 'controls storing hash databases to disk');
+
+finalization
+  replacements.Free();
+  knownMaps.Free();
+  knownRes.Free();
+
 end.

@@ -139,8 +139,10 @@ uses
 {$ENDIF}
   ;
 
-
 // ////////////////////////////////////////////////////////////////////////// //
+
+// BD: seems to be never called actually. we're lucky just because 'framePool' is a global
+// variable, so it gets zero-initialized anyway, and that turns out to be enough.
 constructor TPoolMarkRelease.Create (aInitSize: Integer);
 begin
   if (aInitSize > 0) then

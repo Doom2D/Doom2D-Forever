@@ -61,7 +61,7 @@ function  g_Map_Load(Res: String): Boolean;
 function  g_Map_GetMapInfo(Res: String): TMapInfo;
 function  g_Map_GetMapsList(WADName: String): SSArray;
 function  g_Map_Exist(Res: String): Boolean;
-procedure g_Map_Free(freeTextures: Boolean=true);
+procedure g_Map_Free(freeTextures: Boolean = True);
 procedure g_Map_Update();
 
 function g_Map_PanelByGUID (aguid: Integer): TPanel; inline;
@@ -248,7 +248,7 @@ type
   TPanelGrid = specialize TBodyGridBase<TPanel>;
 
 var
-  mapGrid: TPanelGrid = nil; // DO NOT USE! public for debugging only!
+  mapGrid: TPanelGrid;  // DO NOT USE! public for debugging only!
 
 
 implementation
@@ -286,7 +286,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  panByGUID: array of TPanel = nil;
+  panByGUID: array of TPanel;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -334,14 +334,14 @@ function g_Map_MaxY (): Integer; inline; begin if (mapGrid <> nil) then result :
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  dfmapdef: TDynMapDef = nil;
+  dfmapdef: TDynMapDef;
 
 
 procedure loadMapDefinition ();
 var
-  pr: TTextParser = nil;
-  st: TStream = nil;
   WAD: TWADFile = nil;
+  st: TStream = nil;
+  pr: TTextParser = nil;
 begin
   if (dfmapdef <> nil) then exit;
 
@@ -356,82 +356,67 @@ begin
   if (st = nil) then
   begin
     WAD := TWADFile.Create();
-    if not WAD.ReadFile(GameWAD) then
-    begin
-      //raise Exception.Create('cannot load "game.wad"');
-      st := nil;
-    end
-    else
-    begin
-      st := WAD.openFileStream('mapdef.txt');
-    end;
+    if WAD.ReadFile(GameWAD)
+      then st := WAD.openFileStream('mapdef.txt')
+      else st := nil;
   end;
 
   try
-    if (st = nil) then
-    begin
-      //raise Exception.Create('cannot open "mapdef.txt"');
-      e_LogWriteln('using default "mapdef.txt"...');
-      pr := TStrTextParser.Create(defaultMapDef);
-    end
-    else
-    begin
-      pr := TFileTextParser.Create(st);
-    end;
-  except on e: Exception do
-    begin
-      e_LogWritefln('something is VERY wrong here! -- ', [e.message]);
+    try
+      if (st <> nil) then
+        pr := TFileTextParser.Create(st)
+      else
+      begin
+        //raise Exception.Create('cannot open "mapdef.txt"');
+        e_LogWriteln('using default "mapdef.txt"...');
+        pr := TStrTextParser.Create(defaultMapDef);
+      end;
+    except
+      on e: Exception do
+        e_LogWritefln('something is VERY wrong here! -- ', [e.message]);
+      else;
       raise;
     end;
-  end;
 
-  try
-    dfmapdef := TDynMapDef.Create(pr);
-  except
-    on e: TDynParseException do
-      raise Exception.CreateFmt('ERROR in "mapdef.txt" at (%s,%s): %s', [e.tokLine, e.tokCol, e.message]);
-    on e: Exception do
-      raise Exception.CreateFmt('ERROR in "mapdef.txt" at (%s,%s): %s', [pr.tokLine, pr.tokCol, e.message]);
+    try
+      dfmapdef := TDynMapDef.Create(pr);
+    except
+      on e: TDynParseException do
+        raise Exception.CreateFmt('ERROR in "mapdef.txt" at (%s,%s): %s', [e.tokLine, e.tokCol, e.message]);
+      on e: Exception do
+        raise Exception.CreateFmt('ERROR in "mapdef.txt" at (%s,%s): %s', [pr.tokLine, pr.tokCol, e.message]);
+    end;
+  finally
+    pr.Free();
+    st.Free();
+    WAD.Free();
   end;
-
-  st.Free();
-  WAD.Free();
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 function g_Map_ParseMap (data: Pointer; dataLen: Integer): TDynRecord;
 var
-  wst: TSFSMemoryChunkStream = nil;
+  wst: TSFSMemoryChunkStream;
 begin
-  result := nil;
+  Result := nil;
   if (dataLen < 4) then exit;
 
-  if (dfmapdef = nil) then writeln('need to load mapdef');
+  if (dfmapdef = nil) then WriteLn('need to load mapdef');
   loadMapDefinition();
   if (dfmapdef = nil) then raise Exception.Create('internal map loader error');
 
   wst := TSFSMemoryChunkStream.Create(data, dataLen);
   try
-    result := dfmapdef.parseMap(wst);
+    Result := dfmapdef.parseMap(wst);
   except
     on e: TDynParseException do
-      begin
-        e_LogWritefln('ERROR at (%s,%s): %s', [e.tokLine, e.tokCol, e.message]);
-        wst.Free();
-        result := nil;
-        exit;
-      end;
+      e_LogWritefln('ERROR at (%s,%s): %s', [e.tokLine, e.tokCol, e.message]);
     on e: Exception do
-      begin
-        e_LogWritefln('ERROR: %s', [e.message]);
-        wst.Free();
-        result := nil;
-        exit;
-      end;
+      e_LogWritefln('ERROR: %s', [e.message]);
   end;
 
-  //e_LogWriteln('map parsed.');
+  wst.Destroy();
 end;
 
 
@@ -538,9 +523,9 @@ end;
 
 
 var
-  Textures: TLevelTextureArray = nil;
-  TextNameHash: THashStrInt = nil; // key: texture name; value: index in `Textures`
-  BadTextNameHash: THashStrInt = nil; // set; so we won't spam with non-existing texture messages
+  Textures: TLevelTextureArray;
+  TextNameHash: THashStrInt;  // key: texture name; value: index in `Textures`
+  BadTextNameHash: THashStrInt;  // set; so we won't spam with non-existing texture messages
   RespawnPoints: array of TRespawnPoint;
   FlagPoints: array[FLAG_RED..FLAG_BLUE] of PFlagPoint;
   //DOMFlagPoints: Array of TFlagPoint;
@@ -1604,8 +1589,7 @@ var
   end;
 
 begin
-  mapGrid.Free();
-  mapGrid := nil;
+  FreeAndNil(mapGrid);  // BD: do we really need it here anymore if it's now also in g_Map_Free()?
 
   calcBoundingBox(gWalls);
   calcBoundingBox(gRenderBackgrounds);
@@ -2454,6 +2438,10 @@ var
   end;
 
 begin
+  FreeAndNil(mapGrid);
+  FreeAndNil(gDrawPanelList);
+  framePool.kill();  // in fact, this just frees up its actual background buffer
+
   g_GFX_Free();
   g_Weapon_Free();
   g_Items_Free();
@@ -2475,46 +2463,37 @@ begin
 
   //gDOMFlags := nil;
 
-  if (Length(gCurrentMapFileName) <> 0) then
-  begin
-    e_LogWritefln('g_Map_Free: previous map was ''%s''...', [gCurrentMapFileName]);
-  end
-  else
-  begin
-    e_LogWritefln('g_Map_Free: no previous map.', []);
-  end;
+  if gCurrentMapFileName <> ''
+    then e_LogWritefln('g_Map_Free: previous map was ''%s''...', [gCurrentMapFileName])
+    else e_LogWritefln('g_Map_Free: no previous map.', []);
 
   if freeTextures then
   begin
     e_LogWritefln('g_Map_Free: clearing textures...', []);
-    if (Textures <> nil) then
+
+    for a := 0 to High(Textures) do
     begin
-      for a := 0 to High(Textures) do
+      if not g_Map_IsSpecialTexture(Textures[a].TextureName) then
       begin
-        if not g_Map_IsSpecialTexture(Textures[a].TextureName) then
+        if Textures[a].Anim then
         begin
-          if Textures[a].Anim then
+          g_Frames_DeleteByID(Textures[a].FramesID)
+        end
+        else
+        begin
+          if (Textures[a].TextureID <> LongWord(TEXTURE_NONE)) then
           begin
-            g_Frames_DeleteByID(Textures[a].FramesID)
-          end
-          else
-          begin
-            if (Textures[a].TextureID <> LongWord(TEXTURE_NONE)) then
-            begin
-              e_DeleteTexture(Textures[a].TextureID);
-            end;
+            e_DeleteTexture(Textures[a].TextureID);
           end;
         end;
       end;
-      Textures := nil;
     end;
-    TextNameHash.Free();
-    TextNameHash := nil;
-    BadTextNameHash.Free();
-    BadTextNameHash := nil;
+    Textures := nil;
+
+    FreeAndNil(TextNameHash);
+    FreeAndNil(BadTextNameHash);
     gCurrentMapFileName := '';
-    gCurrentMap.Free();
-    gCurrentMap := nil;
+    FreeAndNil(gCurrentMap);
   end;
 
   panByGUID := nil;
@@ -2692,7 +2671,9 @@ var
 begin
   dplClear();
   it := mapGrid.forEachInAABB(x0, y0, wdt, hgt, GridDrawableMask);
-  for mwit in it do if (((mwit^.tag and GridTagDoor) <> 0) = mwit^.Door) then gDrawPanelList.insert(mwit^);
+  for mwit in it do
+    if ((mwit^.tag and GridTagDoor) <> 0) = mwit^.Door then
+      gDrawPanelList.insert(mwit^);
   it.release();
   // list will be rendered in `g_game.DrawPlayer()`
 end;
@@ -3423,5 +3404,6 @@ initialization
 
 finalization
   profMapCollision.Free();
+  dfmapdef.Free();
 
 end.

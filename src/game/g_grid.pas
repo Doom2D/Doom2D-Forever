@@ -1416,7 +1416,8 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 // no callback: return `true` on the first hit
 // return number of ITP thingys put into frame pool
-function TBodyGridBase.forEachInAABB (x, y, w, h: Integer; tagmask: Integer=-1; allowDisabled: Boolean=false; firstHit: Boolean=false): Iter;
+function TBodyGridBase.forEachInAABB (x, y, w, h: Integer; tagmask: Integer; allowDisabled: Boolean;
+  firstHit: Boolean): Iter;
 var
   idx: Integer;
   gx, gy: Integer;
