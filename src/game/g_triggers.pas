@@ -3068,6 +3068,8 @@ procedure g_Triggers_Free ();
 var
   a: Integer;
 begin
+  FreeAndNil(tgscope);
+  FreeAndNil(tgclist);
   FreeAndNil(tgMonsList);
 
   for a := 0 to High(gTriggers) do
