@@ -123,18 +123,18 @@ static int num_servers = 0;
 // fake servers to show on old versions of the game
 static const server_t fake_servers[] = {
   {
-    .name  = "! \xc2\xc0\xd8\xc0 \xca\xce\xcf\xc8\xdf \xc8\xc3\xd0\xdb "
-             "\xd3\xd1\xd2\xc0\xd0\xc5\xcb\xc0! "
-             "\xd1\xca\xc0\xd7\xc0\xc9\xd2\xc5 \xcd\xce\xc2\xd3\xde C "
-             "doom2d.org !",
-    .map   = "! Your game is outdated. "
-             "Get latest version at doom2d.org !",
+    .name  = "! \xc2\xc0\xd8\xc0 \xca\xce\xcf\xc8\xdf \xc8\xc3\xd0\xdb"
+             " \xd3\xd1\xd2\xc0\xd0\xc5\xcb\xc0,"
+             " \xd1\xca\xc0\xd7\xc0\xc9\xd2\xc5 \xcd\xce\xc2\xd3\xde \xd1"
+             " doom2d.org !",
+    .map   = "! Your game version is OLD. Get the new one at doom2d.org !",
     .proto = 255,
   },
   {
-    .name  = "! \xcf\xd0\xce\xc1\xd0\xce\xd1\xdcTE \xcf\xce\xd0\xd2\xdb "
-             "25666 \xc8 57133 HA CEPBEPE \xcf\xc5\xd0\xc5\xc4 \xc8\xc3\xd0\xce\xc9 !",
-    .map   = "! Forward ports 25666 and 57133 before hosting !",
+    .name  = "! \xcf\xd0\xce\xc1\xd0\xce\xd1\xdc\xd2\xc5 \xcf\xce\xd0\xd2\xdb"
+             " 25666 \xc8 57133 \xcd\xc0 \xd1\xc5\xd0\xc2\xc5\xd0\xc5"
+             " \xcf\xc5\xd0\xc5\xc4 \xc8\xc3\xd0\xce\xc9 !",
+    .map   = "! Forward ports 25666 and 57133 before hosting the server !",
     .proto = 255,
   },
 };
