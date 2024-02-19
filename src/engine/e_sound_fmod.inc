@@ -23,6 +23,8 @@ uses
   SysUtils;
 
 type
+  TSoundID = PtrInt;
+
   TSoundRec = record
     Data: Pointer;
     Sound: FMOD_SOUND;
@@ -35,7 +37,7 @@ type
     FChannel: FMOD_CHANNEL;
 
   protected
-    FID: DWORD;
+    FID: TSoundID;
     FMusic: Boolean;
     FPosition: DWORD;
     FPriority: Integer;
@@ -45,7 +47,7 @@ type
   public
     constructor Create();
     destructor Destroy(); override;
-    procedure SetID(ID: DWORD);
+    procedure SetID(ID: TSoundID);
     procedure FreeSound();
     function IsPlaying(): Boolean;
     procedure Stop();
@@ -63,29 +65,31 @@ type
   end;
 
 const
-  NO_SOUND_ID = DWORD(-1);
+  NO_SOUND_ID = TSoundID(-1);
 
 function e_InitSoundSystem(NoOutput: Boolean = False): Boolean;
 
-function e_LoadSound(FileName: string; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
-function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
+function e_LoadSound(FileName: string; var ID: TSoundID; isMusic: Boolean;
+  ForceNoLoop: Boolean = False): Boolean;
+function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: TSoundID; isMusic: Boolean;
+  ForceNoLoop: Boolean = False): Boolean;
 
-function e_PlaySound(ID: DWORD): Integer;
-function e_PlaySoundPan(ID: DWORD; Pan: Single): Integer;
-function e_PlaySoundVolume(ID: DWORD; Volume: Single): Integer;
-function e_PlaySoundPanVolume(ID: DWORD; Pan, Volume: Single): Integer;
+function e_PlaySound(ID: TSoundID): Integer;
+function e_PlaySoundPan(ID: TSoundID; Pan: Single): Integer;
+function e_PlaySoundVolume(ID: TSoundID; Volume: Single): Integer;
+function e_PlaySoundPanVolume(ID: TSoundID; Pan, Volume: Single): Integer;
 
 procedure e_ModifyChannelsVolumes(SoundMod: Single; setMode: Boolean);
 procedure e_MuteChannels(Enable: Boolean);
 procedure e_StopChannels();
 
-procedure e_DeleteSound(ID: DWORD);
+procedure e_DeleteSound(ID: TSoundID);
 procedure e_RemoveAllSounds();
 procedure e_ReleaseSoundSystem();
 procedure e_SoundUpdate();
 
 var
-  e_SoundsArray: array of TSoundRec = nil;
+  e_SoundsArray: array of TSoundRec;
 
 implementation
 
@@ -101,12 +105,11 @@ var
 
 
 function Channel_Callback(channel: FMOD_CHANNEL; callbacktype: FMOD_CHANNEL_CALLBACKTYPE;
-                          commanddata1: Pointer; commanddata2: Pointer): FMOD_RESULT; {$IFDEF WIN32} stdcall; {$ELSE} cdecl; {$ENDIF}
+  commanddata1: Pointer; commanddata2: Pointer): FMOD_RESULT; winapi;
 var
   res: FMOD_RESULT;
   sound: FMOD_SOUND;
-  ud: PDWORD;
-  id: DWORD;
+  id: TSoundID;
 
 begin
   res := FMOD_OK;
@@ -116,11 +119,10 @@ begin
     res := FMOD_Channel_GetCurrentSound(channel, sound);
     if res = FMOD_OK then
     begin
-      res := FMOD_Sound_GetUserData(sound, ud);
+      res := FMOD_Sound_GetUserData(sound, Pointer(id));
       if res = FMOD_OK then
       begin
-        id := ud^;
-        if id < DWORD(Length(e_SoundsArray)) then
+        if id < Length(e_SoundsArray) then
           if e_SoundsArray[id].nRefs > 0 then
             Dec(e_SoundsArray[id].nRefs);
       end;
@@ -267,9 +269,9 @@ begin
   if not Result then Result := e_TrySS(44100, 1);
 end;
 
-function FindESound(): DWORD;
+function FindESound(): TSoundID;
 var
-  i: Integer;
+  i: TSoundID;
 
 begin
   if e_SoundsArray <> nil then
@@ -281,24 +283,23 @@ begin
       end;
 
   if e_SoundsArray = nil then
-    begin
-      SetLength(e_SoundsArray, 16);
-      Result := 0;
-    end
+  begin
+    SetLength(e_SoundsArray, 16);
+    Result := 0;
+  end
   else
-    begin
-      Result := High(e_SoundsArray) + 1;
-      SetLength(e_SoundsArray, Length(e_SoundsArray) + 16);
-    end;
+  begin
+    Result := High(e_SoundsArray) + 1;
+    SetLength(e_SoundsArray, Length(e_SoundsArray) + 16);
+  end;
 end;
 
-function e_LoadSound(FileName: String; var ID: DWORD; isMusic: Boolean;
+function e_LoadSound(FileName: String; var ID: TSoundID; isMusic: Boolean;
   ForceNoLoop: Boolean): Boolean;
 var
-  find_id: DWORD;
+  find_id: TSoundID;
   res: FMOD_RESULT;
   bt: Cardinal;
-  ud: PDWORD;
 
 begin
   Result := False;
@@ -322,22 +323,13 @@ begin
     Exit;
   end;
 
-  New(ud);
-  if ud = nil then
-  begin
-    e_SoundsArray[find_id].Sound := nil;
-    Exit;
-  end;
-
-  res := FMOD_Sound_SetUserData(e_SoundsArray[find_id].Sound, ud);
+  res := FMOD_Sound_SetUserData(e_SoundsArray[find_id].Sound, Pointer(find_id));
   if res <> FMOD_OK then
   begin
-    Dispose(ud);
     e_SoundsArray[find_id].Sound := nil;
     Exit;
   end;
 
-  ud^ := find_id;
   e_SoundsArray[find_id].Data := nil;
   e_SoundsArray[find_id].isMusic := isMusic;
   e_SoundsArray[find_id].nRefs := 0;
@@ -346,15 +338,14 @@ begin
   Result := True;
 end;
 
-function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean;
+function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: TSoundID; isMusic: Boolean;
   ForceNoLoop: Boolean): Boolean;
 var
-  find_id: DWORD;
+  find_id: TSoundID;
   res: FMOD_RESULT;
   sz: Integer;
   bt: Cardinal;
   soundExInfo: FMOD_CREATESOUNDEXINFO;
-  ud: PDWORD;
 
 begin
   Result := False;
@@ -382,22 +373,13 @@ begin
     Exit;
   end;
 
-  New(ud);
-  if ud = nil then
-  begin
-    e_SoundsArray[find_id].Sound := nil;
-    Exit;
-  end;
-
-  res := FMOD_Sound_SetUserData(e_SoundsArray[find_id].Sound, ud);
+  res := FMOD_Sound_SetUserData(e_SoundsArray[find_id].Sound, Pointer(find_id));
   if res <> FMOD_OK then
   begin
-    Dispose(ud);
     e_SoundsArray[find_id].Sound := nil;
     Exit;
   end;
 
-  ud^ := find_id;
   e_SoundsArray[find_id].Data := pData;
   e_SoundsArray[find_id].isMusic := isMusic;
   e_SoundsArray[find_id].nRefs := 0;
@@ -406,7 +388,7 @@ begin
   Result := True;
 end;
 
-function e_PlaySound(ID: DWORD): Integer;
+function e_PlaySound(ID: TSoundID): Integer;
 var
   res: FMOD_RESULT;
   Chan: FMOD_CHANNEL;
@@ -420,12 +402,9 @@ begin
 
   Result := -1;
 
-  res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE,
-           e_SoundsArray[ID].Sound, False, Chan);
+  res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE, e_SoundsArray[ID].Sound, False, Chan);
   if res <> FMOD_OK then
-  begin
     Exit;
-  end;
 
   res := FMOD_Channel_SetCallback(Chan, Channel_Callback);
   if res <> FMOD_OK then
@@ -444,7 +423,7 @@ begin
   Result := 0;
 end;
 
-function e_PlaySoundPan(ID: DWORD; Pan: Single): Integer;
+function e_PlaySoundPan(ID: TSoundID; Pan: Single): Integer;
 var
   res: FMOD_RESULT;
   Chan: FMOD_CHANNEL;
@@ -458,12 +437,9 @@ begin
 
   Result := -1;
 
-  res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE,
-           e_SoundsArray[ID].Sound, False, Chan);
+  res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE, e_SoundsArray[ID].Sound, False, Chan);
   if res <> FMOD_OK then
-  begin
     Exit;
-  end;
 
   res := FMOD_Channel_SetPan(Chan, Pan);
   if res <> FMOD_OK then
@@ -487,7 +463,7 @@ begin
   Result := 0;
 end;
 
-function e_PlaySoundVolume(ID: DWORD; Volume: Single): Integer;
+function e_PlaySoundVolume(ID: TSoundID; Volume: Single): Integer;
 var
   res: FMOD_RESULT;
   Chan: FMOD_CHANNEL;
@@ -501,8 +477,7 @@ begin
 
   Result := -1;
 
-  res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE,
-           e_SoundsArray[ID].Sound, False, Chan);
+  res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE, e_SoundsArray[ID].Sound, False, Chan);
   if res <> FMOD_OK then
   begin
     Exit;
@@ -530,7 +505,7 @@ begin
   Result := 0;
 end;
 
-function e_PlaySoundPanVolume(ID: DWORD; Pan, Volume: Single): Integer;
+function e_PlaySoundPanVolume(ID: TSoundID; Pan, Volume: Single): Integer;
 var
   res: FMOD_RESULT;
   Chan: FMOD_CHANNEL;
@@ -578,24 +553,15 @@ begin
   Result := 0;
 end;
 
-procedure e_DeleteSound(ID: DWORD);
+procedure e_DeleteSound(ID: TSoundID);
 var
   res: FMOD_RESULT;
-  ud: PDWORD;
 
 begin
   if e_SoundsArray[ID].Sound = nil then
     Exit;
 
   FreeMem(e_SoundsArray[ID].Data);
-  res := FMOD_Sound_GetUserData(e_SoundsArray[ID].Sound, ud);
-  if res = FMOD_OK then
-    Dispose(ud)
-  else
-  begin
-    e_WriteLog('Error releasing ID tag for sound:', TMsgType.Warning);;
-    e_WriteLog(FMOD_ErrorString(res), TMsgType.Warning);
-  end;
 
   res := FMOD_Sound_Release(e_SoundsArray[ID].Sound);
   if res <> FMOD_OK then
@@ -819,7 +785,7 @@ begin
   Result := True;
 end;
 
-procedure TBasicSound.SetID(ID: DWORD);
+procedure TBasicSound.SetID(ID: TSoundID);
 begin
   FreeSound();
   FID := ID;

@@ -15,19 +15,21 @@
 interface
 
 uses
-  {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-  {$IFDEF USE_SDL}
-    SDL, SDL_mixer,
-    {$DEFINE SDL1MIXER}
-    {$UNDEF  SDL2MIXER}
-  {$ELSE}
-    SDL2, SDL2_mixer,
-    {$UNDEF  SDL1MIXER}
-    {$DEFINE SDL2MIXER}
-  {$ENDIF}
+{$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
+{$IFDEF USE_SDL}
+  SDL, SDL_mixer,
+  {$DEFINE SDL1MIXER}
+  {$UNDEF SDL2MIXER}
+{$ELSE}
+  SDL2, SDL2_mixer,
+  {$DEFINE SDL2MIXER}
+  {$UNDEF SDL1MIXER}
+{$ENDIF}
   envvars, e_log, SysUtils;
 
 type
+  TSoundID = PtrInt;
+
   TSoundRec = record
     Data: Pointer;
     Sound: PMix_Chunk;
@@ -42,7 +44,7 @@ type
     FChanNum: Integer; // <0: no channel allocated
 
   protected
-    FID: DWORD;
+    FID: TSoundID;
     FMusic: Boolean;
     FPosition: DWORD;
     FPriority: Integer;
@@ -55,7 +57,7 @@ type
   public
     constructor Create();
     destructor Destroy(); override;
-    procedure SetID(ID: DWORD);
+    procedure SetID(ID: TSoundID);
     procedure FreeSound();
     function IsPlaying(): Boolean;
     procedure Stop();
@@ -73,30 +75,32 @@ type
   end;
 
 const
-  NO_SOUND_ID = DWORD(-1);
+  NO_SOUND_ID = TSoundID(-1);
 
 function e_InitSoundSystem(NoOutput: Boolean = False): Boolean;
 
-function e_LoadSound(FileName: string; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
-function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
+function e_LoadSound(FileName: string; var ID: TSoundID; isMusic: Boolean;
+  ForceNoLoop: Boolean = False): Boolean;
+function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: TSoundID; isMusic: Boolean;
+  ForceNoLoop: Boolean = False): Boolean;
 
 // returns channel number or -1
-function e_PlaySound(ID: DWORD): Integer;
-function e_PlaySoundPan(ID: DWORD; Pan: Single): Integer;
-function e_PlaySoundVolume(ID: DWORD; Volume: Single): Integer;
-function e_PlaySoundPanVolume(ID: DWORD; Pan, Volume: Single): Integer;
+function e_PlaySound(ID: TSoundID): Integer;
+function e_PlaySoundPan(ID: TSoundID; Pan: Single): Integer;
+function e_PlaySoundVolume(ID: TSoundID; Volume: Single): Integer;
+function e_PlaySoundPanVolume(ID: TSoundID; Pan, Volume: Single): Integer;
 
 procedure e_ModifyChannelsVolumes(SoundMod: Single; setMode: Boolean);
 procedure e_MuteChannels(Enable: Boolean);
 procedure e_StopChannels();
 
-procedure e_DeleteSound(ID: DWORD);
+procedure e_DeleteSound(ID: TSoundID);
 procedure e_RemoveAllSounds();
 procedure e_ReleaseSoundSystem();
 procedure e_SoundUpdate();
 
 var
-  e_SoundsArray: array of TSoundRec = nil;
+  e_SoundsArray: array of TSoundRec;
 
   e_TimidityDecoder: Boolean; (* sdl_mixer special *)
 
@@ -111,7 +115,7 @@ const
 
 type
   TChanInfo = record
-    id: DWORD; // sound id
+    id: TSoundID;
     muted: Boolean;
     oldvol: Integer; // for muted
     pan: Single;
@@ -257,7 +261,7 @@ begin
   Result := True;
 end;
 
-function e_isMusic (id: DWORD): Boolean;
+function e_isMusic (id: TSoundID): Boolean;
 begin
   Result := False;
   if (e_SoundsArray <> nil) and (id <= High(e_SoundsArray)) then
@@ -266,7 +270,7 @@ begin
   end;
 end;
 
-function e_isSound (id: DWORD): Boolean;
+function e_isSound (id: TSoundID): Boolean;
 begin
   Result := False;
   if (e_SoundsArray <> nil) and (id <= High(e_SoundsArray)) then
@@ -275,9 +279,9 @@ begin
   end;
 end;
 
-function FindESound(): DWORD;
+function FindESound(): TSoundID;
 var
-  i: Integer;
+  i: TSoundID;
 begin
   if e_SoundsArray <> nil then
   begin
@@ -298,19 +302,12 @@ begin
     Result := High(e_SoundsArray) + 1;
     SetLength(e_SoundsArray, Length(e_SoundsArray) + 16);
   end;
-  for i := Result to High(e_SoundsArray) do
-  begin
-    e_SoundsArray[i].Sound := nil;
-    e_SoundsArray[i].Music := nil;
-    e_SoundsArray[i].Data := nil;
-    e_SoundsArray[i].isMusic := False;
-    e_SoundsArray[i].nRefs := 0;
-  end;
 end;
 
-function e_LoadSound(FileName: String; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
+function e_LoadSound(FileName: String; var ID: TSoundID; isMusic: Boolean;
+  ForceNoLoop: Boolean): Boolean;
 var
-  find_id: DWORD;
+  find_id: TSoundID;
 begin
   ID := NO_SOUND_ID;
   Result := False;
@@ -336,11 +333,11 @@ begin
 
   if isMusic then
   begin
-    e_WriteLog(Format('  MUSIC SLOT: %u', [find_id]), TMsgType.Notify);
+    e_WriteLog(Format('  MUSIC SLOT: %d', [find_id]), TMsgType.Notify);
     e_SoundsArray[find_id].Music := Mix_LoadMUS(PAnsiChar(FileName));
     if e_SoundsArray[find_id].Music = nil then
     begin
-      e_WriteLog(Format('ERROR LOADING MUSIC:', [find_id]), TMsgType.Warning);
+      e_WriteLog(Format('ERROR LOADING MUSIC: %d', [find_id]), TMsgType.Warning);
       e_WriteLog(Mix_GetError(), TMsgType.Warning);
       Exit;
     end;
@@ -353,13 +350,13 @@ begin
   end;
 
   ID := find_id;
-
   Result := True;
 end;
 
-function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
+function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: TSoundID; isMusic: Boolean;
+  ForceNoLoop: Boolean): Boolean;
 var
-  find_id: DWORD;
+  find_id: TSoundID;
   rw: PSDL_RWops;
   //pc: PChar;
   isid3: Boolean;
@@ -403,15 +400,11 @@ begin
 
   if isMusic then
   begin
-    e_WriteLog(Format('  MUSIC SLOT: %u', [find_id]), TMsgType.Notify);
-    {$IFDEF SDL1MIXER}
-      e_SoundsArray[find_id].Music := Mix_LoadMUS_RW(rw);
-    {$ELSE}
-      e_SoundsArray[find_id].Music := Mix_LoadMUS_RW(rw, 0);
-    {$ENDIF}
+    e_WriteLog(Format('  MUSIC SLOT: %d', [find_id]), TMsgType.Notify);
+    e_SoundsArray[find_id].Music := Mix_LoadMUS_RW(rw {$IFNDEF SDL1MIXER}, 0{$ENDIF} );
     if e_SoundsArray[find_id].Music = nil then
     begin
-      e_WriteLog(Format('ERROR LOADING MUSIC:', [find_id]), TMsgType.Warning);
+      e_WriteLog(Format('ERROR LOADING MUSIC: %d', [find_id]), TMsgType.Warning);
       e_WriteLog(Mix_GetError(), TMsgType.Warning);
     end
     else
@@ -440,11 +433,10 @@ begin
   end;
 
   ID := find_id;
-
   Result := True;
 end;
 
-function e_PlaySound (ID: DWORD): Integer;
+function e_PlaySound (ID: TSoundID): Integer;
 var
   res: Integer = -1;
   loops: Integer = 0;
@@ -532,7 +524,7 @@ begin
   end;
 end;
 
-function e_PlaySoundPan(ID: DWORD; Pan: Single): Integer;
+function e_PlaySoundPan(ID: TSoundID; Pan: Single): Integer;
 var
   chan: Integer;
 begin
@@ -542,7 +534,7 @@ begin
   Result := chan;
 end;
 
-function e_PlaySoundVolume(ID: DWORD; Volume: Single): Integer;
+function e_PlaySoundVolume(ID: TSoundID; Volume: Single): Integer;
 var
   chan: Integer;
 begin
@@ -552,7 +544,7 @@ begin
   Result := chan;
 end;
 
-function e_PlaySoundPanVolume(ID: DWORD; Pan, Volume: Single): Integer;
+function e_PlaySoundPanVolume(ID: TSoundID; Pan, Volume: Single): Integer;
 var
   chan: Integer;
 begin
@@ -563,7 +555,7 @@ begin
   Result := chan;
 end;
 
-procedure e_DeleteSound(ID: DWORD);
+procedure e_DeleteSound(ID: TSoundID);
 var
   i: Integer;
 begin
@@ -581,7 +573,7 @@ begin
 
   if e_SoundsArray[ID].Sound <> nil then Mix_FreeChunk(e_SoundsArray[ID].Sound);
   if e_SoundsArray[ID].Music <> nil then Mix_FreeMusic(e_SoundsArray[ID].Music);
-  if e_SoundsArray[ID].Data <> nil then FreeMem(e_SoundsArray[ID].Data);
+  FreeMem(e_SoundsArray[ID].Data);
 
   e_SoundsArray[ID].Sound := nil;
   e_SoundsArray[ID].Music := nil;
@@ -736,7 +728,7 @@ begin
   //TODO: aPos
 end;
 
-procedure TBasicSound.SetID(ID: DWORD);
+procedure TBasicSound.SetID(ID: TSoundID);
 begin
   FreeSound();
   FID := ID;

@@ -12,215 +12,212 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
+
 interface
 
-  uses
-    {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-    SysUtils;
+{$IFDEF USE_MEMPOOL}
+uses mempool;
+{$ENDIF}
 
-  type
-    TSoundRec = record
-      nRefs: Integer;
-    end;
+type
+  TSoundID = PtrInt;
 
-    TBasicSound = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
-    private
-    protected
-      FMusic: Boolean;
-      FPosition: DWORD;
-      function RawPlay(Pan: Single; Volume: Single; aPos: DWORD): Boolean;
-    public
-      constructor Create;
-      destructor Destroy; override;
-      procedure SetID (ID: DWORD);
-      procedure FreeSound;
-      function IsPlaying (): Boolean;
-      procedure Stop;
-      function IsPaused (): Boolean;
-      procedure Pause (Enable: Boolean);
-      function GetVolume (): Single;
-      procedure SetVolume (Volume: Single);
-      function GetPan (): Single;
-      procedure SetPan (Pan: Single);
-      function IsMuted (): Boolean;
-      procedure Mute (Enable: Boolean);
-      function GetPosition (): DWORD;
-      procedure SetPosition (aPos: DWORD);
-      procedure SetPriority (priority: Integer);
-    end;
+  TSoundRec = record
+    nRefs: Integer;
+  end;
 
-  const
-    NO_SOUND_ID = DWORD(-1);
+  TBasicSound = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
+  protected
+    FMusic: Boolean;
+    FPosition: DWORD;
+    function RawPlay(Pan: Single; Volume: Single; aPos: DWORD): Boolean;
+  public
+    procedure SetID (ID: TSoundID);
+    procedure FreeSound ();
+    function IsPlaying (): Boolean;
+    procedure Stop ();
+    function IsPaused (): Boolean;
+    procedure Pause (Enable: Boolean);
+    function GetVolume (): Single;
+    procedure SetVolume (Volume: Single);
+    function GetPan (): Single;
+    procedure SetPan (Pan: Single);
+    function IsMuted (): Boolean;
+    procedure Mute (Enable: Boolean);
+    function GetPosition (): DWORD;
+    procedure SetPosition (aPos: DWORD);
+    procedure SetPriority (priority: Integer);
+  end;
 
-  function e_InitSoundSystem (NoOutput: Boolean = False): Boolean;
+const
+  NO_SOUND_ID = TSoundID(-1);
 
-  function e_LoadSound (FileName: string; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
-  function e_LoadSoundMem (pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
+function e_InitSoundSystem (NoOutput: Boolean = False): Boolean;
 
-  function e_PlaySound (ID: DWORD): Integer;
-  function e_PlaySoundPan (ID: DWORD; Pan: Single): Integer;
-  function e_PlaySoundVolume (ID: DWORD; Volume: Single): Integer;
-  function e_PlaySoundPanVolume (ID: DWORD; Pan, Volume: Single): Integer;
+function e_LoadSound (FileName: string; var ID: TSoundID; isMusic: Boolean;
+  ForceNoLoop: Boolean = False): Boolean;
+function e_LoadSoundMem (pData: Pointer; Length: Integer; var ID: TSoundID; isMusic: Boolean;
+  ForceNoLoop: Boolean = False): Boolean;
 
-  procedure e_ModifyChannelsVolumes (SoundMod: Single; setMode: Boolean);
-  procedure e_MuteChannels (Enable: Boolean);
-  procedure e_StopChannels;
+function e_PlaySound (ID: TSoundID): Integer;
+function e_PlaySoundPan (ID: TSoundID; Pan: Single): Integer;
+function e_PlaySoundVolume (ID: TSoundID; Volume: Single): Integer;
+function e_PlaySoundPanVolume (ID: TSoundID; Pan, Volume: Single): Integer;
 
-  procedure e_DeleteSound (ID: DWORD);
-  procedure e_RemoveAllSounds;
-  procedure e_ReleaseSoundSystem;
-  procedure e_SoundUpdate;
+procedure e_ModifyChannelsVolumes (SoundMod: Single; setMode: Boolean);
+procedure e_MuteChannels (Enable: Boolean);
+procedure e_StopChannels ();
 
-  var
-    e_SoundsArray: array of TSoundRec = nil;
+procedure e_DeleteSound (ID: TSoundID);
+procedure e_RemoveAllSounds ();
+procedure e_ReleaseSoundSystem ();
+procedure e_SoundUpdate ();
+
+var
+  e_SoundsArray: array of TSoundRec;
 
 implementation
 
-  function e_InitSoundSystem(NoOutput: Boolean = False): Boolean;
-  begin
-    result := false
-  end;
+function e_InitSoundSystem (NoOutput: Boolean): Boolean;
+begin
+  Result := False
+end;
 
-  function e_LoadSound(FileName: String; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
-  begin
-    ID := NO_SOUND_ID;
-    result := true
-  end;
+function e_LoadSound (FileName: String; var ID: TSoundID; isMusic: Boolean;
+  ForceNoLoop: Boolean): Boolean;
+begin
+  ID := NO_SOUND_ID;
+  Result := True
+end;
 
-  function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
-  begin
-    ID := NO_SOUND_ID;
-    result := true
-  end;
+function e_LoadSoundMem (pData: Pointer; Length: Integer; var ID: TSoundID; isMusic: Boolean;
+  ForceNoLoop: Boolean): Boolean;
+begin
+  ID := NO_SOUND_ID;
+  Result := True
+end;
 
-  function e_PlaySound (ID: DWORD): Integer;
-  begin
-    Result := -1
-  end;
+function e_PlaySound (ID: TSoundID): Integer;
+begin
+  Result := -1
+end;
 
-  function e_PlaySoundPan(ID: DWORD; Pan: Single): Integer;
-  begin
-    result := -1
-  end;
+function e_PlaySoundPan (ID: TSoundID; Pan: Single): Integer;
+begin
+  Result := -1
+end;
 
-  function e_PlaySoundVolume(ID: DWORD; Volume: Single): Integer;
-  begin
-    result := -1
-  end;
+function e_PlaySoundVolume (ID: TSoundID; Volume: Single): Integer;
+begin
+  Result := -1
+end;
 
-  function e_PlaySoundPanVolume(ID: DWORD; Pan, Volume: Single): Integer;
-  begin
-    result := -1
-  end;
+function e_PlaySoundPanVolume (ID: TSoundID; Pan, Volume: Single): Integer;
+begin
+  Result := -1
+end;
 
-  procedure e_DeleteSound(ID: DWORD);
-  begin
-  end;
+procedure e_DeleteSound (ID: TSoundID);
+begin
+end;
 
-  procedure e_ModifyChannelsVolumes(SoundMod: Single; setMode: Boolean);
-  begin
-  end;
+procedure e_ModifyChannelsVolumes (SoundMod: Single; setMode: Boolean);
+begin
+end;
 
-  procedure e_MuteChannels(Enable: Boolean);
-  begin
-  end;
+procedure e_MuteChannels (Enable: Boolean);
+begin
+end;
 
-  procedure e_StopChannels();
-  begin
-  end;
+procedure e_StopChannels ();
+begin
+end;
 
-  procedure e_RemoveAllSounds();
-  begin
-  end;
+procedure e_RemoveAllSounds ();
+begin
+end;
 
-  procedure e_ReleaseSoundSystem();
-  begin
-  end;
+procedure e_ReleaseSoundSystem ();
+begin
+end;
 
-  procedure e_SoundUpdate();
-  begin
-  end;
+procedure e_SoundUpdate ();
+begin
+end;
 
-  (* --------- TBasicSound --------- *)
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// TBasicSound
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  constructor TBasicSound.Create;
-  begin
-  end;
+procedure TBasicSound.FreeSound ();
+begin
+end;
 
-  destructor TBasicSound.Destroy;
-  begin
-    inherited;
-  end;
+function TBasicSound.RawPlay (Pan: Single; Volume: Single; aPos: DWORD): Boolean;
+begin
+  Result := False
+end;
 
-  procedure TBasicSound.FreeSound;
-  begin
-  end;
+procedure TBasicSound.SetID (ID: TSoundID);
+begin
+end;
 
-  function TBasicSound.RawPlay (Pan: Single; Volume: Single; aPos: DWORD): Boolean;
-  begin
-    result := false
-  end;
+function TBasicSound.IsPlaying (): Boolean;
+begin
+  Result := False
+end;
 
-  procedure TBasicSound.SetID (ID: DWORD);
-  begin
-  end;
+procedure TBasicSound.Stop ();
+begin
+end;
 
-  function TBasicSound.IsPlaying (): Boolean;
-  begin
-    result := false
-  end;
+function TBasicSound.IsPaused (): Boolean;
+begin
+  Result := False
+end;
 
-  procedure TBasicSound.Stop;
-  begin
-  end;
+procedure TBasicSound.Pause (Enable: Boolean);
+begin
+end;
 
-  function TBasicSound.IsPaused (): Boolean;
-  begin
-    result := false
-  end;
+function TBasicSound.GetVolume (): Single;
+begin
+  Result := 0.0
+end;
 
-  procedure TBasicSound.Pause (Enable: Boolean);
-  begin
-  end;
+procedure TBasicSound.SetVolume (Volume: Single);
+begin
+end;
 
-  function TBasicSound.GetVolume (): Single;
-  begin
-    result := 0.0
-  end;
+function TBasicSound.GetPan (): Single;
+begin
+  Result := 1.0
+end;
 
-  procedure TBasicSound.SetVolume (Volume: Single);
-  begin
-  end;
+procedure TBasicSound.SetPan (Pan: Single);
+begin
+end;
 
-  function TBasicSound.GetPan (): Single;
-  begin
-    result := 1.0
-  end;
+function TBasicSound.IsMuted (): Boolean;
+begin
+  Result := False
+end;
 
-  procedure TBasicSound.SetPan (Pan: Single);
-  begin
-  end;
+procedure TBasicSound.Mute (Enable: Boolean);
+begin
+end;
 
-  function TBasicSound.IsMuted (): Boolean;
-  begin
-    result := false
-  end;
+function TBasicSound.GetPosition (): DWORD;
+begin
+  Result := 0
+end;
 
-  procedure TBasicSound.Mute (Enable: Boolean);
-  begin
-  end;
+procedure TBasicSound.SetPosition (aPos: DWORD);
+begin
+end;
 
-  function TBasicSound.GetPosition (): DWORD;
-  begin
-    result := 0
-  end;
-
-  procedure TBasicSound.SetPosition (aPos: DWORD);
-  begin
-  end;
-
-  procedure TBasicSound.SetPriority(priority: Integer);
-  begin
-  end;
+procedure TBasicSound.SetPriority (priority: Integer);
+begin
+end;
 
 end.

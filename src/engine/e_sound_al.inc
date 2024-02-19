@@ -22,6 +22,8 @@ uses
   SysUtils;
 
 type
+  TSoundID = PtrInt;
+
   TSoundRec = record
     Loader: TSoundLoader;
     alBuffer: ALuint;
@@ -39,7 +41,7 @@ type
     function InvalidSource(): Boolean; inline;
 
   protected
-    FID: DWORD;
+    FID: TSoundID;
     FMusic: Boolean;
     FPosition: DWORD;
 
@@ -48,7 +50,7 @@ type
   public
     constructor Create();
     destructor Destroy(); override;
-    procedure SetID(ID: DWORD);
+    procedure SetID(ID: TSoundID);
     procedure FreeSound();
     function IsPlaying(): Boolean;
     procedure Stop();
@@ -66,33 +68,35 @@ type
   end;
 
 const
-  NO_SOUND_ID = DWORD(-1);
+  NO_SOUND_ID = TSoundID(-1);
 
 function e_InitSoundSystem(NoOutput: Boolean = False): Boolean;
 
-function e_LoadSound(FileName: string; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
-function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
+function e_LoadSound(FileName: string; var ID: TSoundID; isMusic: Boolean;
+  ForceNoLoop: Boolean = False): Boolean;
+function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: TSoundID; isMusic: Boolean;
+  ForceNoLoop: Boolean = False): Boolean;
 
-function e_PlaySound(ID: DWORD): Integer;
-function e_PlaySoundPan(ID: DWORD; Pan: Single): Integer;
-function e_PlaySoundVolume(ID: DWORD; Volume: Single): Integer;
-function e_PlaySoundPanVolume(ID: DWORD; Pan, Volume: Single): Integer;
+function e_PlaySound(ID: TSoundID): Integer;
+function e_PlaySoundPan(ID: TSoundID; Pan: Single): Integer;
+function e_PlaySoundVolume(ID: TSoundID; Volume: Single): Integer;
+function e_PlaySoundPanVolume(ID: TSoundID; Pan, Volume: Single): Integer;
 
 procedure e_ModifyChannelsVolumes(SoundMod: Single; setMode: Boolean);
 procedure e_MuteChannels(Enable: Boolean);
 procedure e_StopChannels();
 
-procedure e_DeleteSound(ID: DWORD);
+procedure e_DeleteSound(ID: TSoundID);
 procedure e_RemoveAllSounds();
 procedure e_ReleaseSoundSystem();
 procedure e_SoundUpdate();
 
 var
-  e_SoundFormat: TSoundFormat; // desired sound format
-  e_SoundsArray: array of TSoundRec = nil;
-  e_ZeroPosition: array [0..2] of ALfloat = (0, 0, 0);
-  e_ALError: ALenum = 0;
-  e_SoundFont: string = '';
+  e_SoundFormat: TSoundFormat;  // desired sound format
+  e_SoundsArray: array of TSoundRec;
+  e_ZeroPosition: array [0..2] of ALfloat;
+  e_ALError: ALenum;
+  e_SoundFont: String;
   e_MusicLerp: Boolean = True;
 
 implementation
@@ -101,16 +105,16 @@ uses
   g_options, utils;
 
 const
-  NUM_SOURCES = 255; // + 1 stereo
+  NUM_SOURCES = 255;  // + 1 stereo
   NUM_STREAM_BUFFERS = 8;
   STREAM_BUFSIZE = 8192;
   MUSIC_SOURCE = 0;
 
 var
-  SoundMuted: Boolean = False;
-  CurStream: DWORD = NO_SOUND_ID;
-  alDevice: PALCdevice = nil;
-  alContext: PALCcontext = nil;
+  SoundMuted: Boolean;
+  CurStream: TSoundID = NO_SOUND_ID;
+  alDevice: PALCdevice;
+  alContext: PALCcontext;
   // sources for everything
   alSources: array [0..NUM_SOURCES] of ALuint;
   // last TBasicSound that has played on each source
@@ -123,7 +127,7 @@ var
 {$IFNDEF OPENAL_SINGLETHREADED}
 var
   StreamThread: TThreadID = NilThreadId;
-  StreamThreadRunning: Boolean = False;
+  StreamThreadRunning: Boolean;
   StreamLock: TRTLCriticalSection;
   StreamBufTime: Integer = 10; // time to sleep between buffer checks
 
@@ -245,9 +249,9 @@ begin
   Result := True;
 end;
 
-function FindESound(): DWORD;
+function FindESound(): TSoundID;
 var
-  i: Integer;
+  i: TSoundID;
 
 begin
   if e_SoundsArray <> nil then
@@ -259,15 +263,15 @@ begin
       end;
 
   if e_SoundsArray = nil then
-    begin
-      SetLength(e_SoundsArray, 16);
-      Result := 0;
-    end
+  begin
+    SetLength(e_SoundsArray, 16);
+    Result := 0;
+  end
   else
-    begin
-      Result := High(e_SoundsArray) + 1;
-      SetLength(e_SoundsArray, Length(e_SoundsArray) + 16);
-    end;
+  begin
+    Result := High(e_SoundsArray) + 1;
+    SetLength(e_SoundsArray, Length(e_SoundsArray) + 16);
+  end;
 end;
 
 function GetALSoundFormat(Fmt: TSoundFormat): ALenum; inline;
@@ -353,9 +357,10 @@ begin
   Result := True;
 end;
 
-function e_LoadSound(FileName: String; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
+function e_LoadSound(FileName: String; var ID: TSoundID; isMusic: Boolean;
+  ForceNoLoop: Boolean): Boolean;
 var
-  find_id: DWORD;
+  find_id: TSoundID;
   Loader: TSoundLoader;
 begin
   ID := NO_SOUND_ID;
@@ -387,9 +392,7 @@ begin
   begin
     if not LoadEntireSound(e_SoundsArray[find_id], Loader) then
       e_LogWritefln('AL: Could not buffer sound effect `%s`', [FileName]);
-    // don't need this anymore
-    Loader.Free();
-    Loader := nil;
+    FreeAndNil(Loader);  // don't need this anymore
   end
   else
   begin
@@ -401,9 +404,10 @@ begin
   Result := True;
 end;
 
-function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
+function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: TSoundID; isMusic: Boolean;
+  ForceNoLoop: Boolean): Boolean;
 var
-  find_id: DWORD;
+  find_id: TSoundID;
   Loader: TSoundLoader;
 begin
   ID := NO_SOUND_ID;
@@ -435,9 +439,7 @@ begin
   begin
     if not LoadEntireSound(e_SoundsArray[find_id], Loader) then
       e_LogWritefln('AL: Could not buffer sound effect `%p`', [pData]);
-    // don't need this anymore
-    Loader.Free();
-    Loader := nil;
+    FreeAndNil(Loader);  // don't need this anymore
   end
   else
   begin
@@ -451,7 +453,7 @@ begin
   Result := True;
 end;
 
-function FindSourceForSound(ID: DWORD): Integer;
+function FindSourceForSound(ID: TSoundID): Integer;
 var
   S: Integer;
 begin
@@ -487,7 +489,7 @@ begin
   end;
 end;
 
-procedure AssignSound(ID: DWORD; Src: ALuint); inline;
+procedure AssignSound(ID: TSoundID; Src: ALuint); inline;
 var
   S: ALint;
 begin
@@ -540,7 +542,7 @@ begin
   alSourcei(Src, AL_SOURCE_RELATIVE, AL_TRUE);
 end;
 
-function e_PlaySound(ID: DWORD): Integer;
+function e_PlaySound(ID: TSoundID): Integer;
 begin
   Result := FindSourceForSound(ID);
   if Result >= 0 then
@@ -552,7 +554,7 @@ begin
   end;
 end;
 
-function e_PlaySoundPan(ID: DWORD; Pan: Single): Integer;
+function e_PlaySoundPan(ID: TSoundID; Pan: Single): Integer;
 var
   Pos: array [0..2] of ALfloat;
 begin
@@ -569,7 +571,7 @@ begin
   end;
 end;
 
-function e_PlaySoundVolume(ID: DWORD; Volume: Single): Integer;
+function e_PlaySoundVolume(ID: TSoundID; Volume: Single): Integer;
 begin
   Result := FindSourceForSound(ID);
   if Result >= 0 then
@@ -581,7 +583,7 @@ begin
   end;
 end;
 
-function e_PlaySoundPanVolume(ID: DWORD; Pan, Volume: Single): Integer;
+function e_PlaySoundPanVolume(ID: TSoundID; Pan, Volume: Single): Integer;
 var
   Pos: array [0..2] of ALfloat;
 begin
@@ -598,7 +600,7 @@ begin
   end;
 end;
 
-procedure e_DeleteSound(ID: DWORD);
+procedure e_DeleteSound(ID: TSoundID);
 begin
   if ID > High(e_SoundsArray) then
     exit;
@@ -814,7 +816,7 @@ begin
   end;
 end;
 
-procedure TBasicSound.SetID(ID: DWORD);
+procedure TBasicSound.SetID(ID: TSoundID);
 begin
   FreeSound();
 

@@ -20,7 +20,7 @@ interface
 
 uses
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-  MAPDEF, g_textures, g_basic, g_weapons, e_graphics, utils, g_gfx,
+  MAPDEF, g_textures, g_basic, g_weapons, e_graphics, e_sound, utils, g_gfx,
   ImagingTypes, Imaging, ImagingUtility;
 
 const
@@ -69,7 +69,7 @@ type
   end;
 
   TModelSound = record
-    ID:    DWORD;
+    ID:    TSoundID;
     Level: Byte;
   end;
 
@@ -149,7 +149,7 @@ implementation
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
   g_main, g_sound, g_console, SysUtils, g_player, CONFIG,
-  e_sound, g_options, g_map, Math, e_log, wadreader;
+  g_options, g_map, Math, e_log, wadreader;
 
 type
   TPlayerModelInfo = record

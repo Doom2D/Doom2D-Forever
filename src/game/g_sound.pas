@@ -71,10 +71,12 @@ function g_Sound_PlayExPanVolume(SoundName: ShortString; Pan: Single; Volume: Si
 function g_Sound_PlayAt(ID: DWORD; X, Y: Integer): Boolean;
 function g_Sound_PlayExAt(SoundName: ShortString; X, Y: Integer): Boolean;
 
-function g_Sound_CreateWAD(var ID: DWORD; Resource: string; isMusic: Boolean = False): Boolean;
-function g_Sound_CreateWADEx(SoundName: ShortString; Resource: string; isMusic: Boolean = False; ForceNoLoop: Boolean = False): Boolean;
-function g_Sound_CreateFile(var ID: DWORD; FileName: string; isMusic: Boolean = False): Boolean;
-function g_Sound_CreateFileEx(SoundName: ShortString; FileName: string; isMusic: Boolean = False; ForceNoLoop: Boolean = False): Boolean;
+function g_Sound_CreateWAD(var ID: TSoundID; Resource: String; isMusic: Boolean = False): Boolean;
+function g_Sound_CreateWADEx(SoundName: ShortString; Resource: string; isMusic: Boolean = False;
+  ForceNoLoop: Boolean = False): Boolean;
+function g_Sound_CreateFile(var ID: TSoundID; FileName: String; isMusic: Boolean = False): Boolean;
+function g_Sound_CreateFileEx(SoundName: ShortString; FileName: string; isMusic: Boolean = False;
+  ForceNoLoop: Boolean = False): Boolean;
 
 procedure g_Sound_Delete(SoundName: ShortString);
 function g_Sound_Exists(SoundName: string): Boolean;
@@ -92,7 +94,7 @@ uses
 type
   TGameSound = record
     Name:     ShortString;
-    ID:       DWORD;
+    ID:       TSoundID;
     IsMusic:  Boolean;
   end;
 
@@ -251,14 +253,15 @@ begin
   e_WriteLog(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]), TMsgType.Warning);
 end;
 
-function g_Sound_CreateFile(var ID: DWORD; FileName: string; isMusic: Boolean = False): Boolean;
+function g_Sound_CreateFile(var ID: TSoundID; FileName: String; isMusic: Boolean): Boolean;
 begin
   Result := e_LoadSound(FileName, ID, isMusic);
 end;
 
-function g_Sound_CreateFileEx(SoundName: ShortString; FileName: string; isMusic: Boolean = False; ForceNoLoop: Boolean = False): Boolean;
+function g_Sound_CreateFileEx(SoundName: ShortString; FileName: String; isMusic: Boolean;
+  ForceNoLoop: Boolean): Boolean;
 var
-  find_id: DWORD;
+  find_id: TSoundID;
 begin
   Result := False;
 
@@ -273,7 +276,7 @@ begin
   Result := True;
 end;
 
-function g_Sound_CreateWAD(var ID: DWORD; Resource: string; isMusic: Boolean = False): Boolean;
+function g_Sound_CreateWAD(var ID: TSoundID; Resource: String; isMusic: Boolean): Boolean;
 var
   WAD: TWADFile;
   FileName: string;
@@ -316,13 +319,14 @@ begin
   Result := True;
 end;
 
-function g_Sound_CreateWADEx(SoundName: ShortString; Resource: string; isMusic: Boolean = False; ForceNoLoop: Boolean = False): Boolean;
+function g_Sound_CreateWADEx(SoundName: ShortString; Resource: String; isMusic: Boolean;
+  ForceNoLoop: Boolean): Boolean;
 var
   WAD: TWADFile;
   FileName: string;
   SoundData: Pointer;
   ResLength: Integer;
-  find_id: DWORD;
+  find_id: TSoundID;
   ok: Boolean;
 begin
   Result := False;
