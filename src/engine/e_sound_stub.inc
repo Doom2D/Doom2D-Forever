@@ -54,7 +54,7 @@ const
 
 function e_InitSoundSystem (NoOutput: Boolean = False): Boolean;
 
-function e_LoadSound (FileName: string; var ID: TSoundID; isMusic: Boolean;
+function e_LoadSound (FileName: String; var ID: TSoundID; isMusic: Boolean;
   ForceNoLoop: Boolean = False): Boolean;
 function e_LoadSoundMem (pData: Pointer; Length: Integer; var ID: TSoundID; isMusic: Boolean;
   ForceNoLoop: Boolean = False): Boolean;

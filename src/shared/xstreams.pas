@@ -311,7 +311,8 @@ end;
 
 destructor TSFSMemoryStreamRO.Destroy ();
 begin
-  if fFreeMem and (fMem <> nil) then FreeMem(fMem);
+  if fFreeMem then FreeMem(fMem);
+  inherited;
 end;
 
 function TSFSMemoryStreamRO.Write (const buffer; count: LongInt): LongInt;

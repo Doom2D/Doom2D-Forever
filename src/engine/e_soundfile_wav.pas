@@ -24,12 +24,12 @@ type
 
   TWAVLoader = class (TSoundLoader)
   public
+    destructor Destroy(); override;
     function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; override; overload;
-    function Load(FName: string; Loop: Boolean): Boolean; override; overload;
+    function Load(FName: String; Loop: Boolean): Boolean; override; overload;
     function Finished(): Boolean; override;
     function Restart(): Boolean; override;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
-    procedure Free(); override;
   private
     FData: Pointer;
     FDataLen: LongWord;
@@ -40,18 +40,18 @@ type
   TWAVLoaderFactory = class (TSoundLoaderFactory)
   public
     function MatchHeader(Data: Pointer; Len: LongWord): Boolean; override;
-    function MatchExtension(FName: string): Boolean; override;
+    function MatchExtension(FName: String): Boolean; override;
     function GetLoader(): TSoundLoader; override;
   end;
 
 implementation
 
 uses
-  {$IFDEF USE_SDL}
-    SDL, cmem,
-  {$ELSE}
-    SDL2,
-  {$ENDIF}
+{$IFDEF USE_SDL}
+  SDL, cmem,
+{$ELSE}
+  SDL2,
+{$ENDIF}
   utils, ctypes, e_log;
 
 (* TWAVLoaderFactory *)
@@ -69,7 +69,7 @@ begin
   Result := ((P+0)^ = Ord('R')) and ((P+1)^ = Ord('I')) and ((P+2)^ = Ord('F')) and ((P+3)^ = Ord('F'));
 end;
 
-function TWAVLoaderFactory.MatchExtension(FName: string): Boolean;
+function TWAVLoaderFactory.MatchExtension(FName: String): Boolean;
 begin
   // TODO: ehhh
   Result := GetFilenameExt(FName) = '.wav';
@@ -81,6 +81,13 @@ begin
 end;
 
 (* TWAVLoader *)
+
+destructor TWAVLoader.Destroy();
+begin
+  SDL_FreeWAV(FData);  // SDL allocates inside the DLL, so we need this
+  inherited;
+end;
+
 function ConvertSound (var buf: PUInt8; var len: UInt32; var format: UInt16; rate: cint; chan: UInt8): Boolean;
   var cvt: TSDL_AudioCVT; tformat: UInt16;
 begin
@@ -164,7 +171,7 @@ begin
   FLooping := Loop;
 end;
 
-function TWAVLoader.Load(FName: string; Loop: Boolean): Boolean;
+function TWAVLoader.Load(FName: String; Loop: Boolean): Boolean;
   var
     RW: PSDL_RWops;
 begin
@@ -216,15 +223,6 @@ begin
     if (FDataPos >= FDataLen) and FLooping then
       FDataPos := 0;
   end;
-end;
-
-procedure TWAVLoader.Free();
-begin
-  if FData <> nil then
-    SDL_FreeWAV(FData); // SDL allocates inside the DLL, so we need this
-  FDataPos := 0;
-  FData := nil;
-  FDataLen := 0;
 end;
 
 initialization

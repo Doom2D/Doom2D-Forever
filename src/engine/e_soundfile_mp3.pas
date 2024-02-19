@@ -24,17 +24,16 @@ type
 
   TMP3Loader = class (TSoundLoader)
   public
+    destructor Destroy(); override;
     function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; override; overload;
-    function Load(FName: string; Loop: Boolean): Boolean; override; overload;
+    function Load(FName: String; Loop: Boolean): Boolean; override; overload;
     function Finished(): Boolean; override;
     function Restart(): Boolean; override;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
-    procedure Free(); override;
 
   private
     FMPG: pmpg123_handle;
     FData: TStream;
-    FBuf: Pointer;
     FOpen: Boolean;
     FFinished: Boolean;
     FLooping: Boolean;
@@ -45,7 +44,7 @@ type
   TMP3LoaderFactory = class (TSoundLoaderFactory)
   public
     function MatchHeader(Data: Pointer; Len: LongWord): Boolean; override;
-    function MatchExtension(FName: string): Boolean; override;
+    function MatchExtension(FName: String): Boolean; override;
     function GetLoader(): TSoundLoader; override;
   end;
 
@@ -72,12 +71,9 @@ begin
 end;
 
 function streamRead(h: Pointer; buf: Pointer; len: csize_t): csize_t; cdecl; // ssize_t
-var
-  S: TStream;
 begin
-  S:= TStream(h);
   try
-    Result := S.Read(buf^, len);
+    Result := TStream(h).Read(buf^, len);
   except
     Result := csize_t(-1);
   end;
@@ -124,9 +120,9 @@ begin
   end;
 end;
 
-function TMP3LoaderFactory.MatchExtension(FName: string): Boolean;
+function TMP3LoaderFactory.MatchExtension(FName: String): Boolean;
 var
-  Ext: string;
+  Ext: String;
 begin
   Ext := GetFilenameExt(FName);
   Result := (Ext = '.mp3') or (Ext = '.mpeg3');
@@ -139,11 +135,20 @@ end;
 
 (* TMP3Loader *)
 
+destructor TMP3Loader.Destroy();
+begin
+  mpg123_delete(FMPG);  // will call mpg123_close() if needed
+  FData.Free();
+  inherited;
+end;
+
 function TMP3Loader.LoadStream(Stream: TStream): Boolean;
 var
   SRate: clong;
   SEnc, SChans: LongInt;
 begin
+  Result := False;
+
   FMPG := mpg123_new(nil, nil);
   if FMPG = nil then
   begin
@@ -169,14 +174,13 @@ begin
       raise Exception.Create('mpg123_format failed');
   except
     on E: Exception do
-    begin
       e_LogWriteln('MPG123: Load(Data) failed: ' + E.Message);
-      if FOpen then mpg123_close(FMPG);
-      mpg123_delete(FMPG);
-      FMPG := nil;
-      FOpen := False;
-      Exit;
-    end;
+    else;
+
+    mpg123_delete(FMPG);
+    FMPG := nil;
+    FOpen := False;
+    Exit;
   end;
 
   FData := Stream;
@@ -191,29 +195,29 @@ end;
 
 function TMP3Loader.Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean;
 var
-  S: TStream;
+  S: TStream = nil;
+  Buf: Pointer;
 begin
   Result := False;
 
   // TODO: have to make a dupe here because Data gets deallocated after loading
   //       this is obviously very shit
-  FBuf := GetMem(Len);
-  if FBuf = nil then Exit;
-  Move(Data^, FBuf^, Len);
+  Buf := GetMem(Len);
+  if Buf = nil then Exit;
+  Move(Data^, Buf^, Len);
 
-  S := TSFSMemoryStreamRO.Create(FBuf, Len{, True});
-  Result := LoadStream(S);
-  FLooping := Loop;
-
-  if not Result and (S <> nil) then
-  begin
-    S.Destroy();
-    FreeMem(FBuf);
-    FBuf := nil;
+  try
+    S := TSFSMemoryStreamRO.Create(Buf, Len, True);  // this transfers ownership of Buf
+    Result := LoadStream(S);
+  finally
+    if not Result then
+      if S <> nil then S.Destroy() else FreeMem(Buf);
   end;
+
+  FLooping := Loop;
 end;
 
-function TMP3Loader.Load(FName: string; Loop: Boolean): Boolean;
+function TMP3Loader.Load(FName: String; Loop: Boolean): Boolean;
 var
   S: TStream = nil;
 begin
@@ -228,8 +232,7 @@ begin
       e_LogWritefln('MPG123: ERROR: could not read file `%s`: %s', [FName, E.Message]);
   end;
 
-  if not Result and (S <> nil) then
-    S.Destroy();
+  if not Result then S.Free();
 end;
 
 function TMP3Loader.Finished(): Boolean;
@@ -268,23 +271,11 @@ begin
     Result := Got;
 end;
 
-procedure TMP3Loader.Free();
-begin
-  if FOpen then mpg123_close(FMPG);
-  if FMPG <> nil then mpg123_delete(FMPG);
-  if FData <> nil then FData.Destroy();
-  if FBuf <> nil then FreeMem(FBuf);
-  FOpen := False;
-  FFinished := False;
-  FLooping := False;
-  FMPG := nil;
-  FData := nil;
-  FBuf := nil;
-end;
-
 initialization
   if mpg123_init() = MPG123_OK then
     e_AddSoundLoader(TMP3LoaderFactory.Create());
+
 finalization
   mpg123_exit();
+
 end.

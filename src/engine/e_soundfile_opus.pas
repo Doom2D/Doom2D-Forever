@@ -24,12 +24,12 @@ type
 
   TOpusLoader = class (TSoundLoader)
   public
+    destructor Destroy(); override;
     function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; override; overload;
-    function Load(FName: string; Loop: Boolean): Boolean; override; overload;
+    function Load(FName: String; Loop: Boolean): Boolean; override; overload;
     function Finished(): Boolean; override;
     function Restart(): Boolean; override;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
-    procedure Free(); override;
   private
     FOpus: POggOpusFile;
     FBuf: Pointer;
@@ -40,7 +40,7 @@ type
   TOpusLoaderFactory = class (TSoundLoaderFactory)
   public
     function MatchHeader(Data: Pointer; Len: LongWord): Boolean; override;
-    function MatchExtension(FName: string): Boolean; override;
+    function MatchExtension(FName: String): Boolean; override;
     function GetLoader(): TSoundLoader; override;
   end;
 
@@ -68,7 +68,7 @@ begin
   if Result then op_free(F);
 end;
 
-function TOpusLoaderFactory.MatchExtension(FName: string): Boolean;
+function TOpusLoaderFactory.MatchExtension(FName: String): Boolean;
 begin
   Result := GetFilenameExt(FName) = '.opus';
 end;
@@ -79,6 +79,13 @@ begin
 end;
 
 (* TOpusLoader *)
+
+destructor TOpusLoader.Destroy();
+begin
+  if FOpus <> nil then op_free(FOpus);
+  FreeMem(FBuf);
+  inherited;
+end;
 
 function TOpusLoader.Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean;
 begin
@@ -110,7 +117,7 @@ begin
   Result := True;
 end;
 
-function TOpusLoader.Load(FName: string; Loop: Boolean): Boolean;
+function TOpusLoader.Load(FName: String; Loop: Boolean): Boolean;
 begin
   Result := False;
 
@@ -173,19 +180,6 @@ begin
   end;
 
   Result := Rx;
-end;
-
-procedure TOpusLoader.Free();
-begin
-  if FOpus <> nil then
-    op_free(FOpus);
-  if FBuf <> nil then
-    FreeMem(FBuf);
-  FOpus := nil;
-  FBuf := nil;
-  FStreaming := False;
-  FFinished := False;
-  FLooping := False;
 end;
 
 initialization

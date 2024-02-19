@@ -24,12 +24,12 @@ type
 
   TFluidLoader = class (TSoundLoader)
   public
+    destructor Destroy(); override;
     function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; override; overload;
-    function Load(FName: string; Loop: Boolean): Boolean; override; overload;
+    function Load(FName: String; Loop: Boolean): Boolean; override; overload;
     function Finished(): Boolean; override;
     function Restart(): Boolean; override;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
-    procedure Free(); override;
 
   private
     FSynth: pfluid_synth_t;
@@ -39,7 +39,7 @@ type
   TFluidLoaderFactory = class (TSoundLoaderFactory)
   public
     function MatchHeader(Data: Pointer; Len: LongWord): Boolean; override;
-    function MatchExtension(FName: string): Boolean; override;
+    function MatchExtension(FName: String): Boolean; override;
     function GetLoader(): TSoundLoader; override;
   end;
 
@@ -51,19 +51,19 @@ implementation
 uses sysutils, utils, e_sound, e_log, ctypes{$IFDEF WINDOWS}, windirs{$ENDIF};
 
 var
-  FluidSettings: pfluid_settings_t = nil;
+  FluidSettings: pfluid_settings_t;
 
-function FindDefaultSoundfont(): string;
+function FindDefaultSoundfont(): String;
 {$IFDEF WINDOWS}
 var
-  SfNames: array [0..1] of string = (
+  SfNames: array [0..1] of String = (
     // creative soundfonts
     'ct4mgm.sf2',
     'ct2mgm.sf2'
     // gm.dls unsupported
   );
   I: Integer;
-  SysDir, S: string;
+  SysDir, S: String;
 begin
   SysDir := GetWindowsSpecialDir(CSIDL_SYSTEM, False);
   for I := Low(SfNames) to High(SfNames) do
@@ -98,9 +98,9 @@ begin
   Result := ((P+0)^ = MIDIHDR) and ((P+1)^ <> 0); // header length is not 0
 end;
 
-function TFluidLoaderFactory.MatchExtension(FName: string): Boolean;
+function TFluidLoaderFactory.MatchExtension(FName: String): Boolean;
 var
-  Ext: string;
+  Ext: String;
 begin
   Ext := GetFilenameExt(FName);
   Result := (Ext = '.mid') or (Ext = '.midi');
@@ -113,6 +113,13 @@ begin
 end;
 
 (* TFluidLoader *)
+
+destructor TFluidLoader.Destroy();
+begin
+  delete_fluid_player(FPlayer);  // will call fluid_player_stop() if needed
+  delete_fluid_synth(FSynth);
+  inherited;
+end;
 
 function TFluidLoader.Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean;
 var
@@ -157,7 +164,7 @@ begin
   Result := True;
 end;
 
-function TFluidLoader.Load(FName: string; Loop: Boolean): Boolean;
+function TFluidLoader.Load(FName: String; Loop: Boolean): Boolean;
 var
   Ret: cint;
 begin
@@ -228,18 +235,6 @@ begin
   if Ret = FLUID_OK then Result := Len;
 end;
 
-procedure TFluidLoader.Free();
-begin
-  if FPlayer <> nil then 
-  begin
-    fluid_player_stop(FPlayer);
-    delete_fluid_player(FPlayer);
-  end;
-  if FSynth <> nil then delete_fluid_synth(FSynth);
-  FPlayer := nil;
-  FSynth := nil;
-end;
-
 initialization
   FluidSettings := new_fluid_settings();
   if FluidSettings <> nil then
@@ -253,8 +248,10 @@ initialization
     fluid_settings_setstr(FluidSettings, PChar('player.timing-source'), PChar('sample'));
     e_AddSoundLoader(TFluidLoaderFactory.Create());
   end;
+
 finalization
   if FluidSettings <> nil then
     delete_fluid_settings(FluidSettings);
+
 end.
 

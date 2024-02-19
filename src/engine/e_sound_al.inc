@@ -72,7 +72,7 @@ const
 
 function e_InitSoundSystem(NoOutput: Boolean = False): Boolean;
 
-function e_LoadSound(FileName: string; var ID: TSoundID; isMusic: Boolean;
+function e_LoadSound(FileName: String; var ID: TSoundID; isMusic: Boolean;
   ForceNoLoop: Boolean = False): Boolean;
 function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: TSoundID; isMusic: Boolean;
   ForceNoLoop: Boolean = False): Boolean;
@@ -152,7 +152,7 @@ begin
   Result := e_ALError <> AL_NO_ERROR;
 end;
 
-function GetALError(): string;
+function GetALError(): String;
 begin
   Result := '';
   case e_ALError of
@@ -166,10 +166,10 @@ begin
   end;
 end;
 
-function e_InitSoundSystem(NoOutput: Boolean = False): Boolean;
+function e_InitSoundSystem(NoOutput: Boolean): Boolean;
 var
-  alExt, alRend, alVendor, alVer: string;
-  WantDev: string = '';
+  alExt, alRend, alVendor, alVer: String;
+  WantDev: String = '';
   WantAttrs: array [0..4] of ALCint = (
     ALC_STEREO_SOURCES, 1,
     ALC_MONO_SOURCES, NUM_SOURCES,
@@ -299,10 +299,8 @@ end;
 
 function LoadEntireSound(var Snd: TSoundRec; Loader: TSoundLoader): Boolean;
 var
-  Frame: Pointer;
-  Data: Pointer;
-  Rx: LongWord;
-  DataLen, OldLen: LongWord;
+  Frame, Data: Pointer;
+  Rx, DataLen, OldLen: LongWord;
 const
   CHUNK_SIZE = 65536 * 2 * 2;
 begin
@@ -321,7 +319,11 @@ begin
     OldLen := DataLen;
     DataLen := DataLen + Rx;
     Data := ReAllocMem(Data, DataLen);
-    if Data = nil then begin FreeMem(Frame); exit; end;
+    if Data = nil then
+    begin
+      FreeMem(Frame);
+      Exit;
+    end;
 
     Move(Frame^, (Data + OldLen)^, Rx);
   until Loader.Finished();
@@ -383,16 +385,17 @@ begin
   if not Loader.Load(FileName, e_SoundsArray[find_id].Loops) then
   begin
     e_LogWritefln('Could not load sound `%s`', [FileName]);
+    Loader.Destroy();
     exit;
   end;
 
-  alGetError(); // reset error state, god damn it
+  alGetError();  // reset error state, god damn it
 
   if not isMusic then
   begin
     if not LoadEntireSound(e_SoundsArray[find_id], Loader) then
       e_LogWritefln('AL: Could not buffer sound effect `%s`', [FileName]);
-    FreeAndNil(Loader);  // don't need this anymore
+    Loader.Destroy();  // don't need this anymore
   end
   else
   begin
@@ -430,16 +433,17 @@ begin
   if not Loader.Load(pData, LongWord(Length), e_SoundsArray[find_id].Loops) then
   begin
     e_LogWritefln('Could not load sound `%p`', [pData]);
+    Loader.Destroy();
     exit;
   end;
 
-  alGetError(); // reset error state, god damn it
+  alGetError();  // reset error state, god damn it
 
   if not isMusic then
   begin
     if not LoadEntireSound(e_SoundsArray[find_id], Loader) then
       e_LogWritefln('AL: Could not buffer sound effect `%p`', [pData]);
-    FreeAndNil(Loader);  // don't need this anymore
+    Loader.Destroy();  // don't need this anymore
   end
   else
   begin
@@ -603,15 +607,17 @@ end;
 procedure e_DeleteSound(ID: TSoundID);
 begin
   if ID > High(e_SoundsArray) then
-    exit;
+    Exit;
+
   if (e_SoundsArray[ID].alBuffer <> 0) then
   begin
     alDeleteBuffers(1, Addr(e_SoundsArray[ID].alBuffer));
     e_SoundsArray[ID].alBuffer := 0;
   end;
+
   if (e_SoundsArray[ID].Loader <> nil) then
   begin
-    e_SoundsArray[ID].Loader.Free();
+    e_SoundsArray[ID].Loader.Destroy();
     e_SoundsArray[ID].Loader := nil;
     if ID = CurStream then
       CurStream := NO_SOUND_ID;
@@ -669,10 +675,8 @@ var
   i: Integer;
 begin
   for i := 0 to High(e_SoundsArray) do
-    if e_SoundsArray[i].alBuffer <> 0 then
-      e_DeleteSound(i);
+    e_DeleteSound(i);
   SetLength(e_SoundsArray, 0);
-  e_SoundsArray := nil;
   CurStream := NO_SOUND_ID;
 end;
 

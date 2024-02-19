@@ -24,12 +24,12 @@ type
 
   TModPlugLoader = class (TSoundLoader)
   public
+    destructor Destroy(); override;
     function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; override; overload;
-    function Load(FName: string; Loop: Boolean): Boolean; override; overload;
+    function Load(FName: String; Loop: Boolean): Boolean; override; overload;
     function Finished(): Boolean; override;
     function Restart(): Boolean; override;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
-    procedure Free(); override;
   private
     FFile: PModPlugFile;
     FFinished: Boolean;
@@ -39,7 +39,7 @@ type
   TModPlugLoaderFactory = class (TSoundLoaderFactory)
   public
     function MatchHeader(Data: Pointer; Len: LongWord): Boolean; override;
-    function MatchExtension(FName: string): Boolean; override;
+    function MatchExtension(FName: String): Boolean; override;
     function GetLoader(): TSoundLoader; override;
   end;
 
@@ -81,9 +81,9 @@ begin
   Result := True;
 end;
 
-function TModPlugLoaderFactory.MatchExtension(FName: string): Boolean;
+function TModPlugLoaderFactory.MatchExtension(FName: String): Boolean;
 var
-  Ext: string;
+  Ext: String;
 begin
   Ext := GetFilenameExt(FName);
   Result := (Ext = '.it') or (Ext = '.xm') or (Ext = '.mod') or (Ext = '.s3m');
@@ -91,16 +91,21 @@ end;
 
 function TModPlugLoaderFactory.GetLoader(): TSoundLoader;
 begin
-  // update interpolation setting
-  if e_MusicLerp then
-    Settings.mResamplingMode := MODPLUG_RESAMPLE_LINEAR
-  else
-    Settings.mResamplingMode := MODPLUG_RESAMPLE_NEAREST;
+  if e_MusicLerp  // update interpolation setting
+    then Settings.mResamplingMode := MODPLUG_RESAMPLE_LINEAR
+    else Settings.mResamplingMode := MODPLUG_RESAMPLE_NEAREST;
+
   ModPlug_SetSettings(@Settings);
   Result := TModPlugLoader.Create();
 end;
 
 (* TModPlugLoader *)
+
+destructor TModPlugLoader.Destroy();
+begin
+  if FFile <> nil then ModPlug_Unload(FFile);
+  inherited;
+end;
 
 function TModPlugLoader.Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean;
 begin
@@ -123,7 +128,7 @@ begin
   Result := True;
 end;
 
-function TModPlugLoader.Load(FName: string; Loop: Boolean): Boolean;
+function TModPlugLoader.Load(FName: String; Loop: Boolean): Boolean;
 var
   S: TStream = nil;
   Data: Pointer;
@@ -189,17 +194,6 @@ begin
     end
     else
       FFinished := True;
-  end;
-end;
-
-procedure TModPlugLoader.Free();
-begin
-  if FFile <> nil then
-  begin
-    ModPlug_Unload(FFile);
-    FFile := nil;
-    FFinished := False;
-    FLooping := False;
   end;
 end;
 

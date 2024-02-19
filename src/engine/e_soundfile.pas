@@ -18,8 +18,6 @@ unit e_soundfile;
 interface
 
 type
-  TSoundLoader = class;
-
   TSoundFormat = record
     SampleBits: Integer;
     SampleRate: Integer;
@@ -36,13 +34,11 @@ type
 
   public
     function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; virtual; abstract; overload;
-    function Load(FName: string; Loop: Boolean): Boolean; virtual; abstract; overload;
+    function Load(FName: String; Loop: Boolean): Boolean; virtual; abstract; overload;
 
     function Finished(): Boolean; virtual; abstract;
     function Restart(): Boolean; virtual; abstract;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; virtual; abstract;
-
-    procedure Free(); virtual; abstract;
 
     property Format: TSoundFormat read FFormat;
     property Streaming: Boolean read FStreaming;
@@ -51,12 +47,12 @@ type
   TSoundLoaderFactory = class
   public
     function MatchHeader(Data: Pointer; Len: LongWord): Boolean; virtual; abstract;
-    function MatchExtension(FName: string): Boolean; virtual; abstract;
+    function MatchExtension(FName: String): Boolean; virtual; abstract;
     function GetLoader(): TSoundLoader; virtual; abstract;
   end;
 
 function e_GetSoundLoader(Data: Pointer; Len: LongWord): TSoundLoader; overload;
-function e_GetSoundLoader(FName: string): TSoundLoader; overload;
+function e_GetSoundLoader(FName: String): TSoundLoader; overload;
 
 procedure e_AddSoundLoader(Loader: TSoundLoaderFactory);
 
@@ -65,7 +61,7 @@ implementation
 var
   e_SoundLoaders: array of TSoundLoaderFactory;
 
-function e_GetSoundLoader(FName: string): TSoundLoader; overload;
+function e_GetSoundLoader(FName: String): TSoundLoader; overload;
 var
   I: Integer;
 begin
@@ -96,5 +92,16 @@ begin
   SetLength(e_SoundLoaders, Length(e_SoundLoaders) + 1);
   e_SoundLoaders[High(e_SoundLoaders)] := Loader;
 end;
+
+procedure Cleanup();
+var
+  ldr: TSoundLoaderFactory;
+begin
+  for ldr in e_SoundLoaders do
+    ldr.Destroy();
+end;
+
+finalization
+  Cleanup();
 
 end.

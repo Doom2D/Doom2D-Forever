@@ -24,12 +24,12 @@ type
 
   TXMPLoader = class (TSoundLoader)
   public
+    destructor Destroy(); override;
     function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; override; overload;
-    function Load(FName: string; Loop: Boolean): Boolean; override; overload;
+    function Load(FName: String; Loop: Boolean): Boolean; override; overload;
     function Finished(): Boolean; override;
     function Restart(): Boolean; override;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
-    procedure Free(); override;
   private
     FXMP: xmp_context;
     FLoaded: Boolean;
@@ -40,7 +40,7 @@ type
   TXMPLoaderFactory = class (TSoundLoaderFactory)
   public
     function MatchHeader(Data: Pointer; Len: LongWord): Boolean; override;
-    function MatchExtension(FName: string): Boolean; override;
+    function MatchExtension(FName: String): Boolean; override;
     function GetLoader(): TSoundLoader; override;
   end;
 
@@ -72,9 +72,9 @@ begin
   xmp_free_context(Ctx);
 end;
 
-function TXMPLoaderFactory.MatchExtension(FName: string): Boolean;
+function TXMPLoaderFactory.MatchExtension(FName: String): Boolean;
 var
-  Ext: string;
+  Ext: String;
 begin
   Ext := GetFilenameExt(FName);
   Result := (Ext = '.it') or (Ext = '.xm') or (Ext = '.mod') or (Ext = '.s3m');
@@ -86,6 +86,21 @@ begin
 end;
 
 (* TXMPLoader *)
+
+destructor TXMPLoader.Destroy();
+begin
+  if FXMP <> nil then
+  begin
+    if FLoaded then
+    begin
+      xmp_end_player(FXMP);
+      xmp_release_module(FXMP);
+    end;
+    xmp_free_context(FXMP);
+  end;
+
+  inherited;
+end;
 
 function TXMPLoader.Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean;
 var
@@ -130,7 +145,7 @@ begin
   end;
 end;
 
-function TXMPLoader.Load(FName: string; Loop: Boolean): Boolean;
+function TXMPLoader.Load(FName: String; Loop: Boolean): Boolean;
 var
   Err: LongInt;
   Interp: LongInt;
@@ -200,23 +215,6 @@ begin
     Result := Len
   else if (Ret = -XMP_END) and not FLooping then
     FFinished := True;
-end;
-
-procedure TXMPLoader.Free();
-begin
-  if FXMP <> nil then
-  begin
-    if FLoaded then
-    begin
-      xmp_end_player(FXMP);
-      xmp_release_module(FXMP);
-    end;
-    xmp_free_context(FXMP);
-    FXMP := nil;
-  end;
-  FLoaded := False;
-  FLooping := False;
-  FFinished := False;
 end;
 
 initialization

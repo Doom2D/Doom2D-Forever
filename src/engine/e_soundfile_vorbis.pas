@@ -24,17 +24,16 @@ type
 
   TVorbisLoader = class (TSoundLoader)
   public
+    destructor Destroy(); override;
     function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; override; overload;
-    function Load(FName: string; Loop: Boolean): Boolean; override; overload;
+    function Load(FName: String; Loop: Boolean): Boolean; override; overload;
     function Finished(): Boolean; override;
     function Restart(): Boolean; override;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
-    procedure Free(); override;
 
   private
     FOgg: OggVorbis_File;
     FData: TStream;
-    FBuf: Pointer;
     FOpen: Boolean;
     FFinished: Boolean;
     FLooping: Boolean;
@@ -45,7 +44,7 @@ type
   TVorbisLoaderFactory = class (TSoundLoaderFactory)
   public
     function MatchHeader(Data: Pointer; Len: LongWord): Boolean; override;
-    function MatchExtension(FName: string): Boolean; override;
+    function MatchExtension(FName: String): Boolean; override;
     function GetLoader(): TSoundLoader; override;
   end;
 
@@ -75,27 +74,22 @@ begin
 end;
 
 function streamRead(buf: Pointer; sz, nmemb: csize_t; h: Pointer): csize_t; cdecl;
-var
-  S: TStream;
 begin
   Result := 0;
   if h = nil then Exit;
-  S:= TStream(h);
+
   try
-    Result := S.Read(buf^, sz*nmemb) div sz;
+    Result := TStream(h).Read(buf^, sz*nmemb) div sz;
   except
     Result := 0;
   end;
 end;
 
 function streamTell(h: Pointer): clong; cdecl;
-var
-  S: TStream;
 begin
   Result := -1;
   if h = nil then Exit;
-  S := TStream(h);
-  Result := S.Position;
+  Result := TStream(h).Position;
 end;
 
 var
@@ -130,7 +124,7 @@ begin
   S.Free();
 end;
 
-function TVorbisLoaderFactory.MatchExtension(FName: string): Boolean;
+function TVorbisLoaderFactory.MatchExtension(FName: String): Boolean;
 begin
   Result := GetFilenameExt(FName) = '.ogg';
 end;
@@ -141,6 +135,13 @@ begin
 end;
 
 (* TVorbisLoader *)
+
+destructor TVorbisLoader.Destroy();
+begin
+  ov_clear(FOgg);
+  FData.Free();
+  inherited;
+end;
 
 function TVorbisLoader.LoadStream(Stream: TStream): Boolean;
 var
@@ -177,29 +178,29 @@ end;
 
 function TVorbisLoader.Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean;
 var
-  S: TStream;
+  S: TStream = nil;
+  Buf: Pointer;
 begin
   Result := False;
 
   // TODO: have to make a dupe here because Data gets deallocated after loading
   //       this is obviously very shit
-  FBuf := GetMem(Len);
-  if FBuf = nil then Exit;
-  Move(Data^, FBuf^, Len);
+  Buf := GetMem(Len);
+  if Buf = nil then Exit;
+  Move(Data^, Buf^, Len);
 
-  S := TSFSMemoryStreamRO.Create(FBuf, Len{, True});
-  Result := LoadStream(S);
-  FLooping := Loop;
-
-  if not Result and (S <> nil) then
-  begin
-    S.Free();
-    FreeMem(FBuf);
-    FBuf := nil;
+  try
+    S := TSFSMemoryStreamRO.Create(Buf, Len, True);  // this transfers ownership of Buf
+    Result := LoadStream(S);
+  finally
+    if not Result then
+      if S <> nil then S.Destroy() else FreeMem(Buf);
   end;
+
+  FLooping := Loop;
 end;
 
-function TVorbisLoader.Load(FName: string; Loop: Boolean): Boolean;
+function TVorbisLoader.Load(FName: String; Loop: Boolean): Boolean;
 var
   S: TStream = nil;
 begin
@@ -214,8 +215,7 @@ begin
       e_LogWritefln('OGG: ERROR: could not read file `%s`: %s', [FName, E.Message]);
   end;
 
-  if not Result and (S <> nil) then
-    S.Free();
+  if not Result then S.Free();
 end;
 
 function TVorbisLoader.Finished(): Boolean;
@@ -247,18 +247,6 @@ begin
       FFinished := True;
   end;
   Result := Ret; 
-end;
-
-procedure TVorbisLoader.Free();
-begin
-  if FOpen then
-    ov_clear(FOgg);
-  if FData <> nil then
-    FData.Free();
-  FData := nil;
-  FOpen := False;
-  FStreaming := False;
-  FFinished := False;
 end;
 
 initialization

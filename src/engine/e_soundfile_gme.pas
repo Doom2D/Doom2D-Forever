@@ -25,12 +25,12 @@ type
 
   TGMELoader = class (TSoundLoader)
   public
+    destructor Destroy(); override;
     function Load(Data: Pointer; Len: LongWord; Loop: Boolean): Boolean; override; overload;
-    function Load(FName: string; Loop: Boolean): Boolean; override; overload;
+    function Load(FName: String; Loop: Boolean): Boolean; override; overload;
     function Finished(): Boolean; override;
     function Restart(): Boolean; override;
     function FillBuffer(Buf: Pointer; Len: LongWord): LongWord; override;
-    procedure Free(); override;
   private
     FEmu: pgme_music_emu;
     FLooping: Boolean;
@@ -44,7 +44,7 @@ type
   TGMELoaderFactory = class (TSoundLoaderFactory)
   public
     function MatchHeader(Data: Pointer; Len: LongWord): Boolean; override;
-    function MatchExtension(FName: string): Boolean; override;
+    function MatchExtension(FName: String): Boolean; override;
     function GetLoader(): TSoundLoader; override;
   end;
 
@@ -60,7 +60,7 @@ begin
   Result := ((gme_identify_header(Data))^ <> #0);
 end;
 
-function TGMELoaderFactory.MatchExtension(FName: string): Boolean;
+function TGMELoaderFactory.MatchExtension(FName: String): Boolean;
 begin
   Result := gme_identify_extension(PChar(FName)) <> nil;
 end;
@@ -72,6 +72,13 @@ end;
 
 (* TGMELoader *)
 
+destructor TGMELoader.Destroy();
+begin
+  if FInfo <> nil then gme_free_info(FInfo);
+  if FEmu <> nil then gme_delete(FEmu);
+  inherited;
+end;
+
 function TGMELoader.StartTrack(Track: LongInt): Boolean;
 var
   Ret: gme_err_t;
@@ -81,7 +88,7 @@ begin
   Ret := gme_track_info(FEmu, @FInfo, Track);
   if Ret <> nil then
   begin
-    e_LogWritefln('GME: Error getting info for track %d: %s', [Track, string(Ret)]);
+    e_LogWritefln('GME: Error getting info for track %d: %s', [Track, String(Ret)]);
     exit;
   end;
 
@@ -98,7 +105,7 @@ begin
   // apparently this can happen
   if Ret <> nil then
   begin
-    e_LogWritefln('GME: Could not start track %d: %s', [Track, string(Ret)]);
+    e_LogWritefln('GME: Could not start track %d: %s', [Track, String(Ret)]);
     exit;
   end;
 
@@ -114,7 +121,7 @@ begin
   Ret := gme_open_data(Data, clong(Len), @FEmu, 48000);
   if Ret <> nil then
   begin
-    e_LogWritefln('GME: Error loading song from `%p`: %s', [Data, string(Ret)]);
+    e_LogWritefln('GME: Error loading song from `%p`: %s', [Data, String(Ret)]);
     exit;
   end;
 
@@ -128,7 +135,7 @@ begin
   if not Result then Free();
 end;
 
-function TGMELoader.Load(FName: string; Loop: Boolean): Boolean;
+function TGMELoader.Load(FName: String; Loop: Boolean): Boolean;
 var
   Ret: gme_err_t;
 begin
@@ -137,7 +144,7 @@ begin
   Ret := gme_open_file(PChar(FName), @FEmu, 48000);
   if Ret <> nil then
   begin
-    e_LogWritefln('GME: Error loading song from `%s`: %s', [FName, string(Ret)]);
+    e_LogWritefln('GME: Error loading song from `%s`: %s', [FName, String(Ret)]);
     exit;
   end;
 
@@ -192,14 +199,6 @@ begin
     Result := Len
   else
     Result := 0;
-end;
-
-procedure TGMELoader.Free();
-begin
-  if FInfo <> nil then gme_free_info(FInfo);
-  if FEmu <> nil then gme_delete(FEmu);
-  FInfo := nil;
-  FEmu := nil;
 end;
 
 initialization
