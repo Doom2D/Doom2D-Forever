@@ -139,7 +139,7 @@ var
   NetPongSock:   ENetSocket = ENET_SOCKET_NULL;
 
   NetUseMaster: Boolean = True;
-  NetMasterList: string = 'mpms.doom2d.org:25665, deadsoftware.ru:25665';
+  NetMasterList: string = 'mpms.doom2d.org:25665, deadsoftware.ru:25665, terminalcorner.ru:25665';
 
   NetClientIP:   string = '127.0.0.1';
   NetClientPort: Word   = 25666;
@@ -319,12 +319,13 @@ begin
 end;
 
 
-procedure clearNetClients (clearArray: Boolean);
+procedure clearNetClients ();
 var
   f: Integer;
 begin
-  for f := Low(NetClients) to High(NetClients) do clearNetClient(NetClients[f]);
-  if (clearArray) then SetLength(NetClients, 0);
+  for f := Low(NetClients) to High(NetClients) do
+    clearNetClient(NetClients[f]);
+  SetLength(NetClients, 0);
 end;
 
 
@@ -1347,8 +1348,7 @@ begin
   NetOut.Clear();
   NetBuf[NET_UNRELIABLE].Clear();
   NetBuf[NET_RELIABLE].Clear();
-  //SetLength(NetClients, 0);
-  clearNetClients(true); // clear array
+  clearNetClients();
   NetPeer := nil;
   NetHost := nil;
   NetMyID := -1;
@@ -1425,8 +1425,7 @@ begin
   NetBuf[NET_UNRELIABLE].Clear();
   NetBuf[NET_RELIABLE].Clear();
 
-  //SetLength(NetClients, 0);
-  clearNetClients(true); // clear array
+  clearNetClients();
   NetClientCount := 0;
 
   NetPeer := nil;
@@ -1569,7 +1568,6 @@ begin
       NetClients[I].NetOut[NET_RELIABLE].Free();
     end;
 
-  clearNetClients(false); // don't clear array
   g_Net_Slist_ServerClosed();
   if NetPongSock <> ENET_SOCKET_NULL then
     enet_socket_destroy(NetPongSock);
@@ -1579,7 +1577,7 @@ begin
 
   NetMode := NET_NONE;
 
-  g_Net_Cleanup;
+  g_Net_Cleanup();
   e_WriteLog('NET: Server stopped', TMsgType.Notify);
 end;
 

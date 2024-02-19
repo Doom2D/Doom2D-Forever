@@ -93,8 +93,8 @@ type
 
   public
     constructor Create (var ea: ENetAddress);
-
-    procedure clear ();
+    procedure finish ();
+    procedure cleanup ();
 
     function setAddress (var ea: ENetAddress; hostStr: AnsiString): Boolean;
 
@@ -122,15 +122,15 @@ type
 
 
 var
-  slCurrent:       TNetServerList = nil;
-  slTable:         TNetServerTable = nil;
-  slWaitStr:       AnsiString = '';
+  slCurrent: TNetServerList;
+  slTable: TNetServerTable;
+  slWaitStr: AnsiString;
   slReturnPressed: Boolean = True;
 
-  slMOTD: AnsiString = '';
-  slUrgent: AnsiString = '';
+  slMOTD: AnsiString;
+  slUrgent: AnsiString;
 
-  NMASTER_FORCE_UPDATE_TIMEOUT: Integer = 0; // fuck you, fpc, and your idiotic "diagnostics"
+  NMASTER_FORCE_UPDATE_TIMEOUT: Integer = 0;  // fuck you, fpc, and your idiotic "diagnostics"
 
 
 procedure g_Net_Slist_Set (list: AnsiString);
@@ -176,20 +176,23 @@ uses
   g_map, g_game, g_sound, g_gui, g_menu, g_options, g_language, g_basic,
   wadreader, g_system, utils, hashtable;
 
-
 // ////////////////////////////////////////////////////////////////////////// //
+
+type
+  THashStrDWord = specialize THashBase<AnsiString, LongWord, THashKeyStrAnsiCI>;
+
 var
-  NetMHost: pENetHost = nil;
+  NetMHost: pENetHost;
   NetMEvent: ENetEvent;
-  mlist: array of TMasterHost = nil;
+  mlist: array of TMasterHost;
 
-  slSelection: Byte = 0;
-  slFetched: Boolean = False;
-  slDirPressed: Boolean = False;
-  slReadUrgent: Boolean = False;
+  slSelection: Byte;
+  slFetched: Boolean;
+  slDirPressed: Boolean;
+  slReadUrgent: Boolean;
 
-  reportsEnabled: Boolean = true;
-
+  reportsEnabled: Boolean = True;
+  knownHosts: THashStrDWord;
 
 //==========================================================================
 //
@@ -201,7 +204,6 @@ begin
   Result := sys_GetTicks() {div 1000};
 end;
 
-
 //==========================================================================
 //
 //  findByPeer
@@ -211,10 +213,12 @@ function findByPeer (peer: pENetPeer): Integer;
 var
   f: Integer;
 begin
-  for f := 0 to High(mlist) do if (mlist[f].peer = peer) then begin result := f; exit; end;
-  result := -1;
-end;
+  for f := 0 to High(mlist) do
+    if (mlist[f].peer = peer) then
+      exit(f);
 
+  Result := -1;
+end;
 
 //==========================================================================
 //
@@ -226,8 +230,10 @@ var
   f, sres, idx: Integer;
   stt, ct: Int64;
   activeCount: Integer = 0;
+label  // all this code is retarded anyway, so I feel no shame
+  discard;
 begin
-  if (NetMHost = nil) then exit;
+  if (NetMHost = nil) then goto discard;
   for f := 0 to High(mlist) do
   begin
     if (mlist[f].isAlive()) then
@@ -242,7 +248,7 @@ begin
       enet_peer_disconnect_later(mlist[f].peer, 0);
     end;
   end;
-  if (activeCount = 0) then exit;
+  if (activeCount = 0) then goto discard;
   stt := GetTimerMS();
   while (activeCount > 0) do
   begin
@@ -282,8 +288,14 @@ begin
   end;
   enet_host_destroy(NetMHost);
   NetMHost := nil;
-end;
 
+discard:
+  for f := 0 to High(mlist) do
+    mlist[f].finish();
+  SetLength(mlist, 0);
+
+  FreeAndNil(knownHosts);
+end;
 
 //==========================================================================
 //
@@ -299,7 +311,6 @@ begin
     if (mlist[f].isAlive()) then mlist[f].disconnect(forced);
   end;
 end;
-
 
 //==========================================================================
 //
@@ -324,7 +335,6 @@ begin
   end;
 end;
 
-
 //==========================================================================
 //
 //  UpdateAll
@@ -342,7 +352,6 @@ begin
     if (force) then mlist[f].lastUpdateTime := 0;
   end;
 end;
-
 
 //**************************************************************************
 //
@@ -363,7 +372,6 @@ begin
   reportsEnabled := false;
 end;
 
-
 //==========================================================================
 //
 //  g_Net_Slist_Public
@@ -380,7 +388,6 @@ begin
   end;
 end;
 
-
 //==========================================================================
 //
 //  g_Net_Slist_ServerUpdate
@@ -393,7 +400,6 @@ begin
   UpdateAll(false);
 end;
 
-
 // called when the server is started
 procedure g_Net_Slist_ServerStarted ();
 begin
@@ -404,7 +410,6 @@ begin
     ConnectAll(true);
   end;
 end;
-
 
 //==========================================================================
 //
@@ -428,7 +433,6 @@ begin
   DisconnectAll();
 end;
 
-
 //==========================================================================
 //
 //  g_Net_Slist_ServerPlayerComes
@@ -440,7 +444,6 @@ procedure g_Net_Slist_ServerPlayerComes ();
 begin
   UpdateAll(true);
 end;
-
 
 //==========================================================================
 //
@@ -454,7 +457,6 @@ begin
   UpdateAll(true);
 end;
 
-
 //==========================================================================
 //
 //  g_Net_Slist_ServerMapStarted
@@ -466,7 +468,6 @@ procedure g_Net_Slist_ServerMapStarted ();
 begin
   UpdateAll(true);
 end;
-
 
 //==========================================================================
 //
@@ -480,18 +481,12 @@ begin
   UpdateAll(true);
 end;
 
-
 //**************************************************************************
 //
 // TMasterHost
 //
 //**************************************************************************
 
-//==========================================================================
-//
-//  TMasterHost.Create
-//
-//==========================================================================
 constructor TMasterHost.Create (var ea: ENetAddress);
 begin
   peer := nil;
@@ -514,26 +509,24 @@ begin
   setAddress(ea, '');
 end;
 
-
-//==========================================================================
-//
-//  TMasterHost.clear
-//
-//==========================================================================
-procedure TMasterHost.clear ();
+procedure TMasterHost.finish ();
 begin
-  updateSent := false; // do not send 'remove'
-  disconnect(true);
-  hostName := '';
   netmsg.Free();
+end;
+
+procedure TMasterHost.cleanup ();
+begin
+  updateSent := False; // do not send 'remove'
+  disconnect(True);
+  hostName := '';
+  netmsg.Clear();
   SetLength(srvAnswer, 0);
   srvAnswered := 0;
   slMOTD := '';
   slUrgent := '';
-  slReadUrgent := true;
+  slReadUrgent := True;
   ZeroMemory(@enetAddr, sizeof(enetAddr));
 end;
-
 
 //==========================================================================
 //
@@ -562,7 +555,6 @@ begin
   result := isValid();
 end;
 
-
 //==========================================================================
 //
 //  TMasterHost.isValid
@@ -572,7 +564,6 @@ function TMasterHost.isValid (): Boolean;
 begin
   result := (enetAddr.host <> 0) and (enetAddr.port <> 0);
 end;
-
 
 //==========================================================================
 //
@@ -586,7 +577,6 @@ begin
   result := (NetMHost <> nil) and (peer <> nil);
 end;
 
-
 //==========================================================================
 //
 //  TMasterHost.isConnecting
@@ -599,7 +589,6 @@ begin
   result := isAlive() and (not NetHostConnected) and (NetHostConReqTime <> -1);
 end;
 
-
 //==========================================================================
 //
 //  TMasterHost.isConnected
@@ -609,7 +598,6 @@ function TMasterHost.isConnected (): Boolean;
 begin
   result := isAlive() and (NetHostConnected) and (NetHostConReqTime <> -1);
 end;
-
 
 //==========================================================================
 //
@@ -626,7 +614,6 @@ begin
   //g_Console_Add(Format(_lc[I_NET_MSG]+_lc[I_NET_SLIST_CONN], [mlist[f].hostName]));
 end;
 
-
 //==========================================================================
 //
 //  TMasterHost.disconnectedEvent
@@ -639,7 +626,6 @@ begin
   disconnect(true);
   //if (spamConsole) then g_Console_Add(Format(_lc[I_NET_MSG]+_lc[I_NET_SLIST_DISC], [hostName]));
 end;
-
 
 //==========================================================================
 //
@@ -715,7 +701,6 @@ begin
   end;
 end;
 
-
 //==========================================================================
 //
 //  TMasterHost.disconnect
@@ -752,7 +737,6 @@ begin
   lastUpdateTime := 0;
   //if (spamConsole) then g_Console_Add(Format(_lc[I_NET_MSG]+_lc[I_NET_SLIST_DISC], [hostName]));
 end;
-
 
 //==========================================================================
 //
@@ -795,7 +779,6 @@ begin
   e_LogWritefln('connecting to master at [%s]', [hostName], TMsgType.Notify);
 end;
 
-
 //==========================================================================
 //
 //  TMasterHost.writeInfo
@@ -820,7 +803,6 @@ begin
   msg.Write(Byte(NET_PROTOCOL_VER));
   msg.Write(Byte(NetPassword <> ''));
 end;
-
 
 //==========================================================================
 //
@@ -869,7 +851,6 @@ begin
   end;
 end;
 
-
 //==========================================================================
 //
 //  TMasterHost.remove
@@ -899,7 +880,6 @@ begin
     netmsg.Clear();
   end;
 end;
-
 
 //==========================================================================
 //
@@ -943,19 +923,6 @@ begin
     end;
   end;
 end;
-
-
-//**************************************************************************
-//
-// other functions
-//
-//**************************************************************************
-type
-  THashStrDWord = specialize THashBase<AnsiString, LongWord, THashKeyStrAnsiCI>;
-
-var
-  knownHosts: THashStrDWord = nil;
-
 
 //==========================================================================
 //
@@ -1015,7 +982,6 @@ begin
   result := true;
 end;
 
-
 //==========================================================================
 //
 //  addMasterRecord
@@ -1046,7 +1012,6 @@ begin
   mlist[freeIdx].setAddress(ea, sa);
   e_LogWritefln('added masterserver with address [%s]', [sa], TMsgType.Notify);
 end;
-
 
 //==========================================================================
 //
@@ -1080,16 +1045,19 @@ begin
   dest := 0;
   for f := 0 to High(mlist) do
   begin
-    if (not mlist[f].justAdded) then mlist[f].clear();
+    if (not mlist[f].justAdded) then mlist[f].cleanup();
     if (mlist[f].isValid()) then
     begin
-      if (dest <> f) then mlist[dest] := mlist[f];
-      Inc(dest);
+      if (dest < f) then
+      begin
+        mlist[dest].finish();
+        mlist[dest] := mlist[f];
+      end;
+      dest += 1;
     end;
   end;
-  if (dest <> length(mlist)) then SetLength(mlist, dest);
+  SetLength(mlist, dest);
 end;
-
 
 //**************************************************************************
 //
@@ -1106,7 +1074,6 @@ function isMasterReportsEnabled (): Boolean;
 begin
   result := (reportsEnabled and g_Game_IsServer() and g_Game_IsNet() and NetUseMaster);
 end;
-
 
 //==========================================================================
 //
@@ -1142,7 +1109,7 @@ begin
     if (NetMHost = nil) then
     begin
       e_LogWriteln(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CLIENT] + ' (host_create)', TMsgType.Notify);
-      for f := 0 to High(mlist) do mlist[f].clear();
+      for f := 0 to High(mlist) do mlist[f].finish();
       SetLength(mlist, 0);
       Exit;
     end;
@@ -1198,7 +1165,7 @@ begin
     if (sres < 0) then
     begin
       e_LogWriteln(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CLIENT] + ' (host_service)', TMsgType.Notify);
-      for f := 0 to High(mlist) do mlist[f].clear();
+      for f := 0 to High(mlist) do mlist[f].finish();
       SetLength(mlist, 0);
       enet_host_destroy(NetMHost);
       NetMHost := nil;
@@ -1235,7 +1202,6 @@ begin
   end;
 end;
 
-
 //**************************************************************************
 //
 // gui and server list
@@ -1265,7 +1231,6 @@ begin
   enet_socket_send(Sock, Addr(S.PingAddr), @Buf, 1);
 end;
 
-
 //==========================================================================
 //
 //  PingBcast
@@ -1282,7 +1247,6 @@ begin
   S.PingAddr.port := S.Port;
   PingServer(S, Sock);
 end;
-
 
 //==========================================================================
 //
@@ -1601,7 +1565,6 @@ begin
   end;
 end;
 
-
 //==========================================================================
 //
 //  GetServerFromTable
@@ -1629,7 +1592,6 @@ begin
     Exit;
   Result := SL[ST[Index].Indices[ST[Index].Current]];
 end;
-
 
 //==========================================================================
 //
@@ -1782,7 +1744,6 @@ begin
     motdh-20+3, ip, gStdFont, 205, 205, 205, 1);
 end;
 
-
 //==========================================================================
 //
 //  g_Serverlist_GenerateTable
@@ -1876,7 +1837,6 @@ begin
 
   SortRows();
 end;
-
 
 //==========================================================================
 //
@@ -2039,6 +1999,5 @@ begin
  then
     slDirPressed := False;
 end;
-
 
 end.

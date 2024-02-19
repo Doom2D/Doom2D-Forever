@@ -105,7 +105,7 @@ function Channel_Callback(channel: FMOD_CHANNEL; callbacktype: FMOD_CHANNEL_CALL
 var
   res: FMOD_RESULT;
   sound: FMOD_SOUND;
-  ud: Pointer;
+  ud: PDWORD;
   id: DWORD;
 
 begin
@@ -119,7 +119,7 @@ begin
       res := FMOD_Sound_GetUserData(sound, ud);
       if res = FMOD_OK then
       begin
-        id := DWORD(ud^);
+        id := ud^;
         if id < DWORD(Length(e_SoundsArray)) then
           if e_SoundsArray[id].nRefs > 0 then
             Dec(e_SoundsArray[id].nRefs);
@@ -292,69 +292,72 @@ begin
     end;
 end;
 
-function e_LoadSound(FileName: String; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
+function e_LoadSound(FileName: String; var ID: DWORD; isMusic: Boolean;
+  ForceNoLoop: Boolean): Boolean;
 var
   find_id: DWORD;
   res: FMOD_RESULT;
   bt: Cardinal;
-  ud: Pointer;
+  ud: PDWORD;
 
 begin
   Result := False;
-
   e_WriteLog('Loading sound '+FileName+'...', TMsgType.Notify);
-
   find_id := FindESound();
 
-  if isMusic and not ForceNoLoop then
-    bt := FMOD_LOOP_NORMAL
-  else
-    bt := FMOD_LOOP_OFF;
+  if isMusic and not ForceNoLoop
+    then bt := FMOD_LOOP_NORMAL
+    else bt := FMOD_LOOP_OFF;
 
   if not isMusic then
-    res := FMOD_System_CreateSound(F_System, PAnsiChar(FileName),
-             bt + FMOD_2D + FMOD_HARDWARE,
-             nil, e_SoundsArray[find_id].Sound)
+    res := FMOD_System_CreateSound(F_System, PAnsiChar(FileName), bt or FMOD_2D or FMOD_HARDWARE,
+      nil, e_SoundsArray[find_id].Sound)
   else
-    res := FMOD_System_CreateStream(F_System, PAnsiChar(FileName),
-             bt + FMOD_2D + FMOD_HARDWARE,
-             nil, e_SoundsArray[find_id].Sound);
+    res := FMOD_System_CreateStream(F_System, PAnsiChar(FileName), bt or FMOD_2D or FMOD_HARDWARE,
+      nil, e_SoundsArray[find_id].Sound);
+
   if res <> FMOD_OK then
   begin
     e_SoundsArray[find_id].Sound := nil;
     Exit;
   end;
 
-  GetMem(ud, SizeOf(DWORD));
-  DWORD(ud^) := find_id;
+  New(ud);
+  if ud = nil then
+  begin
+    e_SoundsArray[find_id].Sound := nil;
+    Exit;
+  end;
+
   res := FMOD_Sound_SetUserData(e_SoundsArray[find_id].Sound, ud);
   if res <> FMOD_OK then
   begin
+    Dispose(ud);
     e_SoundsArray[find_id].Sound := nil;
     Exit;
   end;
 
+  ud^ := find_id;
   e_SoundsArray[find_id].Data := nil;
   e_SoundsArray[find_id].isMusic := isMusic;
   e_SoundsArray[find_id].nRefs := 0;
 
   ID := find_id;
-
   Result := True;
 end;
 
-function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean; ForceNoLoop: Boolean = False): Boolean;
+function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean;
+  ForceNoLoop: Boolean): Boolean;
 var
   find_id: DWORD;
   res: FMOD_RESULT;
   sz: Integer;
   bt: Cardinal;
   soundExInfo: FMOD_CREATESOUNDEXINFO;
-  ud: Pointer;
+  ud: PDWORD;
 
 begin
   Result := False;
-
   find_id := FindESound();
 
   sz := SizeOf(FMOD_CREATESOUNDEXINFO);
@@ -362,40 +365,44 @@ begin
   soundExInfo.cbsize := sz;
   soundExInfo.length := Length;
 
-  if isMusic and not ForceNoLoop then
-    bt := FMOD_LOOP_NORMAL
-  else
-    bt := FMOD_LOOP_OFF;
+  if isMusic and not ForceNoLoop
+    then bt := FMOD_LOOP_NORMAL
+    else bt := FMOD_LOOP_OFF;
 
   if not isMusic then
-    res := FMOD_System_CreateSound(F_System, pData,
-             bt + FMOD_2D + FMOD_HARDWARE + FMOD_OPENMEMORY,
-             @soundExInfo, e_SoundsArray[find_id].Sound)
+    res := FMOD_System_CreateSound(F_System, pData, bt or FMOD_2D or FMOD_HARDWARE
+      or FMOD_OPENMEMORY, @soundExInfo, e_SoundsArray[find_id].Sound)
   else
-    res := FMOD_System_CreateStream(F_System, pData,
-             bt + FMOD_2D + FMOD_HARDWARE + FMOD_OPENMEMORY,
-             @soundExInfo, e_SoundsArray[find_id].Sound);
+    res := FMOD_System_CreateStream(F_System, pData, bt or FMOD_2D or FMOD_HARDWARE
+      or FMOD_OPENMEMORY, @soundExInfo, e_SoundsArray[find_id].Sound);
+
   if res <> FMOD_OK then
   begin
     e_SoundsArray[find_id].Sound := nil;
     Exit;
   end;
 
-  GetMem(ud, SizeOf(DWORD));
-  DWORD(ud^) := find_id;
+  New(ud);
+  if ud = nil then
+  begin
+    e_SoundsArray[find_id].Sound := nil;
+    Exit;
+  end;
+
   res := FMOD_Sound_SetUserData(e_SoundsArray[find_id].Sound, ud);
   if res <> FMOD_OK then
   begin
+    Dispose(ud);
     e_SoundsArray[find_id].Sound := nil;
     Exit;
   end;
 
+  ud^ := find_id;
   e_SoundsArray[find_id].Data := pData;
   e_SoundsArray[find_id].isMusic := isMusic;
   e_SoundsArray[find_id].nRefs := 0;
 
   ID := find_id;
-
   Result := True;
 end;
 
@@ -574,19 +581,20 @@ end;
 procedure e_DeleteSound(ID: DWORD);
 var
   res: FMOD_RESULT;
-  ud: Pointer;
+  ud: PDWORD;
 
 begin
   if e_SoundsArray[ID].Sound = nil then
     Exit;
 
-  if e_SoundsArray[ID].Data <> nil then
-    FreeMem(e_SoundsArray[ID].Data);
-
+  FreeMem(e_SoundsArray[ID].Data);
   res := FMOD_Sound_GetUserData(e_SoundsArray[ID].Sound, ud);
   if res = FMOD_OK then
+    Dispose(ud)
+  else
   begin
-    FreeMem(ud);
+    e_WriteLog('Error releasing ID tag for sound:', TMsgType.Warning);;
+    e_WriteLog(FMOD_ErrorString(res), TMsgType.Warning);
   end;
 
   res := FMOD_Sound_Release(e_SoundsArray[ID].Sound);

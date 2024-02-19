@@ -62,9 +62,9 @@ type
     procedure Write(V: SmallInt); overload;
     procedure Write(V: LongInt); overload;
     procedure Write(V: Int64); overload;
-    procedure Write(V: String); overload;
-    procedure Write(V: TMD5Digest); overload;
-    procedure Write(V: TMsg);
+    procedure Write(constref V: String); overload;
+    procedure Write(constref V: TMD5Digest); overload;
+    procedure Write(constref V: TMsg);
   end;
 
 type
@@ -138,6 +138,7 @@ begin
   Data := P;
   MaxSize := N;
   if Full then CurSize := N;
+  OwnMemory := False;
   Result := (N > 0) and (P <> nil);
 end;
 
@@ -165,7 +166,7 @@ begin
   CurSize := CurSize + N;
 end;
 
-procedure TMsg.Write(V: TMsg);
+procedure TMsg.Write(constref V: TMsg);
 begin
   WriteData(V.Data, V.CurSize);
 end;
@@ -211,7 +212,7 @@ begin
   WriteData(@V, 8);
 end;
 
-procedure TMsg.Write(V: AnsiString); overload;
+procedure TMsg.Write(constref V: AnsiString); overload;
 var
   I: Integer;
 begin
@@ -221,7 +222,7 @@ begin
     Write(Byte(V[I]));
 end;
 
-procedure TMsg.Write(V: TMD5Digest); overload;
+procedure TMsg.Write(constref V: TMD5Digest); overload;
 var
   I: Integer;
 begin
