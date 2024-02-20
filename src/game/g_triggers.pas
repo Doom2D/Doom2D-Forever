@@ -667,151 +667,151 @@ var
   TextureID: DWORD;
   Anim: TAnimation;
 begin
-  result := -1;
+  Result := -1;
   TextureID := DWORD(-1);
   snd := 'SOUND_WEAPON_FIREROCKET';
   Projectile := true;
 
   case ShotType of
     TRIGGER_SHOT_PISTOL:
+    begin
+      g_Weapon_pistol(wx, wy, dx, dy, 0, True);
+      snd := 'SOUND_WEAPON_FIREPISTOL';
+      Projectile := False;
+      if ShotSound then
       begin
-        g_Weapon_pistol(wx, wy, dx, dy, 0, True);
-        snd := 'SOUND_WEAPON_FIREPISTOL';
-        Projectile := False;
-        if ShotSound then
-        begin
-          g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
-          if g_Game_IsNet then MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
-        end;
+        g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
+        if g_Game_IsNet then MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
       end;
+    end;
 
     TRIGGER_SHOT_BULLET:
+    begin
+      g_Weapon_mgun(wx, wy, dx, dy, 0, True);
+      if gSoundEffectsDF then snd := 'SOUND_WEAPON_FIRECGUN'
+      else snd := 'SOUND_WEAPON_FIREPISTOL';
+      Projectile := False;
+      if ShotSound then
       begin
-        g_Weapon_mgun(wx, wy, dx, dy, 0, True);
-        if gSoundEffectsDF then snd := 'SOUND_WEAPON_FIRECGUN'
-        else snd := 'SOUND_WEAPON_FIREPISTOL';
-        Projectile := False;
-        if ShotSound then
-        begin
-          g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
-          if g_Game_IsNet then MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
-        end;
+        g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
+        if g_Game_IsNet then MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
       end;
+    end;
 
     TRIGGER_SHOT_SHOTGUN:
+    begin
+      g_Weapon_Shotgun(wx, wy, dx, dy, 0, True);
+      snd := 'SOUND_WEAPON_FIRESHOTGUN';
+      Projectile := False;
+      if ShotSound then
       begin
-        g_Weapon_Shotgun(wx, wy, dx, dy, 0, True);
-        snd := 'SOUND_WEAPON_FIRESHOTGUN';
-        Projectile := False;
-        if ShotSound then
-        begin
-          g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
-          if g_Game_IsNet then MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL2);
-        end;
+        g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
+        if g_Game_IsNet then MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL2);
       end;
+    end;
 
     TRIGGER_SHOT_SSG:
+    begin
+      g_Weapon_DShotgun(wx, wy, dx, dy, 0, True);
+      snd := 'SOUND_WEAPON_FIRESHOTGUN2';
+      Projectile := False;
+      if ShotSound then
       begin
-        g_Weapon_DShotgun(wx, wy, dx, dy, 0, True);
-        snd := 'SOUND_WEAPON_FIRESHOTGUN2';
-        Projectile := False;
-        if ShotSound then
-        begin
-          g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
-          g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
-          if g_Game_IsNet then MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL3);
-        end;
+        g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
+        g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
+        if g_Game_IsNet then MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL3);
       end;
+    end;
 
     TRIGGER_SHOT_IMP:
-      begin
-        g_Weapon_ball1(wx, wy, dx, dy, 0, -1, True, False);
-        snd := 'SOUND_WEAPON_FIREBALL';
-      end;
+    begin
+      g_Weapon_ball1(wx, wy, dx, dy, 0, -1, True, False);
+      snd := 'SOUND_WEAPON_FIREBALL';
+    end;
 
     TRIGGER_SHOT_PLASMA:
-      begin
-        g_Weapon_Plasma(wx, wy, dx, dy, 0, -1, True, False);
-        snd := 'SOUND_WEAPON_FIREPLASMA';
-      end;
+    begin
+      g_Weapon_Plasma(wx, wy, dx, dy, 0, -1, True, False);
+      snd := 'SOUND_WEAPON_FIREPLASMA';
+    end;
 
     TRIGGER_SHOT_SPIDER:
-      begin
-        g_Weapon_aplasma(wx, wy, dx, dy, 0, -1, True, False);
-        snd := 'SOUND_WEAPON_FIREPLASMA';
-      end;
+    begin
+      g_Weapon_aplasma(wx, wy, dx, dy, 0, -1, True, False);
+      snd := 'SOUND_WEAPON_FIREPLASMA';
+    end;
 
     TRIGGER_SHOT_CACO:
-      begin
-        g_Weapon_ball2(wx, wy, dx, dy, 0, -1, True, False);
-        snd := 'SOUND_WEAPON_FIREBALL';
-      end;
+    begin
+      g_Weapon_ball2(wx, wy, dx, dy, 0, -1, True, False);
+      snd := 'SOUND_WEAPON_FIREBALL';
+    end;
 
     TRIGGER_SHOT_BARON:
-      begin
-        g_Weapon_ball7(wx, wy, dx, dy, 0, -1, True, False);
-        snd := 'SOUND_WEAPON_FIREBALL';
-      end;
+    begin
+      g_Weapon_ball7(wx, wy, dx, dy, 0, -1, True, False);
+      snd := 'SOUND_WEAPON_FIREBALL';
+    end;
 
     TRIGGER_SHOT_MANCUB:
-      begin
-        g_Weapon_manfire(wx, wy, dx, dy, 0, -1, True, False);
-        snd := 'SOUND_WEAPON_FIREBALL';
-      end;
+    begin
+      g_Weapon_manfire(wx, wy, dx, dy, 0, -1, True, False);
+      snd := 'SOUND_WEAPON_FIREBALL';
+    end;
 
     TRIGGER_SHOT_REV:
-      begin
-        g_Weapon_revf(wx, wy, dx, dy, 0, ShotTarget, -1, True);
-        snd := 'SOUND_WEAPON_FIREREV';
-      end;
+    begin
+      g_Weapon_revf(wx, wy, dx, dy, 0, ShotTarget, -1, True);
+      snd := 'SOUND_WEAPON_FIREREV';
+    end;
 
     TRIGGER_SHOT_ROCKET:
-      begin
-        g_Weapon_Rocket(wx, wy, dx, dy, 0, -1, True, False);
-        snd := 'SOUND_WEAPON_FIREROCKET';
-      end;
+    begin
+      g_Weapon_Rocket(wx, wy, dx, dy, 0, -1, True, False);
+      snd := 'SOUND_WEAPON_FIREROCKET';
+    end;
 
     TRIGGER_SHOT_BFG:
-      begin
-        g_Weapon_BFGShot(wx, wy, dx, dy, 0, -1, True, False);
-        snd := 'SOUND_WEAPON_FIREBFG';
-      end;
+    begin
+      g_Weapon_BFGShot(wx, wy, dx, dy, 0, -1, True, False);
+      snd := 'SOUND_WEAPON_FIREBFG';
+    end;
 
     TRIGGER_SHOT_EXPL:
+    begin
+      if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
       begin
-        if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
-        begin
-          Anim := TAnimation.Create(TextureID, False, 6);
-          Anim.Blending := False;
-          g_GFX_OnceAnim(wx-64, wy-64, Anim);
-          Anim.Free();
-        end;
-        Projectile := False;
-        g_Weapon_Explode(wx, wy, 60, 0);
-        snd := 'SOUND_WEAPON_EXPLODEROCKET';
+        Anim := TAnimation.Create(TextureID, False, 6);
+        Anim.Blending := False;
+        g_GFX_OnceAnim(wx-64, wy-64, Anim);
+        Anim.Destroy();
       end;
+      Projectile := False;
+      g_Weapon_Explode(wx, wy, 60, 0);
+      snd := 'SOUND_WEAPON_EXPLODEROCKET';
+    end;
 
     TRIGGER_SHOT_BFGEXPL:
+    begin
+      if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_BFG') then
       begin
-        if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_BFG') then
-        begin
-          Anim := TAnimation.Create(TextureID, False, 6);
-          Anim.Blending := False;
-          g_GFX_OnceAnim(wx-64, wy-64, Anim);
-          Anim.Free();
-        end;
-        Projectile := False;
-        g_Weapon_BFG9000(wx, wy, 0);
-        snd := 'SOUND_WEAPON_EXPLODEBFG';
+        Anim := TAnimation.Create(TextureID, False, 6);
+        Anim.Blending := False;
+        g_GFX_OnceAnim(wx-64, wy-64, Anim);
+        Anim.Destroy();
       end;
+      Projectile := False;
+      g_Weapon_BFG9000(wx, wy, 0);
+      snd := 'SOUND_WEAPON_EXPLODEBFG';
+    end;
 
     TRIGGER_SHOT_FLAME:
-      begin
-        g_Weapon_flame(wx, wy, dx, dy, 0, -1, True, False);
-        snd := 'SOUND_GAME_BURNING';
-      end;
+    begin
+      g_Weapon_flame(wx, wy, dx, dy, 0, -1, True, False);
+      snd := 'SOUND_GAME_BURNING';
+    end;
 
-    else exit;
+    else Exit;
   end;
 
   if g_Game_IsNet and g_Game_IsServer then
@@ -819,8 +819,7 @@ begin
     case ShotType of
       TRIGGER_SHOT_EXPL: MH_SEND_Effect(wx, wy, Byte(ShotSound), NET_GFX_EXPLODE);
       TRIGGER_SHOT_BFGEXPL: MH_SEND_Effect(wx, wy, Byte(ShotSound), NET_GFX_BFGEXPL);
-      else
-      begin
+      else begin
         if Projectile then MH_SEND_CreateShot(LastShotID);
         if ShotSound then MH_SEND_Sound(wx, wy, snd);
       end;

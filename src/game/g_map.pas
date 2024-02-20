@@ -1380,7 +1380,9 @@ begin
 
     AREA_REDFLAG, AREA_BLUEFLAG:
     begin
-      if Area.AreaType = AREA_REDFLAG then a := FLAG_RED else a := FLAG_BLUE;
+      if Area.AreaType = AREA_REDFLAG
+        then a := FLAG_RED
+        else a := FLAG_BLUE;
 
       if FlagPoints[a] <> nil then Exit;
 
@@ -2459,6 +2461,8 @@ begin
     Dispose(FlagPoints[FLAG_BLUE]);
     FlagPoints[FLAG_BLUE] := nil;
   end;
+  FreeAndNil(gFlags[FLAG_RED].Animation);
+  FreeAndNil(gFlags[FLAG_BLUE].Animation);
   //DOMFlagPoints := nil;
 
   //gDOMFlags := nil;

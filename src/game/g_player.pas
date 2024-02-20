@@ -582,14 +582,14 @@ var
   gGibs: Array of TGib;
   gShells: Array of TShell;
   gTeamStat: TTeamStat;
-  gFly: Boolean = False;
-  gAimLine: Boolean = False;
-  gChatBubble: Integer = 0;
+  gFly: Boolean;
+  gAimLine: Boolean;
+  gChatBubble: Integer;
   gPlayerIndicator: Integer = 1;
-  gPlayerIndicatorStyle: Integer = 0;
-  gNumBots: Word = 0;
-  gSpectLatchPID1: Word = 0;
-  gSpectLatchPID2: Word = 0;
+  gPlayerIndicatorStyle: Integer;
+  gNumBots: Word;
+  gSpectLatchPID1: Word;
+  gSpectLatchPID2: Word;
   MAX_RUNVEL: Integer = 8;
   VEL_JUMP: Integer = 10;
   SHELL_TIMEOUT: Cardinal = 60000;
@@ -1570,7 +1570,7 @@ begin
 
 // Разрываем связь с прежним трупом:
   i := Player.FCorpse;
-  if (i >= 0) and (i < Length(gCorpses)) then
+  if i in [0..High(gCorpses)] then
   begin
     if (gCorpses[i] <> nil) and (gCorpses[i].FPlayerUID = Player.FUID) then
       gCorpses[i].FPlayerUID := 0;
@@ -1583,7 +1583,7 @@ begin
   begin
     if (FHealth >= -50) or (gGibsCount = 0) then
       begin
-        if (gCorpses = nil) or (Length(gCorpses) = 0) then
+        if Length(gCorpses) = 0 then
           Exit;
 
         ok := False;
@@ -1595,7 +1595,10 @@ begin
           end;
 
         if not ok then
+        begin
           find_id := Random(Length(gCorpses));
+          gCorpses[find_id].Destroy();
+        end;
 
         gCorpses[find_id] := TCorpse.Create(FObj.X, FObj.Y, FModel.Name, FHealth < -20);
         gCorpses[find_id].FColor := FModel.Color;
@@ -1708,116 +1711,112 @@ var
     k: Integer;
   begin
     k := 1 + Random(2);
-    if T = SHELL_BULLET then
-      g_Sound_PlayExAt('SOUND_PLAYER_CASING' + IntToStr(k), X, Y)
-    else
-      g_Sound_PlayExAt('SOUND_PLAYER_SHELL' + IntToStr(k), X, Y);
+    if T = SHELL_BULLET
+      then g_Sound_PlayExAt('SOUND_PLAYER_CASING' + IntToStr(k), X, Y)
+      else g_Sound_PlayExAt('SOUND_PLAYER_SHELL' + IntToStr(k), X, Y);
   end;
 
 begin
-// Куски мяса:
-  if gGibs <> nil then
-    for i := 0 to High(gGibs) do
-      if gGibs[i].alive then
-        with gGibs[i] do
+  // Куски мяса:
+  for i := 0 to High(gGibs) do
+    if gGibs[i].alive then
+      with gGibs[i] do
+      begin
+        Obj.oldX := Obj.X;
+        Obj.oldY := Obj.Y;
+
+        vel := Obj.Vel;
+        mr := g_Obj_Move(@Obj, True, False, True);
+        positionChanged(); // this updates spatial accelerators
+
+        if WordBool(mr and MOVE_FALLOUT) then
         begin
-          Obj.oldX := Obj.X;
-          Obj.oldY := Obj.Y;
-
-          vel := Obj.Vel;
-          mr := g_Obj_Move(@Obj, True, False, True);
-          positionChanged(); // this updates spatial accelerators
-
-          if WordBool(mr and MOVE_FALLOUT) then
-          begin
-            alive := False;
-            Continue;
-          end;
+          alive := False;
+          Continue;
+        end;
 
         // Отлетает от удара о стену/потолок/пол:
-          if WordBool(mr and MOVE_HITWALL) then
-            Obj.Vel.X := -(vel.X div 2);
-          if WordBool(mr and (MOVE_HITCEIL or MOVE_HITLAND)) then
-            Obj.Vel.Y := -(vel.Y div 2);
+        if WordBool(mr and MOVE_HITWALL) then
+          Obj.Vel.X := -(vel.X div 2);
+        if WordBool(mr and (MOVE_HITCEIL or MOVE_HITLAND)) then
+          Obj.Vel.Y := -(vel.Y div 2);
 
-          if (Obj.Vel.X >= 0) then
-          begin // Clockwise
-            RAngle := RAngle + Abs(Obj.Vel.X)*6 + Abs(Obj.Vel.Y);
-            if RAngle >= 360 then
-              RAngle := RAngle mod 360;
-          end else begin // Counter-clockwise
-            RAngle := RAngle - Abs(Obj.Vel.X)*6 - Abs(Obj.Vel.Y);
-            if RAngle < 0 then
-              RAngle := (360 - (Abs(RAngle) mod 360)) mod 360;
-          end;
+        if (Obj.Vel.X >= 0) then
+        begin  // Clockwise
+          RAngle := RAngle + Abs(Obj.Vel.X)*6 + Abs(Obj.Vel.Y);
+          if RAngle >= 360 then
+            RAngle := RAngle mod 360;
+        end
+        else
+        begin  // Counter-clockwise
+          RAngle := RAngle - Abs(Obj.Vel.X)*6 - Abs(Obj.Vel.Y);
+          if RAngle < 0 then
+            RAngle := (360 - (Abs(RAngle) mod 360)) mod 360;
+        end;
 
         // Сопротивление воздуха для куска трупа:
-          if gTime mod (GAME_TICK*3) = 0 then
-            Obj.Vel.X := z_dec(Obj.Vel.X, 1);
-        end;
+        if gTime mod (GAME_TICK*3) = 0 then
+          Obj.Vel.X := z_dec(Obj.Vel.X, 1);
+      end;
 
-// Трупы:
-  if gCorpses <> nil then
-    for i := 0 to High(gCorpses) do
-      if gCorpses[i] <> nil then
-        if gCorpses[i].State = CORPSE_STATE_REMOVEME then
-          begin
-            gCorpses[i].Free();
-            gCorpses[i] := nil;
-          end
-        else
-          gCorpses[i].Update();
+  // Трупы:
+  for i := 0 to High(gCorpses) do
+    if gCorpses[i] <> nil then
+      if gCorpses[i].State = CORPSE_STATE_REMOVEME
+        then FreeAndNil(gCorpses[i])
+        else gCorpses[i].Update();
 
-// Гильзы:
-  if gShells <> nil then
-    for i := 0 to High(gShells) do
-      if gShells[i].alive then
-        with gShells[i] do
+  // Гильзы:
+  for i := 0 to High(gShells) do
+    if gShells[i].alive then
+      with gShells[i] do
+      begin
+        Obj.oldX := Obj.X;
+        Obj.oldY := Obj.Y;
+
+        vel := Obj.Vel;
+        mr := g_Obj_Move(@Obj, True, False, True);
+        positionChanged();  // this updates spatial accelerators
+
+        if WordBool(mr and MOVE_FALLOUT) or (gShells[i].Timeout < gTime) then
         begin
-          Obj.oldX := Obj.X;
-          Obj.oldY := Obj.Y;
-
-          vel := Obj.Vel;
-          mr := g_Obj_Move(@Obj, True, False, True);
-          positionChanged(); // this updates spatial accelerators
-
-          if WordBool(mr and MOVE_FALLOUT) or (gShells[i].Timeout < gTime) then
-          begin
-            alive := False;
-            Continue;
-          end;
+          alive := False;
+          Continue;
+        end;
 
         // Отлетает от удара о стену/потолок/пол:
-          if WordBool(mr and MOVE_HITWALL) then
-          begin
-            Obj.Vel.X := -(vel.X div 2);
-            if not WordBool(mr and MOVE_INWATER) then
-              ShellSound_Bounce(Obj.X, Obj.Y, SType);
-          end;
-          if WordBool(mr and (MOVE_HITCEIL or MOVE_HITLAND)) then
-          begin
-            Obj.Vel.Y := -(vel.Y div 2);
-            if Obj.Vel.X <> 0 then Obj.Vel.X := Obj.Vel.X div 2;
-            if (Obj.Vel.X = 0) and (Obj.Vel.Y = 0) then
-            begin
-              if RAngle mod 90 <> 0 then
-                RAngle := (RAngle div 90) * 90;
-            end
-            else if not WordBool(mr and MOVE_INWATER) then
-              ShellSound_Bounce(Obj.X, Obj.Y, SType);
-          end;
-
-          if (Obj.Vel.X >= 0) then
-          begin // Clockwise
-            RAngle := RAngle + Abs(Obj.Vel.X)*8 + Abs(Obj.Vel.Y);
-            if RAngle >= 360 then
-              RAngle := RAngle mod 360;
-          end else begin // Counter-clockwise
-            RAngle := RAngle - Abs(Obj.Vel.X)*8 - Abs(Obj.Vel.Y);
-            if RAngle < 0 then
-              RAngle := (360 - (Abs(RAngle) mod 360)) mod 360;
-          end;
+        if WordBool(mr and MOVE_HITWALL) then
+        begin
+          Obj.Vel.X := -(vel.X div 2);
+          if not WordBool(mr and MOVE_INWATER) then
+            ShellSound_Bounce(Obj.X, Obj.Y, SType);
         end;
+        if WordBool(mr and (MOVE_HITCEIL or MOVE_HITLAND)) then
+        begin
+          Obj.Vel.Y := -(vel.Y div 2);
+          if Obj.Vel.X <> 0 then Obj.Vel.X := Obj.Vel.X div 2;
+          if (Obj.Vel.X = 0) and (Obj.Vel.Y = 0) then
+          begin
+            if RAngle mod 90 <> 0 then
+              RAngle := (RAngle div 90) * 90;
+          end
+          else if not WordBool(mr and MOVE_INWATER) then
+            ShellSound_Bounce(Obj.X, Obj.Y, SType);
+        end;
+
+        if (Obj.Vel.X >= 0) then
+        begin  // Clockwise
+          RAngle := RAngle + Abs(Obj.Vel.X)*8 + Abs(Obj.Vel.Y);
+          if RAngle >= 360 then
+            RAngle := RAngle mod 360;
+        end
+        else
+        begin  // Counter-clockwise
+          RAngle := RAngle - Abs(Obj.Vel.X)*8 - Abs(Obj.Vel.Y);
+          if RAngle < 0 then
+            RAngle := (360 - (Abs(RAngle) mod 360)) mod 360;
+        end;
+      end;
 end;
 
 
@@ -1868,32 +1867,30 @@ var
   i, fX, fY: Integer;
   a: TDFPoint;
 begin
-  if gGibs <> nil then
-    for i := 0 to High(gGibs) do
-      if gGibs[i].alive then
-        with gGibs[i] do
-        begin
-          if not g_Obj_Collide(sX, sY, sWidth, sHeight, @Obj) then
-            Continue;
+  for i := 0 to High(gGibs) do
+    if gGibs[i].alive then
+      with gGibs[i] do
+      begin
+        if not g_Obj_Collide(sX, sY, sWidth, sHeight, @Obj) then
+          Continue;
 
-          Obj.lerp(gLerpFactor, fX, fY);
+        Obj.lerp(gLerpFactor, fX, fY);
 
-          a.X := Obj.Rect.X+(Obj.Rect.Width div 2);
-          a.y := Obj.Rect.Y+(Obj.Rect.Height div 2);
+        a.X := Obj.Rect.X+(Obj.Rect.Width div 2);
+        a.y := Obj.Rect.Y+(Obj.Rect.Height div 2);
 
-          e_DrawAdv(ID, fX, fY, 0, True, False, RAngle, @a, TMirrorType.None);
+        e_DrawAdv(ID, fX, fY, 0, True, False, RAngle, @a, TMirrorType.None);
 
-          e_Colors := Color;
-          e_DrawAdv(MaskID, fX, fY, 0, True, False, RAngle, @a, TMirrorType.None);
-          e_Colors.R := 255;
-          e_Colors.G := 255;
-          e_Colors.B := 255;
-        end;
+        e_Colors := Color;
+        e_DrawAdv(MaskID, fX, fY, 0, True, False, RAngle, @a, TMirrorType.None);
+        e_Colors.R := 255;
+        e_Colors.G := 255;
+        e_Colors.B := 255;
+      end;
 
-  if gCorpses <> nil then
-    for i := 0 to High(gCorpses) do
-      if gCorpses[i] <> nil then
-        gCorpses[i].Draw();
+  for i := 0 to High(gCorpses) do
+    if gCorpses[i] <> nil then
+      gCorpses[i].Draw();
 end;
 
 procedure g_Player_DrawShells();
@@ -1901,21 +1898,20 @@ var
   i, fX, fY: Integer;
   a: TDFPoint;
 begin
-  if gShells <> nil then
-    for i := 0 to High(gShells) do
-      if gShells[i].alive then
-        with gShells[i] do
-        begin
-          if not g_Obj_Collide(sX, sY, sWidth, sHeight, @Obj) then
-            Continue;
+  for i := 0 to High(gShells) do
+    if gShells[i].alive then
+      with gShells[i] do
+      begin
+        if not g_Obj_Collide(sX, sY, sWidth, sHeight, @Obj) then
+          Continue;
 
-          Obj.lerp(gLerpFactor, fX, fY);
+        Obj.lerp(gLerpFactor, fX, fY);
 
-          a.X := CX;
-          a.Y := CY;
+        a.X := CX;
+        a.Y := CY;
 
-          e_DrawAdv(SpriteID, fX, fY, 0, True, False, RAngle, @a, TMirrorType.None);
-        end;
+        e_DrawAdv(SpriteID, fX, fY, 0, True, False, RAngle, @a, TMirrorType.None);
+      end;
 end;
 
 procedure g_Player_RemoveAllCorpses();
@@ -1923,17 +1919,16 @@ var
   i: Integer;
 begin
   gGibs := nil;
-  gShells := nil;
   SetLength(gGibs, MaxGibs);
+
+  gShells := nil;
   SetLength(gShells, MaxGibs);
+
   CurrentGib := 0;
   CurrentShell := 0;
 
-  if gCorpses <> nil then
-    for i := 0 to High(gCorpses) do
-      gCorpses[i].Free();
-
-  gCorpses := nil;
+  for i := 0 to High(gCorpses) do
+    FreeAndNil(gCorpses[i]);
   SetLength(gCorpses, MaxCorpses);
 end;
 
@@ -1943,12 +1938,14 @@ var
 begin
   // Считаем количество существующих трупов
   count := 0;
-  for i := 0 to High(gCorpses) do if (gCorpses[i] <> nil) then Inc(count);
+  for i := 0 to High(gCorpses) do
+    if (gCorpses[i] <> nil) then
+      count += 1;
 
   // Количество трупов
   utils.writeInt(st, LongInt(count));
 
-  if (count = 0) then exit;
+  if count = 0 then Exit;
 
   // Сохраняем трупы
   for i := 0 to High(gCorpses) do
@@ -1978,9 +1975,10 @@ begin
 
   // Количество трупов:
   count := utils.readLongInt(st);
-  if (count < 0) or (count > Length(gCorpses)) then raise XStreamError.Create('invalid number of corpses');
+  if not (count in [0..High(gCorpses)]) then
+    raise XStreamError.Create('invalid number of corpses');
 
-  if (count = 0) then exit;
+  if (count = 0) then Exit;
 
   // Загружаем трупы
   for i := 0 to count-1 do
@@ -1997,9 +1995,12 @@ begin
 end;
 
 
-{ T P l a y e r : }
+{ TPlayer: }
 
-function TPlayer.isValidViewPort (): Boolean; inline; begin result := (viewPortW > 0) and (viewPortH > 0); end;
+function TPlayer.isValidViewPort (): Boolean; inline;
+begin
+  Result := (viewPortW > 0) and (viewPortH > 0);
+end;
 
 procedure TPlayer.BFGHit();
 begin
@@ -2409,8 +2410,7 @@ begin
   FJetSoundOn.Free();
   FJetSoundOff.Free();
   FModel.Free();
-  if FPunchAnim <> nil then
-    FPunchAnim.Free();
+  FPunchAnim.Free();
 
   inherited;
 end;
@@ -2597,10 +2597,7 @@ begin
       FPunchAnim.Draw(fX+IfThen(Direction = TDirection.D_LEFT, 15-FObj.Rect.X, FObj.Rect.X-15),
                       fY+fSlope+FObj.Rect.Y-11, Mirror);
       if FPunchAnim.played then
-      begin
-        FPunchAnim.Free;
-        FPunchAnim := nil;
-      end;
+        FreeAndNil(FPunchAnim);
     end;
 
     if (FPowerups[MR_INVUL] > gTime) and ((gPlayerDrawn <> Self) or (FSpawnInvul >= gTime)) then
@@ -2620,14 +2617,12 @@ begin
       if (gPlayerDrawn <> nil) and ((Self = gPlayerDrawn) or
          ((FTeam = gPlayerDrawn.Team) and (gGameSettings.GameMode <> GM_DM))) then
       begin
-        if (FPowerups[MR_INVIS] - gTime) <= 2100 then
-          dr := not Odd((FPowerups[MR_INVIS] - gTime) div 300)
-        else
-          dr := True;
-        if dr then
-          FModel.Draw(fX, fY+fSlope, 200)
-        else
-          FModel.Draw(fX, fY+fSlope);
+        if (FPowerups[MR_INVIS] - gTime) <= 2100
+          then dr := not Odd((FPowerups[MR_INVIS] - gTime) div 300)
+          else dr := True;
+        if dr
+          then FModel.Draw(fX, fY+fSlope, 200)
+          else FModel.Draw(fX, fY+fSlope);
       end
       else
         FModel.Draw(fX, fY+fSlope, 255);
@@ -3053,10 +3048,10 @@ var
   id: DWORD;
   st: String;
 begin
-  if FPunchAnim <> nil then begin
+  if FPunchAnim <> nil then
+  begin
     FPunchAnim.reset();
-    FPunchAnim.Free;
-    FPunchAnim := nil;
+    FPunchAnim.Destroy();
   end;
   st := 'FRAMES_PUNCH';
   if R_BERSERK in FInventory then
@@ -3076,8 +3071,8 @@ var
   locobj: TObj;
 begin
   if g_Game_IsClient then Exit;
-// FBFGFireCounter - время перед выстрелом (для BFG)
-// FReloading - время после выстрела (для всего)
+  // FBFGFireCounter - время перед выстрелом (для BFG)
+  // FReloading - время после выстрела (для всего)
 
   if FSpectator then
   begin
@@ -3113,17 +3108,14 @@ begin
         locobj.Accel.X := xd-wx;
         locobj.Accel.y := yd-wy;
 
-        if g_Weapon_Hit(@locobj, 50, FUID, HIT_SOME) <> 0 then
-          g_Sound_PlayExAt('SOUND_WEAPON_HITBERSERK', FObj.X, FObj.Y)
-        else
-          g_Sound_PlayExAt('SOUND_WEAPON_MISSBERSERK', FObj.X, FObj.Y);
+        if g_Weapon_Hit(@locobj, 50, FUID, HIT_SOME) <> 0
+          then g_Sound_PlayExAt('SOUND_WEAPON_HITBERSERK', FObj.X, FObj.Y)
+          else g_Sound_PlayExAt('SOUND_WEAPON_MISSBERSERK', FObj.X, FObj.Y);
 
         if (gFlash = 1) and (FPain < 50) then FPain := min(FPain + 25, 50);
       end
       else
-      begin
         g_Weapon_punch(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, 3, FUID);
-      end;
 
       DidFire := True;
       FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
@@ -3158,8 +3150,11 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-2, SHELL_BULLET);
+        g_Player_CreateShell(
+          GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+          GameVelX, GameVelY-2,
+          SHELL_BULLET
+        );
       end;
 
     WEAPON_SHOTGUN1:
@@ -3199,8 +3194,11 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-2, SHELL_BULLET);
+        g_Player_CreateShell(
+          GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+          GameVelX, GameVelY-2,
+          SHELL_BULLET
+        );
       end;
 
     WEAPON_ROCKETLAUNCHER:
@@ -3245,8 +3243,11 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-2, SHELL_SHELL);
+        g_Player_CreateShell(
+          GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+          GameVelX, GameVelY-2,
+          SHELL_SHELL
+        );
       end;
 
     WEAPON_FLAMETHROWER:
@@ -3283,9 +3284,11 @@ begin
 
   if not f then Exit;
 
-  if (FAngle = 0) or (FAngle = 180) then SetAction(A_ATTACK)
-    else if (FAngle = ANGLE_LEFTDOWN) or (FAngle = ANGLE_RIGHTDOWN) then SetAction(A_ATTACKDOWN)
-      else if (FAngle = ANGLE_LEFTUP) or (FAngle = ANGLE_RIGHTUP) then SetAction(A_ATTACKUP);
+  case FAngle of
+    0, 180: SetAction(A_ATTACK);
+    ANGLE_LEFTDOWN, ANGLE_RIGHTDOWN: SetAction(A_ATTACKDOWN);
+    ANGLE_LEFTUP, ANGLE_RIGHTUP: SetAction(A_ATTACKUP);
+  end;
 end;
 
 function TPlayer.GetAmmoByWeapon(Weapon: Byte): Word;
@@ -4774,7 +4777,7 @@ begin
       Anim := TAnimation.Create(ID, False, 3);
       g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
                      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
-      Anim.Free();
+      Anim.Destroy();
     end;
 
   FSpectator := False;
@@ -4990,7 +4993,7 @@ begin
 
   FObj.X := X-PLAYER_RECT.X;
   FObj.Y := Y-PLAYER_RECT.Y;
-  FObj.oldX := FObj.X; // don't interpolate after respawn
+  FObj.oldX := FObj.X;  // don't interpolate after respawn
   FObj.oldY := FObj.Y;
   if FAlive and FGhost then
   begin
@@ -5013,7 +5016,7 @@ begin
       end
       else
         if dir = 3 then
-        begin // обратное
+        begin  // обратное
           if FDirection = TDirection.D_RIGHT then
           begin
             SetDirection(TDirection.D_LEFT);
@@ -5031,7 +5034,7 @@ begin
   begin
     g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
                    FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
-    Anim.Free();
+    Anim.Destroy();
 
     if g_Game_IsServer and g_Game_IsNet then
       MH_SEND_Effect(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
@@ -5044,10 +5047,9 @@ end;
 
 function nonz(a: Single): Single;
 begin
-  if a <> 0 then
-    Result := a
-  else
-    Result := 1;
+  if a <> 0
+    then Result := a
+    else Result := 1;
 end;
 
 function TPlayer.refreshCorpse(): Boolean;
@@ -5058,8 +5060,7 @@ begin
   FCorpse := -1;
   if FAlive or FSpectator then
     Exit;
-  if (gCorpses = nil) or (Length(gCorpses) = 0) then
-    Exit;
+
   for i := 0 to High(gCorpses) do
     if gCorpses[i] <> nil then
       if gCorpses[i].FPlayerUID = FUID then
@@ -5073,7 +5074,7 @@ end;
 function TPlayer.getCameraObj(): TObj;
 begin
   if (not FAlive) and (not FSpectator) and
-     (FCorpse >= 0) and (FCorpse < Length(gCorpses)) and
+     (FCorpse in [0..High(gCorpses)]) and
      (gCorpses[FCorpse] <> nil) and (gCorpses[FCorpse].FPlayerUID = FUID) then
   begin
     gCorpses[FCorpse].FObj.slopeUpLeft := FObj.slopeUpLeft;
@@ -5356,10 +5357,9 @@ begin
 
     for b := WP_FIRST to WP_LAST do
       if FReloading[b] > 0 then
-        if FNoReload then
-          FReloading[b] := 0
-        else
-          Dec(FReloading[b]);
+        if FNoReload
+          then FReloading[b] := 0
+          else FReloading[b] -= 1;
 
     if FShellTimer > -1 then
       if FShellTimer = 0 then
@@ -5387,19 +5387,20 @@ begin
           xd := wx+IfThen(FDirection = TDirection.D_LEFT, -30, 30);
           yd := wy+firediry();
           g_Weapon_bfgshot(wx, wy, xd, yd, FUID);
-          if NetServer then MH_SEND_PlayerFire(FUID, WEAPON_BFG, wx, wy, xd, yd);
-          if (FAngle = 0) or (FAngle = 180) then SetAction(A_ATTACK)
-            else if (FAngle = ANGLE_LEFTDOWN) or (FAngle = ANGLE_RIGHTDOWN) then SetAction(A_ATTACKDOWN)
-              else if (FAngle = ANGLE_LEFTUP) or (FAngle = ANGLE_RIGHTUP) then SetAction(A_ATTACKUP);
+          if NetServer then MH_SEND_PlayerFire(FUID, WEAPON_BFG, wx, wy, xd, yd, LastShotID);
+          case FAngle of
+            0, 180: SetAction(A_ATTACK);
+            ANGLE_LEFTDOWN, ANGLE_RIGHTDOWN: SetAction(A_ATTACKDOWN);
+            ANGLE_LEFTUP, ANGLE_RIGHTUP: SetAction(A_ATTACKUP);
+          end;
         end;
 
         FReloading[WEAPON_BFG] := WEAPON_RELOAD[WEAPON_BFG];
         FBFGFireCounter := -1;
       end else
-        if FNoReload then
-          FBFGFireCounter := 0
-        else
-          Dec(FBFGFireCounter);
+        if FNoReload
+          then FBFGFireCounter := 0
+          else FBFGFireCounter -= 1;
 
     if (FPowerups[MR_SUIT] < gTime) and AnyServer then
     begin
@@ -5623,7 +5624,7 @@ begin
   FTime[T_USE] := gTime+120;
 end;
 
-procedure TPlayer.NetFire(Wpn: Byte; X, Y, AX, AY: Integer; WID: Integer = -1);
+procedure TPlayer.NetFire(Wpn: Byte; X, Y, AX, AY: Integer; WID: Integer);
 var
   locObj: TObj;
   visible: Boolean = True;
@@ -5653,14 +5654,12 @@ begin
         locobj.Accel.X := xd-wx;
         locobj.Accel.y := yd-wy;
 
-        if g_Weapon_Hit(@locobj, 50, FUID, HIT_SOME) <> 0 then
-          g_Sound_PlayExAt('SOUND_WEAPON_HITBERSERK', FObj.X, FObj.Y)
-        else
-          g_Sound_PlayExAt('SOUND_WEAPON_MISSBERSERK', FObj.X, FObj.Y);
+        if g_Weapon_Hit(@locobj, 50, FUID, HIT_SOME) <> 0
+          then g_Sound_PlayExAt('SOUND_WEAPON_HITBERSERK', FObj.X, FObj.Y)
+          else g_Sound_PlayExAt('SOUND_WEAPON_MISSBERSERK', FObj.X, FObj.Y);
 
-        if gFlash = 1 then
-          if FPain < 50 then
-            FPain := min(FPain + 25, 50);
+        if (gFlash = 1) and (FPain < 50) then
+          FPain := min(FPain + 25, 50);
       end else
         g_Weapon_punch(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, 3, FUID);
     end;
@@ -5685,8 +5684,11 @@ begin
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', GameX, Gamey);
       FFireAngle := FAngle;
-      g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-2, SHELL_BULLET);
+      g_Player_CreateShell(
+        GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+        GameVelX, GameVelY-2,
+        SHELL_BULLET
+      );
     end;
 
     WEAPON_SHOTGUN1:
@@ -5709,8 +5711,11 @@ begin
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', Gamex, Gamey);
       FFireAngle := FAngle;
-      g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-2, SHELL_BULLET);
+      g_Player_CreateShell(
+        GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+        GameVelX, GameVelY-2,
+        SHELL_BULLET
+      );
     end;
 
     WEAPON_ROCKETLAUNCHER:
@@ -5735,8 +5740,11 @@ begin
     begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', Gamex, Gamey);
       FFireAngle := FAngle;
-      g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-2, SHELL_SHELL);
+      g_Player_CreateShell(
+        GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+        GameVelX, GameVelY-2,
+        SHELL_SHELL
+      );
     end;
 
     WEAPON_FLAMETHROWER:
@@ -5749,9 +5757,11 @@ begin
 
   if not visible then Exit;
 
-  if (FAngle = 0) or (FAngle = 180) then SetAction(A_ATTACK)
-    else if (FAngle = ANGLE_LEFTDOWN) or (FAngle = ANGLE_RIGHTDOWN) then SetAction(A_ATTACKDOWN)
-      else if (FAngle = ANGLE_LEFTUP) or (FAngle = ANGLE_RIGHTUP) then SetAction(A_ATTACKUP);
+  case FAngle of
+    0, 180: SetAction(A_ATTACK);
+    ANGLE_LEFTDOWN, ANGLE_RIGHTDOWN: SetAction(A_ATTACKDOWN);
+    ANGLE_LEFTUP, ANGLE_RIGHTUP: SetAction(A_ATTACKUP);
+  end;
 end;
 
 procedure TPlayer.DoLerp(Level: Integer = 2);
@@ -5811,15 +5821,12 @@ begin
 
   if not g_Game_IsServer then Exit;
 
-// Принес чужой флаг на свою базу:
-  if (Flag = FTeam) and
-     (gFlags[Flag].State = FLAG_STATE_NORMAL) and
-     (FFlag <> FLAG_NONE) then
+  // Принес чужой флаг на свою базу:
+  if (Flag = FTeam) and (gFlags[Flag].State = FLAG_STATE_NORMAL) and (FFlag <> FLAG_NONE) then
   begin
-    if FFlag = FLAG_RED then
-      s := _lc[I_PLAYER_FLAG_RED]
-    else
-      s := _lc[I_PLAYER_FLAG_BLUE];
+    if FFlag = FLAG_RED
+      then s := _lc[I_PLAYER_FLAG_RED]
+      else s := _lc[I_PLAYER_FLAG_BLUE];
 
     evtype := FLAG_STATE_SCORED;
 
@@ -5831,11 +5838,10 @@ begin
     g_Game_Message(Format(_lc[I_MESSAGE_FLAG_CAPTURE], [AnsiUpperCase(s)]), 144);
 
     if ((Self = gPlayer1) or (Self = gPlayer2)
-    or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
-    or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam))) then
-      a := 0
-    else
-      a := 1;
+        or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
+        or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam)))
+      then a := 0
+      else a := 1;
 
     if not sound_cap_flag[a].IsPlaying() then
       sound_cap_flag[a].Play();
@@ -5854,14 +5860,12 @@ begin
     Exit;
   end;
 
-// Подобрал свой флаг - вернул его на базу:
-  if (Flag = FTeam) and
-     (gFlags[Flag].State = FLAG_STATE_DROPPED) then
+  // Подобрал свой флаг - вернул его на базу:
+  if (Flag = FTeam) and (gFlags[Flag].State = FLAG_STATE_DROPPED) then
   begin
-    if Flag = FLAG_RED then
-      s := _lc[I_PLAYER_FLAG_RED]
-    else
-      s := _lc[I_PLAYER_FLAG_BLUE];
+    if Flag = FLAG_RED
+      then s := _lc[I_PLAYER_FLAG_RED]
+      else s := _lc[I_PLAYER_FLAG_BLUE];
 
     evtype := FLAG_STATE_RETURNED;
     gFlags[Flag].CaptureTime := 0;
@@ -5872,11 +5876,10 @@ begin
     g_Game_Message(Format(_lc[I_MESSAGE_FLAG_RETURN], [AnsiUpperCase(s)]), 144);
 
     if ((Self = gPlayer1) or (Self = gPlayer2)
-    or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
-    or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam))) then
-      a := 0
-    else
-      a := 1;
+        or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
+        or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam)))
+      then a := 0
+      else a := 1;
 
     if not sound_ret_flag[a].IsPlaying() then
       sound_ret_flag[a].Play();
@@ -5895,10 +5898,9 @@ begin
   begin
     SetFlag(Flag);
 
-    if Flag = FLAG_RED then
-      s := _lc[I_PLAYER_FLAG_RED]
-    else
-      s := _lc[I_PLAYER_FLAG_BLUE];
+    if Flag = FLAG_RED
+      then s := _lc[I_PLAYER_FLAG_RED]
+      else s := _lc[I_PLAYER_FLAG_BLUE];
 
     evtype := FLAG_STATE_CAPTURED;
 
@@ -5909,11 +5911,10 @@ begin
     gFlags[Flag].State := FLAG_STATE_CAPTURED;
 
     if ((Self = gPlayer1) or (Self = gPlayer2)
-    or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
-    or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam))) then
-      a := 0
-    else
-      a := 1;
+        or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
+        or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam)))
+      then a := 0
+      else a := 1;
 
     if not sound_get_flag[a].IsPlaying() then
       sound_get_flag[a].Play();
@@ -5941,7 +5942,7 @@ begin
     else Result := False;
 end;
 
-function TPlayer.DropFlag(Silent: Boolean = True; DoThrow: Boolean = False): Boolean;
+function TPlayer.DropFlag(Silent: Boolean; DoThrow: Boolean): Boolean;
 var
   s: String;
   a: Byte;
@@ -5972,20 +5973,18 @@ begin
 
     positionChanged(); // this updates spatial accelerators
 
-    if FFlag = FLAG_RED then
-      s := _lc[I_PLAYER_FLAG_RED]
-    else
-      s := _lc[I_PLAYER_FLAG_BLUE];
+    if FFlag = FLAG_RED
+      then s := _lc[I_PLAYER_FLAG_RED]
+      else s := _lc[I_PLAYER_FLAG_BLUE];
 
     g_Console_Add(Format(_lc[I_PLAYER_FLAG_DROP], [FName, s]), True);
     g_Game_Message(Format(_lc[I_MESSAGE_FLAG_DROP], [AnsiUpperCase(s)]), 144);
 
     if ((Self = gPlayer1) or (Self = gPlayer2)
-    or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
-    or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam))) then
-      a := 0
-    else
-      a := 1;
+        or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
+        or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam)))
+      then a := 0
+      else a := 1;
 
     if (not Silent) and (not sound_lost_flag[a].IsPlaying()) then
       sound_lost_flag[a].Play();
@@ -6004,10 +6003,10 @@ begin
     g_Console_Add(Format(_lc[I_PLAYER_SECRET], [FName]), True);
     g_Sound_PlayEx('SOUND_GAME_SECRET');
   end;
-  Inc(FSecrets);
+  FSecrets += 1;
 end;
 
-procedure TPlayer.PressKey(Key: Byte; Time: Word = 1);
+procedure TPlayer.PressKey(Key: Byte; Time: Word);
 begin
   Assert(Key <= High(FKeys));
 
@@ -6517,7 +6516,7 @@ begin
       Anim.Alpha := 150;
       g_GFX_OnceAnim(Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(Anim.Width div 2),
                    Obj.Y+Obj.Rect.Height-4+Random(8+Times*2), Anim, ONCEANIM_SMOKE);
-      Anim.Free();
+      Anim.Destroy();
     end;
   end;
 end;
@@ -6538,7 +6537,7 @@ begin
       Anim.Alpha := 0;
       g_GFX_OnceAnim(Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(Anim.Width div 2),
                    Obj.Y+8+Random(8+Times*2), Anim, ONCEANIM_SMOKE);
-      Anim.Free();
+      Anim.Destroy();
     end;
   end;
 end;
@@ -6557,7 +6556,7 @@ begin
   FJetSoundOff.Pause(Enable);
 end;
 
-{ T C o r p s e : }
+{ TCorpse: }
 
 constructor TCorpse.Create(X, Y: Integer; ModelName: String; aMess: Boolean);
 begin
@@ -6569,27 +6568,33 @@ begin
   FMess := aMess;
 
   if FMess then
-    begin
-      FState := CORPSE_STATE_MESS;
-      g_PlayerModel_GetAnim(ModelName, A_DIE2, FAnimation, FAnimationMask);
-    end
+  begin
+    FState := CORPSE_STATE_MESS;
+    g_PlayerModel_GetAnim(ModelName, A_DIE2, FAnimation, FAnimationMask);
+  end
   else
-    begin
-      FState := CORPSE_STATE_NORMAL;
-      g_PlayerModel_GetAnim(ModelName, A_DIE1, FAnimation, FAnimationMask);
-    end;
+  begin
+    FState := CORPSE_STATE_NORMAL;
+    g_PlayerModel_GetAnim(ModelName, A_DIE1, FAnimation, FAnimationMask);
+  end;
 end;
 
 destructor TCorpse.Destroy();
 begin
   FAnimation.Free();
+  FAnimationMask.Free();
 
   inherited;
 end;
 
-function TCorpse.ObjPtr (): PObj; inline; begin result := @FObj; end;
+function TCorpse.ObjPtr (): PObj; inline;
+begin
+  Result := @FObj;
+end;
 
-procedure TCorpse.positionChanged (); inline; begin end;
+procedure TCorpse.positionChanged (); inline;
+begin
+end;
 
 procedure TCorpse.moveBy (dx, dy: Integer); inline;
 begin

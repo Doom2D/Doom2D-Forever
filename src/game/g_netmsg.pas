@@ -155,15 +155,15 @@ procedure MH_RECV_Vote(C: pTNetClient; var M: TMsg);
 // GAME
 procedure MH_SEND_Everything(CreatePlayers: Boolean {= False}; ID: Integer {= NET_EVERYONE});
 procedure MH_SEND_Info(ID: Byte);
-procedure MH_SEND_Chat(Txt: string; Mode: Byte; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_Chat(Txt: String; Mode: Byte; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer = NET_EVERYONE);
-procedure MH_SEND_Sound(X, Y: Integer; Name: string; Pos: Boolean = True; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_Sound(X, Y: Integer; Name: String; Pos: Boolean = True; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_CreateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_UpdateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_DeleteShot(Proj: LongInt; X, Y: LongInt; Loud: Boolean = True; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_GameStats(ID: Integer = NET_EVERYONE);
 procedure MH_SEND_CoopStats(ID: Integer = NET_EVERYONE);
-procedure MH_SEND_GameEvent(EvType: Byte; EvNum: Integer = 0; EvStr: string = 'N'; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_GameEvent(EvType: Byte; EvNum: Integer = 0; EvStr: String = 'N'; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_FlagEvent(EvType: Byte; Flag: Byte; PID: Word; Quiet: Boolean = False; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_FlagPos(Flag: Byte; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_GameSettings(ID: Integer = NET_EVERYONE);
@@ -175,7 +175,7 @@ procedure MH_SEND_PlayerDelete(PID: Word; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_PlayerDamage(PID: Word; Kind: Byte; Attacker, Value: Word; VX, VY: Integer; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_PlayerFire(PID: Word; Weapon: Byte; X, Y, AX, AY: Integer; ShotID: Integer = -1; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_PlayerDeath(PID: Word; KillType, DeathType: Byte; Attacker: Word; ID: Integer = NET_EVERYONE);
-procedure MH_SEND_PlayerSettings(PID: Word; Mdl: string = ''; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PlayerSettings(PID: Word; Mdl: String = ''; ID: Integer = NET_EVERYONE);
 // ITEM
 procedure MH_SEND_ItemSpawn(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_ItemDestroy(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
@@ -194,10 +194,8 @@ procedure MH_SEND_TriggerSound(var T: TTrigger; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_TriggerMusic(ID: Integer = NET_EVERYONE);
 // MISC
 procedure MH_SEND_TimeSync(Time: LongWord; ID: Integer = NET_EVERYONE);
-procedure MH_SEND_VoteEvent(EvType: Byte;
-                            StrArg1: string = 'a'; StrArg2: string = 'b';
-                            IntArg1: SmallInt = 0; IntArg2: SmallInt = 0;
-                            ID: Integer = NET_EVERYONE);
+procedure MH_SEND_VoteEvent(EvType: Byte; StrArg1: String = 'a'; StrArg2: String = 'b';
+  IntArg1: SmallInt = 0; IntArg2: SmallInt = 0; ID: Integer = NET_EVERYONE);
 
 // CLIENT MESSAGES //
 
@@ -244,15 +242,15 @@ procedure MC_RECV_TriggerMusic(var M: TMsg);
 procedure MC_RECV_TimeSync(var M: TMsg);
 procedure MC_RECV_VoteEvent(var M: TMsg);
 // SERVICE
-procedure MC_SEND_Info(Password: string);
-procedure MC_SEND_Chat(Txt: string; Mode: Byte);
+procedure MC_SEND_Info(Password: String);
+procedure MC_SEND_Chat(Txt: String; Mode: Byte);
 procedure MC_SEND_PlayerPos();
 procedure MC_SEND_FullStateRequest();
 procedure MC_SEND_PlayerSettings();
 procedure MC_SEND_CheatRequest(Kind: Byte);
-procedure MC_SEND_RCONPassword(Password: string);
-procedure MC_SEND_RCONCommand(Cmd: string);
-procedure MC_SEND_Vote(Start: Boolean = False; Command: string = 'a');
+procedure MC_SEND_RCONPassword(Password: String);
+procedure MC_SEND_RCONCommand(Cmd: String);
+procedure MC_SEND_Vote(Start: Boolean = False; Command: String = 'a');
 // DOWNLOAD
 //procedure MC_SEND_MapRequest();
 //procedure MC_SEND_ResRequest(const resName: AnsiString);
@@ -260,7 +258,7 @@ procedure MC_SEND_Vote(Start: Boolean = False; Command: string = 'a');
 
 type
   TExternalResourceInfo = record
-    Name: string[255];
+    Name: String[255];
     md5: TMD5Digest;
   end;
 
@@ -322,12 +320,12 @@ var
   I: Integer;
 begin
   Result := False;
-  if not IsValidFileName(S) then exit;
-  if FileExists(S) then exit;
+  if not IsValidFileName(S) then Exit;
+  if FileExists(S) then Exit;
   I := LastDelimiter('\/', S);
   if (I > 0) then
     if (not DirectoryExists(Copy(S, 1, I-1))) then
-      exit;
+      Exit;
   Result := True;
 end;
 
@@ -346,7 +344,7 @@ end;
 
 procedure MH_RECV_Chat(C: pTNetClient; var M: TMsg);
 var
-  Txt: string;
+  Txt: String;
   Mode: Byte;
   PID: Word;
   Pl: TPlayer;
@@ -378,7 +376,7 @@ end;
 
 procedure MH_RECV_Info(C: pTNetClient; var M: TMsg);
 var
-  Ver, PName, Model, Pw: string;
+  Ver, PName, Model, Pw: String;
   R, G, B, T: Byte;
   WeapSwitch: Byte;
   TmpPrefArray: Array [WP_FIRST .. WP_LAST + 1] of Byte;
@@ -531,9 +529,9 @@ procedure MH_ProcessFirstSpawn (C: pTNetClient);
 var
   plr: TPlayer;
 begin
-  if not C.WaitForFirstSpawn then exit;
+  if not C.WaitForFirstSpawn then Exit;
   plr := g_Player_Get(C^.Player);
-  if not assigned(plr) then exit;
+  if not assigned(plr) then Exit;
   g_Net_Slist_ServerPlayerComes();
   e_LogWritefln('*** client #%u (cid #%u) first spawn', [C.ID, C.Player]);
   C.WaitForFirstSpawn := false;
@@ -562,7 +560,7 @@ begin
   begin
     // FullStateRequest spam?
     g_Net_Penalize(C, 'duplicate full state request');
-    exit;
+    Exit;
   end;
 
   if gGameOn then
@@ -719,8 +717,8 @@ end;
 
 procedure MH_RECV_PlayerSettings(C: pTNetClient; var M: TMsg);
 var
-  TmpName: string;
-  TmpModel: string;
+  TmpName: String;
+  TmpModel: String;
   TmpColor: TRGB;
   TmpTeam: Byte;
   TmpWeapSwitch: Byte;
@@ -786,7 +784,7 @@ end;
 
 procedure MH_RECV_RCONPassword(C: pTNetClient; var M: TMsg);
 var
-  Pwd: string;
+  Pwd: String;
   Err: Boolean;
 begin
   Err := False;
@@ -808,7 +806,7 @@ end;
 
 procedure MH_RECV_RCONCommand(C: pTNetClient; var M: TMsg);
 var
-  Cmd: string;
+  Cmd: String;
   Err: Boolean;
 begin
   Err := False;
@@ -832,7 +830,7 @@ end;
 procedure MH_RECV_Vote(C: pTNetClient; var M: TMsg);
 var
   Start: Boolean;
-  Name, Command: string;
+  Name, Command: String;
   Need: Integer;
   Pl: TPlayer;
   Err: Boolean;
@@ -882,7 +880,7 @@ end;
 
 // GAME (SEND)
 
-procedure MH_SEND_Everything(CreatePlayers: Boolean {= False}; ID: Integer {= NET_EVERYONE});
+procedure MH_SEND_Everything(CreatePlayers: Boolean; ID: Integer);
 
   function sendItemRespawn (it: PItem): Boolean;
   begin
@@ -906,8 +904,8 @@ procedure MH_SEND_Everything(CreatePlayers: Boolean {= False}; ID: Integer {= NE
 var
   I: Integer;
 begin
-  if (ID < 0) or (ID >= Length(NetClients)) then
-    exit; // bogus client, this shouldn't happen
+  if not (ID in [0..High(NetClients)]) then
+    Exit;  // bogus client, this shouldn't happen
 
   NetClients[ID].FullUpdateSent := True;
 
@@ -995,9 +993,9 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_Chat(Txt: string; Mode: Byte; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_Chat(Txt: String; Mode: Byte; ID: Integer);
 var
-  Name: string;
+  Name: String;
   i: Integer;
   Team: Byte;
 begin
@@ -1065,7 +1063,7 @@ begin
   end;
 end;
 
-procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_GFX));
   NetOut.Write(Kind);
@@ -1076,7 +1074,7 @@ begin
   g_Net_Host_Send(ID, False);
 end;
 
-procedure MH_SEND_Sound(X, Y: Integer; Name: string; Pos: Boolean = True; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_Sound(X, Y: Integer; Name: String; Pos: Boolean; ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_SND));
   NetOut.Write(Name);
@@ -1092,9 +1090,10 @@ begin
   g_Net_Host_Send(ID, False);
 end;
 
-procedure MH_SEND_CreateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_CreateShot(Proj: LongInt; ID: Integer);
 begin
-  if (Shots = nil) or (Proj < 0) or (Proj > High(Shots)) then Exit;
+  if not (Proj in [0..High(Shots)]) then
+    Exit;
 
   NetOut.Write(Byte(NET_MSG_SHADD));
   NetOut.Write(Proj);
@@ -1110,9 +1109,10 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_UpdateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_UpdateShot(Proj: LongInt; ID: Integer);
 begin
-  if (Shots = nil) or (Proj < 0) or (Proj > High(Shots)) then Exit;
+  if not (Proj in [0..High(Shots)]) then
+    Exit;
 
   NetOut.Write(Byte(NET_MSG_SHPOS));
   NetOut.Write(Proj);
@@ -1124,7 +1124,7 @@ begin
   g_Net_Host_Send(ID, False);
 end;
 
-procedure MH_Send_DeleteShot(Proj: LongInt; X, Y: LongInt; Loud: Boolean = True; ID: Integer = NET_EVERYONE);
+procedure MH_Send_DeleteShot(Proj: LongInt; X, Y: LongInt; Loud: Boolean; ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_SHDEL));
   NetOut.Write(Proj);
@@ -1135,7 +1135,7 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_GameStats(ID: Integer = NET_EVERYONE);
+procedure MH_SEND_GameStats(ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_SCORE));
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
@@ -1153,7 +1153,7 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_CoopStats(ID: Integer = NET_EVERYONE);
+procedure MH_SEND_CoopStats(ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_COOP));
   NetOut.Write(gTotalMonsters);
@@ -1164,7 +1164,7 @@ begin
   NetOut.Write(gCoopTotalSecrets);
 end;
 
-procedure MH_SEND_GameEvent(EvType: Byte; EvNum: Integer = 0; EvStr: string = 'N'; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_GameEvent(EvType: Byte; EvNum: Integer; EvStr: String; ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_GEVENT));
   NetOut.Write(EvType);
@@ -1182,7 +1182,7 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_FlagEvent(EvType: Byte; Flag: Byte; PID: Word; Quiet: Boolean = False; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_FlagEvent(EvType: Byte; Flag: Byte; PID: Word; Quiet: Boolean; ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_FLAG));
   NetOut.Write(EvType);
@@ -1200,7 +1200,7 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_FlagPos(Flag: Byte; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_FlagPos(Flag: Byte; ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_FLAGPOS));
   NetOut.Write(Flag);
@@ -1212,7 +1212,7 @@ begin
   g_Net_Host_Send(ID, False);
 end;
 
-procedure MH_SEND_GameSettings(ID: Integer = NET_EVERYONE);
+procedure MH_SEND_GameSettings(ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_GSET));
   NetOut.Write(gGameSettings.GameMode);
@@ -1226,7 +1226,7 @@ end;
 
 // PLAYER (SEND)
 
-procedure MH_SEND_PlayerCreate(PID: Word; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PlayerCreate(PID: Word; ID: Integer);
 var
   P: TPlayer;
 begin
@@ -1246,7 +1246,7 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_PlayerPos(Reliable: Boolean; PID: Word; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PlayerPos(Reliable: Boolean; PID: Word; ID: Integer);
 var
   kByte: Word;
   Pl: TPlayer;
@@ -1291,7 +1291,7 @@ begin
   g_Net_Host_Send(ID, Reliable);
 end;
 
-procedure MH_SEND_PlayerStats(PID: Word; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PlayerStats(PID: Word; ID: Integer);
 var
   P: TPlayer;
   I: Integer;
@@ -1349,7 +1349,7 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_PlayerDamage(PID: Word; Kind: Byte; Attacker, Value: Word; VX, VY: Integer; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PlayerDamage(PID: Word; Kind: Byte; Attacker, Value: Word; VX, VY: Integer; ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_PLRDMG));
   NetOut.Write(PID);
@@ -1362,7 +1362,7 @@ begin
   g_Net_Host_Send(ID, False);
 end;
 
-procedure MH_SEND_PlayerDeath(PID: Word; KillType, DeathType: Byte; Attacker: Word; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PlayerDeath(PID: Word; KillType, DeathType: Byte; Attacker: Word; ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_PLRDIE));
   NetOut.Write(PID);
@@ -1373,7 +1373,8 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_PlayerFire(PID: Word; Weapon: Byte; X, Y, AX, AY: Integer; ShotID: Integer = -1; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PlayerFire(PID: Word; Weapon: Byte; X, Y, AX, AY: Integer; ShotID: Integer;
+  ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_PLRFIRE));
   NetOut.Write(PID);
@@ -1387,7 +1388,7 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_PlayerDelete(PID: Word; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PlayerDelete(PID: Word; ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_PLRDEL));
   NetOut.Write(PID);
@@ -1395,7 +1396,7 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_PlayerSettings(PID: Word; Mdl: string = ''; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PlayerSettings(PID: Word; Mdl: String; ID: Integer);
 var
   Pl: TPlayer;
 begin
@@ -1405,10 +1406,9 @@ begin
   NetOut.Write(Byte(NET_MSG_PLRSET));
   NetOut.Write(PID);
   NetOut.Write(Pl.Name);
-  if Mdl = '' then
-    NetOut.Write(Pl.Model.Name)
-  else
-    NetOut.Write(Mdl);
+  if Mdl = ''
+    then NetOut.Write(Pl.Model.Name)
+    else NetOut.Write(Mdl);
   NetOut.Write(Pl.FColor.R);
   NetOut.Write(Pl.FColor.G);
   NetOut.Write(Pl.FColor.B);
@@ -1419,7 +1419,7 @@ end;
 
 // ITEM (SEND)
 
-procedure MH_SEND_ItemSpawn(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_ItemSpawn(Quiet: Boolean; IID: Word; ID: Integer);
 var
   it: PItem;
   tt: Byte;
@@ -1442,7 +1442,7 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_ItemDestroy(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_ItemDestroy(Quiet: Boolean; IID: Word; ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_IDEL));
   NetOut.Write(IID);
@@ -1451,7 +1451,7 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_ItemPos(IID: Word; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_ItemPos(IID: Word; ID: Integer);
 var
   it: PItem;
 begin
@@ -1469,12 +1469,12 @@ end;
 
 // PANEL
 
-procedure MH_SEND_PanelTexture(PGUID: Integer; AnimLoop: Byte; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PanelTexture(PGUID: Integer; AnimLoop: Byte; ID: Integer);
 var
   TP: TPanel;
 begin
   TP := g_Map_PanelByGUID(PGUID);
-  if (TP = nil) then exit;
+  if (TP = nil) then Exit;
 
   with TP do
   begin
@@ -1489,13 +1489,13 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_PanelState(PGUID: Integer; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PanelState(PGUID: Integer; ID: Integer);
 var
   TP: TPanel;
   mpflags: Byte = 0;
 begin
   TP := g_Map_PanelByGUID(PGUID);
-  if (TP = nil) then exit;
+  if (TP = nil) then Exit;
 
   NetOut.Write(Byte(NET_MSG_PSTATE));
   NetOut.Write(LongWord(PGUID));
@@ -1525,7 +1525,7 @@ end;
 
 // TRIGGER
 
-procedure MH_SEND_TriggerSound(var T: TTrigger; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_TriggerSound(var T: TTrigger; ID: Integer);
 begin
   if gTriggers = nil then Exit;
   if T.Sound = nil then Exit;
@@ -1539,7 +1539,7 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_TriggerMusic(ID: Integer = NET_EVERYONE);
+procedure MH_SEND_TriggerMusic(ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_TMUSIC));
   NetOut.Write(gMusic.Name);
@@ -1552,7 +1552,7 @@ end;
 
 // MONSTER
 
-procedure MH_SEND_MonsterSpawn(UID: Word; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_MonsterSpawn(UID: Word; ID: Integer);
 var
   M: TMonster;
 begin
@@ -1583,7 +1583,7 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_MonsterPos(UID: Word; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_MonsterPos(UID: Word; ID: Integer);
 var
   M: TMonster;
 begin
@@ -1605,7 +1605,7 @@ begin
   g_Net_Host_Send(ID, False);
 end;
 
-procedure MH_SEND_MonsterState(UID: Word; ForcedAnim: Byte = 255; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_MonsterState(UID: Word; ForcedAnim: Byte; ID: Integer);
 var
   M: TMonster;
 begin
@@ -1632,7 +1632,7 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_MonsterShot(UID: Word; X, Y, VX, VY: Integer; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_MonsterShot(UID: Word; X, Y, VX, VY: Integer; ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_MSHOT));
   NetOut.Write(UID);
@@ -1644,7 +1644,7 @@ begin
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_MonsterDelete(UID: Word; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_MonsterDelete(UID: Word; ID: Integer);
 var
   M: TMonster;
 begin
@@ -1659,7 +1659,7 @@ end;
 
 // MISC
 
-procedure MH_SEND_TimeSync(Time: LongWord; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_TimeSync(Time: LongWord; ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_TIME_SYNC));
   NetOut.Write(Time);
@@ -1667,10 +1667,8 @@ begin
   g_Net_Host_Send(ID, False);
 end;
 
-procedure MH_SEND_VoteEvent(EvType: Byte;
-                            StrArg1: string = 'a'; StrArg2: string = 'b';
-                            IntArg1: SmallInt = 0; IntArg2: SmallInt = 0;
-                            ID: Integer = NET_EVERYONE);
+procedure MH_SEND_VoteEvent(EvType: Byte; StrArg1: String; StrArg2: String; IntArg1: SmallInt;
+  IntArg2: SmallInt; ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_VOTE_EVENT));
   NetOut.Write(EvType);
@@ -1688,7 +1686,7 @@ end;
 
 procedure MC_RECV_Chat(var M: TMsg);
 var
-  Txt: string;
+  Txt: String;
   Mode: Byte;
 begin
   Txt := M.ReadString();
@@ -1824,7 +1822,7 @@ end;
 
 procedure MC_RECV_Sound(var M: TMsg);
 var
-  Name: string;
+  Name: String;
   X, Y: Integer;
   Pos: Boolean;
 begin
@@ -1928,7 +1926,7 @@ procedure MC_RECV_GameEvent(var M: TMsg);
 var
   EvType: Byte;
   EvNum: Integer;
-  EvStr: string;
+  EvStr: String;
   EvTime: LongWord;
   BHash: Boolean;
   EvHash: TMD5Digest;
@@ -1954,7 +1952,7 @@ begin
 
   if (g_Res_received_map_start <> 0) then
   begin
-    if (g_Res_received_map_start < 0) then exit;
+    if (g_Res_received_map_start < 0) then Exit;
     goodCmd := false;
     case EvType of
       NET_EV_MAPSTART: goodCmd := true;
@@ -1963,7 +1961,7 @@ begin
       NET_EV_PLAYER_BAN: goodCmd := true;
       NET_EV_LMS_WARMUP: goodCmd := true;
     end;
-    if not goodCmd then exit;
+    if not goodCmd then Exit;
   end;
 
   case EvType of
@@ -2215,7 +2213,7 @@ var
   EvType: Byte;
   Fl, a: Byte;
   Quiet: Boolean;
-  s, ts: string;
+  s, ts: String;
 begin
   EvType := M.ReadByte();
   Fl := M.ReadByte();
@@ -2380,7 +2378,7 @@ end;
 function MC_RECV_PlayerCreate(var M: TMsg): Word;
 var
   PID, DID: Word;
-  PName, Model: string;
+  PName, Model: String;
   Color: TRGB;
   T: Byte;
   Pl: TPlayer;
@@ -2688,9 +2686,9 @@ end;
 
 procedure MC_RECV_PlayerSettings(var M: TMsg);
 var
-  TmpName: string;
-  TmpModel: string;
-  CheckModel: string;
+  TmpName: String;
+  TmpModel: String;
+  CheckModel: String;
   TmpColor: TRGB;
   TmpTeam: Byte;
   Pl: TPlayer;
@@ -2777,13 +2775,17 @@ var
   ID: Word;
   Quiet: Boolean;
 begin
-  if not gGameOn then Exit;
+  if not gGameOn then
+    Exit;
+
   ID := M.ReadWord();
   Quiet := M.ReadByte() <> 0;
 
-  if not g_Items_ValidId(ID) then exit;
+  if not g_Items_ValidId(ID) then
+    Exit;
 
-  if not Quiet then g_Items_EmitPickupSound(ID);
+  if not Quiet then
+    g_Items_EmitPickupSound(ID);
 
   g_Items_Remove(ID);
 end;
@@ -2873,7 +2875,7 @@ begin
   mpflags := M.ReadByte(); // bit0: TP.movingActive; bit1: TP.moveOnce
 
   TP := g_Map_PanelByGUID(PGUID);
-  if (TP = nil) then exit;
+  if (TP = nil) then Exit;
 
   // update lifts state
   if TP.isGLift then g_Map_SetLiftGUID(PGUID, Lift);
@@ -2945,7 +2947,7 @@ end;
 
 procedure MC_RECV_TriggerMusic(var M: TMsg);
 var
-  MName: string;
+  MName: String;
   MPlaying: Boolean;
   MPos: LongWord;
   MPaused: Boolean;
@@ -3132,7 +3134,7 @@ end;
 procedure MC_RECV_VoteEvent(var M: TMsg);
 var
   EvID: Byte;
-  Str1, Str2: string;
+  Str1, Str2: String;
   Int1, Int2: SmallInt;
 begin
   EvID := M.ReadByte();
@@ -3158,7 +3160,7 @@ end;
 
 // CLIENT SEND
 
-procedure MC_SEND_Info(Password: string);
+procedure MC_SEND_Info(Password: String);
 var i: Integer;
 begin
   NetOut.Clear();
@@ -3181,7 +3183,7 @@ begin
   g_Net_Client_Send(True);
 end;
 
-procedure MC_SEND_Chat(Txt: string; Mode: Byte);
+procedure MC_SEND_Chat(Txt: String; Mode: Byte);
 begin
   NetOut.Write(Byte(NET_MSG_CHAT));
   NetOut.Write(Txt);
@@ -3307,7 +3309,7 @@ begin
   //kDirPrev := gPlayer1.Direction;
 end;
 
-procedure MC_SEND_Vote(Start: Boolean = False; Command: string = 'a');
+procedure MC_SEND_Vote(Start: Boolean; Command: String);
 begin
   NetOut.Write(Byte(NET_MSG_VOTE_EVENT));
   NetOut.Write(Byte(Start));
@@ -3348,14 +3350,14 @@ begin
 
   g_Net_Client_Send(True);
 end;
-procedure MC_SEND_RCONPassword(Password: string);
+procedure MC_SEND_RCONPassword(Password: String);
 begin
   NetOut.Write(Byte(NET_MSG_RCON_AUTH));
   NetOut.Write(Password);
 
   g_Net_Client_Send(True);
 end;
-procedure MC_SEND_RCONCommand(Cmd: string);
+procedure MC_SEND_RCONCommand(Cmd: String);
 begin
   NetOut.Write(Byte(NET_MSG_RCON_CMD));
   NetOut.Write(Cmd);

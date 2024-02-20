@@ -1572,7 +1572,7 @@ begin
 end;
 
 
-procedure g_GFX_OnceAnim (x, y: Integer; Anim: TAnimation; AnimType: Byte = 0);
+procedure g_GFX_OnceAnim (x, y: Integer; Anim: TAnimation; AnimType: Byte);
 var
   find_id: DWORD;
 begin

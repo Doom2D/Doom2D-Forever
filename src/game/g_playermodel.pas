@@ -711,31 +711,33 @@ var
   c: Boolean;
   ID: DWORD;
 begin
+  _Anim := nil;
+  _Mask := nil;
   Result := False;
 
-  if PlayerModelsArray = nil then Exit;
   for a := 0 to High(PlayerModelsArray) do
     if PlayerModelsArray[a].Info.Name = ModelName then
       with PlayerModelsArray[a] do
       begin
-        if Anim in [A_STAND, A_WALK] then c := True else c := False;
+        c := Anim in [A_STAND, A_WALK];
 
         if not g_Frames_Get(ID, Info.Name+'_RIGHTANIM'+IntToStr(Anim)) then
-          if not g_Frames_Get(ID, Info.Name+'_LEFTANIM'+IntToStr(Anim)) then Exit;
+          if not g_Frames_Get(ID, Info.Name+'_LEFTANIM'+IntToStr(Anim)) then
+            Exit;
 
         _Anim := TAnimation.Create(ID, c, ModelSpeed[Anim]);
         _Anim.Speed := ModelSpeed[Anim];
 
         if not g_Frames_Get(ID, Info.Name+'_RIGHTANIM'+IntToStr(Anim)+'_MASK') then
-          if not g_Frames_Get(ID, Info.Name+'_LEFTANIM'+IntToStr(Anim)+'_MASK') then Exit;
+          if not g_Frames_Get(ID, Info.Name+'_LEFTANIM'+IntToStr(Anim)+'_MASK') then
+            Exit;
 
         _Mask := TAnimation.Create(ID, c, ModelSpeed[Anim]);
         _Mask.Speed := ModelSpeed[Anim];
 
-        Break;
+        Result := True;
+        Exit;
       end;
-
-  Result := True;
 end;
 
 function g_PlayerModel_GetGibs(ModelName: string; var Gibs: TGibsArray): Boolean;

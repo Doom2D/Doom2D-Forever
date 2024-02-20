@@ -545,8 +545,8 @@ begin
   yy := y+2;
   for ii := 0 to High(prof.bars) do
   begin
-    e_TextureFontPrintEx(x+2+4*prof.bars[ii].level, yy, Format('%s: %d', [prof.bars[ii].name, prof.bars[ii].value]), gStdFont, 255, 255, 0, 1, false);
-    Inc(yy, 16+2);
+    e_TextureFontPrintEx(x+2+4*prof.bars[ii].level, yy, Format('%s: %d µs', [prof.bars[ii].name, prof.bars[ii].value]), gStdFont, 255, 255, 0, 1, false);
+    yy += 16+2;
   end;
   result := wdt;
 end;

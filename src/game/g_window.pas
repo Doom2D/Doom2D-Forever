@@ -167,17 +167,16 @@ begin
   begin
     if (not wMinimized) then
     begin
-      if gPause or (not gLerpActors) or (gState = STATE_FOLD) then
-        gLerpFactor := 1.0
-      else
-        gLerpFactor := nmin(1.0, (Time - Time_Old) / 28.0);
-      Draw;
-      sys_Repaint
+      if gPause or (not gLerpActors) or (gState = STATE_FOLD)
+        then gLerpFactor := 1.0
+        else gLerpFactor := nmin(1.0, (Time - Time_Old) / 28.0);
+      Draw();
+      sys_Repaint();
     end;
-    Frame := Time
+    Frame := Time;
   end
   else
-    sys_Delay(1);
+    sys_Delay(1);  // force OS context switch to prevent false-positive 100% CPU load
 
   e_SoundUpdate();
 end;
