@@ -140,9 +140,9 @@ begin
     NET_MSG_MSHOT:  MC_RECV_MonsterShot(NetMsg);
     NET_MSG_MDEL:   MC_RECV_MonsterDelete(NetMsg);
 
-    NET_MSG_SHADD:  MC_RECV_CreateShot(NetMsg);
-    NET_MSG_SHPOS:  MC_RECV_UpdateShot(NetMsg);
-    NET_MSG_SHDEL:  MC_RECV_DeleteShot(NetMsg);
+    NET_MSG_PJADD:  MC_RECV_CreateProj(NetMsg);
+    NET_MSG_PJPOS:  MC_RECV_UpdateProj(NetMsg);
+    NET_MSG_PJDEL:  MC_RECV_DeleteProj(NetMsg);
 
     NET_MSG_ISPAWN: MC_RECV_ItemSpawn(NetMsg);
     NET_MSG_IDEL:   MC_RECV_ItemDestroy(NetMsg);

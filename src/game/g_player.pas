@@ -3069,6 +3069,7 @@ var
   f, DidFire: Boolean;
   wx, wy, xd, yd: Integer;
   locobj: TObj;
+  ProjID: SizeInt = -1;
 begin
   if g_Game_IsClient then Exit;
   // FBFGFireCounter - время перед выстрелом (для BFG)
@@ -3204,7 +3205,7 @@ begin
     WEAPON_ROCKETLAUNCHER:
       if FAmmo[A_ROCKETS] > 0 then
       begin
-        g_Weapon_rocket(wx, wy, xd, yd, FUID);
+        ProjID := g_Weapon_rocket(wx, wy, xd, yd, FUID);
         FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
         Dec(FAmmo[A_ROCKETS]);
         FFireAngle := FAngle;
@@ -3215,7 +3216,7 @@ begin
     WEAPON_PLASMA:
       if FAmmo[A_CELLS] > 0 then
       begin
-        g_Weapon_plasma(wx, wy, xd, yd, FUID);
+        ProjID := g_Weapon_plasma(wx, wy, xd, yd, FUID);
         FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
         Dec(FAmmo[A_CELLS]);
         FFireAngle := FAngle;
@@ -3253,8 +3254,8 @@ begin
     WEAPON_FLAMETHROWER:
       if FAmmo[A_FUEL] > 0 then
       begin
-        g_Weapon_flame(wx, wy, xd, yd, FUID);
-        FlamerOn;
+        ProjID := g_Weapon_flame(wx, wy, xd, yd, FUID);
+        FlamerOn();
         FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
         Dec(FAmmo[A_FUEL]);
         FFireAngle := FAngle;
@@ -3263,7 +3264,7 @@ begin
       end
       else
       begin
-        FlamerOff;
+        FlamerOff();
         if g_Game_IsNet and g_Game_IsServer then MH_SEND_PlayerStats(FUID);
       end;
   end;
@@ -3273,7 +3274,7 @@ begin
     if DidFire then
     begin
       if FCurrWeap <> WEAPON_BFG then
-        MH_SEND_PlayerFire(FUID, FCurrWeap, wx, wy, xd, yd, LastShotID)
+        MH_SEND_PlayerFire(FUID, FCurrWeap, wx, wy, xd, yd, ProjID)
       else
         if not FNoReload then
           MH_SEND_Sound(FObj.X, FObj.Y, 'SOUND_WEAPON_STARTFIREBFG');
@@ -5102,6 +5103,7 @@ var
   NetServer: Boolean;
   AnyServer: Boolean;
   SetSpect: Boolean;
+  ProjID: SizeInt;
 begin
   NetServer := g_Game_IsNet and g_Game_IsServer;
   AnyServer := g_Game_IsServer;
@@ -5386,8 +5388,8 @@ begin
           wy := FObj.Y+WEAPONPOINT[FDirection].Y;
           xd := wx+IfThen(FDirection = TDirection.D_LEFT, -30, 30);
           yd := wy+firediry();
-          g_Weapon_bfgshot(wx, wy, xd, yd, FUID);
-          if NetServer then MH_SEND_PlayerFire(FUID, WEAPON_BFG, wx, wy, xd, yd, LastShotID);
+          ProjID := g_Weapon_bfgshot(wx, wy, xd, yd, FUID);
+          if NetServer then MH_SEND_PlayerFire(FUID, WEAPON_BFG, wx, wy, xd, yd, ProjID);
           case FAngle of
             0, 180: SetAction(A_ATTACK);
             ANGLE_LEFTDOWN, ANGLE_RIGHTDOWN: SetAction(A_ATTACKDOWN);

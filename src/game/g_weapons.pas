@@ -24,7 +24,7 @@ uses
 
 
 type
-  TShot = record
+  TProjectile = record
     ShotType: Byte;
     Target: Word;
     SpawnerUID: Word;
@@ -40,8 +40,7 @@ type
 
 
 var
-  Shots: array of TShot;
-  LastShotID: Integer;
+  Projectiles: array of TProjectile;
 
 procedure g_Weapon_LoadData();
 procedure g_Weapon_FreeData();
@@ -49,21 +48,21 @@ procedure g_Weapon_Init();
 procedure g_Weapon_Free();
 function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte; HitCorpses: Boolean = True): Byte;
 function g_Weapon_HitUID(UID: Word; d: Integer; SpawnerUID: Word; t: Byte): Boolean;
-function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, TargetUID: Word; X, Y, XV, YV: Integer): LongWord;
+function g_Weapon_CreateProj(I: SizeInt; ShotType: Byte; Spawner, TargetUID: Word; X, Y, XV, YV: Integer): SizeInt;
 
 procedure g_Weapon_gun(const x, y, xd, yd, v, indmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
 procedure g_Weapon_punch(x, y: Integer; d, SpawnerUID: Word);
 function g_Weapon_chainsaw(x, y: Integer; d, SpawnerUID: Word): Integer;
-procedure g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
-procedure g_Weapon_revf(x, y, xd, yd: Integer; SpawnerUID, TargetUID: Word; WID: Integer = -1; Silent: Boolean = False);
-procedure g_Weapon_flame(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
-procedure g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
-procedure g_Weapon_ball1(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
-procedure g_Weapon_ball2(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
-procedure g_Weapon_ball7(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
-procedure g_Weapon_aplasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
-procedure g_Weapon_manfire(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
-procedure g_Weapon_bfgshot(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False; compat: Boolean = true);
+function g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt = -1; Silent: Boolean = False; compat: Boolean = True): SizeInt;
+function g_Weapon_revf(x, y, xd, yd: Integer; SpawnerUID, TargetUID: Word; WID: SizeInt = -1; Silent: Boolean = False): SizeInt;
+function g_Weapon_flame(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt = -1; Silent: Boolean = False; compat: Boolean = True): SizeInt;
+function g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt = -1; Silent: Boolean = False; compat: Boolean = True): SizeInt;
+function g_Weapon_ball1(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt = -1; Silent: Boolean = False; compat: Boolean = True): SizeInt;
+function g_Weapon_ball2(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt = -1; Silent: Boolean = False; compat: Boolean = True): SizeInt;
+function g_Weapon_ball7(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt = -1; Silent: Boolean = False; compat: Boolean = True): SizeInt;
+function g_Weapon_aplasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt = -1; Silent: Boolean = False; compat: Boolean = True): SizeInt;
+function g_Weapon_manfire(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt = -1; Silent: Boolean = False; compat: Boolean = True): SizeInt;
+function g_Weapon_bfgshot(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt = -1; Silent: Boolean = False; compat: Boolean = True): SizeInt;
 procedure g_Weapon_bfghit(x, y: Integer);
 procedure g_Weapon_pistol(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Boolean = False);
 procedure g_Weapon_mgun(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Boolean = False);
@@ -76,7 +75,7 @@ procedure g_Weapon_PreUpdate();
 procedure g_Weapon_Update();
 procedure g_Weapon_Draw();
 function g_Weapon_Danger(UID: Word; X, Y: Integer; Width, Height: Word; Time: Byte): Boolean;
-procedure g_Weapon_DestroyShot(I: Integer; X, Y: Integer; Loud: Boolean = True);
+procedure g_Weapon_DestroyProj(I: Integer; X, Y: Integer; Loud: Boolean = True);
 
 procedure g_Weapon_SaveState (st: TStream);
 procedure g_Weapon_LoadState (st: TStream);
@@ -227,30 +226,17 @@ begin
 end;
 
 
-function FindShot(): DWORD;
-var
-  i: Integer;
+function FindProjectileSlot(): SizeInt;
 begin
-  for i := 0 to High(Shots) do
-    if Shots[i].ShotType = 0 then
-    begin
-      Result := i;
-      LastShotID := Result;
+  for Result := 0 to High(Projectiles) do
+    if Projectiles[Result].ShotType = 0 then
       Exit;
-    end;
 
-  if Shots = nil then
-  begin
-    SetLength(Shots, 128);
-    Result := 0;
-  end
-  else
-  begin
-    Result := High(Shots) + 1;
-    SetLength(Shots, Length(Shots) + 128);
-  end;
+  if Projectiles = nil
+    then Result := 0
+    else Result := Length(Projectiles);
 
-  LastShotID := Result;
+  SetLength(Projectiles, Result + 128);
 end;
 
 procedure CreateWaterMap();
@@ -372,7 +358,7 @@ begin
     for b := 0 to High(WaterMap[a]) do
     begin
       pan := gWater[WaterMap[a][b]];
-      if not g_Obj_Collide(pan.X, pan.Y, pan.Width, pan.Height, @Shots[ID].Obj) then continue;
+      if not g_Obj_Collide(pan.X, pan.Y, pan.Width, pan.Height, @Projectiles[ID].Obj) then continue;
 
       for c := 0 to High(WaterMap[a]) do
       begin
@@ -400,9 +386,9 @@ begin
       end;
 
       for f := 0 to plaCount-1 do
-        gPlayers[chkTrap_pl[f]].Damage(dm, Shots[ID].SpawnerUID, 0, 0, t);
+        gPlayers[chkTrap_pl[f]].Damage(dm, Projectiles[ID].SpawnerUID, 0, 0, t);
       for f := 0 to mnaCount-1 do
-        chkTrap_mn[f].Damage(dm, 0, 0, Shots[ID].SpawnerUID, t);
+        chkTrap_mn[f].Damage(dm, 0, 0, Projectiles[ID].SpawnerUID, t);
     end;
   end;
 
@@ -562,24 +548,23 @@ begin
   g_Mons_ForEachAlive(monsCheck);
 end;
 
-function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, TargetUID: Word; X, Y, XV, YV: Integer): LongWord;
+function g_Weapon_CreateProj(I: SizeInt; ShotType: Byte; Spawner, TargetUID: Word; X, Y, XV, YV: Integer): SizeInt;
 var
-  find_id: DWord;
   FramesID: DWORD = 0;
 begin
   if I < 0 then
-    find_id := FindShot()
+    Result := FindProjectileSlot()
   else
   begin
-    find_id := I;
-    if Integer(find_id) >= High(Shots) then
-      SetLength(Shots, find_id + 64)
+    Result := I;
+    if Result >= High(Projectiles) then
+      SetLength(Projectiles, Result + 64)
   end;
 
   case ShotType of
     WEAPON_ROCKETLAUNCHER:
     begin
-      with Shots[find_id] do
+      with Projectiles[Result] do
       begin
         g_Obj_Init(@Obj);
 
@@ -595,7 +580,7 @@ begin
 
     WEAPON_PLASMA:
     begin
-      with Shots[find_id] do
+      with Projectiles[Result] do
       begin
         g_Obj_Init(@Obj);
 
@@ -611,7 +596,7 @@ begin
 
     WEAPON_BFG:
     begin
-      with Shots[find_id] do
+      with Projectiles[Result] do
       begin
         g_Obj_Init(@Obj);
 
@@ -627,7 +612,7 @@ begin
 
     WEAPON_FLAMETHROWER:
     begin
-      with Shots[find_id] do
+      with Projectiles[Result] do
       begin
         g_Obj_Init(@Obj);
 
@@ -644,7 +629,7 @@ begin
 
     WEAPON_IMP_FIRE:
     begin
-      with Shots[find_id] do
+      with Projectiles[Result] do
       begin
         g_Obj_Init(@Obj);
 
@@ -660,7 +645,7 @@ begin
 
     WEAPON_CACO_FIRE:
     begin
-      with Shots[find_id] do
+      with Projectiles[Result] do
       begin
         g_Obj_Init(@Obj);
 
@@ -676,7 +661,7 @@ begin
 
     WEAPON_MANCUB_FIRE:
     begin
-      with Shots[find_id] do
+      with Projectiles[Result] do
       begin
         g_Obj_Init(@Obj);
 
@@ -692,7 +677,7 @@ begin
 
     WEAPON_BARON_FIRE:
     begin
-      with Shots[find_id] do
+      with Projectiles[Result] do
       begin
         g_Obj_Init(@Obj);
 
@@ -708,7 +693,7 @@ begin
 
     WEAPON_BSP_FIRE:
     begin
-      with Shots[find_id] do
+      with Projectiles[Result] do
       begin
         g_Obj_Init(@Obj);
 
@@ -724,7 +709,7 @@ begin
 
     WEAPON_SKEL_FIRE:
     begin
-      with Shots[find_id] do
+      with Projectiles[Result] do
       begin
         g_Obj_Init(@Obj);
 
@@ -740,21 +725,19 @@ begin
     end;
   end;
 
-  Shots[find_id].Obj.oldX := X;
-  Shots[find_id].Obj.oldY := Y;
-  Shots[find_id].Obj.X := X;
-  Shots[find_id].Obj.Y := Y;
-  Shots[find_id].Obj.Vel.X := XV;
-  Shots[find_id].Obj.Vel.Y := YV;
-  Shots[find_id].Obj.Accel.X := 0;
-  Shots[find_id].Obj.Accel.Y := 0;
-  Shots[find_id].SpawnerUID := Spawner;
+  Projectiles[Result].Obj.oldX := X;
+  Projectiles[Result].Obj.oldY := Y;
+  Projectiles[Result].Obj.X := X;
+  Projectiles[Result].Obj.Y := Y;
+  Projectiles[Result].Obj.Vel.X := XV;
+  Projectiles[Result].Obj.Vel.Y := YV;
+  Projectiles[Result].Obj.Accel.X := 0;
+  Projectiles[Result].Obj.Accel.Y := 0;
+  Projectiles[Result].SpawnerUID := Spawner;
 
   if (ShotType = WEAPON_FLAMETHROWER) and (XV = 0) and (YV = 0)
-    then Shots[find_id].Stopped := 255
-    else Shots[find_id].Stopped := 0;
-
-  Result := find_id;
+    then Projectiles[Result].Stopped := 255
+    else Projectiles[Result].Stopped := 0;
 end;
 
 procedure throw(i, x, y, xd, yd, s: Integer);
@@ -768,23 +751,23 @@ begin
   if a = 0 then
     a := 1;
 
-  Shots[i].Obj.oldX := x;
-  Shots[i].Obj.oldY := y;
-  Shots[i].Obj.X := x;
-  Shots[i].Obj.Y := y;
-  Shots[i].Obj.Vel.X := (xd*s) div a;
-  Shots[i].Obj.Vel.Y := (yd*s) div a;
-  Shots[i].Obj.Accel.X := 0;
-  Shots[i].Obj.Accel.Y := 0;
-  Shots[i].Stopped := 0;
+  Projectiles[i].Obj.oldX := x;
+  Projectiles[i].Obj.oldY := y;
+  Projectiles[i].Obj.X := x;
+  Projectiles[i].Obj.Y := y;
+  Projectiles[i].Obj.Vel.X := (xd*s) div a;
+  Projectiles[i].Obj.Vel.Y := (yd*s) div a;
+  Projectiles[i].Obj.Accel.X := 0;
+  Projectiles[i].Obj.Accel.Y := 0;
+  Projectiles[i].Stopped := 0;
 
-  if Shots[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_BFG] then
-    Shots[i].Timeout := 900 // ~25 sec
+  if Projectiles[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_BFG] then
+    Projectiles[i].Timeout := 900 // ~25 sec
   else
   begin
-    if Shots[i].ShotType = WEAPON_FLAMETHROWER
-      then Shots[i].Timeout := SHOT_FLAME_LIFETIME
-      else Shots[i].Timeout := 550; // ~15 sec
+    if Projectiles[i].ShotType = WEAPON_FLAMETHROWER
+      then Projectiles[i].Timeout := SHOT_FLAME_LIFETIME
+      else Projectiles[i].Timeout := 550; // ~15 sec
   end;
 end;
 
@@ -1102,10 +1085,10 @@ procedure g_Weapon_Free();
 var
   i: Integer;
 begin
-  for i := 0 to High(Shots) do
-    Shots[i].Animation.Free();
+  for i := 0 to High(Projectiles) do
+    Projectiles[i].Animation.Free();
 
-  Shots := nil;
+  Projectiles := nil;
   WaterMap := nil;
 end;
 
@@ -1659,22 +1642,21 @@ begin
   Result := g_Weapon_Hit(@obj, d, SpawnerUID, HIT_SOME);
 end;
 
-procedure g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer; Silent: Boolean;
-  compat: Boolean);
+function g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
+  compat: Boolean): SizeInt;
 var
-  find_id: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
-    find_id := FindShot()
+    Result := FindProjectileSlot()
   else
   begin
-    find_id := WID;
-    if Integer(find_id) >= High(Shots) then
-      SetLength(Shots, find_id + 64)
+    Result := WID;
+    if Result >= High(Projectiles) then
+      SetLength(Projectiles, Result + 64)
   end;
 
-  with Shots[find_id] do
+  with Projectiles[Result] do
   begin
     g_Obj_Init(@Obj);
 
@@ -1687,35 +1669,35 @@ begin
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_ROCKETLAUNCHER;
-    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 12);
+    throw(Result, x+dx, y+dy, xd+dx, yd+dy, 12);
 
     Animation := nil;
     triggers := nil;
     g_Texture_Get('TEXTURE_WEAPON_ROCKET', TextureID);
   end;
 
-  Shots[find_id].SpawnerUID := SpawnerUID;
+  Projectiles[Result].SpawnerUID := SpawnerUID;
 
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREROCKET', x, y);
 end;
 
-procedure g_Weapon_revf(x, y, xd, yd: Integer; SpawnerUID, TargetUID: Word; WID: Integer;
-  Silent: Boolean);
+function g_Weapon_revf(x, y, xd, yd: Integer; SpawnerUID, TargetUID: Word; WID: SizeInt;
+  Silent: Boolean): SizeInt;
 var
-  find_id, FramesID: DWORD;
+  FramesID: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
-    find_id := FindShot()
+    Result := FindProjectileSlot()
   else
   begin
-    find_id := WID;
-    if Integer(find_id) >= High(Shots) then
-      SetLength(Shots, find_id + 64)
+    Result := WID;
+    if Result >= High(Projectiles) then
+      SetLength(Projectiles, Result + 64)
   end;
 
-  with Shots[find_id] do
+  with Projectiles[Result] do
   begin
     g_Obj_Init(@Obj);
 
@@ -1726,7 +1708,7 @@ begin
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_SKEL_FIRE;
-    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 12);
+    throw(Result, x+dx, y+dy, xd+dx, yd+dy, 12);
 
     triggers := nil;
     target := TargetUID;
@@ -1734,28 +1716,28 @@ begin
     Animation := TAnimation.Create(FramesID, True, 5);
   end;
 
-  Shots[find_id].SpawnerUID := SpawnerUID;
+  Projectiles[Result].SpawnerUID := SpawnerUID;
 
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREREV', x, y);
 end;
 
-procedure g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer; Silent: Boolean;
-  compat: Boolean);
+function g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
+  compat: Boolean): SizeInt;
 var
-  find_id, FramesID: DWORD;
+  FramesID: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
-    find_id := FindShot()
+    Result := FindProjectileSlot()
   else
   begin
-    find_id := WID;
-    if Integer(find_id) >= High(Shots) then
-      SetLength(Shots, find_id + 64);
+    Result := WID;
+    if Result >= High(Projectiles) then
+      SetLength(Projectiles, Result + 64);
   end;
 
-  with Shots[find_id] do
+  with Projectiles[Result] do
   begin
     g_Obj_Init(@Obj);
 
@@ -1768,35 +1750,34 @@ begin
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_PLASMA;
-    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+    throw(Result, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
     g_Frames_Get(FramesID, 'FRAMES_WEAPON_PLASMA');
     Animation := TAnimation.Create(FramesID, True, 5);
   end;
 
-  Shots[find_id].SpawnerUID := SpawnerUID;
+  Projectiles[Result].SpawnerUID := SpawnerUID;
 
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREPLASMA', x, y);
 end;
 
-procedure g_Weapon_flame(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer; Silent: Boolean;
-  compat: Boolean);
+function g_Weapon_flame(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
+  compat: Boolean): SizeInt;
 var
-  find_id: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
-    find_id := FindShot()
+    Result := FindProjectileSlot()
   else
   begin
-    find_id := WID;
-    if Integer(find_id) >= High(Shots) then
-      SetLength(Shots, find_id + 64);
+    Result := WID;
+    if Result >= High(Projectiles) then
+      SetLength(Projectiles, Result + 64);
   end;
 
-  with Shots[find_id] do
+  with Projectiles[Result] do
   begin
     g_Obj_Init(@Obj);
 
@@ -1809,7 +1790,7 @@ begin
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_FLAMETHROWER;
-    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+    throw(Result, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
     Animation := nil;
@@ -1817,28 +1798,28 @@ begin
     g_Frames_Get(TextureID, 'FRAMES_FLAME');
   end;
 
-  Shots[find_id].SpawnerUID := SpawnerUID;
+  Projectiles[Result].SpawnerUID := SpawnerUID;
 
   // if not Silent then
   //  g_Sound_PlayExAt('SOUND_WEAPON_FIREPLASMA', x, y);
 end;
 
-procedure g_Weapon_ball1(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer; Silent: Boolean;
-  compat: Boolean);
+function g_Weapon_ball1(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
+  compat: Boolean): SizeInt;
 var
-  find_id, FramesID: DWORD;
+  FramesID: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
-    find_id := FindShot()
+    Result := FindProjectileSlot()
   else
   begin
-    find_id := WID;
-    if Integer(find_id) >= High(Shots) then
-      SetLength(Shots, find_id + 64)
+    Result := WID;
+    if Result >= High(Projectiles) then
+      SetLength(Projectiles, Result + 64)
   end;
 
-  with Shots[find_id] do
+  with Projectiles[Result] do
   begin
     g_Obj_Init(@Obj);
 
@@ -1851,35 +1832,35 @@ begin
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_IMP_FIRE;
-    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+    throw(Result, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
     g_Frames_Get(FramesID, 'FRAMES_WEAPON_IMPFIRE');
     Animation := TAnimation.Create(FramesID, True, 4);
   end;
 
-  Shots[find_id].SpawnerUID := SpawnerUID;
+  Projectiles[Result].SpawnerUID := SpawnerUID;
 
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
 end;
 
-procedure g_Weapon_ball2(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer; Silent: Boolean;
-  compat: Boolean);
+function g_Weapon_ball2(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
+  compat: Boolean): SizeInt;
 var
-  find_id, FramesID: DWORD;
+  FramesID: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
-    find_id := FindShot()
+    Result := FindProjectileSlot()
   else
   begin
-    find_id := WID;
-    if Integer(find_id) >= High(Shots) then
-      SetLength(Shots, find_id + 64)
+    Result := WID;
+    if Result >= High(Projectiles) then
+      SetLength(Projectiles, Result + 64)
   end;
 
-  with Shots[find_id] do
+  with Projectiles[Result] do
   begin
     g_Obj_Init(@Obj);
 
@@ -1892,35 +1873,35 @@ begin
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_CACO_FIRE;
-    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+    throw(Result, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
     g_Frames_Get(FramesID, 'FRAMES_WEAPON_CACOFIRE');
     Animation := TAnimation.Create(FramesID, True, 4);
   end;
 
-  Shots[find_id].SpawnerUID := SpawnerUID;
+  Projectiles[Result].SpawnerUID := SpawnerUID;
 
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
 end;
 
-procedure g_Weapon_ball7(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer; Silent: Boolean;
-  compat: Boolean);
+function g_Weapon_ball7(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
+  compat: Boolean): SizeInt;
 var
-  find_id, FramesID: DWORD;
+  FramesID: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
-    find_id := FindShot()
+    Result := FindProjectileSlot()
   else
   begin
-    find_id := WID;
-    if Integer(find_id) >= High(Shots) then
-      SetLength(Shots, find_id + 64)
+    Result := WID;
+    if Result >= High(Projectiles) then
+      SetLength(Projectiles, Result + 64)
   end;
 
-  with Shots[find_id] do
+  with Projectiles[Result] do
   begin
     g_Obj_Init(@Obj);
 
@@ -1933,35 +1914,35 @@ begin
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_BARON_FIRE;
-    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+    throw(Result, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
     g_Frames_Get(FramesID, 'FRAMES_WEAPON_BARONFIRE');
     Animation := TAnimation.Create(FramesID, True, 4);
   end;
 
-  Shots[find_id].SpawnerUID := SpawnerUID;
+  Projectiles[Result].SpawnerUID := SpawnerUID;
 
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
 end;
 
-procedure g_Weapon_aplasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer; Silent: Boolean;
-  compat: Boolean);
+function g_Weapon_aplasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
+  compat: Boolean): SizeInt;
 var
-  find_id, FramesID: DWORD;
+  FramesID: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
-    find_id := FindShot()
+    Result := FindProjectileSlot()
   else
   begin
-    find_id := WID;
-    if Integer(find_id) >= High(Shots) then
-      SetLength(Shots, find_id + 64)
+    Result := WID;
+    if Result >= High(Projectiles) then
+      SetLength(Projectiles, Result + 64)
   end;
 
-  with Shots[find_id] do
+  with Projectiles[Result] do
   begin
     g_Obj_Init(@Obj);
 
@@ -1974,7 +1955,7 @@ begin
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_BSP_FIRE;
-    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+    throw(Result, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
 
@@ -1982,28 +1963,28 @@ begin
     Animation := TAnimation.Create(FramesID, True, 4);
   end;
 
-  Shots[find_id].SpawnerUID := SpawnerUID;
+  Projectiles[Result].SpawnerUID := SpawnerUID;
 
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREPLASMA', x, y);
 end;
 
-procedure g_Weapon_manfire(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer; Silent: Boolean;
-  compat: Boolean);
+function g_Weapon_manfire(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
+  compat: Boolean): SizeInt;
 var
-  find_id, FramesID: DWORD;
+  FramesID: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
-    find_id := FindShot()
+    Result := FindProjectileSlot()
   else
   begin
-    find_id := WID;
-    if Integer(find_id) >= High(Shots) then
-      SetLength(Shots, find_id + 64)
+    Result := WID;
+    if Result >= High(Projectiles) then
+      SetLength(Projectiles, Result + 64)
   end;
 
-  with Shots[find_id] do
+  with Projectiles[Result] do
   begin
     g_Obj_Init(@Obj);
 
@@ -2016,7 +1997,7 @@ begin
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_MANCUB_FIRE;
-    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+    throw(Result, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
 
@@ -2024,28 +2005,28 @@ begin
     Animation := TAnimation.Create(FramesID, True, 4);
   end;
 
-  Shots[find_id].SpawnerUID := SpawnerUID;
+  Projectiles[Result].SpawnerUID := SpawnerUID;
 
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
 end;
 
-procedure g_Weapon_bfgshot(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer; Silent: Boolean;
-  compat: Boolean);
+function g_Weapon_bfgshot(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
+  compat: Boolean): SizeInt;
 var
-  find_id, FramesID: DWORD;
+  FramesID: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
-    find_id := FindShot()
+    Result := FindProjectileSlot()
   else
   begin
-    find_id := WID;
-    if Integer(find_id) >= High(Shots) then
-      SetLength(Shots, find_id + 64)
+    Result := WID;
+    if Result >= High(Projectiles) then
+      SetLength(Projectiles, Result + 64)
   end;
 
-  with Shots[find_id] do
+  with Projectiles[Result] do
   begin
     g_Obj_Init(@Obj);
 
@@ -2058,14 +2039,14 @@ begin
     dy := -(Obj.Rect.Height div 2);
 
     ShotType := WEAPON_BFG;
-    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+    throw(Result, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
     g_Frames_Get(FramesID, 'FRAMES_WEAPON_BFG');
     Animation := TAnimation.Create(FramesID, True, 6);
   end;
 
-  Shots[find_id].SpawnerUID := SpawnerUID;
+  Projectiles[Result].SpawnerUID := SpawnerUID;
 
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREBFG', x, y);
@@ -2162,12 +2143,11 @@ procedure g_Weapon_PreUpdate();
 var
   i: Integer;
 begin
-  if Shots = nil then Exit;
-  for i := 0 to High(Shots) do
-    if Shots[i].ShotType <> 0 then
+  for i := 0 to High(Projectiles) do
+    if Projectiles[i].ShotType <> 0 then
     begin
-      Shots[i].Obj.oldX := Shots[i].Obj.X;
-      Shots[i].Obj.oldY := Shots[i].Obj.Y;
+      Projectiles[i].Obj.oldX := Projectiles[i].Obj.X;
+      Projectiles[i].Obj.oldY := Projectiles[i].Obj.Y;
     end;
 end;
 
@@ -2186,14 +2166,14 @@ var
 label
   finish_update;  // uhh, FreePascal doesn't have a 'break' for 'case of'
 begin
-  for i := 0 to High(Shots) do
+  for i := 0 to High(Projectiles) do
   begin
-    if Shots[i].ShotType = 0 then
+    if Projectiles[i].ShotType = 0 then
       Continue;
 
     Loud := True;
 
-    with Shots[i] do
+    with Projectiles[i] do
     begin
       Timeout -= 1;
       oldvx := Obj.Vel.X;
@@ -2551,12 +2531,12 @@ finish_update:
       if ShotType = 0 then
       begin
         if gGameSettings.GameType = GT_SERVER then
-          MH_SEND_DeleteShot(i, Obj.X, Obj.Y, Loud);
+          MH_SEND_DeleteProj(i, Obj.X, Obj.Y, Loud);
         FreeAndNil(Animation);
       end
       else if (ShotType <> WEAPON_FLAMETHROWER) and ((oldvx <> Obj.Vel.X) or (oldvy <> Obj.Vel.Y)) then
         if gGameSettings.GameType = GT_SERVER then
-          MH_SEND_UpdateShot(i);
+          MH_SEND_UpdateProj(i);
     end;
   end;
 end;
@@ -2567,11 +2547,11 @@ var
   a: SmallInt;
   p: TDFPoint;
 begin
-  for i := 0 to High(Shots) do
-    if Shots[i].ShotType <> 0 then
-      with Shots[i] do
+  for i := 0 to High(Projectiles) do
+    if Projectiles[i].ShotType <> 0 then
+      with Projectiles[i] do
       begin
-        if (Shots[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_BARON_FIRE, WEAPON_MANCUB_FIRE,
+        if (Projectiles[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_BARON_FIRE, WEAPON_MANCUB_FIRE,
             WEAPON_SKEL_FIRE])
           then a := -GetAngle2(Obj.Vel.X, Obj.Vel.Y)
           else a := 0;
@@ -2580,7 +2560,7 @@ begin
         p.X := Obj.Rect.Width div 2;
         p.Y := Obj.Rect.Height div 2;
 
-        if Shots[i].ShotType = WEAPON_BFG then
+        if Projectiles[i].ShotType = WEAPON_BFG then
         begin
           fX -= 6;
           fY -= 7;
@@ -2588,15 +2568,15 @@ begin
 
         if Animation <> nil then
           begin
-            if Shots[i].ShotType in [WEAPON_BARON_FIRE, WEAPON_MANCUB_FIRE, WEAPON_SKEL_FIRE]
+            if Projectiles[i].ShotType in [WEAPON_BARON_FIRE, WEAPON_MANCUB_FIRE, WEAPON_SKEL_FIRE]
               then Animation.DrawEx(fX, fY, TMirrorType.None, p, a)
               else Animation.Draw(fX, fY, TMirrorType.None);
           end
         else if TextureID <> 0 then
           begin
-            if (Shots[i].ShotType = WEAPON_ROCKETLAUNCHER) then
+            if (Projectiles[i].ShotType = WEAPON_ROCKETLAUNCHER) then
               e_DrawAdv(TextureID, fX, fY, 0, True, False, a, @p, TMirrorType.None)
-            else if (Shots[i].ShotType <> WEAPON_FLAMETHROWER) then
+            else if (Projectiles[i].ShotType <> WEAPON_FLAMETHROWER) then
               e_Draw(TextureID, fX, fY, 0, True, False);
           end;
 
@@ -2617,14 +2597,14 @@ var
 begin
   Result := False;
 
-  for a := 0 to High(Shots) do
-    if (Shots[a].ShotType <> 0) and (Shots[a].SpawnerUID <> UID) then
-      if ((Shots[a].Obj.Vel.Y = 0) and (Shots[a].Obj.Vel.X > 0) and (Shots[a].Obj.X < X)) or
-          (Shots[a].Obj.Vel.Y = 0) and (Shots[a].Obj.Vel.X < 0) and (Shots[a].Obj.X > X) then
-        if (Abs(X-Shots[a].Obj.X) < Abs(Shots[a].Obj.Vel.X*Time)) and
-            g_Collide(X, Y, Width, Height, X, Shots[a].Obj.Y,
-                      Shots[a].Obj.Rect.Width, Shots[a].Obj.Rect.Height) and
-            g_TraceVector(X, Y, Shots[a].Obj.X, Shots[a].Obj.Y) then
+  for a := 0 to High(Projectiles) do
+    if (Projectiles[a].ShotType <> 0) and (Projectiles[a].SpawnerUID <> UID) then
+      if ((Projectiles[a].Obj.Vel.Y = 0) and (Projectiles[a].Obj.Vel.X > 0) and (Projectiles[a].Obj.X < X)) or
+          (Projectiles[a].Obj.Vel.Y = 0) and (Projectiles[a].Obj.Vel.X < 0) and (Projectiles[a].Obj.X > X) then
+        if (Abs(X-Projectiles[a].Obj.X) < Abs(Projectiles[a].Obj.Vel.X*Time)) and
+            g_Collide(X, Y, Width, Height, X, Projectiles[a].Obj.Y,
+                      Projectiles[a].Obj.Rect.Width, Projectiles[a].Obj.Rect.Height) and
+            g_TraceVector(X, Y, Projectiles[a].Obj.X, Projectiles[a].Obj.Y) then
         begin
           Result := True;
           Exit;
@@ -2637,35 +2617,35 @@ var
 begin
   // Считаем количество существующих снарядов
   count := 0;
-  for i := 0 to High(Shots) do
-    if (Shots[i].ShotType <> 0) then count += 1;
+  for i := 0 to High(Projectiles) do
+    if (Projectiles[i].ShotType <> 0) then count += 1;
 
   // Количество снарядов
   utils.WriteInt(st, count);
 
   if (count = 0) then exit;
 
-  for i := 0 to High(Shots) do
+  for i := 0 to High(Projectiles) do
   begin
-    if Shots[i].ShotType <> 0 then
+    if Projectiles[i].ShotType <> 0 then
     begin
       // Сигнатура снаряда
       utils.writeSign(st, 'SHOT');
       utils.writeInt(st, Byte(0)); // version
       // Тип снаряда
-      utils.writeInt(st, Byte(Shots[i].ShotType));
+      utils.writeInt(st, Byte(Projectiles[i].ShotType));
       // Цель
-      utils.writeInt(st, Word(Shots[i].Target));
+      utils.writeInt(st, Word(Projectiles[i].Target));
       // UID стрелявшего
-      utils.writeInt(st, Word(Shots[i].SpawnerUID));
+      utils.writeInt(st, Word(Projectiles[i].SpawnerUID));
       // Размер поля Triggers
-      utils.writeInt(st, Integer(Length(Shots[i].Triggers)));
+      utils.writeInt(st, Integer(Length(Projectiles[i].Triggers)));
       // Триггеры, активированные выстрелом
-      for j := 0 to High(Shots[i].Triggers) do utils.writeInt(st, LongWord(Shots[i].Triggers[j]));
+      for j := 0 to High(Projectiles[i].Triggers) do utils.writeInt(st, LongWord(Projectiles[i].Triggers[j]));
       // Объект снаряда
-      Obj_SaveState(st, @Shots[i].Obj);
+      Obj_SaveState(st, @Projectiles[i].Obj);
       // Костылина ебаная
-      utils.writeInt(st, Byte(Shots[i].Stopped));
+      utils.writeInt(st, Byte(Projectiles[i].Stopped));
     end;
   end;
 end;
@@ -2681,7 +2661,7 @@ begin
   count := utils.readLongInt(st);
   if (count < 0) or (count > 1024*1024) then raise XStreamError.Create('invalid shots counter');
 
-  SetLength(Shots, count);
+  SetLength(Projectiles, count);
 
   if (count = 0) then exit;
 
@@ -2691,78 +2671,78 @@ begin
     if not utils.checkSign(st, 'SHOT') then raise XStreamError.Create('invalid shot signature');
     if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid shot version');
     // Тип снаряда:
-    Shots[i].ShotType := utils.readByte(st);
+    Projectiles[i].ShotType := utils.readByte(st);
     // Цель
-    Shots[i].Target := utils.readWord(st);
+    Projectiles[i].Target := utils.readWord(st);
     // UID стрелявшего
-    Shots[i].SpawnerUID := utils.readWord(st);
+    Projectiles[i].SpawnerUID := utils.readWord(st);
     // Размер поля Triggers
     tc := utils.readLongInt(st);
     if (tc < 0) or (tc > 1024*1024) then raise XStreamError.Create('invalid shot triggers counter');
-    SetLength(Shots[i].Triggers, tc);
+    SetLength(Projectiles[i].Triggers, tc);
     // Триггеры, активированные выстрелом
-    for j := 0 to tc-1 do Shots[i].Triggers[j] := utils.readLongWord(st);
+    for j := 0 to tc-1 do Projectiles[i].Triggers[j] := utils.readLongWord(st);
     // Объект предмета
-    Obj_LoadState(@Shots[i].Obj, st);
+    Obj_LoadState(@Projectiles[i].Obj, st);
     // Костылина ебаная
-    Shots[i].Stopped := utils.readByte(st);
+    Projectiles[i].Stopped := utils.readByte(st);
 
     // Установка текстуры или анимации
-    Shots[i].TextureID := DWORD(-1);
-    Shots[i].Animation := nil;
+    Projectiles[i].TextureID := DWORD(-1);
+    Projectiles[i].Animation := nil;
 
-    case Shots[i].ShotType of
+    case Projectiles[i].ShotType of
       WEAPON_ROCKETLAUNCHER, WEAPON_SKEL_FIRE:
-        g_Texture_Get('TEXTURE_WEAPON_ROCKET', Shots[i].TextureID);
+        g_Texture_Get('TEXTURE_WEAPON_ROCKET', Projectiles[i].TextureID);
       WEAPON_PLASMA:
       begin
         g_Frames_Get(dw, 'FRAMES_WEAPON_PLASMA');
-        Shots[i].Animation := TAnimation.Create(dw, True, 5);
+        Projectiles[i].Animation := TAnimation.Create(dw, True, 5);
       end;
       WEAPON_BFG:
       begin
         g_Frames_Get(dw, 'FRAMES_WEAPON_BFG');
-        Shots[i].Animation := TAnimation.Create(dw, True, 6);
+        Projectiles[i].Animation := TAnimation.Create(dw, True, 6);
       end;
       WEAPON_IMP_FIRE:
       begin
         g_Frames_Get(dw, 'FRAMES_WEAPON_IMPFIRE');
-        Shots[i].Animation := TAnimation.Create(dw, True, 4);
+        Projectiles[i].Animation := TAnimation.Create(dw, True, 4);
       end;
       WEAPON_BSP_FIRE:
       begin
         g_Frames_Get(dw, 'FRAMES_WEAPON_BSPFIRE');
-        Shots[i].Animation := TAnimation.Create(dw, True, 4);
+        Projectiles[i].Animation := TAnimation.Create(dw, True, 4);
       end;
       WEAPON_CACO_FIRE:
       begin
         g_Frames_Get(dw, 'FRAMES_WEAPON_CACOFIRE');
-        Shots[i].Animation := TAnimation.Create(dw, True, 4);
+        Projectiles[i].Animation := TAnimation.Create(dw, True, 4);
       end;
       WEAPON_BARON_FIRE:
       begin
         g_Frames_Get(dw, 'FRAMES_WEAPON_BARONFIRE');
-        Shots[i].Animation := TAnimation.Create(dw, True, 4);
+        Projectiles[i].Animation := TAnimation.Create(dw, True, 4);
       end;
       WEAPON_MANCUB_FIRE:
       begin
         g_Frames_Get(dw, 'FRAMES_WEAPON_MANCUBFIRE');
-        Shots[i].Animation := TAnimation.Create(dw, True, 4);
+        Projectiles[i].Animation := TAnimation.Create(dw, True, 4);
       end;
     end;
   end;
 end;
 
-procedure g_Weapon_DestroyShot(I: Integer; X, Y: Integer; Loud: Boolean);
+procedure g_Weapon_DestroyProj(I: Integer; X, Y: Integer; Loud: Boolean);
 var
   cx, cy: Integer;
   Anim: TAnimation;
   s: string;
 begin
-  if not (I in [0..High(Shots)]) then
+  if not (I in [0..High(Projectiles)]) then
     Exit;
 
-  with Shots[I] do
+  with Projectiles[I] do
   begin
     if ShotType = 0 then Exit;
     Obj.X := X;
@@ -2873,26 +2853,26 @@ procedure g_Weapon_AddDynLights();
 var
   i: Integer;
 begin
-  for i := 0 to High(Shots) do
+  for i := 0 to High(Projectiles) do
   begin
-    if Shots[i].ShotType = 0 then continue;
-    if Shots[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_PLASMA, WEAPON_BFG, WEAPON_FLAMETHROWER,
+    if Projectiles[i].ShotType = 0 then continue;
+    if Projectiles[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_PLASMA, WEAPON_BFG, WEAPON_FLAMETHROWER,
       WEAPON_IMP_FIRE, WEAPON_BSP_FIRE, WEAPON_CACO_FIRE, WEAPON_BARON_FIRE, WEAPON_MANCUB_FIRE,
       WEAPON_SKEL_FIRE] then
     begin
-      if (Shots[i].ShotType = WEAPON_PLASMA) then
-        g_AddDynLight(Shots[i].Obj.X+(Shots[i].Obj.Rect.Width div 2), Shots[i].Obj.Y+(Shots[i].Obj.Rect.Height div 2), 128,  0, 0.3, 1, 0.4)
-      else if (Shots[i].ShotType = WEAPON_BFG) then
-        g_AddDynLight(Shots[i].Obj.X+(Shots[i].Obj.Rect.Width div 2), Shots[i].Obj.Y+(Shots[i].Obj.Rect.Height div 2), 128,  0, 1, 0, 0.5)
-      else if (Shots[i].ShotType = WEAPON_FLAMETHROWER) then
-        g_AddDynLight(Shots[i].Obj.X+(Shots[i].Obj.Rect.Width div 2), Shots[i].Obj.Y+(Shots[i].Obj.Rect.Height div 2), 42,  1, 0.8, 0, 0.4)
+      if (Projectiles[i].ShotType = WEAPON_PLASMA) then
+        g_AddDynLight(Projectiles[i].Obj.X+(Projectiles[i].Obj.Rect.Width div 2), Projectiles[i].Obj.Y+(Projectiles[i].Obj.Rect.Height div 2), 128,  0, 0.3, 1, 0.4)
+      else if (Projectiles[i].ShotType = WEAPON_BFG) then
+        g_AddDynLight(Projectiles[i].Obj.X+(Projectiles[i].Obj.Rect.Width div 2), Projectiles[i].Obj.Y+(Projectiles[i].Obj.Rect.Height div 2), 128,  0, 1, 0, 0.5)
+      else if (Projectiles[i].ShotType = WEAPON_FLAMETHROWER) then
+        g_AddDynLight(Projectiles[i].Obj.X+(Projectiles[i].Obj.Rect.Width div 2), Projectiles[i].Obj.Y+(Projectiles[i].Obj.Rect.Height div 2), 42,  1, 0.8, 0, 0.4)
       else
-        g_AddDynLight(Shots[i].Obj.X+(Shots[i].Obj.Rect.Width div 2), Shots[i].Obj.Y+(Shots[i].Obj.Rect.Height div 2), 128,  1, 0, 0, 0.4);
+        g_AddDynLight(Projectiles[i].Obj.X+(Projectiles[i].Obj.Rect.Width div 2), Projectiles[i].Obj.Y+(Projectiles[i].Obj.Rect.Height div 2), 128,  1, 0, 0, 0.4);
     end;
   end;
 end;
 
-procedure TShot.positionChanged ();
+procedure TProjectile.positionChanged ();
 begin
 end;
 

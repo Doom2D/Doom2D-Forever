@@ -59,9 +59,9 @@ const
   NET_MSG_TSOUND = 151;
   NET_MSG_TMUSIC = 152;
 
-  NET_MSG_SHDEL  = 161;
-  NET_MSG_SHADD  = 162;
-  NET_MSG_SHPOS  = 163;
+  NET_MSG_PJDEL  = 161;
+  NET_MSG_PJADD  = 162;
+  NET_MSG_PJPOS  = 163;
 
   NET_MSG_RCON_AUTH  = 191;
   NET_MSG_RCON_CMD   = 192;
@@ -158,9 +158,9 @@ procedure MH_SEND_Info(ID: Byte);
 procedure MH_SEND_Chat(Txt: String; Mode: Byte; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Sound(X, Y: Integer; Name: String; Pos: Boolean = True; ID: Integer = NET_EVERYONE);
-procedure MH_SEND_CreateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
-procedure MH_SEND_UpdateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
-procedure MH_SEND_DeleteShot(Proj: LongInt; X, Y: LongInt; Loud: Boolean = True; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_CreateProj(Proj: LongInt; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_UpdateProj(Proj: LongInt; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_DeleteProj(Proj: LongInt; X, Y: LongInt; Loud: Boolean = True; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_GameStats(ID: Integer = NET_EVERYONE);
 procedure MH_SEND_CoopStats(ID: Integer = NET_EVERYONE);
 procedure MH_SEND_GameEvent(EvType: Byte; EvNum: Integer = 0; EvStr: String = 'N'; ID: Integer = NET_EVERYONE);
@@ -173,7 +173,7 @@ procedure MH_SEND_PlayerPos(Reliable: Boolean; PID: Word; ID: Integer = NET_EVER
 procedure MH_SEND_PlayerStats(PID: Word; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_PlayerDelete(PID: Word; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_PlayerDamage(PID: Word; Kind: Byte; Attacker, Value: Word; VX, VY: Integer; ID: Integer = NET_EVERYONE);
-procedure MH_SEND_PlayerFire(PID: Word; Weapon: Byte; X, Y, AX, AY: Integer; ShotID: Integer = -1; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PlayerFire(PID: Word; Weapon: Byte; X, Y, AX, AY: Integer; ShotID: Integer; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_PlayerDeath(PID: Word; KillType, DeathType: Byte; Attacker: Word; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_PlayerSettings(PID: Word; Mdl: String = ''; ID: Integer = NET_EVERYONE);
 // ITEM
@@ -231,10 +231,10 @@ procedure MC_RECV_MonsterPos(var M: TMsg);
 procedure MC_RECV_MonsterState(var M: TMsg);
 procedure MC_RECV_MonsterShot(var M: TMsg);
 procedure MC_RECV_MonsterDelete(var M: TMsg);
-// SHOT
-procedure MC_RECV_CreateShot(var M: TMsg);
-procedure MC_RECV_UpdateShot(var M: TMsg);
-procedure MC_RECV_DeleteShot(var M: TMsg);
+// PROJECTILES
+procedure MC_RECV_CreateProj(var M: TMsg);
+procedure MC_RECV_UpdateProj(var M: TMsg);
+procedure MC_RECV_DeleteProj(var M: TMsg);
 // TRIGGER
 procedure MC_RECV_TriggerSound(var M: TMsg);
 procedure MC_RECV_TriggerMusic(var M: TMsg);
@@ -913,21 +913,16 @@ begin
 
   MH_ProcessFirstSpawn(@NetClients[ID]);
 
-  if gPlayers <> nil then
+  for I := Low(gPlayers) to High(gPlayers) do
   begin
-    for I := Low(gPlayers) to High(gPlayers) do
+    if gPlayers[I] <> nil then
     begin
-      if gPlayers[I] <> nil then
-      begin
-        if CreatePlayers then MH_SEND_PlayerCreate(gPlayers[I].UID, ID);
-        MH_SEND_PlayerPos(True, gPlayers[I].UID, ID);
-        MH_SEND_PlayerStats(gPlayers[I].UID, ID);
+      if CreatePlayers then MH_SEND_PlayerCreate(gPlayers[I].UID, ID);
+      MH_SEND_PlayerPos(True, gPlayers[I].UID, ID);
+      MH_SEND_PlayerStats(gPlayers[I].UID, ID);
 
-        if (gPlayers[I].Flag <> FLAG_NONE) and (gGameSettings.GameMode = GM_CTF) then
-        begin
-          MH_SEND_FlagEvent(FLAG_STATE_CAPTURED, gPlayers[I].Flag, gPlayers[I].UID, True, ID);
-        end;
-      end;
+      if (gPlayers[I].Flag <> FLAG_NONE) and (gGameSettings.GameMode = GM_CTF) then
+        MH_SEND_FlagEvent(FLAG_STATE_CAPTURED, gPlayers[I].Flag, gPlayers[I].UID, True, ID);
     end;
   end;
 
@@ -935,26 +930,18 @@ begin
   g_Mons_ForEach(sendMonSpawn);
   g_Map_ForEachPanel(sendPanelState);
 
-  if gTriggers <> nil then
+  for I := Low(gTriggers) to High(gTriggers) do
   begin
-    for I := Low(gTriggers) to High(gTriggers) do
+    if gTriggers[I].TriggerType = TRIGGER_SOUND then
     begin
-      if gTriggers[I].TriggerType = TRIGGER_SOUND then
-      begin
-        MH_SEND_TriggerSound(gTriggers[I], ID);
-      end;
+      MH_SEND_TriggerSound(gTriggers[I], ID);
     end;
   end;
 
-  if Shots <> nil then
+  for I := Low(Projectiles) to High(Projectiles) do
   begin
-    for I := Low(Shots) to High(Shots) do
-    begin
-      if Shots[i].ShotType in [6, 7, 8] then
-      begin
-        MH_SEND_CreateShot(i, ID);
-      end;
-    end;
+    if Projectiles[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_PLASMA, WEAPON_BFG] then
+      MH_SEND_CreateProj(i, ID);
   end;
 
   MH_SEND_TriggerMusic(ID);
@@ -1090,43 +1077,43 @@ begin
   g_Net_Host_Send(ID, False);
 end;
 
-procedure MH_SEND_CreateShot(Proj: LongInt; ID: Integer);
+procedure MH_SEND_CreateProj(Proj: LongInt; ID: Integer);
 begin
-  if not (Proj in [0..High(Shots)]) then
+  if not (Proj in [0..High(Projectiles)]) then
     Exit;
 
-  NetOut.Write(Byte(NET_MSG_SHADD));
+  NetOut.Write(Byte(NET_MSG_PJADD));
   NetOut.Write(Proj);
-  NetOut.Write(Shots[Proj].ShotType);
-  NetOut.Write(Shots[Proj].Target);
-  NetOut.Write(Shots[Proj].SpawnerUID);
-  NetOut.Write(Shots[Proj].Timeout);
-  NetOut.Write(Shots[Proj].Obj.X);
-  NetOut.Write(Shots[Proj].Obj.Y);
-  NetOut.Write(Shots[Proj].Obj.Vel.X);
-  NetOut.Write(Shots[Proj].Obj.Vel.Y);
+  NetOut.Write(Projectiles[Proj].ShotType);
+  NetOut.Write(Projectiles[Proj].Target);
+  NetOut.Write(Projectiles[Proj].SpawnerUID);
+  NetOut.Write(Projectiles[Proj].Timeout);
+  NetOut.Write(Projectiles[Proj].Obj.X);
+  NetOut.Write(Projectiles[Proj].Obj.Y);
+  NetOut.Write(Projectiles[Proj].Obj.Vel.X);
+  NetOut.Write(Projectiles[Proj].Obj.Vel.Y);
 
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_UpdateShot(Proj: LongInt; ID: Integer);
+procedure MH_SEND_UpdateProj(Proj: LongInt; ID: Integer);
 begin
-  if not (Proj in [0..High(Shots)]) then
+  if not (Proj in [0..High(Projectiles)]) then
     Exit;
 
-  NetOut.Write(Byte(NET_MSG_SHPOS));
+  NetOut.Write(Byte(NET_MSG_PJPOS));
   NetOut.Write(Proj);
-  NetOut.Write(Shots[Proj].Obj.X);
-  NetOut.Write(Shots[Proj].Obj.Y);
-  NetOut.Write(Shots[Proj].Obj.Vel.X);
-  NetOut.Write(Shots[Proj].Obj.Vel.Y);
+  NetOut.Write(Projectiles[Proj].Obj.X);
+  NetOut.Write(Projectiles[Proj].Obj.Y);
+  NetOut.Write(Projectiles[Proj].Obj.Vel.X);
+  NetOut.Write(Projectiles[Proj].Obj.Vel.Y);
 
   g_Net_Host_Send(ID, False);
 end;
 
-procedure MH_Send_DeleteShot(Proj: LongInt; X, Y: LongInt; Loud: Boolean; ID: Integer);
+procedure MH_SEND_DeleteProj(Proj: LongInt; X, Y: LongInt; Loud: Boolean; ID: Integer);
 begin
-  NetOut.Write(Byte(NET_MSG_SHDEL));
+  NetOut.Write(Byte(NET_MSG_PJDEL));
   NetOut.Write(Proj);
   NetOut.Write(Byte(Loud));
   NetOut.Write(X);
@@ -1838,7 +1825,7 @@ begin
     g_Sound_PlayEx(Name);
 end;
 
-procedure MC_RECV_CreateShot(var M: TMsg);
+procedure MC_RECV_CreateProj(var M: TMsg);
 var
   I, X, Y, XV, YV: Integer;
   Timeout: LongWord;
@@ -1855,15 +1842,15 @@ begin
   XV := M.ReadLongInt();
   YV := M.ReadLongInt();
 
-  I := g_Weapon_CreateShot(I, ShType, Spawner, Target, X, Y, XV, YV);
-  if (Shots <> nil) and (I <= High(Shots)) then
+  I := g_Weapon_CreateProj(I, ShType, Spawner, Target, X, Y, XV, YV);
+  if (Projectiles <> nil) and (I <= High(Projectiles)) then
   begin
-    Shots[I].Timeout := Timeout;
-    //Shots[I].Target := Target; // TODO: find a use for Target later
+    Projectiles[I].Timeout := Timeout;
+    //Projectiles[I].Target := Target; // TODO: find a use for Target later
   end;
 end;
 
-procedure MC_RECV_UpdateShot(var M: TMsg);
+procedure MC_RECV_UpdateProj(var M: TMsg);
 var
   I, TX, TY, TXV, TYV: Integer;
 begin
@@ -1873,8 +1860,8 @@ begin
   TXV := M.ReadLongInt();
   TYV := M.ReadLongInt();
 
-  if (Shots <> nil) and (I <= High(Shots)) then
-    with (Shots[i]) do
+  if (Projectiles <> nil) and (I <= High(Projectiles)) then
+    with (Projectiles[i]) do
     begin
       Obj.X := TX;
       Obj.Y := TY;
@@ -1883,7 +1870,7 @@ begin
     end;
 end;
 
-procedure MC_RECV_DeleteShot(var M: TMsg);
+procedure MC_RECV_DeleteProj(var M: TMsg);
 var
   I, X, Y: Integer;
   L: Boolean;
@@ -1894,7 +1881,7 @@ begin
   X := M.ReadLongInt();
   Y := M.ReadLongInt();
 
-  g_Weapon_DestroyShot(I, X, Y, L);
+  g_Weapon_DestroyProj(I, X, Y, L);
 end;
 
 procedure MC_RECV_GameStats(var M: TMsg);
