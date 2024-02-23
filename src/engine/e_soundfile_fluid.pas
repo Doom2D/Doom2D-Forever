@@ -142,15 +142,14 @@ begin
       raise Exception.Create('fluid_player_add failed');
     fluid_player_play(FPlayer);
   except
-    on E: Exception do
-    begin
-      e_LogWriteln('FluidSynth: Load(Data) failed: ' + E.Message);
-      if FPlayer <> nil then delete_fluid_player(FPlayer);
-      if FSynth <> nil then delete_fluid_synth(FSynth);
-      FPlayer := nil;
-      FSynth := nil;
-      Exit;
-    end;
+    if ExceptObject is Exception then
+      e_LogWriteln('FluidSynth: Load(Data) failed: ' + Exception(ExceptObject).Message);
+
+    delete_fluid_player(FPlayer);
+    delete_fluid_synth(FSynth);
+    FPlayer := nil;
+    FSynth := nil;
+    Exit;
   end;
 
   if Loop then
@@ -185,15 +184,14 @@ begin
       raise Exception.Create('fluid_player_add failed');
     fluid_player_play(FPlayer);
   except
-    on E: Exception do
-    begin
-      e_LogWriteln('FluidSynth: Load(Data) failed: ' + E.Message);
-      if FPlayer <> nil then delete_fluid_player(FPlayer);
-      if FSynth <> nil then delete_fluid_synth(FSynth);
-      FPlayer := nil;
-      FSynth := nil;
-      Exit;
-    end;
+    if ExceptObject is Exception then
+      e_LogWriteln('FluidSynth: Load(Data) failed: ' + Exception(ExceptObject).Message);
+
+    delete_fluid_player(FPlayer);
+    delete_fluid_synth(FSynth);
+    FPlayer := nil;
+    FSynth := nil;
+    Exit;
   end;
 
   if Loop then

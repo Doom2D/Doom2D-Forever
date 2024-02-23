@@ -353,7 +353,7 @@ begin
     st := nil;
   end;
 
-  if (st = nil) then
+  if st = nil then
   begin
     WAD := TWADFile.Create();
     if WAD.ReadFile(GameWAD)
@@ -363,7 +363,7 @@ begin
 
   try
     try
-      if (st <> nil) then
+      if st <> nil then
         pr := TFileTextParser.Create(st)
       else
       begin
@@ -372,19 +372,20 @@ begin
         pr := TStrTextParser.Create(defaultMapDef);
       end;
     except
-      on e: Exception do
-        e_LogWritefln('something is VERY wrong here! -- ', [e.message]);
-      else;
-      raise;
+      on E: Exception do
+      begin
+        e_LogWritefln('something is VERY wrong here! -- ', [E.message]);
+        Raise;
+      end;
     end;
 
     try
       dfmapdef := TDynMapDef.Create(pr);
     except
       on e: TDynParseException do
-        raise Exception.CreateFmt('ERROR in "mapdef.txt" at (%s,%s): %s', [e.tokLine, e.tokCol, e.message]);
+        Raise Exception.CreateFmt('ERROR in "mapdef.txt" at (%s,%s): %s', [e.tokLine, e.tokCol, e.message]);
       on e: Exception do
-        raise Exception.CreateFmt('ERROR in "mapdef.txt" at (%s,%s): %s', [pr.tokLine, pr.tokCol, e.message]);
+        Raise Exception.CreateFmt('ERROR in "mapdef.txt" at (%s,%s): %s', [pr.tokLine, pr.tokCol, e.message]);
     end;
   finally
     pr.Free();

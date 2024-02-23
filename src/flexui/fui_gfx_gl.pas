@@ -708,14 +708,13 @@ begin
 
   try
     fuiGfxLoadFont(fontname, st, proportional);
-  except on e: Exception do
+  except
+    on e: Exception do
     begin
       writeln('FlexUI font loading error: ', e.message);
       st.Destroy();
       raise Exception.Create('FlexUI: cannot load font '''+fontFile+'''');
     end;
-  else
-    raise;
   end;
 
   st.Destroy();

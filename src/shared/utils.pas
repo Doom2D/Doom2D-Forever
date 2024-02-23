@@ -31,22 +31,18 @@ const
   Invalid1251Char = #$98;          // Undefined 1251 char, we use it as replacement for unknown chars
   InvalidUnicodeCodepoint = $FFFD; // Unicode REPLACEMENT CHARACTER used to replace an unknown, unrecognised, or unrepresentable character
 
-const wadExtensions: array [0..6] of AnsiString = (
-  '.dfz',
-  '.wad',
-  '.dfwad',
-  '.pk3',
-  '.pak',
-  '.zip',
-  '.dfzip'
-);
+  wadExtensions: array[0..6] of AnsiString = (
+    '.dfz',
+    '.wad',
+    '.dfwad',
+    '.pk3',
+    '.pak',
+    '.zip',
+    '.dfzip'
+  );
 
-{$IF DEFINED(FREEBSD) OR DEFINED(DARWIN)}
-const NilThreadId = nil;
-{$ELSE}
-const NilThreadId = 0;
-{$ENDIF}
-
+const
+  NilThreadId = {$IF DEFINED(FREEBSD) OR DEFINED(DARWIN)}nil{$ELSE}0{$ENDIF};
 
 // ////////////////////////////////////////////////////////////////////////// //
 type

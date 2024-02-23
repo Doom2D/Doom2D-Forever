@@ -105,7 +105,7 @@ uses
   StrUtils, e_graphics, g_monsters, g_items, g_game;
 
 {$PUSH}
-{$WARN 2054 OFF} // unknwon env var
+{$WARN 2054 OFF} // unknown env var
 {$WARN 6018 OFF} // unreachable code
 function g_GetBuilderName (): AnsiString;
 begin
@@ -119,7 +119,7 @@ begin
     result := 'unknown'
 end;
 
-function g_GetBuildHash (full: Boolean = True): AnsiString;
+function g_GetBuildHash (full: Boolean): AnsiString;
 begin
   if {$I %D2DF_BUILD_HASH%} <> '' then
     if full then
@@ -1224,13 +1224,13 @@ begin
         'g': ;
         'b': ;
         'y': ;
-        '\': Result := Result + '\';
+        '\': Result += '\';
         else
-          Result := Result + '\' + S[I];
+          Result += '\' + S[I];
       end;
       Spec := False;
     end else
-      Result := Result + S[I];
+      Result += S[I];
   end;
 end;
 

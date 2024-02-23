@@ -272,15 +272,14 @@ begin
 
   except
     on e: Exception do
-      begin
-        st.Free();
-        g_Console_Add(_lc[I_GAME_ERROR_SAVE]);
-        e_WriteLog('SaveState Error: '+e.message, TMsgType.Warning);
-        if deleteOnError then DeleteFile(filename);
-        {$IF DEFINED(D2F_DEBUG)}e_WriteStackTrace(e.message);{$ENDIF}
-e_WriteStackTrace(e.message);
-        result := false;
-      end;
+    begin
+      st.Free();
+      g_Console_Add(_lc[I_GAME_ERROR_SAVE]);
+      e_WriteLog('SaveState Error: '+e.message, TMsgType.Warning);
+      if deleteOnError then DeleteFile(filename);
+      {$IF DEFINED(D2F_DEBUG)}e_WriteStackTrace(e.message);{$ENDIF}
+      Result := False;
+    end;
   end;
 end;
 

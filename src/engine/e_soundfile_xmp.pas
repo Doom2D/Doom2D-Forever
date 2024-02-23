@@ -135,13 +135,12 @@ begin
     FFinished := False;
     Result := True;
   except
-    on E: Exception do
-    begin
-      e_LogWriteln('TXMPLoader.Load() error: ' + E.Message);
-      if Err = 0 then xmp_release_module(FXMP);
-      xmp_free_context(FXMP);
-      FXMP := nil;
-    end;
+    if ExceptObject is Exception then
+      e_LogWriteln('TXMPLoader.Load() error: ' + Exception(ExceptObject).Message);
+
+    if Err = 0 then xmp_release_module(FXMP);
+    xmp_free_context(FXMP);
+    FXMP := nil;
   end;
 end;
 
@@ -178,13 +177,12 @@ begin
     FFinished := False;
     Result := True;
   except
-    on E: Exception do
-    begin
-      e_LogWritefln('TXMPLoader.Load(%s) error: %s', [FName, E.Message]);
-      if Err = 0 then xmp_release_module(FXMP);
-      xmp_free_context(FXMP);
-      FXMP := nil;
-    end;
+    if ExceptObject is Exception then
+      e_LogWritefln('TXMPLoader.Load(%s) error: %s', [FName, Exception(ExceptObject).Message]);
+
+    if Err = 0 then xmp_release_module(FXMP);
+    xmp_free_context(FXMP);
+    FXMP := nil;
   end;
 end;
 

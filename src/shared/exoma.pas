@@ -950,8 +950,6 @@ begin
         raise TExomaParseException.Create(pr, e.message);
       on e: Exception do
         raise TExomaParseException.Create(pr, e.message);
-      else
-        raise;
     end;
   finally
     r.Free();
@@ -1189,8 +1187,6 @@ begin
       raise TExomaParseException.Create(pr, e.message);
     on e: Exception do
       raise TExomaParseException.Create(pr, e.message);
-    else
-      raise;
   end;
 end;
 

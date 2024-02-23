@@ -671,13 +671,11 @@ begin
           if not (g_Frames_Get(ID, Info.Name+'_RIGHTANIM'+IntToStr(b)) and
                   g_Frames_Get(ID2, Info.Name+'_RIGHTANIM'+IntToStr(b)+'_MASK')) then
           begin
-            Result.Free();
-            Result := nil;
+            FreeAndNil(Result);
             Exit;
           end;
 
           Result.FAnim[TDirection.D_RIGHT][b] := TAnimation.Create(ID, b in [A_STAND, A_WALK], ModelSpeed[b]);
-
           Result.FMaskAnim[TDirection.D_RIGHT][b] := TAnimation.Create(ID2, b in [A_STAND, A_WALK], ModelSpeed[b]);
 
           if g_Frames_Exists(Info.Name+'_LEFTANIM'+IntToStr(b)) and
@@ -686,7 +684,6 @@ begin
              g_Frames_Get(ID2, Info.Name+'_LEFTANIM'+IntToStr(b)+'_MASK') then
           begin
             Result.FAnim[TDirection.D_LEFT][b] := TAnimation.Create(ID, b in [A_STAND, A_WALK], ModelSpeed[b]);
-
             Result.FMaskAnim[TDirection.D_LEFT][b] := TAnimation.Create(ID2, b in [A_STAND, A_WALK], ModelSpeed[b]);
           end;
         end;
@@ -934,10 +931,9 @@ begin
   end;
 
 // Оружие:
-  if Direction = TDirection.D_RIGHT then
-    Mirror := TMirrorType.None
-  else
-    Mirror := TMirrorType.Horizontal;
+  if Direction = TDirection.D_RIGHT
+    then Mirror := TMirrorType.None
+    else Mirror := TMirrorType.Horizontal;
 
   if FDrawWeapon and
     (not (FCurrentAnimation in [A_DIE1, A_DIE2, A_PAIN])) and
@@ -946,16 +942,13 @@ begin
     if FCurrentAnimation in [A_SEEUP, A_ATTACKUP] then
       pos := W_POS_UP
     else
-      if FCurrentAnimation in [A_SEEDOWN, A_ATTACKDOWN] then
-        pos := W_POS_DOWN
-      else
-        pos := W_POS_NORMAL;
+      if FCurrentAnimation in [A_SEEDOWN, A_ATTACKDOWN]
+        then pos := W_POS_DOWN
+        else pos := W_POS_NORMAL;
 
-    if (FCurrentAnimation in [A_ATTACK, A_ATTACKUP, A_ATTACKDOWN]) or
-       FFire then
-      act := W_ACT_FIRE
-    else
-      act := W_ACT_NORMAL;
+    if (FCurrentAnimation in [A_ATTACK, A_ATTACKUP, A_ATTACKDOWN]) or FFire
+      then act := W_ACT_FIRE
+      else act := W_ACT_NORMAL;
 
     if Alpha < 201 then
       e_Draw(WeaponID[FCurrentWeapon][pos][act],

@@ -12,8 +12,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
+
 {$INCLUDE ../shared/a_modes.inc}
-{$IFDEF ANDROID}library{$ELSE}program{$ENDIF} Doom2DF;
+{$IFNDEF ANDROID}program{$ELSE}library{$ENDIF} Doom2DF;
 
 {$IFNDEF HEADLESS}
   {$IFDEF WINDOWS}
@@ -194,15 +195,15 @@ uses
 
 {$IFDEF ANDROID}
 function SDL_main(argc: CInt; argv: PPChar): CInt; cdecl;
-{$ENDIF ANDROID}
+{$ENDIF}
 
 var
-  f: Integer;
-  gdb_mode: Boolean = false;
+  f: Integer = 1;
+  gdb_mode: Boolean;
 {$IFDEF ANDROID}
   storage: String;
 {$ENDIF}
-  //tfo: Text;
+
 begin
 {$IF DECLARED(UseHeapTrace)}
   heaptrc.HaltOnError := False;  // continue execution even in case of a heap error
@@ -213,9 +214,9 @@ begin
   System.argv := argv;
 {$ENDIF}
 
-  SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]); //k8: fuck off, that's why
+  // BD: TFPUException instead of TFPUExceptionMask here seems to include exactly the same values.
+  SetExceptionMask([Low(TFPUExceptionMask)..High(TFPUExceptionMask)]);  // k8: fuck off, that's why
 
-  f := 1;
   while f <= ParamCount do
   begin
     case ParamStr(f) of
@@ -235,26 +236,29 @@ begin
   try
     Main();
     e_WriteLog('Shutdown with no errors.', TMsgType.Notify);
-  except
-    on e: Exception do
+  except on E: TObject do
+  begin
+    if E is Exception then
     begin
-      e_WriteStackTrace(e.message);
-      //e_WriteLog(Format(_lc[I_SYSTEM_ERROR_MSG], [E.Message]), MSG_FATALERROR);
-      (*
-      AssignFile(tfo, GameDir+'/trace.log');
-      {$I-}
-      Append(tfo);
-      if (IOResult <> 0) then Rewrite(tfo);
-      if (IOResult = 0) then begin writeln(tfo, '====================='); DumpExceptionBackTrace(tfo); CloseFile(tfo); end;
-      *)
+      e_WriteStackTrace(Format('%s (%s)', [Exception(E).Message, E.ClassName()]));
     end
     else
     begin
-      //e_WriteLog(Format(_lc[I_SYSTEM_ERROR_UNKNOWN], [NativeUInt(ExceptAddr())]), MSG_FATALERROR);
-      e_WriteStackTrace('FATAL ERROR');
+      // TODO: Switch to using TObject.QualifiedClassName() here (available since FPC 3.1.1).
+      e_WriteStackTrace(Format('FATAL ERROR ($%p:%s.%s) at $%p',
+        [Addr(E), E.UnitName(), E.ClassName(), ExceptAddr()]));
     end;
 
-    if gdb_mode then raise;
+    if gdb_mode then Raise;
+  end
+  else
+    // This is theoretically impossible, as there can be no descendants not from TObject. So, this
+    // branch was left here only to satisfy FPC's AWFUL exception handling syntax that ignores the
+    // code after 'except-on-E:T-do-else' block, but compiles the program with such a construct
+    // quietly. And yes, I know about SysUtils.ExceptObject, but this makes an extra unit required.
+    // Also note that without the 'else Raise' the 'except-on' block would behave exactly the same.
+    begin Raise end;
+    { Any code here (i.e. after the previous statement block) would be effectively dead (no-op). }
   end;
 
   e_DeinitLog();  // I hope at least this lonely thing can get by without fatal errors.
@@ -270,6 +274,6 @@ begin
   Result := 0;
 end; // SDL_main
 exports SDL_main;
-{$ENDIF ANDROID}
+{$ENDIF}
 
 end.

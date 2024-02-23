@@ -1867,10 +1867,9 @@ var
   s: String;
   res: Boolean;
 begin
-  if ForcedUID < 0 then
-    FUID := g_CreateUID(UID_MONSTER)
-  else
-    FUID := ForcedUID;
+  if ForcedUID < 0
+    then FUID := g_CreateUID(UID_MONSTER)
+    else FUID := ForcedUID;
 
   FMonsterType := MonsterType;
 
@@ -1900,10 +1899,10 @@ begin
   mplatCheckFrameId := 0;
   mNeedSend := false;
 
-  if FMonsterType in [MONSTER_ROBO, MONSTER_BARREL] then
-    FBloodKind := BLOOD_SPARKS
-  else
-    FBloodKind := BLOOD_NORMAL;
+  if FMonsterType in [MONSTER_ROBO, MONSTER_BARREL]
+    then FBloodKind := BLOOD_SPARKS
+    else FBloodKind := BLOOD_NORMAL;
+
   if FMonsterType = MONSTER_CACO then
   begin
     FBloodRed := 0;

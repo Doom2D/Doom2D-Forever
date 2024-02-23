@@ -3640,8 +3640,9 @@ begin
     try
       try
         result := parseTextMap(pr);
-      except on e: Exception do
-        raise TDynParseException.Create(pr, e.message);
+      except
+        on e: Exception do
+          raise TDynParseException.Create(pr, e.message);
       end;
     finally
       pr.Free();

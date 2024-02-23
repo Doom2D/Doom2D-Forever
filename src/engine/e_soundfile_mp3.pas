@@ -173,9 +173,8 @@ begin
     if mpg123_format(FMPG, SRate, SChans, MPG123_ENC_SIGNED_16) <> MPG123_OK then
       raise Exception.Create('mpg123_format failed');
   except
-    on E: Exception do
-      e_LogWriteln('MPG123: Load(Data) failed: ' + E.Message);
-    else;
+    if ExceptObject is Exception then
+      e_LogWriteln('MPG123: Load(Data) failed: ' + Exception(ExceptObject).Message);
 
     mpg123_delete(FMPG);
     FMPG := nil;
@@ -230,6 +229,7 @@ begin
   except
     on E: Exception do
       e_LogWritefln('MPG123: ERROR: could not read file `%s`: %s', [FName, E.Message]);
+    else;
   end;
 
   if not Result then S.Free();

@@ -64,7 +64,7 @@ type
     procedure Mute(Enable: Boolean);
     function GetPosition(): DWORD;
     procedure SetPosition(aPos: DWORD);
-    procedure SetPriority(priority: Integer);
+    procedure SetPriority(priority: Cardinal);
   end;
 
 const
@@ -950,7 +950,7 @@ begin
   alSourcei(alSources[FSource], AL_BYTE_OFFSET, aPos);
 end;
 
-procedure TBasicSound.SetPriority(priority: Integer);
+procedure TBasicSound.SetPriority(priority: Cardinal);
 begin
 end;
 

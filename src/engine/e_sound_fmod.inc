@@ -61,7 +61,7 @@ type
     procedure Mute(Enable: Boolean);
     function GetPosition(): DWORD;
     procedure SetPosition(aPos: DWORD);
-    procedure SetPriority(priority: Integer);
+    procedure SetPriority(priority: Cardinal);
   end;
 
 const
@@ -100,36 +100,33 @@ const
   N_CHANNELS = 512;
 
 var
-  F_System: FMOD_SYSTEM = nil;
-  SoundMuted: Boolean = False;
+  F_System: FMOD_SYSTEM;
+  SoundMuted: Boolean;
 
 
 function Channel_Callback(channel: FMOD_CHANNEL; callbacktype: FMOD_CHANNEL_CALLBACKTYPE;
   commanddata1: Pointer; commanddata2: Pointer): FMOD_RESULT; winapi;
 var
-  res: FMOD_RESULT;
   sound: FMOD_SOUND;
   id: TSoundID;
 
 begin
-  res := FMOD_OK;
+  Result := FMOD_OK;
 
   if callbacktype = FMOD_CHANNEL_CALLBACKTYPE_END then
   begin
-    res := FMOD_Channel_GetCurrentSound(channel, sound);
-    if res = FMOD_OK then
+    Result := FMOD_Channel_GetCurrentSound(channel, sound);
+    if Result = FMOD_OK then
     begin
-      res := FMOD_Sound_GetUserData(sound, Pointer(id));
-      if res = FMOD_OK then
+      Result := FMOD_Sound_GetUserData(sound, Pointer(id));
+      if Result = FMOD_OK then
       begin
         if id < Length(e_SoundsArray) then
           if e_SoundsArray[id].nRefs > 0 then
-            Dec(e_SoundsArray[id].nRefs);
+            e_SoundsArray[ID].nRefs -= 1;
       end;
     end;
   end;
-
-  Result := res;
 end;
 
 function TryInitWithOutput(Output: FMOD_OUTPUTTYPE; OutputName: String): FMOD_RESULT;
@@ -250,10 +247,9 @@ begin
     end;
 
   res := FMOD_System_GetDriver(F_System, drv);
-  if res <> FMOD_OK then
-    e_WriteLog('Error getting FMOD driver!', TMsgType.Warning)
-  else
-    e_WriteLog('FMOD driver id: '+IntToStr(drv), TMsgType.Notify);
+  if res <> FMOD_OK
+    then e_WriteLog('Error getting FMOD driver!', TMsgType.Warning)
+    else e_WriteLog('FMOD driver id: '+IntToStr(drv), TMsgType.Notify);
 
   Result := True;
 end;
@@ -419,7 +415,7 @@ begin
     end;
   end;
 
-  Inc(e_SoundsArray[ID].nRefs);
+  e_SoundsArray[ID].nRefs += 1;
   Result := 0;
 end;
 
@@ -459,7 +455,7 @@ begin
     end;
   end;
 
-  Inc(e_SoundsArray[ID].nRefs);
+  e_SoundsArray[ID].nRefs += 1;
   Result := 0;
 end;
 
@@ -479,9 +475,7 @@ begin
 
   res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE, e_SoundsArray[ID].Sound, False, Chan);
   if res <> FMOD_OK then
-  begin
     Exit;
-  end;
 
   res := FMOD_Channel_SetVolume(Chan, Volume);
   if res <> FMOD_OK then
@@ -501,7 +495,7 @@ begin
     end;
   end;
 
-  Inc(e_SoundsArray[ID].nRefs);
+  e_SoundsArray[ID].nRefs += 1;
   Result := 0;
 end;
 
@@ -519,12 +513,9 @@ begin
 
   Result := -1;
 
-  res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE,
-           e_SoundsArray[ID].Sound, False, Chan);
+  res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE, e_SoundsArray[ID].Sound, False, Chan);
   if res <> FMOD_OK then
-  begin
     Exit;
-  end;
 
   res := FMOD_Channel_SetPan(Chan, Pan);
   if res <> FMOD_OK then
@@ -549,7 +540,7 @@ begin
     end;
   end;
 
-  Inc(e_SoundsArray[ID].nRefs);
+  e_SoundsArray[ID].nRefs += 1;
   Result := 0;
 end;
 
@@ -593,10 +584,9 @@ begin
 
       if res = FMOD_OK then
       begin
-        if setMode then
-          vol := SoundMod
-        else
-          vol := vol * SoundMod;
+        if setMode
+          then vol := SoundMod
+          else vol *= SoundMod;
 
         res := FMOD_Channel_SetVolume(Chan, vol);
 
@@ -669,7 +659,6 @@ begin
       e_DeleteSound(i);
 
   SetLength(e_SoundsArray, 0);
-  e_SoundsArray := nil;
 end;
 
 procedure e_ReleaseSoundSystem();
@@ -742,8 +731,8 @@ begin
     Exit;
   end;
 
-  res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE,
-           e_SoundsArray[FID].Sound, False, FChannel);
+  res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE, e_SoundsArray[FID].Sound, False,
+    FChannel);
   if res <> FMOD_OK then
   begin
     FChannel := nil;
@@ -751,12 +740,9 @@ begin
   end;
 
   res := FMOD_Channel_SetPosition(FChannel, aPos, FMOD_TIMEUNIT_MS);
-  if res <> FMOD_OK then
-    begin
-      FPosition := 0;
-    end
-  else
-    FPosition := aPos;
+  if res <> FMOD_OK
+    then FPosition := 0
+    else FPosition := aPos;
 
   res := FMOD_Channel_SetPan(FChannel, Pan);
   if res <> FMOD_OK then
@@ -781,7 +767,7 @@ begin
     end;
   end;
 
-  Inc(e_SoundsArray[FID].nRefs);
+  e_SoundsArray[FID].nRefs += 1;
   Result := True;
 end;
 
@@ -805,9 +791,7 @@ begin
 
   res := FMOD_Channel_IsPlaying(FChannel, b);
   if res <> FMOD_OK then
-  begin
     Exit;
-  end;
 
   Result := b;
 end;
@@ -843,9 +827,7 @@ begin
 
   res := FMOD_Channel_GetPaused(FChannel, b);
   if res <> FMOD_OK then
-  begin
     Exit;
-  end;
 
   Result := b;
 end;
@@ -885,9 +867,7 @@ begin
 
   res := FMOD_Channel_GetVolume(FChannel, vol);
   if res <> FMOD_OK then
-  begin
     Exit;
-  end;
 
   Result := vol;
 end;
@@ -919,9 +899,7 @@ begin
 
   res := FMOD_Channel_GetPan(FChannel, pan);
   if res <> FMOD_OK then
-  begin
     Exit;
-  end;
 
   Result := pan;
 end;
@@ -953,9 +931,7 @@ begin
 
   res := FMOD_Channel_GetMute(FChannel, b);
   if res <> FMOD_OK then
-  begin
     Exit;
-  end;
 
   Result := b;
 end;
@@ -986,9 +962,7 @@ begin
 
   res := FMOD_Channel_GetPosition(FChannel, FPosition, FMOD_TIMEUNIT_MS);
   if res <> FMOD_OK then
-  begin
     Exit;
-  end;
 
   Result := FPosition;
 end;
@@ -1009,13 +983,12 @@ begin
   end;
 end;
 
-procedure TBasicSound.SetPriority(priority: Integer);
+procedure TBasicSound.SetPriority(priority: Cardinal);
 var
   res: FMOD_RESULT;
 
 begin
-  if (FChannel <> nil) and (FPriority <> priority) and
-     (priority >= 0) and (priority <= 256) then
+  if (FChannel <> nil) and (FPriority <> priority) and (priority <= 256) then
   begin
     FPriority := priority;
     res := FMOD_Channel_SetPriority(FChannel, priority);

@@ -278,15 +278,15 @@ begin
     dfmapdef := TDynMapDef.Create(pr);
   except
     on e: TDynParseException do
-      begin
-        writeln('ERROR at (', e.tokLine, ',', e.tokCol, '): ', e.message);
-        Halt(1);
-      end;
+    begin
+      writeln('ERROR at (', e.tokLine, ',', e.tokCol, '): ', e.message);
+      Halt(1);
+    end;
     on e: Exception do
-      begin
-        writeln('ERROR: ', e.message);
-        Halt(1);
-      end;
+    begin
+      writeln('ERROR: ', e.message);
+      Halt(1);
+    end;
   end;
   pr.Free();
 

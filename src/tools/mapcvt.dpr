@@ -83,7 +83,8 @@ begin
   pr := TStrTextParser.Create(defaultMapDef);
   try
     dfmapdef := TDynMapDef.Create(pr);
-  except on e: Exception do
+  except
+    on e: Exception do
     begin
       writeln('ERROR at (', pr.line, ',', pr.col, '): ', e.message);
       Halt(1);
@@ -113,15 +114,15 @@ begin
     writeln(' map parsed in ', stt div 1000, '.', stt mod 1000, ' milliseconds');
   except
     on e: TDynParseException do
-      begin
-        writeln('ERROR at (', e.tokLine, ',', e.tokCol, '): ', e.message);
-        Halt(1);
-      end;
+    begin
+      writeln('ERROR at (', e.tokLine, ',', e.tokCol, '): ', e.message);
+      Halt(1);
+    end;
     on E: Exception do
-      begin
-        writeln('ERROR: ', e.message);
-        Halt(1);
-      end;
+    begin
+      writeln('ERROR: ', e.message);
+      Halt(1);
+    end;
   end;
 
   {$IF DEFINED(D2D_DYNREC_PROFILER)}xdynDumpProfiles();{$ENDIF}

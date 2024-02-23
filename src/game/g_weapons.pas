@@ -2130,7 +2130,10 @@ begin
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN2', x, y);
 
-  if gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF] then a := 25 else a := 20;
+  if gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]
+    then a := 25
+    else a := 20;
+
   for i := 0 to a do
   begin
     j := 0; k := 0;
@@ -2551,8 +2554,8 @@ begin
     if Projectiles[i].ShotType <> 0 then
       with Projectiles[i] do
       begin
-        if (Projectiles[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_BARON_FIRE, WEAPON_MANCUB_FIRE,
-            WEAPON_SKEL_FIRE])
+        if (Projectiles[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_BARON_FIRE,
+            WEAPON_MANCUB_FIRE, WEAPON_SKEL_FIRE])
           then a := -GetAngle2(Obj.Vel.X, Obj.Vel.Y)
           else a := 0;
 
@@ -2737,9 +2740,9 @@ procedure g_Weapon_DestroyProj(I: Integer; X, Y: Integer; Loud: Boolean);
 var
   cx, cy: Integer;
   Anim: TAnimation;
-  s: string;
+  s: String;
 begin
-  if not (I in [0..High(Projectiles)]) then
+  if (Low(Projectiles) > I) or (High(Projectiles) < I) then
     Exit;
 
   with Projectiles[I] do
@@ -2856,18 +2859,22 @@ begin
   for i := 0 to High(Projectiles) do
   begin
     if Projectiles[i].ShotType = 0 then continue;
-    if Projectiles[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_PLASMA, WEAPON_BFG, WEAPON_FLAMETHROWER,
-      WEAPON_IMP_FIRE, WEAPON_BSP_FIRE, WEAPON_CACO_FIRE, WEAPON_BARON_FIRE, WEAPON_MANCUB_FIRE,
-      WEAPON_SKEL_FIRE] then
+    if Projectiles[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_PLASMA, WEAPON_BFG,
+      WEAPON_FLAMETHROWER, WEAPON_IMP_FIRE, WEAPON_BSP_FIRE, WEAPON_CACO_FIRE, WEAPON_BARON_FIRE,
+      WEAPON_MANCUB_FIRE, WEAPON_SKEL_FIRE] then
     begin
       if (Projectiles[i].ShotType = WEAPON_PLASMA) then
-        g_AddDynLight(Projectiles[i].Obj.X+(Projectiles[i].Obj.Rect.Width div 2), Projectiles[i].Obj.Y+(Projectiles[i].Obj.Rect.Height div 2), 128,  0, 0.3, 1, 0.4)
+        g_AddDynLight(Projectiles[i].Obj.X+(Projectiles[i].Obj.Rect.Width div 2),
+          Projectiles[i].Obj.Y+(Projectiles[i].Obj.Rect.Height div 2), 128, 0, 0.3, 1, 0.4)
       else if (Projectiles[i].ShotType = WEAPON_BFG) then
-        g_AddDynLight(Projectiles[i].Obj.X+(Projectiles[i].Obj.Rect.Width div 2), Projectiles[i].Obj.Y+(Projectiles[i].Obj.Rect.Height div 2), 128,  0, 1, 0, 0.5)
+        g_AddDynLight(Projectiles[i].Obj.X+(Projectiles[i].Obj.Rect.Width div 2),
+          Projectiles[i].Obj.Y+(Projectiles[i].Obj.Rect.Height div 2), 128, 0, 1, 0, 0.5)
       else if (Projectiles[i].ShotType = WEAPON_FLAMETHROWER) then
-        g_AddDynLight(Projectiles[i].Obj.X+(Projectiles[i].Obj.Rect.Width div 2), Projectiles[i].Obj.Y+(Projectiles[i].Obj.Rect.Height div 2), 42,  1, 0.8, 0, 0.4)
+        g_AddDynLight(Projectiles[i].Obj.X+(Projectiles[i].Obj.Rect.Width div 2),
+          Projectiles[i].Obj.Y+(Projectiles[i].Obj.Rect.Height div 2), 42, 1, 0.8, 0, 0.4)
       else
-        g_AddDynLight(Projectiles[i].Obj.X+(Projectiles[i].Obj.Rect.Width div 2), Projectiles[i].Obj.Y+(Projectiles[i].Obj.Rect.Height div 2), 128,  1, 0, 0, 0.4);
+        g_AddDynLight(Projectiles[i].Obj.X+(Projectiles[i].Obj.Rect.Width div 2),
+          Projectiles[i].Obj.Y+(Projectiles[i].Obj.Rect.Height div 2), 128, 1, 0, 0, 0.4);
     end;
   end;
 end;

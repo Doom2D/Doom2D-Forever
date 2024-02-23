@@ -213,6 +213,7 @@ begin
   except
     on E: Exception do
       e_LogWritefln('OGG: ERROR: could not read file `%s`: %s', [FName, E.Message]);
+    else;
   end;
 
   if not Result then S.Free();

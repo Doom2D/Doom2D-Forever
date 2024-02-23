@@ -51,14 +51,13 @@ function THolmesBinding.cmdName (): AnsiString;
 var
   pr: TTextParser = nil;
 begin
-  result := '';
   try
     pr := TStrTextParser.Create(cmd);
-    if (pr.tokType = pr.TTStr) then result := pr.expectStr(false) else result := pr.expectId();
-  except on E: Exception do
-    begin
-      result := '';
-    end;
+    if (pr.tokType = pr.TTStr)
+      then Result := pr.expectStr(false)
+      else Result := pr.expectId();
+  except
+    Result := '';
   end;
   pr.Free();
 end;
@@ -269,7 +268,8 @@ begin
     pr := TStrTextParser.Create(s);
     if (pr.tokType = pr.TTStr) then cmd := pr.expectStr(false) else cmd := pr.expectId();
     if cmdlist.get(cmd, cc) then cc.execute(pr) else conwritefln('holmes command ''%s'' not found', [cmd]);
-  except on E: Exception do
+  except
+    on E: Exception do
     begin
       conwritefln('error executing holmes command: [%s]', [s]);
       //conwritefln('* [%s] [%s]', [Integer(pr.tokType), E.message]);

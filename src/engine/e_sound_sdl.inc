@@ -71,7 +71,7 @@ type
     procedure Mute(Enable: Boolean);
     function GetPosition(): DWORD;
     procedure SetPosition(aPos: DWORD);
-    procedure SetPriority(priority: Integer);
+    procedure SetPriority(priority: Cardinal);
   end;
 
 const
@@ -962,11 +962,10 @@ begin
 end;
 
 //TODO
-procedure TBasicSound.SetPriority(priority: Integer);
+procedure TBasicSound.SetPriority(priority: Cardinal);
 begin
 {
-  if (FChanNum <> nil) and (FPriority <> priority) and
-     (priority >= 0) and (priority <= 256) then
+  if (FChanNum <> nil) and (FPriority <> priority) and (priority <= 256) then
   begin
     FPriority := priority;
     res := FMOD_Channel_SetPriority(FChanNum, priority);

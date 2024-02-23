@@ -825,71 +825,60 @@ end;
 function g_Player_Create(ModelName: String; Color: TRGB; Team: Byte; Bot: Boolean): Word;
 var
   a: Integer;
-  ok: Boolean;
+  ok: Boolean = False;
 begin
   Result := 0;
 
-  ok := False;
-  a := 0;
+  // Есть ли место в gPlayers:
+  for a := 0 to High(gPlayers) do
+    if gPlayers[a] = nil then
+    begin
+      ok := True;
+      Break;
+    end;
 
-// Есть ли место в gPlayers:
-  if gPlayers <> nil then
-    for a := 0 to High(gPlayers) do
-      if gPlayers[a] = nil then
-      begin
-        ok := True;
-        Break;
-      end;
-
-// Нет места - расширяем gPlayers:
+  // Нет места - расширяем gPlayers:
   if not ok then
   begin
     SetLength(gPlayers, Length(gPlayers)+1);
     a := High(gPlayers);
   end;
 
-// Создаем объект игрока:
-  if Bot then
-    gPlayers[a] := TBot.Create()
-  else
-    gPlayers[a] := TPlayer.Create();
-
+  // Создаем объект игрока:
+  if Bot
+    then gPlayers[a] := TBot.Create()
+    else gPlayers[a] := TPlayer.Create();
 
   gPlayers[a].FActualModelName := ModelName;
   gPlayers[a].SetModel(ModelName);
   if Bot and (g_Force_Model_Get() <> 0) then
     gPlayers[a].SetModel(g_Forced_Model_GetName());
 
-// Нет модели - создание не возможно:
+  // Нет модели - создание невозможно:
   if gPlayers[a].FModel = nil then
   begin
-    gPlayers[a].Free();
-    gPlayers[a] := nil;
+    FreeAndNil(gPlayers[a]);
     g_FatalError(Format(_lc[I_GAME_ERROR_MODEL], [ModelName]));
     Exit;
   end;
 
   if not (Team in [TEAM_RED, TEAM_BLUE]) then
-    if Random(2) = 0 then
-      Team := TEAM_RED
-    else
-      Team := TEAM_BLUE;
+    if Random(2) = 0
+      then Team := TEAM_RED
+      else Team := TEAM_BLUE;
   gPlayers[a].FPreferredTeam := Team;
 
   case gGameSettings.GameMode of
     GM_DM: gPlayers[a].FTeam := TEAM_NONE;
-    GM_TDM,
-    GM_CTF: gPlayers[a].FTeam := gPlayers[a].FPreferredTeam;
-    GM_SINGLE,
-    GM_COOP: gPlayers[a].FTeam := TEAM_COOP;
+    GM_TDM, GM_CTF: gPlayers[a].FTeam := gPlayers[a].FPreferredTeam;
+    GM_SINGLE, GM_COOP: gPlayers[a].FTeam := TEAM_COOP;
   end;
 
-// Если командная игра - красим модель в цвет команды:
+  // Если командная игра - красим модель в цвет команды:
   gPlayers[a].FColor := Color;
-  if gPlayers[a].FTeam in [TEAM_RED, TEAM_BLUE] then
-    gPlayers[a].FModel.Color := TEAMCOLOR[gPlayers[a].FTeam]
-  else
-    gPlayers[a].FModel.Color := Color;
+  if gPlayers[a].FTeam in [TEAM_RED, TEAM_BLUE]
+    then gPlayers[a].FModel.Color := TEAMCOLOR[gPlayers[a].FTeam]
+    else gPlayers[a].FModel.Color := Color;
 
   gPlayers[a].FUID := g_CreateUID(UID_PLAYER);
   gPlayers[a].FAlive := False;
@@ -959,10 +948,9 @@ begin
             if gPlayers[a].FPreferredTeam in [TEAM_RED, TEAM_BLUE] then
               gPlayers[a].ChangeTeam(gPlayers[a].FPreferredTeam)
             else
-              if a mod 2 = 0 then
-                gPlayers[a].ChangeTeam(TEAM_RED)
-              else
-                gPlayers[a].ChangeTeam(TEAM_BLUE);
+              if a mod 2 = 0
+                then gPlayers[a].ChangeTeam(TEAM_RED)
+                else gPlayers[a].ChangeTeam(TEAM_BLUE);
         GM_SINGLE,
         GM_COOP:
           gPlayers[a].ChangeTeam(TEAM_COOP);
@@ -1570,7 +1558,7 @@ begin
 
 // Разрываем связь с прежним трупом:
   i := Player.FCorpse;
-  if i in [0..High(gCorpses)] then
+  if (Low(gCorpses) <= i) and (High(gCorpses) >= i) then
   begin
     if (gCorpses[i] <> nil) and (gCorpses[i].FPlayerUID = Player.FUID) then
       gCorpses[i].FPlayerUID := 0;
@@ -1975,7 +1963,7 @@ begin
 
   // Количество трупов:
   count := utils.readLongInt(st);
-  if not (count in [0..High(gCorpses)]) then
+  if (count < 0) or (Length(gCorpses) < count) then
     raise XStreamError.Create('invalid number of corpses');
 
   if (count = 0) then Exit;
@@ -2044,10 +2032,10 @@ begin
 
   FModel := m;
 
-  if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
-    FModel.Color := FColor
-  else
-    FModel.Color := TEAMCOLOR[FTeam];
+  if not (gGameSettings.GameMode in [GM_TDM, GM_CTF])
+    then FModel.Color := FColor
+    else FModel.Color := TEAMCOLOR[FTeam];
+
   FModel.SetWeapon(FCurrWeap);
   FModel.SetFlag(FFlag);
   SetDirection(FDirection);
@@ -2783,10 +2771,10 @@ begin
 
   if gShowScore and (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
   begin
-    if gGameSettings.GameMode = GM_CTF then
-      a := 32 + 8
-    else
-      a := 0;
+    if gGameSettings.GameMode = GM_CTF
+      then a := 32 + 8
+      else a := 0;
+
     if gGameSettings.GameMode = GM_CTF then
     begin
       s := 'TEXTURE_PLAYER_REDFLAG';
@@ -4718,10 +4706,9 @@ begin
     FMaxAmmo[A_FUEL] := AmmoLimits[0, A_FUEL];
 
     if (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) and
-       (TGameOption.DM_KEYS in gGameSettings.Options) then
-      FInventory := [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE]
-    else
-      FInventory := [];
+       (TGameOption.DM_KEYS in gGameSettings.Options)
+      then FInventory := [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE]
+      else FInventory := [];
   end;
 
 // Получаем координаты точки возрождения:
@@ -5075,7 +5062,7 @@ end;
 function TPlayer.getCameraObj(): TObj;
 begin
   if (not FAlive) and (not FSpectator) and
-     (FCorpse in [0..High(gCorpses)]) and
+     (Low(gCorpses) <= FCorpse) and (High(gCorpses) >= FCorpse) and
      (gCorpses[FCorpse] <> nil) and (gCorpses[FCorpse].FPlayerUID = FUID) then
   begin
     gCorpses[FCorpse].FObj.slopeUpLeft := FObj.slopeUpLeft;
@@ -7482,14 +7469,16 @@ procedure TBot.UpdateMove;
     SetDirection(TDirection.D_RIGHT);
   end;
 
-  function Rnd(a: Word): Boolean;
+  function Rnd(a: Word): Boolean; inline;
   begin
     Result := Random(a) = 0;
   end;
 
   procedure Turn(Time: Word = 1200);
   begin
-    if RunDirection() = TDirection.D_LEFT then GoRight(Time) else GoLeft(Time);
+    if RunDirection() = TDirection.D_LEFT
+      then GoRight(Time)
+      else GoLeft(Time);
   end;
 
   procedure Stop();
@@ -7697,19 +7686,11 @@ procedure TBot.UpdateMove;
     a: Integer;
   begin
     Result := True;
-    if gTriggers = nil then
-      Exit;
     for a := 0 to High(gTriggers) do
-      if Collide(gTriggers[a].X,
-                 gTriggers[a].Y,
-                 gTriggers[a].Width,
-                 gTriggers[a].Height) and
-         (gTriggers[a].TriggerType in [TRIGGER_EXIT, TRIGGER_CLOSEDOOR,
-                                       TRIGGER_CLOSETRAP, TRIGGER_TRAP,
-                                       TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF,
-                                       TRIGGER_ONOFF, TRIGGER_SPAWNMONSTER,
-                                       TRIGGER_DAMAGE, TRIGGER_SHOT]) then
-        Result := False;
+      if Collide(gTriggers[a].X, gTriggers[a].Y, gTriggers[a].Width, gTriggers[a].Height)
+        and (gTriggers[a].TriggerType in [TRIGGER_EXIT, TRIGGER_CLOSEDOOR, TRIGGER_CLOSETRAP,
+          TRIGGER_TRAP, TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF,
+          TRIGGER_SPAWNMONSTER, TRIGGER_DAMAGE, TRIGGER_SHOT]) then Exit(False);
   end;
 
 begin

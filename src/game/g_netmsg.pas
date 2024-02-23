@@ -856,10 +856,9 @@ begin
   end
   else if gVoteInProgress then
   begin
-    if (gPlayer1 <> nil) or (gPlayer2 <> nil) then
-      Need := Floor((NetClientCount+1)/2.0) + 1
-    else
-      Need := Floor(NetClientCount/2.0) + 1;
+    if (gPlayer1 <> nil) or (gPlayer2 <> nil)
+      then Need := Floor((NetClientCount+1)/2.0) + 1
+      else Need := Floor(NetClientCount/2.0) + 1;
     if C^.Voted then
     begin
       Dec(gVoteCount);
@@ -904,7 +903,7 @@ procedure MH_SEND_Everything(CreatePlayers: Boolean; ID: Integer);
 var
   I: Integer;
 begin
-  if not (ID in [0..High(NetClients)]) then
+  if (Low(NetClients) > ID) or (High(NetClients) < ID) then
     Exit;  // bogus client, this shouldn't happen
 
   NetClients[ID].FullUpdateSent := True;
@@ -1079,7 +1078,7 @@ end;
 
 procedure MH_SEND_CreateProj(Proj: LongInt; ID: Integer);
 begin
-  if not (Proj in [0..High(Projectiles)]) then
+  if (Low(Projectiles) > Proj) or (High(Projectiles) < Proj) then
     Exit;
 
   NetOut.Write(Byte(NET_MSG_PJADD));
@@ -1098,7 +1097,7 @@ end;
 
 procedure MH_SEND_UpdateProj(Proj: LongInt; ID: Integer);
 begin
-  if not (Proj in [0..High(Projectiles)]) then
+  if (Low(Projectiles) > Proj) or (High(Projectiles) < Proj) then
     Exit;
 
   NetOut.Write(Byte(NET_MSG_PJPOS));
@@ -1843,10 +1842,10 @@ begin
   YV := M.ReadLongInt();
 
   I := g_Weapon_CreateProj(I, ShType, Spawner, Target, X, Y, XV, YV);
-  if (Projectiles <> nil) and (I <= High(Projectiles)) then
+  if (Low(Projectiles) <= I) and (High(Projectiles) >= I) then
   begin
     Projectiles[I].Timeout := Timeout;
-    //Projectiles[I].Target := Target; // TODO: find a use for Target later
+    //Projectiles[I].Target := Target;  // TODO: find a use for Target later
   end;
 end;
 
@@ -1860,7 +1859,7 @@ begin
   TXV := M.ReadLongInt();
   TYV := M.ReadLongInt();
 
-  if (Projectiles <> nil) and (I <= High(Projectiles)) then
+  if (Low(Projectiles) <= I) and (High(Projectiles) >= I) then
     with (Projectiles[i]) do
     begin
       Obj.X := TX;

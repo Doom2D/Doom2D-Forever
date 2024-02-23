@@ -149,6 +149,7 @@ begin
   except
     on E: Exception do
       e_LogWritefln('ModPlug: ERROR: could not read file `%s`: %s', [FName, E.Message]);
+    else;
   end;
 
   if Data <> nil then FreeMem(Data);

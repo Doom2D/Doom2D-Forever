@@ -41,7 +41,7 @@ procedure g_Holmes_plrLaser (ax0, ay0, ax1, ay1: Integer);
 
 var
   g_holmes_nonfunctional: Boolean;
-  g_holmes_enabled: Boolean = {$IF DEFINED(D2F_DEBUG)}true{$ELSE}false{$ENDIF};
+  g_holmes_enabled: Boolean{$IFDEF D2F_DEBUG} = True{$ENDIF};
 
 
 implementation
@@ -49,27 +49,27 @@ implementation
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
   {rttiobj,} typinfo, e_texture, e_res,
-  SysUtils, Classes, SDL2,
+  SysUtils, StrUtils, Classes, SDL2,
   MAPDEF, g_main, g_options,
   utils, hashtable, xparser;
 
 
 var
-  hlmContext: TGxContext = nil;
-  //globalInited: Boolean = false;
+  hlmContext: TGxContext;
+  //globalInited: Boolean;
   msX: Integer = -666;
   msY: Integer = -666;
-  msB: Word = 0; // button state
-  kbS: Word = 0; // keyboard modifiers state
-  showGrid: Boolean = {$IF DEFINED(D2F_DEBUG)}false{$ELSE}false{$ENDIF};
-  showMonsInfo: Boolean = false;
-  showMonsLOS2Plr: Boolean = false;
-  showAllMonsCells: Boolean = false;
-  showMapCurPos: Boolean = false;
-  showLayersWindow: Boolean = false;
-  showOutlineWindow: Boolean = false;
-  showTriggers: Boolean = {$IF DEFINED(D2F_DEBUG)}false{$ELSE}false{$ENDIF};
-  showTraceBox: Boolean = {$IF DEFINED(D2F_DEBUG)}false{$ELSE}false{$ENDIF};
+  msB: Word; // button state
+  kbS: Word; // keyboard modifiers state
+  showGrid: Boolean;
+  showMonsInfo: Boolean;
+  showMonsLOS2Plr: Boolean;
+  showAllMonsCells: Boolean;
+  showMapCurPos: Boolean;
+  showLayersWindow: Boolean;
+  showOutlineWindow: Boolean;
+  showTriggers: Boolean;
+  showTraceBox: Boolean;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -85,24 +85,24 @@ procedure holmesInitBinds (); forward;
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  g_ol_nice: Boolean = false;
-  g_ol_fill_walls: Boolean = false;
-  g_ol_rlayer_back: Boolean = false;
-  g_ol_rlayer_step: Boolean = false;
-  g_ol_rlayer_wall: Boolean = false;
-  g_ol_rlayer_door: Boolean = false;
-  g_ol_rlayer_acid1: Boolean = false;
-  g_ol_rlayer_acid2: Boolean = false;
-  g_ol_rlayer_water: Boolean = false;
-  g_ol_rlayer_fore: Boolean = false;
+  g_ol_nice: Boolean;
+  g_ol_fill_walls: Boolean;
+  g_ol_rlayer_back: Boolean;
+  g_ol_rlayer_step: Boolean;
+  g_ol_rlayer_wall: Boolean;
+  g_ol_rlayer_door: Boolean;
+  g_ol_rlayer_acid1: Boolean;
+  g_ol_rlayer_acid2: Boolean;
+  g_ol_rlayer_water: Boolean;
+  g_ol_rlayer_fore: Boolean;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  winHelp: TUITopWindow = nil;
-  winOptions: TUITopWindow = nil;
-  winLayers: TUITopWindow = nil;
-  winOutlines: TUITopWindow = nil;
+  winHelp: TUITopWindow;
+  winOptions: TUITopWindow;
+  winLayers: TUITopWindow;
+  winOutlines: TUITopWindow;
 
 
 procedure createHelpWindow (); forward;
@@ -1699,7 +1699,7 @@ procedure holmesInitBinds ();
 var
   st: TStream = nil;
   pr: TTextParser = nil;
-  s, kn, v: AnsiString;
+  s, v: AnsiString;
   kmods: Byte;
   mbuts: Byte;
 begin
@@ -1759,15 +1759,9 @@ begin
           else if (pr.tokType = pr.TTInt) then v := Format('%d', [pr.expectInt()])
           else v := pr.expectId();
 
-          kn := parseModKeys(s, kmods, mbuts);
-          if (CompareText(kn, 'lmb') = 0) or (CompareText(kn, 'rmb') = 0) or (CompareText(kn, 'mmb') = 0) or (CompareText(kn, 'None') = 0) then
-          begin
-            msbindAdd(s, v);
-          end
-          else
-          begin
-            keybindAdd(s, v);
-          end;
+          if MatchText(parseModKeys(s, kmods, mbuts), ['lmb', 'rmb', 'mmb', 'None'])
+            then msbindAdd(s, v)
+            else keybindAdd(s, v);
         end;
       end;
     except on e: Exception do // sorry

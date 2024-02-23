@@ -528,17 +528,10 @@ begin
     fuiGfxLoadFont('win16', 'flexui/fonts/win16.fuifont');
     fuiGfxLoadFont('dos8', 'flexui/fonts/dos8.fuifont');
     fuiGfxLoadFont('msx6', 'flexui/fonts/msx6.fuifont');
-  except on e: Exception do
-    begin
-      writeln('ERROR loading FlexUI fonts');
-      flexloaded := False;
-      //raise;
-    end;
-  else
-    begin
-      flexloaded := False;
-      //raise;
-    end;
+  except
+    writeln('ERROR loading FlexUI fonts');
+    flexloaded := False;
+    //Raise;
   end;
 
   if flexloaded then
@@ -546,16 +539,17 @@ begin
     try
       e_LogWriteln('FlexUI: loading stylesheet...');
       uiLoadStyles('flexui/widgets.wgs');
-    except on e: TParserException do
+    except
+      on e: TParserException do
       begin
         writeln('ERROR at (', e.tokLine, ',', e.tokCol, '): ', e.message);
-        //raise;
-        flexloaded := false;
-      end;
-    else
+        flexloaded := False;
+        //Raise;
+      end
+      else
       begin
-        //raise;
-        flexloaded := false;
+        flexloaded := False;
+        //Raise;
       end;
     end;
   end;
