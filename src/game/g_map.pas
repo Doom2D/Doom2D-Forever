@@ -2378,7 +2378,7 @@ begin
   WAD := TWADFile.Create();
   if not WAD.ReadFile(WADName) then
   begin
-    WAD.Free();
+    WAD.Destroy();
     Exit;
   end;
   ResList := WAD.GetMapResources();
@@ -2390,7 +2390,7 @@ begin
       Result[High(Result)] := ResList[a];
     end;
   end;
-  WAD.Free();
+  WAD.Destroy();
 end;
 
 function g_Map_Exist(Res: string): Boolean;

@@ -2889,10 +2889,9 @@ begin
     UID_PLAYER:
     begin
       p := g_Player_Get(UID);
-      if p <> nil then
-        k := p.GetKeys
-      else
-        k := 0;
+      if p <> nil
+        then k := p.GetKeys
+        else k := 0;
     end;
     else k := 0;
   end;

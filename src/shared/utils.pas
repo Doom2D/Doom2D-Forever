@@ -24,14 +24,16 @@ uses
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  SSArray = array of ShortString;
+  SSArray = array of ShortString;  // TODO: eliminate
 
 
 const
-  Invalid1251Char = #$98;          // Undefined 1251 char, we use it as replacement for unknown chars
-  InvalidUnicodeCodepoint = $FFFD; // Unicode REPLACEMENT CHARACTER used to replace an unknown, unrecognised, or unrepresentable character
+  // Undefined 1251 char, we use it as replacement for unknown chars
+  Invalid1251Char = #$98;
+  // Unicode REPLACEMENT CHARACTER used to replace an unknown, unrecognised, or unrepresentable character
+  InvalidUnicodeCodepoint = $FFFD;
 
-  wadExtensions: array[0..6] of AnsiString = (
+  wadExtensions: array of AnsiString = (
     '.dfz',
     '.wad',
     '.dfwad',

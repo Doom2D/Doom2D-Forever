@@ -549,11 +549,11 @@ uses
   {$INCLUDE ../nogl/noGLuses.inc}
   g_textures, g_sound, SysUtils, e_res,
   g_game, Math, StrUtils, g_player, g_options, g_console,
-  g_map, g_weapons, xdynrec, wadreader;
+  g_map, g_weapons, xdynrec, wadreader, Generics.Collections;
 
 
 var
-  Box: Array [0..8] of DWORD;
+  Box: array[0..8] of DWORD;
   Saved_Windows: SSArray;
 
 
@@ -2907,7 +2907,8 @@ begin
   SetLength(FItems, Length(FItems)+1);
   FItems[High(FItems)] := Item;
 
-  if FSort then g_Basic.Sort(FItems);
+  if FSort then
+    specialize TArrayHelper<SSArray>.Sort(FItems);
 end;
 
 function TGUIListBox.ItemExists (item: String): Boolean;
@@ -3068,7 +3069,8 @@ begin
   FStartLine := 0;
   FIndex := -1;
 
-  if FSort then g_Basic.Sort(FItems);
+  if FSort then
+    specialize TArrayHelper<SSArray>.Sort(FItems);
 end;
 
 procedure TGUIListBox.SelectItem(Item: String);

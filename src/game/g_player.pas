@@ -483,9 +483,9 @@ type
     function    FullInStep(XInc, YInc: Integer): Boolean;
     //function    NeedItem(Item: Byte): Byte;
     procedure   SelectWeapon(Dist: Integer);
-    procedure   SetAIFlag(aName, fValue: String20);
-    function    GetAIFlag(aName: String20): String20;
-    procedure   RemoveAIFlag(aName: String20);
+    procedure   SetAIFlag(const aName, fValue: String);
+    function    GetAIFlag(const aName: String): String;
+    procedure   RemoveAIFlag(const aName: String);
     function    Healthy(): Byte;
     procedure   UpdateMove();
     procedure   UpdateCombat();
@@ -7384,33 +7384,26 @@ begin
   Result := FKeys[Key].Pressed;
 end;
 
-function TBot.GetAIFlag(aName: String20): String20;
+function TBot.GetAIFlag(const aName: String): String;
 var
-  a: Integer;
+  i: Integer;
 begin
   Result := '';
+  if FAIFlags = nil then Exit;
 
-  aName := LowerCase(aName);
-
-  if FAIFlags <> nil then
-    for a := 0 to High(FAIFlags) do
-      if LowerCase(FAIFlags[a].Name) = aName then
-      begin
-        Result := FAIFlags[a].Value;
-        Break;
-      end;
+  for i := 0 to High(FAIFlags) do
+    if CompareText(aName, FAIFlags[i].Name) = 0 then
+      Exit(FAIFlags[i].Value);
 end;
 
-procedure TBot.RemoveAIFlag(aName: String20);
+procedure TBot.RemoveAIFlag(const aName: String);
 var
   a, b: Integer;
 begin
   if FAIFlags = nil then Exit;
 
-  aName := LowerCase(aName);
-
   for a := 0 to High(FAIFlags) do
-    if LowerCase(FAIFlags[a].Name) = aName then
+    if CompareText(aName, FAIFlags[a].Name) = 0 then
     begin
       if a <> High(FAIFlags) then
         for b := a to High(FAIFlags)-1 do
@@ -7421,7 +7414,7 @@ begin
     end;
 end;
 
-procedure TBot.SetAIFlag(aName, fValue: String20);
+procedure TBot.SetAIFlag(const aName, fValue: String);
 var
   a: Integer;
   ok: Boolean;
@@ -7429,11 +7422,9 @@ begin
   a := 0;
   ok := False;
 
-  aName := LowerCase(aName);
-
   if FAIFlags <> nil then
     for a := 0 to High(FAIFlags) do
-      if LowerCase(FAIFlags[a].Name) = aName then
+      if CompareText(aName, FAIFlags[a].Name) = 0 then
       begin
         ok := True;
         Break;

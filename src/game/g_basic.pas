@@ -24,19 +24,18 @@ const
   GAME_VERSION  = '0.667';
   GAME_BUILDDATE = {$I %DATE%};
   GAME_BUILDTIME = {$I %TIME%};
-  UID_GAME    = 1;
-  UID_PLAYER  = 2;
+  UID_GAME = 1;
+  UID_PLAYER = 2;
   UID_MONSTER = 3;
-  UID_ITEM    = 10;
-  UID_MAX_GAME    = $10;
-  UID_MAX_PLAYER  = $7FFF;
+  UID_ITEM = 10;
+  UID_MAX_GAME = $10;
+  UID_MAX_PLAYER = $7FFF;
   UID_MAX_MONSTER = $FFFF;
 
 type
   TDirection = (D_LEFT, D_RIGHT);
-  WArray = array of Word;
-  DWArray = array of DWORD;
-  String20 = String[20];
+  WArray = array of Word;  // TODO: eliminate
+  DWArray = array of DWORD;  // TODO: eliminate
 
 function g_GetBuilderName (): AnsiString;
 function g_GetBuildHash (full: Boolean = True): AnsiString;
@@ -53,7 +52,7 @@ function g_CollideAround(X1, Y1: Integer; Width1, Height1: Word;
                          X2, Y2: Integer; Width2, Height2: Word): Boolean; inline;
 function g_CollidePlayer(X, Y: Integer; Width, Height: Word): Boolean; inline;
 function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
-function g_TraceVector(X1, Y1, X2, Y2: Integer): Boolean; // `true`: no wall hit
+function g_TraceVector(X1, Y1, X2, Y2: Integer): Boolean;  // `true`: no wall hit
 function g_GetAcidHit(X, Y: Integer; Width, Height: Word): Byte;
 function g_Look(a, b: PObj; d: TDirection): Boolean;
 procedure IncMax(var A: Integer; B, Max: Integer); overload;
@@ -78,25 +77,21 @@ function PointToRect(X, Y, X1, Y1: Integer; Width, Height: Word): Integer;
 function GetAngle(baseX, baseY, pointX, PointY: Integer): SmallInt;
 function GetAngle2(vx, vy: Integer): SmallInt;
 function GetLines(Text: string; FontID: DWORD; MaxWidth: Word): SSArray;
-procedure Sort(var a: SSArray);
-function Sscanf(const s: string; const fmt: string;
-                const Pointers: array of Pointer): Integer;
-function InDWArray(a: DWORD; arr: DWArray): Boolean;
-function InWArray(a: Word; arr: WArray): Boolean;
-function InSArray(a: string; arr: SSArray): Boolean;
+function InDWArray(a: DWORD; arr: DWArray): Boolean;  // TODO: eliminate
+function InWArray(a: Word; arr: WArray): Boolean;  // TODO: eliminate
+function InSArray(a: string; arr: SSArray): Boolean;  // TODO: eliminate
 function GetPos(UID: Word; o: PObj): Boolean;
 function parse(s: string): SSArray;
 function parse2(s: string; delim: Char): SSArray;
 function g_GetFileTime(fileName: String): Integer;
 function g_SetFileTime(fileName: String; time: Integer): Boolean;
-procedure SortSArray(var S: SSArray);
 function b_Text_Format(S: string): string;
 function b_Text_Unformat(S: string): string;
 function b_Text_Wrap(S: string; LineLen: Integer): string;
 function b_Text_LineCount(S: string): Integer;
 
 var
-  gmon_dbg_los_enabled: Boolean = true;
+  gmon_dbg_los_enabled: Boolean = True;
 
 implementation
 
@@ -132,87 +127,52 @@ end;
 {$POP}
 
 function g_GetBuildArch (): AnsiString;
-  var cpu, mode, fpu: AnsiString;
+var
+  cpu, mode, fpu: AnsiString;
 begin
-  {$IF DEFINED(CPUX86_64) OR DEFINED(CPUAMD64) OR DEFINED(CPUX64)}
-    cpu := 'x86_64';
-  {$ELSEIF DEFINED(CPUI386) OR DEFINED(CPU386)}
-    cpu := 'x86';
-  {$ELSEIF DEFINED(CPUI8086)}
-    cpu := 'i8086';
-  {$ELSEIF DEFINED(CPUI64)}
-    cpu := 'Itanium64';
-  {$ELSEIF DEFINED(CPUARM)}
-    cpu := 'ARM';
-  {$ELSEIF DEFINED(CPUAVR)}
-    cpu := 'AVR';
-  {$ELSEIF DEFINED(CPUPOWERPC32)}
-    cpu := 'PowerPC_32';
-  {$ELSEIF DEFINED(CPUPOWERPC64)}
-    cpu := 'PowerPC_64';
-  {$ELSEIF DEFINED(CPUALPHA)}}
-    cpu := 'Alpha';
-  {$ELSEIF DEFINED(CPUSPARC32)}
-    cpu := 'Sparc32';
-  {$ELSEIF DEFINED(CPUM68020)}
-    cpu := 'M68020';
-  {$ELSEIF DEFINED(CPU68K) OR DEFINED(CPUM68K)}
-    cpu := 'm68k';
-  {$ELSEIF DEFINED(CPUSPARC)}
-    cpu := 'unknown-sparc';
-  {$ELSEIF DEFINED(CPUPOWERPC)}
-    cpu := 'unknown-ppc';
-  {$ELSEIF DEFINED(CPU86) OR DEFINED(CPU87)}
-    cpu := 'unknown-intel';
-  {$ELSE}
-    cpu := 'unknown-arch';
-  {$ENDIF}
+  cpu := {$IF DEFINED(CPUX86_64) OR DEFINED(CPUAMD64) OR DEFINED(CPUX64)}
+    'x86_64' {$ELSEIF DEFINED(CPUI386) OR DEFINED(CPU386)}
+    'x86' {$ELSEIF DEFINED(CPUI8086)}
+    'i8086' {$ELSEIF DEFINED(CPUI64)}
+    'Itanium64' {$ELSEIF DEFINED(CPUARM)}
+    'ARM' {$ELSEIF DEFINED(CPUAVR)}
+    'AVR' {$ELSEIF DEFINED(CPUPOWERPC32)}
+    'PowerPC_32' {$ELSEIF DEFINED(CPUPOWERPC64)}
+    'PowerPC_64' {$ELSEIF DEFINED(CPUALPHA)}}
+    'Alpha' {$ELSEIF DEFINED(CPUSPARC32)}
+    'Sparc32' {$ELSEIF DEFINED(CPUM68020)}
+    'M68020' {$ELSEIF DEFINED(CPU68K) OR DEFINED(CPUM68K)}
+    'm68k' {$ELSEIF DEFINED(CPUSPARC)}
+    'unknown-sparc' {$ELSEIF DEFINED(CPUPOWERPC)}
+    'unknown-ppc' {$ELSEIF DEFINED(CPU86) OR DEFINED(CPU87)}
+    'unknown-intel' {$ELSE}
+    'unknown-arch' {$ENDIF};
 
-  {$IF DEFINED(CPU64)}
-    mode := '64-bit';
-  {$ELSEIF DEFINED(CPU32)}
-    mode := '32-bit';
-  {$ELSEIF DEFINED(CPU16)}
-    mode := '16-bit';
-  {$ELSE}
-    mode := 'unknown-mode';
-  {$ENDIF}
+  mode := {$IF DEFINED(CPU64)}
+    '64-bit' {$ELSEIF DEFINED(CPU32)}
+    '32-bit' {$ELSEIF DEFINED(CPU16)}
+    '16-bit' {$ELSE}
+    'unknown-mode' {$ENDIF};
 
-  {$IF DEFINED(FPUSOFT)}
-    fpu := 'soft';
-  {$ELSEIF DEFINED(FPUSSE3)}
-    fpu := 'sse3';
-  {$ELSEIF DEFINED(FPUSSE2)}
-    fpu := 'sse2';
-  {$ELSEIF DEFINED(FPUSSE)}
-    fpu := 'sse';
-  {$ELSEIF DEFINED(FPUSSE64)}
-    fpu := 'sse64';
-  {$ELSEIF DEFINED(FPULIBGCC)}
-    fpu := 'libgcc';
-  {$ELSEIF DEFINED(FPU68881)}
-    fpu := '68881';
-  {$ELSEIF DEFINED(FPUVFP)}
-    fpu := 'vfp';
-  {$ELSEIF DEFINED(FPUFPA11)}
-    fpu := 'fpa11';
-  {$ELSEIF DEFINED(FPUFPA10)}
-    fpu := 'fpa10';
-  {$ELSEIF DEFINED(FPUFPA)}
-    fpu := 'fpa';
-  {$ELSEIF DEFINED(FPUX87)}
-    fpu := 'x87';
-  {$ELSEIF DEFINED(FPUITANIUM)}
-    fpu := 'itanium';
-  {$ELSEIF DEFINED(FPUSTANDARD)}
-    fpu := 'standard';
-  {$ELSEIF DEFINED(FPUHARD)}
-    fpu := 'hard';
-  {$ELSE}
-    fpu := 'unknown-fpu';
-  {$ENDIF}
+  fpu := {$IF DEFINED(FPUSOFT)}
+    'soft' {$ELSEIF DEFINED(FPUSSE3)}
+    'sse3' {$ELSEIF DEFINED(FPUSSE2)}
+    'sse2' {$ELSEIF DEFINED(FPUSSE)}
+    'sse' {$ELSEIF DEFINED(FPUSSE64)}
+    'sse64' {$ELSEIF DEFINED(FPULIBGCC)}
+    'libgcc' {$ELSEIF DEFINED(FPU68881)}
+    '68881' {$ELSEIF DEFINED(FPUVFP)}
+    'vfp' {$ELSEIF DEFINED(FPUFPA11)}
+    'fpa11' {$ELSEIF DEFINED(FPUFPA10)}
+    'fpa10' {$ELSEIF DEFINED(FPUFPA)}
+    'fpa' {$ELSEIF DEFINED(FPUX87)}
+    'x87' {$ELSEIF DEFINED(FPUITANIUM)}
+    'itanium' {$ELSEIF DEFINED(FPUSTANDARD)}
+    'standard' {$ELSEIF DEFINED(FPUHARD)}
+    'hard' {$ELSE}
+    'unknown-fpu' {$ENDIF};
 
-  result := cpu + ' ' + mode + ' ' + fpu;
+  Result := cpu + ' ' + mode + ' ' + fpu;
 end;
 
 function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
@@ -222,7 +182,7 @@ end;
 
 function g_CollideLevel(X, Y: Integer; Width, Height: Word): Boolean; inline;
 begin
-  result := g_Map_CollidePanel(X, Y, Width, Height, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_OPENDOOR), false);
+  result := g_Map_CollidePanel(X, Y, Width, Height, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_OPENDOOR), False);
 end;
 (*
 var
@@ -251,18 +211,11 @@ var
   a: Integer;
 begin
   Result := False;
-
-  if gPlayers = nil then Exit;
-
   for a := 0 to High(gPlayers) do
     if (gPlayers[a] <> nil) and gPlayers[a].alive then
       if gPlayers[a].Collide(X, Y, Width, Height) then
-      begin
-        Result := True;
-        Exit;
-      end;
+        Exit(True);
 end;
-
 
 function g_TraceVector(X1, Y1, X2, Y2: Integer): Boolean;
 var
@@ -328,7 +281,6 @@ begin
   if (g_profile_los) then g_Mons_LOS_End();
 end;
 
-
 function g_CreateUID(UIDType: Byte): Word;
 var
   ok: Boolean;
@@ -370,11 +322,10 @@ function g_GetUIDType(UID: Word): Byte;
 begin
   if UID <= UID_MAX_GAME then
     Result := UID_GAME
+  else if UID <= UID_MAX_PLAYER then
+    Result := UID_PLAYER
   else
-    if UID <= UID_MAX_PLAYER then
-      Result := UID_PLAYER
-    else
-      Result := UID_MONSTER;
+    Result := UID_MONSTER;
 end;
 
 function g_Collide(X1, Y1: Integer; Width1, Height1: Word;
@@ -569,14 +520,12 @@ end;
 
 function g_Look(a, b: PObj; d: TDirection): Boolean;
 begin
-  if not gmon_dbg_los_enabled then begin result := false; exit; end; // always "wall hit"
+  if not gmon_dbg_los_enabled then
+    Exit(False);  // always "wall hit"
 
   if ((b^.X > a^.X) and (d = TDirection.D_LEFT)) or
      ((b^.X < a^.X) and (d = TDirection.D_RIGHT)) then
-  begin
-    Result := False;
-    Exit;
-  end;
+    Exit(False);
 
   Result := g_TraceVector(a^.X+a^.Rect.X+(a^.Rect.Width div 2),
                           a^.Y+a^.Rect.Y+(a^.Rect.Height div 2),
@@ -609,17 +558,16 @@ begin
   a := abs(vx);
   b := abs(vy);
 
-  if a = 0 then
-    c := 90
-  else
-    c := RadToDeg(ArcTan(b/a));
+  if a = 0
+    then c := 90
+    else c := RadToDeg(ArcTan(b/a));
 
   if vy < 0 then
     c := -c;
   if vx > 0 then
     c := 180 - c;
 
-  c := c + 180;
+  c += 180;
 
   Result := Round(c);
 end;
@@ -802,167 +750,6 @@ begin
   end;
 end;
 
-procedure Sort(var a: SSArray);
-var
-  i, j: Integer;
-  s: string;
-begin
-  if a = nil then Exit;
-
-  for i := High(a) downto Low(a) do
-    for j := Low(a) to High(a)-1 do
-      if LowerCase(a[j]) > LowerCase(a[j+1]) then
-      begin
-        s := a[j];
-        a[j] := a[j+1];
-        a[j+1] := s;
-      end;
-end;
-
-function Sscanf(const s: String; const fmt: String;
-                const Pointers: array of Pointer): Integer;
-var
-  i, j, n, m: Integer;
-  s1: ShortString;
-  L: LongInt;
-  X: Extended;
-
-  function GetInt(): Integer;
-  begin
-    s1 := '';
-    while (n <= Length(s)) and (s[n] = ' ') do
-      Inc(n);
-
-    while (n <= Length(s)) and (s[n] in ['0'..'9', '+', '-']) do
-    begin
-      s1 := s1 + s[n];
-      Inc(n);
-    end;
-
-    Result := Length(s1);
-  end;
-
-  function GetFloat(): Integer;
-  begin
-    s1 := '';
-    while (n <= Length(s)) and (s[n] = ' ') do
-      Inc(n);
-
-    while (n <= Length(s)) and //jd >= rather than >
-          (s[n] in ['0'..'9', '+', '-', '.', 'e', 'E']) do
-    begin
-      s1 := s1 + s[n];
-      Inc(n);
-    end;
-
-    Result := Length(s1);
-  end;
-
-  function GetString(): Integer;
-  begin
-    s1 := '';
-    while (n <= Length(s)) and (s[n] = ' ') do
-      Inc(n);
-
-    while (n <= Length(s)) and (s[n] <> ' ') do
-    begin
-      s1 := s1 + s[n];
-      Inc(n);
-    end;
-
-    Result := Length(s1);
-  end;
-
-  function ScanStr(c: Char): Boolean;
-  begin
-    while (n <= Length(s)) and (s[n] <> c) do
-      Inc(n);
-    Inc(n);
-
-    Result := (n <= Length(s));
-  end;
-
-  function GetFmt(): Integer;
-  begin
-    Result := -1;
-
-    while (True) do
-    begin
-      while (fmt[m] = ' ') and (m < Length(fmt)) do
-        Inc(m);
-      if (m >= Length(fmt)) then
-        Break;
-
-      if (fmt[m] = '%') then
-      begin
-        Inc(m);
-        case fmt[m] of
-          'd': Result := vtInteger;
-          'f': Result := vtExtended;
-          's': Result := vtString;
-        end;
-        Inc(m);
-        Break;
-      end;
-
-      if (not ScanStr(fmt[m])) then
-        Break;
-      Inc(m);
-    end;
-  end;
-
-begin
-  n := 1;
-  m := 1;
-  Result := 0;
-  s1 := '';
-
-  for i := 0 to High(Pointers) do
-  begin
-    j := GetFmt();
-
-    case j of
-      vtInteger :
-      begin
-        if GetInt() > 0 then
-          begin
-            L := StrToIntDef(s1, 0);
-            Move(L, Pointers[i]^, SizeOf(LongInt));
-            Inc(Result);
-          end
-        else
-          Break;
-      end;
-
-      vtExtended :
-      begin
-        if GetFloat() > 0 then
-          begin
-            X := StrToFloatDef(s1, 0.0);
-            Move(X, Pointers[i]^, SizeOf(Extended));
-            Inc(Result);
-          end
-        else
-          Break;
-      end;
-
-      vtString :
-      begin
-        if GetString() > 0 then
-          begin
-            Move(s1, Pointers[i]^, Length(s1)+1);
-            Inc(Result);
-          end
-        else
-          Break;
-      end;
-
-      else {case}
-        Break;
-    end; {case}
-  end;
-end;
-
 function InDWArray(a: DWORD; arr: DWArray): Boolean;
 var
   b: Integer;
@@ -1123,24 +910,6 @@ begin
   Reset(F);
   Result := (FileSetDate(TFileRec(F).Handle, time) = 0);
   CloseFile(F);
-end;
-
-procedure SortSArray(var S: SSArray);
-var
-  b: Boolean;
-  i: Integer;
-  sw: ShortString;
-begin
-  repeat
-    b := False;
-    for i := Low(S) to High(S) - 1 do
-      if S[i] > S[i + 1] then begin
-        sw := S[i];
-        S[i] := S[i + 1];
-        S[i + 1] := sw;
-        b := True;
-      end;
-  until not b;
 end;
 
 function b_Text_Format(S: string): string;

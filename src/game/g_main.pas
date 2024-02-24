@@ -611,7 +611,7 @@ begin
     e_WriteLog('Input: No Joysticks.', TMsgType.Notify);
 *)
 
-  if gNoSound = false then
+  if not gNoSound then
   begin
     e_WriteLog('Initializing sound system', TMsgType.Notify);
     {$IFDEF USE_SDLMIXER}

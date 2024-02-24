@@ -106,9 +106,9 @@ type
     Coords: TDFPoint;
   end;
 
-function  g_Game_IsNet(): Boolean;
-function  g_Game_IsServer(): Boolean;
-function  g_Game_IsClient(): Boolean;
+function g_Game_IsNet(): Boolean;
+function g_Game_IsServer(): Boolean;
+function g_Game_IsClient(): Boolean;
 procedure g_Game_Init();
 procedure g_Game_Free (freeTextures: Boolean=true);
 procedure g_Game_LoadData();
@@ -119,10 +119,10 @@ procedure g_Game_Draw();
 procedure g_Game_Quit();
 procedure g_Game_SetupScreenSize();
 procedure g_Game_ChangeResolution(newWidth, newHeight: Word; nowFull, nowMax: Boolean);
-function  g_Game_ModeToText(Mode: Byte): string;
-function  g_Game_TextToMode(Mode: string): Byte;
+function g_Game_ModeToText(Mode: Byte): string;
+function g_Game_TextToMode(Mode: string): Byte;
 procedure g_Game_ExecuteEvent(Name: String);
-function  g_Game_DelayEvent(DEType: Byte; Time: LongWord; Num: Integer = 0; Str: String = ''): Integer;
+function g_Game_DelayEvent(DEType: Byte; Time: LongWord; Num: Integer = 0; Str: String = ''): Integer;
 procedure g_Game_AddPlayer(Team: Byte = TEAM_NONE);
 procedure g_Game_RemovePlayer();
 procedure g_Game_Spectate();
@@ -134,24 +134,23 @@ procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
 procedure g_Game_Restart();
 procedure g_Game_RestartLevel();
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
-function  g_Game_ClientWAD (NewWAD: String; const WHash: TMD5Digest): AnsiString;
-function  g_Game_StartMap(asMegawad: Boolean; Map: String; Force: Boolean = False; const oldMapPath: AnsiString=''): Boolean;
+function g_Game_ClientWAD (NewWAD: String; const WHash: TMD5Digest): AnsiString;
+function g_Game_StartMap(asMegawad: Boolean; Map: String; Force: Boolean = False; const oldMapPath: AnsiString=''): Boolean;
 procedure g_Game_ChangeMap(const MapPath: String);
 procedure g_Game_ExitLevel(const Map: AnsiString);
-function  g_Game_GetFirstMap(WAD: String): String;
-function  g_Game_GetNextMap(): String;
+function g_Game_GetFirstMap(WAD: String): String;
+function g_Game_GetNextMap(): String;
 procedure g_Game_NextLevel();
 procedure g_Game_Pause(Enable: Boolean);
 procedure g_Game_HolmesPause(Enable: Boolean);
 procedure g_Game_InGameMenu(Show: Boolean);
-function  g_Game_IsWatchedPlayer(UID: Word): Boolean;
-function  g_Game_IsWatchedTeam(Team: Byte): Boolean;
+function g_Game_IsWatchedPlayer(UID: Word): Boolean;
+function g_Game_IsWatchedTeam(Team: Byte): Boolean;
 procedure g_Game_Message(Msg: String; Time: Word);
-procedure g_Game_LoadMapList(FileName: String);
 procedure g_Game_PauseAllSounds(Enable: Boolean);
 procedure g_Game_StopAllSounds(all: Boolean);
 procedure g_Game_UpdateTriggerSounds();
-function  g_Game_GetMegaWADInfo(WAD: String): TMegaWADInfo;
+function g_Game_GetMegaWADInfo(WAD: String): TMegaWADInfo;
 procedure g_Game_ChatSound(Text: String; Taunt: Boolean = True);
 procedure g_Game_Announce_GoodShot(SpawnerUID: Word);
 procedure g_Game_Announce_KillCombo(Param: Integer);
@@ -162,7 +161,7 @@ procedure g_Game_CheckVote;
 procedure g_TakeScreenShot(Filename: string = '');
 procedure g_FatalError(Text: String);
 procedure g_SimpleError(Text: String);
-function  g_Game_IsTestMap(): Boolean;
+function g_Game_IsTestMap(): Boolean;
 procedure g_Game_DeleteTestMap();
 procedure GameCVars(P: SSArray);
 procedure PlayerSettingsCVars(P: SSArray);
@@ -237,17 +236,9 @@ const
   ANNOUNCE_ALL    = 3;
 
   CONFIG_FILENAME = 'Doom2DF.cfg';
-
   TEST_MAP_NAME = '$$$_TEST_$$$';
-
   STD_PLAYER_MODEL = 'Doomer';
-
-{$IFDEF HEADLESS}
-  DEFAULT_PLAYERS = 0;
-{$ELSE}
-  DEFAULT_PLAYERS = 1;
-{$ENDIF}
-
+  DEFAULT_PLAYERS = {$IFNDEF HEADLESS}1{$ELSE}0{$ENDIF};
   STATFILE_VERSION = $03;
 
 var
@@ -259,15 +250,15 @@ var
   gPlayerScreenSize: TDFPoint;
   gPlayer1ScreenCoord: TDFPoint;
   gPlayer2ScreenCoord: TDFPoint;
-  gPlayer1: TPlayer = nil;
-  gPlayer2: TPlayer = nil;
-  gPlayerDrawn: TPlayer = nil;
+  gPlayer1: TPlayer;
+  gPlayer2: TPlayer;
+  gPlayerDrawn: TPlayer;
   gTime: LongWord;
   gLerpFactor: Single = 1.0;
   gSwitchGameMode: Byte = GM_DM;
   gHearPoint1, gHearPoint2: THearPoint;
-  gSoundEffectsDF: Boolean = False;
-  gSoundTriggerTime: Word = 0;
+  gSoundEffectsDF: Boolean;
+  gSoundTriggerTime: Word;
   gAnnouncer: Integer = ANNOUNCE_NONE;
   goodsnd: array[0..3] of TPlayableSound;
   killsnd: array[0..3] of TPlayableSound;
@@ -278,95 +269,95 @@ var
   sound_cap_flag: array[0..1] of TPlayableSound;
   gBodyKillEvent: Integer = -1;
   gDefInterTime: ShortInt = -1;
-  gInterEndTime: LongWord = 0;
-  gInterTime: LongWord = 0;
-  gServInterTime: Byte = 0;
-  gGameStartTime: LongWord = 0;
-  gTotalMonsters: Integer = 0;
-  gPauseMain: Boolean = false;
-  gPauseHolmes: Boolean = false;
-  gShowTime: Boolean = False;
-  gShowFPS: Boolean = False;
+  gInterEndTime: LongWord;
+  gInterTime: LongWord;
+  gServInterTime: Byte;
+  gGameStartTime: LongWord;
+  gTotalMonsters: Integer;
+  gPauseMain: Boolean;
+  gPauseHolmes: Boolean;
+  gShowTime: Boolean;
+  gShowFPS: Boolean;
   gShowScore: Boolean = True;
   gShowStat: Boolean = True;
-  gShowPIDs: Boolean = False;
+  gShowPIDs: Boolean;
   gShowKillMsg: Boolean = True;
   gShowLives: Boolean = True;
-  gShowPing: Boolean = False;
-  gShowMap: Boolean = False;
-  gExit: Byte = 0;
+  gShowPing: Boolean;
+  gShowMap: Boolean;
+  gExit: Byte;
   gState: Byte = STATE_NONE;
   sX, sY: Integer;
   sWidth, sHeight: Word;
   gSpectMode: Byte = SPECT_NONE;
   gSpectHUD: Boolean = True;
-  gSpectKeyPress: Boolean = False;
-  gSpectX: Integer = 0;
-  gSpectY: Integer = 0;
+  gSpectKeyPress: Boolean;
+  gSpectX: Integer;
+  gSpectY: Integer;
   gSpectStep: Byte = 8;
-  gSpectViewTwo: Boolean = False;
+  gSpectViewTwo: Boolean;
   gSpectPID1: Integer = -1;
   gSpectPID2: Integer = -1;
-  gSpectAuto: Boolean = False;
+  gSpectAuto: Boolean;
   gSpectAutoNext: LongWord;
   gSpectAutoStepX: Integer;
   gSpectAutoStepY: Integer;
-  gMusic: TMusic = nil;
+  gMusic: TMusic;
   gLoadGameMode: Boolean;
-  gCheats: Boolean = False;
-  gMapOnce: Boolean = False;
+  gCheats: Boolean;
+  gMapOnce: Boolean;
   gMapToDelete: String;
-  gTempDelete: Boolean = False;
-  gLastMap: Boolean = False;
+  gTempDelete: Boolean;
+  gLastMap: Boolean;
   gScreenWidth: Word;
   gScreenHeight: Word;
-  gResolutionChange: Boolean = False;
+  gResolutionChange: Boolean;
   gRC_Width, gRC_Height: Integer;
   gRC_FullScreen, gRC_Maximized: Boolean;
-  gLanguageChange: Boolean = False;
-  gDebugMode: Boolean = False;
-  g_debug_Sounds: Boolean = False;
-  g_debug_Frames: Boolean = False;
-  g_debug_WinMsgs: Boolean = False;
-  g_debug_MonsterOff: Boolean = False;
-  g_debug_BotAIOff: Byte = 0;
-  g_debug_HealthBar: Boolean = False;
-  g_Debug_Player: Boolean = False;
-  gCoopMonstersKilled: Word = 0;
-  gCoopSecretsFound: Word = 0;
-  gCoopTotalMonstersKilled: Word = 0;
-  gCoopTotalSecretsFound: Word = 0;
-  gCoopTotalMonsters: Word = 0;
-  gCoopTotalSecrets: Word = 0;
-  gStatsOff: Boolean = False;
-  gStatsPressed: Boolean = False;
-  gExitByTrigger: Boolean = False;
-  gNextMap: String = '';
+  gLanguageChange: Boolean;
+  gDebugMode: Boolean;
+  g_debug_Sounds: Boolean;
+  g_debug_Frames: Boolean;
+  g_debug_WinMsgs: Boolean;
+  g_debug_MonsterOff: Boolean;
+  g_debug_BotAIOff: Byte;
+  g_debug_HealthBar: Boolean;
+  g_Debug_Player: Boolean;
+  gCoopMonstersKilled: Word;
+  gCoopSecretsFound: Word;
+  gCoopTotalMonstersKilled: Word;
+  gCoopTotalSecretsFound: Word;
+  gCoopTotalMonsters: Word;
+  gCoopTotalSecrets: Word;
+  gStatsOff: Boolean;
+  gStatsPressed: Boolean;
+  gExitByTrigger: Boolean;
+  gNextMap: String;
   gLMSRespawn: Byte = LMS_RESPAWN_NONE;
-  gLMSRespawnTime: Cardinal = 0;
-  gLMSSoftSpawn: Boolean = False;
-  gMissionFailed: Boolean = False;
-  gVoteInProgress: Boolean = False;
-  gVotePassed: Boolean = False;
-  gVoteCommand: string = '';
-  gVoteTimer: Cardinal = 0;
-  gVoteCmdTimer: Cardinal = 0;
-  gVoteCount: Integer = 0;
+  gLMSRespawnTime: Cardinal;
+  gLMSSoftSpawn: Boolean;
+  gMissionFailed: Boolean;
+  gVoteInProgress: Boolean;
+  gVotePassed: Boolean;
+  gVoteCommand: String;
+  gVoteTimer: Cardinal;
+  gVoteCmdTimer: Cardinal;
+  gVoteCount: Integer;
   gVoteTimeout: Cardinal = 30;
-  gVoted: Boolean = False;
+  gVoted: Boolean;
   gVotesEnabled: Boolean = True;
-  gEvents: Array of TGameEvent;
-  gDelayedEvents: Array of TDelayedEvent;
+  gEvents: array of TGameEvent;
+  gDelayedEvents: array of TDelayedEvent;
   gUseChatSounds: Boolean = True;
-  gChatSounds: Array of TChatSound;
-  gWeaponAction: Array [0..1, WP_FACT..WP_LACT] of Boolean; // [player, weapon_action]
-  gSelectWeapon: Array [0..1, WP_FIRST..WP_LAST] of Boolean; // [player, weapon]
-  gInterReadyCount: Integer = 0;
+  gChatSounds: array of TChatSound;
+  gWeaponAction: array [0..1, WP_FACT..WP_LACT] of Boolean;  // [player, weapon_action]
+  gSelectWeapon: array [0..1, WP_FIRST..WP_LAST] of Boolean;  // [player, weapon]
+  gInterReadyCount: Integer;
   gMaxBots: Integer = 127;
 
-  g_dbg_ignore_bounds: Boolean = false;
-  r_smallmap_h: Integer = 0; // 0: left; 1: center; 2: right
-  r_smallmap_v: Integer = 2; // 0: top; 1: center; 2: bottom
+  g_dbg_ignore_bounds: Boolean;
+  r_smallmap_h: Integer;  // 0: left; 1: center; 2: right
+  r_smallmap_v: Integer = 2;  // 0: top; 1: center; 2: bottom
 
   // move button values:
   // bits 0-1: l/r state:
@@ -374,23 +365,23 @@ var
   //   1: left pressed
   //   2: right pressed
   // bits 4-5: l/r state when strafe was pressed
-  P1MoveButton: Byte = 0;
-  P2MoveButton: Byte = 0;
+  P1MoveButton: Byte;
+  P2MoveButton: Byte;
 
-  g_profile_frame_update: Boolean = false;
-  g_profile_frame_draw: Boolean = false;
-  g_profile_collision: Boolean = false;
-  g_profile_los: Boolean = false;
+  g_profile_frame_update: Boolean;
+  g_profile_frame_draw: Boolean;
+  g_profile_collision: Boolean;
+  g_profile_los: Boolean;
   g_profile_history_size: Integer = 1000;
 
-  g_rlayer_back: Boolean = true;
-  g_rlayer_step: Boolean = true;
-  g_rlayer_wall: Boolean = true;
-  g_rlayer_door: Boolean = true;
-  g_rlayer_acid1: Boolean = true;
-  g_rlayer_acid2: Boolean = true;
-  g_rlayer_water: Boolean = true;
-  g_rlayer_fore: Boolean = true;
+  g_rlayer_back: Boolean = True;
+  g_rlayer_step: Boolean = True;
+  g_rlayer_wall: Boolean = True;
+  g_rlayer_door: Boolean = True;
+  g_rlayer_acid1: Boolean = True;
+  g_rlayer_acid2: Boolean = True;
+  g_rlayer_water: Boolean = True;
+  g_rlayer_fore: Boolean = True;
 
 
 procedure g_ResetDynlights ();
@@ -413,7 +404,7 @@ uses
   g_triggers, g_monsters, e_sound, CONFIG,
   g_language, g_net, g_main, g_phys,
   ENet, e_msg, g_netmsg, g_netmaster,
-  sfs, wadreader, g_system;
+  sfs, wadreader, g_system, Generics.Collections;
 
 var
   hasPBarGfx: Boolean;
@@ -597,21 +588,20 @@ var
   FPS, UPS: Word;
   FPSCounter, UPSCounter: Word;
   FPSTime, UPSTime: LongWord;
-  DataLoaded: Boolean = False;
-  IsDrawStat: Boolean = False;
+  DataLoaded: Boolean;
+  IsDrawStat: Boolean;
   CustomStat: TEndCustomGameStat;
   SingleStat: TEndSingleGameStat;
   LoadingStat: TLoadingStat;
-  EndingGameCounter: Byte = 0;
+  EndingGameCounter: Byte;
   MessageText: String;
   MessageTime: Word;
   MessageLineLength: Integer = 80;
-  MapList: SSArray = nil;
   MapIndex: Integer = -1;
   InterReadyTime: Integer = -1;
-  StatShotDone: Boolean = False;
-  StatFilename: string = ''; // used by stat screenshot to save with the same name as the csv
-  StatDate: string = '';
+  StatShotDone: Boolean;
+  StatFilename: String;  // used by stat screenshot to save with the same name as the csv
+  StatDate: String;
   MegaWAD: record
     info: TMegaWADInfo;
     endpic: String;
@@ -653,6 +643,7 @@ begin
                 else Result := 1;
 end;
 
+// TODO: eliminate
 procedure SortGameStat(var stat: TPlayerStatArray);
 var
   I, J: Integer;
@@ -5238,20 +5229,6 @@ begin
   g_Game_ExecuteEvent('onmapstart');
 end;
 
-procedure SetFirstLevel;
-begin
-  gNextMap := '';
-
-  MapList := g_Map_GetMapsList(gGameSettings.WAD);
-  if MapList = nil then
-    Exit;
-
-  SortSArray(MapList);
-  gNextMap := MapList[Low(MapList)];
-
-  MapList := nil;
-end;
-
 procedure g_Game_ExitLevel(const Map: AnsiString);
 begin
   gNextMap := Map;
@@ -5424,6 +5401,8 @@ begin
 end;
 
 function g_Game_GetFirstMap(WAD: String): String;
+var
+  MapList: SSArray;
 begin
   Result := '';
 
@@ -5431,19 +5410,21 @@ begin
   if MapList = nil then
     Exit;
 
-  SortSArray(MapList);
+  // TODO: Replace with simple minimum lookup.
+  specialize TArrayHelper<SSArray>.Sort(MapList);
   Result := MapList[Low(MapList)];
 
-  if not g_Map_Exist(WAD + ':\' + Result) then
-    Result := '';
-
-  MapList := nil;
+  // BD: why should we check for a map we just found?
+  //     just to guarantee its presence at the archive root? but nobody does the opposite anyway.
+  //if not g_Map_Exist(WAD + ':\' + Result) then
+  //  Result := '';
 end;
 
 function g_Game_GetNextMap(): String;
 var
   I: Integer;
-  Map: string;
+  Map: String;
+  MapList: SSArray;
 begin
   Result := '';
 
@@ -5453,7 +5434,7 @@ begin
 
   Map := g_ExtractFileName(gMapInfo.Map);
 
-  SortSArray(MapList);
+  specialize TArrayHelper<SSArray>.Sort(MapList);
   MapIndex := -255;
   for I := Low(MapList) to High(MapList) do
     if Map = MapList[I] then
@@ -5464,15 +5445,12 @@ begin
 
   if MapIndex <> -255 then
   begin
-    if MapIndex = High(MapList) then
-     Result := MapList[Low(MapList)]
-    else
-      Result := MapList[MapIndex + 1];
+    if MapIndex = High(MapList)
+      then Result := MapList[Low(MapList)]
+      else Result := MapList[MapIndex + 1];
 
     if not g_Map_Exist(gGameSettings.WAD + ':\' + Result) then Result := Map;
   end;
-
-  MapList := nil;
 end;
 
 procedure g_Game_NextLevel();
@@ -8353,31 +8331,6 @@ begin
             NetClients[i].Voted := False;
     end;
   end;
-end;
-
-procedure g_Game_LoadMapList(FileName: string);
-var
-  ListFile: TextFile;
-  s: string;
-begin
-  MapList := nil;
-  MapIndex := -1;
-
-  if not FileExists(FileName) then Exit;
-
-  AssignFile(ListFile, FileName);
-  Reset(ListFile);
-  while not EOF(ListFile) do
-  begin
-    ReadLn(ListFile, s);
-
-    s := Trim(s);
-    if s = '' then Continue;
-
-    SetLength(MapList, Length(MapList)+1);
-    MapList[High(MapList)] := s;
-  end;
-  CloseFile(ListFile);
 end;
 
 procedure g_Game_SetDebugMode();

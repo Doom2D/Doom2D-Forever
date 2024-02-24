@@ -2998,7 +2998,7 @@ begin
     with AddList(_lc[I_MENU_RESOLUTION_LIST], 12, 6) do
     begin
       Name := 'lsResolution';
-      Sort := False;
+      //Sort := True;
     end;
     with AddSwitch(_lc[I_MENU_RESOLUTION_FULLSCREEN]) do
     begin

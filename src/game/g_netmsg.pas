@@ -275,10 +275,6 @@ type
     ExternalResources: array of TExternalResourceInfo;
   end;
 
-function IsValidFileName(const S: String): Boolean;
-function IsValidFilePath(const S: String): Boolean;
-
-
 implementation
 
 uses
@@ -302,32 +298,6 @@ const
   //kBytePrev: Word = 0;
   //kDirPrev: TDirection = D_LEFT;
   //HostGameTime: Word = 0;
-
-
-function IsValidFileName(const S: String): Boolean;
-const
-  Forbidden: set of Char = ['<', '>', '|', '"', ':', '*', '?'];
-var
-  I: Integer;
-begin
-  Result := S <> '';
-  for I := 1 to Length(S) do
-    Result := Result and (not(S[I] in Forbidden));
-end;
-
-function IsValidFilePath(const S: String): Boolean;
-var
-  I: Integer;
-begin
-  Result := False;
-  if not IsValidFileName(S) then Exit;
-  if FileExists(S) then Exit;
-  I := LastDelimiter('\/', S);
-  if (I > 0) then
-    if (not DirectoryExists(Copy(S, 1, I-1))) then
-      Exit;
-  Result := True;
-end;
 
 
 // HOST MESSAGES //
