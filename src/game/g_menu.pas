@@ -1019,10 +1019,9 @@ begin
     if a.pic <> '' then
     begin
       fn := g_ExtractWadName(a.pic);
-      if fn = '' then
-        TGUIImage(win.GetControl('mpWADImage')).SetImage(wad+a.pic)
-      else
-        TGUIImage(win.GetControl('mpWADImage')).SetImage(a.pic);
+      if fn = ''
+        then TGUIImage(win.GetControl('mpWADImage')).SetImage(wad+a.pic)
+        else TGUIImage(win.GetControl('mpWADImage')).SetImage(a.pic);
     end;
   end;
 end;

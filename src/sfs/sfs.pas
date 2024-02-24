@@ -118,7 +118,7 @@ type
   // -- upd 2024-02-14 by ЧД: а зачем нам, собственно, их вообще прибивать? вот и я так подумал!
   // поэтому вместо фабрик прибил саму функцию SFSUnregisterVolumeFactory(), гыг. она кривая была.
   // а все фабрики вообще переделал в метаклассы, то есть теперь их и создавать не надо. %-)
-  TSFSVolumeFactoryMethods = class
+  TSFSVolumeFactoryMethods = class abstract
   public
     // если добавляем файл данных файл с именем типа "zip:....", то
     // SFS извлечёт это "zip" и передаст в сию функцию.
@@ -460,39 +460,38 @@ begin
     if (vi <> nil) and (not vi.fPermanent) and (vi.fOpenedFilesCount = 0) then
     begin
       // this volume probably can be removed
-      used := false;
+      used := False;
       c := volumes.Count-1;
       while not used and (c >= 0) do
       begin
         if (c <> f) and (volumes[c] <> nil) then
         begin
-          used := (TVolumeInfo(volumes[c]).fStream = vi.fStream);
-          if not used then used := (TVolumeInfo(volumes[c]).fVolume.fFileStream = vi.fStream);
+          used := vi.fStream = TVolumeInfo(volumes[c]).fStream;
+          if not used then used := vi.fStream = TVolumeInfo(volumes[c]).fVolume.fFileStream;
           if used then break;
         end;
-        Dec(c);
+        c -= 1;
       end;
       if not used then
       begin
         {$IFDEF SFS_VOLDEBUG}writeln('000: destroying volume "', TVolumeInfo(volumes[f]).fPackName, '"');{$ENDIF}
-        volumes.extract(vi); // remove from list
-        vi.Free; // and kill
+        volumes.Delete(f);  // remove from list and also kill
         f := 0;
         continue;
       end;
     end;
-    Inc(f); // next volume
+    f += 1;  // next volume
   end;
 end;
 
 procedure sfsGCDisable ();
 begin
-  Inc(gcdisabled);
+  gcdisabled += 1;
 end;
 
 procedure sfsGCEnable ();
 begin
-  Dec(gcdisabled);
+  gcdisabled -= 1;
   if gcdisabled <= 0 then
   begin
     gcdisabled := 0;
@@ -669,34 +668,27 @@ end;
 destructor TVolumeInfo.Destroy ();
 var
   f, me: Integer;
-  used: Boolean; // флажок заюзаности потока кем-то ещё
+  used: Boolean = False;  // флажок заюзаности потока кем-то ещё
 begin
-  if fFactory <> nil then fFactory.Recycle(fVolume);
-  used := false;
-  fVolume := nil;
-  fFactory := nil;
-  fPackName := '';
-
   // типа мусоросборник: если наш поток более никем не юзается, то угробить его нафиг
-  if not used then
+  me := volumes.IndexOf(Self);
+  f := volumes.Count-1;
+  while not used and (f >= 0) do
   begin
-    me := volumes.IndexOf(self);
-    f := volumes.Count-1;
-    while not used and (f >= 0) do
+    if (f <> me) and (volumes[f] <> nil) then
     begin
-      if (f <> me) and (volumes[f] <> nil) then
-      begin
-        used := (TVolumeInfo(volumes[f]).fStream = fStream);
-        if not used then
-        begin
-          used := (TVolumeInfo(volumes[f]).fVolume.fFileStream = fStream);
-        end;
-        if used then break;
-      end;
-      Dec(f);
+      used := fStream = TVolumeInfo(volumes[f]).fStream;
+      if not used then
+        used := fStream = TVolumeInfo(volumes[f]).fVolume.fFileStream;
+      if used then break;
     end;
+    f -= 1;
   end;
-  if not used then FreeAndNil(fStream); // если больше никем не юзано, пришибём
+
+  if fFactory <> nil then fFactory.Recycle(fVolume);
+  if not used then fStream.Free();  // если больше никем не юзано, пришибём
+
+  if me >= 0 then volumes.List[me] := nil;  // prevent double-free on unit finalization
   inherited Destroy();
 end;
 
@@ -724,7 +716,7 @@ begin
       if f <> -1 then
       begin
         {$IFDEF SFS_VOLDEBUG}writeln('001: destroying volume "', TVolumeInfo(volumes[f]).fPackName, '"');{$ENDIF}
-        volumes[f] := nil; // this will destroy the volume
+        volumes[f] := nil;  // NB: TObjectList destroys the owned object here (see SetItem() method)!!
       end;
     end;
   end;
@@ -885,7 +877,7 @@ begin
   if (gcdisabled = 0) and not TVolumeInfo(volumes[f]).fPermanent and (TVolumeInfo(volumes[f]).fOpenedFilesCount < 1) then
   begin
     {$IFDEF SFS_VOLDEBUG}writeln('002: destroying volume "', TVolumeInfo(volumes[f]).fPackName, '"');{$ENDIF}
-    volumes[f] := nil;
+    volumes[f] := nil;  // NB: TObjectList destroys the owned object here (see SetItem() method)!!
   end;
   inherited Destroy();
 end;
@@ -964,7 +956,8 @@ begin
     except
       FreeAndNil(st);
       // удалим неиспользуемый временный том.
-      if (gcdisabled = 0) and not vi.fPermanent and (vi.fOpenedFilesCount < 1) then volumes[result] := nil;
+      if (gcdisabled = 0) and not vi.fPermanent and (vi.fOpenedFilesCount < 1) then
+        volumes[result] := nil;  // NB: TObjectList destroys the owned object here (see SetItem() method)!!
       raise;
     end;
     // ура. открыли файл. кидаем в воздух чепчики, продолжаем развлечение.
@@ -1173,7 +1166,8 @@ begin
       ps := TOwnedPartialStream.Create(vi, result, 0, result.Size, true);
     except
       result.Free();
-      if (gcdisabled = 0) and not vi.fPermanent and (vi.fOpenedFilesCount < 1) then volumes[f] := nil;
+      if (gcdisabled = 0) and not vi.fPermanent and (vi.fOpenedFilesCount < 1) then
+        volumes[f] := nil;  // NB: TObjectList destroys the owned object here (see SetItem() method)!!
       result := CheckDisk(); // облом с datafile, проверим диск
       if result = nil then raise ESFSError.Create('file not found: "'+fName+'"');
       exit;
@@ -1245,7 +1239,8 @@ begin
   try
     result := TSFSFileList.Create(vi.fVolume);
   except
-    if (gcdisabled = 0) and not vi.fPermanent and (vi.fOpenedFilesCount < 1) then volumes[f] := nil;
+    if (gcdisabled = 0) and not vi.fPermanent and (vi.fOpenedFilesCount < 1) then
+      volumes[f] := nil;  // NB: TObjectList destroys the owned object here (see SetItem() method)!!
   end;
 end;
 

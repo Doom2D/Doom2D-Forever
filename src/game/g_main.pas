@@ -17,7 +17,8 @@ unit g_main;
 
 interface
 
-  uses Utils;
+uses
+  utils;
 
 procedure Main ();
 procedure Init ();
@@ -75,14 +76,13 @@ uses
   conbuf, envvars,
   xparser;
 
-
 var
   charbuff: packed array [0..15] of AnsiChar;
-  binPath: AnsiString = '';
+  binPath: AnsiString;
   forceBinDir: Boolean;
-  {$IFDEF USE_SDLMIXER}
-    UseNativeMusic: Boolean;
-  {$ENDIF}
+{$IFDEF USE_SDLMIXER}
+  UseNativeMusic: Boolean;
+{$ENDIF}
 
 function GetBinaryPath (): AnsiString;
 {$IFDEF LINUX}
@@ -115,28 +115,31 @@ begin
 end;
 
 {$IFDEF DARWIN}
-  function NSStringToAnsiString (s: NSString): AnsiString;
-    var i: Integer;
-  begin
-    result := '';
-    for i := 0 to s.length - 1 do
-      result := result + AnsiChar(s.characterAtIndex(i));
-  end;
+function NSStringToAnsiString (s: NSString): AnsiString;
+  var i: Integer;
+begin
+  result := '';
+  for i := 0 to s.length - 1 do
+    result := result + AnsiChar(s.characterAtIndex(i));
+end;
 
-  function GetBundlePath (): AnsiString;
-    var pathRef: CFURLRef; pathCFStr: CFStringRef; pathStr: ShortString;
-  begin
-    pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
-    pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
-    CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
-    CFRelease(pathRef);
-    CFRelease(pathCFStr);
-    Result := pathStr;
-  end;
+function GetBundlePath (): AnsiString;
+  var pathRef: CFURLRef; pathCFStr: CFStringRef; pathStr: ShortString;
+begin
+  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFRelease(pathRef);
+  CFRelease(pathCFStr);
+  Result := pathStr;
+end;
 {$ENDIF}
 
-procedure InitPath;
-  var i: Integer; rwdir, rodir: AnsiString; rwdirs, rodirs: SSArray;
+procedure InitPath ();
+var
+  i: Integer;
+  rwdir, rodir: AnsiString;
+  rwdirs, rodirs: SSArray;
 
   procedure AddDir (var dirs: SSArray; append: AnsiString);
   begin
@@ -154,43 +157,47 @@ procedure InitPath;
   end;
 
   function OptimizePath (dir: AnsiString): AnsiString;
-    var i, len: Integer; s: AnsiString;
+  var
+    i, len: Integer;
+    s: AnsiString = '';
   begin
-    i := 1; len := Length(dir); s := '';
+    i := 1;
+    len := Length(dir);
     while i <= len do
     begin
       if IsSep(dir[i]) then
       begin
-        s := s + DirectorySeparator;
-        Inc(i);
-        while (i <= len) and IsSep(dir[i]) do Inc(i);
+        s += DirectorySeparator;
+        i += 1;
+        while (i <= len) and IsSep(dir[i]) do i += 1;
         if (i <= len) and (dir[i] = '.') then
         begin
           if (i = len) or IsSep(dir[i + 1]) then
           begin
-            Inc(i)
+            i += 1;
           end
           else if (i + 1 <= len) and (dir[i + 1] = '.') then
           begin
             if (i + 1 = len) or IsSep(dir[i + 2]) then
             begin
               s := e_UpperDir(s);
-              Inc(i, 2)
+              i += 2;
             end
           end
         end
       end
       else
       begin
-        s := s + dir[i];
-        Inc(i)
+        s += dir[i];
+        i += 1
       end
     end;
-    result := s
+    Result := s
   end;
 
   procedure OptimizeDirs (var dirs: SSArray);
-    var i, j, k: Integer;
+  var
+    i, j, k: Integer;
   begin
     for i := 0 to High(dirs) do
       dirs[i] := OptimizePath(dirs[i]);
@@ -205,20 +212,21 @@ procedure InitPath;
         begin
           for k := j + 1 to High(dirs) do
             dirs[k - 1] := dirs[k];
-          Dec(i);
+          i -= 1;
           SetLength(dirs, High(dirs))
         end
         else
         begin
-          Inc(j)
+          j += 1
         end
       end;
-      Dec(i)
+      i -= 1;
     end
   end;
 
   procedure AddDef (var dirs: SSArray; base: SSArray; append: AnsiString);
-    var s: AnsiString;
+  var
+    s: AnsiString;
   begin
     if Length(dirs) = 0 then
       for s in base do
@@ -227,112 +235,115 @@ procedure InitPath;
   end;
 
   function GetDefaultRODirs (): SSArray;
-    {$IF DEFINED(UNIX) AND NOT DEFINED(DARWIN) AND NOT DEFINED(ANDROID)}
-      var home: AnsiString;
+  var
+  {$IF DEFINED(UNIX) AND NOT DEFINED(DARWIN) AND NOT DEFINED(ANDROID)}
+    home: AnsiString;
+  {$ENDIF}
+  {$IFDEF WINDOWS}
+    appdata: AnsiString;
+  {$ENDIF}
+  {$IFDEF DARWIN}
+    bundle, s: AnsiString;
+    dirArr: NSArray;
+    i: Integer;
+  {$ENDIF}
+  begin
+    Result := nil;
+  {$IFDEF DARWIN}
+    bundle := GetBundlePath();
+    if ExtractFileExt(bundle) <> '.app' then
+      AddDir(result, binpath);
+  {$ELSE}
+    AddDir(result, binPath);
+  {$ENDIF}
+    if not forceBinDir then
+    begin
+    {$IFDEF USE_SDL2}
+      AddDir(result, SDL_GetBasePath());
+      AddDir(result, SDL_GetPrefPath('', 'doom2df'));
     {$ENDIF}
     {$IFDEF WINDOWS}
-      var appdata: AnsiString;
+      appdata := GetEnvironmentVariable('APPDATA') + '\doom2df';
+      if appdata <> '' then
+        AddDir(result, appdata);
     {$ENDIF}
-    {$IFDEF DARWIN}
-      var bundle, s: AnsiString; dirArr: NSArray; i: Integer;
+    {$IF DEFINED(UNIX) AND NOT DEFINED(DARWIN) AND NOT DEFINED(ANDROID)}
+      AddDir(result, '/usr/share/doom2df');
+      AddDir(result, '/usr/local/share/doom2df');
+      home := GetEnvironmentVariable('HOME');
+      if home <> '' then
+        AddDir(result, ConcatPaths([home, '.doom2df']));
     {$ENDIF}
-  begin
-    result := nil;
     {$IFDEF DARWIN}
       bundle := GetBundlePath();
-      if ExtractFileExt(bundle) <> '.app' then
-        AddDir(result, binpath);
-    {$ELSE}
-      AddDir(result, binPath);
+      if bundle <> '' then
+        AddDir(result, ConcatPaths([bundle, 'Contents/Resources']));
+      dirArr := NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true);
+      for i := 0 to dirArr.count - 1 do
+      begin
+        s := NSStringToAnsiString(dirArr.objectAtIndex(i));
+        AddDir(result, ConcatPaths([s, 'Doom 2D Forever']));
+      end;
     {$ENDIF}
-    if forceBinDir = false then
-    begin
-      {$IFDEF USE_SDL2}
-        AddDir(result, SDL_GetBasePath());
-        AddDir(result, SDL_GetPrefPath('', 'doom2df'));
-      {$ENDIF}
-      {$IFDEF WINDOWS}
-        appdata := GetEnvironmentVariable('APPDATA') + '\doom2df';
-        if appdata <> '' then
-          AddDir(result, appdata);
-      {$ENDIF}
-      {$IF DEFINED(UNIX) AND NOT DEFINED(DARWIN) AND NOT DEFINED(ANDROID)}
-        AddDir(result, '/usr/share/doom2df');
-        AddDir(result, '/usr/local/share/doom2df');
-        home := GetEnvironmentVariable('HOME');
-        if home <> '' then
-          AddDir(result, ConcatPaths([home, '.doom2df']));
-      {$ENDIF}
-      {$IFDEF DARWIN}
-        bundle := GetBundlePath();
-        if bundle <> '' then
-          AddDir(result, ConcatPaths([bundle, 'Contents/Resources']));
-        dirArr := NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true);
-        for i := 0 to dirArr.count - 1 do
-        begin
-          s := NSStringToAnsiString(dirArr.objectAtIndex(i));
-          AddDir(result, ConcatPaths([s, 'Doom 2D Forever']));
-        end;
-      {$ENDIF}
-      {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
-        AddDir(result, SDL_AndroidGetInternalStoragePath());
-        if SDL_AndroidGetExternalStorageState() <> 0 then
-          AddDir(result, SDL_AndroidGetExternalStoragePath());
-      {$ENDIF}
+    {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
+      AddDir(result, SDL_AndroidGetInternalStoragePath());
+      if SDL_AndroidGetExternalStorageState() <> 0 then
+        AddDir(result, SDL_AndroidGetExternalStoragePath());
+    {$ENDIF}
     end
   end;
 
   function GetDefaultRWDirs (): SSArray;
-    {$IF DEFINED(UNIX) AND NOT DEFINED(DARWIN) AND NOT DEFINED(ANDROID)}
-      var home: AnsiString;
+  var
+  {$IF DEFINED(UNIX) AND NOT DEFINED(DARWIN) AND NOT DEFINED(ANDROID)}
+    home: AnsiString;
+  {$ENDIF}
+  {$IFDEF WINDOWS}
+    appdata: AnsiString;
+  {$ENDIF}
+  {$IFDEF DARWIN}
+    bundle, s: AnsiString; dirArr: NSArray; i: Integer;
+  {$ENDIF}
+  begin
+    Result := nil;
+  {$IFDEF DARWIN}
+    bundle := GetBundlePath();
+    if ExtractFileExt(bundle) <> '.app' then
+      AddDir(result, binPath);
+  {$ELSE}
+    AddDir(result, binPath);
+  {$ENDIF}
+    if not forceBinDir then
+    begin
+    {$IFDEF USE_SDL2}
+      AddDir(result, SDL_GetPrefPath('', 'doom2df'));
     {$ENDIF}
     {$IFDEF WINDOWS}
-      var appdata: AnsiString;
+      appdata := GetEnvironmentVariable('APPDATA') + '\doom2df';
+      if appdata <> '' then
+        AddDir(result, appdata);
+    {$ENDIF}
+    {$IF DEFINED(UNIX) AND NOT DEFINED(DARWIN) AND NOT DEFINED(ANDROID)}
+      home := GetEnvironmentVariable('HOME');
+      if home <> '' then
+        AddDir(result, ConcatPaths([home, '.doom2df']));
     {$ENDIF}
     {$IFDEF DARWIN}
-      var bundle, s: AnsiString; dirArr: NSArray; i: Integer;
+      dirArr := NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true);
+      for i := 0 to dirArr.count - 1 do
+      begin
+        s := NSStringToAnsiString(dirArr.objectAtIndex(i));
+        AddDir(result, ConcatPaths([s, 'Doom 2D Forever']));
+      end;
     {$ENDIF}
-  begin
-    result := nil;
-    {$IFDEF DARWIN}
-      bundle := GetBundlePath();
-      if ExtractFileExt(bundle) <> '.app' then
-        AddDir(result, binPath);
-    {$ELSE}
-      AddDir(result, binPath);
+    {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
+      if SDL_AndroidGetExternalStorageState() <> 0 then
+        AddDir(result, SDL_AndroidGetExternalStoragePath());
     {$ENDIF}
-    if forceBinDir = false then
-    begin
-      {$IFDEF USE_SDL2}
-        AddDir(result, SDL_GetPrefPath('', 'doom2df'));
-      {$ENDIF}
-      {$IFDEF WINDOWS}
-        appdata := GetEnvironmentVariable('APPDATA') + '\doom2df';
-        if appdata <> '' then
-          AddDir(result, appdata);
-      {$ENDIF}
-      {$IF DEFINED(UNIX) AND NOT DEFINED(DARWIN) AND NOT DEFINED(ANDROID)}
-        home := GetEnvironmentVariable('HOME');
-        if home <> '' then
-          AddDir(result, ConcatPaths([home, '.doom2df']));
-      {$ENDIF}
-      {$IFDEF DARWIN}
-        dirArr := NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true);
-        for i := 0 to dirArr.count - 1 do
-        begin
-          s := NSStringToAnsiString(dirArr.objectAtIndex(i));
-          AddDir(result, ConcatPaths([s, 'Doom 2D Forever']));
-        end;
-      {$ENDIF}
-      {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
-        if SDL_AndroidGetExternalStorageState() <> 0 then
-          AddDir(result, SDL_AndroidGetExternalStoragePath());
-      {$ENDIF}
     end
   end;
 
 begin
-  forceBinDir := false;
   binPath := GetBinaryPath();
 
   i := 1;
@@ -434,8 +445,9 @@ begin
   if rwdir <> '' then CreateDir(rwdir + '/stats');
 end;
 
-function InitPrep: Boolean;
-  var i: Integer;
+function InitPrep (): Boolean;
+var
+  i: Integer;
 begin
   Result := False;
 {$IFDEF HEADLESS}
@@ -590,7 +602,7 @@ var
 {$ENDIF}
   NoSound: Boolean;
 begin
-  Randomize;
+  Randomize();
 
 {$IFDEF HEADLESS}
   {$IFDEF USE_SDLMIXER}
@@ -602,7 +614,7 @@ begin
   NoSound := False;
 {$ENDIF}
 
-  g_Touch_Init;
+  g_Touch_Init();
 
 (*
   if (e_JoysticksAvailable > 0) then
@@ -653,7 +665,7 @@ begin
   e_WriteLog('Init game', TMsgType.Notify);
   g_Game_Init();
 
-  FillChar(charbuff, sizeof(charbuff), ' ');
+  FillChar(charbuff, SizeOf(charbuff), ' ');
 end;
 
 

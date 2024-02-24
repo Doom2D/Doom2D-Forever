@@ -17,18 +17,15 @@ unit g_window;
 
 interface
 
-uses
-  utils;
-
 function PerformExecution (): Integer;
 procedure ResetTimer ();
 procedure ProcessLoading (forceUpdate: Boolean = False);
 
 var
-  gwin_has_stencil: Boolean = false;
-  gwin_k8_enable_light_experiments: Boolean = false;
-  g_dbg_aimline_on: Boolean = false;
-  g_dbg_input: Boolean = False;
+  gwin_has_stencil: Boolean;
+  gwin_k8_enable_light_experiments: Boolean;
+  g_dbg_aimline_on: Boolean;
+  g_dbg_input: Boolean;
 
 implementation
 
@@ -38,7 +35,7 @@ uses
   g_holmes, sdlcarcass, fui_ctls,
 {$ENDIF}
 {$INCLUDE ../nogl/noGLuses.inc}
-  SysUtils, Classes, MAPDEF, Math,
+  SysUtils, Classes, MAPDEF, Math, utils,
   e_graphics, e_log, e_texture, g_main,
   g_console, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
@@ -63,7 +60,7 @@ end;
 
 {$IFNDEF HEADLESS}
 var
-  prevLoadingUpdateTime: UInt64 = 0;
+  prevLoadingUpdateTime: UInt64;
 {$ENDIF}
 
 procedure ProcessLoading (forceUpdate: Boolean);
@@ -211,7 +208,7 @@ var
   exts: SSArray;
   e: AnsiString;
 begin
-  result := false;
+  Result := False;
   exts := GLExtensionList();
   for e in exts do
   begin
@@ -220,7 +217,7 @@ begin
   end;
 end;
 
-procedure PrintGLSupportedExtensions;
+procedure PrintGLSupportedExtensions ();
 begin
   e_LogWritefln('GL Vendor: %s', [glGetString(GL_VENDOR)]);
   e_LogWritefln('GL Renderer: %s', [glGetString(GL_RENDERER)]);
@@ -334,7 +331,7 @@ begin
   end;
 
 {$IFNDEF USE_SYSSTUB}
-  PrintGLSupportedExtensions;
+  PrintGLSupportedExtensions();
   glLegacyNPOT := not (GLExtensionSupported('GL_ARB_texture_non_power_of_two') or GLExtensionSupported('GL_OES_texture_npot'));
 {$ELSE}
   glLegacyNPOT := False;
@@ -351,7 +348,7 @@ begin
     else e_logWriteln('NPOT texture emulation: disabled');
   end;
 
-  Init;
+  Init();
   Time_Old := sys_GetTicks();
 
   g_Net_InitLowLevel();

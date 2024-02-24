@@ -19,7 +19,7 @@ interface
 
 uses
   SysUtils, Classes,
-  MAPDEF,
+  MAPDEF, CONFIG,
   g_basic, g_player, e_graphics, g_res_downloader,
   g_sound, g_gui, utils, md5, mempool, xprofiler,
   g_touch, g_weapons;
@@ -150,7 +150,7 @@ procedure g_Game_Message(Msg: String; Time: Word);
 procedure g_Game_PauseAllSounds(Enable: Boolean);
 procedure g_Game_StopAllSounds(all: Boolean);
 procedure g_Game_UpdateTriggerSounds();
-function g_Game_GetMegaWADInfo(WAD: String): TMegaWADInfo;
+function g_Game_GetMegaWADInfo(WAD: String; cfg: TConfig = nil): TMegaWADInfo;
 procedure g_Game_ChatSound(Text: String; Taunt: Boolean = True);
 procedure g_Game_Announce_GoodShot(SpawnerUID: Word);
 procedure g_Game_Announce_KillCombo(Param: Integer);
@@ -401,7 +401,7 @@ uses
   e_texture, e_res, g_textures, g_window, g_menu,
   e_input, e_log, g_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, Math,
-  g_triggers, g_monsters, e_sound, CONFIG,
+  g_triggers, g_monsters, e_sound,
   g_language, g_net, g_main, g_phys,
   ENet, e_msg, g_netmsg, g_netmaster,
   sfs, wadreader, g_system, Generics.Collections;
@@ -803,37 +803,40 @@ begin
   Result := (gGameSettings.GameType = GT_CLIENT);
 end;
 
-function g_Game_GetMegaWADInfo(WAD: String): TMegaWADInfo;
+function g_Game_GetMegaWADInfo(WAD: String; cfg: TConfig): TMegaWADInfo;
 var
   w: TWADFile;
-  cfg: TConfig;
-  p: Pointer;
+  p: Pointer = nil;
   len: Integer;
 begin
-  Result.name := ExtractFileName(WAD);
-  Result.description := '';
-  Result.author := '';
-
-  w := TWADFile.Create();
-  w.ReadFile(WAD);
-
-  if not w.GetResource('INTERSCRIPT', p, len) then
+  if cfg = nil then
   begin
-    w.Free();
-    Exit;
+    w := TWADFile.Create();
+    w.ReadFile(WAD);
+
+    w.GetResource('INTERSCRIPT', p, len);
+    w.Destroy();
+
+    if p = nil then
+    begin
+      Result.name := ExtractFileName(WAD);
+      Exit;
+    end;
+
+    cfg := TConfig.CreateMem(p, len);
+    FreeMem(p);
   end;
 
-  cfg := TConfig.CreateMem(p, len);
   Result.name := cfg.ReadStr('megawad', 'name', ExtractFileName(WAD));
   Result.description := cfg.ReadStr('megawad', 'description', '');
   Result.author := cfg.ReadStr('megawad', 'author', '');
   Result.pic := cfg.ReadStr('megawad', 'pic', '');
-  cfg.Free();
 
-  FreeMem(p);
+  if p <> nil then
+    cfg.Destroy();
 end;
 
-procedure g_Game_FreeWAD();
+procedure g_Game_FreeCurrentWAD();
 var
   a: Integer;
 begin
@@ -858,57 +861,28 @@ begin
   gGameSettings.WAD := '';
 end;
 
-procedure g_Game_LoadWAD(WAD: string);
+procedure g_Game_SetCurrentWAD(WAD: string);
 var
   w: TWADFile;
   cfg: TConfig;
-  p: Pointer;
+  p: Pointer = nil;
   {b, }len: Integer;
   s: AnsiString;
 begin
-  g_Game_FreeWAD();
+  g_Game_FreeCurrentWAD();
   gGameSettings.WAD := WAD;
   if not (gGameSettings.GameMode in [GM_COOP, GM_SINGLE]) then
     Exit;
 
-  MegaWAD.info := g_Game_GetMegaWADInfo(WAD);
-
   w := TWADFile.Create();
   w.ReadFile(WAD);
+  w.GetResource('INTERSCRIPT', p, len);
+  w.Destroy();
 
-  if not w.GetResource('INTERSCRIPT', p, len) then
-  begin
-    w.Free();
-    Exit;
-  end;
-
+  if p = nil then Exit;
   cfg := TConfig.CreateMem(p, len);
-
- {b := 1;
- while True do
- begin
-  s := cfg.ReadStr('pic', 'pic'+IntToStr(b), '');
-  if s = '' then Break;
-  b := b+1;
-
-  SetLength(MegaWAD.res.pic, Length(MegaWAD.res.pic)+1);
-  MegaWAD.res.pic[High(MegaWAD.res.pic)] := s;
-
-  g_Texture_CreateWADEx(s, s);
- end;
-
- b := 1;
- while True do
- begin
-  s := cfg.ReadStr('mus', 'mus'+IntToStr(b), '');
-  if s = '' then Break;
-  b := b+1;
-
-  SetLength(MegaWAD.res.mus, Length(MegaWAD.res.mus)+1);
-  MegaWAD.res.mus[High(MegaWAD.res.mus)] := s;
-
-  g_Music_CreateWADEx(s, s);
- end;}
+  FreeMem(p);
+  MegaWAD.info := g_Game_GetMegaWADInfo(WAD, cfg);
 
   MegaWAD.endpic := cfg.ReadStr('megawad', 'endpic', '');
   if MegaWAD.endpic <> '' then
@@ -925,9 +899,7 @@ begin
     g_Sound_CreateWADEx('MUSIC_endmus', s, True);
   end;
 
-  cfg.Free();
-  FreeMem(p);
-  w.Free();
+  cfg.Destroy();
 end;
 
 {procedure start_trigger(t: string);
@@ -5098,7 +5070,7 @@ begin
         NewWAD := nws;
         if (g_Game_IsNet) then gWADHash := MD5File(nws);
         //writeln('********: nws=', nws, ' : Map=', Map, ' : nw=', NewWAD, ' : resname=', ResName);
-        g_Game_LoadWAD(NewWAD);
+        g_Game_SetCurrentWAD(NewWAD);
       end;
     end
     else
@@ -5302,7 +5274,7 @@ begin
   e_LogWritefln('using downloaded client map wad [%s] for [%s]', [gWAD, NewWAD], TMsgType.Notify);
   NewWAD := gWAD;
 
-  g_Game_LoadWAD(NewWAD);
+  g_Game_SetCurrentWAD(NewWAD);
   result := NewWAD;
 
   {
@@ -5320,7 +5292,7 @@ begin
     end;
   end;
   NewWAD := ExtractRelativePath(MapsDir, gWAD);
-  g_Game_LoadWAD(NewWAD);
+  g_Game_SetCurrentWAD(NewWAD);
   }
 end;
 
