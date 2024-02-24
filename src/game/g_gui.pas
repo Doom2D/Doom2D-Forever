@@ -2908,7 +2908,7 @@ begin
   FItems[High(FItems)] := Item;
 
   if FSort then
-    specialize TArrayHelper<SSArray>.Sort(FItems);
+    specialize TArrayHelper<ShortString>.Sort(FItems);
 end;
 
 function TGUIListBox.ItemExists (item: String): Boolean;
@@ -3070,7 +3070,7 @@ begin
   FIndex := -1;
 
   if FSort then
-    specialize TArrayHelper<SSArray>.Sort(FItems);
+    specialize TArrayHelper<ShortString>.Sort(FItems);
 end;
 
 procedure TGUIListBox.SelectItem(Item: String);

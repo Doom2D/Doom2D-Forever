@@ -5383,7 +5383,7 @@ begin
     Exit;
 
   // TODO: Replace with simple minimum lookup.
-  specialize TArrayHelper<SSArray>.Sort(MapList);
+  specialize TArrayHelper<ShortString>.Sort(MapList);
   Result := MapList[Low(MapList)];
 
   // BD: why should we check for a map we just found?
@@ -5406,7 +5406,7 @@ begin
 
   Map := g_ExtractFileName(gMapInfo.Map);
 
-  specialize TArrayHelper<SSArray>.Sort(MapList);
+  specialize TArrayHelper<ShortString>.Sort(MapList);
   MapIndex := -255;
   for I := Low(MapList) to High(MapList) do
     if Map = MapList[I] then
