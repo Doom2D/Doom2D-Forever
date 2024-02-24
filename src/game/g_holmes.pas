@@ -1759,7 +1759,7 @@ begin
           else if (pr.tokType = pr.TTInt) then v := Format('%d', [pr.expectInt()])
           else v := pr.expectId();
 
-          if MatchText(parseModKeys(s, kmods, mbuts), ['lmb', 'rmb', 'mmb', 'None'])
+          if AnsiMatchText(parseModKeys(s, kmods, mbuts), ['lmb', 'rmb', 'mmb', 'None'])
             then msbindAdd(s, v)
             else keybindAdd(s, v);
         end;

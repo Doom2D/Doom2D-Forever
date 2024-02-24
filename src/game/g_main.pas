@@ -149,11 +149,7 @@ var
 
   function IsSep (ch: Char): Boolean;
   begin
-    {$IFDEF WINDOWS}
-    result := (ch = '/') or (ch = '\');
-    {$ELSE}
-    result := (ch = '/');
-    {$ENDIF}
+    Result := (ch = '/') {$IFDEF WINDOWS} or (ch = '\') {$ENDIF};
   end;
 
   function OptimizePath (dir: AnsiString): AnsiString;
@@ -235,14 +231,16 @@ var
   end;
 
   function GetDefaultRODirs (): SSArray;
-  var
   {$IF DEFINED(UNIX) AND NOT DEFINED(DARWIN) AND NOT DEFINED(ANDROID)}
+  var
     home: AnsiString;
   {$ENDIF}
   {$IFDEF WINDOWS}
+  var
     appdata: AnsiString;
   {$ENDIF}
   {$IFDEF DARWIN}
+  var
     bundle, s: AnsiString;
     dirArr: NSArray;
     i: Integer;
@@ -294,14 +292,16 @@ var
   end;
 
   function GetDefaultRWDirs (): SSArray;
-  var
   {$IF DEFINED(UNIX) AND NOT DEFINED(DARWIN) AND NOT DEFINED(ANDROID)}
+  var
     home: AnsiString;
   {$ENDIF}
   {$IFDEF WINDOWS}
+  var
     appdata: AnsiString;
   {$ENDIF}
   {$IFDEF DARWIN}
+  var
     bundle, s: AnsiString; dirArr: NSArray; i: Integer;
   {$ENDIF}
   begin
