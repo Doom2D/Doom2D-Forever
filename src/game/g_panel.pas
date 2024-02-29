@@ -1107,108 +1107,104 @@ procedure TPanel.SaveState (st: TStream);
 var
   anim: Boolean;
 begin
-  if (st = nil) then exit;
+  if st = nil then Exit;
 
   // Сигнатура панели
   utils.writeSign(st, 'PANL');
-  utils.writeInt(st, Byte(PAN_SAVE_VERSION));
-  // Открыта/закрыта, если дверь
-  utils.writeBool(st, FEnabled);
-  // Направление лифта, если лифт
-  utils.writeInt(st, Byte(FLiftType));
-  // Номер текущей текстуры
-  utils.writeInt(st, Integer(FCurTexture));
+  st.WriteByte(PAN_SAVE_VERSION);
+
+  st.WriteBool(FEnabled);  // Открыта/закрыта, если дверь
+  st.WriteByte(FLiftType);  // Направление лифта, если лифт
+  st.WriteInt32LE(FCurTexture);  // Номер текущей текстуры
+
   // Координаты и размер
-  utils.writeInt(st, Integer(FX));
-  utils.writeInt(st, Integer(FY));
-  utils.writeInt(st, Word(FWidth));
-  utils.writeInt(st, Word(FHeight));
+  st.WriteInt32LE(FX);
+  st.WriteInt32LE(FY);
+  st.WriteWordLE(FWidth);
+  st.WriteWordLE(FHeight);
+
   // Анимирована ли текущая текстура
-  if (FCurTexture >= 0) and (FTextureIDs[FCurTexture].Anim) then
-  begin
-    assert(FTextureIDs[FCurTexture].AnTex <> nil, 'TPanel.SaveState: No animation object');
-    anim := true;
-  end
-  else
-  begin
-    anim := false;
-  end;
-  utils.writeBool(st, anim);
+  // BEWARE: Short-circuit evaluation matters here!
+  anim := (FCurTexture >= 0) and (FTextureIDs[FCurTexture].Anim);
+  if anim then
+    Assert(FTextureIDs[FCurTexture].AnTex <> nil, 'TPanel.SaveState: Wrong animation state');
+  st.WriteBool(anim);
   // Если да - сохраняем анимацию
   if anim then FTextureIDs[FCurTexture].AnTex.SaveState(st);
 
   // moving platform state
-  utils.writeInt(st, Integer(mMovingSpeed.X));
-  utils.writeInt(st, Integer(mMovingSpeed.Y));
-  utils.writeInt(st, Integer(mMovingStart.X));
-  utils.writeInt(st, Integer(mMovingStart.Y));
-  utils.writeInt(st, Integer(mMovingEnd.X));
-  utils.writeInt(st, Integer(mMovingEnd.Y));
+  st.WriteInt32LE(mMovingSpeed.X);
+  st.WriteInt32LE(mMovingSpeed.Y);
+  st.WriteInt32LE(mMovingStart.X);
+  st.WriteInt32LE(mMovingStart.Y);
+  st.WriteInt32LE(mMovingEnd.X);
+  st.WriteInt32LE(mMovingEnd.Y);
 
-  utils.writeInt(st, Integer(mSizeSpeed.w));
-  utils.writeInt(st, Integer(mSizeSpeed.h));
-  utils.writeInt(st, Integer(mSizeEnd.w));
-  utils.writeInt(st, Integer(mSizeEnd.h));
+  st.WriteInt32LE(mSizeSpeed.w);
+  st.WriteInt32LE(mSizeSpeed.h);
+  st.WriteInt32LE(mSizeEnd.w);
+  st.WriteInt32LE(mSizeEnd.h);
 
-  utils.writeBool(st, mMovingActive);
-  utils.writeBool(st, mMoveOnce);
+  st.WriteBool(mMovingActive);
+  st.WriteBool(mMoveOnce);
 
-  utils.writeInt(st, Integer(mEndPosTrig));
-  utils.writeInt(st, Integer(mEndSizeTrig));
+  st.WriteInt32LE(mEndPosTrig);
+  st.WriteInt32LE(mEndSizeTrig);
 end;
 
 
 procedure TPanel.LoadState (st: TStream);
 begin
-  if (st = nil) then exit;
+  if st = nil then Exit;
 
   // Сигнатура панели
-  if not utils.checkSign(st, 'PANL') then raise XStreamError.create('wrong panel signature');
-  if (utils.readByte(st) <> PAN_SAVE_VERSION) then raise XStreamError.create('wrong panel version');
-  // Открыта/закрыта, если дверь
-  FEnabled := utils.readBool(st);
-  // Направление лифта, если лифт
-  FLiftType := utils.readByte(st);
-  // Номер текущей текстуры
-  FCurTexture := utils.readLongInt(st);
+  if not utils.checkSign(st, 'PANL') then
+    Raise XStreamError.create('wrong panel signature');
+  if st.ReadByte() <> PAN_SAVE_VERSION then
+    Raise XStreamError.create('wrong panel version');
+
+  FEnabled := st.ReadBool();  // Открыта/закрыта, если дверь
+  FLiftType := st.ReadByte();  // Направление лифта, если лифт
+  FCurTexture := st.ReadInt32LE();  // Номер текущей текстуры
+
   // Координаты и размер
-  FX := utils.readLongInt(st);
-  FY := utils.readLongInt(st);
+  FX := st.ReadInt32LE();
+  FY := st.ReadInt32LE();
   FOldX := FX;
   FOldY := FY;
-  FWidth := utils.readWord(st);
-  FHeight := utils.readWord(st);
+  FWidth := st.ReadWordLE();
+  FHeight := st.ReadWordLE();
   FOldW := FWidth;
   FOldH := FHeight;
+
   // Анимированная ли текущая текстура
-  if utils.readBool(st) then
+  if st.ReadBool() then
   begin
     // Если да - загружаем анимацию
-    Assert((FCurTexture >= 0) and
-           (FTextureIDs[FCurTexture].Anim) and
-           (FTextureIDs[FCurTexture].AnTex <> nil),
-           'TPanel.LoadState: No animation object');
+    // BEWARE: Short-circuit evaluation matters here!
+    Assert((FCurTexture >= 0) and (FTextureIDs[FCurTexture].Anim) and
+      (FTextureIDs[FCurTexture].AnTex <> nil), 'TPanel.LoadState: No animation object');
     FTextureIDs[FCurTexture].AnTex.LoadState(st);
   end;
 
   // moving platform state
-  mMovingSpeed.X := utils.readLongInt(st);
-  mMovingSpeed.Y := utils.readLongInt(st);
-  mMovingStart.X := utils.readLongInt(st);
-  mMovingStart.Y := utils.readLongInt(st);
-  mMovingEnd.X := utils.readLongInt(st);
-  mMovingEnd.Y := utils.readLongInt(st);
+  mMovingSpeed.X := st.ReadInt32LE();
+  mMovingSpeed.Y := st.ReadInt32LE();
+  mMovingStart.X := st.ReadInt32LE();
+  mMovingStart.Y := st.ReadInt32LE();
+  mMovingEnd.X := st.ReadInt32LE();
+  mMovingEnd.Y := st.ReadInt32LE();
 
-  mSizeSpeed.w := utils.readLongInt(st);
-  mSizeSpeed.h := utils.readLongInt(st);
-  mSizeEnd.w := utils.readLongInt(st);
-  mSizeEnd.h := utils.readLongInt(st);
+  mSizeSpeed.w := st.ReadInt32LE();
+  mSizeSpeed.h := st.ReadInt32LE();
+  mSizeEnd.w := st.ReadInt32LE();
+  mSizeEnd.h := st.ReadInt32LE();
 
-  mMovingActive := utils.readBool(st);
-  mMoveOnce := utils.readBool(st);
+  mMovingActive := st.ReadBool();
+  mMoveOnce := st.ReadBool();
 
-  mEndPosTrig := utils.readLongInt(st);
-  mEndSizeTrig := utils.readLongInt(st);
+  mEndPosTrig := st.ReadInt32LE();
+  mEndSizeTrig := st.ReadInt32LE();
 
   positionChanged();
   //mapGrid.proxyEnabled[proxyId] := FEnabled; // done in g_map.pas

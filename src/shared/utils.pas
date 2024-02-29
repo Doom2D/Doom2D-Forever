@@ -19,7 +19,7 @@ unit utils;
 interface
 
 uses
-  SysUtils, Classes, md5;
+  SysUtils, Classes, StreamEx, md5;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -74,6 +74,33 @@ type
     function decode (c: AnsiChar): Boolean; inline; overload;
   end;
 
+  // Since the target variable to store the value read is not always the same type and can be wider
+  // (see, for example, the 'xdynrec' unit), and FreePascal's strong typing is not strong enough to
+  // notice and catch such cases, this can lead to errors. Consider 'Integer(X) := s.ReadByte()'
+  // and 'Integer(X) := ShortInt(s.ReadByte())', which will result in different values of 'X' if
+  // unsigned representation of the value read is in the [128..255] range. So we really need this.
+  TStreamExSignedHelper = class helper(StreamEx.TStreamHelper) for TStream
+  public
+    // endian-agnostic
+    function ReadInt8(): Int8; inline;
+    procedure WriteInt8(i8: Int8); inline;
+    function ReadBool(): Boolean; inline;
+    procedure WriteBool(b8: Boolean); inline;
+
+    function ReadInt16LE(): Int16; inline;
+    function ReadInt16BE(): Int16; inline;
+    function ReadInt32LE(): Int32; inline;
+    function ReadInt32BE(): Int32; inline;
+    function ReadInt64LE(): Int64; inline;
+    function ReadInt64BE(): Int64; inline;
+
+    procedure WriteInt16LE(i16: Int16); inline;
+    procedure WriteInt16BE(i16: Int16); inline;
+    procedure WriteInt32LE(i32: Int32); inline;
+    procedure WriteInt32BE(i32: Int32); inline;
+    procedure WriteInt64LE(i64: Int64); inline;
+    procedure WriteInt64BE(i64: Int64); inline;
+  end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 function getFilenameExt (const fn: AnsiString): AnsiString;
@@ -112,7 +139,7 @@ function addWadExtension (const fn: AnsiString): AnsiString;
 // check wad signature
 function isWadData (data: Pointer; len: LongWord): Boolean;
 
-// convert number to strig with nice commas
+// convert number to string with nice commas
 function int64ToStrComma (i: Int64): AnsiString;
 
 function upcase1251 (ch: AnsiChar): AnsiChar; inline;
@@ -152,52 +179,10 @@ function createDiskFile (pathname: AnsiString): TStream;
 // create file if necessary, but don't truncate the existing one
 function openDiskFileRW (pathname: AnsiString): TStream;
 
-// little endian
-procedure writeSign (st: TStream; const sign: AnsiString);
 function checkSign (st: TStream; const sign: AnsiString): Boolean;
-
-procedure writeBool (st: TStream; b: Boolean);
-function readBool (st: TStream): Boolean;
-
-procedure writeStr (st: TStream; const str: AnsiString; maxlen: LongWord=65535);
+procedure writeSign (st: TStream; const sign: AnsiString);
 function readStr (st: TStream; maxlen: LongWord=65535): AnsiString;
-
-procedure writeInt (st: TStream; v: Byte); overload;
-procedure writeInt (st: TStream; v: ShortInt); overload;
-procedure writeInt (st: TStream; v: Word); overload;
-procedure writeInt (st: TStream; v: SmallInt); overload;
-procedure writeInt (st: TStream; v: LongWord); overload;
-procedure writeInt (st: TStream; v: LongInt); overload;
-procedure writeInt (st: TStream; v: Int64); overload;
-procedure writeInt (st: TStream; v: UInt64); overload;
-
-function readByte (st: TStream): Byte;
-function readShortInt (st: TStream): ShortInt;
-function readWord (st: TStream): Word;
-function readSmallInt (st: TStream): SmallInt;
-function readLongWord (st: TStream): LongWord;
-function readLongInt (st: TStream): LongInt;
-function readInt64 (st: TStream): Int64;
-function readUInt64 (st: TStream): UInt64;
-
-// big endian
-procedure writeIntBE (st: TStream; v: Byte); overload;
-procedure writeIntBE (st: TStream; v: ShortInt); overload;
-procedure writeIntBE (st: TStream; v: Word); overload;
-procedure writeIntBE (st: TStream; v: SmallInt); overload;
-procedure writeIntBE (st: TStream; v: LongWord); overload;
-procedure writeIntBE (st: TStream; v: LongInt); overload;
-procedure writeIntBE (st: TStream; v: Int64); overload;
-procedure writeIntBE (st: TStream; v: UInt64); overload;
-
-function readByteBE (st: TStream): Byte;
-function readShortIntBE (st: TStream): ShortInt;
-function readWordBE (st: TStream): Word;
-function readSmallIntBE (st: TStream): SmallInt;
-function readLongWordBE (st: TStream): LongWord;
-function readLongIntBE (st: TStream): LongInt;
-function readInt64BE (st: TStream): Int64;
-function readUInt64BE (st: TStream): UInt64;
+procedure writeStr (st: TStream; const str: AnsiString; maxlen: LongWord=65535);
 
 function nlerp (a, b: Integer; t: Single): Integer; inline;
 
@@ -339,6 +324,86 @@ implementation
 
 //uses
 //  xstreams;
+
+function TStreamExSignedHelper.ReadInt8 (): Int8;
+begin
+  Result := ReadByte();
+end;
+
+procedure TStreamExSignedHelper.WriteInt8 (i8: Int8);
+begin
+  WriteByte(i8);
+end;
+
+function TStreamExSignedHelper.ReadBool(): Boolean;
+begin
+  Result := ByteBool(ReadByte());  // if non-zero, returns True
+end;
+
+procedure TStreamExSignedHelper.WriteBool(b8: Boolean);
+begin
+  WriteByte(Ord(ByteBool(b8)));  // if True, writes $FF (-1)
+end;
+
+function TStreamExSignedHelper.ReadInt16LE (): Int16;
+begin
+  Result := ReadWordLE();
+end;
+
+function TStreamExSignedHelper.ReadInt16BE (): Int16;
+begin
+  Result := ReadWordBE();
+end;
+
+function TStreamExSignedHelper.ReadInt32LE (): Int32;
+begin
+  Result := ReadDWordLE();
+end;
+
+function TStreamExSignedHelper.ReadInt32BE (): Int32;
+begin
+  Result := ReadDWordBE();
+end;
+
+function TStreamExSignedHelper.ReadInt64LE (): Int64;
+begin
+  Result := ReadQWordLE();
+end;
+
+function TStreamExSignedHelper.ReadInt64BE (): Int64;
+begin
+  Result := ReadQWordBE();
+end;
+
+procedure TStreamExSignedHelper.WriteInt16LE (i16: Int16);
+begin
+  WriteWordLE(i16);
+end;
+
+procedure TStreamExSignedHelper.WriteInt16BE (i16: Int16);
+begin
+  WriteWordBE(i16);
+end;
+
+procedure TStreamExSignedHelper.WriteInt32LE (i32: Int32);
+begin
+  WriteDWordLE(i32);
+end;
+
+procedure TStreamExSignedHelper.WriteInt32BE (i32: Int32);
+begin
+  WriteDWordBE(i32);
+end;
+
+procedure TStreamExSignedHelper.WriteInt64LE (i64: Int64);
+begin
+  WriteQWordLE(i64);
+end;
+
+procedure TStreamExSignedHelper.WriteInt64BE (i64: Int64);
+begin
+  WriteQWordBE(i64);
+end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure CopyMemory (Dest: Pointer; Src: Pointer; Len: LongWord); inline;
@@ -1349,7 +1414,6 @@ begin
   result := TFileStream.Create(path+ExtractFileName(pathname), fmCreate);
 end;
 
-
 function openDiskFileRW (pathname: AnsiString): TStream;
 var
   path: AnsiString;
@@ -1371,50 +1435,6 @@ begin
   begin
     result := TFileStream.Create(path+ExtractFileName(pathname), fmCreate);
   end;
-end;
-
-
-procedure writeIntegerLE (st: TStream; vp: Pointer; size: Integer);
-{$IFDEF ENDIAN_LITTLE}
-begin
-  st.writeBuffer(vp^, size);
-end;
-{$ELSE}
-var
-  p: PByte;
-begin
-  p := PByte(vp)+size-1;
-  while size > 0 do
-  begin
-    st.writeBuffer(p^, 1);
-    Dec(size);
-    Dec(p);
-  end;
-end;
-{$ENDIF}
-
-procedure writeIntegerBE (st: TStream; vp: Pointer; size: Integer);
-{$IFDEF ENDIAN_LITTLE}
-var
-  p: PByte;
-begin
-  p := PByte(vp)+size-1;
-  while size > 0 do
-  begin
-    st.writeBuffer(p^, 1);
-    Dec(size);
-    Dec(p);
-  end;
-end;
-{$ELSE}
-begin
-  st.writeBuffer(vp^, size);
-end;
-{$ENDIF}
-
-procedure writeSign (st: TStream; const sign: AnsiString);
-begin
-  if (Length(sign) > 0) then st.WriteBuffer(sign[1], Length(sign));
 end;
 
 function checkSign (st: TStream; const sign: AnsiString): Boolean;
@@ -1442,106 +1462,40 @@ begin
   result := true;
 end;
 
-procedure writeInt (st: TStream; v: Byte); overload; begin writeIntegerLE(st, @v, 1); end;
-procedure writeInt (st: TStream; v: ShortInt); overload; begin writeIntegerLE(st, @v, 1); end;
-procedure writeInt (st: TStream; v: Word); overload; begin writeIntegerLE(st, @v, 2); end;
-procedure writeInt (st: TStream; v: SmallInt); overload; begin writeIntegerLE(st, @v, 2); end;
-procedure writeInt (st: TStream; v: LongWord); overload; begin writeIntegerLE(st, @v, 4); end;
-procedure writeInt (st: TStream; v: LongInt); overload; begin writeIntegerLE(st, @v, 4); end;
-procedure writeInt (st: TStream; v: Int64); overload; begin writeIntegerLE(st, @v, 8); end;
-procedure writeInt (st: TStream; v: UInt64); overload; begin writeIntegerLE(st, @v, 8); end;
-
-procedure writeIntBE (st: TStream; v: Byte); overload; begin writeIntegerBE(st, @v, 1); end;
-procedure writeIntBE (st: TStream; v: ShortInt); overload; begin writeIntegerBE(st, @v, 1); end;
-procedure writeIntBE (st: TStream; v: Word); overload; begin writeIntegerBE(st, @v, 2); end;
-procedure writeIntBE (st: TStream; v: SmallInt); overload; begin writeIntegerBE(st, @v, 2); end;
-procedure writeIntBE (st: TStream; v: LongWord); overload; begin writeIntegerBE(st, @v, 4); end;
-procedure writeIntBE (st: TStream; v: LongInt); overload; begin writeIntegerBE(st, @v, 4); end;
-procedure writeIntBE (st: TStream; v: Int64); overload; begin writeIntegerBE(st, @v, 8); end;
-procedure writeIntBE (st: TStream; v: UInt64); overload; begin writeIntegerBE(st, @v, 8); end;
-
-procedure writeBool (st: TStream; b: Boolean); begin writeInt(st, Byte(b)); end;
-function readBool (st: TStream): Boolean; begin result := (readByte(st) <> 0); end;
-
-
-procedure writeStr (st: TStream; const str: AnsiString; maxlen: LongWord=65535);
+procedure writeSign (st: TStream; const sign: AnsiString);
 begin
-  if (Length(str) > maxlen) then raise EStreamError.Create('string too long');
-  if (maxlen <= 65535) then writeInt(st, Word(Length(str))) else writeInt(st, LongWord(Length(str)));
-  if (Length(str) > 0) then st.WriteBuffer(str[1], Length(str));
+  if Length(sign) > 0 then
+    st.WriteBuffer(sign[1], Length(sign));
 end;
 
-function readStr (st: TStream; maxlen: LongWord=65535): AnsiString;
+function readStr (st: TStream; maxlen: LongWord): AnsiString;
 var
-  len: Integer;
+  len: SizeUInt;
 begin
-  result := '';
-  if (maxlen <= 65535) then len := readWord(st) else len := Integer(readLongWord(st));
-  if (len < 0) or (len > maxlen) then raise EStreamError.Create('string too long');
-  if (len > 0) then
-  begin
-    SetLength(result, len);
-    st.ReadBuffer(result[1], len);
-  end;
+  if maxlen <= High(Word)
+    then len := st.ReadWordLE()
+    else len := st.ReadDWordLE();
+
+  if len = 0 then Exit;
+  if len > maxlen then
+    Raise EStreamError.Create('string too long');
+
+  SetLength(Result, len);
+  st.ReadBuffer(PAnsiChar(Result)^, len);
 end;
 
-
-procedure readIntegerLE (st: TStream; vp: Pointer; size: Integer);
-{$IFDEF ENDIAN_LITTLE}
+procedure writeStr (st: TStream; const str: AnsiString; maxlen: LongWord);
 begin
-  st.readBuffer(vp^, size);
-end;
-{$ELSE}
-var
-  p: PByte;
-begin
-  p := PByte(vp)+size-1;
-  while size > 0 do
-  begin
-    st.readBuffer(p^, 1);
-    Dec(size);
-    Dec(p);
-  end;
-end;
-{$ENDIF}
+  if Length(str) > maxlen then
+    Raise EStreamError.Create('string too long');
 
-procedure readIntegerBE (st: TStream; vp: Pointer; size: Integer);
-{$IFDEF ENDIAN_LITTLE}
-var
-  p: PByte;
-begin
-  p := PByte(vp)+size-1;
-  while size > 0 do
-  begin
-    st.readBuffer(p^, 1);
-    Dec(size);
-    Dec(p);
-  end;
+  if maxlen <= High(Word)
+    then st.WriteWordLE(Word(Length(str)))
+    else st.WriteDWordLE(Length(str));
+
+  if Length(str) > 0 then
+    st.WriteBuffer(PAnsiChar(str)^, Length(str));
 end;
-{$ELSE}
-begin
-  st.readBuffer(vp^, size);
-end;
-{$ENDIF}
-
-function readByte (st: TStream): Byte; begin readIntegerLE(st, @result, 1); end;
-function readShortInt (st: TStream): ShortInt; begin readIntegerLE(st, @result, 1); end;
-function readWord (st: TStream): Word; begin readIntegerLE(st, @result, 2); end;
-function readSmallInt (st: TStream): SmallInt; begin readIntegerLE(st, @result, 2); end;
-function readLongWord (st: TStream): LongWord; begin readIntegerLE(st, @result, 4); end;
-function readLongInt (st: TStream): LongInt; begin readIntegerLE(st, @result, 4); end;
-function readInt64 (st: TStream): Int64; begin readIntegerLE(st, @result, 8); end;
-function readUInt64 (st: TStream): UInt64; begin readIntegerLE(st, @result, 8); end;
-
-function readByteBE (st: TStream): Byte; begin readIntegerBE(st, @result, 1); end;
-function readShortIntBE (st: TStream): ShortInt; begin readIntegerBE(st, @result, 1); end;
-function readWordBE (st: TStream): Word; begin readIntegerBE(st, @result, 2); end;
-function readSmallIntBE (st: TStream): SmallInt; begin readIntegerBE(st, @result, 2); end;
-function readLongWordBE (st: TStream): LongWord; begin readIntegerBE(st, @result, 4); end;
-function readLongIntBE (st: TStream): LongInt; begin readIntegerBE(st, @result, 4); end;
-function readInt64BE (st: TStream): Int64; begin readIntegerBE(st, @result, 8); end;
-function readUInt64BE (st: TStream): UInt64; begin readIntegerBE(st, @result, 8); end;
-
 
 // ////////////////////////////////////////////////////////////////////////// //
 function nlerp (a, b: Integer; t: Single): Integer; inline; begin result := round((1.0 - t) * a + t * b); end;

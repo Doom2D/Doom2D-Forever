@@ -2040,16 +2040,16 @@ begin
         sign[5] := 10;
         sign[6] := 26;
         sign[7] := 10;
-        st.writeBuffer(sign, 8);
+        st.WriteBuffer(sign, 8);
         //e_WriteLog('PNG: signature written', MSG_NOTIFY);
 
         // header
-        writeIntBE(st, LongWord(13));
+        st.WriteDWordBE(13);
         sign[0] := 73;
         sign[1] := 72;
         sign[2] := 68;
         sign[3] := 82;
-        st.writeBuffer(sign, 4);
+        st.WriteBuffer(sign, 4);
         crc := crc32(0, @sign[0], 4);
         hbuf[0] := 0;
         hbuf[1] := 0;
@@ -2065,32 +2065,32 @@ begin
         hbuf[11] := 0; // filter method
         hbuf[12] := 0; // no interlace
         crc := crc32(crc, @hbuf[0], 13);
-        st.writeBuffer(hbuf, 13);
-        writeIntBE(st, crc);
+        st.WriteBuffer(hbuf, 13);
+        st.WriteDWordBE(crc);
         //e_WriteLog('PNG: header written', MSG_NOTIFY);
 
         // image data
-        writeIntBE(st, LongWord(dlen));
+        st.WriteDWordBE(dlen);
         sign[0] := 73;
         sign[1] := 68;
         sign[2] := 65;
         sign[3] := 84;
-        st.writeBuffer(sign, 4);
+        st.WriteBuffer(sign, 4);
         crc := crc32(0, @sign[0], 4);
         crc := crc32(crc, obuf, dlen);
-        st.writeBuffer(obuf^, dlen);
-        writeIntBE(st, crc);
+        st.WriteBuffer(obuf^, dlen);
+        st.WriteDWordBE(crc);
         //e_WriteLog('PNG: image data written', MSG_NOTIFY);
 
         // image data end
-        writeIntBE(st, LongWord(0));
+        st.WriteDWordBE(0);
         sign[0] := 73;
         sign[1] := 69;
         sign[2] := 78;
         sign[3] := 68;
         st.writeBuffer(sign, 4);
         crc := crc32(0, @sign[0], 4);
-        writeIntBE(st, crc);
+        st.WriteDWordBE(crc);
         //e_WriteLog('PNG: end marker written', MSG_NOTIFY);
       finally
         if obuf <> nil then FreeMem(obuf);

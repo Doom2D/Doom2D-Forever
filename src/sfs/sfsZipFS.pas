@@ -81,16 +81,16 @@ type
 procedure readLFH (st: TStream; var hdr: TZLocalFileHeader);
 {.$IFDEF ENDIAN_LITTLE}
 begin
-  hdr.version := readByte(st);
-  hdr.hostOS := readByte(st);
-  hdr.flags := readWord(st);
-  hdr.method := readWord(st);
-  hdr.time := readLongWord(st);
-  hdr.crc := readLongWord(st);
-  hdr.packSz := readLongWord(st);
-  hdr.unpackSz := readLongWord(st);
-  hdr.fnameSz := readWord(st);
-  hdr.localExtraSz := readWord(st);
+  hdr.version := st.ReadByte();
+  hdr.hostOS := st.ReadByte();
+  hdr.flags := st.ReadWordLE();
+  hdr.method := st.ReadWordLE();
+  hdr.time := st.ReadDWordLE();
+  hdr.crc := st.ReadDWordLE();
+  hdr.packSz := st.ReadDWordLE();
+  hdr.unpackSz := st.ReadDWordLE();
+  hdr.fnameSz := st.ReadWordLE();
+  hdr.localExtraSz := st.ReadWordLE();
 end;
 
 
@@ -113,7 +113,7 @@ begin
   result := false;
   if st.Size < 10 then exit;
   st.ReadBuffer(sign[0], 6);
-  {fcnt :=} readWord(st);
+  {fcnt :=} st.ReadWordLE();
   st.Seek(-8, soCurrent);
   if (sign[0] <> 'D') and (sign[1] <> 'F') and (sign[2] <> 'W') and
      (sign[3] <> 'A') and (sign[4] <> 'D') and (sign[5] <> #$01) then exit;
@@ -175,12 +175,12 @@ begin
         Dec(cdsize, 42);
         // skip uninteresting fields
         fFileStream.seek(2+2+2+2+2+2+4+4+4, soCurrent);
-        nameLen := readWord(fFileStream);
-        extraLen := readWord(fFileStream);
-        commentLen := readWord(fFileStream);
+        nameLen := fFileStream.ReadWordLE();
+        extraLen := fFileStream.ReadWordLE();
+        commentLen := fFileStream.ReadWordLE();
         // skip uninteresting fields
         fFileStream.seek(2+2+4, soCurrent);
-        hdrofs := readLongWord(fFileStream);
+        hdrofs := fFileStream.ReadDWordLE();
         // now skip name, extra and comment
         if cdsize < nameLen+extraLen+commentLen then break;
         Dec(cdsize, nameLen+extraLen+commentLen);
@@ -249,8 +249,8 @@ begin
     // here we should process extra field: it may contain utf8 filename
     while lhdr.localExtraSz >= 4 do
     begin
-      efid := readWord(fFileStream);
-      efsz := readWord(fFileStream);
+      efid := fFileStream.ReadWordLE();
+      efsz := fFileStream.ReadWordLE();
       Dec(lhdr.localExtraSz, 4);
       if efsz > lhdr.localExtraSz then break;
       // Info-ZIP Unicode Path Extra Field?
@@ -338,14 +338,14 @@ var
 begin
   curpath := '';
   fFileStream.Seek(6, soCurrent); // skip signature
-  fcnt := readWord(fFileStream);
+  fcnt := fFileStream.ReadWordLE();
   if fcnt = 0 then exit;
   // read files
   for f := 0 to fcnt-1 do
   begin
     fFileStream.ReadBuffer(name[0], 16);
-    fofs := readLongWord(fFileStream);
-    fpksize := readLongWord(fFileStream);
+    fofs := fFileStream.ReadDWordLE();
+    fpksize := fFileStream.ReadDWordLE();
     c := 0;
     fname := '';
     while (c < 16) and (name[c] <> #0) do

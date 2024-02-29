@@ -855,59 +855,43 @@ end;
 
 procedure TAnimation.saveState (st: TStream);
 begin
-  if (st = nil) then exit;
+  if st = nil then Exit;
 
   utils.writeSign(st, 'ANIM');
-  utils.writeInt(st, Byte(0)); // version
-  // Счетчик ожидания между кадрами
-  utils.writeInt(st, Byte(mCounter));
-  // Текущий кадр
-  utils.writeInt(st, LongInt(mCurrentFrame));
-  // Проиграна ли анимация целиком
-  utils.writeBool(st, mPlayed);
-  // Alpha-канал всей текстуры
-  utils.writeInt(st, Byte(mAlpha));
-  // Размытие текстуры
-  utils.writeInt(st, Byte(mBlending));
-  // Время ожидания между кадрами
-  utils.writeInt(st, Byte(mSpeed));
-  // Зациклена ли анимация
-  utils.writeBool(st, mLoop);
-  // Включена ли
-  utils.writeBool(st, mEnabled);
-  // Ожидание после проигрывания
-  utils.writeInt(st, Byte(mMinLength));
-  // Обратный ли порядок кадров
-  utils.writeBool(st, mRevert);
+  st.WriteByte(0);  // version
+
+  st.WriteByte(mCounter);  // Счетчик ожидания между кадрами
+  st.WriteInt32LE(mCurrentFrame);  // Текущий кадр
+  st.WriteBool(mPlayed);  // Проиграна ли анимация целиком
+  st.WriteByte(mAlpha);  // Alpha-канал всей текстуры
+  st.WriteBool(mBlending);  // Размытие текстуры
+  st.WriteByte(mSpeed);  // Время ожидания между кадрами
+  st.WriteBool(mLoop);  // Зациклена ли анимация
+  st.WriteBool(mEnabled);  // Включена ли
+  st.WriteByte(mMinLength);  // Ожидание после проигрывания
+  st.WriteBool(mRevert);  // Обратный ли порядок кадров
 end;
 
 
 procedure TAnimation.loadState (st: TStream);
 begin
-  if (st = nil) then exit;
+  if st = nil then Exit;
 
-  if not utils.checkSign(st, 'ANIM') then raise XStreamError.Create('animation chunk expected');
-  if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid animation chunk version');
-  // Счетчик ожидания между кадрами
-  mCounter := utils.readByte(st);
-  // Текущий кадр
-  mCurrentFrame := utils.readLongInt(st);
-  // Проиграна ли анимация целиком
-  mPlayed := utils.readBool(st);
-  // Alpha-канал всей текстуры
-  mAlpha := utils.readByte(st);
-  // Размытие текстуры
-  mBlending := utils.readBool(st);
-  // Время ожидания между кадрами
-  mSpeed := utils.readByte(st);
-  // Зациклена ли анимация
-  mLoop := utils.readBool(st);
-  // Включена ли
-  mEnabled := utils.readBool(st);
-  // Ожидание после проигрывания
-  mMinLength := utils.readByte(st);
-  // Обратный ли порядок кадров
-  mRevert := utils.readBool(st);
+  if not utils.checkSign(st, 'ANIM') then
+    Raise XStreamError.Create('animation chunk expected');
+  if st.ReadByte() <> 0 then
+    Raise XStreamError.Create('invalid animation chunk version');
+
+  mCounter := st.ReadByte();  // Счетчик ожидания между кадрами
+  mCurrentFrame := st.ReadInt32LE();  // Текущий кадр
+  mPlayed := st.ReadBool();  // Проиграна ли анимация целиком
+  mAlpha := st.ReadByte();  // Alpha-канал всей текстуры
+  mBlending := st.ReadBool();  // Размытие текстуры
+  mSpeed := st.ReadByte();  // Время ожидания между кадрами
+  mLoop := st.ReadBool();  // Зациклена ли анимация
+  mEnabled := st.ReadBool();  // Включена ли
+  mMinLength := st.ReadByte();  // Ожидание после проигрывания
+  mRevert := st.ReadBool();  // Обратный ли порядок кадров
 end;
 
 

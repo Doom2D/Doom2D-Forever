@@ -1491,35 +1491,32 @@ end;
 
 procedure g_Monsters_SaveState (st: TStream);
 var
-  count, i: Integer;
+  count: SizeUInt;
+  i: SizeInt;
 begin
   // Считаем количество существующих монстров
   count := 0;
   for i := 0 to High(gMonsters) do
-  begin
-    if (gMonsters[i] <> nil) and (gMonsters[i].FMonsterType <> MONSTER_NONE) then count += 1;
-  end;
+    if (gMonsters[i] <> nil) and (gMonsters[i].FMonsterType <> MONSTER_NONE) then
+      count += 1;
 
   // Сохраняем информацию целеуказателя
-  utils.writeInt(st, LongInt(pt_x));
-  utils.writeInt(st, LongInt(pt_xs));
-  utils.writeInt(st, LongInt(pt_y));
-  utils.writeInt(st, LongInt(pt_ys));
+  st.WriteInt32LE(pt_x);
+  st.WriteInt32LE(pt_xs);
+  st.WriteInt32LE(pt_y);
+  st.WriteInt32LE(pt_ys);
 
   // Количество монстров
-  utils.writeInt(st, LongInt(count));
-
-  if (count = 0) then exit;
+  st.WriteDWordLE(count);
+  if count = 0 then Exit;
 
   // Сохраняем монстров
   for i := 0 to High(gMonsters) do
   begin
     if (gMonsters[i] <> nil) and (gMonsters[i].FMonsterType <> MONSTER_NONE) then
     begin
-      // Тип монстра
-      utils.writeInt(st, Byte(gMonsters[i].MonsterType));
-      // Сохраняем данные монстра:
-      gMonsters[i].SaveState(st);
+      st.WriteByte(gMonsters[i].MonsterType);  // Тип монстра
+      gMonsters[i].SaveState(st);  // Сохраняем данные монстра:
     end;
   end;
 end;
@@ -1527,36 +1524,36 @@ end;
 
 procedure g_Monsters_LoadState (st: TStream);
 var
-  count, a: Integer;
+  count, i: SizeUInt;
   b: Byte;
   mon: TMonster;
 begin
-  assert(st <> nil);
-
+  Assert(st <> nil);
   g_Monsters_Free(false);
 
   // Загружаем информацию целеуказателя
-  pt_x := utils.readLongInt(st);
-  pt_xs := utils.readLongInt(st);
-  pt_y := utils.readLongInt(st);
-  pt_ys := utils.readLongInt(st);
+  pt_x := st.ReadInt32LE();
+  pt_xs := st.ReadInt32LE();
+  pt_y := st.ReadInt32LE();
+  pt_ys := st.ReadInt32LE();
 
   // Количество монстров
-  count := utils.readLongInt(st);
-
-  if (count = 0) then exit;
-  if (count < 0) or (count > 1024*1024) then raise XStreamError.Create('invalid monster count');
+  count := st.ReadDWordLE();
+  if count = 0 then Exit;
+  if count > 1024*1024 then
+    Raise XStreamError.Create('invalid monster count');
 
   // Загружаем монстров
-  for a := 0 to count-1 do
+  for i := 0 to count-1 do
   begin
-    // Тип монстра
-    b := utils.readByte(st);
+    b := st.ReadByte();  // Тип монстра
+
     // Создаем монстра
     mon := g_Monsters_Create(b, 0, 0, TDirection.D_LEFT);
-    if (mon = nil) then raise XStreamError.Create('g_Monsters_LoadState: ID = -1 (can''t create)');
-    // Загружаем данные монстра
-    mon.LoadState(st);
+    if mon = nil then
+      Raise XStreamError.Create('g_Monsters_LoadState: ID = -1 (can''t create)');
+
+    mon.LoadState(st);  // Загружаем данные монстра
   end;
 end;
 
@@ -4462,72 +4459,62 @@ end;
 procedure TMonster.SaveState (st: TStream);
 var
   i: Integer;
-  b: Byte;
   anim: Boolean;
 begin
-  assert(st <> nil);
+  Assert(st <> nil);
 
   // Сигнатура монстра:
   utils.writeSign(st, 'MONS');
-  utils.writeInt(st, Byte(0)); // version
+  st.WriteByte(0); // version
+
   // UID монстра:
-  utils.writeInt(st, Word(FUID));
+  st.WriteWordLE(FUID);
   // Направление
-  if FDirection = TDirection.D_LEFT then b := 1 else b := 2; // D_RIGHT
-  utils.writeInt(st, Byte(b));
-  // Надо ли удалить его
-  utils.writeBool(st, FRemoved);
-  // Осталось здоровья
-  utils.writeInt(st, LongInt(FHealth));
-  // Состояние
-  utils.writeInt(st, Byte(FState));
-  // Текущая анимация
-  utils.writeInt(st, Byte(FCurAnim));
-  // UID цели
-  utils.writeInt(st, Word(FTargetUID));
-  // Время после потери цели
-  utils.writeInt(st, LongInt(FTargetTime));
-  // Поведение монстра
-  utils.writeInt(st, Byte(FBehaviour));
-  // Готовность к выстрелу
-  utils.writeInt(st, LongInt(FAmmo));
-  // Боль
-  utils.writeInt(st, LongInt(FPain));
-  // Время ожидания
-  utils.writeInt(st, LongInt(FSleep));
-  // Озвучивать ли боль
-  utils.writeBool(st, FPainSound);
-  // Была ли атака во время анимации атаки
-  utils.writeBool(st, FWaitAttackAnim);
-  // Надо ли стрелять на следующем шаге
-  utils.writeBool(st, FChainFire);
-  // Подлежит ли респавну
-  utils.writeBool(st, FNoRespawn);
+  if FDirection = TDirection.D_LEFT
+    then st.WriteByte(1)
+    else st.WriteByte(2);  // D_RIGHT
+
+  st.WriteBool(FRemoved);  // Надо ли удалить его
+  st.WriteInt32LE(FHealth);  // Осталось здоровья
+  st.WriteByte(FState);  // Состояние
+  st.WriteByte(FCurAnim);  // Текущая анимация
+  st.WriteWordLE(FTargetUID);  // UID цели
+  st.WriteInt32LE(FTargetTime);  // Время после потери цели
+  st.WriteByte(FBehaviour);  // Поведение монстра
+  st.WriteInt32LE(FAmmo);  // Готовность к выстрелу
+  st.WriteInt32LE(FPain);  // Боль
+  st.WriteInt32LE(FSleep);  // Время ожидания
+  st.WriteBool(FPainSound);  // Озвучивать ли боль
+  st.WriteBool(FWaitAttackAnim);  // Была ли атака во время анимации атаки
+  st.WriteBool(FChainFire);  // Надо ли стрелять на следующем шаге
+  st.WriteBool(FNoRespawn);  // Подлежит ли респавну
+
   // Координаты цели
-  utils.writeInt(st, LongInt(tx));
-  utils.writeInt(st, LongInt(ty));
-  // ID монстра при старте карты
-  utils.writeInt(st, LongInt(FStartID));
-  // Индекс триггера, создавшего монстра
-  utils.writeInt(st, LongInt(FSpawnTrigger));
-  // Объект монстра
-  Obj_SaveState(st, @FObj);
+  st.WriteInt32LE(tx);
+  st.WriteInt32LE(ty);
+
+  st.WriteInt32LE(FStartID);  // ID монстра при старте карты
+  st.WriteInt32LE(FSpawnTrigger);  // Индекс триггера, создавшего монстра
+  Obj_SaveState(st, @FObj);  // Объект монстра
+
   // Есть ли анимация огня колдуна
-  anim := (vilefire <> nil);
-  utils.writeBool(st, anim);
+  anim := nil <> vilefire;
+  st.WriteBool(anim);
   // Если есть - сохраняем:
   if anim then vilefire.SaveState(st);
+
   // Анимации
   for i := ANIM_SLEEP to ANIM_PAIN do
   begin
     // Есть ли левая анимация
-    anim := (FAnim[i, TDirection.D_LEFT] <> nil);
-    utils.writeBool(st, anim);
+    anim := nil <> FAnim[i, TDirection.D_LEFT];
+    st.WriteBool(anim);
     // Если есть - сохраняем
     if anim then FAnim[i, TDirection.D_LEFT].SaveState(st);
+
     // Есть ли правая анимация
-    anim := (FAnim[i, TDirection.D_RIGHT] <> nil);
-    utils.writeBool(st, anim);
+    anim := nil <> FAnim[i, TDirection.D_RIGHT];
+    st.WriteBool(anim);
     // Если есть - сохраняем
     if anim then FAnim[i, TDirection.D_RIGHT].SaveState(st);
   end;
@@ -4537,91 +4524,83 @@ end;
 procedure TMonster.LoadState (st: TStream);
 var
   i: Integer;
-  b: Byte;
-  anim: Boolean;
 begin
-  assert(st <> nil);
+  Assert(st <> nil);
 
   // Сигнатура монстра:
-  if not utils.checkSign(st, 'MONS') then raise XStreamError.Create('invalid monster signature');
-  if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid monster version');
-  if (uidMap[FUID] <> nil) and (uidMap[FUID] <> self) then raise Exception.Create('internal error in monster loader (0)');
+  if not utils.checkSign(st, 'MONS') then
+    Raise XStreamError.Create('invalid monster signature');
+  if st.ReadByte() <> 0 then
+    Raise XStreamError.Create('invalid monster version');
+  if (uidMap[FUID] <> nil) and (uidMap[FUID] <> Self) then
+    Raise Exception.Create('internal error in monster loader (0)');
+
   uidMap[FUID] := nil;
+
   // UID монстра:
-  FUID := utils.readWord(st);
-  //if (arrIdx = -1) then raise Exception.Create('internal error in monster loader');
-  if (uidMap[FUID] <> nil) then raise Exception.Create('internal error in monster loader (1)');
-  uidMap[FUID] := self;
+  FUID := st.ReadWordLE();
+  if {(arrIdx = -1) or }(uidMap[FUID] <> nil) then
+    Raise Exception.Create('internal error in monster loader (1)');
+  uidMap[FUID] := Self;
+
   // Направление
-  b := utils.readByte(st);
-  if b = 1 then FDirection := TDirection.D_LEFT else FDirection := TDirection.D_RIGHT; // b = 2
-  // Надо ли удалить его
-  FRemoved := utils.readBool(st);
-  // Осталось здоровья
-  FHealth := utils.readLongInt(st);
-  // Состояние
-  FState := utils.readByte(st);
-  // Текущая анимация
-  FCurAnim := utils.readByte(st);
-  // UID цели
-  FTargetUID := utils.readWord(st);
-  // Время после потери цели
-  FTargetTime := utils.readLongInt(st);
-  // Поведение монстра
-  FBehaviour := utils.readByte(st);
-  // Готовность к выстрелу
-  FAmmo := utils.readLongInt(st);
-  // Боль
-  FPain := utils.readLongInt(st);
-  // Время ожидания
-  FSleep := utils.readLongInt(st);
-  // Озвучивать ли боль
-  FPainSound := utils.readBool(st);
-  // Была ли атака во время анимации атаки
-  FWaitAttackAnim := utils.readBool(st);
-  // Надо ли стрелять на следующем шаге
-  FChainFire := utils.readBool(st);
-  // Подлежит ли респавну
-  FNoRespawn := utils.readBool(st);
+  if st.ReadByte() = 1
+    then FDirection := TDirection.D_LEFT
+    else FDirection := TDirection.D_RIGHT;  // b = 2
+
+  FRemoved := st.ReadBool();  // Надо ли удалить его
+  FHealth := st.ReadInt32LE();  // Осталось здоровья
+  FState := st.ReadByte();  // Состояние
+  FCurAnim := st.ReadByte();  // Текущая анимация
+  FTargetUID := st.ReadWordLE();  // UID цели
+  FTargetTime := st.ReadInt32LE();  // Время после потери цели
+  FBehaviour := st.ReadByte();  // Поведение монстра
+  FAmmo := st.ReadInt32LE();  // Готовность к выстрелу
+  FPain := st.ReadInt32LE();  // Боль
+  FSleep := st.ReadInt32LE();  // Время ожидания
+  FPainSound := st.ReadBool();  // Озвучивать ли боль
+  FWaitAttackAnim := st.ReadBool();  // Была ли атака во время анимации атаки
+  FChainFire := st.ReadBool();  // Надо ли стрелять на следующем шаге
+  FNoRespawn := st.ReadBool();  // Подлежит ли респавну
+
   // Координаты цели
-  tx := utils.readLongInt(st);
-  ty := utils.readLongInt(st);
-  // ID монстра при старте карты
-  FStartID := utils.readLongInt(st);
-  // Индекс триггера, создавшего монстра
-  FSpawnTrigger := utils.readLongInt(st);
-  // Объект монстра
-  Obj_LoadState(@FObj, st);
+  tx := st.ReadInt32LE();
+  ty := st.ReadInt32LE();
+
+  FStartID := st.ReadInt32LE();  // ID монстра при старте карты
+  FSpawnTrigger := st.ReadInt32LE();  // Индекс триггера, создавшего монстра
+  Obj_LoadState(@FObj, st);  // Объект монстра
+
   // Есть ли анимация огня колдуна
-  anim := utils.readBool(st);
-  // Если есть - загружаем:
-  if anim then
+  if st.ReadBool() then
   begin
+    // Если есть - загружаем:
     Assert(vilefire <> nil, 'TMonster.LoadState: no vilefire anim');
     vilefire.LoadState(st);
   end;
+
   // Анимации
   for i := ANIM_SLEEP to ANIM_PAIN do
   begin
     // Есть ли левая анимация
-    anim := utils.readBool(st);
-    // Если есть - загружаем
-    if anim then
+    if st.ReadBool() then
     begin
+      // Если есть - загружаем
       Assert(FAnim[i, TDirection.D_LEFT] <> nil, 'TMonster.LoadState: no '+IntToStr(i)+'_left anim');
       FAnim[i, TDirection.D_LEFT].LoadState(st);
     end;
+
     // Есть ли правая анимация
-     anim := utils.readBool(st);
-    // Если есть - загружаем
-    if anim then
+    if st.ReadBool() then
     begin
+      // Если есть - загружаем
       Assert(FAnim[i, TDirection.D_RIGHT] <> nil, 'TMonster.LoadState: no '+IntToStr(i)+'_right anim');
       FAnim[i, TDirection.D_RIGHT].LoadState(st);
     end;
   end;
+
   // update cache
-  self.positionChanged
+  self.positionChanged();
 end;
 
 
@@ -4629,9 +4608,8 @@ procedure TMonster.ActivateTriggers();
 var
   a: Integer;
 begin
-  if FDieTriggers <> nil then
-    for a := 0 to High(FDieTriggers) do
-      g_Triggers_Press(FDieTriggers[a], ACTIVATE_MONSTERPRESS);
+  for a := 0 to High(FDieTriggers) do
+    g_Triggers_Press(FDieTriggers[a], ACTIVATE_MONSTERPRESS);
   if FSpawnTrigger > -1 then
   begin
     g_Triggers_DecreaseSpawner(FSpawnTrigger);

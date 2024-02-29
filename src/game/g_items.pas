@@ -838,16 +838,19 @@ end;
 
 procedure g_Items_SaveState (st: TStream);
 var
-  count, i: Integer;
+  count: SizeUInt;
+  i: SizeInt;
   tt: Byte;
 begin
   // Считаем количество существующих предметов
   count := 0;
-  for i := 0 to High(ggItems) do if (ggItems[i].ItemType <> ITEM_NONE) and (ggItems[i].slotIsUsed) then Inc(count);
+  for i := 0 to High(ggItems) do
+    if (ggItems[i].ItemType <> ITEM_NONE) and (ggItems[i].slotIsUsed) then
+      count += 1;
 
   // Количество предметов
-  utils.writeInt(st, LongInt(count));
-  if (count = 0) then exit;
+  st.WriteDWordLE(count);
+  if count = 0 then Exit;
 
   for i := 0 to High(ggItems) do
   begin
@@ -855,26 +858,24 @@ begin
     begin
       // Сигнатура предмета
       utils.writeSign(st, 'ITEM');
-      utils.writeInt(st, Byte(0));
+      st.WriteByte(0);
+
       // Тип предмета
       tt := ggItems[i].ItemType;
       if ggItems[i].dropped then tt := tt or $80;
-      utils.writeInt(st, Byte(tt));
+      st.WriteByte(tt);
+
       // Есть ли респаун
-      utils.writeBool(st, ggItems[i].Respawnable);
+      st.WriteBool(ggItems[i].Respawnable);
       // Координаты респуна
-      utils.writeInt(st, LongInt(ggItems[i].InitX));
-      utils.writeInt(st, LongInt(ggItems[i].InitY));
-      // Время до респауна
-      utils.writeInt(st, Word(ggItems[i].RespawnTime));
-      // Существует ли этот предмет
-      utils.writeBool(st, ggItems[i].alive);
-      // Может ли он падать
-      utils.writeBool(st, ggItems[i].Fall);
-      // Индекс триггера, создавшего предмет
-      utils.writeInt(st, LongInt(ggItems[i].SpawnTrigger));
-      // Объект предмета
-      Obj_SaveState(st, @ggItems[i].Obj);
+      st.WriteInt32LE(ggItems[i].InitX);
+      st.WriteInt32LE(ggItems[i].InitY);
+
+      st.WriteWord(ggItems[i].RespawnTime);  // Время до респауна
+      st.WriteBool(ggItems[i].alive);  // Существует ли этот предмет
+      st.WriteBool(ggItems[i].Fall);  // Может ли он падать
+      st.WriteInt32LE(ggItems[i].SpawnTrigger);  // Индекс триггера, создавшего предмет
+      Obj_SaveState(st, @ggItems[i].Obj);  // Объект предмета
     end;
   end;
 end;
@@ -882,43 +883,43 @@ end;
 
 procedure g_Items_LoadState (st: TStream);
 var
-  count, i, a: Integer;
+  count, i, k: SizeUInt;
   b: Byte;
 begin
-  assert(st <> nil);
-
+  Assert(st <> nil);
   g_Items_Free();
 
   // Количество предметов
-  count := utils.readLongInt(st);
-  if (count = 0) then exit;
-  if (count < 0) or (count > 1024*1024) then raise XStreamError.Create('invalid number of items');
+  count := st.ReadDWordLE();
+  if count = 0 then Exit;
+  if count > 1024*1024 then
+    Raise XStreamError.Create('invalid number of items');
 
-  for a := 0 to count-1 do
+  for i := 0 to count-1 do
   begin
     // Сигнатура предмета
-    if not utils.checkSign(st, 'ITEM') then raise XStreamError.Create('invalid item signature');
-    if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid item version');
+    if not utils.checkSign(st, 'ITEM') then
+      Raise XStreamError.Create('invalid item signature');
+    if st.ReadByte() <> 0 then
+      Raise XStreamError.Create('invalid item version');
+
     // Тип предмета
-    b := utils.readByte(st); // bit7=1: monster drop
+    b := st.ReadByte();  // bit7=1: item drop
     // Создаем предмет
-    i := g_Items_Create(0, 0, b and $7F, False, False);
-    if ((b and $80) <> 0) then g_Items_SetDrop(i);
+    k := g_Items_Create(0, 0, b and $7F, False, False);
+    if ((b and $80) <> 0) then g_Items_SetDrop(k);
+
     // Есть ли респаун
-    ggItems[i].Respawnable := utils.readBool(st);
+    ggItems[k].Respawnable := st.ReadBool();
     // Координаты респуна
-    ggItems[i].InitX := utils.readLongInt(st);
-    ggItems[i].InitY := utils.readLongInt(st);
-    // Время до респауна
-    ggItems[i].RespawnTime := utils.readWord(st);
-    // Существует ли этот предмет
-    ggItems[i].alive := utils.readBool(st);
-    // Может ли он падать
-    ggItems[i].Fall := utils.readBool(st);
-    // Индекс триггера, создавшего предмет
-    ggItems[i].SpawnTrigger := utils.readLongInt(st);
-    // Объект предмета
-    Obj_LoadState(@ggItems[i].Obj, st);
+    ggItems[k].InitX := st.ReadInt32LE();
+    ggItems[k].InitY := st.ReadInt32LE();
+
+    ggItems[k].RespawnTime := st.ReadWordLE();  // Время до респауна
+    ggItems[k].alive := st.ReadBool();  // Существует ли этот предмет
+    ggItems[k].Fall := st.ReadBool();  // Может ли он падать
+    ggItems[k].SpawnTrigger := st.ReadInt32LE();  // Индекс триггера, создавшего предмет
+    Obj_LoadState(@ggItems[k].Obj, st);  // Объект предмета
   end;
 end;
 

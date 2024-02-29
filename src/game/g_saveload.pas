@@ -53,49 +53,59 @@ const
 
 procedure Obj_SaveState (st: TStream; o: PObj);
 begin
-  if (st = nil) then exit;
+  if st = nil then Exit;
+
   // Сигнатура объекта
   utils.writeSign(st, '_OBJ');
-  utils.writeInt(st, Byte(0)); // version
-  // Положение по-горизонтали
-  utils.writeInt(st, LongInt(o^.X));
-  // Положение по-вертикали
-  utils.writeInt(st, LongInt(o^.Y));
+  st.WriteByte(0);  // version
+
+  // Положение
+  st.WriteInt32LE(o^.X);
+  st.WriteInt32LE(o^.Y);
+
   // Ограничивающий прямоугольник
-  utils.writeInt(st, LongInt(o^.Rect.X));
-  utils.writeInt(st, LongInt(o^.Rect.Y));
-  utils.writeInt(st, Word(o^.Rect.Width));
-  utils.writeInt(st, Word(o^.Rect.Height));
+  st.WriteInt32LE(o^.Rect.X);
+  st.WriteInt32LE(o^.Rect.Y);
+  st.WriteWordLE(o^.Rect.Width);
+  st.WriteWordLE(o^.Rect.Height);
+
   // Скорость
-  utils.writeInt(st, LongInt(o^.Vel.X));
-  utils.writeInt(st, LongInt(o^.Vel.Y));
+  st.WriteInt32LE(o^.Vel.X);
+  st.WriteInt32LE(o^.Vel.Y);
+
   // Ускорение
-  utils.writeInt(st, LongInt(o^.Accel.X));
-  utils.writeInt(st, LongInt(o^.Accel.Y));
+  st.WriteInt32LE(o^.Accel.X);
+  st.WriteInt32LE(o^.Accel.Y);
 end;
 
 
 procedure Obj_LoadState (o: PObj; st: TStream);
 begin
-  if (st = nil) then exit;
+  if st = nil then Exit;
+
   // Сигнатура объекта:
-  if not utils.checkSign(st, '_OBJ') then raise XStreamError.Create('invalid object signature');
-  if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid object version');
-  // Положение по-горизонтали
-  o^.X := utils.readLongInt(st);
-  // Положение по-вертикали
-  o^.Y := utils.readLongInt(st);
+  if not utils.checkSign(st, '_OBJ') then
+    Raise XStreamError.Create('invalid object signature');
+  if st.ReadByte() <> 0 then
+    Raise XStreamError.Create('invalid object version');
+
+  // Положение
+  o^.X := st.ReadInt32LE();
+  o^.Y := st.ReadInt32LE();
+
   // Ограничивающий прямоугольник
-  o^.Rect.X := utils.readLongInt(st);
-  o^.Rect.Y := utils.readLongInt(st);
-  o^.Rect.Width := utils.readWord(st);
-  o^.Rect.Height := utils.readWord(st);
+  o^.Rect.X := st.ReadInt32LE();
+  o^.Rect.Y := st.ReadInt32LE();
+  o^.Rect.Width := st.ReadWordLE();
+  o^.Rect.Height := st.ReadWordLE();
+
   // Скорость
-  o^.Vel.X := utils.readLongInt(st);
-  o^.Vel.Y := utils.readLongInt(st);
+  o^.Vel.X := st.ReadInt32LE();
+  o^.Vel.Y := st.ReadInt32LE();
+
   // Ускорение
-  o^.Accel.X := utils.readLongInt(st);
-  o^.Accel.Y := utils.readLongInt(st);
+  o^.Accel.X := st.ReadInt32LE();
+  o^.Accel.Y := st.ReadInt32LE();
 end;
 
 
@@ -126,11 +136,11 @@ begin
         //raise XStreamError.Create('invalid save game signature');
         exit;
       end;
-      ver := utils.readByte(st);
-      if (ver < 7) then
+      ver := st.ReadByte();
+      if ver < 7 then
       begin
-        utils.readLongWord(st); // section size
-        stlen := utils.readWord(st);
+        st.ReadDWordLE();  // section size
+        stlen := st.ReadWordLE();
         if (stlen < 1) or (stlen > 64) then
         begin
           e_LogWritefln('GetSaveName: not a save file: ''%s''', [st], TMsgType.Warning);
@@ -168,104 +178,80 @@ var
   i, k: Integer;
   PID1, PID2: Word;
 begin
-  result := false;
+  Result := False;
   try
     st := e_CreateResource(SaveDirs, filename);
     try
       utils.writeSign(st, 'DFSV');
-      utils.writeInt(st, Byte(SAVE_VERSION));
-      // Имя сэйва
-      utils.writeStr(st, aname, 64);
+      st.WriteByte(SAVE_VERSION);
+      utils.writeStr(st, aname, 64);  // Имя сэйва
+
       // Полный путь к ваду и карта
       //if (Length(gCurrentMapFileName) <> 0) then e_LogWritefln('SAVE: current map is ''%s''...', [gCurrentMapFileName]);
       utils.writeStr(st, gCurrentMapFileName);
-      // Путь к карте
-      utils.writeStr(st, ExtractFileName(gGameSettings.WAD));
-      // Имя карты
-      utils.writeStr(st, g_ExtractFileName(gMapInfo.Map));
-      // Количество игроков
-      utils.writeInt(st, Word(g_Player_GetCount));
-      // Игровое время
-      utils.writeInt(st, LongWord(gTime));
-      // Тип игры
-      utils.writeInt(st, Byte(gGameSettings.GameType));
-      // Режим игры
-      utils.writeInt(st, Byte(gGameSettings.GameMode));
-      // Лимит времени
-      utils.writeInt(st, Word(gGameSettings.TimeLimit));
-      // Лимит очков
-      utils.writeInt(st, Word(gGameSettings.ScoreLimit));
-      // Лимит жизней
-      utils.writeInt(st, Byte(gGameSettings.MaxLives));
-      // Игровые опции
-      utils.writeInt(st, LongWord(gGameSettings.Options));
+
+      utils.writeStr(st, ExtractFileName(gGameSettings.WAD));  // Путь к карте
+      utils.writeStr(st, g_ExtractFileName(gMapInfo.Map));  // Имя карты
+      st.WriteWordLE(g_Player_GetCount);  // Количество игроков
+      st.WriteDWordLE(gTime);  // Игровое время
+      st.WriteByte(gGameSettings.GameType);  // Тип игры
+      st.WriteByte(gGameSettings.GameMode);  // Режим игры
+      st.WriteWordLE(gGameSettings.TimeLimit);  // Лимит времени
+      st.WriteWordLE(gGameSettings.ScoreLimit);  // Лимит очков
+      st.WriteByte(gGameSettings.MaxLives);  // Лимит жизней
+      st.WriteDWordLE(LongWord(gGameSettings.Options));  // Игровые опции
+
       // Для коопа
-      utils.writeInt(st, Word(gCoopMonstersKilled));
-      utils.writeInt(st, Word(gCoopSecretsFound));
-      utils.writeInt(st, Word(gCoopTotalMonstersKilled));
-      utils.writeInt(st, Word(gCoopTotalSecretsFound));
-      utils.writeInt(st, Word(gCoopTotalMonsters));
-      utils.writeInt(st, Word(gCoopTotalSecrets));
+      st.WriteWordLE(gCoopMonstersKilled);
+      st.WriteWordLE(gCoopSecretsFound);
+      st.WriteWordLE(gCoopTotalMonstersKilled);
+      st.WriteWordLE(gCoopTotalSecretsFound);
+      st.WriteWordLE(gCoopTotalMonsters);
+      st.WriteWordLE(gCoopTotalSecrets);
 
       ///// Сохраняем состояние областей просмотра /////
       utils.writeSign(st, 'PLVW');
-      utils.writeInt(st, Byte(0)); // version
+      st.WriteByte(0);  // version
       PID1 := 0;
       PID2 := 0;
       if (gPlayer1 <> nil) then PID1 := gPlayer1.UID;
       if (gPlayer2 <> nil) then PID2 := gPlayer2.UID;
-      utils.writeInt(st, Word(PID1));
-      utils.writeInt(st, Word(PID2));
+      st.WriteWordLE(PID1);
+      st.WriteWordLE(PID2);
       ///// /////
 
-      ///// Состояние карты /////
-      g_Map_SaveState(st);
-      ///// /////
-
-      ///// Состояние предметов /////
-      g_Items_SaveState(st);
-      ///// /////
-
-      ///// Состояние триггеров /////
-      g_Triggers_SaveState(st);
-      ///// /////
-
-      ///// Состояние оружия /////
-      g_Weapon_SaveState(st);
-      ///// /////
-
-      ///// Состояние монстров /////
-      g_Monsters_SaveState(st);
-      ///// /////
-
-      ///// Состояние трупов /////
-      g_Player_Corpses_SaveState(st);
-      ///// /////
+      g_Map_SaveState(st);  // Состояние карты
+      g_Items_SaveState(st);  // Состояние предметов
+      g_Triggers_SaveState(st);  // Состояние триггеров
+      g_Weapon_SaveState(st);  // Состояние оружия
+      g_Monsters_SaveState(st);  // Состояние монстров
+      g_Player_Corpses_SaveState(st);  // Состояние трупов
 
       ///// Сохраняем игроков (в том числе ботов) /////
-      if (g_Player_GetCount > 0) then
+      if g_Player_GetCount > 0 then
       begin
         k := 0;
         for i := 0 to High(gPlayers) do
         begin
-          if (gPlayers[i] <> nil) then
+          if gPlayers[i] <> nil then
           begin
             // Состояние игрока
             gPlayers[i].SaveState(st);
-            Inc(k);
+            k += 1;
           end;
         end;
 
         // Все ли игроки на месте
-        if (k <> g_Player_GetCount) then raise XStreamError.Create('g_SaveGame: wrong players count');
+        if k <> g_Player_GetCount then
+          Raise XStreamError.Create('g_SaveGame: wrong players count');
       end;
       ///// /////
 
       ///// Маркер окончания /////
       utils.writeSign(st, 'END');
-      utils.writeInt(st, Byte(0));
+      st.WriteByte(0);
       ///// /////
-      result := true;
+      Result := True;
     finally
       st.Free();
     end;
@@ -311,8 +297,10 @@ begin
   try
     st := e_OpenResourceRO(SaveDirs, filename);
     try
-      if not utils.checkSign(st, 'DFSV') then raise XStreamError.Create('invalid save game signature');
-      if (utils.readByte(st) <> SAVE_VERSION) then raise XStreamError.Create('invalid save game version');
+      if not utils.checkSign(st, 'DFSV') then
+        Raise XStreamError.Create('invalid save game signature');
+      if st.ReadByte() <> SAVE_VERSION then
+        Raise XStreamError.Create('invalid save game version');
 
       e_WriteLog('Loading saved game...', TMsgType.Notify);
 
@@ -331,52 +319,49 @@ begin
         // Полный путь к ваду и карта
         curmapfile := utils.readStr(st);
 
-        if (Length(gCurrentMapFileName) <> 0) then e_LogWritefln('LOAD: previous map was ''%s''...', [gCurrentMapFileName]);
-        if (Length(curmapfile) <> 0) then e_LogWritefln('LOAD: new map is ''%s''...', [curmapfile]);
-        // А вот тут, наконец, чистим ресурсы
-        g_Game_Free(curmapfile <> gCurrentMapFileName); // don't free textures for the same map
-        gameCleared := true;
+        if Length(gCurrentMapFileName) <> 0 then
+          e_LogWritefln('LOAD: previous map was ''%s''...', [gCurrentMapFileName]);
+        if Length(curmapfile) <> 0 then
+          e_LogWritefln('LOAD: new map is ''%s''...', [curmapfile]);
 
-        // Путь к карте
-        WAD_Path := utils.readStr(st);
-        // Имя карты
-        Map_Name := utils.readStr(st);
-        // Количество игроков
-        nPlayers := utils.readWord(st);
-        // Игровое время
-        Game_Time := utils.readLongWord(st);
-        // Тип игры
-        Game_Type := utils.readByte(st);
-        // Режим игры
-        Game_Mode := utils.readByte(st);
-        // Лимит времени
-        Game_TimeLimit := utils.readWord(st);
-        // Лимит очков
-        Game_ScoreLimit := utils.readWord(st);
-        // Лимит жизней
-        Game_MaxLives := utils.readByte(st);
-        // Игровые опции
-        Game_Options := utils.readLongWord(st);
+        // А вот тут, наконец, чистим ресурсы
+        g_Game_Free(curmapfile <> gCurrentMapFileName);  // don't free textures for the same map
+        gameCleared := True;
+
+        WAD_Path := utils.readStr(st);  // Путь к карте
+        Map_Name := utils.readStr(st);  // Имя карты
+        nPlayers := st.ReadWordLE();  // Количество игроков
+        Game_Time := st.ReadDWordLE();  // Игровое время
+        Game_Type := st.ReadByte();  // Тип игры
+        Game_Mode := st.ReadByte();  // Режим игры
+        Game_TimeLimit := st.ReadWordLE();  // Лимит времени
+        Game_ScoreLimit := st.ReadWordLE();  // Лимит очков
+        Game_MaxLives := st.ReadByte();  // Лимит жизней
+        Game_Options := st.ReadDWordLE();  // Игровые опции
+
         // Для коопа
-        Game_CoopMonstersKilled := utils.readWord(st);
-        Game_CoopSecretsFound := utils.readWord(st);
-        Game_CoopTotalMonstersKilled := utils.readWord(st);
-        Game_CoopTotalSecretsFound := utils.readWord(st);
-        Game_CoopTotalMonsters := utils.readWord(st);
-        Game_CoopTotalSecrets := utils.readWord(st);
+        Game_CoopMonstersKilled := st.ReadWordLE();
+        Game_CoopSecretsFound := st.ReadWordLE();
+        Game_CoopTotalMonstersKilled := st.ReadWordLE();
+        Game_CoopTotalSecretsFound := st.ReadWordLE();
+        Game_CoopTotalMonsters := st.ReadWordLE();
+        Game_CoopTotalSecrets := st.ReadWordLE();
         ///// /////
 
         ///// Загружаем состояние областей просмотра /////
-        if not utils.checkSign(st, 'PLVW') then raise XStreamError.Create('invalid viewport signature');
-        if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid viewport version');
-        PID1 := utils.readWord(st);
-        PID2 := utils.readWord(st);
+        if not utils.checkSign(st, 'PLVW') then
+          Raise XStreamError.Create('invalid viewport signature');
+        if st.ReadByte() <> 0 then
+          Raise XStreamError.Create('invalid viewport version');
+        PID1 := st.ReadWordLE();
+        PID2 := st.ReadWordLE();
         ///// /////
 
         // Загружаем карту:
         gGameSettings := Default(TGameSettings);
-        gAimLine := false;
-        gShowMap := false;
+        gAimLine := False;
+        gShowMap := False;
+
         // Настройки игры
         gGameSettings.GameType := Game_Type;
         gGameSettings.GameMode := Game_Mode;
@@ -391,15 +376,13 @@ begin
         g_Game_SetupScreenSize();
 
         // Загрузка и запуск карты
-        //FIXME: save/load `asMegawad`
-        if not g_Game_StartMap(false{asMegawad}, WAD_Path+':\'+Map_Name, True, curmapfile) then
-          raise Exception.Create(Format(_lc[I_GAME_ERROR_MAP_LOAD], [WAD_Path + ':\' + Map_Name]));
+        // FIXME: save/load `asMegawad`
+        if not g_Game_StartMap(False{asMegawad}, WAD_Path+':\'+Map_Name, True, curmapfile) then
+          Raise Exception.Create(Format(_lc[I_GAME_ERROR_MAP_LOAD], [WAD_Path + ':\' + Map_Name]));
 
-        // Настройки игроков и ботов
-        g_Player_Init();
+        g_Player_Init();  // Настройки игроков и ботов
+        gTime := Game_Time;  // Устанавливаем время
 
-        // Устанавливаем время
-        gTime := Game_Time;
         // Возвращаем статы
         gCoopMonstersKilled := Game_CoopMonstersKilled;
         gCoopSecretsFound := Game_CoopSecretsFound;
@@ -408,42 +391,22 @@ begin
         gCoopTotalMonsters := Game_CoopTotalMonsters;
         gCoopTotalSecrets := Game_CoopTotalSecrets;
 
-        ///// Загружаем состояние карты /////
-        g_Map_LoadState(st);
-        ///// /////
-
-        ///// Загружаем состояние предметов /////
-        g_Items_LoadState(st);
-        ///// /////
-
-        ///// Загружаем состояние триггеров /////
-        g_Triggers_LoadState(st);
-        ///// /////
-
-        ///// Загружаем состояние оружия /////
-        g_Weapon_LoadState(st);
-        ///// /////
-
-        ///// Загружаем состояние монстров /////
-        g_Monsters_LoadState(st);
-        ///// /////
-
-        ///// Загружаем состояние трупов /////
-        g_Player_Corpses_LoadState(st);
-        ///// /////
+        g_Map_LoadState(st);  // Загружаем состояние карты
+        g_Items_LoadState(st);  // Загружаем состояние предметов
+        g_Triggers_LoadState(st);  // Загружаем состояние триггеров
+        g_Weapon_LoadState(st);  // Загружаем состояние оружия
+        g_Monsters_LoadState(st);  // Загружаем состояние монстров
+        g_Player_Corpses_LoadState(st);  // Загружаем состояние трупов
 
         ///// Загружаем игроков (в том числе ботов) /////
-        if nPlayers > 0 then
-        begin
-          // Загружаем
-          for i := 0 to nPlayers-1 do g_Player_CreateFromState(st);
-        end;
+        for i := 0 to nPlayers-1 do
+          g_Player_CreateFromState(st);
 
         // Привязываем основных игроков к областям просмотра
         gPlayer1 := g_Player_Get(PID1);
         gPlayer2 := g_Player_Get(PID2);
 
-        if (gPlayer1 <> nil) then
+        if gPlayer1 <> nil then
         begin
           gPlayer1.Name := gPlayer1Settings.Name;
           gPlayer1.FPreferredTeam := gPlayer1Settings.Team;
@@ -452,7 +415,7 @@ begin
           gPlayer1.SetColor(gPlayer1Settings.Color);
         end;
 
-        if (gPlayer2 <> nil) then
+        if gPlayer2 <> nil then
         begin
           gPlayer2.Name := gPlayer2Settings.Name;
           gPlayer2.FPreferredTeam := gPlayer2Settings.Team;
@@ -463,16 +426,18 @@ begin
         ///// /////
 
         ///// Маркер окончания /////
-        if not utils.checkSign(st, 'END') then raise XStreamError.Create('no end marker');
-        if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid end marker');
+        if not utils.checkSign(st, 'END') then
+          Raise XStreamError.Create('no end marker');
+        if st.ReadByte() <> 0 then
+          Raise XStreamError.Create('invalid end marker');
         ///// /////
 
         // Ищем триггеры с условием смерти монстров
-        if (gTriggers <> nil) then g_Map_ReAdd_DieTriggers();
+        if gTriggers <> nil then g_Map_ReAdd_DieTriggers();
 
         // done
-        gLoadGameMode := false;
-        result := true;
+        gLoadGameMode := False;
+        Result := True;
 {$IF DEFINED(D2F_DEBUG)}
       except
         begin

@@ -2307,26 +2307,25 @@ end;
 
 procedure g_Net_DumpStart();
 begin
-  if NetMode = NET_SERVER then
-    NetDumpFile := e_CreateResource(LogDirs, NETDUMP_FILENAME + '_server')
-  else
-    NetDumpFile := e_CreateResource(LogDirs, NETDUMP_FILENAME + '_client');
+  if NetMode = NET_SERVER
+    then NetDumpFile := e_CreateResource(LogDirs, NETDUMP_FILENAME + '_server')
+    else NetDumpFile := e_CreateResource(LogDirs, NETDUMP_FILENAME + '_client');
 end;
 
 procedure g_Net_DumpSendBuffer();
 begin
-  writeInt(NetDumpFile, gTime);
-  writeInt(NetDumpFile, LongWord(NetOut.CurSize));
-  writeInt(NetDumpFile, Byte(1));
+  NetDumpFile.WriteDWordLE(gTime);
+  NetDumpFile.WriteDWordLE(NetOut.CurSize);
+  NetDumpFile.WriteByte(1);
   NetDumpFile.WriteBuffer(NetOut.Data^, NetOut.CurSize);
 end;
 
 procedure g_Net_DumpRecvBuffer(Buf: penet_uint8; Len: LongWord);
 begin
   if (Buf = nil) or (Len = 0) then Exit;
-  writeInt(NetDumpFile, gTime);
-  writeInt(NetDumpFile, Len);
-  writeInt(NetDumpFile, Byte(0));
+  NetDumpFile.WriteDWordLE(gTime);
+  NetDumpFile.WriteDWordLE(Len);
+  NetDumpFile.WriteByte(0);
   NetDumpFile.WriteBuffer(Buf^, Len);
 end;
 

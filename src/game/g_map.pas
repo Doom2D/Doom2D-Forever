@@ -3219,72 +3219,57 @@ end;
 
 procedure g_Map_SaveState (st: TStream);
 var
-  str: String;
-
-  procedure savePanels ();
-  var
-    pan: TPanel;
-  begin
-    // Сохраняем панели
-    utils.writeInt(st, LongInt(Length(panByGUID)));
-    for pan in panByGUID do pan.SaveState(st);
-  end;
+  pan: TPanel;
 
   procedure saveFlag (flag: PFlag);
-  var
-    b: Byte;
   begin
     utils.writeSign(st, 'FLAG');
-    utils.writeInt(st, Byte(0)); // version
-    // Время перепоявления флага
-    utils.writeInt(st, Byte(flag^.RespawnType));
-    // Состояние флага
-    utils.writeInt(st, Byte(flag^.State));
+    st.WriteByte(0);  // version
+
+    st.WriteByte(flag^.RespawnType);  // Время перепоявления флага
+    st.WriteByte(flag^.State);  // Состояние флага
+
     // Направление флага
-    if flag^.Direction = TDirection.D_LEFT then b := 1 else b := 2; // D_RIGHT
-    utils.writeInt(st, Byte(b));
+    if flag^.Direction = TDirection.D_LEFT
+      then st.WriteByte(1)
+      else st.WriteByte(2);  // D_RIGHT
+
     // Объект флага
     Obj_SaveState(st, @flag^.Obj);
   end;
 
 begin
-  savePanels();
+  // Сохраняем панели
+  st.WriteDWordLE(Length(panByGUID));
+  for pan in panByGUID do pan.SaveState(st);
 
   // Сохраняем музыку
   utils.writeSign(st, 'MUSI');
-  utils.writeInt(st, Byte(0));
+  st.WriteByte(0);
+
   // Название музыки
-  assert(gMusic <> nil, 'g_Map_SaveState: gMusic = nil');
-  if gMusic.NoMusic then str := '' else str := gMusic.Name;
-  utils.writeStr(st, str);
-  // Позиция проигрывания музыки
-  utils.writeInt(st, LongWord(gMusic.GetPosition()));
-  // Стоит ли музыка на спец-паузе
-  utils.writeBool(st, gMusic.SpecPause);
+  Assert(gMusic <> nil, 'g_Map_SaveState: gMusic = nil');
+  if gMusic.NoMusic
+    then utils.writeStr(st, '')
+    else utils.writeStr(st, gMusic.Name);
 
-  ///// Сохраняем количество монстров: /////
-  utils.writeInt(st, LongInt(gTotalMonsters));
-  ///// /////
+  st.WriteDWordLE(gMusic.GetPosition());  // Позиция проигрывания музыки
+  st.WriteBool(gMusic.SpecPause);  // Стоит ли музыка на спец-паузе
+  st.WriteInt32LE(gTotalMonsters);  // Сохраняем количество монстров:
 
-  //// Сохраняем флаги, если это CTF: /////
-  if (gGameSettings.GameMode = GM_CTF) then
+  // Сохраняем флаги, если это CTF:
+  if gGameSettings.GameMode = GM_CTF then
   begin
-    // Флаг Красной команды
-    saveFlag(@gFlags[FLAG_RED]);
-    // Флаг Синей команды
-    saveFlag(@gFlags[FLAG_BLUE]);
+    saveFlag(@gFlags[FLAG_RED]);  // Флаг Красной команды
+    saveFlag(@gFlags[FLAG_BLUE]);  // Флаг Синей команды
   end;
-  ///// /////
 
-  ///// Сохраняем количество побед, если это TDM/CTF: /////
+  // Сохраняем количество побед, если это TDM/CTF:
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
   begin
-    // Очки Красной команды
-    utils.writeInt(st, SmallInt(gTeamStat[TEAM_RED].Score));
-    // Очки Синей команды
-    utils.writeInt(st, SmallInt(gTeamStat[TEAM_BLUE].Score));
+    st.WriteInt16LE(gTeamStat[TEAM_RED].Score);  // Очки Красной команды
+    st.WriteInt16LE(gTeamStat[TEAM_BLUE].Score);  // Очки Синей команды
   end;
-  ///// /////
 end;
 
 
@@ -3293,59 +3278,56 @@ var
   dw: DWORD;
   str: String;
   boo: Boolean;
-
-  procedure loadPanels ();
-  var
-    pan: TPanel;
-  begin
-    // Загружаем панели
-    if (Length(panByGUID) <> utils.readLongInt(st)) then raise XStreamError.Create('invalid number of saved panels');
-    for pan in panByGUID do
-    begin
-      pan.LoadState(st);
-      if (pan.proxyId >= 0) then mapGrid.proxyEnabled[pan.proxyId] := pan.Enabled;
-    end;
-  end;
+  pan: TPanel;
 
   procedure loadFlag (flag: PFlag);
-  var
-    b: Byte;
   begin
     // Сигнатура флага
-    if not utils.checkSign(st, 'FLAG') then raise XStreamError.Create('invalid flag signature');
-    if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid flag version');
-    // Время перепоявления флага
-    flag^.RespawnType := utils.readByte(st);
-    // Состояние флага
-    flag^.State := utils.readByte(st);
+    if not utils.checkSign(st, 'FLAG') then
+      Raise XStreamError.Create('invalid flag signature');
+    if st.ReadByte() <> 0 then
+      Raise XStreamError.Create('invalid flag version');
+
+    flag^.RespawnType := st.ReadByte();  // Время перепоявления флага
+    flag^.State := st.ReadByte();  // Состояние флага
+
     // Направление флага
-    b := utils.readByte(st);
-    if (b = 1) then flag^.Direction := TDirection.D_LEFT else flag^.Direction := TDirection.D_RIGHT; // b = 2
+    if st.ReadByte() = 1
+      then flag^.Direction := TDirection.D_LEFT
+      else flag^.Direction := TDirection.D_RIGHT;  // b = 2
+
     // Объект флага
     Obj_LoadState(@flag^.Obj, st);
   end;
 
 begin
-  if (st = nil) then exit;
+  if st = nil then Exit;
 
-  ///// Загружаем списки панелей: /////
-  loadPanels();
-  ///// /////
+  // Загружаем списки панелей:
+  if st.ReadDWordLE() <> Length(panByGUID) then
+    Raise XStreamError.Create('invalid number of saved panels');
+  for pan in panByGUID do
+  begin
+    pan.LoadState(st);
+    if pan.proxyId >= 0 then
+      mapGrid.proxyEnabled[pan.proxyId] := pan.Enabled;
+  end;
 
   // Обновляем карту столкновений и сетку
   g_GFX_Init();
   //mapCreateGrid();
 
   ///// Загружаем музыку: /////
-  if not utils.checkSign(st, 'MUSI') then raise XStreamError.Create('invalid music signature');
-  if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid music version');
-  // Название музыки
-  assert(gMusic <> nil, 'g_Map_LoadState: gMusic = nil');
-  str := utils.readStr(st);
-  // Позиция проигрывания музыки
-  dw := utils.readLongWord(st);
-  // Стоит ли музыка на спец-паузе
-  boo := utils.readBool(st);
+  if not utils.checkSign(st, 'MUSI') then
+    Raise XStreamError.Create('invalid music signature');
+  if st.ReadByte() <> 0 then
+    Raise XStreamError.Create('invalid music version');
+
+  Assert(gMusic <> nil, 'g_Map_LoadState: gMusic = nil');
+  str := utils.readStr(st);  // Название музыки
+  dw := st.ReadDWordLE();  // Позиция проигрывания музыки
+  boo := st.ReadBool();  // Стоит ли музыка на спец-паузе
+
   // Запускаем эту музыку
   gMusic.SetByName(str);
   gMusic.SpecPause := boo;
@@ -3354,29 +3336,21 @@ begin
   gMusic.SetPosition(dw);
   ///// /////
 
-  ///// Загружаем количество монстров: /////
-  gTotalMonsters := utils.readLongInt(st);
-  ///// /////
+  gTotalMonsters := st.ReadInt32LE();  // Загружаем количество монстров:
 
   //// Загружаем флаги, если это CTF: /////
   if (gGameSettings.GameMode = GM_CTF) then
   begin
-    // Флаг Красной команды
-    loadFlag(@gFlags[FLAG_RED]);
-    // Флаг Синей команды
-    loadFlag(@gFlags[FLAG_BLUE]);
+    loadFlag(@gFlags[FLAG_RED]);  // Флаг Красной команды
+    loadFlag(@gFlags[FLAG_BLUE]);  // Флаг Синей команды
   end;
-  ///// /////
 
   ///// Загружаем количество побед, если это TDM/CTF: /////
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
   begin
-    // Очки Красной команды
-    gTeamStat[TEAM_RED].Score := utils.readSmallInt(st);
-    // Очки Синей команды
-    gTeamStat[TEAM_BLUE].Score := utils.readSmallInt(st);
+    gTeamStat[TEAM_RED].Score := st.ReadInt16LE();  // Очки Красной команды
+    gTeamStat[TEAM_BLUE].Score := st.ReadInt16LE();  // Очки Синей команды
   end;
-  ///// /////
 end;
 
 

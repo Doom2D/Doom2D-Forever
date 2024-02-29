@@ -2621,12 +2621,11 @@ begin
   // Считаем количество существующих снарядов
   count := 0;
   for i := 0 to High(Projectiles) do
-    if (Projectiles[i].ShotType <> 0) then count += 1;
+    if Projectiles[i].ShotType <> 0 then count += 1;
 
   // Количество снарядов
-  utils.WriteInt(st, count);
-
-  if (count = 0) then exit;
+  st.WriteDWordLE(count);
+  if count = 0 then Exit;
 
   for i := 0 to High(Projectiles) do
   begin
@@ -2634,61 +2633,62 @@ begin
     begin
       // Сигнатура снаряда
       utils.writeSign(st, 'SHOT');
-      utils.writeInt(st, Byte(0)); // version
-      // Тип снаряда
-      utils.writeInt(st, Byte(Projectiles[i].ShotType));
-      // Цель
-      utils.writeInt(st, Word(Projectiles[i].Target));
-      // UID стрелявшего
-      utils.writeInt(st, Word(Projectiles[i].SpawnerUID));
-      // Размер поля Triggers
-      utils.writeInt(st, Integer(Length(Projectiles[i].Triggers)));
+      st.WriteByte(0);  // version
+
+      st.WriteByte(Projectiles[i].ShotType);  // Тип снаряда
+      st.WriteWordLE(Projectiles[i].Target);  // Цель
+      st.WriteWordLE(Projectiles[i].SpawnerUID);  // UID стрелявшего
+      st.WriteDWordLE(Length(Projectiles[i].Triggers));  // Размер поля Triggers
+
       // Триггеры, активированные выстрелом
-      for j := 0 to High(Projectiles[i].Triggers) do utils.writeInt(st, LongWord(Projectiles[i].Triggers[j]));
-      // Объект снаряда
-      Obj_SaveState(st, @Projectiles[i].Obj);
-      // Костылина ебаная
-      utils.writeInt(st, Byte(Projectiles[i].Stopped));
+      for j := 0 to High(Projectiles[i].Triggers) do
+        st.WriteDWordLE(Projectiles[i].Triggers[j]);
+
+      Obj_SaveState(st, @Projectiles[i].Obj);  // Объект снаряда
+      st.WriteByte(Projectiles[i].Stopped);  // Костылина
     end;
   end;
 end;
 
 procedure g_Weapon_LoadState (st: TStream);
 var
-  count, tc, i, j: Integer;
+  count, tc, i, j: SizeUInt;
   dw: LongWord;
 begin
-  if (st = nil) then exit;
+  if st = nil then Exit;
 
   // Количество снарядов
-  count := utils.readLongInt(st);
-  if (count < 0) or (count > 1024*1024) then raise XStreamError.Create('invalid shots counter');
+  count := st.ReadDWordLE();
+  if count > 1024*1024 then
+    Raise XStreamError.Create('invalid shots counter');
 
   SetLength(Projectiles, count);
-
-  if (count = 0) then exit;
+  if count = 0 then Exit;
 
   for i := 0 to count-1 do
   begin
     // Сигнатура снаряда
-    if not utils.checkSign(st, 'SHOT') then raise XStreamError.Create('invalid shot signature');
-    if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid shot version');
-    // Тип снаряда:
-    Projectiles[i].ShotType := utils.readByte(st);
-    // Цель
-    Projectiles[i].Target := utils.readWord(st);
-    // UID стрелявшего
-    Projectiles[i].SpawnerUID := utils.readWord(st);
+    if not utils.checkSign(st, 'SHOT') then
+      Raise XStreamError.Create('invalid shot signature');
+    if st.ReadByte() <> 0 then
+      Raise XStreamError.Create('invalid shot version');
+
+    Projectiles[i].ShotType := st.ReadByte();  // Тип снаряда:
+    Projectiles[i].Target := st.ReadWordLE();  // Цель
+    Projectiles[i].SpawnerUID := st.ReadWordLE();  // UID стрелявшего
+
     // Размер поля Triggers
-    tc := utils.readLongInt(st);
-    if (tc < 0) or (tc > 1024*1024) then raise XStreamError.Create('invalid shot triggers counter');
+    tc := st.ReadDWordLE();
+    if tc > 1024*1024 then
+      Raise XStreamError.Create('invalid shot triggers counter');
     SetLength(Projectiles[i].Triggers, tc);
+
     // Триггеры, активированные выстрелом
-    for j := 0 to tc-1 do Projectiles[i].Triggers[j] := utils.readLongWord(st);
-    // Объект предмета
-    Obj_LoadState(@Projectiles[i].Obj, st);
-    // Костылина ебаная
-    Projectiles[i].Stopped := utils.readByte(st);
+    for j := 0 to tc-1 do
+      Projectiles[i].Triggers[j] := st.ReadDWordLE();
+
+    Obj_LoadState(@Projectiles[i].Obj, st);  // Объект предмета
+    Projectiles[i].Stopped := st.ReadByte();  // Костылина
 
     // Установка текстуры или анимации
     Projectiles[i].TextureID := DWORD(-1);

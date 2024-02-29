@@ -13,6 +13,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE a_modes.inc}
+{$OVERFLOWCHECKS ON}
+{$RANGECHECKS ON}
 {.$DEFINE XDYNREC_USE_FIELDHASH} // actually, it is SLOWER with this
 unit xdynrec;
 
@@ -490,11 +492,11 @@ procedure xdynDumpProfiles ();
 {$ENDIF}
 
 var
-  DynWarningCB: procedure (const msg: AnsiString; line, col: Integer) = nil;
+  DynWarningCB: procedure (const msg: AnsiString; line, col: Integer);
 
 implementation
 
-{$IF DEFINED(D2D_DYNREC_PROFILER)}
+{$IFDEF D2D_DYNREC_PROFILER}
 uses
   xprofiler;
 {$ENDIF}
@@ -1460,9 +1462,9 @@ begin
           if mAsMonsterId then f := 0 else f := -1;
         end;
         case mType of
-          TType.TByte, TType.TUByte: writeInt(st, Byte(f));
-          TType.TShort, TType.TUShort: writeInt(st, SmallInt(f));
-          TType.TInt, TType.TUInt: writeInt(st, LongWord(f));
+          TType.TByte, TType.TUByte: st.WriteInt8(f);
+          TType.TShort, TType.TUShort: st.WriteInt16LE(f);
+          TType.TInt, TType.TUInt: st.WriteInt32LE(f);
           else raise TDynRecException.CreateFmt('record reference type ''%s'' in field ''%s'' cannot be written', [mEBSTypeName, mName]);
         end;
         exit;
@@ -1475,15 +1477,8 @@ begin
   case mType of
     TType.TBool:
       begin
-        if not mNegBool then
-        begin
-          if (mIVal <> 0) then writeInt(st, Byte(1)) else writeInt(st, Byte(0));
-        end
-        else
-        begin
-          if (mIVal = 0) then writeInt(st, Byte(1)) else writeInt(st, Byte(0));
-        end;
-        exit;
+        st.WriteBool((mIVal <> 0) <> mNegBool);
+        Exit;
       end;
     TType.TChar:
       begin
@@ -1491,14 +1486,14 @@ begin
         if (mMaxDim < 0) then
         begin
           if (Length(mSVal) <> 1) then raise TDynRecException.CreateFmt('invalid string size definition for field ''%s''', [mName]);
-          writeInt(st, Byte(mSVal[1]));
+          st.WriteByte(Ord(mSVal[1]));
         end
         else
         begin
           if (Length(mSVal) > mMaxDim) then raise TDynRecException.CreateFmt('invalid string size definition for field ''%s''', [mName]);
           s := utf2win(mSVal);
           if (Length(s) > 0) then st.WriteBuffer(PChar(s)^, Length(s));
-          for f := Length(s) to mMaxDim do writeInt(st, Byte(0));
+          for f := Length(s) to mMaxDim do st.WriteByte(0);
         end;
         exit;
       end;
@@ -1507,21 +1502,21 @@ begin
       begin
         // triggerdata array was processed earlier
         if (mMaxDim >= 0) then TDynRecException.CreateFmt('byte array in field ''%s'' cannot be written', [mName]);
-        writeInt(st, Byte(mIVal));
+        st.WriteInt8(mIVal);
         exit;
       end;
     TType.TShort,
     TType.TUShort:
       begin
         if (mMaxDim >= 0) then raise TDynRecException.CreateFmt('short array in field ''%s'' cannot be written', [mName]);
-        writeInt(st, Word(mIVal));
+        st.WriteInt16LE(mIVal);
         exit;
       end;
     TType.TInt,
     TType.TUInt:
       begin
         if (mMaxDim >= 0) then raise TDynRecException.CreateFmt('int array in field ''%s'' cannot be written', [mName]);
-        writeInt(st, LongWord(mIVal));
+        st.WriteInt32LE(mIVal);
         exit;
       end;
     TType.TString:
@@ -1531,24 +1526,24 @@ begin
     TType.TPoint:
       begin
         if (mMaxDim >= 0) then raise TDynRecException.CreateFmt('pos/size array in field ''%s'' cannot be written', [mName]);
-        writeInt(st, LongInt(mIVal));
-        writeInt(st, LongInt(mIVal2));
+        st.WriteInt32LE(mIVal);
+        st.WriteInt32LE(mIVal2);
         exit;
       end;
     TType.TSize:
       begin
         if (mMaxDim >= 0) then raise TDynRecException.CreateFmt('pos/size array in field ''%s'' cannot be written', [mName]);
-        writeInt(st, Word(mIVal));
-        writeInt(st, Word(mIVal2));
+        st.WriteWordLE(mIVal);
+        st.WriteWordLE(mIVal2);
         exit;
       end;
     TType.TColor:
       begin
         if (mMaxDim >= 0) then raise TDynRecException.CreateFmt('color array in field ''%s'' cannot be written', [mName]);
-        writeInt(st, Byte(mIVal));
-        writeInt(st, Byte(mIVal2));
-        writeInt(st, Byte(mIVal3));
-        //writeInt(st, Byte(mIVal4)); // the only place we have RGB in binary map is effect trigger, and it has no alpha
+        st.WriteByte(mIVal);
+        st.WriteByte(mIVal2);
+        st.WriteByte(mIVal3);
+        //st.WriteByte(mIVal4); // the only place we have RGB in binary map is effect trigger, and it has no alpha
         if (mIVal4 <> 255) then hasLostData := true;
         exit;
       end;
@@ -1747,12 +1742,12 @@ begin
         begin
           // not a trigger data
           case mType of
-            TType.TByte: f := readShortInt(st);
-            TType.TUByte: f := readByte(st);
-            TType.TShort: f := readSmallInt(st);
-            TType.TUShort: f := readWord(st);
-            TType.TInt: f := readLongInt(st);
-            TType.TUInt: f := readLongWord(st);
+            TType.TByte: f := st.ReadInt8();
+            TType.TUByte: f := st.ReadByte();
+            TType.TShort: f := st.ReadInt16LE();
+            TType.TUShort: f := st.ReadWordLE();
+            TType.TInt: f := st.ReadInt32LE();
+            TType.TUInt: f := st.ReadDWordLE();
             else raise TDynRecException.CreateFmt('invalid non-numeric type ''%s'' for field ''%s'' of record ''%s''', [getTypeName(mType), mName, mEBSTypeName]);
           end;
           if mAsMonsterId then Dec(f);
@@ -1766,12 +1761,12 @@ begin
       begin
         assert(mMaxDim < 0);
         case mType of
-          TType.TByte: f := readShortInt(st);
-          TType.TUByte: f := readByte(st);
-          TType.TShort: f := readSmallInt(st);
-          TType.TUShort: f := readWord(st);
-          TType.TInt: f := readLongInt(st);
-          TType.TUInt: f := readLongWord(st);
+            TType.TByte: f := st.ReadInt8();
+            TType.TUByte: f := st.ReadByte();
+            TType.TShort: f := st.ReadInt16LE();
+            TType.TUShort: f := st.ReadWordLE();
+            TType.TInt: f := st.ReadInt32LE();
+            TType.TUInt: f := st.ReadDWordLE();
           else raise TDynRecException.CreateFmt('invalid non-numeric type ''%s'' for field ''%s'' of record ''%s''', [getTypeName(mType), mName, mEBSTypeName]);
         end;
         es := nil;
@@ -1819,18 +1814,15 @@ begin
   case mType of
     TType.TBool:
       begin
-        f := readByte(st);
-        if (f <> 0) then f := 1;
-        if mNegBool then f := 1-f;
-        mIVal := f;
-        mDefined := true;
-        exit;
+        mIVal := Ord(st.ReadBool() <> mNegBool);
+        mDefined := True;
+        Exit;
       end;
     TType.TChar:
       begin
         if (mMaxDim < 0) then
         begin
-          mIVal := readByte(st);
+          mIVal := st.ReadByte();
         end
         else
         begin
@@ -1853,12 +1845,12 @@ begin
         mDefined := true;
         exit;
       end;
-    TType.TByte: begin mIVal := readShortInt(st); mDefined := true; exit; end;
-    TType.TUByte: begin mIVal := readByte(st); mDefined := true; exit; end;
-    TType.TShort: begin mIVal := readSmallInt(st); mDefined := true; exit; end;
-    TType.TUShort: begin mIVal := readWord(st); mDefined := true; exit; end;
-    TType.TInt: begin mIVal := readLongInt(st); mDefined := true; exit; end;
-    TType.TUInt: begin mIVal := readLongWord(st); mDefined := true; exit; end;
+    TType.TByte: begin mIVal := st.ReadInt8(); mDefined := true; exit; end;
+    TType.TUByte: begin mIVal := st.ReadByte(); mDefined := true; exit; end;
+    TType.TShort: begin mIVal := st.ReadInt16LE(); mDefined := true; exit; end;
+    TType.TUShort: begin mIVal := st.ReadWordLE(); mDefined := true; exit; end;
+    TType.TInt: begin mIVal := st.ReadInt32LE(); mDefined := true; exit; end;
+    TType.TUInt: begin mIVal := st.ReadDWordLE(); mDefined := true; exit; end;
     TType.TString:
       begin
         raise TDynRecException.Create('cannot read strings from binaries yet');
@@ -1866,24 +1858,24 @@ begin
       end;
     TType.TPoint:
       begin
-        mIVal := readLongInt(st);
-        mIVal2 := readLongInt(st);
+        mIVal := st.ReadInt32LE();
+        mIVal2 := st.ReadInt32LE();
         mDefined := true;
         exit;
       end;
     TType.TSize:
       begin
-        mIVal := readWord(st);
-        mIVal2 := readWord(st);
+        mIVal := st.ReadWord();
+        mIVal2 := st.ReadWord();
         mDefined := true;
         exit;
       end;
     TType.TColor:
       begin
-        mIVal := readByte(st);
-        mIVal2 := readByte(st);
-        mIVal3 := readByte(st);
-        //mIVal4 := readByte(st); // the only place we have RGB in binary map is effect trigger, and it has no alpha
+        mIVal := st.ReadByte();
+        mIVal2 := st.ReadByte();
+        mIVal3 := st.ReadByte();
+        //mIVal4 := st.ReadByte(); // the only place we have RGB in binary map is effect trigger, and it has no alpha
         mIVal4 := 255;
         mDefined := true;
         exit;
@@ -2765,10 +2757,10 @@ begin
       // parse blocks
       while (st.position < st.size) do
       begin
-        btype := readByte(st);
+        btype := st.ReadByte();
         if (btype = 0) then break; // no more blocks
-        readLongWord(st); // reserved
-        bsize := readLongInt(st);
+        st.ReadDWord();  // reserved
+        bsize := st.ReadDWordLE();
         {$IF DEFINED(D2D_XDYN_DEBUG)}writeln('btype=', btype, '; bsize=', bsize);{$ENDIF}
         if (bsize < 0) or (bsize > $1fffffff) then raise TDynRecException.CreateFmt('block of type %d has invalid size %d', [btype, bsize]);
         if loaded[btype] then raise TDynRecException.CreateFmt('block of type %d already loaded', [btype]);
@@ -2897,10 +2889,10 @@ begin
     begin
       //writeln('writing header...');
       // signature and version
-      writeIntBE(st, LongWord($4D415001));
-      writeInt(st, Byte(mBinBlock)); // type
-      writeInt(st, LongWord(0)); // reserved
-      writeInt(st, LongWord(bufsz)); // size
+      st.WriteDWordBE($4D415001);  // 'MAP'#01
+      st.WriteByte(mBinBlock);  // type
+      st.WriteDWord(0);  // reserved
+      st.WriteDWordLE(bufsz);  // size
     end;
     st.WriteBuffer(buf^, bufsz);
 
@@ -2947,18 +2939,17 @@ begin
         begin
           blksz := Integer(ws.position);
           ws.position := 0;
-          writeInt(st, Byte(blk)); // type
-          writeInt(st, LongWord(0)); // reserved
-          writeInt(st, LongWord(blksz)); // size
+          st.WriteByte(blk);  // type
+          st.WriteDWord(0);  // reserved
+          st.WriteDWordLE(blksz);  // size
           st.CopyFrom(ws, blksz);
-          ws.Free();
-          ws := nil;
+          FreeAndNil(ws);
         end;
       end;
       // write end marker
-      writeInt(st, Byte(0));
-      writeInt(st, LongWord(0));
-      writeInt(st, LongWord(0));
+      st.WriteByte(0);
+      st.WriteDWord(0);
+      st.WriteDWord(0);
     end;
   finally
     ws.Free();
