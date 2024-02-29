@@ -80,41 +80,42 @@ implementation
 
 function e_InitSoundSystem (NoOutput: Boolean): Boolean;
 begin
-  Result := False
+  Result := False;
 end;
 
 function e_LoadSound (FileName: String; var ID: TSoundID; isMusic: Boolean;
   ForceNoLoop: Boolean): Boolean;
 begin
   ID := NO_SOUND_ID;
-  Result := True
+  Result := True;
 end;
 
 function e_LoadSoundMem (pData: Pointer; Length: Integer; var ID: TSoundID; isMusic: Boolean;
   ForceNoLoop: Boolean): Boolean;
 begin
+  FreeMem(pData);  // API assumes ownership transition of this buffer, so this is fine.
   ID := NO_SOUND_ID;
-  Result := True
+  Result := True;
 end;
 
 function e_PlaySound (ID: TSoundID): Integer;
 begin
-  Result := -1
+  Result := -1;
 end;
 
 function e_PlaySoundPan (ID: TSoundID; Pan: Single): Integer;
 begin
-  Result := -1
+  Result := -1;
 end;
 
 function e_PlaySoundVolume (ID: TSoundID; Volume: Single): Integer;
 begin
-  Result := -1
+  Result := -1;
 end;
 
 function e_PlaySoundPanVolume (ID: TSoundID; Pan, Volume: Single): Integer;
 begin
-  Result := -1
+  Result := -1;
 end;
 
 procedure e_DeleteSound (ID: TSoundID);
@@ -155,7 +156,7 @@ end;
 
 function TBasicSound.RawPlay (Pan: Single; Volume: Single; aPos: DWORD): Boolean;
 begin
-  Result := False
+  Result := False;
 end;
 
 procedure TBasicSound.SetID (ID: TSoundID);
@@ -164,7 +165,7 @@ end;
 
 function TBasicSound.IsPlaying (): Boolean;
 begin
-  Result := False
+  Result := False;
 end;
 
 procedure TBasicSound.Stop ();
@@ -173,7 +174,7 @@ end;
 
 function TBasicSound.IsPaused (): Boolean;
 begin
-  Result := False
+  Result := False;
 end;
 
 procedure TBasicSound.Pause (Enable: Boolean);
@@ -182,7 +183,7 @@ end;
 
 function TBasicSound.GetVolume (): Single;
 begin
-  Result := 0.0
+  Result := 0.0;
 end;
 
 procedure TBasicSound.SetVolume (Volume: Single);
@@ -191,7 +192,7 @@ end;
 
 function TBasicSound.GetPan (): Single;
 begin
-  Result := 1.0
+  Result := 1.0;
 end;
 
 procedure TBasicSound.SetPan (Pan: Single);
@@ -200,7 +201,7 @@ end;
 
 function TBasicSound.IsMuted (): Boolean;
 begin
-  Result := False
+  Result := True;
 end;
 
 procedure TBasicSound.Mute (Enable: Boolean);
@@ -209,7 +210,7 @@ end;
 
 function TBasicSound.GetPosition (): DWORD;
 begin
-  Result := 0
+  Result := 0;
 end;
 
 procedure TBasicSound.SetPosition (aPos: DWORD);
