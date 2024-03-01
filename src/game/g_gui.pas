@@ -549,7 +549,7 @@ uses
   {$INCLUDE ../nogl/noGLuses.inc}
   g_textures, g_sound, SysUtils, e_res,
   g_game, Math, StrUtils, g_player, g_options, g_console,
-  g_map, g_weapons, xdynrec, wadreader, Generics.Collections;
+  g_map, g_weapons, xdynrec, wadreader, Generics.Collections, Generics.Defaults;
 
 
 var
@@ -2908,7 +2908,8 @@ begin
   FItems[High(FItems)] := Item;
 
   if FSort then
-    specialize TArrayHelper<ShortString>.Sort(FItems);
+    specialize TArrayHelper<ShortString>.Sort(FItems,
+      specialize TComparer<ShortString>.Construct(@ShortCompareText));
 end;
 
 function TGUIListBox.ItemExists (item: String): Boolean;
@@ -3070,7 +3071,8 @@ begin
   FIndex := -1;
 
   if FSort then
-    specialize TArrayHelper<ShortString>.Sort(FItems);
+    specialize TArrayHelper<ShortString>.Sort(FItems,
+      specialize TComparer<ShortString>.Construct(@ShortCompareText));
 end;
 
 procedure TGUIListBox.SelectItem(Item: String);

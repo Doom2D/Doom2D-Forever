@@ -404,7 +404,7 @@ uses
   g_triggers, g_monsters, e_sound,
   g_language, g_net, g_main, g_phys,
   ENet, e_msg, g_netmsg, g_netmaster,
-  sfs, wadreader, g_system, Generics.Collections;
+  sfs, wadreader, g_system, Generics.Collections, Generics.Defaults;
 
 var
   hasPBarGfx: Boolean;
@@ -5383,7 +5383,8 @@ begin
     Exit;
 
   // TODO: Replace with simple minimum lookup.
-  specialize TArrayHelper<ShortString>.Sort(MapList);
+  specialize TArrayHelper<ShortString>.Sort(MapList,
+    specialize TComparer<ShortString>.Construct(@ShortCompareText));
   Result := MapList[Low(MapList)];
 
   // BD: why should we check for a map we just found?
@@ -5405,8 +5406,9 @@ begin
     Exit;
 
   Map := g_ExtractFileName(gMapInfo.Map);
+  specialize TArrayHelper<ShortString>.Sort(MapList,
+    specialize TComparer<ShortString>.Construct(@ShortCompareText));
 
-  specialize TArrayHelper<ShortString>.Sort(MapList);
   MapIndex := -255;
   for I := Low(MapList) to High(MapList) do
     if Map = MapList[I] then
