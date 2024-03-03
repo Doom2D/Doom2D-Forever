@@ -18,7 +18,8 @@ unit g_net;
 interface
 
 uses
-  e_log, e_msg, utils, ENet, Classes, md5, MAPDEF{$IFDEF USE_MINIUPNPC}, miniupnpc;{$ELSE};{$ENDIF}
+  {$IFDEF USE_MINIUPNPC}MiniUPnPc,{$ENDIF}
+  e_log, e_msg, utils, ENet, Classes, md5, MAPDEF;
 
 const
   NET_PROTOCOL_VER = 188;
@@ -184,7 +185,7 @@ var
   NetPortForwarded: Word = 0;
   NetPongForwarded: Boolean = False;
   NetIGDControl: AnsiString;
-  NetIGDService: TURLStr;
+  NetIGDService: array[0..MINIUPNPC_URL_MAXSIZE-1] of AnsiChar;
 {$ENDIF}
 
   NetPortThread: TThreadID = NilThreadId;
@@ -2438,20 +2439,16 @@ begin
   conwriteln('unforwarding ports...');
 
   StrPort := IntToStr(NetPortForwarded);
-  I := UPNP_DeletePortMapping(
-    PChar(NetIGDControl), Addr(NetIGDService[1]),
-    PChar(StrPort), PChar('UDP'), nil
-  );
+  I := UPNP_DeletePortMapping(PChar(NetIGDControl), PChar(NetIGDService), PChar(StrPort),
+    PChar('UDP'), nil);
   conwritefln('  port %d: %d', [NetPortForwarded, I]);
 
   if NetPongForwarded then
   begin
     NetPongForwarded := False;
     StrPort := IntToStr(NET_PING_PORT);
-    I := UPNP_DeletePortMapping(
-      PChar(NetIGDControl), Addr(NetIGDService[1]),
-      PChar(StrPort), PChar('UDP'), nil
-    );
+    I := UPNP_DeletePortMapping(PChar(NetIGDControl), PChar(NetIGDService), PChar(StrPort),
+      PChar('UDP'), nil);
     conwritefln('  port %d: %d', [NET_PING_PORT, I]);
   end;
 
