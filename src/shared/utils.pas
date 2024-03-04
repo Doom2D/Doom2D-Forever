@@ -44,7 +44,7 @@ const
   );
 
 const
-  NilThreadId = {$IF DEFINED(FREEBSD) OR DEFINED(DARWIN)}nil{$ELSE}0{$ENDIF};
+  NilThreadId = TThreadID(0);  // TODO: eliminate?
 
 // ////////////////////////////////////////////////////////////////////////// //
 type

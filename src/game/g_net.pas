@@ -69,9 +69,9 @@ const
 
 type
   TNetMapResourceInfo = record
-    wadName: AnsiString; // wad file name, without a path
-    size: Integer; // wad file size (-1: size and hash are not known)
-    hash: TMD5Digest; // wad hash
+    wadName: AnsiString;  // wad file name, without a path
+    size: Integer;  // wad file size (-1: size and hash are not known)
+    hash: TMD5Digest;  // wad hash
   end;
 
   TNetMapResourceInfoArray = array of TNetMapResourceInfo;
@@ -80,32 +80,32 @@ type
     diskName: string;
     hash: TMD5Digest;
     stream: TStream;
-    size: Integer; // file size in bytes
+    size: Integer;  // file size in bytes
     chunkSize: Integer;
     lastSentChunk: Integer;
     lastAckChunk: Integer;
-    lastAckTime: Int64; // msecs; if not "in progress", we're waiting for the first ack
+    lastAckTime: Int64;  // msecs; if not "in progress", we're waiting for the first ack
     inProgress: Boolean;
-    diskBuffer: PChar; // of `chunkSize` bytes
+    diskBuffer: PChar;  // of `chunkSize` bytes
     resumed: Boolean;
   end;
 
   TNetClient = record
-    ID:       Byte;
-    Used:     Boolean;
-    State:    Byte;
-    Peer:     pENetPeer;
-    Player:   Word;
+    ID: Byte;
+    Used: Boolean;
+    State: Byte;
+    Peer: pENetPeer;
+    Player: Word;
     RequestedFullUpdate: Boolean;
-    WaitForFirstSpawn: Boolean; // set to `true` in server, used to spawn a player on first full state request
+    WaitForFirstSpawn: Boolean;  // set to True on server, used to spawn a player on first full state request
     FullUpdateSent: Boolean;
     RCONAuth: Boolean;
-    Voted:    Boolean;
-    Crimes:   Integer;
+    Voted: Boolean;
+    Crimes: Integer;
     AuthTime: LongWord;
-    MsgTime:  LongWord;
-    Transfer: TNetFileTransfer; // only one transfer may be active
-    NetOut:   array [0..1] of TMsg;
+    MsgTime: LongWord;
+    Transfer: TNetFileTransfer;  // only one transfer may be active
+    NetOut: array [0..1] of TMsg;
   end;
   TBanRecord = record
     IP: LongWord;
@@ -116,74 +116,74 @@ type
   AByte = array of Byte;
 
 var
-  NetInitDone:     Boolean = False;
-  NetMode:         Byte = NET_NONE;
-  NetDump:         Boolean = False;
+  NetInitDone: Boolean;
+  NetMode: Byte = NET_NONE;
+  NetDump: Boolean;
 
-  NetServerName:   string = 'Unnamed Server';
-  NetPassword:     string = '';
-  NetPort:         Word = 25666;
+  NetServerName: String = 'Unnamed Server';
+  NetPassword: String;
+  NetPort: Word = 25666;
 
-  NetAllowRCON:    Boolean = False;
-  NetRCONPassword: string = '';
+  NetAllowRCON: Boolean;
+  NetRCONPassword: String;
 
-  NetTimeToUpdate:   Cardinal = 0;
-  NetTimeToReliable: Cardinal = 0;
-  NetTimeToMaster:   Cardinal = 0;
+  NetTimeToUpdate: Cardinal;
+  NetTimeToReliable: Cardinal;
+  NetTimeToMaster: Cardinal;
 
-  NetHost:       pENetHost = nil;
-  NetPeer:       pENetPeer = nil;
-  NetEvent:      ENetEvent;
-  NetAddr:       ENetAddress;
+  NetHost: pENetHost;
+  NetPeer: pENetPeer;
+  NetEvent: ENetEvent;
+  NetAddr: ENetAddress;
 
-  NetPongAddr:   ENetAddress;
-  NetPongSock:   ENetSocket = ENET_SOCKET_NULL;
+  NetPongAddr: ENetAddress;
+  NetPongSock: ENetSocket = ENET_SOCKET_NULL;
 
   NetUseMaster: Boolean = True;
   NetMasterList: string = 'mpms.doom2d.org:25665, deadsoftware.ru:25665, terminalcorner.ru:25665';
 
-  NetClientIP:   string = '127.0.0.1';
-  NetClientPort: Word   = 25666;
+  NetClientIP: string = '127.0.0.1';
+  NetClientPort: Word = 25666;
 
   NetIn, NetOut: TMsg;
-  NetBuf:        array [0..1] of TMsg;
+  NetBuf: array [0..1] of TMsg;
 
-  NetClients:     array of TNetClient;
-  NetClientCount: Byte = 0;
-  NetMaxClients:  Byte = 255;
+  NetClients: array of TNetClient;
+  NetClientCount: Byte;
+  NetMaxClients: Byte = 255;
   NetBannedHosts: array of TBanRecord;
 
   NetAutoBanLimit: Integer = 5;
-  NetAutoBanPerm:  Boolean = True;
-  NetAutoBanWarn:  Boolean = False;
-  NetAutoBanForTimeout: Boolean = False;
+  NetAutoBanPerm: Boolean = True;
+  NetAutoBanWarn: Boolean;
+  NetAutoBanForTimeout: Boolean;
 
-  NetAuthTimeout:   Integer = 30 * 1000;
+  NetAuthTimeout: Integer = 30 * 1000;
   NetPacketTimeout: Integer = 60 * 1000;
 
-  NetState:      Integer = NET_STATE_NONE;
+  NetState: Integer = NET_STATE_NONE;
 
-  NetMyID:       Integer = -1;
-  NetPlrUID1:    Integer = -1;
-  NetPlrUID2:    Integer = -1;
+  NetMyID: Integer = -1;
+  NetPlrUID1: Integer = -1;
+  NetPlrUID2: Integer = -1;
 
   NetInterpLevel: Integer = 1;
-  NetUpdateRate:  Cardinal = 0;  // as soon as possible
-  NetRelupdRate:  Cardinal = 18; // around two times a second
-  NetMasterRate:  Cardinal = 60000;
+  NetUpdateRate: Cardinal;  // 0 - as soon as possible
+  NetRelupdRate: Cardinal = 18;  // around two times a second
+  NetMasterRate: Cardinal = 60000;
 
-  NetForcePlayerUpdate: Boolean = False;
-  NetPredictSelf:       Boolean = True;
-  NetForwardPorts:      Boolean = False;
+  NetForcePlayerUpdate: Boolean;
+  NetPredictSelf: Boolean = True;
+  NetForwardPorts: Boolean;
 
-  NetGotEverything: Boolean = False;
-  NetGotKeys:       Boolean = False;
+  NetGotEverything: Boolean;
+  NetGotKeys: Boolean;
 
-  NetDeafLevel: Integer = 0;
+  NetDeafLevel: Integer;
 
 {$IFDEF USE_MINIUPNPC}
-  NetPortForwarded: Word = 0;
-  NetPongForwarded: Boolean = False;
+  NetForwardedPort: Word;
+  NetPingPortForwarded: Boolean;
   NetIGDControl: AnsiString;
   NetIGDService: array[0..MINIUPNPC_URL_MAXSIZE-1] of AnsiChar;
 {$ENDIF}
@@ -192,7 +192,7 @@ var
 
   NetDumpFile: TStream;
 
-  g_Res_received_map_start: Integer = 0; // set if we received "map change" event
+  g_Res_received_map_start: Integer;  // set if we received "map change" event
 
 
 function  g_Net_Init(): Boolean;
@@ -269,7 +269,7 @@ const
   FILE_CHUNK_SIZE = 8192;
 
 var
-  enet_init_success: Boolean = false;
+  enet_init_success: Boolean;
   g_Net_DownloadTimeout: Single;
   trans_omsg: TMsg;
 
@@ -293,7 +293,7 @@ begin
   if enet_init_success then
   begin
     enet_deinitialize();
-    enet_init_success := false;
+    enet_init_success := False;
   end;
 end;
 
@@ -1446,9 +1446,13 @@ begin
   NetMode := NET_NONE;
 
   if NetPortThread <> NilThreadId then
+  begin
+    // TODO: Use TThread instead of procedural threading API to manage thread resources properly.
     WaitForThreadTerminate(NetPortThread, 66666);
+    CloseThread(NetPortThread);
+    NetPortThread := NilThreadId;
+  end;
 
-  NetPortThread := NilThreadId;
   g_Net_UnforwardPorts();
 
   if NetDump then
@@ -1476,7 +1480,7 @@ begin
   if not g_Net_ForwardPorts() then Result := -1;
 end;
 
-function g_Net_Host(IPAddr: LongWord; Port: enet_uint16; MaxClients: Cardinal = 16): Boolean;
+function g_Net_Host(IPAddr: LongWord; Port: enet_uint16; MaxClients: Cardinal): Boolean;
 begin
   if NetMode <> NET_NONE then
   begin
@@ -1490,7 +1494,7 @@ begin
   g_Console_Add(_lc[I_NET_MSG] + Format(_lc[I_NET_MSG_HOST], [Port]));
   if not NetInitDone then
   begin
-    if (not g_Net_Init()) then
+    if not g_Net_Init() then
     begin
       g_Console_Add(_lc[I_NET_MSG_FERROR] + _lc[I_NET_ERR_ENET]);
       Result := False;
@@ -1505,15 +1509,16 @@ begin
 
   NetHost := enet_host_create(@NetAddr, NET_MAXCLIENTS, NET_CHANNELS, 0, 0);
 
-  if (NetHost = nil) then
+  if NetHost = nil then
   begin
     g_Console_Add(_lc[I_NET_MSG_ERROR] + Format(_lc[I_NET_ERR_HOST], [Port]));
     Result := False;
-    g_Net_Cleanup;
+    g_Net_Cleanup();
     Exit;
   end;
 
-  if NetForwardPorts then NetPortThread := BeginThread(ForwardThread);
+  if NetForwardPorts then
+    NetPortThread := BeginThread(ForwardThread);
 
   NetPongSock := enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
   if NetPongSock <> ENET_SOCKET_NULL then
@@ -1542,7 +1547,8 @@ procedure g_Net_Host_Die();
 var
   I: Integer;
 begin
-  if NetMode <> NET_SERVER then Exit;
+  if NetMode <> NET_SERVER then
+    Exit;
 
   g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_DISCALL]);
   for I := 0 to High(NetClients) do
@@ -2332,11 +2338,11 @@ end;
 
 procedure g_Net_DumpEnd();
 begin
-  NetDumpFile.Free();
-  NetDumpFile := nil;
+  FreeAndNil(NetDumpFile);
 end;
 
-function g_Net_ForwardPorts(ForwardPongPort: Boolean = True): Boolean;
+// FIXME: Are calls to conwritefln() thread-safe?
+function g_Net_ForwardPorts(ForwardPongPort: Boolean): Boolean;
 {$IFDEF USE_MINIUPNPC}
 var
   DevList: PUPNPDev;
@@ -2347,34 +2353,29 @@ var
   Err, I: Integer;
 begin
   Result := False;
-
   if NetHost = nil then
-    exit;
+    Exit;
 
-  if NetPortForwarded = NetHost.address.port then
-  begin
-    Result := True;
-    exit;
-  end;
+  if NetForwardedPort = NetHost.address.port then
+    Exit(True);
 
-  NetPongForwarded := False;
-  NetPortForwarded := 0;
+  NetPingPortForwarded := False;
+  NetForwardedPort := 0;
 
   DevList := upnpDiscover(1000, nil, nil, 0, 0, 2, Addr(Err));
   if DevList = nil then
   begin
     conwritefln('port forwarding failed: upnpDiscover() failed: %d', [Err]);
-    exit;
+    Exit;
   end;
 
   I := UPNP_GetValidIGD(DevList, @Urls, @Data, Addr(LanAddr[0]), 256);
-
   if I = 0 then
   begin
     conwriteln('port forwarding failed: could not find an IGD device on this LAN');
     FreeUPNPDevList(DevList);
     FreeUPNPUrls(@Urls);
-    exit;
+    Exit;
   end;
 
   StrPort := IntToStr(NetHost.address.port);
@@ -2389,7 +2390,7 @@ begin
     conwritefln('forwarding port %d failed: error %d', [NetHost.address.port, I]);
     FreeUPNPDevList(DevList);
     FreeUPNPUrls(@Urls);
-    exit;
+    Exit;
   end;
 
   if ForwardPongPort then
@@ -2401,22 +2402,16 @@ begin
       PChar('UDP'), nil, PChar('0')
     );
 
-    if I <> 0 then
-    begin
-      conwritefln('forwarding port %d failed: error %d', [NET_PING_PORT, I]);
-      NetPongForwarded := False;
-    end
-    else
-    begin
-      conwritefln('forwarded port %d successfully', [NET_PING_PORT]);
-      NetPongForwarded := True;
-    end;
+    NetPingPortForwarded := I = 0;
+    if NetPingPortForwarded
+      then conwritefln('forwarded ping port %d successfully', [NET_PING_PORT])
+      else conwritefln('forwarding ping port %d failed: error %d', [NET_PING_PORT, I]);
   end;
 
   conwritefln('forwarded port %d successfully', [NetHost.address.port]);
   NetIGDControl := AnsiString(Urls.controlURL);
   NetIGDService := data.first.servicetype;
-  NetPortForwarded := NetHost.address.port;
+  NetForwardedPort := NetHost.address.port;
 
   FreeUPNPDevList(DevList);
   FreeUPNPUrls(@Urls);
@@ -2434,25 +2429,26 @@ var
   I: Integer;
   StrPort: AnsiString;
 begin
-  if NetPortForwarded = 0 then Exit;
+  if NetForwardedPort = 0 then
+    Exit;
 
   conwriteln('unforwarding ports...');
 
-  StrPort := IntToStr(NetPortForwarded);
+  StrPort := IntToStr(NetForwardedPort);
   I := UPNP_DeletePortMapping(PChar(NetIGDControl), PChar(NetIGDService), PChar(StrPort),
     PChar('UDP'), nil);
-  conwritefln('  port %d: %d', [NetPortForwarded, I]);
+  conwritefln('  port %d: %d', [NetForwardedPort, I]);
 
-  if NetPongForwarded then
+  if NetPingPortForwarded then
   begin
-    NetPongForwarded := False;
+    NetPingPortForwarded := False;
     StrPort := IntToStr(NET_PING_PORT);
     I := UPNP_DeletePortMapping(PChar(NetIGDControl), PChar(NetIGDService), PChar(StrPort),
       PChar('UDP'), nil);
-    conwritefln('  port %d: %d', [NET_PING_PORT, I]);
+    conwritefln('  ping port %d: %d', [NET_PING_PORT, I]);
   end;
 
-  NetPortForwarded := 0;
+  NetForwardedPort := 0;
 end;
 {$ELSE}
 begin
