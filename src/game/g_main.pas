@@ -226,7 +226,8 @@ var
   begin
     if Length(dirs) = 0 then
       for s in base do
-        AddDir(dirs, ConcatPaths([s, append]));
+        if s <> '' then  // FIXME: hack for improper ConcatPaths(); see commit.
+          AddDir(dirs, ConcatPaths([s, append]));
     OptimizeDirs(dirs)
   end;
 
@@ -280,6 +281,7 @@ var
       for i := 0 to dirArr.count - 1 do
       begin
         s := NSStringToAnsiString(dirArr.objectAtIndex(i));
+        if s = '' then s := '.';  // FIXME: hack for improper ConcatPaths(); see commit.
         AddDir(result, ConcatPaths([s, 'Doom 2D Forever']));
       end;
     {$ENDIF}
@@ -333,6 +335,7 @@ var
       for i := 0 to dirArr.count - 1 do
       begin
         s := NSStringToAnsiString(dirArr.objectAtIndex(i));
+        if s = '' then s := '.';  // FIXME: hack for improper ConcatPaths(); see commit.
         AddDir(result, ConcatPaths([s, 'Doom 2D Forever']));
       end;
     {$ENDIF}
@@ -355,6 +358,7 @@ begin
       begin
         Inc(i);
         rwdir := ParamStr(i);
+        if rwdir = '' then rwdir := '.';  // FIXME: hack for improper ConcatPaths(); see commit.
         (* RW *)
         AddDir(LogDirs, ConcatPaths([rwdir, 'logs']));
         AddDir(SaveDirs, ConcatPaths([rwdir, 'data/saves']));
@@ -375,6 +379,7 @@ begin
       begin
         Inc(i);
         rodir := ParamStr(i);
+        if rodir = '' then rodir := '.';  // FIXME: hack for improper ConcatPaths(); see commit.
         (* RO *)
         AddDir(DataDirs, ConcatPaths([rodir, 'data']));
         AddDir(ModelDirs, ConcatPaths([rodir, 'data/models']));
@@ -514,16 +519,16 @@ var
   flexloaded: Boolean;
 {$ENDIF}
 begin
-  InitPath;
-  if not InitPrep then Halt(1);
-  e_InitInput;
-  sys_Init;
+  InitPath();
+  if not InitPrep() then Halt(1);
+  e_InitInput();
+  sys_Init();
 
-  g_Options_SetDefault;
-  g_Options_SetDefaultVideo;
-  g_Console_SysInit;
-  if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized) = False then
-    raise Exception.Create('Failed to set videomode on startup.');
+  g_Options_SetDefault();
+  g_Options_SetDefaultVideo();
+  g_Console_SysInit();
+  if not sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized) then
+    Raise Exception.Create('Failed to set videomode on startup.');
 
   e_WriteLog(gLanguage, TMsgType.Notify);
   g_Language_Set(gLanguage);

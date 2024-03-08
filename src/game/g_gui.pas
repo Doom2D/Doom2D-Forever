@@ -426,8 +426,8 @@ type
   public
     procedure OnMessage (var Msg: TMessage); override;
     procedure SetBase (dirs: SSArray; path: String = '');
-    function  SelectedItem(): String;
-    procedure UpdateFileList;
+    function SelectedItem(): String;
+    procedure UpdateFileList();
 
     property Dirs: Boolean read FDirs write FDirs;
     property FileMask: String read FFileMask write FFileMask;
@@ -3148,36 +3148,32 @@ begin
 
           IK_PAGEUP, IK_KPPAGEUP:
             begin
-              if FIndex > FHeight then
-                FIndex := FIndex-FHeight
-              else
-                FIndex := 0;
+              if FIndex > FHeight
+                then FIndex -= FHeight
+                else FIndex := 0;
 
-              if FStartLine > FHeight then
-                FStartLine := FStartLine-FHeight
-              else
-                FStartLine := 0;
+              if FStartLine > FHeight
+                then FStartLine -= FHeight
+                else FStartLine := 0;
             end;
 
           IK_PAGEDN, IK_KPPAGEDN:
             begin
-              if FIndex < High(FItems)-FHeight then
-                FIndex := FIndex+FHeight
-              else
-                FIndex := High(FItems);
+              if FIndex < High(FItems)-FHeight
+                then FIndex += FHeight
+                else FIndex := High(FItems);
 
-              if FStartLine < High(FItems)-FHeight then
-                FStartLine := FStartLine+FHeight
-              else
-                FStartLine := High(FItems)-FHeight+1;
+              if FStartLine < High(FItems)-FHeight
+                then FStartLine += FHeight
+                else FStartLine := High(FItems)-FHeight+1;
             end;
 
           IK_UP, IK_LEFT, IK_KPUP, IK_KPLEFT, VK_UP, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
             if FIndex > 0 then
             begin
-              Dec(FIndex);
+              FIndex -= 1;
               if FIndex < FStartLine then
-                Dec(FStartLine);
+                FStartLine -= 1;
               if @FOnChangeEvent <> nil then
                 FOnChangeEvent(Self);
             end;
@@ -3185,9 +3181,9 @@ begin
           IK_DOWN, IK_RIGHT, IK_KPDOWN, IK_KPRIGHT, VK_DOWN, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
             if FIndex < High(FItems) then
             begin
-              Inc(FIndex);
+              FIndex += 1;
               if FIndex > FStartLine+FHeight-1 then
-                Inc(FStartLine);
+                FStartLine += 1;
               if @FOnChangeEvent <> nil then
                 FOnChangeEvent(Self);
             end;
@@ -3210,17 +3206,20 @@ begin
                     begin
                       s := Copy(AnsiString(FItems[FIndex]), 2);
                       //e_LogWritefln('TGUIFileListBox: Enter dir "%s" -> "%s"', [FSubPath, e_CatPath(FSubPath, s)]);
-                      FSubPath := ConcatPaths([FSubPath, s]);
+
+                      // FIXME: hack for improper ConcatPaths(); see commit.
+                      if FSubPath = ''
+                        then FSubPath := s
+                        else FSubPath := ConcatPaths([FSubPath, s]);
                     end;
-                    ScanDirs;
+                    ScanDirs();
                     FIndex := 0;
                     Exit;
                   end;
 
-                  if FDefControl <> '' then
-                    SetActive(GetControl(FDefControl))
-                  else
-                    SetActive(nil);
+                  if FDefControl <> ''
+                    then SetActive(GetControl(FDefControl))
+                    else SetActive(nil);
                 end;
             end;
         end;
@@ -3245,53 +3244,63 @@ begin
     end;
 end;
 
-procedure TGUIFileListBox.ScanDirs;
-  var i, j: Integer; path: AnsiString; SR: TSearchRec; sm, sc: String;
+procedure TGUIFileListBox.ScanDirs();
+var
+  i, j: Integer;
+  path: AnsiString;
+  SR: TSearchRec;
+  sm, sc: String;
 begin
-  Clear;
+  Clear();
 
   i := High(FBaseList);
   while i >= 0 do
   begin
-    path := ConcatPaths([AnsiString(FBaseList[i]), FSubPath]);
+    // FIXME: hack for improper ConcatPaths(); see commit.
+    path := AnsiString(FBaseList[i]);
+    if path = ''
+      then path := FSubPath
+      else path := ConcatPaths([path, FSubPath]);
+
     if FDirs then
     begin
       if FindFirst(path + '/' + '*', faDirectory, SR) = 0 then
-      begin
         repeat
           if LongBool(SR.Attr and faDirectory) then
             if (SR.Name <> '.') and ((FSubPath <> '') or (SR.Name <> '..')) then
-              if Self.ItemExists(#1 + SR.Name) = false then
-                Self.AddItem(#1 + SR.Name)
-        until FindNext(SR) <> 0
-      end;
-      FindClose(SR)
+              if not Self.ItemExists(#1 + SR.Name) then
+                Self.AddItem(#1 + SR.Name);
+        until FindNext(SR) <> 0;
+      FindClose(SR);
     end;
-    Dec(i)
+    i -= 1;
   end;
 
   i := High(FBaseList);
   while i >= 0 do
   begin
-    path := ConcatPaths([AnsiString(FBaseList[i]), FSubPath]);
+    // FIXME: hack for improper ConcatPaths(); see commit.
+    path := AnsiString(FBaseList[i]);
+    if path = ''
+      then path := FSubPath
+      else path := ConcatPaths([path, FSubPath]);
+
     sm := FFileMask;
     while sm <> '' do
     begin
       j := Pos('|', sm);
       if j = 0 then
-        j := length(sm) + 1;
+        j := Length(sm) + 1;
       sc := Copy(sm, 1, j - 1);
       Delete(sm, 1, j);
       if FindFirst(path + '/' + sc, faAnyFile, SR) = 0 then
-      begin
         repeat
-          if Self.ItemExists(SR.Name) = false then
-            AddItem(SR.Name)
-        until FindNext(SR) <> 0
-      end;
-      FindClose(SR)
+          if not Self.ItemExists(SR.Name) then
+            AddItem(SR.Name);
+        until FindNext(SR) <> 0;
+      FindClose(SR);
     end;
-    Dec(i)
+    i -= 1;
   end;
 
   for i := 0 to High(FItems) do
@@ -3299,24 +3308,29 @@ begin
       FItems[i][1] := #29;
 end;
 
-procedure TGUIFileListBox.SetBase (dirs: SSArray; path: String = '');
+procedure TGUIFileListBox.SetBase (dirs: SSArray; path: String);
 begin
   FBaseList := dirs;
   FSubPath := path;
-  ScanDirs
+  ScanDirs();
 end;
 
 function TGUIFileListBox.SelectedItem (): String;
-  var s: AnsiString;
+var
+  s: AnsiString;
 begin
-  result := '';
+  Result := '';
   if (FIndex >= 0) and (FIndex <= High(FItems)) and (FItems[FIndex][1] <> '/') and (FItems[FIndex][1] <> '\') then
   begin
-    s := ConcatPaths([FSubPath, FItems[FIndex]]);
+    // FIXME: hack for improper ConcatPaths(); see commit.
+    if FSubPath = ''
+      then s := FItems[FIndex]
+      else s := ConcatPaths([FSubPath, FItems[FIndex]]);
+
     if e_FindResource(FBaseList, s) then
-      result := ExpandFileName(s)
+      Result := ExpandFileName(s)
   end;
-  e_LogWritefln('TGUIFileListBox.SelectedItem -> "%s"', [result]);
+  e_LogWritefln('TGUIFileListBox.SelectedItem -> "%s"', [Result]);
 end;
 
 procedure TGUIFileListBox.UpdateFileList();
@@ -3332,7 +3346,7 @@ begin
     fn := FItems[FIndex];
 
 //  OpenDir(FPath);
-  ScanDirs;
+  ScanDirs();
 
   if fn <> '' then
     SelectItem(fn);

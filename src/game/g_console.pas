@@ -690,11 +690,17 @@ begin
     if Length(p) = 2 then
     begin
       s := e_GetWriteableDir(ConfigDirs);
-      g_Console_WriteConfig(ConcatPaths([s, p[1]]))
+
+      // FIXME: hack for improper ConcatPaths(); see commit.
+      if s = ''
+        then s := p[1]
+        else s := ConcatPaths([s, p[1]]);
+
+      g_Console_WriteConfig(s);
     end
     else
     begin
-      g_Console_Add('writeconfig <file>')
+      g_Console_Add('writeconfig <file>');
     end
   end;
 
@@ -2357,14 +2363,21 @@ begin
   CloseFile(f)
 end;
 
-procedure g_Console_WriteGameConfig;
-  var s: AnsiString;
+procedure g_Console_WriteGameConfig();
+var
+  s: AnsiString;
 begin
-  if gParsingBinds = false then
-  begin
-    s := e_GetWriteableDir(ConfigDirs);
-    g_Console_WriteConfig(ConcatPaths([s, gConfigScript]))
-  end
+  if gParsingBinds then
+    Exit;
+
+  s := e_GetWriteableDir(ConfigDirs);
+
+  // FIXME: hack for improper ConcatPaths(); see commit.
+  if s = ''
+    then s := gConfigScript
+    else s := ConcatPaths([s, gConfigScript]);
+
+  g_Console_WriteConfig(s);
 end;
 
 procedure Init();

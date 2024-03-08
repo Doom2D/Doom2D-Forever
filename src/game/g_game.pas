@@ -7851,8 +7851,11 @@ begin
   end;
 end;
 
-procedure g_TakeScreenShot(Filename: string = '');
-  var s: TStream; t: TDateTime; dir, date, name: String;
+procedure g_TakeScreenShot(Filename: String);
+var
+  s: TStream;
+  t: TDateTime;
+  dir, date, name: String;
 begin
   if e_NoGraphics then Exit;
   try
@@ -7860,12 +7863,15 @@ begin
 
     if Filename = '' then
     begin
-      t := Now;
+      t := Now();
       DateTimeToString(date, 'yyyy-mm-dd-hh-nn-ss', t);
       Filename := 'screenshot-' + date;
     end;
 
-    name := ConcatPaths([dir, Filename + '.png']);
+    name := Filename + '.png';
+    // FIXME: hack for improper ConcatPaths(); see commit.
+    if dir <> '' then name := ConcatPaths([dir, name]);
+
     s := createDiskFile(name);
     try
       e_MakeScreenshot(s, gWinSizeX, gWinSizeY);
