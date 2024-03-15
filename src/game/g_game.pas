@@ -1842,7 +1842,7 @@ begin
         (
           (
             (
-              e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(IK_SPACE) or
+              e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(IK_SPACE) or e_KeyPressed(IK_SELECT) or
               e_KeyPressed(VK_FIRE) or e_KeyPressed(VK_OPEN) or
               e_KeyPressed(JOY0_ATTACK) or e_KeyPressed(JOY1_ATTACK) or
               e_KeyPressed(JOY2_ATTACK) or e_KeyPressed(JOY3_ATTACK)
@@ -1889,7 +1889,7 @@ begin
         else if g_Game_IsClient and
         (
           (
-            e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(IK_SPACE) or
+            e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(IK_SPACE) or e_KeyPressed(IK_SELECT) or
             e_KeyPressed(VK_FIRE) or e_KeyPressed(VK_OPEN) or
             e_KeyPressed(JOY0_ATTACK) or e_KeyPressed(JOY1_ATTACK) or
             e_KeyPressed(JOY2_ATTACK) or e_KeyPressed(JOY3_ATTACK)

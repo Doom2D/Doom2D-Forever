@@ -976,7 +976,9 @@ begin
   case Msg.Msg of
     WM_KEYDOWN:
       case Msg.wParam of
-        IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK: Click();
+        IK_RETURN, IK_KPRETURN, IK_SELECT,
+        VK_FIRE, VK_OPEN,
+        JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK: Click();
       end;
   end;
 end;
@@ -1212,7 +1214,11 @@ begin
 
           g_Sound_PlayEx(MENU_CHANGESOUND);
         end;
-        IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK: if (FIndex <> -1) and FButtons[FIndex].FEnabled then FButtons[FIndex].Click;
+        IK_RETURN, IK_KPRETURN, IK_SELECT,
+        VK_FIRE, VK_OPEN, JOY0_ATTACK,
+        JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
+          if (FIndex <> -1) and FButtons[FIndex].FEnabled then
+            FButtons[FIndex].Click;
       end;
   end;
 end;
@@ -1295,7 +1301,11 @@ begin
   case Msg.Msg of
     WM_KEYDOWN:
       case Msg.wParam of
-        IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK: if @FOnClickEvent <> nil then FOnClickEvent();
+        IK_RETURN, IK_KPRETURN, IK_SELECT,
+        VK_FIRE, VK_OPEN,
+        JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
+          if @FOnClickEvent <> nil then
+            FOnClickEvent();
       end;
   end;
 end;
@@ -1597,7 +1607,9 @@ begin
             if FItems[FIndex].Control <> nil then
               FItems[FIndex].Control.OnMessage(Msg);
         end;
-        IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
+        IK_RETURN, IK_KPRETURN, IK_SELECT,
+        VK_FIRE, VK_OPEN,
+        JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
         begin
           if FIndex <> -1 then
           begin
@@ -2190,7 +2202,8 @@ begin
   case Msg.Msg of
     WM_KEYDOWN:
       case Msg.wParam of
-        IK_RETURN, IK_RIGHT, IK_KPRETURN, IK_KPRIGHT, VK_FIRE, VK_OPEN, VK_RIGHT,
+        IK_RETURN, IK_KPRETURN, IK_RIGHT, IK_KPRIGHT, IK_SELECT,
+        VK_FIRE, VK_OPEN, VK_RIGHT,
         JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT,
         JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
         begin
@@ -2317,7 +2330,9 @@ begin
           IK_HOME, IK_KPHOME: FCaretPos := 0;
           IK_LEFT, IK_KPLEFT, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT: if FCaretPos > 0 then Dec(FCaretPos);
           IK_RIGHT, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT: if FCaretPos < Length(FText) then Inc(FCaretPos);
-          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
+          IK_RETURN, IK_KPRETURN, IK_SELECT,
+          VK_FIRE, VK_OPEN,
+          JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
             with FWindow do
             begin
               if FActiveControl <> Self then
@@ -2420,7 +2435,9 @@ begin
         if not FIsQuery then
         begin
           case wParam of
-            IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
+            IK_RETURN, IK_KPRETURN, IK_SELECT,
+            VK_FIRE, VK_OPEN,
+            JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
               begin
                 with FWindow do
                   if FActiveControl <> Self then
@@ -2564,7 +2581,9 @@ begin
         if not FIsQuery then
         begin
           case wParam of
-            IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
+            IK_RETURN, IK_KPRETURN, IK_SELECT,
+            VK_FIRE, VK_OPEN,
+            JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
               begin
                 with FWindow do
                   if FActiveControl <> Self then
@@ -3028,7 +3047,9 @@ begin
               if FIndex > FStartLine+FHeight-1 then Inc(FStartLine);
               if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
             end;
-          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
+          IK_RETURN, IK_KPRETURN, IK_SELECT,
+          VK_FIRE, VK_OPEN,
+          JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
             with FWindow do
             begin
               if FActiveControl <> Self then SetActive(Self)
@@ -3188,7 +3209,9 @@ begin
                 FOnChangeEvent(Self);
             end;
 
-          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
+          IK_RETURN, IK_KPRETURN, IK_SELECT,
+          VK_FIRE, VK_OPEN,
+          JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
             with FWindow do
             begin
               if FActiveControl <> Self then
@@ -3422,7 +3445,9 @@ begin
           IK_DOWN, IK_RIGHT, IK_KPDOWN, IK_KPRIGHT, VK_DOWN, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
             if FStartLine < Length(FLines)-FHeight then
               Inc(FStartLine);
-          IK_RETURN, IK_KPRETURN, VK_FIRE, VK_OPEN, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
+          IK_RETURN, IK_KPRETURN, IK_SELECT,
+          VK_FIRE, VK_OPEN,
+          JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
             with FWindow do
             begin
               if FActiveControl <> Self then

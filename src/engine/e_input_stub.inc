@@ -111,5 +111,6 @@
     IK_Z       = 107;
     IK_MINUS   = 108;
     IK_NONUSBACKSLASH = 111;
+    IK_SELECT  = 112;
     // TODO: think of something better than this shit
     IK_LASTKEY = e_MaxKbdKeys-1;

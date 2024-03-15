@@ -1872,7 +1872,8 @@ begin
   // if there's a message on the screen,
   if not slReadUrgent and (slUrgent <> '') then
   begin
-    if e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(VK_FIRE) or e_KeyPressed(VK_OPEN) or
+    if e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(IK_SELECT) or
+       e_KeyPressed(VK_FIRE) or e_KeyPressed(VK_OPEN) or
        e_KeyPressed(JOY0_ATTACK) or e_KeyPressed(JOY1_ATTACK) or e_KeyPressed(JOY2_ATTACK) or e_KeyPressed(JOY3_ATTACK) then
       slReadUrgent := True;
     Exit;
@@ -1906,7 +1907,8 @@ begin
 
   if SL = nil then Exit;
 
-  if e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(VK_FIRE) or e_KeyPressed(VK_OPEN) or
+  if e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(IK_SELECT) or
+     e_KeyPressed(VK_FIRE) or e_KeyPressed(VK_OPEN) or
      e_KeyPressed(JOY0_ATTACK) or e_KeyPressed(JOY1_ATTACK) or e_KeyPressed(JOY2_ATTACK) or e_KeyPressed(JOY3_ATTACK) then
   begin
     if not slReturnPressed then

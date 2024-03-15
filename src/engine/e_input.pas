@@ -267,6 +267,7 @@ begin
   e_KeyNames[IK_MINUS] := '-';
   e_KeyNames[IK_EQUALS] := '=';
   e_KeyNames[IK_NONUSBACKSLASH] := 'NONUSBACKSLASH';
+  e_KeyNames[IK_SELECT] := 'SELECT';
 
   // joysticks
   for j := 0 to e_MaxJoys-1 do

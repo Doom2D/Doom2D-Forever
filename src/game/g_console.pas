@@ -1619,7 +1619,9 @@ begin
     IK_RIGHT, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
       if CPos <= Length(Line) then
         CPos := CPos + 1;
-    IK_RETURN, IK_KPRETURN, VK_OPEN, VK_FIRE, JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
+    IK_RETURN, IK_KPRETURN, IK_SELECT,
+    VK_OPEN, VK_FIRE,
+    JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
     begin
       if gConsoleShow then
         g_Console_Process(Line)
