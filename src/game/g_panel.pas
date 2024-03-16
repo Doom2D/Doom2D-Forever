@@ -644,7 +644,7 @@ var
         if (szdx < 0) then szdx := 0;
         if (szdy < 0) then szdy := 0;
         // move platform by szd* back, and check for szd* movement
-        if sweepAABB(ox-szdx, oy-szdy, nw, nh, szdx, szdy, px, py, pw, ph, @u0) then
+        if sweepAABB(ox-szdx, oy-szdy, nw, nh, szdx, szdy, px, py, pw, ph, u0) then
         begin
           // yes, platform hits the entity, push the entity in the resizing direction
           u0 := 1.0-u0; // how much path left?
@@ -661,7 +661,7 @@ var
         end;
       end;
       // second, process platform movement, using te* as entity starting point
-      if sweepAABB(ox, oy, nw, nh, pdx, pdy, tex, tey, pw, ph, @u0) then
+      if sweepAABB(ox, oy, nw, nh, pdx, pdy, tex, tey, pw, ph, u0) then
       begin
         //e_LogWritefln('T: platsweep; u0=%s; u1=%s; hedge=%s; sweepAABB(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', [u0, u1, hedge, ox, oy, mpw, mph, pdx, pdy, px-1, py-1, pw+2, ph+2]);
         // yes, platform hits the entity, push the entity in the direction of the platform

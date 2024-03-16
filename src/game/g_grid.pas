@@ -1653,7 +1653,7 @@ begin
           if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
           begin
             px.mQueryMark := lq; // mark as processed
-            if not sweepAABB(ax0, ay0, aw, ah, dx, dy, px.mX, px.mY, px.mWidth, px.mHeight, @u0) then continue;
+            if not sweepAABB(ax0, ay0, aw, ah, dx, dy, px.mX, px.mY, px.mWidth, px.mHeight, u0) then continue;
             if (minu0 > u0) then
             begin
               hitpx := px;

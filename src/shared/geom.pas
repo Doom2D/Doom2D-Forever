@@ -44,9 +44,13 @@ type
 // enter/exit coords will form non-intersecting configuration (i.e. will be before/after the actual collision)
 // but beware of floating point inexactness; `sweepAABB()` will try to (crudely) compensate for it
 // while calculating `hitx` and `hity`.
+{
 function sweepAABB (mex0, mey0, mew, meh: Integer; medx, medy: Integer; itx0, ity0, itw, ith: Integer;
                     u0: PSingle=nil; hitedge: PSweepEdge=nil; u1: PSingle=nil;
                     hitx: PInteger=nil; hity: PInteger=nil): Boolean;
+}
+function sweepAABB (mex0, mey0, mew, meh: Integer; medx, medy: Integer; itx0, ity0, itw, ith: Integer;
+                    out u0: Single): Boolean;
 
 function distanceSq (x0, y0, x1, y1: Integer): Integer; inline;
 
@@ -170,6 +174,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+{
 function sweepAABB (mex0, mey0, mew, meh: Integer; medx, medy: Integer; itx0, ity0, itw, ith: Integer;
                     u0: PSingle=nil; hitedge: PSweepEdge=nil; u1: PSingle=nil;
                     hitx: PInteger=nil; hity: PInteger=nil): Boolean;
@@ -260,6 +265,69 @@ begin
       end;
       if (hitx <> nil) then hitx^ := ex;
       if (hity <> nil) then hity^ := ey;
+    end;
+  end;
+end;
+}
+
+function sweepAABB (mex0, mey0, mew, meh: Integer; medx, medy: Integer; itx0, ity0, itw, ith: Integer;
+                    out u0: Single): Boolean;
+var
+  tin, tout: Single;
+
+  function axisOverlap (me0, me1, it0, it1, d: Integer): Boolean; inline;
+    var t: Single;
+  begin
+    Result := false;
+
+    if me1 < it0 then
+    begin
+      if (d >= 0) then
+        exit; // oops, no hit
+      t := (me1 - it0 + 1) / d;
+      if t > tin then
+        tin := t;
+    end
+    else if it1 < me0 then
+    begin
+      if d <= 0 then
+        exit; // oops, no hit
+      t := (me0 - it1 - 1) / d;
+      if t > tin then
+        tin := t;
+    end;
+
+    if (d < 0) and (it1 > me0) then
+    begin
+      t := (me0 - it1 - 1) / d;
+      if t < tout then
+        tout := t;
+    end
+    else if (d > 0) and (me1 > it0) then
+    begin
+      t := (me1 - it0 + 1) / d;
+      if t < tout then
+        tout := t;
+    end;
+
+    result := true;
+  end;
+
+begin
+  Result := False;
+  u0 := -1;
+
+  if (mew >= 1) and (meh >= 1) and (itw >= 1) and (ith >= 1) and (medx <> 0) and (medy <> 0) then
+  begin
+    tin := -100000000.0;
+    tout := 100000000.0;
+    if axisOverlap(mex0, mex0 + mew - 1, itx0, itx0 + itw - 1, -medx) then
+    begin
+      if not axisOverlap(mey0, mey0 + meh - 1, ity0, ity0 + ith - 1, -medy) then
+      begin
+        u0 := tin;
+        Result := (tin <= tout) and (tin >= 0.0) and (tin <= 1.0);
+      end;
     end;
   end;
 end;
