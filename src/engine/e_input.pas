@@ -41,7 +41,7 @@ const
 
   e_MaxJoyKeys = e_MaxJoyBtns + e_MaxJoyAxes*2 + e_MaxJoyHats*4;
 
-  e_MaxInputKeys = e_MaxKbdKeys + e_MaxJoys*e_MaxJoyKeys + e_MaxVirtKeys - 1;
+  e_MaxInputKeys = e_MaxKbdKeys + e_MaxJoys*e_MaxJoyKeys + e_MaxVirtKeys;
   // $$$..$$$ -  321 Keyboard buttons/keys
   // $$$..$$$ - 4*32 Joystick buttons
   // $$$..$$$ -  8*2 Joystick axes (- and +)
@@ -158,7 +158,7 @@ function  e_JoyHatToKey (id, hat, dir: Integer): Integer;
 var
   e_JoystickAvailable: array [0..e_MaxJoys - 1] of Boolean;
   e_JoystickDeadzones: array [0..e_MaxJoys - 1] of Integer = (8192, 8192, 8192, 8192);
-  e_KeyNames: array [0..e_MaxInputKeys] of String;
+  e_KeyNames: array [0..e_MaxInputKeys - 1] of String;
 
 implementation
 
