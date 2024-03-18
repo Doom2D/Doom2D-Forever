@@ -3005,7 +3005,7 @@ begin
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
     end;
-    with AddSwitch(_lc[I_MENU_GAME_SCALE_FACTOR]) do
+    with AddSwitch(_lc[I_MENU_GAME_SCREEN_SCALE]) do
     begin
       Name := 'swResFactor';
       AddItem('1x');
@@ -3178,7 +3178,7 @@ begin
       AddItem(_lc[I_MENU_GAME_INDICATOR_ARROW]);
       AddItem(_lc[I_MENU_GAME_INDICATOR_NAME]);
     end;
-    with AddScroll(_lc[I_MENU_GAME_SCALE_FACTOR]) do
+    with AddScroll(_lc[I_MENU_GAME_VIEW_SCALE]) do
     begin
       Name := 'scScaleFactor';
       Max := 10;

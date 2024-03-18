@@ -293,7 +293,8 @@ type
     I_MENU_GAME_INDICATOR_STYLE,
     I_MENU_GAME_INDICATOR_ARROW,
     I_MENU_GAME_INDICATOR_NAME,
-    I_MENU_GAME_SCALE_FACTOR,
+    I_MENU_GAME_VIEW_SCALE,
+    I_MENU_GAME_SCREEN_SCALE,
     I_MENU_GAME_WEAPON_AUTOSWITCH,
 
     I_MENU_VIDEO_RESOLUTION,
@@ -1238,8 +1239,10 @@ const
                                        'Стрелка'),
     ('MENU GAME INDICATOR NAME',       'Name',
                                        'Имя'),
-    ('MENU GAME SCALE FACTOR',         'Scale:',
-                                       'Масштаб:'),
+    ('MENU GAME VIEW SCALE',           'View Scaling:',
+                                       'Масштаб обзора:'),
+    ('MENU GAME SCREEN SCALE',         'Screen Scale:',
+                                       'Масштаб экрана:'),
     ('MENU GAME WEAPON AUTOSWITCH',    'Weapon autoswitch:',
                                        'Автовыбор оружия:'),
 
