@@ -78,8 +78,11 @@ var
 implementation
 
 uses
+{$IFDEF ENABLE_SOUND}
+  g_sound,
+{$ENDIF}
   g_map, g_basic, Math, g_player, g_console, SysUtils,
-  g_sound, g_gfx, MAPDEF, g_monsters, g_game, utils;
+  g_gfx, MAPDEF, g_monsters, g_game, utils;
 
 
 const
@@ -214,9 +217,11 @@ begin
 end;
 
 procedure g_Obj_Splash(Obj: PObj; Color: Byte);
-var
-  MaxVel: Integer;
+{$IFDEF ENABLE_SOUND}
+  var MaxVel: Integer;
+{$ENDIF}
 begin
+{$IFDEF ENABLE_SOUND}
   MaxVel := nmax(abs(Obj^.Vel.X), abs(Obj^.Vel.Y));
   if MaxVel > 4 then
   begin
@@ -225,6 +230,7 @@ begin
     else
       g_Sound_PlayExAt('SOUND_GAME_BULK2', Obj^.X, Obj^.Y);
   end;
+{$ENDIF}
 
   g_GFX_Water(Obj^.X+Obj^.Rect.X+(Obj^.Rect.Width div 2),
               Obj^.Y+Obj^.Rect.Y+(Obj^.Rect.Height div 2),

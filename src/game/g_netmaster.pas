@@ -172,8 +172,11 @@ function GetTimerMS (): Int64;
 implementation
 
 uses
+{$IFDEF ENABLE_SOUND}
+  g_sound,
+{$ENDIF}
   e_input, e_graphics, e_log, g_window, g_net, g_console,
-  g_map, g_game, g_sound, g_gui, g_menu, g_options, g_language, g_basic,
+  g_map, g_game, g_gui, g_menu, g_options, g_language, g_basic,
   wadreader, g_system, utils, hashtable;
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1865,7 +1868,9 @@ begin
     g_GUI_ShowWindow('MainMenu');
     g_GUI_ShowWindow('NetGameMenu');
     g_GUI_ShowWindow('NetClientMenu');
+{$IFDEF ENABLE_SOUND}
     g_Sound_PlayEx(WINDOW_CLOSESOUND);
+{$ENDIF}
     Exit;
   end;
 

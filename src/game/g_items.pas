@@ -72,8 +72,10 @@ function g_Items_ValidId (idx: Integer): Boolean; inline;
 function g_Items_ByIdx (idx: Integer): PItem;
 function g_Items_ObjByIdx (idx: Integer): PObj;
 
+{$IFDEF ENABLE_SOUND}
 procedure g_Items_EmitPickupSound (idx: Integer); // at item position
 procedure g_Items_EmitPickupSoundAt (idx, x, y: Integer);
+{$ENDIF}
 
 procedure g_Items_AddDynLights();
 
@@ -92,7 +94,10 @@ implementation
 
 uses
   Math,
-  g_basic, e_graphics, g_sound, g_main, g_gfx, g_map,
+{$IFDEF ENABLE_SOUND}
+  g_sound,
+{$ENDIF}
+  g_basic, e_graphics, g_main, g_gfx, g_map,
   g_game, g_triggers, g_console, g_player, g_net, g_netmsg,
   e_log,
   g_grid, binheap, idpool, utils, xstreams;
@@ -238,10 +243,12 @@ procedure g_Items_LoadData();
 begin
   e_WriteLog('Loading items data...', TMsgType.Notify);
 
+{$IFDEF ENABLE_SOUND}
   g_Sound_CreateWADEx('SOUND_ITEM_RESPAWNITEM', GameWAD+':SOUNDS\RESPAWNITEM');
   g_Sound_CreateWADEx('SOUND_ITEM_GETPOWERUP', GameWAD+':SOUNDS\GETPOWERUP');
   g_Sound_CreateWADEx('SOUND_ITEM_GETWEAPON', GameWAD+':SOUNDS\GETWEAPON');
   g_Sound_CreateWADEx('SOUND_ITEM_GETITEM', GameWAD+':SOUNDS\GETITEM');
+{$ENDIF}
 
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_BLUESPHERE', GameWAD+':TEXTURES\SBLUE', 32, 32, 4, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_WHITESPHERE', GameWAD+':TEXTURES\SWHITE', 32, 32, 4, True);
@@ -296,10 +303,12 @@ procedure g_Items_FreeData();
 begin
   e_WriteLog('Releasing items data...', TMsgType.Notify);
 
+{$IFDEF ENABLE_SOUND}
   g_Sound_Delete('SOUND_ITEM_RESPAWNITEM');
   g_Sound_Delete('SOUND_ITEM_GETPOWERUP');
   g_Sound_Delete('SOUND_ITEM_GETWEAPON');
   g_Sound_Delete('SOUND_ITEM_GETITEM');
+{$ENDIF}
 
   g_Frames_DeleteByName('FRAMES_ITEM_BLUESPHERE');
   g_Frames_DeleteByName('FRAMES_ITEM_WHITESPHERE');
@@ -612,7 +621,9 @@ begin
                 +2. I_MEGA,I_INVL,I_SUPER
                 3. I_STIM,I_MEDI,I_ARM1,I_ARM2,I_AQUA,I_KEYR,I_KEYG,I_KEYB,I_SUIT,I_RTORCH,I_GTORCH,I_BTORCH,I_GOR1,I_FCAN
               }
+{$IFDEF ENABLE_SOUND}
               g_Items_EmitPickupSoundAt(i, gPlayers[j].Obj.X, gPlayers[j].Obj.Y);
+{$ENDIF}
 
               // Ќадо убрать с карты, если это не ключ, которым нужно поделитьс€ с другим игроком
               if r then
@@ -637,7 +648,9 @@ begin
         DecMin(RespawnTime, 0);
         if (RespawnTime = 0) and (not alive) then
         begin
+{$IFDEF ENABLE_SOUND}
           if not QuietRespawn then g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', InitX, InitY);
+{$ENDIF}
 
           if g_Frames_Get(ID, 'FRAMES_ITEM_RESPAWN') then
           begin
@@ -995,6 +1008,7 @@ begin
 end;
 
 // ////////////////////////////////////////////////////////////////////////// //
+{$IFDEF ENABLE_SOUND}
 procedure g_Items_EmitPickupSound (idx: Integer);
 var
   it: PItem;
@@ -1049,6 +1063,7 @@ begin
     end;
   end;
 end;
+{$ENDIF}
 
 
 procedure g_Items_AddDynLights();

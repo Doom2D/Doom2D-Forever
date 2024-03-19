@@ -20,8 +20,11 @@ interface
 uses
   SysUtils, Classes,
   MAPDEF, CONFIG,
+{$IFDEF ENABLE_SOUND}
+  e_sound, g_sound,
+{$ENDIF}
   g_basic, g_player, e_graphics, g_res_downloader,
-  g_sound, g_gui, utils, md5, mempool, xprofiler,
+  g_gui, utils, md5, mempool, xprofiler,
   g_touch, g_weapons;
 
 type
@@ -76,11 +79,13 @@ type
     DEStr: String;
   end;
 
+{$IFDEF ENABLE_SOUND}
   TChatSound = record
     Sound: TPlayableSound;
     Tags: Array of String;
     FullWord: Boolean;
   end;
+{$ENDIF}
 
   TPlayerSettings = record
     Name: String;
@@ -147,14 +152,18 @@ procedure g_Game_InGameMenu(Show: Boolean);
 function g_Game_IsWatchedPlayer(UID: Word): Boolean;
 function g_Game_IsWatchedTeam(Team: Byte): Boolean;
 procedure g_Game_Message(Msg: String; Time: Word);
+
+{$IFDEF ENABLE_SOUND}
 procedure g_Game_PauseAllSounds(Enable: Boolean);
 procedure g_Game_StopAllSounds(all: Boolean);
 procedure g_Game_UpdateTriggerSounds();
-function g_Game_GetMegaWADInfo(WAD: String; cfg: TConfig = nil): TMegaWADInfo;
 procedure g_Game_ChatSound(Text: String; Taunt: Boolean = True);
 procedure g_Game_Announce_GoodShot(SpawnerUID: Word);
 procedure g_Game_Announce_KillCombo(Param: Integer);
 procedure g_Game_Announce_BodyKill(SpawnerUID: Word);
+{$ENDIF}
+
+function g_Game_GetMegaWADInfo(WAD: String; cfg: TConfig = nil): TMegaWADInfo;
 procedure g_Game_Effect_Bubbles(fX, fY: Integer; count: Word; devX, devY: Byte; Silent: Boolean = False);
 procedure g_Game_StartVote(Command, Initiator: string);
 procedure g_Game_CheckVote;
@@ -257,9 +266,9 @@ var
   gLerpFactor: Single = 1.0;
   gSwitchGameMode: Byte = GM_DM;
   gHearPoint1, gHearPoint2: THearPoint;
+{$IFDEF ENABLE_SOUND}
   gSoundEffectsDF: Boolean;
   gSoundTriggerTime: Word;
-  gAnnouncer: Integer = ANNOUNCE_NONE;
   goodsnd: array[0..3] of TPlayableSound;
   killsnd: array[0..3] of TPlayableSound;
   hahasnd: array[0..2] of TPlayableSound;
@@ -267,6 +276,16 @@ var
   sound_lost_flag: array[0..1] of TPlayableSound;
   sound_ret_flag: array[0..1] of TPlayableSound;
   sound_cap_flag: array[0..1] of TPlayableSound;
+  gUseChatSounds: Boolean = True;
+  gChatSounds: array of TChatSound;
+  gMusic: TMusic;
+{$ELSE}
+  gMusicName: String = '';
+  gMusicPlay: Boolean = False;
+  gMusicPos: LongWord = 0;
+  gMusicPause: Boolean = False;
+{$ENDIF}
+  gAnnouncer: Integer = ANNOUNCE_NONE;
   gBodyKillEvent: Integer = -1;
   gDefInterTime: ShortInt = -1;
   gInterEndTime: LongWord;
@@ -302,7 +321,6 @@ var
   gSpectAutoNext: LongWord;
   gSpectAutoStepX: Integer;
   gSpectAutoStepY: Integer;
-  gMusic: TMusic;
   gLoadGameMode: Boolean;
   gCheats: Boolean;
   gMapOnce: Boolean;
@@ -348,8 +366,6 @@ var
   gVotesEnabled: Boolean = True;
   gEvents: array of TGameEvent;
   gDelayedEvents: array of TDelayedEvent;
-  gUseChatSounds: Boolean = True;
-  gChatSounds: array of TChatSound;
   gWeaponAction: array [0..1, WP_FACT..WP_LACT] of Boolean;  // [player, weapon_action]
   gSelectWeapon: array [0..1, WP_FIRST..WP_LAST] of Boolean;  // [player, weapon]
   gInterReadyCount: Integer;
@@ -401,7 +417,7 @@ uses
   e_texture, e_res, g_textures, g_window, g_menu,
   e_input, e_log, g_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, Math,
-  g_triggers, g_monsters, e_sound,
+  g_triggers, g_monsters,
   g_language, g_net, g_main, g_phys,
   ENet, e_msg, g_netmsg, g_netmaster,
   sfs, wadreader, g_system, Generics.Collections, Generics.Defaults;
@@ -844,9 +860,11 @@ begin
     if MegaWAD.res.pic[a] <> '' then
       g_Texture_Delete(MegaWAD.res.pic[a]);
 
+{$IFDEF ENABLE_SOUND}
   for a := 0 to High(MegaWAD.res.mus) do
     if MegaWAD.res.mus[a] <> '' then
       g_Sound_Delete(MegaWAD.res.mus[a]);
+{$ENDIF}
 
   MegaWAD.res.pic := nil;
   MegaWAD.res.text := nil;
@@ -855,7 +873,10 @@ begin
   MegaWAD.triggers := nil;
 
   g_Texture_Delete('TEXTURE_endpic');
+
+{$IFDEF ENABLE_SOUND}
   g_Sound_Delete('MUSIC_endmus');
+{$ENDIF}
 
   ZeroMemory(@MegaWAD, SizeOf(MegaWAD));
   gGameSettings.WAD := '';
@@ -893,11 +914,14 @@ begin
     TEXTUREFILTER := GL_NEAREST;
   end;
   MegaWAD.endmus := cfg.ReadStr('megawad', 'endmus', 'Standart.wad:D2DMUS\КОНЕЦ');
+
+{$IFDEF ENABLE_SOUND}
   if MegaWAD.endmus <> '' then
   begin
     s := e_GetResourcePath(WadDirs, MegaWAD.endmus, WAD);
     g_Sound_CreateWADEx('MUSIC_endmus', s, True);
   end;
+{$ENDIF}
 
   cfg.Destroy();
 end;
@@ -986,7 +1010,9 @@ begin
   gPauseHolmes := false;
   gGameOn := false;
 
+{$IFDEF ENABLE_SOUND}
   g_Game_StopAllSounds(False);
+{$ENDIF}
 
   MessageTime := 0;
   MessageText := '';
@@ -1008,8 +1034,10 @@ begin
           end
         else
           begin // Выход в главное меню
+{$IFDEF ENABLE_SOUND}
             gMusic.SetByName('MUSIC_MENU');
             gMusic.Play();
+{$ENDIF}
             if gState <> STATE_SLIST then
             begin
               g_GUI_ShowWindow('MainMenu');
@@ -1122,8 +1150,10 @@ begin
       // Есть еще карты:
         if gNextMap <> '' then
           begin
+{$IFDEF ENABLE_SOUND}
             gMusic.SetByName('MUSIC_INTERMUS');
             gMusic.Play();
+{$ENDIF}
             gState := STATE_INTERSINGLE;
             e_UnpressAllKeys();
 
@@ -1450,20 +1480,29 @@ begin
     g_Game_SetLoadingText(_lc[I_LOAD_GAME_DATA], 0, False);
     g_Game_LoadData();
 
+{$IFDEF ENABLE_SOUND}
     g_Game_SetLoadingText(_lc[I_LOAD_MUSIC], 0, False);
     g_Sound_CreateWADEx('MUSIC_INTERMUS', GameWAD+':MUSIC\INTERMUS', True);
     g_Sound_CreateWADEx('MUSIC_MENU', GameWAD+':MUSIC\MENU', True);
     g_Sound_CreateWADEx('MUSIC_ROUNDMUS', GameWAD+':MUSIC\ROUNDMUS', True, True);
     g_Sound_CreateWADEx('MUSIC_STDENDMUS', GameWAD+':MUSIC\ENDMUS', True);
+{$ENDIF}
 
 {$IFNDEF HEADLESS}
     g_Game_SetLoadingText(_lc[I_LOAD_MENUS], 0, False);
     g_Menu_Init();
 {$ENDIF}
 
+{$IFDEF ENABLE_SOUND}
     gMusic := TMusic.Create();
     gMusic.SetByName('MUSIC_MENU');
     gMusic.Play();
+{$ELSE}
+    gMusicName := '';
+    gMusicPlay := False;
+    gMusicPos := 0;
+    gMusicPause := False;
+{$ENDIF}
 
     gGameSettings.WarmupTime := 30;
 
@@ -1854,7 +1893,9 @@ begin
         )
         then
         begin // Нажали <Enter>/<Пробел> или прошло достаточно времени:
+{$IFDEF ENABLE_SOUND}
           g_Game_StopAllSounds(True);
+{$ENDIF}
 
           if gMapOnce then // Это был тест
             gExit := EXIT_SIMPLE
@@ -1868,17 +1909,21 @@ begin
               // Выход в главное меню:
                 g_Game_Free();
                 g_GUI_ShowWindow('MainMenu');
+{$IFDEF ENABLE_SOUND}
                 gMusic.SetByName('MUSIC_MENU');
                 gMusic.Play();
+{$ENDIF}
                 gState := STATE_MENU;
               end else
               begin
               // Финальная картинка:
                 g_Game_ExecuteEvent('onwadend');
                 g_Game_Free();
+{$IFDEF ENABLE_SOUND}
                 if not gMusic.SetByName('MUSIC_endmus') then
                   gMusic.SetByName('MUSIC_STDENDMUS');
                 gMusic.Play();
+{$ENDIF}
                 gState := STATE_ENDPIC;
               end;
               g_Game_ExecuteEvent('ongameend');
@@ -1920,18 +1965,28 @@ begin
                 if gLastMap and (gGameSettings.GameMode = GM_COOP) then
                 begin
                   g_Game_ExecuteEvent('onwadend');
+{$IFDEF ENABLE_SOUND}
                   if not gMusic.SetByName('MUSIC_endmus') then
                     gMusic.SetByName('MUSIC_STDENDMUS');
+{$ENDIF}
                 end
                 else
+                begin
+{$IFDEF ENABLE_SOUND}
                   gMusic.SetByName('MUSIC_ROUNDMUS');
+{$ENDIF}
+                end;
+{$IFDEF ENABLE_SOUND}
                 gMusic.Play();
+{$ENDIF}
                 e_UnpressAllKeys();
               end
             else // Закончилась последняя карта в Одиночной игре
               begin
+{$IFDEF ENABLE_SOUND}
                 gMusic.SetByName('MUSIC_INTERMUS');
                 gMusic.Play();
+{$ENDIF}
                 gState := STATE_INTERSINGLE;
                 e_UnpressAllKeys();
               end;
@@ -2218,6 +2273,7 @@ begin
       end;
     end;
 
+{$IFDEF ENABLE_SOUND}
     if (gSoundTriggerTime > 8) then
     begin
       g_Game_UpdateTriggerSounds();
@@ -2227,6 +2283,7 @@ begin
     begin
       Inc(gSoundTriggerTime);
     end;
+{$ENDIF}
 
     if (NetMode = NET_SERVER) then
     begin
@@ -2359,17 +2416,27 @@ begin
             g_Game_ExecuteEvent(gDelayedEvents[a].DEStr);
           DE_BFGHIT:
             if gGameOn then
+            begin
+{$IFDEF ENABLE_SOUND}
               g_Game_Announce_GoodShot(gDelayedEvents[a].DENum);
+{$ENDIF}
+            end;
           DE_KILLCOMBO:
             if gGameOn then
             begin
+{$IFDEF ENABLE_SOUND}
               g_Game_Announce_KillCombo(gDelayedEvents[a].DENum);
+{$ENDIF}
               if g_Game_IsNet and g_Game_IsServer then
                 MH_SEND_GameEvent(NET_EV_KILLCOMBO, gDelayedEvents[a].DENum);
             end;
           DE_BODYKILL:
             if gGameOn then
+            begin
+{$IFDEF ENABLE_SOUND}
               g_Game_Announce_BodyKill(gDelayedEvents[a].DENum);
+{$ENDIF}
+            end;
         end;
         gDelayedEvents[a].Pending := False;
       end;
@@ -2390,6 +2457,7 @@ begin
   end;
 end;
 
+{$IFDEF ENABLE_SOUND}
 procedure g_Game_LoadChatSounds(Resource: string);
 var
   WAD: TWADFile;
@@ -2447,6 +2515,7 @@ begin
   SetLength(gChatSounds, 0);
   gChatSounds := nil;
 end;
+{$ENDIF}
 
 procedure g_Game_LoadData();
 var
@@ -2504,6 +2573,8 @@ begin
   g_Frames_CreateWAD(nil, 'FRAMES_PUNCH_BERSERK', GameWAD+':WEAPONS\PUNCHB', 64, 64, 4, False);
   g_Frames_CreateWAD(nil, 'FRAMES_PUNCH_BERSERK_UP', GameWAD+':WEAPONS\PUNCHB_UP', 64, 64, 4, False);
   g_Frames_CreateWAD(nil, 'FRAMES_PUNCH_BERSERK_DN', GameWAD+':WEAPONS\PUNCHB_DN', 64, 64, 4, False);
+
+{$IFDEF ENABLE_SOUND}
   g_Sound_CreateWADEx('SOUND_GAME_TELEPORT', GameWAD+':SOUNDS\TELEPORT');
   g_Sound_CreateWADEx('SOUND_GAME_NOTELEPORT', GameWAD+':SOUNDS\NOTELEPORT');
   g_Sound_CreateWADEx('SOUND_GAME_SECRET', GameWAD+':SOUNDS\SECRET');
@@ -2584,6 +2655,7 @@ begin
   sound_cap_flag[1].SetByName('SOUND_CTF_CAPTURE2');
 
   g_Game_LoadChatSounds(GameWAD+':CHATSND\SNDCFG');
+{$ENDIF}
 
   g_Game_SetLoadingText(_lc[I_LOAD_ITEMS_DATA], 0, False);
   g_Items_LoadData();
@@ -2625,6 +2697,8 @@ begin
   g_Frames_DeleteByName('FRAMES_PUNCH_BERSERK');
   g_Frames_DeleteByName('FRAMES_PUNCH_BERSERK_UP');
   g_Frames_DeleteByName('FRAMES_PUNCH_BERSERK_DN');
+
+{$IFDEF ENABLE_SOUND}
   g_Sound_Delete('SOUND_GAME_TELEPORT');
   g_Sound_Delete('SOUND_GAME_NOTELEPORT');
   g_Sound_Delete('SOUND_GAME_SECRET');
@@ -2685,6 +2759,7 @@ begin
   g_Sound_Delete('SOUND_CTF_CAPTURE2');
 
   g_Game_FreeChatSounds();
+{$ENDIF}
 
   DataLoaded := False;
 end;
@@ -4209,12 +4284,14 @@ begin
   g_Console_Draw();
 {$ENDIF}
 
+{$IFDEF ENABLE_SOUND}
   if g_debug_Sounds and gGameOn then
   begin
     for w := 0 to High(e_SoundsArray) do
       for h := 0 to e_SoundsArray[w].nRefs do
         e_DrawPoint(1, w+100, h+100, 255, 0, 0);
   end;
+{$ENDIF}
 
   if gShowFPS then
   begin
@@ -4249,8 +4326,15 @@ end;
 procedure g_Game_Quit();
 begin
   e_WriteLog('g_Game_Quit: cleanup assets before shutting down', TMsgType.Notify);
+{$IFDEF ENABLE_SOUND}
   g_Game_StopAllSounds(True);
   gMusic.Free();
+{$ELSE}
+  gMusicName := '';
+  gMusicPlay := False;
+  gMusicPos := 0;
+  gMusicPause := False;
+{$ENDIF}
   g_Game_FreeData();
   g_PlayerModel_FreeData();
   g_Texture_DeleteAll();
@@ -7903,7 +7987,9 @@ begin
           else
             g_GUI_ShowWindow('GameCustomMenu');
       end;
+{$IFDEF ENABLE_SOUND}
       g_Sound_PlayEx('MENU_OPEN');
+{$ENDIF}
 
     // Пауза при меню только в одиночной игре:
       if (not g_Game_IsNet) then
@@ -7929,7 +8015,9 @@ begin
   oldPause := gPause;
   gPauseMain := Enable;
 
+{$IFDEF ENABLE_SOUND}
   if (gPause <> oldPause) then g_Game_PauseAllSounds(gPause);
+{$ENDIF}
 end;
 
 procedure g_Game_HolmesPause (Enable: Boolean);
@@ -7942,9 +8030,12 @@ begin
   oldPause := gPause;
   gPauseHolmes := Enable;
 
+{$IFDEF ENABLE_SOUND}
   if (gPause <> oldPause) then g_Game_PauseAllSounds(gPause);
+{$ENDIF}
 end;
 
+{$IFDEF ENABLE_SOUND}
 procedure g_Game_PauseAllSounds(Enable: Boolean);
 var
   i: Integer;
@@ -7998,6 +8089,7 @@ begin
         if (TriggerType = TRIGGER_SOUND) and (Sound <> nil) and tgcLocal and Sound.IsPlaying() then
           Sound.SetCoordsRect(X, Y, Width, Height, tgcVolume / 255.0)
 end;
+{$ENDIF}
 
 function g_Game_IsWatchedPlayer(UID: Word): Boolean;
 begin
@@ -8067,6 +8159,7 @@ begin
   MessageTime := Time;
 end;
 
+{$IFDEF ENABLE_SOUND}
 procedure g_Game_ChatSound(Text: String; Taunt: Boolean = True);
 const
   punct: Array[0..13] of String =
@@ -8221,13 +8314,16 @@ begin
 
   hahasnd[Random(3)].Play();
 end;
+{$ENDIF}
 
 procedure g_Game_Effect_Bubbles (fX, fY: Integer; count: Word; devX, devY: Byte; Silent: Boolean);
 begin
   g_GFX_Bubbles(fX, fY, count, devX, devY);
+{$IFDEF ENABLE_SOUND}
   if not Silent then if Random(2) = 0
     then g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', fX, fY)
     else g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', fX, fY);
+{$ENDIF}
 end;
 
 procedure g_Game_StartVote(Command, Initiator: string);

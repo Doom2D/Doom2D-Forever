@@ -304,7 +304,10 @@ var
 implementation
 
 uses
-  e_log, e_texture, g_main, g_sound, g_gfx, g_player, g_game,
+{$IFDEF ENABLE_SOUND}
+  g_sound,
+{$ENDIF}
+  e_log, e_texture, g_main, g_gfx, g_player, g_game,
   g_weapons, g_triggers, MAPDEF, g_items, g_options,
   g_console, g_map, Math, g_menu, wadreader,
   g_language, g_netmsg, idpool, utils, xstreams;
@@ -980,6 +983,7 @@ begin
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_DIE', GameWAD+':MTEXTURES\CYBER_DIE', 128, 128, 9);
   g_Game_StepLoading(133);
 
+{$IFDEF ENABLE_SOUND}
   g_Game_SetLoadingText(_lc[I_LOAD_MONSTER_SOUNDS], 0, False);
 
   g_Sound_CreateWADEx('SOUND_MONSTER_BARREL_DIE', GameWAD+':MSOUNDS\BARREL_DIE');
@@ -1060,6 +1064,7 @@ begin
   g_Sound_CreateWADEx('SOUND_MONSTER_SPIDER_WALK', GameWAD+':MSOUNDS\SPIDER_WALK');
 
   g_Sound_CreateWADEx('SOUND_MONSTER_FISH_ATTACK', GameWAD+':MSOUNDS\FISH_ATTACK');
+{$ENDIF}
 
   freeInds := TIdPool.Create();
   clearUidMap();
@@ -1205,6 +1210,7 @@ begin
   g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_ATTACK2_L');
   g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_DIE');
 
+{$IFDEF ENABLE_SOUND}
   g_Sound_Delete('SOUND_MONSTER_BARREL_DIE');
 
   g_Sound_Delete('SOUND_MONSTER_PAIN');
@@ -1283,6 +1289,7 @@ begin
   g_Sound_Delete('SOUND_MONSTER_SPIDER_WALK');
 
   g_Sound_Delete('SOUND_MONSTER_FISH_ATTACK');
+{$ENDIF}
 
   freeInds.Free();
   freeInds := nil;
@@ -1395,7 +1402,9 @@ begin
            (FState <> MONSTATE_SLEEP) and
            (FState <> MONSTATE_DIE) then
         begin
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_MONSTER_TRUP', FObj.X, FObj.Y);
+{$ENDIF}
           Exit;
         end;
       end;
@@ -1646,6 +1655,7 @@ end;
 
 procedure TMonster.ActionSound();
 begin
+{$IFDEF ENABLE_SOUND}
   case FMonsterType of
     MONSTER_IMP:
       g_Sound_PlayExAt('SOUND_MONSTER_IMP_ACTION', FObj.X, FObj.Y);
@@ -1667,6 +1677,7 @@ begin
     MONSTER_MAN:
       g_Sound_PlayExAt('SOUND_MONSTER_HAHA', FObj.X, FObj.Y);
   end;
+{$ENDIF}
 end;
 
 procedure TMonster.PainSound();
@@ -1677,6 +1688,7 @@ begin
   FPainSound := True;
   FPainTicks := 20;
 
+{$IFDEF ENABLE_SOUND}
   case FMonsterType of
     MONSTER_IMP, MONSTER_ZOMBY, MONSTER_SERG,
     MONSTER_SKEL, MONSTER_CGUN:
@@ -1694,10 +1706,12 @@ begin
     MONSTER_MAN:
       g_Sound_PlayExAt('SOUND_MONSTER_MAN_PAIN', FObj.X, FObj.Y);
   end;
+{$ENDIF}
 end;
 
 procedure TMonster.DieSound();
 begin
+{$IFDEF ENABLE_SOUND}
   case FMonsterType of
     MONSTER_IMP:
       case Random(2) of
@@ -1739,10 +1753,12 @@ begin
     MONSTER_MAN:
       g_Sound_PlayExAt('SOUND_MONSTER_MAN_DIE', FObj.X, FObj.Y);
   end;
+{$ENDIF}
 end;
 
 procedure TMonster.WakeUpSound();
 begin
+{$IFDEF ENABLE_SOUND}
   case FMonsterType of
     MONSTER_IMP:
       case Random(2) of
@@ -1782,6 +1798,7 @@ begin
     MONSTER_SOUL:
       ;
   end;
+{$ENDIF}
 end;
 
 procedure TMonster.BFGHit();
@@ -2126,7 +2143,9 @@ begin
           (FMonsterType = MONSTER_SERG) or (FMonsterType = MONSTER_CGUN) or
           (FMonsterType = MONSTER_MAN)) then
         begin
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_MONSTER_SLOP', FObj.X, FObj.Y);
+{$ENDIF}
           SetState(MONSTATE_DIE, ANIM_MESS);
         end
       else
@@ -2380,7 +2399,9 @@ begin
 // В точке назначения стена:
   if g_CollideLevel(X, Y, FObj.Rect.Width, FObj.Rect.Height) then
   begin
+{$IFDEF ENABLE_SOUND}
     g_Sound_PlayExAt('SOUND_GAME_NOTELEPORT', FObj.X, FObj.Y);
+{$ENDIF}
     if g_Game_IsServer and g_Game_IsNet then
       MH_SEND_Sound(FObj.X, FObj.Y, 'SOUND_GAME_NOTELEPORT');
     Exit;
@@ -2393,7 +2414,9 @@ begin
   begin
     if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
       TA := TAnimation.Create(FramesID, False, 6);
+{$IFDEF ENABLE_SOUND}
     g_Sound_PlayExAt('SOUND_GAME_TELEPORT', Obj.X, Obj.Y);
+{$ENDIF}
     g_GFX_OnceAnim(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
                    FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32, TA);
 
@@ -2633,10 +2656,14 @@ begin
         if FPain >= MONSTERTABLE[FMonsterType].Pain then
         begin
           FPain := MONSTERTABLE[FMonsterType].Pain;
+{$IFDEF ENABLE_SOUND}
           if gSoundEffectsDF then PainSound();
+{$ENDIF}
         end;
+{$IFDEF ENABLE_SOUND}
         if (not gSoundEffectsDF) and (FPain >= MONSTERTABLE[FMonsterType].MinPain) then
           PainSound();
+{$ENDIF}
 
       // Снижаем боль со временем:
         FPain := FPain - 5;
@@ -3211,7 +3238,11 @@ _end:
                 MONSTER_FISH:
                 // Рыба кусает первого попавшегося со звуком:
                   if g_Weapon_Hit(@FObj, 10, FUID, HIT_SOME) <> 0 then
+                  begin
+{$IFDEF ENABLE_SOUND}
                     g_Sound_PlayExAt('SOUND_MONSTER_FISH_ATTACK', FObj.X, FObj.Y);
+{$ENDIF}
+                  end;
 
                 MONSTER_SKEL, MONSTER_ROBO, MONSTER_CYBER:
                 // Робот, кибер или скелет сильно пинаются:
@@ -3220,7 +3251,11 @@ _end:
                     o := FObj;
                     o.Vel.X := IfThen(FDirection = TDirection.D_RIGHT, 1, -1)*IfThen(FMonsterType = MONSTER_CYBER, 60, 50);
                     if g_Weapon_Hit(@o, IfThen(FMonsterType = MONSTER_CYBER, 33, 50), FUID, HIT_SOME) <> 0 then
+                    begin
+{$IFDEF ENABLE_SOUND}
                       g_Sound_PlayExAt('SOUND_MONSTER_SKEL_HIT', FObj.X, FObj.Y);
+{$ENDIF}
+                    end;
                   end;
 
                 MONSTER_VILE:
@@ -3231,7 +3266,9 @@ _end:
                     if sx <> -1 then
                     begin // Нашли, кого воскресить
                       gMonsters[sx].SetState(MONSTATE_REVIVE);
+{$IFDEF ENABLE_SOUND}
                       g_Sound_PlayExAt('SOUND_MONSTER_SLOP', FObj.X, FObj.Y);
+{$ENDIF}
                     // Воскрешать - себе вредить:
                       {g_Weapon_HitUID(FUID, 5, 0, HIT_SOME);}
                     end;
@@ -3272,14 +3309,18 @@ _end:
                   g_Weapon_ball1(wx, wy, tx, ty, FUID);
                 MONSTER_ZOMBY:
                   begin
+{$IFDEF ENABLE_SOUND}
                     g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', wx, wy);
+{$ENDIF}
                     g_Weapon_gun(wx, wy, tx, ty, 1, 3, FUID, True);
                     g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
                   end;
                 MONSTER_SERG:
                   begin
                     g_Weapon_shotgun(wx, wy, tx, ty, FUID);
+{$IFDEF ENABLE_SOUND}
                     if not gSoundEffectsDF then g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', wx, wy);
+{$ENDIF}
                     FShellTimer := 10;
                     FShellType := SHELL_SHELL;
                   end;
@@ -3300,13 +3341,17 @@ _end:
                 MONSTER_CGUN:
                   begin
                     g_Weapon_mgun(wx, wy, tx, ty, FUID);
+{$IFDEF ENABLE_SOUND}
                     if not gSoundEffectsDF then g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', wx, wy);
+{$ENDIF}
                     g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
                   end;
                 MONSTER_SPIDER:
                   begin
                     g_Weapon_mgun(wx, wy, tx, ty, FUID);
+{$IFDEF ENABLE_SOUND}
                     if not gSoundEffectsDF then g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', wx, wy);
+{$ENDIF}
                     g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
                   end;
                 MONSTER_BSP:
@@ -3361,6 +3406,7 @@ _end:
           FWaitAttackAnim := True;
         end;
 
+{$IFDEF ENABLE_SOUND}
 // Последний кадр текущей анимации:
   if FAnim[FCurAnim, FDirection].Counter = FAnim[FCurAnim, FDirection].Speed-1 then
     case FState of
@@ -3385,6 +3431,7 @@ _end:
               g_Sound_PlayExAt('SOUND_MONSTER_BSP_WALK', FObj.X, FObj.Y);
         end;
     end;
+{$ENDIF}
 
   if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_LIFTLEFT or PANEL_LIFTRIGHT) and
      not ((FState = MONSTATE_DEAD) or (FState = MONSTATE_DIE))  then
@@ -3569,10 +3616,14 @@ begin
         if FPain >= MONSTERTABLE[FMonsterType].Pain then
         begin
           FPain := MONSTERTABLE[FMonsterType].Pain;
+{$IFDEF ENABLE_SOUND}
           if gSoundEffectsDF then PainSound();
+{$ENDIF}
         end;
+{$IFDEF ENABLE_SOUND}
         if (not gSoundEffectsDF) and (FPain >= MONSTERTABLE[FMonsterType].MinPain) then
           PainSound();
+{$ENDIF}
 
       // Снижаем боль со временем:
         FPain := FPain - 5;
@@ -4021,7 +4072,9 @@ _end:
                     sx := isCorpse(@FObj, True);
                     if sx <> -1 then
                     begin // Нашли, кого воскресить
+{$IFDEF ENABLE_SOUND}
                       g_Sound_PlayExAt('SOUND_MONSTER_SLOP', FObj.X, FObj.Y);
+{$ENDIF}
                     // Воскрешать - себе вредить:
                       {g_Weapon_HitUID(FUID, 5, 0, HIT_SOME);}
                     end;
@@ -4049,6 +4102,7 @@ _end:
           FWaitAttackAnim := True;
         end;
 
+{$IFDEF ENABLE_SOUND}
 // Последний кадр текущей анимации:
   if FAnim[FCurAnim, FDirection].Counter = FAnim[FCurAnim, FDirection].Speed-1 then
     case FState of
@@ -4073,6 +4127,7 @@ _end:
               g_Sound_PlayExAt('SOUND_MONSTER_BSP_WALK', FObj.X, FObj.Y);
         end;
     end;
+{$ENDIF}
 
 // Костыль для потоков
   if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_LIFTLEFT or PANEL_LIFTRIGHT) and
@@ -4089,24 +4144,32 @@ begin
   case FMonsterType of
     MONSTER_ZOMBY:
     begin
+{$IFDEF ENABLE_SOUND}
       g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', wx, wy);
+{$ENDIF}
       g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
     end;
     MONSTER_SERG:
     begin
+{$IFDEF ENABLE_SOUND}
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', wx, wy);
+{$ENDIF}
       FShellTimer := 10;
       FShellType := SHELL_SHELL;
     end;
     MONSTER_MAN:
     begin
+{$IFDEF ENABLE_SOUND}
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN2', wx, wy);
+{$ENDIF}
       FShellTimer := 13;
       FShellType := SHELL_DBLSHELL;
     end;
     MONSTER_CGUN, MONSTER_SPIDER:
     begin
+{$IFDEF ENABLE_SOUND}
       g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', wx, wy);
+{$ENDIF}
       g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
     end;
     MONSTER_IMP:
@@ -4290,19 +4353,25 @@ begin
     MONSTER_DEMON:
       begin
         SetState(MONSTATE_ATTACK);
+{$IFDEF ENABLE_SOUND}
         g_Sound_PlayExAt('SOUND_MONSTER_DEMON_ATTACK', FObj.X, FObj.Y);
+{$ENDIF}
         Result := True;
       end;
     MONSTER_IMP:
       begin
         SetState(MONSTATE_ATTACK);
+{$IFDEF ENABLE_SOUND}
         g_Sound_PlayExAt('SOUND_MONSTER_IMP_ATTACK', FObj.X, FObj.Y);
+{$ENDIF}
         Result := True;
       end;
     MONSTER_SKEL, MONSTER_ROBO, MONSTER_CYBER:
       begin
         SetState(MONSTATE_ATTACK, ANIM_ATTACK2);
+{$IFDEF ENABLE_SOUND}
         g_Sound_PlayExAt('SOUND_MONSTER_SKEL_ATTACK', FObj.X, FObj.Y);
+{$ENDIF}
         Result := True;
       end;
     MONSTER_BARON, MONSTER_KNIGHT,
@@ -4400,13 +4469,17 @@ begin
 
         vilefire.Reset();
 
+{$IFDEF ENABLE_SOUND}
         g_Sound_PlayExAt('SOUND_MONSTER_VILE_ATTACK', FObj.X, FObj.Y);
         g_Sound_PlayExAt('SOUND_FIRE', o^.X, o^.Y);
+{$ENDIF}
       end;
     MONSTER_SOUL:
       begin // Летит в сторону цели:
         SetState(MONSTATE_ATTACK);
+{$IFDEF ENABLE_SOUND}
         g_Sound_PlayExAt('SOUND_MONSTER_SOUL_ATTACK', FObj.X, FObj.Y);
+{$ENDIF}
 
         xd := tx-(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2));
         yd := ty-(FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2));
@@ -4420,10 +4493,12 @@ begin
     MONSTER_MANCUB, MONSTER_ZOMBY, MONSTER_SERG, MONSTER_BSP, MONSTER_ROBO,
     MONSTER_CYBER, MONSTER_CGUN, MONSTER_SPIDER, MONSTER_PAIN, MONSTER_MAN:
       begin
+{$IFDEF ENABLE_SOUND}
       // Манкубус рявкает перед первой атакой:
         if FMonsterType = MONSTER_MANCUB then
           if FAmmo = 1 then
             g_Sound_PlayExAt('SOUND_MONSTER_MANCUB_ATTACK', FObj.X, FObj.Y);
+{$ENDIF}
 
         SetState(MONSTATE_SHOOT);
       end;
@@ -4635,8 +4710,10 @@ begin
   if Timeout <= 0 then exit;
   if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_WATER or PANEL_ACID1 or PANEL_ACID2) then
     exit; // не подгораем в воде на всякий случай
+{$IFDEF ENABLE_SOUND}
   if FFireTime <= 0 then
     g_Sound_PlayExAt('SOUND_IGNITE', FObj.X, FObj.Y);
+{$ENDIF}
   FFireTime := Timeout;
   FFireAttacker := Attacker;
   if g_Game_IsNet and g_Game_IsServer then MH_SEND_MonsterState(FUID);

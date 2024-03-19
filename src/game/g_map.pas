@@ -255,8 +255,11 @@ implementation
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
+{$IFDEF ENABLE_SOUND}
+  g_sound, e_sound,
+{$ENDIF}
   e_input, g_main, e_log, e_texture, e_res, g_items, g_gfx, g_console,
-  g_weapons, g_game, g_sound, e_sound, CONFIG,
+  g_weapons, g_game, CONFIG,
   g_options, g_triggers, g_player,
   Math, g_monsters, g_saveload, g_language, g_netmsg,
   sfs, xstreams, hashtable, wadreader,
@@ -2238,6 +2241,7 @@ begin
       end;
     end;
 
+{$IFDEF ENABLE_SOUND}
     // Загрузка музыки
     ok := False;
     if gMapInfo.MusicName <> '' then
@@ -2251,6 +2255,7 @@ begin
       else
         g_FatalError(Format(_lc[I_GAME_ERROR_MUSIC], [s]));
     end;
+{$ENDIF}
 
     // Остальные устанвки
     CreateDoorMap();
@@ -2272,6 +2277,7 @@ begin
     TriggersTable := nil;
     AddTextures := nil;
 
+{$IFDEF ENABLE_SOUND}
     // Включаем музыку, если это не загрузка:
     if ok and (not gLoadGameMode) then
     begin
@@ -2282,6 +2288,12 @@ begin
     begin
       gMusic.SetByName('');
     end;
+{$ELSE}
+    gMusicName := gMapInfo.MusicName;
+    gMusicPlay := True;
+    gMusicPos := 0;
+    gMusicPause := False;
+{$ENDIF}
 
     stt := getTimeMicro()-stt;
     e_LogWritefln('map loaded in %s.%s milliseconds', [Integer(stt div 1000), Integer(stt mod 1000)]);
@@ -2522,9 +2534,16 @@ begin
     BackID := DWORD(-1);
   end;
 
+{$IFDEF ENABLE_SOUND}
   g_Game_StopAllSounds(False);
   gMusic.FreeSound();
   g_Sound_Delete(gMapInfo.MusicName);
+{$ELSE}
+  gMusicName := '';
+  gMusicPlay := False;
+  gMusicPos := 0;
+  gMusicPause := False;
+{$ENDIF}
 
   gMapInfo.Name := '';
   gMapInfo.Description := '';
@@ -2597,6 +2616,7 @@ begin
               s := _lc[I_PLAYER_FLAG_BLUE];
             g_Game_Message(Format(_lc[I_MESSAGE_FLAG_RETURN], [AnsiUpperCase(s)]), 144);
 
+{$IFDEF ENABLE_SOUND}
             if (((gPlayer1 <> nil) and (((gPlayer1.Team = TEAM_RED) and (a = FLAG_RED)) or ((gPlayer1.Team = TEAM_BLUE) and (a = FLAG_BLUE))))
             or ((gPlayer2 <> nil) and (((gPlayer2.Team = TEAM_RED) and (a = FLAG_RED)) or ((gPlayer2.Team = TEAM_BLUE) and (a = FLAG_BLUE))))) then
               b := 0
@@ -2605,6 +2625,7 @@ begin
 
             if not sound_ret_flag[b].IsPlaying() then
               sound_ret_flag[b].Play();
+{$ENDIF}
 
             if g_Game_IsNet then
               MH_SEND_FlagEvent(FLAG_STATE_RETURNED, a, 0);
@@ -3248,6 +3269,7 @@ begin
   st.WriteByte(0);
 
   // Название музыки
+{$IFDEF ENABLE_SOUND}
   Assert(gMusic <> nil, 'g_Map_SaveState: gMusic = nil');
   if gMusic.NoMusic
     then utils.writeStr(st, '')
@@ -3255,6 +3277,13 @@ begin
 
   st.WriteDWordLE(gMusic.GetPosition());  // Позиция проигрывания музыки
   st.WriteBool(gMusic.SpecPause);  // Стоит ли музыка на спец-паузе
+{$ELSE}
+  utils.writeStr(st, gMusicName);
+
+  st.WriteDWordLE(gMusicPos);
+  st.WriteBool(gMusicPause);
+{$ENDIF}
+
   st.WriteInt32LE(gTotalMonsters);  // Сохраняем количество монстров:
 
   // Сохраняем флаги, если это CTF:
@@ -3323,17 +3352,26 @@ begin
   if st.ReadByte() <> 0 then
     Raise XStreamError.Create('invalid music version');
 
+{$IFDEF ENABLE_SOUND}
   Assert(gMusic <> nil, 'g_Map_LoadState: gMusic = nil');
+{$ENDIF}
   str := utils.readStr(st);  // Название музыки
   dw := st.ReadDWordLE();  // Позиция проигрывания музыки
   boo := st.ReadBool();  // Стоит ли музыка на спец-паузе
 
   // Запускаем эту музыку
+{$IFDEF ENABLE_SOUND}
   gMusic.SetByName(str);
   gMusic.SpecPause := boo;
   gMusic.Play();
   gMusic.Pause(true);
   gMusic.SetPosition(dw);
+{$ELSE}
+  gMusicName := str;
+  gMusicPlay := True;
+  gMusicPos := dw;
+  gMusicPause := boo;
+{$ENDIF}
   ///// /////
 
   gTotalMonsters := st.ReadInt32LE();  // Загружаем количество монстров:

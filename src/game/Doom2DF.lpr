@@ -103,7 +103,9 @@ uses
   e_graphics in '../engine/e_graphics.pas',
   e_input in '../engine/e_input.pas',
   e_log in '../engine/e_log.pas',
+{$IFDEF ENABLE_SOUND}
   e_sound in '../engine/e_sound.pas',
+{$ENDIF}
   e_texture in '../engine/e_texture.pas',
   e_msg in '../engine/e_msg.pas',
   e_res in '../engine/e_res.pas',
@@ -136,7 +138,9 @@ uses
   g_player in 'g_player.pas',
   g_playermodel in 'g_playermodel.pas',
   g_saveload in 'g_saveload.pas',
+{$IFDEF ENABLE_SOUND}
   g_sound in 'g_sound.pas',
+{$ENDIF}
   g_textures in 'g_textures.pas',
   g_triggers in 'g_triggers.pas',
   g_weapons in 'g_weapons.pas',

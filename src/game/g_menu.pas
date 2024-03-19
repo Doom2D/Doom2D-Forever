@@ -44,8 +44,11 @@ implementation
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
+{$IFDEF ENABLE_SOUND}
+  g_sound,
+{$ENDIF}
   g_gui, g_textures, e_graphics, g_main, g_window, g_game, g_map,
-  g_basic, g_console, g_sound, g_gfx, g_player, g_options, g_weapons,
+  g_basic, g_console, g_gfx, g_player, g_options, g_weapons,
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
   MAPDEF, Math, g_saveload,
   e_texture, g_language, e_res,
@@ -126,6 +129,7 @@ begin
   glNPOTOverride := not (TGUISwitch(menu.GetControl('swLegacyNPOT')).ItemIndex = 0);
   gLerpActors := TGUISwitch(menu.GetControl('swInterp')).ItemIndex = 0;
 
+{$IFDEF ENABLE_SOUND}
   menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
 
   g_Sound_SetupAllVolumes(
@@ -138,6 +142,7 @@ begin
   gAnnouncer := TGUISwitch(menu.GetControl('swAnnouncer')).ItemIndex;
   gSoundEffectsDF := TGUISwitch(menu.GetControl('swSoundEffects')).ItemIndex = 1;
   gUseChatSounds := TGUISwitch(menu.GetControl('swChatSpeech')).ItemIndex = 0;
+{$ENDIF}
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
 
@@ -448,6 +453,7 @@ begin
   with TGUISwitch(menu.GetControl('swInterp')) do
     if gLerpActors then ItemIndex := 0 else ItemIndex := 1;
 
+{$IFDEF ENABLE_SOUND}
   menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
 
   TGUIScroll(menu.GetControl('scSoundLevel')).Value := Round(gSoundLevel/16);
@@ -473,6 +479,7 @@ begin
       ItemIndex := 0
     else
       ItemIndex := 1;
+{$ENDIF}
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1Menu').GetControl('mOptionsControlsP1Menu'));
   with menu do
@@ -1174,6 +1181,7 @@ begin
   g_Texture_CreateWADEx('BSCROLL_MIDDLE', GameWAD+':TEXTURES\SCROLLMIDDLE');
   g_Texture_CreateWADEx('NOPIC', GameWAD+':TEXTURES\NOPIC');
 
+{$IFDEF ENABLE_SOUND}
   g_Sound_CreateWADEx('MENU_SELECT', GameWAD+':SOUNDS\MENUSELECT');
   g_Sound_CreateWADEx('MENU_OPEN', GameWAD+':SOUNDS\MENUOPEN');
   g_Sound_CreateWADEx('MENU_CLOSE', GameWAD+':SOUNDS\MENUCLOSE');
@@ -1181,6 +1189,7 @@ begin
   g_Sound_CreateWADEx('SCROLL_ADD', GameWAD+':SOUNDS\SCROLLADD');
   g_Sound_CreateWADEx('SCROLL_SUB', GameWAD+':SOUNDS\SCROLLSUB');
   g_Sound_CreateWADEx('SOUND_PLAYER_FALL', GameWAD+':SOUNDS\FALL');
+{$ENDIF}
 end;
 
 procedure MenuFreeData();
@@ -1214,6 +1223,7 @@ begin
   g_Texture_Delete('BSCROLL_MIDDLE');
   g_Texture_Delete('NOPIC');
 
+{$IFDEF ENABLE_SOUND}
   g_Sound_Delete('MENU_SELECT');
   g_Sound_Delete('MENU_OPEN');
   g_Sound_Delete('MENU_CLOSE');
@@ -1221,18 +1231,23 @@ begin
   g_Sound_Delete('SCROLL_ADD');
   g_Sound_Delete('SCROLL_SUB');
   g_Sound_Delete('SOUND_PLAYER_FALL');
+{$ENDIF}
 end;
 
 procedure ProcAuthorsMenu();
 begin
+{$IFDEF ENABLE_SOUND}
   gMusic.SetByName('MUSIC_INTERMUS');
   gMusic.Play();
+{$ENDIF}
 end;
 
 procedure ProcExitMenuKeyDown (yes: Boolean);
 var
   s: ShortString;
+{$IFDEF ENABLE_SOUND}
   snd: TPlayableSound;
+{$ENDIF}
   res: Boolean;
 begin
   if not yes then
@@ -1241,6 +1256,7 @@ begin
     exit;
   end;
 
+{$IFDEF ENABLE_SOUND}
   g_Game_StopAllSounds(True);
   case (Random(18)) of
     0: s := 'SOUND_MONSTER_PAIN';
@@ -1276,6 +1292,7 @@ begin
   finally
     snd.Destroy();
   end;
+{$ENDIF}
 
   gExit := EXIT_QUIT;
 end;
@@ -1314,7 +1331,9 @@ begin
   if g_Game_IsNet then Exit;
   if g_Game_IsTestMap then Exit;
   a := StrToInt(Copy(Sender.Name, Length(Sender.Name), 1));
+{$IFDEF ENABLE_SOUND}
   g_Game_PauseAllSounds(True);
+{$ENDIF}
   g_SaveGame(a, TGUIEdit(Sender).Text);
 
   g_ActiveWindow := nil;
@@ -1329,7 +1348,9 @@ begin
   a := StrToInt(Copy(Sender.Name, Length(Sender.Name), 1));
   if g_LoadGame(a) then
   begin
+{$IFDEF ENABLE_SOUND}
     g_Game_PauseAllSounds(False)
+{$ENDIF}
   end
   else // Не загрузилось - возврат в меню
   begin
@@ -1428,6 +1449,7 @@ begin
   TGUILabel(TGUIMenu(g_GUI_GetWindow('NetServerMenu').GetControl('mNetServerMenu')).GetControl('lbMap')).Text := res;
 end;
 
+{$IFDEF ENABLE_SOUND}
 procedure ProcChangeSoundSettings(Sender: TGUIControl);
 var
   menu: TGUIMenu;
@@ -1439,6 +1461,7 @@ begin
     Min(TGUIScroll(menu.GetControl('scMusicLevel')).Value*16, 255)
   );
 end;
+{$ENDIF}
 
 procedure ProcChangeGameSettings(Sender: TGUIControl);
 var
@@ -1577,8 +1600,10 @@ end;
 
 procedure ProcAuthorsClose();
 begin
+{$IFDEF ENABLE_SOUND}
   gMusic.SetByName('MUSIC_MENU');
   gMusic.Play();
+{$ENDIF}
   gState := STATE_MENU;
 end;
 
@@ -2927,7 +2952,9 @@ begin
   begin
     Name := 'mmOptionsMenu';
     AddButton(nil, _lc[I_MENU_VIDEO_OPTIONS], 'OptionsVideoMenu');
+{$IFDEF ENABLE_SOUND}
     AddButton(nil, _lc[I_MENU_SOUND_OPTIONS], 'OptionsSoundMenu');
+{$ENDIF}
     AddButton(nil, _lc[I_MENU_GAME_OPTIONS], 'OptionsGameMenu');
     AddButton(nil, _lc[I_MENU_CONTROLS_OPTIONS], 'OptionsControlsMenu');
     AddButton(nil, _lc[I_MENU_PLAYER_OPTIONS], 'OptionsPlayersMenu');
@@ -3018,6 +3045,7 @@ begin
   end;
   Menu.DefControl := 'mOptionsVideoResMenu';
 
+{$IFDEF ENABLE_SOUND}
   Menu := g_GUI_AddWindow(TGUIWindow.Create('OptionsSoundMenu'));
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_SOUND_OPTIONS]))) do
   begin
@@ -3070,6 +3098,7 @@ begin
     ReAlign();
   end;
   Menu.DefControl := 'mOptionsSoundMenu';
+{$ENDIF}
 
   Menu := g_GUI_AddWindow(TGUIWindow.Create('OptionsGameMenu'));
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_GAME_OPTIONS]))) do
@@ -3797,7 +3826,9 @@ begin
         g_GUI_ShowWindow('GameCustomMenu');
   end;
   g_GUI_ShowWindow('SaveMenu');
+{$IFDEF ENABLE_SOUND}
   g_Sound_PlayEx('MENU_OPEN');
+{$ENDIF}
 end;
 
 procedure g_Menu_Show_LoadMenu (standalone: Boolean=false);
@@ -3814,7 +3845,9 @@ begin
     if not standalone then g_GUI_ShowWindow('GameCustomMenu');
   end;
   g_GUI_ShowWindow('LoadMenu');
+{$IFDEF ENABLE_SOUND}
   g_Sound_PlayEx('MENU_OPEN');
+{$ENDIF}
 end;
 
 procedure g_Menu_Show_GameSetGame();
@@ -3833,7 +3866,9 @@ begin
   end;
   ReadGameSettings();
   g_GUI_ShowWindow('GameSetGameMenu');
+{$IFDEF ENABLE_SOUND}
   g_Sound_PlayEx('MENU_OPEN');
+{$ENDIF}
 end;
 
 procedure g_Menu_Show_OptionsVideo();
@@ -3853,7 +3888,9 @@ begin
   ReadOptions();
   g_GUI_ShowWindow('OptionsMenu');
   g_GUI_ShowWindow('OptionsVideoMenu');
+{$IFDEF ENABLE_SOUND}
   g_Sound_PlayEx('MENU_OPEN');
+{$ENDIF}
 end;
 
 procedure g_Menu_Show_OptionsSound();
@@ -3873,19 +3910,25 @@ begin
   ReadOptions();
   g_GUI_ShowWindow('OptionsMenu');
   g_GUI_ShowWindow('OptionsSoundMenu');
+{$IFDEF ENABLE_SOUND}
   g_Sound_PlayEx('MENU_OPEN');
+{$ENDIF}
 end;
 
 procedure g_Menu_Show_EndGameMenu();
 begin
   g_GUI_ShowWindow('EndGameMenu');
+{$IFDEF ENABLE_SOUND}
   g_Sound_PlayEx('MENU_OPEN');
+{$ENDIF}
 end;
 
 procedure g_Menu_Show_QuitGameMenu();
 begin
   g_GUI_ShowWindow('ExitMenu');
+{$IFDEF ENABLE_SOUND}
   g_Sound_PlayEx('MENU_OPEN');
+{$ENDIF}
 end;
 
 procedure g_Menu_Init();

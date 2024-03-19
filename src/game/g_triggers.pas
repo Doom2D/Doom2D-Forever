@@ -18,8 +18,11 @@ unit g_triggers;
 interface
 
 uses
+{$IFDEF ENABLE_SOUND}
+  g_sound,
+{$ENDIF}
   SysUtils, Variants, Classes,
-  MAPDEF, e_graphics, g_basic, g_sound,
+  MAPDEF, e_graphics, g_basic,
   xdynrec, hashtable, exoma;
 
 type
@@ -50,7 +53,12 @@ type
     PressTime:        Integer;
     PressCount:       Integer;
     SoundPlayCount:   Integer;
+{$IFDEF ENABLE_SOUND}
     Sound:            TPlayableSound;
+{$ELSE}
+    SoundPlay:        Boolean;
+    SoundPos:         LongWord;
+{$ENDIF}
     AutoSpawn:        Boolean;
     SpawnCooldown:    Integer;
     SpawnedCount:     Integer;
@@ -111,6 +119,9 @@ uses
 const
   TRIGGER_SIGNATURE = $58475254; // 'TRGX'
   TRAP_DAMAGE = 1000;
+
+var
+  prevSoundUpdateMs: UInt64;
 
 {$INCLUDE ../shared/mapdef_tgc_impl.inc}
 
@@ -304,7 +315,9 @@ begin
       begin
         if not NoSound then
         begin
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_GAME_DOORCLOSE', X, Y);
+{$ENDIF}
           if g_Game_IsServer and g_Game_IsNet then MH_SEND_Sound(X, Y, 'SOUND_GAME_DOORCLOSE');
         end;
         g_Map_EnableWallGUID(PanelGUID);
@@ -347,7 +360,9 @@ begin
         begin
           with gWalls[PanelID] do
           begin
+{$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_GAME_DOORCLOSE', X, Y);
+{$ENDIF}
             if g_Game_IsServer and g_Game_IsNet then MH_SEND_Sound(X, Y, 'SOUND_GAME_DOORCLOSE');
           end;
           break;
@@ -401,7 +416,9 @@ begin
     begin
       if (not NoSound) and (not Enabled) then
       begin
+{$IFDEF ENABLE_SOUND}
         g_Sound_PlayExAt('SOUND_GAME_SWITCH1', X, Y);
+{$ENDIF}
         if g_Game_IsServer and g_Game_IsNet then MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH1');
       end;
     end;
@@ -457,7 +474,9 @@ begin
         begin
           with gWalls[PanelID] do
           begin
+{$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_GAME_SWITCH1', X, Y);
+{$ENDIF}
             if g_Game_IsServer and g_Game_IsNet then MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH1');
           end;
           Break;
@@ -521,7 +540,9 @@ begin
       begin
         if not NoSound then
         begin
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_GAME_DOOROPEN', X, Y);
+{$ENDIF}
           if g_Game_IsServer and g_Game_IsNet then MH_SEND_Sound(X, Y, 'SOUND_GAME_DOOROPEN');
         end;
         g_Map_DisableWallGUID(PanelGUID);
@@ -556,7 +577,9 @@ begin
         begin
           with gWalls[PanelID] do
           begin
+{$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_GAME_DOOROPEN', X, Y);
+{$ENDIF}
             if g_Game_IsServer and g_Game_IsNet then MH_SEND_Sound(X, Y, 'SOUND_GAME_DOOROPEN');
           end;
           break;
@@ -685,8 +708,13 @@ begin
     TRIGGER_SHOT_BULLET:
     begin
       g_Weapon_mgun(wx, wy, dx, dy, 0, True);
+{$IFDEF ENABLE_SOUND}
+      // XXX: this sound must be choosen by client
       if gSoundEffectsDF then snd := 'SOUND_WEAPON_FIRECGUN'
       else snd := 'SOUND_WEAPON_FIREPISTOL';
+{$ELSE}
+      snd := 'SOUND_WEAPON_FIRECGUN';
+{$ENDIF}
       if ShotSound then
       begin
         g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
@@ -818,8 +846,10 @@ begin
     end;
   end;
 
+{$IFDEF ENABLE_SOUND}
   if ShotSound then
     g_Sound_PlayExAt(snd, wx, wy);
+{$ENDIF}
 end;
 
 
@@ -885,7 +915,9 @@ begin
         if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
         begin
           Anim := TAnimation.Create(FramesID, False, 3);
+{$IFDEF ENABLE_SOUND}
           if not Silent then g_Sound_PlayExAt('SOUND_GAME_TELEPORT', X, Y);
+{$ENDIF}
           g_GFX_OnceAnim(X-32, Y-32, Anim);
           Anim.Free();
         end;
@@ -895,7 +927,9 @@ begin
         if g_Frames_Get(FramesID, 'FRAMES_ITEM_RESPAWN') then
         begin
           Anim := TAnimation.Create(FramesID, False, 4);
+{$IFDEF ENABLE_SOUND}
           if not Silent then g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', X, Y);
+{$ENDIF}
           g_GFX_OnceAnim(X-16, Y-16, Anim);
           Anim.Free();
         end;
@@ -905,7 +939,9 @@ begin
         if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
         begin
           Anim := TAnimation.Create(FramesID, False, 4);
+{$IFDEF ENABLE_SOUND}
           if not Silent then g_Sound_PlayExAt('SOUND_FIRE', X, Y);
+{$ENDIF}
           g_GFX_OnceAnim(X-32, Y-128, Anim);
           Anim.Free();
         end;
@@ -1260,7 +1296,9 @@ begin
     case TriggerType of
       TRIGGER_EXIT:
         begin
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayEx('SOUND_GAME_SWITCH0');
+{$ENDIF}
           if g_Game_IsNet then MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH0');
           gExitByTrigger := True;
           g_Game_ExitLevel(tgcMap);
@@ -1357,9 +1395,11 @@ begin
           TimeOut := 0;
 
           if (not tgcSilent) and Result then begin
+{$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_GAME_SWITCH0',
                              X + (Width div 2),
                              Y + (Height div 2));
+{$ENDIF}
             if g_Game_IsServer and g_Game_IsNet then
               MH_SEND_Sound(X + (Width div 2),
                             Y + (Height div 2),
@@ -1373,9 +1413,11 @@ begin
           TimeOut := 0;
 
           if (not tgcSilent) and Result then begin
+{$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_GAME_SWITCH0',
                              X + (Width div 2),
                              Y + (Height div 2));
+{$ENDIF}
             if g_Game_IsServer and g_Game_IsNet then
               MH_SEND_Sound(X + (Width div 2),
                             Y + (Height div 2),
@@ -1392,9 +1434,11 @@ begin
             TimeOut := 18;
 
             if (not tgcSilent) and Result then begin
+{$IFDEF ENABLE_SOUND}
               g_Sound_PlayExAt('SOUND_GAME_SWITCH0',
                                X + (Width div 2),
                                Y + (Height div 2));
+{$ENDIF}
               if g_Game_IsServer and g_Game_IsNet then
                 MH_SEND_Sound(X + (Width div 2),
                               Y + (Height div 2),
@@ -1422,6 +1466,7 @@ begin
 
       TRIGGER_SOUND:
         begin
+{$IFDEF ENABLE_SOUND}
           if Sound <> nil then
           begin
             if tgcSoundSwitch and Sound.IsPlaying() then
@@ -1439,8 +1484,27 @@ begin
                     SoundPlayCount := 1;
                   Result := True;
                 end;
-            if g_Game_IsNet then MH_SEND_TriggerSound(Trigger);
+            if g_Game_IsNet then
+              MH_SEND_TriggerSound(ClientID, Sound.IsPlaying(), Sound.GetPosition(), SoundPlayCount);
           end;
+{$ELSE}
+          if tgcSoundSwitch and SoundPlay then
+          begin
+            SoundPlay := False;
+            SoundPlayCount := 0;
+            Result := True;
+          end
+          else if (tgcPlayCount > 0) or not SoundPlay then
+          begin
+            if tgcPlayCount > 0 then
+              SoundPlayCount := tgcPlayCount
+            else
+              SoundPlayCount := 1;
+            Result := True;
+          end;
+          if g_Game_IsNet then
+            MH_SEND_TriggerSound(ClientID, SoundPlay, SoundPos, SoundPlayCount);
+{$ENDIF}
         end;
 
       TRIGGER_SPAWNMONSTER:
@@ -1498,7 +1562,9 @@ begin
                   if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
                   begin
                     Anim := TAnimation.Create(FramesID, False, 3);
+{$IFDEF ENABLE_SOUND}
                     g_Sound_PlayExAt('SOUND_GAME_TELEPORT', tgcTX, tgcTY);
+{$ENDIF}
                     g_GFX_OnceAnim(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-32,
                                    mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2)-32, Anim);
                     Anim.Free();
@@ -1512,7 +1578,9 @@ begin
                   if g_Frames_Get(FramesID, 'FRAMES_ITEM_RESPAWN') then
                   begin
                     Anim := TAnimation.Create(FramesID, False, 4);
+{$IFDEF ENABLE_SOUND}
                     g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', tgcTX, tgcTY);
+{$ENDIF}
                     g_GFX_OnceAnim(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-16,
                                    mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2)-16, Anim);
                     Anim.Free();
@@ -1526,7 +1594,9 @@ begin
                   if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
                   begin
                     Anim := TAnimation.Create(FramesID, False, 4);
+{$IFDEF ENABLE_SOUND}
                     g_Sound_PlayExAt('SOUND_FIRE', tgcTX, tgcTY);
+{$ENDIF}
                     g_GFX_OnceAnim(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-32,
                                    mon.Obj.Y+mon.Obj.Rect.Y+mon.Obj.Rect.Height-128, Anim);
                     Anim.Free();
@@ -1591,7 +1661,9 @@ begin
                     if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
                     begin
                       Anim := TAnimation.Create(FramesID, False, 3);
+{$IFDEF ENABLE_SOUND}
                       g_Sound_PlayExAt('SOUND_GAME_TELEPORT', tgcTX, tgcTY);
+{$ENDIF}
                       g_GFX_OnceAnim(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-32,
                                      it.Obj.Y+it.Obj.Rect.Y+(it.Obj.Rect.Height div 2)-32, Anim);
                       Anim.Free();
@@ -1606,7 +1678,9 @@ begin
                     if g_Frames_Get(FramesID, 'FRAMES_ITEM_RESPAWN') then
                     begin
                       Anim := TAnimation.Create(FramesID, False, 4);
+{$IFDEF ENABLE_SOUND}
                       g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', tgcTX, tgcTY);
+{$ENDIF}
                       g_GFX_OnceAnim(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-16,
                                      it.Obj.Y+it.Obj.Rect.Y+(it.Obj.Rect.Height div 2)-16, Anim);
                       Anim.Free();
@@ -1621,7 +1695,9 @@ begin
                     if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
                     begin
                       Anim := TAnimation.Create(FramesID, False, 4);
+{$IFDEF ENABLE_SOUND}
                       g_Sound_PlayExAt('SOUND_FIRE', tgcTX, tgcTY);
+{$ENDIF}
                       g_GFX_OnceAnim(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-32,
                                      it.Obj.Y+it.Obj.Rect.Y+it.Obj.Rect.Height-128, Anim);
                       Anim.Free();
@@ -1651,12 +1727,17 @@ begin
         // Меняем музыку, если есть на что:
           if (Trigger.tgcMusicName <> '') then
           begin
+{$IFDEF ENABLE_SOUND}
             gMusic.SetByName(Trigger.tgcMusicName);
             gMusic.SpecPause := True;
             gMusic.Play();
+{$ELSE}
+            gMusicName := Trigger.tgcMusicName;
+{$ENDIF}
           end;
 
           case Trigger.tgcMusicAction of
+{$IFDEF ENABLE_SOUND}
             TRIGGER_MUSIC_ACTION_STOP: // Выключить
               gMusic.SpecPause := True; // Пауза
             TRIGGER_MUSIC_ACTION_PLAY: // Включить
@@ -1664,6 +1745,15 @@ begin
                 gMusic.SpecPause := False
               else // Играла => сначала
                 gMusic.SetPosition(0);
+{$ELSE}
+            TRIGGER_MUSIC_ACTION_STOP:
+              gMusicPause := True;
+            TRIGGER_MUSIC_ACTION_PLAY:
+              if gMusicPause then
+                gMusicPause := False
+              else
+                gMusicPos := 0;
+{$ENDIF}
           end;
 
           if coolDown then
@@ -1671,7 +1761,14 @@ begin
           else
             TimeOut := 0;
           Result := True;
-          if g_Game_IsNet then MH_SEND_TriggerMusic;
+
+{$IFDEF ENABLE_SOUND}
+          if g_Game_IsNet then
+            MH_SEND_TriggerMusic(gMusic.Name, gMusic.IsPlaying, gMusic.GetPosition, gMusic.SpecPause or gMusic.IsPaused, ID);
+{$ELSE}
+          if g_Game_IsNet then
+            MH_SEND_TriggerMusic(gMusicName, gMusicPlay, gMusicPos, gMusicPause or not gMusicPlay);
+{$ENDIF}
         end;
 
       TRIGGER_PUSH:
@@ -2107,7 +2204,9 @@ begin
                     if (TriggerType = TRIGGER_HEALTH) and (tgcAmount > 0) then
                       if p.Heal(tgcAmount, not tgcHealMax) and (not tgcSilent) then
                       begin
+{$IFDEF ENABLE_SOUND}
                         g_Sound_PlayExAt('SOUND_ITEM_GETITEM', p.Obj.X, p.Obj.Y);
+{$ENDIF}
                         if g_Game_IsServer and g_Game_IsNet then
                           MH_SEND_Sound(p.Obj.X, p.Obj.Y, 'SOUND_ITEM_GETITEM');
                       end;
@@ -2130,7 +2229,9 @@ begin
                     if (TriggerType = TRIGGER_HEALTH) and (tgcAmount > 0) then
                       if m.Heal(tgcAmount) and (not tgcSilent) then
                       begin
+{$IFDEF ENABLE_SOUND}
                         g_Sound_PlayExAt('SOUND_ITEM_GETITEM', m.Obj.X, m.Obj.Y);
+{$ENDIF}
                         if g_Game_IsServer and g_Game_IsNet then
                           MH_SEND_Sound(m.Obj.X, m.Obj.Y, 'SOUND_ITEM_GETITEM');
                       end;
@@ -2263,7 +2364,9 @@ begin
               ShotSightTargetN := TargetUID;
               if tgcShotType = TRIGGER_SHOT_BFG then
               begin
+{$IFDEF ENABLE_SOUND}
                 g_Sound_PlayExAt('SOUND_WEAPON_STARTFIREBFG', wx, wy);
+{$ENDIF}
                 if g_Game_IsNet and g_Game_IsServer then
                   MH_SEND_Sound(wx, wy, 'SOUND_WEAPON_STARTFIREBFG');
               end;
@@ -2430,7 +2533,12 @@ begin
     PressTime := -1;
     PressCount := 0;
     SoundPlayCount := 0;
+{$IFDEF ENABLE_SOUND}
     Sound := nil;
+{$ELSE}
+    SoundPlay := False;
+    SoundPos := 0;
+{$ENDIF}
     AutoSpawn := False;
     SpawnCooldown := 0;
     SpawnedCount := 0;
@@ -2492,6 +2600,7 @@ begin
     end;
   end;
 
+{$IFDEF ENABLE_SOUND}
   // Загружаем звук, если это триггер "Звук"
   if (ptg.TriggerType = TRIGGER_SOUND) and (ptg.tgcSoundName <> '') then
   begin
@@ -2524,6 +2633,7 @@ begin
         g_FatalError(Format(_lc[I_GAME_ERROR_TR_SOUND], [fn, ptg.tgcMusicName]));
     end;
   end;
+{$ENDIF}
 
   // Загружаем данные триггера "Турель"
   if (ptg.TriggerType = TRIGGER_SHOT) then
@@ -2555,6 +2665,7 @@ procedure g_Triggers_Update();
 var
   a, b, i: Integer;
   Affected: array of Integer;
+  ms: UInt64;
 
   function monsNear (mon: TMonster): Boolean;
   begin
@@ -2574,6 +2685,8 @@ begin
 
   if gTriggers = nil then Exit;
   if gLMSRespawn > LMS_RESPAWN_NONE then Exit; // don't update triggers at all
+
+  ms := GetTickCount64();
 
   SetLength(Affected, 0);
 
@@ -2656,6 +2769,7 @@ begin
         end;
 
         // Триггер "Звук" уже отыграл, если нужно еще - перезапускаем
+{$IFDEF ENABLE_SOUND}
         if Enabled and (TriggerType = TRIGGER_SOUND) and (Sound <> nil) then
         begin
           if (SoundPlayCount > 0) and (not Sound.IsPlaying()) then
@@ -2666,9 +2780,25 @@ begin
             else
               Sound.PlayPanVolume((tgcPan - 127.0) / 128.0, tgcVolume / 255.0);
             if Sound.IsPlaying() and g_Game_IsNet and g_Game_IsServer then
-              MH_SEND_TriggerSound(gTriggers[a])
+              MH_SEND_TriggerSound(ClientID, Sound.IsPlaying(), Sound.GetPosition(), SoundPlayCount);
           end
         end;
+{$ELSE}
+       if Enabled and (TriggerType = TRIGGER_SOUND) then
+       begin
+         if SoundPlay then
+           SoundPos := SoundPos + (ms - prevSoundUpdateMs);
+         // XXX: Sound never stopped automatically due to unknown length
+         //      so SoundPlayCount never updated and sound played only once.
+         if (SoundPlayCount > 0) and (not SoundPlay) then
+         begin
+           if tgcPlayCount > 0 then
+             Dec(SoundPlayCount);
+           if SoundPlay and g_Game_IsNet and g_Game_IsServer then
+             MH_SEND_TriggerSound(ClientID, SoundPlay, SoundPos, SoundPlayCount)
+         end;
+       end;
+{$ENDIF}
 
         // Триггер "Ловушка" - пора открывать
         if (TriggerType = TRIGGER_TRAP) and (DoorTime = 0) and (g_Map_PanelByGUID(trigPanelGUID) <> nil) then
@@ -2733,7 +2863,9 @@ begin
             end;
             if not tgcSilent and (Length(tgcSound) > 0) then
             begin
+{$IFDEF ENABLE_SOUND}
               g_Sound_PlayExAt(tgcSound, X, Y);
+{$ENDIF}
               if g_Game_IsServer and g_Game_IsNet then MH_SEND_Sound(X, Y, tgcSound);
             end;
           end;
@@ -2864,6 +2996,8 @@ begin
 
         PlayerCollide := g_CollidePlayer(X, Y, Width, Height);
       end;
+
+  prevSoundUpdateMs := ms;
 end;
 
 procedure g_Triggers_Press(ID: DWORD; ActivateType: Byte; ActivateUID: Word = 0);
@@ -3020,7 +3154,9 @@ begin
     end;
   end;
 
+{$IFDEF ENABLE_SOUND}
   if b then g_Sound_PlayEx('SOUND_GAME_DOOROPEN');
+{$ENDIF}
 end;
 
 procedure g_Triggers_DecreaseSpawner(ID: DWORD);
@@ -3052,11 +3188,16 @@ begin
   begin
     if (gTriggers[a].TriggerType = TRIGGER_SOUND) then
     begin
+{$IFDEF ENABLE_SOUND}
       if g_Sound_Exists(gTriggers[a].tgcSoundName) then
       begin
         g_Sound_Delete(gTriggers[a].tgcSoundName);
       end;
       gTriggers[a].Sound.Free();
+{$ELSE}
+       gTriggers[a].SoundPlay := False;
+       gTriggers[a].SoundPos := 0;
+{$ENDIF}
     end;
     if (gTriggers[a].Activators <> nil) then
     begin
@@ -3139,6 +3280,7 @@ begin
     st.WriteInt32LE(gTriggers[i].SpawnedCount);  // Счетчик создания объектов
     st.WriteInt32LE(gTriggers[i].SoundPlayCount);  // Сколько раз проигран звук
 
+{$IFDEF ENABLE_SOUND}
     // Проигрывается ли звук?
     // BEWARE: Short-circuit evaluation matters here!
     b := (gTriggers[i].Sound <> nil) and gTriggers[i].Sound.IsPlaying();
@@ -3149,6 +3291,17 @@ begin
       st.WriteSingle(gTriggers[i].Sound.GetVolume() / (gSoundLevel / 255.0));  // Громкость звука
       st.WriteSingle(gTriggers[i].Sound.GetPan());  // Стерео смещение звука
     end;
+{$ELSE}
+    st.WriteBool(gTriggers[i].SoundPlay);
+    if gTriggers[i].SoundPlay then
+    begin
+      st.WriteDWordLE(gTriggers[i].SoundPos);
+//      st.WriteSingle(gTriggers[i].tgcVolume / 255.0);
+//      st.WriteSingle((gTriggers[i].tgcPan - 127) / 128.0);
+      st.WriteSingle(1.0);
+      st.WriteSingle(0.0);
+    end;
+{$ENDIF}
 
     // uservars
     if gTriggers[i].userVars = nil then
@@ -3268,13 +3421,19 @@ begin
       vol := st.ReadSingle();  // Громкость звука
       pan := st.ReadSingle();  // Стерео смещение звука
 
+{$IFDEF ENABLE_SOUND}
       // Запускаем звук, если есть
       if gTriggers[i].Sound <> nil then
       begin
         gTriggers[i].Sound.PlayPanVolume(pan, vol);
         gTriggers[i].Sound.Pause(True);
         gTriggers[i].Sound.SetPosition(dw);
-      end
+      end;
+{$ELSE}
+      gTriggers[i].SoundPlay := False;
+      gTriggers[i].SoundPos := dw;
+      // ignore volume and pan
+{$ENDIF}
     end;
 
     // uservars
@@ -3308,4 +3467,6 @@ begin
 end;
 
 
+initialization
+  prevSoundUpdateMs := GetTickCount64();
 end.

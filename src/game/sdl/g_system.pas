@@ -48,7 +48,10 @@ implementation
     {$ENDIF}
     SysUtils, SDL, Math,
     {$INCLUDE ../nogl/noGLuses.inc}
-    e_log, e_graphics, e_input, e_sound,
+    {$IFDEF ENABLE_SOUND}
+      e_sound,
+    {$ENDIF}
+    e_log, e_graphics, e_input,
     g_options, g_window, g_console, g_game, g_menu, g_gui, g_main, g_basic;
 
   const
@@ -674,7 +677,12 @@ implementation
         SDL_JOYAXISMOTION: HandleJoyAxis(ev.jaxis);
         SDL_JOYHATMOTION: HandleJoyHat(ev.jhat);
         SDL_VIDEOEXPOSE: sys_Repaint;
-        SDL_ACTIVEEVENT: e_MuteChannels((ev.active.gain = 0) and gMuteWhenInactive);
+        SDL_ACTIVEEVENT:
+          begin
+            {$IFDEF ENABLE_SOUND}
+              e_MuteChannels((ev.active.gain = 0) and gMuteWhenInactive);
+            {$ENDIF}
+          end;
       end
     end
   end;

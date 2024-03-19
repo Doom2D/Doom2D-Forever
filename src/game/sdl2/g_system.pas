@@ -41,10 +41,13 @@ implementation
 
   uses
     SysUtils, SDL2, Math, ctypes,
-    e_log, e_graphics, e_input, e_sound,
+    e_log, e_graphics, e_input,
     {$INCLUDE ../nogl/noGLuses.inc}
     {$IFDEF ENABLE_HOLMES}
       g_holmes, sdlcarcass, fui_ctls,
+    {$ENDIF}
+    {$IFDEF ENABLE_SOUND}
+      e_sound,
     {$ENDIF}
     g_touch, g_options, g_window, g_console, g_game, g_menu, g_gui, g_main, g_basic;
 
@@ -467,8 +470,10 @@ implementation
       SDL_WINDOWEVENT_FOCUS_LOST, SDL_WINDOWEVENT_MINIMIZED:
         begin
           e_UnpressAllKeys;
+{$IFDEF ENABLE_SOUND}
           if gMuteWhenInactive then
             e_MuteChannels(true);
+{$ENDIF}
           {$IFDEF ENABLE_HOLMES}
             if assigned(winBlurCB) then winBlurCB;
           {$ENDIF}
@@ -485,7 +490,9 @@ implementation
             gWinMaximized := false;
             gRC_Maximized := false
           end;
+{$IFDEF ENABLE_SOUND}
           e_MuteChannels(false);
+{$ENDIF}
           {$IFDEF ENABLE_HOLMES}
             if assigned(winFocusCB) then winFocusCB;
           {$ENDIF}

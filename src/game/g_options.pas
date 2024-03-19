@@ -41,11 +41,17 @@ var
   gLerpActors: Boolean = True;
   gFrameTime: Integer = 5;
   gMaxFPS: Integer = 200;
+{$IFDEF ENABLE_SOUND}
   gNoSound: Boolean;
   gSoundLevel: Integer;
   gMusicLevel: Integer;
   gMaxSimSounds: Integer;
   gMuteWhenInactive: Boolean;
+{$IFDEF USE_SDLMIXER}
+  gsSDLSampleRate: Integer;
+  gsSDLBufferSize: Integer;
+{$ENDIF} // USE_SDLMIXER
+{$ENDIF} // ENABLE_SOUND
   gAdvCorpses: Boolean;
   gAdvBlood: Boolean;
   gAdvGibs: Boolean;
@@ -59,8 +65,6 @@ var
   gAskLanguage: Boolean;
   gSaveStats: Boolean = False;
   gScreenshotStats: Boolean = False;
-  gsSDLSampleRate: Integer;
-  gsSDLBufferSize: Integer;
   gDefaultMegawadStart: AnsiString;
   glNPOTOverride: Boolean = false;
 
@@ -86,7 +90,10 @@ uses
   {$IFDEF USE_SDL2}
     SDL2,
   {$ENDIF}
-  e_log, e_input, g_console, g_window, g_sound, g_gfx, g_player, Math,
+  {$IFDEF ENABLE_SOUND}
+    g_sound,
+  {$ENDIF}
+  e_log, e_input, g_console, g_window, g_gfx, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_main, e_texture,
   g_items, wadreader, e_graphics, g_touch, envvars, g_system;
 
@@ -197,6 +204,7 @@ procedure g_Options_SetDefault();
 var
   i: Integer;
 begin
+{$IFDEF ENABLE_SOUND}
   (* section Sound *)
   gNoSound := False;
   gSoundLevel := 75;
@@ -206,10 +214,12 @@ begin
   gAnnouncer := ANNOUNCE_MEPLUS;
   gSoundEffectsDF := True;
   gUseChatSounds := True;
+{$IFDEF USE_SDLMIXER}
   gsSDLSampleRate := 44100;
   gsSDLBufferSize := 2048;
-
+{$ENDIF}
   g_Sound_SetupAllVolumes(gSoundLevel, gMusicLevel);
+{$ENDIF}
 
   with gPlayer1Settings do
   begin
@@ -343,6 +353,7 @@ initialization
   conRegVar('r_npot', @glNPOTOverride, '', '');
   conRegVar('r_interp', @gLerpActors, '', 'interpolate actors');
 
+{$IFDEF ENABLE_SOUND}
   (* Sound *)
   conRegVar('s_nosound', @gNoSound, '', '');
   conRegVar('s_soundvolume', @gSoundLevel, '', '');
@@ -356,6 +367,7 @@ initialization
     conRegVar('sdl_mixer_samplerate', @gsSDLSampleRate, '', '');
     conRegVar('sdl_mixer_buffersize', @gsSDLBufferSize, '', '');
   {$ENDIF}
+{$ENDIF}
 
   (* Game *)
   conRegVar('g_gibs_count', @gGibsCount, '', '');

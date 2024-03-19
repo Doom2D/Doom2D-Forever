@@ -547,7 +547,10 @@ implementation
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
-  g_textures, g_sound, SysUtils, e_res,
+{$IFDEF ENABLE_SOUND}
+  g_sound,
+{$ENDIF}
+  g_textures, SysUtils, e_res,
   g_game, Math, StrUtils, g_player, g_options, g_console,
   g_map, g_weapons, xdynrec, wadreader, Generics.Collections, Generics.Defaults;
 
@@ -643,8 +646,10 @@ begin
     if @g_ActiveWindow.OnClose <> nil then
       g_ActiveWindow.OnClose();
     g_ActiveWindow := g_ActiveWindow.FPrevWindow;
+{$IFDEF ENABLE_SOUND}
     if PlaySound then
       g_Sound_PlayEx(WINDOW_CLOSESOUND);
+{$ENDIF}
   end;
 end;
 
@@ -920,7 +925,9 @@ end;
 
 procedure TGUITextButton.Click(Silent: Boolean = False);
 begin
+{$IFDEF ENABLE_SOUND}
   if (FSound <> '') and (not Silent) then g_Sound_PlayEx(FSound);
+{$ENDIF}
 
   if @Proc <> nil then Proc();
   if @ProcEx <> nil then ProcEx(self);
@@ -1203,7 +1210,9 @@ begin
             if FIndex < 0 then FIndex := High(FButtons);
           until FButtons[FIndex] <> nil;
 
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayEx(MENU_CHANGESOUND);
+{$ENDIF}
         end;
         IK_DOWN, IK_KPDOWN, VK_DOWN, JOY0_DOWN, JOY1_DOWN, JOY2_DOWN, JOY3_DOWN:
         begin
@@ -1212,7 +1221,9 @@ begin
             if FIndex > High(FButtons) then FIndex := 0;
           until FButtons[FIndex] <> nil;
 
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayEx(MENU_CHANGESOUND);
+{$ENDIF}
         end;
         IK_RETURN, IK_KPRETURN, IK_SELECT,
         VK_FIRE, VK_OPEN, JOY0_ATTACK,
@@ -1549,7 +1560,9 @@ begin
      (FItems[FIndex].Control.WantActivationKey(Msg.wParam)) then
   begin
     FItems[FIndex].Control.OnMessage(Msg);
+{$IFDEF ENABLE_SOUND}
     g_Sound_PlayEx(MENU_CLICKSOUND);
+{$ENDIF}
     exit;
   end;
 
@@ -1575,7 +1588,9 @@ begin
 
           FCounter := 0;
 
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayEx(MENU_CHANGESOUND);
+{$ENDIF}
         end;
 
         IK_DOWN, IK_KPDOWN, VK_DOWN, JOY0_DOWN, JOY1_DOWN, JOY2_DOWN, JOY3_DOWN:
@@ -1596,7 +1611,9 @@ begin
 
           FCounter := 0;
 
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayEx(MENU_CHANGESOUND);
+{$ENDIF}
         end;
 
         IK_LEFT, IK_RIGHT, IK_KPLEFT, IK_KPRIGHT, VK_LEFT, VK_RIGHT,
@@ -1615,7 +1632,9 @@ begin
           begin
             if FItems[FIndex].Control <> nil then FItems[FIndex].Control.OnMessage(Msg);
           end;
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayEx(MENU_CLICKSOUND);
+{$ENDIF}
         end;
         // dirty hacks
         IK_Y:
@@ -2122,14 +2141,18 @@ begin
           if FValue > 0 then
           begin
             Dec(FValue);
+{$IFDEF ENABLE_SOUND}
             g_Sound_PlayEx(SCROLL_SUBSOUND);
+{$ENDIF}
             if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
           end;
         IK_RIGHT, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
           if FValue < FMax then
           begin
             Inc(FValue);
+{$IFDEF ENABLE_SOUND}
             g_Sound_PlayEx(SCROLL_ADDSOUND);
+{$ENDIF}
             if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
           end;
       end;
@@ -2212,7 +2235,9 @@ begin
           else
             FIndex := 0;
 
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayEx(SCROLL_ADDSOUND);
+{$ENDIF}
 
           if @FOnChangeEvent <> nil then
             FOnChangeEvent(Self);
@@ -2226,7 +2251,9 @@ begin
           else
             FIndex := High(FItems);
 
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayEx(SCROLL_SUBSOUND);
+{$ENDIF}
 
           if @FOnChangeEvent <> nil then
             FOnChangeEvent(Self);

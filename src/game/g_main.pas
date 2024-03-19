@@ -68,9 +68,12 @@ uses
 {$IFDEF USE_SDL2}
   SDL2,
 {$ENDIF}
+{$IFDEF ENABLE_SOUND}
+  g_sound, e_sound,
+{$ENDIF}
   wadreader, e_log, g_window,
   e_graphics, e_input, g_game, g_console, g_gui,
-  e_sound, g_options, g_sound, g_player, g_basic,
+  g_options, g_player, g_basic,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map, e_res,
   g_menu, g_language, g_net, g_touch, g_system, g_res_downloader,
   conbuf, envvars,
@@ -628,6 +631,7 @@ begin
     e_WriteLog('Input: No Joysticks.', TMsgType.Notify);
 *)
 
+{$IFDEF ENABLE_SOUND}
   if not gNoSound then
   begin
     e_WriteLog('Initializing sound system', TMsgType.Notify);
@@ -666,6 +670,7 @@ begin
       end;
     {$ENDIF}
   end;
+{$ENDIF}
 
   e_WriteLog('Init game', TMsgType.Notify);
   g_Game_Init();
@@ -682,11 +687,13 @@ begin
   e_WriteLog('Releasing input', TMsgType.Notify);
   e_ReleaseInput();
 
+{$IFDEF ENABLE_SOUND}
   if not gNoSound then
   begin
     e_WriteLog('Releasing sound', TMsgType.Notify);
     e_ReleaseSoundSystem();
   end;
+{$ENDIF}
 end;
 
 
@@ -789,7 +796,10 @@ const
 label
   Cheated;
 var
-  s, s2: string;
+{$IFDEF ENABLE_SOUND}
+  s: string;
+{$ENDIF}
+  s2: string;
   c: ShortString;
   a: Integer;
 begin
@@ -801,7 +811,9 @@ begin
   if not gGameOn then exit;
   if not conIsCheatsEnabled then exit;
 
+{$IFDEF ENABLE_SOUND}
   s := 'SOUND_GAME_RADIO';
+{$ENDIF}
 
   //
   if CheckCheat(I_GAME_CHEAT_GODMODE) then
@@ -829,7 +841,9 @@ begin
   begin
     if gPlayer1 <> nil then gPlayer1.Damage(CHEAT_DAMAGE, 0, 0, 0, HIT_TRAP);
     if gPlayer2 <> nil then gPlayer2.Damage(CHEAT_DAMAGE, 0, 0, 0, HIT_TRAP);
+{$IFDEF ENABLE_SOUND}
     s := 'SOUND_MONSTER_HAHA';
+{$ENDIF}
     goto Cheated;
   end;
   //
@@ -943,7 +957,9 @@ begin
   Exit;
 
 Cheated:
+{$IFDEF ENABLE_SOUND}
   g_Sound_PlayEx(s);
+{$ENDIF}
 end;
 
 
@@ -976,14 +992,18 @@ begin
             begin
               if (NetMode <> NET_NONE) then
               begin
+{$IFDEF ENABLE_SOUND}
                 g_Game_StopAllSounds(True);
+{$ENDIF}
                 g_Game_Free;
                 gState := STATE_MENU;
                 Exit;
               end;
             end;
             g_GUI_ShowWindow('MainMenu');
+{$IFDEF ENABLE_SOUND}
             g_Sound_PlayEx('MENU_OPEN');
+{$ENDIF}
           end;
         end;
       end;
@@ -1022,7 +1042,9 @@ begin
         else if (gState = STATE_MENU) then
         begin
           g_GUI_ShowWindow('MainMenu');
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayEx('MENU_OPEN');
+{$ENDIF}
         end;
       end;
   end;

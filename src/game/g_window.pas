@@ -35,10 +35,13 @@ uses
   g_holmes, sdlcarcass, fui_ctls,
 {$ENDIF}
 {$INCLUDE ../nogl/noGLuses.inc}
+{$IFDEF ENABLE_SOUND}
+  g_sound, e_sound,
+{$ENDIF}
   SysUtils, Classes, MAPDEF, Math, utils,
   e_graphics, e_log, e_texture, g_main,
   g_console, e_input, g_options, g_game,
-  g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
+  g_basic, g_textures, g_menu, ENet, g_net,
   g_map, g_gfx, g_monsters, xprofiler,
   g_touch, g_gui, g_system, g_netmaster;
 
@@ -52,6 +55,20 @@ var
   flag: Boolean;
   wNeedTimeReset: Boolean = false;
   wMinimized: Boolean = false;
+  prevSoundTimeMs: UInt64;
+
+procedure UpdateSound;
+  var ms: UInt64;
+begin
+  ms := GetTickCount64();
+{$IFDEF ENABLE_SOUND}
+  e_SoundUpdate();
+{$ELSE}
+  if gMusicPlay and not gMusicPause then
+    gMusicPos := gMusicPos + (ms - prevSoundTimeMs);
+{$ENDIF}
+  prevSoundTimeMs := ms;
+end;
 
 procedure ResetTimer ();
 begin
@@ -101,7 +118,7 @@ begin
   end;
 {$ENDIF}
 
-  e_SoundUpdate();
+  UpdateSound();
 
   // TODO: At the moment, I left here only host network processing, because the client code must
   // handle network events on its own. Otherwise separate network cases that use different calls to
@@ -175,7 +192,7 @@ begin
   else
     sys_Delay(1);  // force OS context switch to prevent false-positive 100% CPU load
 
-  e_SoundUpdate();
+  UpdateSound();
 end;
 
 function GLExtensionList (): SSArray;
@@ -376,5 +393,6 @@ end;
 
 
 initialization
+  prevSoundTimeMs := GetTickCount64();
   conRegVar('d_input', @g_dbg_input, '', '')
 end.

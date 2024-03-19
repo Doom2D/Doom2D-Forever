@@ -21,8 +21,11 @@ interface
 uses
   SysUtils, Classes,
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
+  {$IFDEF ENABLE_SOUND}
+    g_sound,
+  {$ENDIF}
   e_graphics, g_playermodel, g_basic, g_textures,
-  g_weapons, g_phys, g_sound, g_saveload, MAPDEF,
+  g_weapons, g_phys, g_saveload, MAPDEF,
   g_panel;
 
 const
@@ -195,6 +198,7 @@ type
     FSlopeOld:       Integer;
     FShellTimer:     Integer;
     FShellType:      Byte;
+{$IFDEF ENABLE_SOUND}
     FSawSound:       TPlayableSound;
     FSawSoundIdle:   TPlayableSound;
     FSawSoundHit:    TPlayableSound;
@@ -205,6 +209,7 @@ type
     FJetSoundOn:     TPlayableSound;
     FJetSoundOff:    TPlayableSound;
     FJetSoundFly:    TPlayableSound;
+{$ENDIF}
     FGodMode:   Boolean;
     FNoTarget:  Boolean;
     FNoReload:  Boolean;
@@ -350,7 +355,9 @@ type
     procedure   RestoreState();
     procedure   SaveState (st: TStream); virtual;
     procedure   LoadState (st: TStream); virtual;
+{$IFDEF ENABLE_SOUND}
     procedure   PauseSounds(Enable: Boolean);
+{$ENDIF}
     procedure   NetFire(Wpn: Byte; X, Y, AX, AY: Integer; WID: Integer = -1);
     procedure   DoLerp(Level: Integer = 2);
     procedure   SetLerp(XTo, YTo: Integer);
@@ -1706,9 +1713,11 @@ var
     k: Integer;
   begin
     k := 1 + Random(2);
+{$IFDEF ENABLE_SOUND}
     if T = SHELL_BULLET
       then g_Sound_PlayExAt('SOUND_PLAYER_CASING' + IntToStr(k), X, Y)
       else g_Sound_PlayExAt('SOUND_PLAYER_SHELL' + IntToStr(k), X, Y);
+{$ENDIF}
   end;
 
 begin
@@ -2208,6 +2217,7 @@ begin
   FDummy := False;
   FSpawned := False;
 
+{$IFDEF ENABLE_SOUND}
   FSawSound := TPlayableSound.Create();
   FSawSoundIdle := TPlayableSound.Create();
   FSawSoundHit := TPlayableSound.Create();
@@ -2229,6 +2239,7 @@ begin
   FJetSoundFly.SetByName('SOUND_PLAYER_JETFLY');
   FJetSoundOn.SetByName('SOUND_PLAYER_JETON');
   FJetSoundOff.SetByName('SOUND_PLAYER_JETOFF');
+{$ENDIF}
 
   FSpectatePlayer := -1;
   FClientID := -1;
@@ -2387,6 +2398,7 @@ begin
   if (gPlayer2 <> nil) and (gPlayer2.FUID = FUID) then
     gPlayer2 := nil;
 
+{$IFDEF ENABLE_SOUND}
   FSawSound.Free();
   FSawSoundIdle.Free();
   FSawSoundHit.Free();
@@ -2397,6 +2409,8 @@ begin
   FJetSoundFly.Free();
   FJetSoundOn.Free();
   FJetSoundOff.Free();
+{$ENDIF}
+
   FModel.Free();
   FPunchAnim.Free();
 
@@ -3097,9 +3111,18 @@ begin
         locobj.Accel.X := xd-wx;
         locobj.Accel.y := yd-wy;
 
-        if g_Weapon_Hit(@locobj, 50, FUID, HIT_SOME) <> 0
-          then g_Sound_PlayExAt('SOUND_WEAPON_HITBERSERK', FObj.X, FObj.Y)
-          else g_Sound_PlayExAt('SOUND_WEAPON_MISSBERSERK', FObj.X, FObj.Y);
+        if g_Weapon_Hit(@locobj, 50, FUID, HIT_SOME) <> 0 then
+        begin
+{$IFDEF ENABLE_SOUND}
+          g_Sound_PlayExAt('SOUND_WEAPON_HITBERSERK', FObj.X, FObj.Y)
+{$ENDIF}
+        end
+        else
+        begin
+{$IFDEF ENABLE_SOUND}
+          g_Sound_PlayExAt('SOUND_WEAPON_MISSBERSERK', FObj.X, FObj.Y);
+{$ENDIF}
+        end;
 
         if (gFlash = 1) and (FPain < 50) then FPain := min(FPain + 25, 50);
       end
@@ -3112,6 +3135,7 @@ begin
 
     WEAPON_SAW:
     begin
+{$IFDEF ENABLE_SOUND}
       if g_Weapon_chainsaw(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y,
                            IfThen(gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF], 9, 3), FUID) <> 0 then
       begin
@@ -3124,6 +3148,10 @@ begin
         FSawSoundSelect.Stop();
         FSawSound.PlayAt(FObj.X, FObj.Y);
       end;
+{$ELSE}
+      g_Weapon_chainsaw(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y,
+                        IfThen(gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF], 9, 3), FUID);
+{$ENDIF}
 
       FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
       DidFire := True;
@@ -3150,7 +3178,9 @@ begin
       if FAmmo[A_SHELLS] > 0 then
       begin
         g_Weapon_shotgun(wx, wy, xd, yd, FUID);
+{$IFDEF ENABLE_SOUND}
         if not gSoundEffectsDF then g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', wx, wy);
+{$ENDIF}
         FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
         Dec(FAmmo[A_SHELLS]);
         FFireAngle := FAngle;
@@ -3177,7 +3207,9 @@ begin
       if FAmmo[A_BULLETS] > 0 then
       begin
         g_Weapon_mgun(wx, wy, xd, yd, FUID);
+{$IFDEF ENABLE_SOUND}
         if not gSoundEffectsDF then g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', wx, wy);
+{$ENDIF}
         FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
         Dec(FAmmo[A_BULLETS]);
         FFireAngle := FAngle;
@@ -3216,8 +3248,10 @@ begin
       if (FAmmo[A_CELLS] >= 40) and (FBFGFireCounter = -1) then
       begin
         FBFGFireCounter := 17;
+{$IFDEF ENABLE_SOUND}
         if not FNoReload then
           g_Sound_PlayExAt('SOUND_WEAPON_STARTFIREBFG', FObj.X, FObj.Y);
+{$ENDIF}
         Dec(FAmmo[A_CELLS], 40);
         DidFire := True;
       end;
@@ -3226,7 +3260,9 @@ begin
       if FAmmo[A_SHELLS] > 0 then
       begin
         g_Weapon_shotgun(wx, wy, xd, yd, FUID);
+{$IFDEF ENABLE_SOUND}
         if not gSoundEffectsDF then g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', wx, wy);
+{$ENDIF}
         FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
         Dec(FAmmo[A_SHELLS]);
         FFireAngle := FAngle;
@@ -3301,6 +3337,7 @@ end;
 
 procedure TPlayer.FlamerOn;
 begin
+{$IFDEF ENABLE_SOUND}
   FFlameSoundOff.Stop();
   FFlameSoundOff.SetPosition(0);
   if FFlaming then
@@ -3311,12 +3348,14 @@ begin
   else
   begin
     FFlameSoundOn.PlayAt(FObj.X, FObj.Y);
-    FFlaming := True;
   end;
+{$ENDIF}
+  FFlaming := True;
 end;
 
 procedure TPlayer.FlamerOff;
 begin
+{$IFDEF ENABLE_SOUND}
   if FFlaming then
   begin
     FFlameSoundOn.Stop();
@@ -3324,25 +3363,30 @@ begin
     FFlameSoundWork.Stop();
     FFlameSoundWork.SetPosition(0);
     FFlameSoundOff.PlayAt(FObj.X, FObj.Y);
-    FFlaming := False;
   end;
+{$ENDIF}
+  FFlaming := False;
 end;
 
 procedure TPlayer.JetpackOn;
 begin
+{$IFDEF ENABLE_SOUND}
   FJetSoundFly.Stop;
   FJetSoundOff.Stop;
   FJetSoundOn.SetPosition(0);
   FJetSoundOn.PlayAt(FObj.X, FObj.Y);
+{$ENDIF}
   FlySmoke(8);
 end;
 
 procedure TPlayer.JetpackOff;
 begin
+{$IFDEF ENABLE_SOUND}
   FJetSoundFly.Stop;
   FJetSoundOn.Stop;
   FJetSoundOff.SetPosition(0);
   FJetSoundOff.PlayAt(FObj.X, FObj.Y);
+{$ENDIF}
 end;
 
 procedure TPlayer.CatchFire(Attacker: Word; Timeout: Integer = PLAYER_BURN_TIME);
@@ -3353,8 +3397,10 @@ begin
     exit; // Не загораемся когда есть защита
   if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_WATER or PANEL_ACID1 or PANEL_ACID2) then
     exit; // Не подгораем в воде на всякий случай
+{$IFDEF ENABLE_SOUND}
   if FFireTime <= 0 then
     g_Sound_PlayExAt('SOUND_IGNITE', FObj.X, FObj.Y);
+{$ENDIF}
   FFireTime := Timeout;
   FFireAttacker := Attacker;
   if g_Game_IsNet and g_Game_IsServer then
@@ -3485,10 +3531,12 @@ begin
   end;
 
 // Звук смерти:
+{$IFDEF ENABLE_SOUND}
   if not FModel.PlaySound(MODELSOUND_DIE, a, FObj.X, FObj.Y) then
     for i := 1 to 3 do
       if FModel.PlaySound(MODELSOUND_DIE, i, FObj.X, FObj.Y) then
         Break;
+{$ENDIF}
 
 // Время респауна:
   if Srv then
@@ -4008,7 +4056,9 @@ begin
   begin
     FCurrWeap := nw;
     FTime[T_SWITCH] := gTime+156;
+{$IFDEF ENABLE_SOUND}
     if FCurrWeap = WEAPON_SAW then FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
+{$ENDIF}
     FModel.SetWeapon(FCurrWeap);
     if g_Game_IsNet then MH_SEND_PlayerStats(FUID);
   end;
@@ -4028,9 +4078,11 @@ end;
 
 procedure TPlayer.SetWeapon(W: Byte);
 begin
+{$IFDEF ENABLE_SOUND}
   if FCurrWeap <> W then
     if W = WEAPON_SAW then
       FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
+{$ENDIF}
 
   FCurrWeap := W;
   FModel.SetWeapon(CurrWeap);
@@ -4954,7 +5006,9 @@ begin
 
   if g_CollideLevel(X, Y, PLAYER_RECT.Width, PLAYER_RECT.Height) then
   begin
+{$IFDEF ENABLE_SOUND}
     g_Sound_PlayExAt('SOUND_GAME_NOTELEPORT', FObj.X, FObj.Y);
+{$ENDIF}
     if g_Game_IsServer and g_Game_IsNet then
       MH_SEND_Sound(FObj.X, FObj.Y, 'SOUND_GAME_NOTELEPORT');
     Exit;
@@ -4970,7 +5024,9 @@ begin
       Anim := TAnimation.Create(ID, False, 3);
     end;
 
+{$IFDEF ENABLE_SOUND}
     g_Sound_PlayExAt('SOUND_GAME_TELEPORT', FObj.X, FObj.Y);
+{$ENDIF}
     g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
                    FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
     if g_Game_IsServer and g_Game_IsNet then
@@ -5331,6 +5387,7 @@ begin
 
   if FAlive then
   begin
+{$IFDEF ENABLE_SOUND}
     if FCurrWeap = WEAPON_SAW then
       if not (FSawSound.IsPlaying() or FSawSoundHit.IsPlaying() or
               FSawSoundSelect.IsPlaying()) then
@@ -5343,6 +5400,7 @@ begin
         FJetSoundFly.SetPosition(0);
         FJetSoundFly.PlayAt(FObj.X, FObj.Y);
       end;
+{$ENDIF}
 
     for b := WP_FIRST to WP_LAST do
       if FReloading[b] > 0 then
@@ -5437,8 +5495,10 @@ begin
         end;
         FFirePainTime := FFirePainTime - 1;
         FFireTime := FFireTime - 1;
+{$IFDEF ENABLE_SOUND}
         if ((FFireTime mod 33) = 0) and (FPowerups[MR_INVUL] < gTime) then
           FModel.PlaySound(MODELSOUND_PAIN, 1, FObj.X, FObj.Y);
+{$ENDIF}
         if (FFireTime = 0) and g_Game_IsNet and g_Game_IsServer then
           MH_SEND_PlayerStats(FUID);
       end;
@@ -5470,6 +5530,7 @@ begin
             else if FHealth > -50 then Kill(K_HARDKILL, FLastSpawnerUID, FLastHit)
               else Kill(K_EXTRAHARDKILL, FLastSpawnerUID, FLastHit);
 
+{$IFDEF ENABLE_SOUND}
       if FAlive and ((FLastHit <> HIT_FLAME) or (FFireTime <= 0)) then
       begin
         if FDamageBuffer <= 20 then FModel.PlaySound(MODELSOUND_PAIN, 1, FObj.X, FObj.Y)
@@ -5477,6 +5538,7 @@ begin
             else if FDamageBuffer <= 120 then FModel.PlaySound(MODELSOUND_PAIN, 3, FObj.X, FObj.Y)
               else FModel.PlaySound(MODELSOUND_PAIN, 4, FObj.X, FObj.Y);
       end;
+{$ENDIF}
 
       FDamageBuffer := 0;
     end;
@@ -5643,9 +5705,18 @@ begin
         locobj.Accel.X := xd-wx;
         locobj.Accel.y := yd-wy;
 
-        if g_Weapon_Hit(@locobj, 50, FUID, HIT_SOME) <> 0
-          then g_Sound_PlayExAt('SOUND_WEAPON_HITBERSERK', FObj.X, FObj.Y)
-          else g_Sound_PlayExAt('SOUND_WEAPON_MISSBERSERK', FObj.X, FObj.Y);
+        if g_Weapon_Hit(@locobj, 50, FUID, HIT_SOME) <> 0 then
+        begin
+{$IFDEF ENABLE_SOUND}
+          g_Sound_PlayExAt('SOUND_WEAPON_HITBERSERK', FObj.X, FObj.Y)
+{$ENDIF}
+        end
+        else
+        begin
+{$IFDEF ENABLE_SOUND}
+          g_Sound_PlayExAt('SOUND_WEAPON_MISSBERSERK', FObj.X, FObj.Y);
+{$ENDIF}
+        end;
 
         if (gFlash = 1) and (FPain < 50) then
           FPain := min(FPain + 25, 50);
@@ -5655,6 +5726,7 @@ begin
 
     WEAPON_SAW:
     begin
+{$IFDEF ENABLE_SOUND}
       if g_Weapon_chainsaw(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y,
                            IfThen(gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF], 9, 3), FUID) <> 0 then
       begin
@@ -5667,11 +5739,17 @@ begin
         FSawSoundSelect.Stop();
         FSawSound.PlayAt(FObj.X, FObj.Y);
       end;
+{$ELSE}
+      g_Weapon_chainsaw(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y,
+                        IfThen(gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF], 9, 3), FUID);
+{$ENDIF}
     end;
 
     WEAPON_PISTOL:
     begin
+{$IFDEF ENABLE_SOUND}
       g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', GameX, Gamey);
+{$ENDIF}
       FFireAngle := FAngle;
       g_Player_CreateShell(
         GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
@@ -5682,7 +5760,9 @@ begin
 
     WEAPON_SHOTGUN1:
     begin
+{$IFDEF ENABLE_SOUND}
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', Gamex, Gamey);
+{$ENDIF}
       FFireAngle := FAngle;
       FShellTimer := 10;
       FShellType := SHELL_SHELL;
@@ -5690,7 +5770,9 @@ begin
 
     WEAPON_SHOTGUN2:
     begin
+{$IFDEF ENABLE_SOUND}
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN2', Gamex, Gamey);
+{$ENDIF}
       FFireAngle := FAngle;
       FShellTimer := 13;
       FShellType := SHELL_DBLSHELL;
@@ -5698,7 +5780,9 @@ begin
 
     WEAPON_CHAINGUN:
     begin
+{$IFDEF ENABLE_SOUND}
       g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', Gamex, Gamey);
+{$ENDIF}
       FFireAngle := FAngle;
       g_Player_CreateShell(
         GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
@@ -5727,7 +5811,9 @@ begin
 
     WEAPON_SUPERCHAINGUN:
     begin
+{$IFDEF ENABLE_SOUND}
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', Gamex, Gamey);
+{$ENDIF}
       FFireAngle := FAngle;
       g_Player_CreateShell(
         GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
@@ -5801,7 +5887,10 @@ end;
 function TPlayer.GetFlag(Flag: Byte): Boolean;
 var
   s, ts: String;
-  evtype, a: Byte;
+  evtype: Byte;
+{$IFDEF ENABLE_SOUND}
+  a: Byte;
+{$ENDIF}
 begin
   Result := False;
 
@@ -5826,6 +5915,7 @@ begin
     g_Map_ResetFlag(FFlag);
     g_Game_Message(Format(_lc[I_MESSAGE_FLAG_CAPTURE], [AnsiUpperCase(s)]), 144);
 
+{$IFDEF ENABLE_SOUND}
     if ((Self = gPlayer1) or (Self = gPlayer2)
         or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
         or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam)))
@@ -5834,6 +5924,7 @@ begin
 
     if not sound_cap_flag[a].IsPlaying() then
       sound_cap_flag[a].Play();
+{$ENDIF}
 
     gTeamStat[FTeam].Score += 1;
 
@@ -5864,6 +5955,7 @@ begin
     g_Map_ResetFlag(Flag);
     g_Game_Message(Format(_lc[I_MESSAGE_FLAG_RETURN], [AnsiUpperCase(s)]), 144);
 
+{$IFDEF ENABLE_SOUND}
     if ((Self = gPlayer1) or (Self = gPlayer2)
         or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
         or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam)))
@@ -5872,6 +5964,7 @@ begin
 
     if not sound_ret_flag[a].IsPlaying() then
       sound_ret_flag[a].Play();
+{$ENDIF}
 
     Result := True;
     if g_Game_IsNet then
@@ -5899,6 +5992,7 @@ begin
 
     gFlags[Flag].State := FLAG_STATE_CAPTURED;
 
+{$IFDEF ENABLE_SOUND}
     if ((Self = gPlayer1) or (Self = gPlayer2)
         or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
         or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam)))
@@ -5907,6 +6001,7 @@ begin
 
     if not sound_get_flag[a].IsPlaying() then
       sound_get_flag[a].Play();
+{$ENDIF}
 
     Result := True;
     if g_Game_IsNet then
@@ -5969,6 +6064,7 @@ begin
     g_Console_Add(Format(_lc[I_PLAYER_FLAG_DROP], [FName, s]), True);
     g_Game_Message(Format(_lc[I_MESSAGE_FLAG_DROP], [AnsiUpperCase(s)]), 144);
 
+{$IFDEF ENABLE_SOUND}
     if ((Self = gPlayer1) or (Self = gPlayer2)
         or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
         or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam)))
@@ -5977,6 +6073,7 @@ begin
 
     if (not Silent) and (not sound_lost_flag[a].IsPlaying()) then
       sound_lost_flag[a].Play();
+{$ENDIF}
 
     if g_Game_IsNet then
       MH_SEND_FlagEvent(FLAG_STATE_DROPPED, Flag, FUID, False);
@@ -5990,7 +6087,9 @@ begin
   if (self = gPlayer1) or (self = gPlayer2) then
   begin
     g_Console_Add(Format(_lc[I_PLAYER_SECRET], [FName]), True);
+{$IFDEF ENABLE_SOUND}
     g_Sound_PlayEx('SOUND_GAME_SECRET');
+{$ENDIF}
   end;
   FSecrets += 1;
 end;
@@ -6505,6 +6604,7 @@ begin
   end;
 end;
 
+{$IFDEF ENABLE_SOUND}
 procedure TPlayer.PauseSounds(Enable: Boolean);
 begin
   FSawSound.Pause(Enable);
@@ -6518,6 +6618,7 @@ begin
   FJetSoundOn.Pause(Enable);
   FJetSoundOff.Pause(Enable);
 end;
+{$ENDIF}
 
 { TCorpse: }
 
@@ -6601,10 +6702,13 @@ begin
         g_Player_CreateGibs(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                             FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
                             FModelName, FColor);
+
+{$IFDEF ENABLE_SOUND}
         // Звук мяса от трупа:
         pm := g_PlayerModel_Get(FModelName);
         pm.PlaySound(MODELSOUND_DIE, 5, FObj.X, FObj.Y);
         pm.Free;
+{$ENDIF}
 
         // Зловещий смех:
         if (gBodyKillEvent <> -1)

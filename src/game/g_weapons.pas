@@ -113,7 +113,10 @@ var
 implementation
 
 uses
-  Math, g_map, g_player, g_gfx, g_sound, g_main, g_panel,
+{$IFDEF ENABLE_SOUND}
+  g_sound,
+{$ENDIF}
+  Math, g_map, g_player, g_gfx, g_main, g_panel,
   g_console, g_options, g_game,
   g_triggers, MAPDEF, e_log, g_monsters, g_saveload,
   g_language, g_netmsg, g_grid,
@@ -1096,6 +1099,7 @@ procedure g_Weapon_LoadData();
 begin
   e_WriteLog('Loading weapons data...', TMsgType.Notify);
 
+{$IFDEF ENABLE_SOUND}
   g_Sound_CreateWADEx('SOUND_WEAPON_HITPUNCH', GameWAD+':SOUNDS\HITPUNCH');
   g_Sound_CreateWADEx('SOUND_WEAPON_MISSPUNCH', GameWAD+':SOUNDS\MISSPUNCH');
   g_Sound_CreateWADEx('SOUND_WEAPON_HITBERSERK', GameWAD+':SOUNDS\HITBERSERK');
@@ -1132,6 +1136,7 @@ begin
   g_Sound_CreateWADEx('SOUND_PLAYER_CASING2', GameWAD+':SOUNDS\CASING2');
   g_Sound_CreateWADEx('SOUND_PLAYER_SHELL1', GameWAD+':SOUNDS\SHELL1');
   g_Sound_CreateWADEx('SOUND_PLAYER_SHELL2', GameWAD+':SOUNDS\SHELL2');
+{$ENDIF}
 
   g_Texture_CreateWADEx('TEXTURE_WEAPON_ROCKET', GameWAD+':TEXTURES\BROCKET');
   g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_SKELFIRE', GameWAD+':TEXTURES\BSKELFIRE', 64, 16, 2);
@@ -1166,6 +1171,7 @@ procedure g_Weapon_FreeData();
 begin
   e_WriteLog('Releasing weapons data...', TMsgType.Notify);
 
+{$IFDEF ENABLE_SOUND}
   g_Sound_Delete('SOUND_WEAPON_HITPUNCH');
   g_Sound_Delete('SOUND_WEAPON_MISSPUNCH');
   g_Sound_Delete('SOUND_WEAPON_HITBERSERK');
@@ -1202,6 +1208,7 @@ begin
   g_Sound_Delete('SOUND_PLAYER_CASING2');
   g_Sound_Delete('SOUND_PLAYER_SHELL1');
   g_Sound_Delete('SOUND_PLAYER_SHELL2');
+{$ENDIF}
 
   g_Texture_Delete('TEXTURE_WEAPON_ROCKET');
   g_Frames_DeleteByName('FRAMES_WEAPON_BFG');
@@ -1619,9 +1626,17 @@ begin
   obj.Accel.Y := 0;
 
   if g_Weapon_Hit(@obj, d, SpawnerUID, HIT_SOME) <> 0 then
+  begin
+{$IFDEF ENABLE_SOUND}
     g_Sound_PlayExAt('SOUND_WEAPON_HITPUNCH', x, y)
+{$ENDIF}
+  end
   else
+  begin
+{$IFDEF ENABLE_SOUND}
     g_Sound_PlayExAt('SOUND_WEAPON_MISSPUNCH', x, y);
+{$ENDIF}
+  end;
 end;
 
 function g_Weapon_chainsaw(x, y: Integer; d, SpawnerUID: Word): Integer;
@@ -1678,8 +1693,10 @@ begin
 
   Projectiles[Result].SpawnerUID := SpawnerUID;
 
+{$IFDEF ENABLE_SOUND}
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREROCKET', x, y);
+{$ENDIF}
 end;
 
 function g_Weapon_revf(x, y, xd, yd: Integer; SpawnerUID, TargetUID: Word; WID: SizeInt;
@@ -1718,8 +1735,10 @@ begin
 
   Projectiles[Result].SpawnerUID := SpawnerUID;
 
+{$IFDEF ENABLE_SOUND}
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREREV', x, y);
+{$ENDIF}
 end;
 
 function g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
@@ -1759,8 +1778,10 @@ begin
 
   Projectiles[Result].SpawnerUID := SpawnerUID;
 
+{$IFDEF ENABLE_SOUND}
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREPLASMA', x, y);
+{$ENDIF}
 end;
 
 function g_Weapon_flame(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
@@ -1841,8 +1862,10 @@ begin
 
   Projectiles[Result].SpawnerUID := SpawnerUID;
 
+{$IFDEF ENABLE_SOUND}
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
+{$ENDIF}
 end;
 
 function g_Weapon_ball2(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
@@ -1882,8 +1905,10 @@ begin
 
   Projectiles[Result].SpawnerUID := SpawnerUID;
 
+{$IFDEF ENABLE_SOUND}
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
+{$ENDIF}
 end;
 
 function g_Weapon_ball7(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
@@ -1923,8 +1948,10 @@ begin
 
   Projectiles[Result].SpawnerUID := SpawnerUID;
 
+{$IFDEF ENABLE_SOUND}
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
+{$ENDIF}
 end;
 
 function g_Weapon_aplasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
@@ -1965,8 +1992,10 @@ begin
 
   Projectiles[Result].SpawnerUID := SpawnerUID;
 
+{$IFDEF ENABLE_SOUND}
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREPLASMA', x, y);
+{$ENDIF}
 end;
 
 function g_Weapon_manfire(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
@@ -2007,8 +2036,10 @@ begin
 
   Projectiles[Result].SpawnerUID := SpawnerUID;
 
+{$IFDEF ENABLE_SOUND}
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
+{$ENDIF}
 end;
 
 function g_Weapon_bfgshot(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
@@ -2048,8 +2079,10 @@ begin
 
   Projectiles[Result].SpawnerUID := SpawnerUID;
 
+{$IFDEF ENABLE_SOUND}
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREBFG', x, y);
+{$ENDIF}
 end;
 
 procedure g_Weapon_bfghit(x, y: Integer);
@@ -2067,8 +2100,10 @@ end;
 
 procedure g_Weapon_pistol(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Boolean);
 begin
+{$IFDEF ENABLE_SOUND}
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', x, y);
+{$ENDIF}
 
   g_Weapon_gun(x, y, xd, yd, 1, 3, SpawnerUID, True);
   if gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF] then
@@ -2088,8 +2123,10 @@ end;
 
 procedure g_Weapon_mgun(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Boolean);
 begin
+{$IFDEF ENABLE_SOUND}
   if not Silent then
     if gSoundEffectsDF then g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', x, y);
+{$ENDIF}
 
   g_Weapon_gun(x, y, xd, yd, 1, 3, SpawnerUID, True);
   if (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) and
@@ -2112,8 +2149,10 @@ procedure g_Weapon_shotgun(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Bool
 var
   i, j, k: Integer;
 begin
+{$IFDEF ENABLE_SOUND}
   if not Silent then
     if gSoundEffectsDF then g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', x, y);
+{$ENDIF}
 
   for i := 0 to 9 do
   begin
@@ -2127,8 +2166,10 @@ procedure g_Weapon_dshotgun(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Boo
 var
   a, i, j, k: Integer;
 begin
+{$IFDEF ENABLE_SOUND}
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN2', x, y);
+{$ENDIF}
 
   if gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]
     then a := 25
@@ -2284,7 +2325,9 @@ begin
               end;
             end;
 
+{$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', Obj.X, Obj.Y);
+{$ENDIF}
 
             ShotType := 0;
           end;
@@ -2304,7 +2347,9 @@ begin
           // Попала в воду - электрошок по воде:
           if WordBool(st and (MOVE_INWATER or MOVE_HITWATER)) then
           begin
+{$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_WEAPON_PLASMAWATER', Obj.X, Obj.Y);
+{$ENDIF}
             if g_Game_IsServer then CheckTrap(i, 10, HIT_ELECTRO);
             ShotType := 0;
             Goto finish_update;
@@ -2337,7 +2382,9 @@ begin
               g_DynLightExplosion(cx, cy, 32, 0, 0.5, 0.5);
             end;
 
+{$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEPLASMA', Obj.X, Obj.Y);
+{$ENDIF}
 
             ShotType := 0;
           end;
@@ -2431,7 +2478,9 @@ begin
           // Попала в воду - электрошок по воде:
           if WordBool(st and (MOVE_INWATER or MOVE_HITWATER)) then
           begin
+{$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_WEAPON_BFGWATER', Obj.X, Obj.Y);
+{$ENDIF}
             if g_Game_IsServer then CheckTrap(i, 1000, HIT_ELECTRO);
             ShotType := 0;
             Goto finish_update;
@@ -2455,7 +2504,9 @@ begin
               g_DynLightExplosion(cx, cy, 96, 0, 1, 0);
             end;
 
+{$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', Obj.X, Obj.Y);
+{$ENDIF}
 
             ShotType := 0;
           end;
@@ -2496,7 +2547,9 @@ begin
               Anim.Destroy();
             end;
 
+{$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
+{$ENDIF}
 
             ShotType := 0;
           end;
@@ -2522,7 +2575,9 @@ begin
               Anim.Destroy();
             end;
 
+{$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
+{$ENDIF}
 
             ShotType := 0;
           end;
@@ -2778,7 +2833,9 @@ begin
               Anim.Destroy();
             end;
           end;
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', Obj.X, Obj.Y);
+{$ENDIF}
         end;
       end;
 
@@ -2795,7 +2852,9 @@ begin
           g_GFX_OnceAnim(cx-16, cy-16, Anim);
           Anim.Destroy();
 
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEPLASMA', Obj.X, Obj.Y);
+{$ENDIF}
         end;
       end;
 
@@ -2808,7 +2867,9 @@ begin
           g_GFX_OnceAnim(cx-64, cy-64, Anim);
           Anim.Destroy();
 
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', Obj.X, Obj.Y);
+{$ENDIF}
         end;
       end;
 
@@ -2828,7 +2889,9 @@ begin
           g_GFX_OnceAnim(cx-32, cy-32, Anim);
           Anim.Destroy();
 
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
+{$ENDIF}
         end;
       end;
 
@@ -2841,7 +2904,9 @@ begin
           g_GFX_OnceAnim(cx-64, cy-64, Anim);
           Anim.Destroy();
 
+{$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
+{$ENDIF}
         end;
       end;
     end;

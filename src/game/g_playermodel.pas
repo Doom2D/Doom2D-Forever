@@ -20,7 +20,10 @@ interface
 
 uses
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-  MAPDEF, g_textures, g_basic, g_weapons, e_graphics, e_sound, utils, g_gfx,
+  {$IFDEF ENABLE_SOUND}
+    e_sound,
+  {$ENDIF}
+  MAPDEF, g_textures, g_basic, g_weapons, e_graphics, utils, g_gfx,
   ImagingTypes, Imaging, ImagingUtility;
 
 const
@@ -68,10 +71,12 @@ type
     R, G, B, Kind: Byte;
   end;
 
+{$IFDEF ENABLE_SOUND}
   TModelSound = record
     ID:    TSoundID;
     Level: Byte;
   end;
+{$ENDIF}
 
   TGibSprite = record
     ID: DWORD;
@@ -80,7 +85,10 @@ type
     OnlyOne: Boolean;
   end;
 
+{$IFDEF ENABLE_SOUND}
   TModelSoundArray = Array of TModelSound;
+{$ENDIF}
+
   TGibsArray = Array of TGibSprite;
   TWeaponPoints = Array [WP_FIRST + 1..WP_LAST] of
                   Array [A_STAND..A_LAST] of
@@ -96,9 +104,11 @@ type
     FAnim:             Array [TDirection.D_LEFT..TDirection.D_RIGHT] of Array [A_STAND..A_LAST] of TAnimation;
     FMaskAnim:         Array [TDirection.D_LEFT..TDirection.D_RIGHT] of Array [A_STAND..A_LAST] of TAnimation;
     FWeaponPoints:     TWeaponPoints;
+{$IFDEF ENABLE_SOUND}
     FPainSounds:       TModelSoundArray;
     FDieSounds:        TModelSoundArray;
     FSlopSound:        Byte;
+{$ENDIF}
     FCurrentWeapon:    Byte;
     FDrawWeapon:       Boolean;
     FFlag:             Byte;
@@ -117,7 +127,9 @@ type
     procedure   SetWeapon(Weapon: Byte);
     procedure   SetFlag(Flag: Byte);
     procedure   SetFire(Fire: Boolean);
+{$IFDEF ENABLE_SOUND}
     function    PlaySound(SoundType, Level: Byte; X, Y: Integer): Boolean;
+{$ENDIF}
     procedure   Update();
     procedure   Draw(X, Y: Integer; Alpha: Byte = 0);
 
@@ -148,7 +160,10 @@ implementation
 
 uses
   {$INCLUDE ../nogl/noGLuses.inc}
-  g_main, g_sound, g_console, SysUtils, g_player, CONFIG,
+{$IFDEF ENABLE_SOUND}
+  g_sound,
+{$ENDIF}
+  g_main, g_console, SysUtils, g_player, CONFIG,
   g_options, g_map, Math, e_log, wadreader;
 
 type
@@ -159,9 +174,11 @@ type
     FlagAngle:    SmallInt;
     WeaponPoints: TWeaponPoints;
     Gibs:         TGibsArray;
+{$IFDEF ENABLE_SOUND}
     PainSounds:   TModelSoundArray;
     DieSounds:    TModelSoundArray;
     SlopSound:    Byte;
+{$ENDIF}
     Blood:        TModelBlood;
   end;
 
@@ -509,6 +526,7 @@ begin
 
   with PlayerModelsArray[ID], config do
   begin
+{$IFDEF ENABLE_SOUND}
     prefix := FileName+':SOUNDS\';
 
     a := 1;
@@ -536,6 +554,7 @@ begin
     until s = '';
 
     SlopSound := Min(Max(config.ReadInt('Sound', 'slop', 0), 0), 2);
+{$ENDIF}
 
     SetLength(Gibs, ReadInt('Gibs', 'count', 0));
 
@@ -688,9 +707,11 @@ begin
           end;
         end;
 
+{$IFDEF ENABLE_SOUND}
         Result.FPainSounds := PainSounds;
         Result.FDieSounds := DieSounds;
         Result.FSlopSound := SlopSound;
+{$ENDIF}
         Result.FDrawWeapon := Info.HaveWeapon;
         Result.FWeaponPoints := WeaponPoints;
 
@@ -849,6 +870,7 @@ begin
         g_Frames_DeleteByName(Info.Name+'_RIGHTANIM'+IntToStr(a)+'_MASK');
       end;
 
+{$IFDEF ENABLE_SOUND}
       if PainSounds <> nil then
         for b := 0 to High(PainSounds) do
           e_DeleteSound(PainSounds[b].ID);
@@ -856,6 +878,7 @@ begin
       if DieSounds <> nil then
         for b := 0 to High(DieSounds) do
           e_DeleteSound(DieSounds[b].ID);
+{$ENDIF}
 
       if Gibs <> nil then
         for b := 0 to High(Gibs) do
@@ -1008,6 +1031,7 @@ begin
     Result := FMaskAnim[TDirection.D_RIGHT][FCurrentAnimation];
 end;
 
+{$IFDEF ENABLE_SOUND}
 function TPlayerModel.PlaySound(SoundType, Level: Byte; X, Y: Integer): Boolean;
 var
   TempArray: array of DWORD;
@@ -1060,6 +1084,7 @@ begin
 
   Result := True;
 end;
+{$ENDIF}
 
 procedure TPlayerModel.SetColor(Red, Green, Blue: Byte);
 begin

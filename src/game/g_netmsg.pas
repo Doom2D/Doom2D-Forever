@@ -190,8 +190,8 @@ procedure MH_SEND_MonsterState(UID: Word; ForcedAnim: Byte = 255; ID: Integer = 
 procedure MH_SEND_MonsterShot(UID: Word; X, Y, VX, VY: Integer; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_MonsterDelete(UID: Word; ID: Integer = NET_EVERYONE);
 // TRIGGER
-procedure MH_SEND_TriggerSound(var T: TTrigger; ID: Integer = NET_EVERYONE);
-procedure MH_SEND_TriggerMusic(ID: Integer = NET_EVERYONE);
+procedure MH_SEND_TriggerSound(ClientID: DWORD; play: Boolean; pos: LongWord; count: Integer; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_TriggerMusic(name: String; play: Boolean; pos: LongWord; pause: Boolean; ID: Integer = NET_EVERYONE);
 // MISC
 procedure MH_SEND_TimeSync(Time: LongWord; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_VoteEvent(EvType: Byte; StrArg1: String = 'a'; StrArg2: String = 'b';
@@ -278,8 +278,11 @@ type
 implementation
 
 uses
+{$IFDEF ENABLE_SOUND}
+  g_sound,
+{$ENDIF}
   Math, ENet, e_input, e_graphics, e_log,
-  g_textures, g_gfx, g_sound, g_console, g_basic, g_options, g_main,
+  g_textures, g_gfx, g_console, g_basic, g_options, g_main,
   g_game, g_player, g_map, g_panel, g_items, g_weapons, g_phys, g_gui,
   g_language, g_monsters, g_netmaster, utils, wadreader, MAPDEF;
 
@@ -903,7 +906,14 @@ begin
   begin
     if gTriggers[I].TriggerType = TRIGGER_SOUND then
     begin
-      MH_SEND_TriggerSound(gTriggers[I], ID);
+{$IFDEF ENABLE_SOUND}
+      if gTriggers[I].Sound <> nil then
+        with gTriggers[I] do
+          MH_SEND_TriggerSound(ClientID, Sound.IsPlaying(), Sound.GetPosition(), SoundPlayCount, ID);
+{$ELSE}
+      with gTriggers[I] do
+        MH_SEND_TriggerSound(ClientID, SoundPlay, SoundPos, SoundPlayCount, ID);
+{$ENDIF}
     end;
   end;
 
@@ -913,7 +923,11 @@ begin
       MH_SEND_CreateProj(i, ID);
   end;
 
-  MH_SEND_TriggerMusic(ID);
+{$IFDEF ENABLE_SOUND}
+  MH_SEND_TriggerMusic(gMusic.Name, gMusic.IsPlaying, gMusic.GetPosition, gMusic.SpecPause or gMusic.IsPaused, ID);
+{$ELSE}
+  MH_SEND_TriggerMusic(gMusicName, gMusicPlay, gMusicPos, gMusicPause or not gMusicPlay, ID);
+{$ENDIF}
 
   MH_SEND_GameStats(ID);
   MH_SEND_CoopStats(ID);
@@ -990,7 +1004,9 @@ begin
     begin
       g_Console_Add(Txt, True);
       e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
+{$IFDEF ENABLE_SOUND}
       g_Game_ChatSound(b_Text_Unformat(Txt));
+{$ENDIF}
     end
     else
     if Mode = NET_CHAT_TEAM then
@@ -1000,13 +1016,17 @@ begin
         begin
           g_Console_Add(#18'[Team] '#2 + Txt, True);
           e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
+{$IFDEF ENABLE_SOUND}
           g_Game_ChatSound(b_Text_Unformat(Txt));
+{$ENDIF}
         end
         else if (gPlayer1.Team = TEAM_BLUE) and (Team = TEAM_BLUE) then
         begin
           g_Console_Add(#20'[Team] '#2 + Txt, True);
           e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
+{$IFDEF ENABLE_SOUND}
           g_Game_ChatSound(b_Text_Unformat(Txt));
+{$ENDIF}
         end;
       end;
   end
@@ -1015,7 +1035,9 @@ begin
     Name := g_Net_ClientName_ByID(ID);
     g_Console_Add('-> ' + Name + ': ' + Txt, True);
     e_WriteLog('[Tell ' + Name + '] ' + b_Text_Unformat(Txt), TMsgType.Notify);
+{$IFDEF ENABLE_SOUND}
     g_Game_ChatSound(b_Text_Unformat(Txt), False);
+{$ENDIF}
   end;
 end;
 
@@ -1481,27 +1503,26 @@ end;
 
 // TRIGGER
 
-procedure MH_SEND_TriggerSound(var T: TTrigger; ID: Integer);
+procedure MH_SEND_TriggerSound(ClientID: DWORD; play: Boolean; pos: LongWord; count: Integer; ID: Integer);
 begin
   if gTriggers = nil then Exit;
-  if T.Sound = nil then Exit;
 
   NetOut.Write(Byte(NET_MSG_TSOUND));
-  NetOut.Write(T.ClientID);
-  NetOut.Write(Byte(T.Sound.IsPlaying));
-  NetOut.Write(LongWord(T.Sound.GetPosition));
-  NetOut.Write(T.SoundPlayCount);
+  NetOut.Write(ClientID);
+  NetOut.Write(Byte(play));
+  NetOut.Write(LongWord(pos));
+  NetOut.Write(count);
 
   g_Net_Host_Send(ID, True);
 end;
 
-procedure MH_SEND_TriggerMusic(ID: Integer);
+procedure MH_SEND_TriggerMusic(name: String; play: Boolean; pos: LongWord; pause: Boolean; ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_TMUSIC));
-  NetOut.Write(gMusic.Name);
-  NetOut.Write(Byte(gMusic.IsPlaying));
-  NetOut.Write(LongWord(gMusic.GetPosition));
-  NetOut.Write(Byte(gMusic.SpecPause or gMusic.IsPaused));
+  NetOut.Write(name);
+  NetOut.Write(Byte(play));
+  NetOut.Write(LongWord(pos));
+  NetOut.Write(Byte(pause));
 
   g_Net_Host_Send(ID, True);
 end;
@@ -1656,7 +1677,9 @@ begin
       begin
         g_Console_Add(Txt, True);
         e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
+{$IFDEF ENABLE_SOUND}
         g_Game_ChatSound(b_Text_Unformat(Txt));
+{$ENDIF}
       end else
       if (Mode = NET_CHAT_TEAM) and (gPlayer1 <> nil) then
       begin
@@ -1665,7 +1688,9 @@ begin
         if gPlayer1.Team = TEAM_BLUE then
           g_Console_Add(b_Text_Format('\b[Team] ') + Txt, True);
         e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
+{$IFDEF ENABLE_SOUND}
         g_Game_ChatSound(b_Text_Unformat(Txt));
+{$ENDIF}
       end;
     end;
   end else if (NetDeafLevel < 2) then
@@ -1698,8 +1723,10 @@ begin
         g_GFX_OnceAnim(X, Y, Anim);
         Anim.Free();
       end;
+{$IFDEF ENABLE_SOUND}
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_GAME_TELEPORT', X, Y);
+{$ENDIF}
     end;
 
     NET_GFX_EXPLODE:
@@ -1711,8 +1738,10 @@ begin
         g_GFX_OnceAnim(X-64, Y-64, Anim);
         Anim.Free();
       end;
+{$IFDEF ENABLE_SOUND}
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', X, Y);
+{$ENDIF}
     end;
 
     NET_GFX_BFGEXPL:
@@ -1724,8 +1753,10 @@ begin
         g_GFX_OnceAnim(X-64, Y-64, Anim);
         Anim.Free();
       end;
+{$IFDEF ENABLE_SOUND}
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', X, Y);
+{$ENDIF}
     end;
 
     NET_GFX_BFGHIT:
@@ -1746,8 +1777,10 @@ begin
         g_GFX_OnceAnim(X, Y, Anim);
         Anim.Free();
       end;
+{$IFDEF ENABLE_SOUND}
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_FIRE', X, Y);
+{$ENDIF}
     end;
 
     NET_GFX_RESPAWN:
@@ -1758,8 +1791,10 @@ begin
         g_GFX_OnceAnim(X, Y, Anim);
         Anim.Free();
       end;
+{$IFDEF ENABLE_SOUND}
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', X, Y);
+{$ENDIF}
     end;
 
     NET_GFX_SHELL1:
@@ -1788,10 +1823,16 @@ begin
   begin
     X := M.ReadLongInt();
     Y := M.ReadLongInt();
+{$IFDEF ENABLE_SOUND}
     g_Sound_PlayExAt(Name, X, Y);
+{$ENDIF}
   end
   else
+  begin
+{$IFDEF ENABLE_SOUND}
     g_Sound_PlayEx(Name);
+{$ENDIF}
+  end;
 end;
 
 procedure MC_RECV_CreateProj(var M: TMsg);
@@ -1931,7 +1972,9 @@ begin
       begin
         gGameOn := False;
         g_Game_ClearLoading();
+{$IFDEF ENABLE_SOUND}
         g_Game_StopAllSounds(True);
+{$ENDIF}
 
         gSwitchGameMode := Byte(EvNum);
         gGameSettings.GameMode := gSwitchGameMode;
@@ -2123,7 +2166,11 @@ begin
       g_Console_Add(_lc[I_PLAYER_SPECT4], True);
 
     NET_EV_KILLCOMBO:
+    begin
+{$IFDEF ENABLE_SOUND}
       g_Game_Announce_KillCombo(EvNum);
+{$ENDIF}
+    end;
 
     NET_EV_PLAYER_TOUCH:
     begin
@@ -2138,7 +2185,9 @@ begin
       if pl <> nil then
       begin
         g_Console_Add(Format(_lc[I_PLAYER_SECRET], [pl.Name]), True);
+{$IFDEF ENABLE_SOUND}
         g_Sound_PlayEx('SOUND_GAME_SECRET');
+{$ENDIF}
       end;
     end;
 
@@ -2213,8 +2262,10 @@ begin
       else
         a := 1;
 
+{$IFDEF ENABLE_SOUND}
       if not sound_ret_flag[a].IsPlaying() then
         sound_ret_flag[a].Play();
+{$ENDIF}
     end;
 
     FLAG_STATE_CAPTURED:
@@ -2231,6 +2282,7 @@ begin
       g_Console_Add(Format(_lc[I_PLAYER_FLAG_GET], [Pl.Name, s]), True);
       g_Game_Message(Format(_lc[I_MESSAGE_FLAG_GET], [AnsiUpperCase(s)]), 144);
 
+{$IFDEF ENABLE_SOUND}
       if ((Pl = gPlayer1) or (Pl = gPlayer2)
       or ((gPlayer1 <> nil) and (gPlayer1.Team = Pl.Team))
       or ((gPlayer2 <> nil) and (gPlayer2.Team = Pl.Team))) then
@@ -2240,6 +2292,7 @@ begin
 
       if not sound_get_flag[a].IsPlaying() then
         sound_get_flag[a].Play();
+{$ENDIF}
     end;
 
     FLAG_STATE_DROPPED:
@@ -2256,6 +2309,7 @@ begin
       g_Console_Add(Format(_lc[I_PLAYER_FLAG_DROP], [Pl.Name, s]), True);
       g_Game_Message(Format(_lc[I_MESSAGE_FLAG_DROP], [AnsiUpperCase(s)]), 144);
 
+{$IFDEF ENABLE_SOUND}
       if ((Pl = gPlayer1) or (Pl = gPlayer2)
       or ((gPlayer1 <> nil) and (gPlayer1.Team = Pl.Team))
       or ((gPlayer2 <> nil) and (gPlayer2.Team = Pl.Team))) then
@@ -2265,6 +2319,7 @@ begin
 
       if not sound_lost_flag[a].IsPlaying() then
         sound_lost_flag[a].Play();
+{$ENDIF}
     end;
 
     FLAG_STATE_SCORED:
@@ -2284,6 +2339,7 @@ begin
       g_Console_Add(Format(_lc[I_PLAYER_FLAG_CAPTURE], [Pl.Name, s, ts]), True);
       g_Game_Message(Format(_lc[I_MESSAGE_FLAG_CAPTURE], [AnsiUpperCase(s)]), 144);
 
+{$IFDEF ENABLE_SOUND}
       if ((Pl = gPlayer1) or (Pl = gPlayer2)
       or ((gPlayer1 <> nil) and (gPlayer1.Team = Pl.Team))
       or ((gPlayer2 <> nil) and (gPlayer2.Team = Pl.Team))) then
@@ -2293,6 +2349,7 @@ begin
 
       if not sound_cap_flag[a].IsPlaying() then
         sound_cap_flag[a].Play();
+{$ENDIF}
     end;
 
     FLAG_STATE_RETURNED:
@@ -2307,6 +2364,7 @@ begin
 
       g_Game_Message(Format(_lc[I_MESSAGE_FLAG_RETURN], [AnsiUpperCase(s)]), 144);
 
+{$IFDEF ENABLE_SOUND}
       if ((Pl = gPlayer1) or (Pl = gPlayer2)
       or ((gPlayer1 <> nil) and (gPlayer1.Team = Pl.Team))
       or ((gPlayer2 <> nil) and (gPlayer2.Team = Pl.Team))) then
@@ -2316,6 +2374,7 @@ begin
 
       if not sound_ret_flag[a].IsPlaying() then
         sound_ret_flag[a].Play();
+{$ENDIF}
     end;
   end;
 end;
@@ -2529,8 +2588,10 @@ begin
     FJetpack := M.ReadByte() <> 0;
     OldFire := FFireTime;
     FFireTime := M.ReadLongInt();
+{$IFDEF ENABLE_SOUND}
     if (OldFire <= 0) and (FFireTime > 0) then
       g_Sound_PlayExAt('SOUND_IGNITE', Obj.X, Obj.Y);
+{$ENDIF}
     Flam := M.ReadByte() <> 0;
     FSpawnInvul := M.ReadLongInt();
     if OldJet and not FJetpack then
@@ -2716,7 +2777,9 @@ begin
 
   if not Quiet then
   begin
+{$IFDEF ENABLE_SOUND}
     g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', X, Y);
+{$ENDIF}
     if g_Frames_Get(AID, 'FRAMES_ITEM_RESPAWN') then
     begin
       Anim := TAnimation.Create(AID, False, 4);
@@ -2740,8 +2803,10 @@ begin
   if not g_Items_ValidId(ID) then
     Exit;
 
+{$IFDEF ENABLE_SOUND}
   if not Quiet then
     g_Items_EmitPickupSound(ID);
+{$ENDIF}
 
   g_Items_Remove(ID);
 end;
@@ -2883,6 +2948,7 @@ begin
       if gTriggers[I].ClientID = SID then
         with gTriggers[I] do
         begin
+{$IFDEF ENABLE_SOUND}
           if Sound <> nil then
           begin
             if SPlaying then
@@ -2893,9 +2959,21 @@ begin
                 Sound.PlayPanVolume((tgcPan-127.0)/128.0, tgcVolume/255.0);
               Sound.SetPosition(SPos);
             end
-            else
-              if Sound.IsPlaying then Sound.Stop;
+            else if Sound.IsPlaying then
+              Sound.Stop;
           end;
+{$ELSE}
+          if SPlaying then
+          begin
+            SoundPlay := True;
+            SoundPos := SPos;
+          end
+          else if SoundPlay then
+          begin
+            SoundPlay := False;
+            SoundPos := 0;
+          end;
+{$ENDIF}
 
           SoundPlayCount := SCount;
         end;
@@ -2916,15 +2994,32 @@ begin
   MPaused := M.ReadByte() <> 0;
   MPos := MPos+1; //k8: stfu, fpc!
 
+{$IFDEF ENABLE_SOUND}
   if MPlaying then
   begin
     gMusic.SetByName(MName);
     gMusic.Play(True);
-    // gMusic.SetPosition(MPos);
+    gMusic.SetPosition(MPos);
     gMusic.SpecPause := MPaused;
   end
-  else
-    if gMusic.IsPlaying then gMusic.Stop;
+  else if gMusic.IsPlaying then
+  begin
+    gMusic.Stop;
+  end;
+{$ELSE}
+  if MPlaying then
+  begin
+    gMusicName := MName;
+    gMusicPlay := True;
+    gMusicPos := MPos;
+    gMusicPause := MPaused;
+  end
+  else if gMusicPlay then
+  begin
+    gMusicPlay := False;
+    gMusicPos := 0;
+  end;
+{$ENDIF}
 end;
 
 // MONSTERS
@@ -3029,8 +3124,10 @@ begin
     AnimRevert := M.ReadByte() <> 0;
     OldFire := FFireTime;
     FFireTime := M.ReadLongInt();
+{$IFDEF ENABLE_SOUND}
     if (OldFire <= 0) and (FFireTime > 0) then
       g_Sound_PlayExAt('SOUND_IGNITE', Obj.X, Obj.Y);
+{$ENDIF}
     RevertAnim(AnimRevert);
 
     if MonsterState <> MState then
