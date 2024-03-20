@@ -461,7 +461,8 @@ begin
     for i := 0 to High(ggItems) do ggItems[i].Animation.Free();
     ggItems := nil;
   end;
-  freeIds.clear();
+  if freeIds <> nil then
+    freeIds.clear();
 end;
 
 

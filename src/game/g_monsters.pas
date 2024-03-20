@@ -623,7 +623,8 @@ var
   idx: Integer;
 begin
   for idx := 0 to High(uidMap) do uidMap[idx] := nil;
-  freeInds.clear();
+  if freeInds <> nil then
+    freeInds.clear();
 end;
 
 
