@@ -71,6 +71,7 @@ uses
 {$IFDEF ENABLE_SOUND}
   g_sound, e_sound,
 {$ENDIF}
+  Classes,
   wadreader, e_log, g_window,
   e_graphics, e_input, g_game, g_console, g_gui,
   g_options, g_player, g_basic,
@@ -78,6 +79,13 @@ uses
   g_menu, g_language, g_net, g_touch, g_system, g_res_downloader,
   conbuf, envvars,
   xparser;
+
+const
+{$IFDEF HEADLESS}
+  LogPrefix = 'DFSERVER-';
+{$ELSE}
+  LogPrefix = 'dfclient-';
+{$ENDIF}
 
 var
   charbuff: packed array [0..15] of AnsiChar;
@@ -443,8 +451,7 @@ begin
     if rwdir <> '' then
     begin
       DateTimeToString(date, 'yyyy-mm-dd-hh-nn-ss', Now());
-      LogFileName := ConcatPaths([rwdir, {$IFNDEF HEADLESS}'dfclient-'{$ELSE}'DFSERVER-'{$ENDIF}
-        + date + '.log']);
+      LogFileName := ConcatPaths([rwdir, LogPrefix + date + '.log']);
     end
   end;
   
@@ -453,30 +460,75 @@ begin
   if rwdir <> '' then CreateDir(rwdir + '/stats');
 end;
 
+procedure LogCleanup (const path, mask: AnsiString; limit: Integer);
+  var R: TSearchRec; list: TStringList;
+begin
+  if FindFirst(ConcatPaths([path, mask]), faReadOnly or faArchive, R) = 0 then
+  begin
+    list := TStringList.Create();
+
+    // Collect files
+    repeat
+      list.Add(R.Name);
+    until FindNext(R) <> 0;
+    FindClose(R);
+
+    // Delete old files (errors ignored)
+    list.Sort();
+    while list.Count > limit do
+    begin
+      DeleteFile(ConcatPaths([path, list[0]]));
+      list.Delete(0);
+    end;
+
+    list.Free();
+  end;
+end;
+
 function InitPrep (): Boolean;
 var
   i: Integer;
+  logLimit: Integer;
+  s: AnsiString;
 begin
   Result := False;
 {$IFDEF HEADLESS}
   conbufDumpToStdOut := True;
 {$ENDIF}
-  for i := 1 to ParamCount do
+  logLimit := 10;
+
+  i := 1;
+  while i < ParamCount do
   begin
     case ParamStr(i) of
       '--con-stdout': conbufDumpToStdOut := True;
       '--no-fbo': glRenderToFBO := False;
-    end
+      '--keep-logs':
+        begin
+          Inc(i);
+          logLimit := StrToIntDef(ParamStr(i), -1);
+        end;
+    end;
+    Inc(i);
   end;
 
   if LogFileName <> '' then
     e_InitLog(LogFileName, TWriteMode.WM_NEWFILE);
   e_InitWritelnDriver();
+
   e_WriteLog('Doom 2D: Forever version ' + GAME_VERSION + ' proto ' + IntToStr(NET_PROTOCOL_VER), TMsgType.Notify);
   e_WriteLog('Build arch: ' + g_GetBuildArch(), TMsgType.Notify);
   e_WriteLog('Build date: ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME, TMsgType.Notify);
   e_WriteLog('Build hash: ' + g_GetBuildHash(), TMsgType.Notify);
   e_WriteLog('Build by: ' + g_GetBuilderName(), TMsgType.Notify);
+
+  // Delete old logs
+  if logLimit >= 0 then
+  begin
+    s := e_GetWriteableDir(LogDirs, false);
+    if s <> '' then
+      LogCleanup(s, LogPrefix + '*-*-*-*-*-*.log', logLimit);
+  end;
 
   e_LogWritefln('Force bin dir: %s', [forceBinDir], TMsgType.Notify);
   e_LogWritefln('BINARY PATH: [%s]', [binPath], TMsgType.Notify);
