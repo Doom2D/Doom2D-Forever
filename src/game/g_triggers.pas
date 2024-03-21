@@ -921,7 +921,7 @@ begin
           g_GFX_OnceAnim(X-32, Y-32, Anim);
           Anim.Free();
         end;
-        if Send and g_Game_IsServer and g_Game_IsNet then MH_SEND_Effect(X, Y, Byte(not Silent), NET_GFX_TELE);
+        if Send and g_Game_IsServer and g_Game_IsNet then MH_SEND_Effect(X-32, Y-32, Byte(not Silent), NET_GFX_TELE);
       end;
       EFFECT_RESPAWN: begin
         if g_Frames_Get(FramesID, 'FRAMES_ITEM_RESPAWN') then
@@ -2404,7 +2404,7 @@ begin
             if tgcSpreadD > 0 then yd += Random(tgcSpreadD+1);
             tr_MakeEffect(wx, wy, xd, yd,
                        tgcFXType, tgcFXSubType,
-                       tgcFXRed, tgcFXGreen, tgcFXBlue, True, False);
+                       tgcFXRed, tgcFXGreen, tgcFXBlue, True, True);
             Dec(idx);
           end;
           TimeOut := tgcWait;
