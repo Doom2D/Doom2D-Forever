@@ -1378,6 +1378,7 @@ begin
         if g_GetUIDType(ActivateUID) = UID_PLAYER then
         begin
           Enabled := False;
+          TriggerType := TRIGGER_NONE;
           Result := True;
           p := g_Player_Get(ActivateUID);
           p.GetSecret();
