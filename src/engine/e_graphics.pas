@@ -504,9 +504,9 @@ procedure e_BlitFramebuffer(WinWidth, WinHeight: Integer);
 begin
   if (e_FBO = 0) or (e_Frame = 0) or e_NoGraphics then exit;
 
-  glDisable(GL_BLEND);
-  glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, e_Frame);
+  glEnable(GL_TEXTURE_2D);
+  glDisable(GL_BLEND);
   glColor4ub(255, 255, 255, 255);
 
   glBegin(GL_QUADS);
@@ -515,12 +515,17 @@ begin
     glTexCoord2f(1, 0); glVertex2i(WinWidth, WinHeight);
     glTexCoord2f(1, 1); glVertex2i(WinWidth,         0);
   glEnd();
+
+  glDisable(GL_TEXTURE_2D);
 end;
 
 procedure e_Draw(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
                  Blending: Boolean; Mirror: TMirrorType = TMirrorType.None);
 begin
   if e_NoGraphics then Exit;
+
+  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
+  glEnable(GL_TEXTURE_2D);
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
   if (Alpha > 0) or (AlphaChannel) or (Blending) then
@@ -537,8 +542,6 @@ begin
   if Blending then
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
   glBegin(GL_QUADS);
 
   drawTxQuad(X, Y, e_Textures[id].tx.width, e_Textures[id].tx.height, e_Textures[id].tx.width, e_Textures[id].tx.height, e_Textures[ID].tx.u, e_Textures[ID].tx.v, Mirror);
@@ -575,6 +578,7 @@ begin
   glEnd();
 
   glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
 end;
 
 procedure e_DrawSize(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
@@ -583,6 +587,9 @@ var
   u, v: Single;
 begin
   if e_NoGraphics then Exit;
+
+  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
+  glEnable(GL_TEXTURE_2D);
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
   if (Alpha > 0) or (AlphaChannel) or (Blending) then
@@ -598,9 +605,6 @@ begin
 
   if Blending then
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
 
   u := e_Textures[ID].tx.u;
   v := e_Textures[ID].tx.v;
@@ -613,12 +617,16 @@ begin
   glEnd();
 
   glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
 end;
 
 procedure e_DrawSizeMirror(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
                            Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = TMirrorType.None);
 begin
   if e_NoGraphics then Exit;
+
+  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
+  glEnable(GL_TEXTURE_2D);
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
   if (Alpha > 0) or (AlphaChannel) or (Blending) then
@@ -635,13 +643,12 @@ begin
   if Blending then
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
   glBegin(GL_QUADS);
   drawTxQuad(X, Y, Width, Height, e_Textures[id].tx.width, e_Textures[id].tx.height, e_Textures[ID].tx.u, e_Textures[ID].tx.v, Mirror);
   glEnd();
 
   glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
 end;
 
 procedure e_DrawFill(ID: DWORD; X, Y: Integer; XCount, YCount: Word; Alpha: Integer;
@@ -651,6 +658,9 @@ var
   u, v: Single;
 begin
   if e_NoGraphics then Exit;
+
+  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
+  glEnable(GL_TEXTURE_2D);
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
   ambientBlendMode := false;
 
@@ -668,9 +678,6 @@ begin
 
   if (XCount = 0) then XCount := 1;
   if (YCount = 0) then YCount := 1;
-
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
 
   X2 := X+e_Textures[ID].tx.width*XCount;
   Y2 := Y+e_Textures[ID].tx.height*YCount;
@@ -714,6 +721,7 @@ begin
   end;
 
   glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
 end;
 
 
@@ -786,6 +794,8 @@ begin
     exit;
   end;
 
+  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
+  glEnable(GL_TEXTURE_2D);
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
   if (Alpha > 0) or AlphaChannel or Blending then
@@ -799,9 +809,6 @@ begin
   if AlphaChannel or (Alpha > 0) then glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   if (Alpha > 0) then glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255-Alpha);
   if Blending then glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
 
   x2 := x+wdt;
   y2 := y+hgt;
@@ -859,6 +866,7 @@ begin
   end;
 
   glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
 end;
 
 
@@ -898,6 +906,8 @@ procedure e_DrawAdv(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean
 begin
   if e_NoGraphics then Exit;
 
+  glBindTexture(GL_TEXTURE_2D, e_Textures[id].tx.id);
+  glEnable(GL_TEXTURE_2D);
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
   if (Alpha > 0) or (AlphaChannel) or (Blending) then
@@ -922,8 +932,6 @@ begin
     glTranslatef(-(X+RC.X), -(Y+RC.Y), 0);
   end;
 
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, e_Textures[id].tx.id);
   glBegin(GL_QUADS);                           //0-1        1-1
                                                //00         10
   drawTxQuad(X, Y, e_Textures[id].tx.width, e_Textures[id].tx.height, e_Textures[id].tx.width, e_Textures[id].tx.height, e_Textures[ID].tx.u, e_Textures[ID].tx.v, Mirror);
@@ -933,6 +941,7 @@ begin
     glPopMatrix();
 
   glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
 end;
 
 procedure e_DrawPoint(Size: Byte; X, Y: Integer; Red, Green, Blue: Byte);
@@ -1608,6 +1617,7 @@ begin
 
 {$IFDEF NOGL_LISTS}
  glBindTexture(GL_TEXTURE_2D, e_Textures[Tex].tx.id);
+ glEnable(GL_TEXTURE_2D);
  for loop1 := 0 to XCount*YCount-1 do
  begin
   cx := (loop1 mod XCount)/XCount;
@@ -1630,6 +1640,7 @@ begin
    glTranslated((e_Textures[Tex].tx.Width div XCount)+Space, 0, 0);
   glEndList();
  end;
+ glDisable(GL_TEXTURE_2D);
 {$ENDIF}
 
  FontID := id;
@@ -1689,14 +1700,15 @@ begin
   if Integer(FontID) > High(e_TextureFonts) then Exit;
   if Text = '' then Exit;
 
+  glPushMatrix;
+  glBindTexture(GL_TEXTURE_2D, e_TextureFonts[FontID].TextureID);
+  glEnable(GL_TEXTURE_2D);
+
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
 
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
-  glPushMatrix;
-  glBindTexture(GL_TEXTURE_2D, e_TextureFonts[FontID].TextureID);
-  glEnable(GL_TEXTURE_2D);
   glTranslatef(x, y, 0);
 {$IFDEF NOGL_LISTS}
   glListBase(DWORD(Integer(e_TextureFonts[FontID].Base)-32));
@@ -1704,10 +1716,10 @@ begin
 {$ELSE}
   e_TextureFontDrawString(Text, FontID);
 {$ENDIF}
-  glDisable(GL_TEXTURE_2D);
   glPopMatrix;
 
   glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
 end;
 
 // god forgive me for this, but i cannot figure out how to do it without lists
@@ -1749,8 +1761,8 @@ begin
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
   e_TextureFontPrintChar(X, Y, Ch, FontID, Shadow);
-  glDisable(GL_TEXTURE_2D);
   glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
 end;
 
 function e_TextureFontCharWidth (ch: Char; FontID: DWORD): Integer;
@@ -1854,8 +1866,8 @@ begin
 
       TX := TX+w;
     end;
-    glDisable(GL_TEXTURE_2D);
     glDisable(GL_BLEND);
+    glDisable(GL_TEXTURE_2D);
   end;
 end;
 
@@ -1899,10 +1911,10 @@ begin
   e_TextureFontDrawString(Text, FontID);
 {$ENDIF}
 
-  glDisable(GL_TEXTURE_2D);
   glPopMatrix;
   glColor3ub(e_Colors.R, e_Colors.G, e_Colors.B);
   glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
 end;
 
 procedure e_TextureFontGetSize(ID: DWORD; out CharWidth, CharHeight: Byte);

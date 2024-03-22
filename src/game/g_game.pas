@@ -3562,16 +3562,17 @@ begin
     // blend it
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_TEXTURE_2D);
     // color and opacity
     glColor4f(g_dynLights[lln].r, g_dynLights[lln].g, g_dynLights[lln].b, g_dynLights[lln].a);
     glBindTexture(GL_TEXTURE_2D, g_Texture_Light());
+    glEnable(GL_TEXTURE_2D);
     glBegin(GL_QUADS);
       glTexCoord2f(0.0, 0.0); glVertex2i(lx-lrad, ly-lrad); // top-left
       glTexCoord2f(1.0, 0.0); glVertex2i(lx+lrad, ly-lrad); // top-right
       glTexCoord2f(1.0, 1.0); glVertex2i(lx+lrad, ly+lrad); // bottom-right
       glTexCoord2f(0.0, 1.0); glVertex2i(lx-lrad, ly+lrad); // bottom-left
     glEnd();
+    glDisable(GL_TEXTURE_2D);
   end;
 
   // done

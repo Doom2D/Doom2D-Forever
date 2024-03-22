@@ -582,10 +582,10 @@ end;
 
 procedure TGxBmpFont.initDrawText ();
 begin
+  glBindTexture(GL_TEXTURE_2D, mTexId);
+  glEnable(GL_TEXTURE_2D);
   glEnable(GL_ALPHA_TEST);
   glAlphaFunc(GL_NOTEQUAL, 0.0);
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, mTexId);
 end;
 
 
@@ -1395,8 +1395,8 @@ begin
   glScissor(0, 0, fuiScrWdt, fuiScrHgt);
 
   glBindTexture(GL_TEXTURE_2D, 0);
-  glDisable(GL_BLEND);
   glDisable(GL_TEXTURE_2D);
+  glDisable(GL_BLEND);
   glDisable(GL_STENCIL_TEST);
   glDisable(GL_SCISSOR_TEST);
   glDisable(GL_LIGHTING);

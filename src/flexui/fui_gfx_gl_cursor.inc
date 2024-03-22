@@ -141,10 +141,10 @@ begin
   try
     oglSetup2D(fuiScrWdt, fuiScrHgt);
     glBindTexture(GL_TEXTURE_2D, curtexid);
+    glEnable(GL_TEXTURE_2D);
     // blend it
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_TEXTURE_2D);
     glDisable(GL_STENCIL_TEST);
     glDisable(GL_SCISSOR_TEST);
     glDisable(GL_LIGHTING);
@@ -160,9 +160,9 @@ begin
       glTexCoord2f(0.0, 1.0); glVertex2i(msX, msY+curTexHeight); // bottom-left
     glEnd();
     //Inc(msX, 2);
+    //glColor4f(1, 1, 1, 1);
     //glDisable(GL_BLEND);
     //glDisable(GL_TEXTURE_2D);
-    //glColor4f(1, 1, 1, 1);
     //glBindTexture(GL_TEXTURE_2D, 0);
   finally
     sst.restore();
