@@ -317,13 +317,13 @@ begin
   Result := False;
   u0 := -1;
 
-  if (mew >= 1) and (meh >= 1) and (itw >= 1) and (ith >= 1) and (medx <> 0) and (medy <> 0) then
+  if (mew >= 1) and (meh >= 1) and (itw >= 1) and (ith >= 1) and ((medx <> 0) or (medy <> 0)) then
   begin
     tin := -100000000.0;
     tout := 100000000.0;
     if axisOverlap(mex0, mex0 + mew - 1, itx0, itx0 + itw - 1, -medx) then
     begin
-      if not axisOverlap(mey0, mey0 + meh - 1, ity0, ity0 + ith - 1, -medy) then
+      if axisOverlap(mey0, mey0 + meh - 1, ity0, ity0 + ith - 1, -medy) then
       begin
         u0 := tin;
         Result := (tin <= tout) and (tin >= 0.0) and (tin <= 1.0);
