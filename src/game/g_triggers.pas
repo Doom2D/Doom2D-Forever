@@ -3384,7 +3384,7 @@ begin
     gTriggers[i].ActivateType := st.ReadByte();  // Тип активации триггера
     gTriggers[i].Keys := st.ReadByte();  // Ключи, необходимые для активации
     gTriggers[i].TexturePanelGUID := st.ReadInt32LE();  // ID панели, текстура которой изменится
-    //st.ReadWord(gTriggers[i].TexturePanelType);  // Тип этой панели
+    //st.ReadWordLE(gTriggers[i].TexturePanelType);  // Тип этой панели
 
     // Внутренний номер другой панели (по счастливой случайности он будет совпадать с тем, что создано при загрузке карты)
     gTriggers[i].trigPanelGUID := st.ReadInt32LE();

@@ -1865,8 +1865,8 @@ begin
       end;
     TType.TSize:
       begin
-        mIVal := st.ReadWord();
-        mIVal2 := st.ReadWord();
+        mIVal := st.ReadWordLE();
+        mIVal2 := st.ReadWordLE();
         mDefined := true;
         exit;
       end;

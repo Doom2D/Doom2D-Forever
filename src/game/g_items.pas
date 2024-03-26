@@ -885,7 +885,7 @@ begin
       st.WriteInt32LE(ggItems[i].InitX);
       st.WriteInt32LE(ggItems[i].InitY);
 
-      st.WriteWord(ggItems[i].RespawnTime);  // Время до респауна
+      st.WriteWordLE(ggItems[i].RespawnTime);  // Время до респауна
       st.WriteBool(ggItems[i].alive);  // Существует ли этот предмет
       st.WriteBool(ggItems[i].Fall);  // Может ли он падать
       st.WriteInt32LE(ggItems[i].SpawnTrigger);  // Индекс триггера, создавшего предмет
