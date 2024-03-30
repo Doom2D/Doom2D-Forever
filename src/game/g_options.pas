@@ -306,7 +306,7 @@ begin
   NetUpdateRate := 0;
   NetRelupdRate := 18;
   NetMasterRate := 60000;
-  NetForwardPorts := False;
+  NetForwardPorts := {$IFDEF USE_MINIUPNPC} True {$ELSE} False {$ENDIF};
 
   (* section Client *)
   NetInterpLevel := 2;

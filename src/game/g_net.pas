@@ -174,7 +174,7 @@ var
 
   NetForcePlayerUpdate: Boolean;
   NetPredictSelf: Boolean = True;
-  NetForwardPorts: Boolean;
+  NetForwardPorts: Boolean {$IFDEF USE_MINIUPNPC} = True {$ENDIF};
 
   NetGotEverything: Boolean;
   NetGotKeys: Boolean;
@@ -2539,7 +2539,7 @@ initialization
   conRegVar('cl_predictself', @NetPredictSelf, '', 'predict local player');
   conRegVar('cl_forceplayerupdate', @NetForcePlayerUpdate, '', 'update net players on NET_MSG_PLRPOS');
   conRegVar('cl_interp', @NetInterpLevel, '', 'net player interpolation steps');
-  conRegVar('cl_last_ip', @NetClientIP, '', 'address of the last you have connected to');
+  conRegVar('cl_last_ip', @NetClientIP, '', 'address of the last server you have connected to');
   conRegVar('cl_last_port', @NetClientPort, '', 'port of the last server you have connected to');
   conRegVar('cl_deafen', @NetDeafLevel, '', 'filter server messages (0-3)');
 
