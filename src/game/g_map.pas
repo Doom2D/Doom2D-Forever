@@ -2325,7 +2325,7 @@ var
   Data: Pointer;
   Len: Integer;
 begin
-  FillChar(Result, SizeOf(Result), 0);
+  Result := Default(TMapInfo);
   FileName := g_ExtractWadName(Res);
 
   WAD := TWADFile.Create();

@@ -816,7 +816,7 @@ function g_PlayerModel_GetInfo(ModelName: string): TModelInfo;
 var
   a: Integer;
 begin
-  FillChar(Result, SizeOf(Result), 0);
+  Result := Default(TModelInfo);
   if PlayerModelsArray = nil then Exit;
 
   for a := 0 to High(PlayerModelsArray) do
