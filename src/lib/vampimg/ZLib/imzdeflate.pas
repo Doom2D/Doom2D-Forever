@@ -330,6 +330,8 @@ implementation
 uses
   imtrees, imadler;
 
+{$WARN 6018 OFF} // unreachable code
+
 {  ===========================================================================
    Function prototypes. }
 

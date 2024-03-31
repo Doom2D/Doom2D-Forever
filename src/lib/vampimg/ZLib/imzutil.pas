@@ -32,10 +32,14 @@ type
   puIntf = ^uIntf;
   puLong = ^uLongf;
 
-  ptr2int = uInt;
+  ptr2int = UIntPtr;
 { a pointer to integer casting is used to do pointer arithmetic.
   ptr2int must be an integer type and sizeof(ptr2int) must be less
   than sizeof(pointer) - Nomssi }
+{ svp: ptr2int must have exactly same size as pointer for linear memory model.
+  "less than sizeof(pointer)" probably related only to non-linear memory models
+  like 8086 with long pointers (segment:offset). throuh, we don't care about
+  such systems. if you do, use ptr2int=uIntf only on such targets. }
 
 type
   zByteArray = array[0..(MaxInt div SizeOf(Bytef))-1] of Bytef;
