@@ -60,7 +60,7 @@ var
   gFlash: Integer;
   gDrawBackGround: Boolean;
   gShowMessages: Boolean;
-  gRevertPlayers: Boolean;
+  gSwapPlayers: Boolean;
   gLanguage: String;
   gAskLanguage: Boolean;
   gSaveStats: Boolean = False;
@@ -260,7 +260,7 @@ begin
   gFlash := 1;
   gDrawBackGround := True;
   gShowMessages := True;
-  gRevertPlayers := False;
+  gSwapPlayers := False;
   gChatBubble := 4;
   wadoptDebug := False;
   wadoptFast := False;
@@ -378,7 +378,7 @@ initialization
   conRegVar('r_flash', @gFlash, '', '');
   conRegVar('r_background', @gDrawBackGround, '', '');
   conRegVar('g_show_messages', @gShowMessages, '', '');
-  conRegVar('r_revert_players', @gRevertPlayers, '', '');
+  conRegVar('r_swap_players', @gSwapPlayers, '', '');
   conRegVar('r_chat_bubble', @gChatBubble, '', '');
   conRegVar('sfs_debug', @wadoptDebug, '', '');
   conRegVar('sfs_fastmode', @wadoptFast, '', '');

@@ -166,7 +166,7 @@ begin
   gAdvGibs := TGUISwitch(menu.GetControl('swGibsType')).ItemIndex = 1;
   gDrawBackGround := TGUISwitch(menu.GetControl('swBackGround')).ItemIndex = 0;
   gShowMessages := TGUISwitch(menu.GetControl('swMessages')).ItemIndex = 0;
-  gRevertPlayers := TGUISwitch(menu.GetControl('swRevertPlayers')).ItemIndex = 0;
+  gSwapPlayers := TGUISwitch(menu.GetControl('swSwapPlayers')).ItemIndex = 0;
   gChatBubble := TGUISwitch(menu.GetControl('swChatBubble')).ItemIndex;
   gPlayerIndicator := TGUISwitch(menu.GetControl('swPlayerIndicator')).ItemIndex;
   gPlayerIndicatorStyle := TGUISwitch(menu.GetControl('swPlayerIndicatorStyle')).ItemIndex;
@@ -623,8 +623,8 @@ begin
   with TGUISwitch(menu.GetControl('swMessages')) do
     if gShowMessages then ItemIndex := 0 else ItemIndex := 1;
 
-  with TGUISwitch(menu.GetControl('swRevertPlayers')) do
-    if gRevertPlayers then ItemIndex := 0 else ItemIndex := 1;
+  with TGUISwitch(menu.GetControl('swSwapPlayers')) do
+    if gSwapPlayers then ItemIndex := 0 else ItemIndex := 1;
 
   with TGUISwitch(menu.GetControl('swChatBubble')) do
     ItemIndex := gChatBubble;
@@ -3179,9 +3179,9 @@ begin
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
     end;
-    with AddSwitch(_lc[I_MENU_GAME_REVERT_PLAYERS]) do
+    with AddSwitch(_lc[I_MENU_GAME_SWAP_PLAYERS]) do
     begin
-      Name := 'swRevertPlayers';
+      Name := 'swSwapPlayers';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
     end;

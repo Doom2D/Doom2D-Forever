@@ -3977,7 +3977,7 @@ begin
     if (gPlayer1 <> nil) and (gPlayer2 <> nil) then
     begin
       gSpectMode := SPECT_NONE;
-      if not gRevertPlayers then
+      if not gSwapPlayers then
       begin
         plView1 := gPlayer1;
         plView2 := gPlayer2;
