@@ -2696,8 +2696,9 @@ begin
       st.WriteDWordLE(Length(Projectiles[i].Triggers));  // Размер поля Triggers
 
       // Триггеры, активированные выстрелом
-      for j := 0 to High(Projectiles[i].Triggers) do
-        st.WriteDWordLE(Projectiles[i].Triggers[j]);
+      if Projectiles[i].Triggers <> nil then
+        for j := 0 to High(Projectiles[i].Triggers) do
+          st.WriteDWordLE(Projectiles[i].Triggers[j]);
 
       Obj_SaveState(st, @Projectiles[i].Obj);  // Объект снаряда
       st.WriteByte(Projectiles[i].Stopped);  // Костылина
@@ -2739,8 +2740,9 @@ begin
     SetLength(Projectiles[i].Triggers, tc);
 
     // Триггеры, активированные выстрелом
-    for j := 0 to tc-1 do
-      Projectiles[i].Triggers[j] := st.ReadDWordLE();
+    if tc > 0 then
+      for j := 0 to tc - 1 do
+        Projectiles[i].Triggers[j] := st.ReadDWordLE();
 
     Obj_LoadState(@Projectiles[i].Obj, st);  // Объект предмета
     Projectiles[i].Stopped := st.ReadByte();  // Костылина
