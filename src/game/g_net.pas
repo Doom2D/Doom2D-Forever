@@ -1383,7 +1383,7 @@ var
   F, Chan: enet_uint32;
   I: Integer;
 begin
-  F := 0;
+  F := LongWord(ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
   Chan := NET_CHAN_UNRELIABLE;
 
   if NetMode = NET_SERVER then
@@ -1403,6 +1403,7 @@ begin
       F := LongWord(ENET_PACKET_FLAG_RELIABLE);
       Chan := NET_CHAN_RELIABLE;
     end
+
   else if NetMode = NET_CLIENT then
     for T := NET_UNRELIABLE to NET_RELIABLE do
     begin
@@ -1413,6 +1414,7 @@ begin
         enet_peer_send(NetPeer, Chan, P);
         NetBuf[T].Clear();
       end;
+
       // next and last iteration is always RELIABLE
       F := LongWord(ENET_PACKET_FLAG_RELIABLE);
       Chan := NET_CHAN_RELIABLE;
