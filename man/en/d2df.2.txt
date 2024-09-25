@@ -1,7 +1,7 @@
 @title Doom2DF 2 08.03.2023 2 2
 
 @h1 NAME
-Doom 2D Forever console commands.
+Doom2D Forever console commands.
 
 
 @h1 CONTENTS
@@ -18,166 +18,166 @@ Doom 2D Forever console commands.
 @h1 1. System commands
 
 quit, exit
-    Exit from game.
+	Exit from game.
 r_reset
-    Reload render.
+	Reload renderer.
 r_maxfps <number>
-    Limiting the number of frames per second
+	Limiting the number of frames per second
 g_language Russian/English
-    Change game language.
+	Change game language.
 
 
 @h1 2. Binds
 
 bind <key> <command>
-    Bind a key behind a command.
+	Bind a key behind a command.
 bindrep <key> <command>
-    (?)
+	(?)
 bindunrep <key> <command>
-    (?)
+	(?)
 bindlist
-    Show a bind list.
+	Show a bind list.
 unbind <key>
-    Remove the bind from the key.
+	Remove the bind from the key.
 unbindall
-    Remove binds from all keys (not recommended).
+	Remove binds from all keys (not recommended).
 togglemenu
-    Show or hide the main menu/game menu.
+	Show or hide the main menu/game menu.
 toggleconsole
-    Show or hide the console.
+	Show or hide the console.
 togglechat
-    Show or hide the chat.
+	Show or hide the chat.
 toggleteamchat
-    Show or hide the team chat.
+	Show or hide the team chat.
 
 @h2 For device with touchscreen
 showkeyboard
-    Show virtual keyboard.
+	Show virtual keyboard.
 hidekeyboard
-    Hide virtual keyboard.
+	Hide virtual keyboard.
 
 
 @h1 3. Console commands
 clear
-    Clear console window.
+	Clear console window.
 clearhistory
-    Clear commands history.
+	Clear commands history.
 showhistory
-    Show commands history
+	Show commands history
 commands
-    Show command list.
+	Show command list.
 time
-    Show current time.
+	Show current time.
 date
-    Show current date.
+	Show current date.
 echo ""
-    Output the typed characters to the console.
+	Output the typed characters to the console.
 dump
-    Take a dump.
+	Take a dump.
 exec <name>
-    Execute custom cfg.
+	Execute custom cfg.
 writeconfig <name>
-    Write to cfg.
+	Write to cfg.
 alias <name> "<commands>"
-    Set a sequence of commands to be executed after a certain name.
+	Set a sequence of commands to be executed after a certain name.
 call
-    Execute alias.
+	Execute alias.
 ver, version
-    Show game version.
+	Show game version.
 
 
 @h1 4. Game commands
 
 pause
-    Pause the game.
+	Pause the game.
 endgame
-    End game (sends to the main menu).
+	End game (sends to the main menu).
 restart
-    Restart map.
+	Restart map.
 addbot, bot_add
-    Add bot to game session.
+	Add bot to game session.
 bot_addlist <name>
-    Add bot to game session from list. If no name is specified, adds a random bot.
+	Add bot to game session from list. If no name is specified, adds a random bot.
 bot_addred
-    Add bot to red team.
+	Add bot to red team.
 bot_addblue
-    Add bot to blue team.
+	Add bot to blue team.
 bot_removeall
-    Remove all bots from game session.
+	Remove all bots from game session.
 chat <text>
-    Send text to chat.
+	Send text to chat.
 teamchat <text>
-    Send text to team chat
+	Send text to team chat
 announce, an <text>
-    Display the text in the middle of the screen.
+	Display the text in the middle of the screen.
 game <wad> <mapnn> <players>
-    Run the game on a certain map with a certain number of players (one to two).
+	Run the game on a certain map with a certain number of players (one to two).
 host <ip> <port> <wad> <mapnn> <players>
-    To get the game at a certain address, with a certain port on some map with some number of players.
+	To get the game at a certain address, with a certain port on some map with some number of players.
 map <wad> <mapnn>
-    Change map immediately.
+	Change map immediately.
 nextmap <wad> <mapnn>
-    Announce the next map.
+	Announce the next map.
 endmap
-    Finish the round.
+	Finish the round.
 goodbye
-    Finish the megawad/campaing map.
+	Finish the megawad/campaign map.
 suicide
-    Suicide.
+	Suicide.
 spectate
-    Spectating the game.
+	Spectating the game.
 ready
-    Declare readiness during Survival and derivative modes.
+	Declare readiness during Survival and derivative modes.
 kick <nick>
-    Kick a player with a certain nickname.
+	Kick a player with a certain nickname.
 kick_id <id>
-    Kick a player with a certain id.
+	Kick a player with a certain id.
 kick_pid <pid>
-    Kick a player with a certain pid.
+	Kick a player with a certain pid.
 ban <nick>
-    Ban a player with a certain nickname.
+	Ban a player with a certain nickname.
 ban_id <id>
-    Ban a player with a certain id.
+	Ban a player with a certain id.
 ban_pid <pid>
-    Ban a player with a certain pid.
+	Ban a player with a certain pid.
 permban <nick>
-    Ban a player permanently with a certain nickname.
+	Ban a player permanently with a certain nickname.
 permban_id <id>
-    Ban a player permanently with a certain id.
+	Ban a player permanently with a certain id.
 permban_pid <pid>
-    Ban a player permanently with a certain pid.
+	Ban a player permanently with a certain pid.
 permban_ip <ip>
-    Ban a player permanently by ip.
+	Ban a player permanently by ip.
 unban <nick or id or pid or ip>
-    Unban a player.
+	Unban a player.
 connect <ip или host> <порт> <пароль>
-    Connect to the server.
+	Connect to the server.
 disconnect
-    Disconnect from the server.
+	Disconnect from the server.
 reconnect
-    Reconnect to the server where you were last on.
+	Reconnect to the server where you were last on.
 say <text>
-    Write in chat on behalf of the server.
+	Write in chat on behalf of the server.
 tell <nick> <text>
-    Write to the player on behalf of the server.
+	Write to the player on behalf of the server.
 centerprint <time> <text>
-    Display an inscription in the middle of the screen for a certain time (in seconds). If from the player, then only for himself, if the server - for everyone.
+	Display an inscription in the middle of the screen for a certain time (in seconds). If from the player, then only for himself, if the server - for everyone.
 overtime
-    Announce extra time.
+	Announce extra time.
 rcon_password <пароль>
-    Password for rcon.
+	Password for rcon.
 rcon <команда>
-    Perform the action on the server.
+	Perform the action on the server.
 callvote, vote <command or parameter>
-    Vote to execute a command or change a parameter.
+	Vote to execute a command or change a parameter.
 clientlist
-    Output the list of connected clients.
+	Output the list of connected clients.
 event <name> <command or parameter>
-    Use a command or change a parameter for a certain event. When empty, display a list of actions performed on certain events.
+	Use a command or change a parameter for a certain event. When empty, display a list of actions performed on certain events.
 g_force_model 1/0
-    Override a player model, the default is off. Also creates bots with the same model, if the parameter is set to 1.
+	Override a player model, the default is off. Also creates bots with the same model, if the parameter is set to 1.
 g_force_model_name <name>
-    The name of the model file that will replace the others.
+	The name of the model file that will replace the others.
 
 
 @h1 SEE ALSO
@@ -186,4 +186,4 @@ g_force_model_name <name>
 
 @h1 AUTHOR
 
-Written by Dmitry Lyashuk <lyashuk.voxx\@gmail.com>, Doom 2D: Forever Developers.
+Written by Dmitry Lyashuk <lyashuk.voxx\@gmail.com> and Doom2D Forever developers <http://www.doom2d.org>.

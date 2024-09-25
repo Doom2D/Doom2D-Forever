@@ -1,3 +1,6 @@
+{ !!! auto-generated from "mapdef.txt" with 'mapgen' }
+
+
 // trigger cache
 
 //TRIGGER_EXIT

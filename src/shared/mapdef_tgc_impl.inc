@@ -1,3 +1,6 @@
+{ !!! auto-generated from "mapdef.txt" with 'mapgen' }
+
+
 // trigger cache loader
 // set `TriggerType` in `tgt` before calling this
 procedure trigUpdateCacheData (var tgt: TTrigger; tdata: TDynRecord);

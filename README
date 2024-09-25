@@ -1,14 +1,14 @@
 D2DF-SDL
 ---------
 
-Doom 2D Forever ( http://repo.or.cz/d2df-sdl.git ) adapted for use with the
-FreePascal Compiler and ported to SDL 2.0.
+Doom2D Forever ( http://repo.or.cz/d2df-sdl.git ) adapted for use with the
+FreePascal Compiler and ported to SDL (SDL2).
 
 Building
 ---------
 
 Requirements:
-* FPC >= 3.0.4;
+* FPC >= 3.1.1;
 * libenet >= 1.3.13;
 
 Create the "tmp" and "bin" directories and then run:
@@ -18,8 +18,8 @@ Create the "tmp" and "bin" directories and then run:
 
 Additionally you can add following options:
   System driver:
-    * -dUSE_SDL         Build with SDL 1.2.x
     * -dUSE_SDL2        Build with SDL 2.0.x
+    * -dUSE_SDL         Build with SDL 1.2.x
     * -dUSE_SYSSTUB     Disable I/O management
   Render driver:
     * -dUSE_OPENGL      Build with desktop OpenGL 2.x
@@ -31,8 +31,8 @@ Additionally you can add following options:
     * -dUSE_OPENAL      Build with OpenAL 1.1
     * -dUSE_SOUNDSTUB   Disable sound management
   Sound file drivers (OpenAL only):
-    * -dUSE_SDL         Build with SDL 1.2.x for WAV support
     * -dUSE_SDL2        Build with SDL 2.0.x for WAV support
+    * -dUSE_SDL         Build with SDL 1.2.x for WAV support
     * -dUSE_VORBIS      Build with libvorbis
     * -dUSE_FLUIDSYNTH  Build with libfluidsynth
     * -dUSE_MODPLUG     Build with libmodplug

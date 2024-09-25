@@ -1,7 +1,7 @@
 @title Doom2DF 3 08.03.2023 3 3
 
 @h1 NAME
-Custom configuration manual for a Doom 2D Forever dedicated server.
+Custom configuration manual for a Doom2D Forever dedicated server.
 
 
 @h1 CONTENTS
@@ -15,7 +15,7 @@ Custom configuration manual for a Doom 2D Forever dedicated server.
 4. Aliases
 
 @h1 1. Server settings
-The dedicated server uses its own configuration file, which is set up only with a text editor. It is not enough to simply change something in the main game and then copy it from its .cfg file into the server file - In the menu "My Game" not all settings for the server are displayed, and some variables from there you can not change. In this paragraph, we consider the most necessary parameters that must be prescribed.
+The dedicated server uses its own configuration file, which is set up only with a text editor. It is not enough to simply change something in the main game and then copy it from its .cfg file into the server file - in the menu "Custom Game" not all settings for the server are displayed, and some variables from there you can not change. In this paragraph, we consider the most necessary parameters that must be prescribed.
 
 
 @h2 Main options
@@ -47,15 +47,15 @@ sv_rcon_password
 
 @h2 Ban options
 sv_autoban_threshold <number>
-	After how many attempts to harm the server player should be banned (0 = off), the default 5.
+	After how many attempts to harm the server player should be banned (0 = off), default is 5.
 sv_autoban_permanent 1/0
-	Set the permanence of the ban (0 = ban for a while), the default is 1.
+	Set the permanence of the ban (0 = ban for a while), default is 1.
 sv_autoban_warn 1/0
 	Warn the client about penalty triggers, default is 0.
 sv_auth_timeout <number>
-	The number of milliseconds it takes for the client to complete authentication to the server (0 = infinite) is by default 30.
+	Time (in milliseconds) for the client to complete authentication to the server (0 = infinite), default is 30 seconds.
 sv_packet_timeout <number>
-	The number of milliseconds the client has to idle before kicking (0 = infinite) is 60 by default.
+	Time (in milliseconds) the client has to idle before being kicked (0 = infinite), default is 60 seconds.
 
 @h2 Optional options
 sv_forwardports 1/0
@@ -265,4 +265,4 @@ The map you can put what you want from the beginning of the server. This will en
 
 @h1 AUTHOR
 
-Written by Dmitry Lyashuk <lyashuk.voxx\@gmail.com>, Doom 2D: Forever Developers.
+Written by Dmitry Lyashuk <lyashuk.voxx\@gmail.com> and Doom2D Forever developers <http://www.doom2d.org>.

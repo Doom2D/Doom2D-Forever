@@ -1,17 +1,18 @@
-(* Copyright (C)  Doom 2D: Forever Developers
+(* Copyright (C) 2016 - The Doom2D.org team & involved community members <http://www.doom2d.org>.
+ * This file is part of Doom2D Forever.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, version 3 of the License ONLY.
+ * This program is free software: you can redistribute it and/or modify it under the terms of
+ * the GNU General Public License as published by the Free Software Foundation, version 3 of
+ * the License ONLY.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
  *)
+
 {$INCLUDE ../shared/a_modes.inc}
 {$SCOPEDENUMS OFF}
 unit g_language;
@@ -727,8 +728,8 @@ const
                                        'Скриншот сохранён в "%s"'),
     ('CONSOLE UNKNOWN',                'Unknown command "%s"',
                                        'Неизвестная команда "%s"'),
-    ('CONSOLE WELCOME',                'Welcome to Doom 2D: Forever %s',
-                                       'Добро пожаловать в Doom 2D: Forever %s'),
+    ('CONSOLE WELCOME',                'Welcome to Doom2D Forever %s',
+                                       'Добро пожаловать в Doom2D Forever %s'),
 
     ('GAME ERROR GET SPAWN',           'Can''t find a spawn point!',
                                        'Не удалось получить точку возрождения!'),
@@ -1298,10 +1299,10 @@ const
                                        'Мои + мультикиллы'),
     ('MENU ANNOUNCE ALL',              'All announcers',
                                        'Все'),
-    ('MENU COMPAT DF',                 'Doom 2D',
-                                       'Doom 2D'),
-    ('MENU COMPAT DOOM2',              'Doom II',
-                                       'Doom II'),
+    ('MENU COMPAT DF',                 'DOOM 2D',
+                                       'DOOM 2D'),
+    ('MENU COMPAT DOOM2',              'DOOM II',
+                                       'DOOM II'),
 
     ('MENU PLAYER NAME',               'Name:',
                                        'Имя:'),
@@ -1381,7 +1382,7 @@ const
     ('MENU RESTART GAME PROMT',        'Do you want to restart level?',
                                        'Вы действительно хотите начать уровень заново?'),
     ('MENU EXIT PROMT',                'Chickening out already?',
-                                       'Вы действительно хотите выйти из Doom 2D: Forever?'),
+                                       'Вы действительно хотите выйти из DOOM 2D FOREVER?'),
     ('MENU SET DEFAULT PROMT',         'Load default settings?',
                                        'Изменить все настройки на стандартные?'),
     ('MENU LOAD SAVED PROMT',          'Load saved settings?',
@@ -1791,8 +1792,8 @@ const
     ('LOAD PORTS',                     'Forwarding ports via UPnP...',
                                        'Проброс портов через UPnP...'),
 
-    ('CREDITS CAP 1',                  'Doom 2D: Forever',
-                                       'Doom 2D: Forever'),
+    ('CREDITS CAP 1',                  'DOOM 2D FOREVER',
+                                       'DOOM 2D FOREVER'),
     ('CREDITS CAP 2',                  'version %s, protocol %d',
                                        'версия %s, протокол %d'),
     ('CREDITS A 1',                    'Project Creators:',
@@ -1815,8 +1816,8 @@ const
                                        'Чёрный Думер, Grom PE, FireHawK'),
     ('CREDITS CAP 3',                  'Special thanks to:',
                                        'Искренне благодарим:'),
-    ('CREDITS CLO 1',                  '- Prikol Software for Doom 2D',
-                                       '- Prikol Software за Doom 2D'),
+    ('CREDITS CLO 1',                  '- Prikol Software for DOOM 2D',
+                                       '- Prikol Software за DOOM 2D'),
     ('CREDITS CLO 2',                  '- id Software for starting it all',
                                        '- id Software, которые заварили эту кашу'),
     ('CREDITS CLO 3',                  '- everyone who supported us',
@@ -1979,8 +1980,8 @@ const
     ('TEXTURE ENDPIC',                 'ENDGAME_EN',
                                        'ENDGAME_RU'),
 
-    ('VERSION',                        'Doom 2D: Forever %s',
-                                       'Doom 2D: Forever %s'),
+    ('VERSION',                        'DOOM 2D FOREVER %s',
+                                       'DOOM 2D FOREVER %s'),
 
     ('FATAL ERROR',                    'Fatal error: %s',
                                        'Критическая ошибка: %s'),

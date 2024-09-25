@@ -1,3 +1,17 @@
+(* Copyright (C) 2016 - The Doom2D.org team & involved community members <http://www.doom2d.org>.
+ *
+ * This program is free software: you can redistribute it and/or modify it under the terms of
+ * the GNU General Public License as published by the Free Software Foundation, version 3 of
+ * the License ONLY.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *)
+
 {$INCLUDE ../shared/a_modes.inc}
 {$IFDEF WINDOWS}
   {$APPTYPE CONSOLE}
@@ -44,6 +58,7 @@ var
 begin
   AssignFile(fo, fname);
   {$I+}Rewrite(fo);{$I-}
+  write(fo, '{ !!! auto-generated from "mapdef.txt" with ''mapgen'' }'#10#10#10);
 
   fldknown := THashStrFld.Create();
 
@@ -142,6 +157,7 @@ var
 begin
   AssignFile(fo, fname);
   {$I+}Rewrite(fo);{$I-}
+  write(fo, '{ !!! auto-generated from "mapdef.txt" with ''mapgen'' }'#10#10#10);
 
   write(fo, '// trigger cache loader'#10);
   write(fo, '// set `TriggerType` in `tgt` before calling this'#10);
@@ -306,6 +322,8 @@ begin
 
   write(fohlp, '// *** WARNING! ***'#10);
   write(fohlp, '//   regenerate this part directly from "mapdef.txt" with ''mapgen'', NEVER manually change anything here!'#10#10);
+
+  write(foimpl, '{ !!! auto-generated from "mapdef.txt" with ''mapgen'' }'#10);
 
   // generate trigger helpers
   write(foimpl, #10#10'// ////////////////////////////////////////////////////////////////////////// //'#10);

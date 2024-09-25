@@ -1,17 +1,18 @@
-(* Copyright (C)  Doom 2D: Forever Developers
+(* Copyright (C) 2016 - The Doom2D.org team & involved community members <http://www.doom2d.org>.
+ * This file is part of Doom2D Forever.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, version 3 of the License ONLY.
+ * This program is free software: you can redistribute it and/or modify it under the terms of
+ * the GNU General Public License as published by the Free Software Foundation, version 3 of
+ * the License ONLY.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
  *)
+
 {$INCLUDE ../shared/a_modes.inc}
 unit g_main;
 
@@ -293,7 +294,7 @@ var
       begin
         s := NSStringToAnsiString(dirArr.objectAtIndex(i));
         if s = '' then s := '.';  // FIXME: hack for improper ConcatPaths(); see commit.
-        AddDir(result, ConcatPaths([s, 'Doom 2D Forever']));
+        AddDir(result, ConcatPaths([s, 'Doom2D Forever']));
       end;
     {$ENDIF}
     {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
@@ -347,7 +348,7 @@ var
       begin
         s := NSStringToAnsiString(dirArr.objectAtIndex(i));
         if s = '' then s := '.';  // FIXME: hack for improper ConcatPaths(); see commit.
-        AddDir(result, ConcatPaths([s, 'Doom 2D Forever']));
+        AddDir(result, ConcatPaths([s, 'Doom2D Forever']));
       end;
     {$ENDIF}
     {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
@@ -516,7 +517,7 @@ begin
     e_InitLog(LogFileName, TWriteMode.WM_NEWFILE);
   e_InitWritelnDriver();
 
-  e_WriteLog('Doom 2D: Forever version ' + GAME_VERSION + ' proto ' + IntToStr(NET_PROTOCOL_VER), TMsgType.Notify);
+  e_WriteLog('Doom2D Forever version ' + GAME_VERSION + ' proto ' + IntToStr(NET_PROTOCOL_VER), TMsgType.Notify);
   e_WriteLog('Build arch: ' + g_GetBuildArch(), TMsgType.Notify);
   e_WriteLog('Build date: ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME, TMsgType.Notify);
   e_WriteLog('Build hash: ' + g_GetBuildHash(), TMsgType.Notify);

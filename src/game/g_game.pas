@@ -1,17 +1,18 @@
-(* Copyright (C)  Doom 2D: Forever Developers
+(* Copyright (C) 2016 - The Doom2D.org team & involved community members <http://www.doom2d.org>.
+ * This file is part of Doom2D Forever.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, version 3 of the License ONLY.
+ * This program is free software: you can redistribute it and/or modify it under the terms of
+ * the GNU General Public License as published by the Free Software Foundation, version 3 of
+ * the License ONLY.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
  *)
+
 {$INCLUDE ../shared/a_modes.inc}
 unit g_game;
 
@@ -1424,7 +1425,7 @@ begin
     LoadFont('SMALLTXT', 'SMALLFONT', gMenuSmallFont);
 
     g_Game_ClearLoading();
-    g_Game_SetLoadingText(Format('Doom 2D: Forever %s', [GAME_VERSION]), 0, False);
+    g_Game_SetLoadingText(Format('DOOM 2D FOREVER %s', [GAME_VERSION]), 0, False);
     g_Game_SetLoadingText('', 0, False);
 
     g_Game_SetLoadingText(_lc[I_LOAD_CONSOLE], 0, False);

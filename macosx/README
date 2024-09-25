@@ -1,7 +1,7 @@
 D2DF-SDL for MAC OS X
 ---------------------
 
-Doom 2D Forever ported to Mac OS X 10.4+.
+Doom2D Forever ported to Mac OS X 10.4+
 
 Building
 --------
@@ -46,7 +46,7 @@ ppcrossppc -g -gl -gs -O3 -dUSE_SDL -dUSE_OPENAL -dUSE_MODPLUG -dUSE_MPG123 \
         Doom2DF.lpr
 ```
 
-Than fix library paths:
+Then fix library paths:
 ```
 powerpc-apple-darwin-install_name_tool -change \
         /usr/local/lib/libSDL-1.2.0.dylib @executable_path/libSDL-1.2.0.dylib \
@@ -66,6 +66,6 @@ Make Apple DMG:
 ```
 mkdir -p Doom2DF.root
 cp -r Doom2DF.app  Doom2DF.root
-genisoimage -D -V "Doom 2D Forever" -no-pad -r -apple -file-mode 0555 \
+genisoimage -D -V "Doom2D Forever" -no-pad -r -apple -file-mode 0555 \
         -o Doom2DF.dmg Doom2DF.root
 ```

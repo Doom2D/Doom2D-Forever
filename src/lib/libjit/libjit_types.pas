@@ -18,6 +18,7 @@
  * License along with the libjit library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *)
+
 {$MODE OBJFPC}
 {$INCLUDE libjit_opts.inc}
 unit libjit_types;

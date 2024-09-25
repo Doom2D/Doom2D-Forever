@@ -18,6 +18,7 @@
  * License along with the libjit library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *)
+
 {$MODE DELPHI}
 {$INCLUDE libjit_opts.inc}
 unit libjit;

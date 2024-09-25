@@ -1,26 +1,24 @@
 #
-# Doom2D Forever spec file. It's a official build of game for Linux.
+# Copyright (C) 2016 - The Doom2D.org team & involved community members <http://www.doom2d.org>.
+# Doom2D Forever spec file. It's an official build of game for Linux.
 # Maintainer: Dmitry Lyashuk <lyashuk.voxx@gmail.com>
 #
-# Copyright (C)  Doom 2D: Forever Developers
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3 of the License ONLY.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# This program is free software: you can redistribute it and/or modify it under the terms of
+# the GNU General Public License as published by the Free Software Foundation, version 3 of
+# the License ONLY.
+
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see <http://www.gnu.org/licenses/>.
 #
 
 Name: d2dforever
 Version: v0.667
 Release: %mkrel 1
-Summary: Doom-themed platformer with network play
+Summary: a Doom-themed platformer with online multiplayer
 Source0: doom2df.png
 Source1: doom2df.desktop
 Source2: d2df.1
@@ -34,7 +32,7 @@ Requires: libenet7 libsdl2.0_0 openal libvorbis0 libopus0 libopusfile0 libgme0 l
 Provides: d2dforever
 
 %description
-Doom-themed platformer with network play, modern port of the 1996 Doom 2D by Prikol Software. Package contains main binary, headless binary and editor binary with icons and desktop files. Manual (man d2df) included.
+A Doom-themed platformer with online multiplayer, modern remake of the 1996 game Doom2D by Prikol Software. Package contains main binary, headless binary and editor binary with icons and desktop files. Manual (man d2df) included.
 
 %prep 
 

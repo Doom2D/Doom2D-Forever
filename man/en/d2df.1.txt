@@ -10,14 +10,14 @@ Doom2DF_H [*ARGUMENTS*]... [*OPTION*]...
 
 
 @h1 DESCRIPTION
-Doom 2D Forever is Doom-themed platformer game with network multiplayer support. This is the modern port of 1996 Doom 2D game by Prikol Software.@br
+Doom2D Forever is a Doom-themed platformer game with online multiplayer. This is a modern remake of the 1996 game Doom2D by Prikol Software.@br
 Note: documentation is not finished yet.
 
 
 @h2 ARGUMENTS
 -map WADFILE:\\MAPnn
 	Run the game with the map from the specified wad for the current game session.@br
-	All maps in the Doom 2D Forever must be packed to a .wad (incompatible with doom wads) or .dfz (renamed zip) archive.@br
+	All maps in the Doom2D Forever must be packed to a .wad (incompatible with doom wads) or .dfz (renamed zip) archive.@br
 	These wads can have a lot of maps inside, usually named as MAPnn.
 
 -gm NAME [`DM`|`TDM`|`CTF`|`COOP`]
@@ -56,13 +56,13 @@ Run the dedicated server in DeathMatch mode, with custom maplist and custom log 
 
 
 @h1 DIRECTORIES
-By default, the game checks the entire disc for game files. (The editor can't search for files everywhere.) To follow a hierarchy, files can be located:
+By default, the game checks the entire disk for game files. (The editor can't search for files everywhere.) To follow a hierarchy, files can be located:
 
 ~/.doom2df
-    in your home directory.
+	in your home directory
 
 /usr/share/doom2df
-    or in default directory.
+	or in default directory.
 
 @h1 URLS
 Our site:@br
@@ -87,4 +87,4 @@ https://discord.gg/sGpJwMy
 
 @h1 AUTHOR
 
-Written by Dmitry Lyashuk <lyashuk.voxx\@gmail.com>, Doom 2D: Forever Developers.
+Written by Dmitry Lyashuk <lyashuk.voxx\@gmail.com> and Doom2D Forever developers <http://www.doom2d.org>.

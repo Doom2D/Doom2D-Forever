@@ -52,7 +52,7 @@
         </activity>
 
         <activity android:name="Doom2DF"
-            android:label="Doom2DF Forever"
+            android:label="Doom2D Forever"
             android:alwaysRetainTaskState="true"
             android:launchMode="singleInstance"
             android:screenOrientation="sensorLandscape"
