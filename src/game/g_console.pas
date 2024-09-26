@@ -1105,9 +1105,9 @@ begin
   AddCommand('g_force_model_name', GameCVars);
   AddCommand('g_gamemode', GameCVars);
   AddCommand('g_friendlyfire', GameCVars);
-  AddCommand('g_friendly_hit_trace', GameCVars);
-  AddCommand('g_friendly_hit_projectile', GameCVars);
-  AddCommand('g_friendly_absorb_damage', GameCVars);
+  AddCommand('g_team_hit_trace', GameCVars);
+  AddCommand('g_team_hit_projectile', GameCVars);
+  AddCommand('g_team_absorb_attacks', GameCVars);
   AddCommand('g_weaponstay', GameCVars);
   AddCommand('g_allow_exit', GameCVars);
   AddCommand('g_dm_keys', GameCVars);
@@ -1245,9 +1245,9 @@ begin
 
   WhitelistCommand('g_gamemode');
   WhitelistCommand('g_friendlyfire');
-  WhitelistCommand('g_friendly_hit_trace');
-  WhitelistCommand('g_friendly_hit_projectile');
-  WhitelistCommand('g_friendly_absorb_damage');
+  WhitelistCommand('g_team_hit_trace');
+  WhitelistCommand('g_team_hit_projectile');
+  WhitelistCommand('g_team_absorb_attacks');
   WhitelistCommand('g_weaponstay');
   WhitelistCommand('g_allow_exit');
   WhitelistCommand('g_dm_keys');
@@ -2264,9 +2264,10 @@ begin
   WriteLn(f, 'g_spawn_invul ', gsSpawnInvul);
   WriteLn(f, 'g_warmup_time ', gsWarmupTime);
 
-  WriteFlag('g_friendlyfire ', TGameOption.TEAM_DAMAGE);
-  WriteFlag('g_friendly_hit_trace ', TGameOption.TEAM_HIT_TRACE);
-  WriteFlag('g_friendly_hit_projectile ', TGameOption.TEAM_HIT_PROJECTILE);
+  WriteFlag('g_friendlyfire ', TGameOption.FRIENDLY_FIRE);
+  WriteFlag('g_team_hit_trace ', TGameOption.TEAM_HIT_TRACE);
+  WriteFlag('g_team_hit_projectile ', TGameOption.TEAM_HIT_PROJECTILE);
+  WriteFlag('g_team_absorb_attacks ', TGameOption.TEAM_ABSORB_ATTACKS);
   WriteFlag('g_powerup_randomize_respawn ', TGameOption.POWERUP_RANDOM);
   WriteFlag('g_items_all_respawn_random ', TGameOption.ITEM_ALL_RANDOM);
   WriteFlag('g_items_help_respawn_random ', TGameOption.ITEM_LIFE_RANDOM);

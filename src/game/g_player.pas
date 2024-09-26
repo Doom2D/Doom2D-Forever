@@ -2324,7 +2324,7 @@ begin
     Exit;
 
 // Если есть урон своим, или ранил сам себя, или тебя ранил противник:
-  if (TGameOption.TEAM_DAMAGE in gGameSettings.Options) or
+  if (TGameOption.FRIENDLY_FIRE in gGameSettings.Options) or
      (SpawnerUID = FUID) or
      (not SameTeam(FUID, SpawnerUID)) then
   begin
@@ -6022,7 +6022,7 @@ end;
 
 function TPlayer.TryDropFlag(): Boolean;
 begin
-  if (TGameOption.ALLOW_DROP_FLAG in gGameSettings.Options)
+  if TGameOption.ALLOW_DROP_FLAG in gGameSettings.Options
     then Result := DropFlag(False, TGameOption.THROW_FLAG in gGameSettings.Options)
     else Result := False;
 end;

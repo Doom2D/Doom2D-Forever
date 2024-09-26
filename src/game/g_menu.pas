@@ -747,10 +747,10 @@ begin
     gsMap := Map;
 
     gsGameFlags := [];
-    if TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0 then
-      gsGameFlags += [TGameOption.TEAM_DAMAGE];
-    if TGUISwitch(GetControl('swTeamAbsorbDamage')).ItemIndex = 0 then
-      gsGameFlags += [TGameOption.TEAM_ABSORB_DAMAGE];
+    if TGUISwitch(GetControl('swFriendlyFire')).ItemIndex = 0 then
+      gsGameFlags += [TGameOption.FRIENDLY_FIRE];
+    if TGUISwitch(GetControl('swTeamAbsorbAttacks')).ItemIndex = 0 then
+      gsGameFlags += [TGameOption.TEAM_ABSORB_ATTACKS];
     if TGUISwitch(GetControl('swDeathmatchKeys')).ItemIndex = 0 then
       gsGameFlags += [TGameOption.DM_KEYS];
     if TGUISwitch(GetControl('swEnableExits')).ItemIndex = 0 then
@@ -761,21 +761,20 @@ begin
       gsGameFlags += [TGameOption.MONSTERS];
 
     case TGUISwitch(GetControl('swTeamHit')).ItemIndex of
+      0: gsGameFlags += [TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_HIT_PROJECTILE];
       1: gsGameFlags += [TGameOption.TEAM_HIT_TRACE];
       2: gsGameFlags += [TGameOption.TEAM_HIT_PROJECTILE];
-      0: gsGameFlags += [TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_HIT_PROJECTILE];
     end;
 
     case TGUISwitch(GetControl('swBotsVS')).ItemIndex of
+      0: gsGameFlags += [TGameOption.BOTS_VS_PLAYERS];
       1: gsGameFlags += [TGameOption.BOTS_VS_MONSTERS];
       2: gsGameFlags += [TGameOption.BOTS_VS_PLAYERS, TGameOption.BOTS_VS_MONSTERS];
-      else gsGameFlags += [TGameOption.BOTS_VS_PLAYERS];
     end;
 
     case TGUISwitch(GetControl('swFlagDrop')).ItemIndex of
       0: gsGameFlags += [TGameOption.ALLOW_DROP_FLAG, TGameOption.THROW_FLAG];
       1: gsGameFlags += [TGameOption.ALLOW_DROP_FLAG];
-      else gsGameFlags -= [TGameOption.ALLOW_DROP_FLAG, TGameOption.THROW_FLAG];
     end;
 
     // TODO: get this crap out of here
@@ -795,13 +794,13 @@ begin
       gsGameFlags += [TGameOption.POWERUP_RANDOM];
 
     case TGUISwitch(GetControl('swItemsRandom')).ItemIndex of
+      0: gsGameFlags += [TGameOption.ITEM_ALL_RANDOM];
       1: gsGameFlags += [TGameOption.ITEM_LIFE_RANDOM];
       2: gsGameFlags += [TGameOption.ITEM_AMMO_RANDOM];
       3: gsGameFlags += [TGameOption.ITEM_WEAPON_RANDOM];
       4: gsGameFlags += [TGameOption.ITEM_LIFE_RANDOM, TGameOption.ITEM_AMMO_RANDOM];
       5: gsGameFlags += [TGameOption.ITEM_LIFE_RANDOM, TGameOption.ITEM_WEAPON_RANDOM];
       6: gsGameFlags += [TGameOption.ITEM_AMMO_RANDOM, TGameOption.ITEM_WEAPON_RANDOM];
-      0: gsGameFlags += [TGameOption.ITEM_ALL_RANDOM];
     end;
 
     // TODO: get this crap out of here
@@ -1810,8 +1809,8 @@ begin
 
   with gGameSettings do
   begin
-    with TGUISwitch(menu.GetControl('swTeamDamage')) do
-      if TGameOption.TEAM_DAMAGE in Options
+    with TGUISwitch(menu.GetControl('swFriendlyFire')) do
+      if TGameOption.FRIENDLY_FIRE in Options
         then ItemIndex := 0
         else ItemIndex := 1;
     with TGUISwitch(menu.GetControl('swTeamHit')) do
@@ -1849,7 +1848,7 @@ begin
 
     if GameType in [GT_CUSTOM, GT_SERVER] then
     begin
-      TGUISwitch(menu.GetControl('swTeamDamage')).Enabled := True;
+      TGUISwitch(menu.GetControl('swFriendlyFire')).Enabled := True;
       TGUISwitch(menu.GetControl('swTeamHit')).Enabled := True;
       if (GameMode in [GM_DM, GM_TDM, GM_CTF]) then
       begin
@@ -1872,7 +1871,7 @@ begin
     end
     else
     begin
-      TGUISwitch(menu.GetControl('swTeamDamage')).Enabled := True;
+      TGUISwitch(menu.GetControl('swFriendlyFire')).Enabled := True;
       TGUISwitch(menu.GetControl('swTeamHit')).Enabled := True;
       TGUISwitch(menu.GetControl('swDeathmatchKeys')).Enabled := False;
       TGUILabel(menu.GetControlsText('swDeathmatchKeys')).Color := MENU_UNACTIVEITEMS_COLOR;
@@ -1912,20 +1911,20 @@ begin
 
   with gGameSettings do
   begin
-    if TGUISwitch(menu.GetControl('swTeamDamage')).Enabled then
+    if TGUISwitch(menu.GetControl('swFriendlyFire')).Enabled then
     begin
-      if TGUISwitch(menu.GetControl('swTeamDamage')).ItemIndex = 0
-        then Options += [TGameOption.TEAM_DAMAGE]
-        else Options -= [TGameOption.TEAM_DAMAGE];
+      if TGUISwitch(menu.GetControl('swFriendlyFire')).ItemIndex = 0
+        then Options += [TGameOption.FRIENDLY_FIRE]
+        else Options -= [TGameOption.FRIENDLY_FIRE];
     end;
 
     if TGUISwitch(menu.GetControl('swTeamHit')).Enabled then
     begin
       Options -= [TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_HIT_PROJECTILE];
       case TGUISwitch(menu.GetControl('swTeamHit')).ItemIndex of
+        0: Options += [TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_HIT_PROJECTILE];
         1: Options += [TGameOption.TEAM_HIT_TRACE];
         2: Options += [TGameOption.TEAM_HIT_PROJECTILE];
-        0: Options += [TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_HIT_PROJECTILE];
       end;
     end;
 
@@ -1997,16 +1996,9 @@ begin
     if TGUISwitch(menu.GetControl('swBotsVS')).Enabled then
     begin
       case TGUISwitch(menu.GetControl('swBotsVS')).ItemIndex of
-        1: begin
-          Options -= [TGameOption.BOTS_VS_PLAYERS];
-          Options += [TGameOption.BOTS_VS_MONSTERS];
-        end;
-
+        0: Options := Options - [TGameOption.BOTS_VS_MONSTERS] + [TGameOption.BOTS_VS_PLAYERS];
+        1: Options := Options - [TGameOption.BOTS_VS_PLAYERS] + [TGameOption.BOTS_VS_MONSTERS];
         2: Options += [TGameOption.BOTS_VS_PLAYERS, TGameOption.BOTS_VS_MONSTERS];
-
-        else
-          Options -= [TGameOption.BOTS_VS_MONSTERS];
-          Options += [TGameOption.BOTS_VS_PLAYERS];
       end;
     end;
 
@@ -2015,7 +2007,7 @@ begin
       case TGUISwitch(menu.GetControl('swFlagDrop')).ItemIndex of
         0: Options += [TGameOption.ALLOW_DROP_FLAG, TGameOption.THROW_FLAG];
         1: Options += [TGameOption.ALLOW_DROP_FLAG];
-        else Options -= [TGameOption.ALLOW_DROP_FLAG, TGameOption.THROW_FLAG];
+        2: Options -= [TGameOption.ALLOW_DROP_FLAG, TGameOption.THROW_FLAG];
       end;
     end;
 
@@ -2388,10 +2380,10 @@ begin
     end;
     with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
     begin
-      Name := 'swTeamDamage';
+      Name := 'swFriendlyFire';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if TGameOption.TEAM_DAMAGE in gsGameFlags
+      if TGameOption.FRIENDLY_FIRE in gsGameFlags
         then ItemIndex := 0
         else ItemIndex := 1;
     end;
@@ -2411,12 +2403,12 @@ begin
       else
         ItemIndex := 3;
     end;
-    with AddSwitch(_lc[I_MENU_ENABLE_TEAM_DAMAGE_ABSOBR]) do
+    with AddSwitch(_lc[I_MENU_ENABLE_TEAM_ABSORB_ATTACKS]) do
     begin
-      Name := 'swTeamAbsorbDamage';
+      Name := 'swTeamAbsorbAttacks';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if TGameOption.TEAM_ABSORB_DAMAGE in gsGameFlags
+      if TGameOption.TEAM_ABSORB_ATTACKS in gsGameFlags
         then ItemIndex := 0
         else ItemIndex := 1;
     end;
@@ -2634,10 +2626,10 @@ begin
     end;
     with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
     begin
-      Name := 'swTeamDamage';
+      Name := 'swFriendlyFire';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if TGameOption.TEAM_DAMAGE in gsGameFlags
+      if TGameOption.FRIENDLY_FIRE in gsGameFlags
         then ItemIndex := 0
         else ItemIndex := 1;
     end;
@@ -2657,12 +2649,12 @@ begin
       else
         ItemIndex := 3;
     end;
-    with AddSwitch(_lc[I_MENU_ENABLE_TEAM_DAMAGE_ABSOBR]) do
+    with AddSwitch(_lc[I_MENU_ENABLE_TEAM_ABSORB_ATTACKS]) do
     begin
-      Name := 'swTeamAbsorbDamage';
+      Name := 'swTeamAbsorbAttacks';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      if TGameOption.TEAM_ABSORB_DAMAGE in gsGameFlags
+      if TGameOption.TEAM_ABSORB_ATTACKS in gsGameFlags
         then ItemIndex := 0
         else ItemIndex := 1;
     end;
@@ -3732,7 +3724,7 @@ begin
     Name := 'mGameSetGameMenu';
     with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
     begin
-      Name := 'swTeamDamage';
+      Name := 'swFriendlyFire';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
       ItemIndex := 1;

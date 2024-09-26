@@ -137,13 +137,12 @@ g_screenshot_stats 1/0
 @h2 Настройки "Огня по своим"
 g_friendlyfire 1/0
 	Включить или выключить огонь по своим.
-g_friendly_hit_trace 1/0
-	Включить или выключить прохождение хитскана (пули) через своих союзников.
-g_friendly_hit_projectile 1/0
-	Включить или выключить прохождение прожекттайлов (ракеты, снаряды БФГ или плазмы) через своих союзников.
-g_friendly_absorb_damage 1/0
-	Включить или выключить поглощение части урона при прохождении пуль или снарядов через союзников.
-Примечание: работает по следующему принципу: 1 - выключить (пули/снаряды будут сталкиваться с союзниками), 0 - включить (пули/снаряды будут проходить сквозь союзников).
+g_team_hit_trace 1/0
+	Включить или выключить прохождение хитскана (пули) через союзников.
+g_team_hit_projectile 1/0
+	Включить или выключить прохождение снарядов (ракеты, снаряды BFG или плазмы) через союзников.
+g_team_absorb_attacks 1/0
+	Включить или выключить поглощение части урона союзниками при прохождении пуль сквозь них.
 
 @h1 3. События
 Для контролирования определённых событий на сервере существует команда event, через которую можно относительно гибко настраивать поведение сервера в определённых ситуациях. Необходимость использования команды event напрямую связана с правильным запуском сервера и списками карт.@br
@@ -172,19 +171,19 @@ onwadend
 Устанавливаем режим кооператива (с возможностью прохождения пуль сквозь игроков):
 
 	@pre
-	alias coop "g_gamemode coop;g_maxlives 0;g_dm_keys 0;g_timelimit 0;g_scorelimit 0;sv_intertime 30;g_friendly_hit_trace 0;centerprint 100 GAMEMODE: Cooperative;call coop01;bot_removeall"
+	alias coop "g_gamemode coop;g_maxlives 0;g_dm_keys 0;g_timelimit 0;g_scorelimit 0;sv_intertime 30;g_team_hit_trace 0;centerprint 100 GAMEMODE: Cooperative;call coop01;bot_removeall"
 	@endpre
 
 Устанавливаем режим кооператива (классический):
 
 	@pre
-	alias coop "g_gamemode coop;g_maxlives 0;g_dm_keys 0;g_timelimit 0;g_scorelimit 0;sv_intertime 30;g_friendly_hit_trace 1;centerprint 100 GAMEMODE: Cooperative;call coop01;bot_removeall"
+	alias coop "g_gamemode coop;g_maxlives 0;g_dm_keys 0;g_timelimit 0;g_scorelimit 0;sv_intertime 30;g_team_hit_trace 1;centerprint 100 GAMEMODE: Cooperative;call coop01;bot_removeall"
 	@endpre
 
 Устанавливаем режим выживания:
 
 	@pre
-	alias survival "g_gamemode coop;g_warmup_time 60;g_maxlives 1;g_dm_keys 1;g_timelimit 0;g_scorelimit 0;g_friendly_hit_trace 0;g_weaponstay 1;g_friendlyfire 0;sv_intertime 30;centerprint 100 GAMEMODE: Survival;call coop01;bot_removeall"
+	alias survival "g_gamemode coop;g_warmup_time 60;g_maxlives 1;g_dm_keys 1;g_timelimit 0;g_scorelimit 0;g_team_hit_trace 0;g_weaponstay 1;g_friendlyfire 0;sv_intertime 30;centerprint 100 GAMEMODE: Survival;call coop01;bot_removeall"
 	@endpre
 
 По такому же примеру можно устанавливать и пакетное переключение параметров во время игры, просто перечисляем в алиасе необходимые к изменению параметры.

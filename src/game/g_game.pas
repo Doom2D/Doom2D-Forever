@@ -31,7 +31,7 @@ uses
 type
   TGameOption = (
     //RESERVED = 0,  // FIXME: reuse for something
-    TEAM_DAMAGE = 1,
+    FRIENDLY_FIRE = 1,
     ALLOW_EXIT,
     WEAPONS_STAY,
     MONSTERS,
@@ -40,7 +40,7 @@ type
     DM_KEYS,
     TEAM_HIT_TRACE,
     TEAM_HIT_PROJECTILE,
-    TEAM_ABSORB_DAMAGE,
+    TEAM_ABSORB_ATTACKS,
     ALLOW_DROP_FLAG,
     THROW_FLAG,
     POWERUP_RANDOM,
@@ -4569,7 +4569,7 @@ begin
   gGameSettings.GameType := GT_SINGLE;
   gGameSettings.MaxLives := 0;
   gGameSettings.Options := [TGameOption.ALLOW_EXIT, TGameOption.MONSTERS,
-    TGameOption.BOTS_VS_MONSTERS, TGameOption.TEAM_HIT_PROJECTILE, TGameOption.TEAM_HIT_TRACE,
+    TGameOption.BOTS_VS_MONSTERS, TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_HIT_PROJECTILE,
     TGameOption.POWERUP_RANDOM, TGameOption.ITEM_ALL_RANDOM, TGameOption.ITEM_LIFE_RANDOM,
     TGameOption.ITEM_AMMO_RANDOM, TGameOption.ITEM_WEAPON_RANDOM];
   gSwitchGameMode := GM_SINGLE;
@@ -5662,13 +5662,13 @@ begin
     end;
 
     'g_friendlyfire':
-      ParseGameFlag(TGameOption.TEAM_DAMAGE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);
-    'g_friendly_absorb_damage':
-      ParseGameFlag(TGameOption.TEAM_ABSORB_DAMAGE, I_MSG_FRIENDLY_ABSORB_DAMAGE_OFF, I_MSG_FRIENDLY_ABSORB_DAMAGE_ON);
-    'g_friendly_hit_trace':
-      ParseGameFlag(TGameOption.TEAM_HIT_TRACE, I_MSG_FRIENDLY_HIT_TRACE_OFF, I_MSG_FRIENDLY_HIT_TRACE_ON);
-    'g_friendly_hit_projectile':
-      ParseGameFlag(TGameOption.TEAM_HIT_PROJECTILE, I_MSG_FRIENDLY_PROJECT_TRACE_OFF, I_MSG_FRIENDLY_PROJECT_TRACE_ON);
+      ParseGameFlag(TGameOption.FRIENDLY_FIRE, I_MSG_FRIENDLY_FIRE_OFF, I_MSG_FRIENDLY_FIRE_ON);
+    'g_team_absorb_attacks':
+      ParseGameFlag(TGameOption.TEAM_ABSORB_ATTACKS, I_MSG_TEAM_ABSORB_ATTACKS_OFF, I_MSG_TEAM_ABSORB_ATTACKS_ON);
+    'g_team_hit_trace':
+      ParseGameFlag(TGameOption.TEAM_HIT_TRACE, I_MSG_TEAM_HIT_TRACE_OFF, I_MSG_TEAM_HIT_TRACE_ON);
+    'g_team_hit_projectile':
+      ParseGameFlag(TGameOption.TEAM_HIT_PROJECTILE, I_MSG_TEAM_HIT_PROJECTILE_OFF, I_MSG_TEAM_HIT_PROJECTILE_ON);
     'g_items_all_respawn_random':
       ParseGameFlag(TGameOption.ITEM_ALL_RANDOM, I_MSG_ITEM_ALL_RANDOM_OFF, I_MSG_ITEM_ALL_RANDOM_ON, False);
     'g_items_help_respawn_random':

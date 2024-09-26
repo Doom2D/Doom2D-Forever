@@ -137,13 +137,12 @@ g_screenshot_stats 1/0
 @h2 Friendly-Fire options
 g_friendlyfire 1/0
 	Turn friendly-fire on or off.
-g_friendly_hit_trace 1/0
-	Enable or disable the passage of hitscan (bullet) through their teammates.
-g_friendly_hit_projectile 1/0
-	Enable or disable the passage of projectiles (missiles, BFG or plasma balls) through your teammates.
-g_friendly_absorb_damage 1/0
-	Enable or disable the absorption of some damage when bullets or projectiles pass through teammates.
-Note: works as follows: 1 - off (bullets/munitions will collide with allies), 0 - on (bullets/munitions will pass through allies).
+g_team_hit_trace 1/0
+	Enable or disable the passage of hitscan (bullet) through teammates.
+g_team_hit_projectile 1/0
+	Enable or disable the passage of projectiles (missiles, BFG or plasma balls) through teammates.
+g_team_absorb_attacks 1/0
+	Enable or disable the absorption of some damage by allies when bullets pass through them.
 
 @h1 3. Events
 To control certain events on the server, there is a command event, through which you can relatively flexibly configure the behavior of the server in certain situations. The need to use the event command is directly related to proper server startup and map lists.@br
@@ -172,19 +171,19 @@ Change gamemode to DM with its inherent settings, notify the players about it, a
 Change gamemode to coop (with the ability to pass bullets through players)::
 
 	@pre
-	alias coop "g_gamemode coop;g_maxlives 0;g_dm_keys 0;g_timelimit 0;g_scorelimit 0;sv_intertime 30;g_friendly_hit_trace 0;centerprint 100 GAMEMODE: Cooperative;call coop01;bot_removeall"
+	alias coop "g_gamemode coop;g_maxlives 0;g_dm_keys 0;g_timelimit 0;g_scorelimit 0;sv_intertime 30;g_team_hit_trace 0;centerprint 100 GAMEMODE: Cooperative;call coop01;bot_removeall"
 	@endpre
 
 Change gamemode to coop (classic):
 
 	@pre
-	alias coop "g_gamemode coop;g_maxlives 0;g_dm_keys 0;g_timelimit 0;g_scorelimit 0;sv_intertime 30;g_friendly_hit_trace 1;centerprint 100 GAMEMODE: Cooperative;call coop01;bot_removeall"
+	alias coop "g_gamemode coop;g_maxlives 0;g_dm_keys 0;g_timelimit 0;g_scorelimit 0;sv_intertime 30;g_team_hit_trace 1;centerprint 100 GAMEMODE: Cooperative;call coop01;bot_removeall"
 	@endpre
 
 Change gamemode to survival:
 
 	@pre
-	alias survival "g_gamemode coop;g_warmup_time 60;g_maxlives 1;g_dm_keys 1;g_timelimit 0;g_scorelimit 0;g_friendly_hit_trace 0;g_weaponstay 1;g_friendlyfire 0;sv_intertime 30;centerprint 100 GAMEMODE: Survival;call coop01;bot_removeall"
+	alias survival "g_gamemode coop;g_warmup_time 60;g_maxlives 1;g_dm_keys 1;g_timelimit 0;g_scorelimit 0;g_team_hit_trace 0;g_weaponstay 1;g_friendlyfire 0;sv_intertime 30;centerprint 100 GAMEMODE: Survival;call coop01;bot_removeall"
 	@endpre
 
 By the same example, you can set and batch switching of parameters during the game, just list in the alias needed to change the parameters.
