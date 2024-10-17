@@ -1361,21 +1361,24 @@ var
 
   function doPlayerHit (idx: Integer; hx, hy: Integer): Boolean;
   begin
-    result := false;
-    if (idx < 0) or (idx > High(gPlayers)) then exit;
-    if (gPlayers[idx] = nil) or not gPlayers[idx].alive then exit;
-    if (spawnerPlr <> nil) then
+    Result := False;
+    if (idx < 0) or (idx > High(gPlayers)) then Exit;
+    if (gPlayers[idx] = nil) or not gPlayers[idx].alive then Exit;
+
+    // TODO: Simplify. This is just a very long condition split down into several nested IF checks.
+    if spawnerPlr <> nil then
     begin
       if (gGameSettings.Options * [TGameOption.TEAM_HIT_TRACE, TGameOption.FRIENDLY_FIRE] = []) and
          (spawnerPlr.Team <> TEAM_NONE) and (spawnerPlr.Team = gPlayers[idx].Team) then
       begin
-        if (spawnerPlr <> gPlayers[idx]) and not (TGameOption.TEAM_ABSORB_ATTACKS in gGameSettings.Options) then
+        if (spawnerPlr <> gPlayers[idx]) and (TGameOption.TEAM_ABSORB_ATTACKS in gGameSettings.Options) then
           dmg := Max(1, dmg div 2);
         exit;
       end;
     end;
-    result := HitPlayer(gPlayers[idx], dmg, (xi*v)*10, (yi*v)*10-3, SpawnerUID, HIT_SOME);
-    if result and (v <> 0) then gPlayers[idx].Push((xi*v), (yi*v));
+
+    Result := HitPlayer(gPlayers[idx], dmg, (xi*v)*10, (yi*v)*10-3, SpawnerUID, HIT_SOME);
+    if Result and (v <> 0) then gPlayers[idx].Push((xi*v), (yi*v));
     {$IF DEFINED(D2F_DEBUG)}
     //if result then e_WriteLog(Format('  PLAYER #%d HIT', [idx]), MSG_NOTIFY);
     {$ENDIF}
