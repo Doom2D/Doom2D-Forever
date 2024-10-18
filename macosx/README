@@ -7,7 +7,7 @@ Building
 --------
 
 Requirements:
-* Prebuilded libaries (you can get it from d2df-binlib.git)
+* Prebuilt libraries
 * OpenDarwin cctools and fpc crosscompiler (if you want to cross compile)
 * Mac OS X SDK >= 10.4u
 * genisoimage from cdrkit (if you want to package to dmg)
