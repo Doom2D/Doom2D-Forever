@@ -342,12 +342,15 @@ var
   g_debug_BotAIOff: Byte;
   g_debug_HealthBar: Boolean;
   g_Debug_Player: Boolean;
+
+  // NB: Counted during the round, not after it, as players can disconnect and leave mid-game.
   gCoopMonstersKilled: Word;
   gCoopSecretsFound: Word;
   gCoopTotalMonstersKilled: Word;
   gCoopTotalSecretsFound: Word;
   gCoopTotalMonsters: Word;
   gCoopTotalSecrets: Word;
+
   gStatsOff: Boolean;
   gStatsPressed: Boolean;
   gExitByTrigger: Boolean;

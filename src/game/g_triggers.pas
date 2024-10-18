@@ -118,8 +118,9 @@ uses
   g_options, g_net, g_netmsg, utils, xparser, xstreams;
 
 const
-  TRIGGER_SIGNATURE = $58475254; // 'TRGX'
+  TRIGGER_SIGNATURE = $58475254;  // 'TRGX'
   TRAP_DAMAGE = 1000;
+  TRIGGER_SECRET_FOUND = TRIGGER_MAX+1;  // HACK: special pseudo-type to retain number of triggers
 
 var
   prevSoundUpdateMs: UInt64;
@@ -1375,11 +1376,12 @@ begin
           Result := True;
         end;
 
+      TRIGGER_SECRET_FOUND:;  // do nothing
       TRIGGER_SECRET:
         if g_GetUIDType(ActivateUID) = UID_PLAYER then
         begin
           Enabled := False;
-          TriggerType := TRIGGER_NONE;
+          TriggerType := TRIGGER_SECRET_FOUND;
           Result := True;
           p := g_Player_Get(ActivateUID);
           p.GetSecret();
@@ -2441,35 +2443,32 @@ var
   f, olen: Integer;
   ptg: PTrigger;
 begin
-  if (tgscope = nil) then tgscope := TTrigScope.Create();
-  if (tgclist = nil) then tgclist := TMyConstList.Create();
+  if tgscope = nil then tgscope := TTrigScope.Create();
+  if tgclist = nil then tgclist := TMyConstList.Create();
 
   // Не создавать выход, если игра без выхода
   if (aTrigger.TriggerType = TRIGGER_EXIT) and
-     (not (TGameOption.ALLOW_EXIT in gGameSettings.Options)) then
-  begin
+     (not (TGameOption.ALLOW_EXIT in gGameSettings.Options))
+  then
     aTrigger.TriggerType := TRIGGER_NONE;
-  end;
 
   // Если монстры запрещены, отменяем триггер
   if (aTrigger.TriggerType = TRIGGER_SPAWNMONSTER) and
      (not (TGameOption.MONSTERS in gGameSettings.Options)) and
-     (gGameSettings.GameType <> GT_SINGLE) then
-  begin
+     (gGameSettings.GameType <> GT_SINGLE)
+  then
     aTrigger.TriggerType := TRIGGER_NONE;
-  end;
 
   // Считаем количество секретов на карте
-  if (aTrigger.TriggerType = TRIGGER_SECRET) then gSecretsCount += 1;
+  if aTrigger.TriggerType in [TRIGGER_SECRET, TRIGGER_SECRET_FOUND] then
+    gSecretsCount += 1;
 
-  if (forceInternalIndex < 0) then
-  begin
-    find_id := FindTrigger();
-  end
+  if forceInternalIndex < 0 then
+    find_id := FindTrigger()
   else
   begin
     olen := Length(gTriggers);
-    if (forceInternalIndex >= olen) then
+    if forceInternalIndex >= olen then
     begin
       SetLength(gTriggers, forceInternalIndex+1);
       for f := olen to High(gTriggers) do
@@ -2503,19 +2502,15 @@ begin
 
   ptg.mapId := trec.id;
   // clone trigger data
-  if (trec.trigRec = nil) then
+  if trec.trigRec = nil then
   begin
     ptg.trigDataRec := nil;
     //HACK!
-    if (ptg.TriggerType <> TRIGGER_SECRET) then
-    begin
+    if not (ptg.TriggerType in [TRIGGER_SECRET, TRIGGER_SECRET_FOUND]) then
       e_LogWritefln('trigger of type %s has no triggerdata; wtf?!', [ptg.TriggerType], TMsgType.Warning);
-    end;
   end
   else
-  begin
     ptg.trigDataRec := trec.trigRec.clone(nil);
-  end;
 
   with ptg^ do
   begin
@@ -2523,7 +2518,7 @@ begin
     // if this type of trigger exists both on the client and on the server
     // use an uniform numeration
     ClientID := 0;
-    if (ptg.TriggerType = TRIGGER_SOUND) then
+    if ptg.TriggerType = TRIGGER_SOUND then
     begin
       Inc(gTriggerClientID);
       ClientID := gTriggerClientID;
@@ -2875,7 +2870,7 @@ begin
           // Выбираем один из триггеров для расширителя, если включен рандом:
           if (TriggerType = TRIGGER_PRESS) and tgcExtRandom then
           begin
-            if (Length(Affected) > 0) then
+            if Affected <> nil then
             begin
               b := Affected[Random(Length(Affected))];
               gTriggers[b].ActivateUID := gTriggers[a].ActivateUID;
