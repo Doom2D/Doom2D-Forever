@@ -1197,21 +1197,18 @@ var
   s1, s2, s3: String;
   _y: Integer;
   stat: TPlayerStatArray;
-  wad, map: string;
-  mapstr: string;
-  namestr: string;
+  wad, map: String;
+  mapstr: String;
+  namestr: String;
 begin
-  s1 := '';
-  s2 := '';
-  s3 := '';
-  pc := g_Player_GetCount;
+  pc := g_Player_GetCount();
   e_TextureFontGetSize(gStdFont, cw, ch);
 
   w := gScreenWidth-(gScreenWidth div 5);
-  if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
-    h := 32+ch*(11+pc)
-  else
-    h := 40+ch*5+(ch+8)*pc;
+  if gGameSettings.GameMode in [GM_TDM, GM_CTF]
+    then h := 32+ch*(11+pc)
+    else h := 40+ch*5+(ch+8)*pc;
+
   x := (gScreenWidth div 2)-(w div 2);
   y := (gScreenHeight div 2)-(h div 2);
 
@@ -1225,149 +1222,137 @@ begin
   mapstr := wad + ':\' + map + ' - ' + gMapInfo.Name;
 
   case gGameSettings.GameMode of
-    GM_DM:
-    begin
-      if gGameSettings.MaxLives = 0 then
-        s1 := _lc[I_GAME_DM]
-      else
-        s1 := _lc[I_GAME_LMS];
+    GM_DM: begin
+      if gGameSettings.MaxLives = 0
+        then s1 := _lc[I_GAME_DM]
+        else s1 := _lc[I_GAME_LMS];
       s2 := Format(_lc[I_GAME_FRAG_LIMIT], [gGameSettings.ScoreLimit]);
-      s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600, (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
+      s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600,
+        (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
     end;
 
-    GM_TDM:
-    begin
-      if gGameSettings.MaxLives = 0 then
-        s1 := _lc[I_GAME_TDM]
-      else
-        s1 := _lc[I_GAME_TLMS];
+    GM_TDM: begin
+      if gGameSettings.MaxLives = 0
+        then s1 := _lc[I_GAME_TDM]
+        else s1 := _lc[I_GAME_TLMS];
       s2 := Format(_lc[I_GAME_FRAG_LIMIT], [gGameSettings.ScoreLimit]);
-      s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600, (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
+      s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600,
+        (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
     end;
 
-    GM_CTF:
-    begin
+    GM_CTF: begin
       s1 := _lc[I_GAME_CTF];
       s2 := Format(_lc[I_GAME_SCORE_LIMIT], [gGameSettings.ScoreLimit]);
-      s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600, (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
+      s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600,
+        (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
     end;
 
-    GM_COOP:
-    begin
-      if gGameSettings.MaxLives = 0 then
-        s1 := _lc[I_GAME_COOP]
-      else
-        s1 := _lc[I_GAME_SURV];
+    GM_COOP: begin
+      if gGameSettings.MaxLives = 0
+        then s1 := _lc[I_GAME_COOP]
+        else s1 := _lc[I_GAME_SURV];
       s2 := _lc[I_GAME_MONSTERS] + ' ' + IntToStr(gCoopMonstersKilled) + '/' + IntToStr(gTotalMonsters);
       s3 := _lc[I_GAME_SECRETS] + ' ' + IntToStr(gCoopSecretsFound) + '/' + IntToStr(gSecretsCount);
-    end;
-
-    else
-    begin
-      s1 := '';
-      s2 := '';
     end;
   end;
 
   _y := y+8;
   e_TextureFontPrintEx(x+(w div 2)-(Length(s1)*cw div 2), _y, s1, gStdFont, 255, 255, 255, 1);
-  _y := _y+ch+8;
+  _y += ch+8;
   e_TextureFontPrintEx(x+(w div 2)-(Length(mapstr)*cw div 2), _y, mapstr, gStdFont, 200, 200, 200, 1);
-  _y := _y+ch+8;
+  _y += ch+8;
   e_TextureFontPrintEx(x+16, _y, s2, gStdFont, 200, 200, 200, 1);
 
-  e_TextureFontPrintEx(x+w-16-(Length(s3))*cw, _y, s3,
-                       gStdFont, 200, 200, 200, 1);
+  e_TextureFontPrintEx(x+w-16-(Length(s3))*cw, _y, s3, gStdFont, 200, 200, 200, 1);
 
-  if NetMode = NET_SERVER then
-    e_TextureFontPrintEx(x+8, y + 8, _lc[I_NET_SERVER], gStdFont, 255, 255, 255, 1)
-  else
-    if NetMode = NET_CLIENT then
-      e_TextureFontPrintEx(x+8, y + 8,
-        NetClientIP + ':' + IntToStr(NetClientPort), gStdFont, 255, 255, 255, 1);
+  case NetMode of
+    NET_SERVER: e_TextureFontPrintEx(x+8, y + 8, _lc[I_NET_SERVER], gStdFont, 255, 255, 255, 1);
+    NET_CLIENT: e_TextureFontPrintEx(x+8, y + 8, NetClientIP + ':' + IntToStr(NetClientPort),
+      gStdFont, 255, 255, 255, 1);
+  end;
 
-  if pc = 0 then
-    Exit;
+  if pc = 0 then Exit;
   stat := g_Player_GetStats();
   SortGameStat(stat);
 
-  w2 := (w-16) div 6 + 48; // ширина 2 столбца
-  w3 := (w-16) div 6; // ширина 3 и 4 столбцов
+  w2 := (w-16) div 6 + 48;  // ширина 2 столбца
+  w3 := (w-16) div 6;  // ширина 3 и 4 столбцов
   w4 := w3;
-  w1 := w-16-w2-w3-w4; // оставшееся пространство - для цвета и имени игрока
+  w1 := w-16-w2-w3-w4;  // оставшееся пространство - для цвета и имени игрока
 
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
   begin
-    _y := _y+ch+ch;
+    _y += ch+ch;
+
+    // first goes up the red team
+    s1 := _lc[I_GAME_TEAM_RED];
+    r := 255;
+    g := 31;
+    b := 31;
 
     for a := TEAM_RED to TEAM_BLUE do
     begin
-      if a = TEAM_RED then
-      begin
-        s1 := _lc[I_GAME_TEAM_RED];
-        r := 255;
-        g := 0;
-        b := 0;
-      end
-      else
-      begin
-        s1 := _lc[I_GAME_TEAM_BLUE];
-        r := 0;
-        g := 0;
-        b := 255;
-      end;
-
       e_TextureFontPrintEx(x+16, _y, s1, gStdFont, r, g, b, 1);
-      e_TextureFontPrintEx(x+w1+16, _y, IntToStr(gTeamStat[a].Score),
-                           gStdFont, r, g, b, 1);
+      e_TextureFontPrintEx(x+w1+16, _y, IntToStr(gTeamStat[a].Score), gStdFont, r, g, b, 1);
 
-      _y := _y+ch+(ch div 4);
+      _y += ch + (ch div 4);
       e_DrawLine(1, x+16, _y, x+w-16, _y, r, g, b);
-      _y := _y+(ch div 4);
+      _y += ch div 4;
 
       for aa := 0 to High(stat) do
+      begin
         if stat[aa].Team = a then
           with stat[aa] do
           begin
             if Spectator then
             begin
-              rr := r div 2;
-              gg := g div 2;
-              bb := b div 2;
+              rr := Color.r div 3;
+              gg := Color.g div 3;
+              bb := Color.b div 3;
             end
             else
             begin
-              rr := r;
-              gg := g;
-              bb := b;
+              // make player's color a bit brighter affinely (not linearly!)
+              rr := Min(255, Color.r + g);
+              gg := Min(255, Color.g + g);
+              bb := Min(255, Color.b + g);
             end;
-            if gShowPIDs then
-              namestr := Format('[%5d] %s', [UID, Name])
-            else
-              namestr := Name;
-            // Имя
-            e_TextureFontPrintEx(x+16, _y, namestr, gStdFont, rr, gg, bb, 1);
-            // Пинг/потери
-            e_TextureFontPrintEx(x+w1+16, _y, Format(_lc[I_GAME_PING_MS], [Ping, Loss]), gStdFont, rr, gg, bb, 1);
-            // Фраги
-            e_TextureFontPrintEx(x+w1+w2+16, _y, IntToStr(Frags), gStdFont, rr, gg, bb, 1);
-            // Смерти
-            e_TextureFontPrintEx(x+w1+w2+w3+16, _y, IntToStr(Deaths), gStdFont, rr, gg, bb, 1);
-            _y := _y+ch;
-          end;
 
-          _y := _y+ch;
+            if gShowPIDs
+              then namestr := Format('[%5d] %s', [UID, Name])
+              else namestr := Name;
+
+            // Имя, пинг/потери, фраги, смерти
+            e_TextureFontPrintEx(x+16, _y, namestr, gStdFont, rr, gg, bb, 1);
+            e_TextureFontPrintEx(x+w1+16, _y, Format(_lc[I_GAME_PING_MS], [Ping, Loss]), gStdFont, rr, gg, bb, 1);
+            e_TextureFontPrintEx(x+w1+w2+16, _y, IntToStr(Frags), gStdFont, rr, gg, bb, 1);
+            e_TextureFontPrintEx(x+w1+w2+w3+16, _y, IntToStr(Deaths), gStdFont, rr, gg, bb, 1);
+
+            _y += ch;
+          end;
+      end;
+
+      _y += ch;
+
+      // then show up the blue team
+      if a = TEAM_RED then
+      begin
+        s1 := _lc[I_GAME_TEAM_BLUE];
+        r := 95;
+        g := 95;
+        b := 255;
+      end;
     end;
   end
   else if gGameSettings.GameMode in [GM_DM, GM_COOP] then
   begin
-    _y := _y+ch+ch;
+    _y += ch+ch;
     e_TextureFontPrintEx(x+16, _y, _lc[I_GAME_PLAYER_NAME], gStdFont, 255, 127, 0, 1);
     e_TextureFontPrintEx(x+16+w1, _y, _lc[I_GAME_PING], gStdFont, 255, 127, 0, 1);
     e_TextureFontPrintEx(x+16+w1+w2, _y, _lc[I_GAME_FRAGS], gStdFont, 255, 127, 0, 1);
     e_TextureFontPrintEx(x+16+w1+w2+w3, _y, _lc[I_GAME_DEATHS], gStdFont, 255, 127, 0, 1);
 
-    _y := _y+ch+8;
+    _y += ch+8;
     for aa := 0 to High(stat) do
       with stat[aa] do
       begin
@@ -1381,22 +1366,21 @@ begin
           r := 255;
           g := 127;
         end;
-        if gShowPIDs then
-          namestr := Format('[%5d] %s', [UID, Name])
-        else
-          namestr := Name;
+        if gShowPIDs
+          then namestr := Format('[%5d] %s', [UID, Name])
+          else namestr := Name;
+
         // Цвет игрока
         e_DrawFillQuad(x+16, _y+4, x+32-1, _y+16+4-1, Color.R, Color.G, Color.B, 0);
         e_DrawQuad(x+16, _y+4, x+32-1, _y+16+4-1, 192, 192, 192);
-        // Имя
+
+        // Имя, пинг/потери, фраги, смерти
         e_TextureFontPrintEx(x+16+16+8, _y+4, namestr, gStdFont, r, g, 0, 1);
-        // Пинг/потери
         e_TextureFontPrintEx(x+w1+16, _y+4, Format(_lc[I_GAME_PING_MS], [Ping, Loss]), gStdFont, r, g, 0, 1);
-        // Фраги
         e_TextureFontPrintEx(x+w1+w2+16, _y+4, IntToStr(Frags), gStdFont, r, g, 0, 1);
-        // Смерти
         e_TextureFontPrintEx(x+w1+w2+w3+16, _y+4, IntToStr(Deaths), gStdFont, r, g, 0, 1);
-        _y := _y+ch+8;
+
+        _y += ch+8;
       end;
   end
 end;
@@ -2802,12 +2786,11 @@ begin
     Exit;
   end;
 
-  if (gGameSettings.GameMode = GM_COOP) then
+  if gGameSettings.GameMode = GM_COOP then
   begin
-    if gMissionFailed then
-      topstr := _lc[I_MENU_INTER_MISSION_FAIL]
-    else
-      topstr := _lc[I_MENU_INTER_LEVEL_COMPLETE];
+    if gMissionFailed
+      then topstr := _lc[I_MENU_INTER_MISSION_FAIL]
+      else topstr := _lc[I_MENU_INTER_LEVEL_COMPLETE];
   end
   else
     topstr := _lc[I_MENU_INTER_ROUND_OVER];
@@ -2823,10 +2806,9 @@ begin
                            gScreenHeight-(hh2+4)*2, topstr, gStdFont, 255, 255, 255, 1);
   end;
 
-  if g_Game_IsClient then
-    topstr := _lc[I_MENU_INTER_NOTICE_MAP]
-  else
-    topstr := _lc[I_MENU_INTER_NOTICE_SPACE];
+  if g_Game_IsClient
+    then topstr := _lc[I_MENU_INTER_NOTICE_MAP]
+    else topstr := _lc[I_MENU_INTER_NOTICE_SPACE];
   if not gChatShow then
     e_TextureFontPrintEx((gScreenWidth div 2)-(Length(topstr)*ww2 div 2),
                          gScreenHeight-(hh2+4), topstr, gStdFont, 255, 255, 255, 1);
@@ -2847,39 +2829,31 @@ begin
 
   case CustomStat.GameMode of
     GM_DM:
-    begin
-      if gGameSettings.MaxLives = 0 then
-        s1 := _lc[I_GAME_DM]
-      else
-        s1 := _lc[I_GAME_LMS];
-    end;
+      if gGameSettings.MaxLives = 0
+        then s1 := _lc[I_GAME_DM]
+        else s1 := _lc[I_GAME_LMS];
     GM_TDM:
-    begin
-      if gGameSettings.MaxLives = 0 then
-        s1 := _lc[I_GAME_TDM]
-      else
-        s1 := _lc[I_GAME_TLMS];
-    end;
-    GM_CTF: s1 := _lc[I_GAME_CTF];
+      if gGameSettings.MaxLives = 0
+        then s1 := _lc[I_GAME_TDM]
+        else s1 := _lc[I_GAME_TLMS];
     GM_COOP:
-    begin
-      if gGameSettings.MaxLives = 0 then
-        s1 := _lc[I_GAME_COOP]
-      else
-        s1 := _lc[I_GAME_SURV];
-    end;
+      if gGameSettings.MaxLives = 0
+        then s1 := _lc[I_GAME_COOP]
+        else s1 := _lc[I_GAME_SURV];
+
+    GM_CTF: s1 := _lc[I_GAME_CTF];
     else s1 := '';
   end;
 
   _y := y+16;
   e_TextureFontPrintEx(x+(w div 2)-(Length(s1)*ww2 div 2), _y, s1, gStdFont, 255, 255, 255, 1);
-  _y := _y+8;
+  _y += 8;
 
-  _y := _y+16;
+  _y += 16;
   e_TextureFontPrintEx(x+8, _y, _lc[I_MENU_MAP], gStdFont, 255, 127, 0, 1);
   e_TextureFontPrint(x+8+m, _y, Format('%s - %s', [CustomStat.Map, CustomStat.MapName]), gStdFont);
 
-  _y := _y+16;
+  _y += 16;
   e_TextureFontPrintEx(x+8, _y, _lc[I_GAME_GAME_TIME], gStdFont, 255, 127, 0, 1);
   e_TextureFontPrint(x+8+m, _y, Format('%d:%.2d:%.2d', [CustomStat.GameTime div 1000 div 3600,
                                                        (CustomStat.GameTime div 1000 div 60) mod 60,
@@ -2891,22 +2865,22 @@ begin
   if CustomStat.GameMode = GM_COOP then
   begin
     m := Max(Length(_lc[I_GAME_MONSTERS])+1, Length(_lc[I_GAME_SECRETS])+1)*ww2;
-    _y := _y+32;
+    _y += 32;
     s2 := _lc[I_GAME_MONSTERS];
     e_TextureFontPrintEx(x+8, _y, s2, gStdFont, 255, 127, 0, 1);
     e_TextureFontPrintEx(x+8+m, _y, IntToStr(gCoopMonstersKilled) + '/' + IntToStr(gTotalMonsters), gStdFont, 255, 255, 255, 1);
-    _y := _y+16;
+    _y += 16;
     s2 := _lc[I_GAME_SECRETS];
     e_TextureFontPrintEx(x+8, _y, s2, gStdFont, 255, 127, 0, 1);
     e_TextureFontPrintEx(x+8+m, _y, IntToStr(gCoopSecretsFound) + '/' + IntToStr(gSecretsCount), gStdFont, 255, 255, 255, 1);
     if gLastMap then
     begin
       m := Max(Length(_lc[I_GAME_MONSTERS_TOTAL])+1, Length(_lc[I_GAME_SECRETS_TOTAL])+1)*ww2;
-      _y := _y-16;
+      _y -= 16;
       s2 := _lc[I_GAME_MONSTERS_TOTAL];
       e_TextureFontPrintEx(x+250, _y, s2, gStdFont, 255, 127, 0, 1);
       e_TextureFontPrintEx(x+250+m, _y, IntToStr(gCoopTotalMonstersKilled) + '/' + IntToStr(gCoopTotalMonsters), gStdFont, 255, 255, 255, 1);
-      _y := _y+16;
+      _y += 16;
       s2 := _lc[I_GAME_SECRETS_TOTAL];
       e_TextureFontPrintEx(x+250, _y, s2, gStdFont, 255, 127, 0, 1);
       e_TextureFontPrintEx(x+250+m, _y, IntToStr(gCoopTotalSecretsFound) + '/' + IntToStr(gCoopTotalSecrets), gStdFont, 255, 255,  255, 1);
@@ -2915,41 +2889,32 @@ begin
 
   if CustomStat.GameMode in [GM_TDM, GM_CTF] then
   begin
-    _y := _y+16+16;
+    _y += 16+16;
 
     with CustomStat do
-      if TeamStat[TEAM_RED].Score > TeamStat[TEAM_BLUE].Score then s1 := _lc[I_GAME_WIN_RED]
-        else if TeamStat[TEAM_BLUE].Score > TeamStat[TEAM_RED].Score then s1 := _lc[I_GAME_WIN_BLUE]
-          else s1 := _lc[I_GAME_WIN_DRAW];
+      if TeamStat[TEAM_RED].Score > TeamStat[TEAM_BLUE].Score then
+        s1 := _lc[I_GAME_WIN_RED]
+      else if TeamStat[TEAM_BLUE].Score > TeamStat[TEAM_RED].Score then
+        s1 := _lc[I_GAME_WIN_BLUE]
+      else
+        s1 := _lc[I_GAME_WIN_DRAW];
 
     e_TextureFontPrintEx(x+8+(w div 2)-(Length(s1)*ww2 div 2), _y, s1, gStdFont, 255, 255, 255, 1);
-    _y := _y+40;
+    _y += 40;
+
+    // first goes up the red team
+    s1 := _lc[I_GAME_TEAM_RED];
+    r := 255;
+    g := 31;
+    b := 31;
 
     for t := TEAM_RED to TEAM_BLUE do
     begin
-      if t = TEAM_RED then
-      begin
-        e_TextureFontPrintEx(x+8, _y, _lc[I_GAME_TEAM_RED],
-                             gStdFont, 255, 0, 0, 1);
-        e_TextureFontPrintEx(x+w1+8, _y, IntToStr(CustomStat.TeamStat[TEAM_RED].Score),
-                             gStdFont, 255, 0, 0, 1);
-        r := 255;
-        g := 0;
-        b := 0;
-      end
-      else
-      begin
-        e_TextureFontPrintEx(x+8, _y, _lc[I_GAME_TEAM_BLUE],
-                             gStdFont, 0, 0, 255, 1);
-        e_TextureFontPrintEx(x+w1+8, _y, IntToStr(CustomStat.TeamStat[TEAM_BLUE].Score),
-                             gStdFont, 0, 0, 255, 1);
-        r := 0;
-        g := 0;
-        b := 255;
-      end;
+      e_TextureFontPrintEx(x+8, _y, s1, gStdFont, r, g, b, 1);
+      e_TextureFontPrintEx(x+w1+8, _y, IntToStr(CustomStat.TeamStat[t].Score), gStdFont, r, g, b, 1);
 
       e_DrawLine(1, x+8, _y+20, x-8+w, _y+20, r, g, b);
-      _y := _y+24;
+      _y += 24;
 
       for p := 0 to High(CustomStat.PlayerStat) do
         if CustomStat.PlayerStat[p].Team = t then
@@ -2957,53 +2922,60 @@ begin
           begin
             if Spectator then
             begin
-              rr := r div 2;
-              gg := g div 2;
-              bb := b div 2;
+              rr := Color.r div 3;
+              gg := Color.g div 3;
+              bb := Color.b div 3;
             end
             else
             begin
-              rr := r;
-              gg := g;
-              bb := b;
+              // make player's color a bit brighter affinely (not linearly!)
+              rr := Min(255, Color.r + g);
+              gg := Min(255, Color.g + g);
+              bb := Min(255, Color.b + g);
             end;
-            if (gPlayers[Num] <> nil) and (gPlayers[Num].FReady) then
-              e_TextureFontPrintEx(x+16, _y, Name + ' *', gStdFont, rr, gg, bb, 1)
-            else
-              e_TextureFontPrintEx(x+16, _y, Name, gStdFont, rr, gg, bb, 1);
+            if (gPlayers[Num] <> nil) and (gPlayers[Num].FReady)
+              then e_TextureFontPrintEx(x+16, _y, Name + ' *', gStdFont, rr, gg, bb, 1)
+              else e_TextureFontPrintEx(x+16, _y, Name, gStdFont, rr, gg, bb, 1);
             e_TextureFontPrintEx(x+w1+16, _y, IntToStr(Frags), gStdFont, rr, gg, bb, 1);
             e_TextureFontPrintEx(x+w1+w2+16, _y, IntToStr(Deaths), gStdFont, rr, gg, bb, 1);
-            _y := _y+24;
+            _y += 24;
           end;
 
-      _y := _y+16+16;
+      _y += 16+16;
+
+      // then show up the blue team
+      if t = TEAM_RED then
+      begin
+        s1 := _lc[I_GAME_TEAM_BLUE];
+        r := 95;
+        g := 95;
+        b := 255;
+      end;
     end;
   end
   else if CustomStat.GameMode in [GM_DM, GM_COOP] then
   begin
-    _y := _y+40;
+    _y += 40;
     e_TextureFontPrintEx(x+8, _y, _lc[I_GAME_PLAYER_NAME], gStdFont, 255, 127, 0, 1);
     e_TextureFontPrintEx(x+8+w1, _y, _lc[I_GAME_FRAGS], gStdFont, 255, 127, 0, 1);
     e_TextureFontPrintEx(x+8+w1+w2, _y, _lc[I_GAME_DEATHS], gStdFont, 255, 127, 0, 1);
 
-    _y := _y+24;
+    _y += 24;
     for p := 0 to High(CustomStat.PlayerStat) do
       with CustomStat.PlayerStat[p] do
       begin
         e_DrawFillQuad(x+8, _y+4, x+24-1, _y+16+4-1, Color.R, Color.G, Color.B, 0);
 
-        if Spectator then
-          r := 127
-        else
-          r := 255;
+        if Spectator
+          then r := 127
+          else r := 255;
 
-        if (gPlayers[Num] <> nil) and (gPlayers[Num].FReady) then
-          e_TextureFontPrintEx(x+8+16+8, _y+4, Name + ' *', gStdFont, r, r, r, 1, True)
-        else
-          e_TextureFontPrintEx(x+8+16+8, _y+4, Name, gStdFont, r, r, r, 1, True);
+        if (gPlayers[Num] <> nil) and (gPlayers[Num].FReady)
+          then e_TextureFontPrintEx(x+8+16+8, _y+4, Name + ' *', gStdFont, r, r, r, 1, True)
+          else e_TextureFontPrintEx(x+8+16+8, _y+4, Name, gStdFont, r, r, r, 1, True);
         e_TextureFontPrintEx(x+w1+8+16+8, _y+4, IntToStr(Frags), gStdFont, r, r, r, 1, True);
         e_TextureFontPrintEx(x+w1+w2+8+16+8, _y+4, IntToStr(Deaths), gStdFont, r, r, r, 1, True);
-        _y := _y+24;
+        _y += 24;
       end;
   end;
 
@@ -6061,7 +6033,7 @@ begin
             MC_SEND_PlayerSettings
           else if gGameOn and (gPlayer1 <> nil) then
           begin
-            gPlayer1.SetColor(gPlayer1Settings.Color);
+            gPlayer1.SetColor(gPlayer1Settings.Color, True);
             if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
           end;
         end;
@@ -6077,7 +6049,7 @@ begin
             MC_SEND_PlayerSettings
           else if gGameOn and (gPlayer2 <> nil) then
           begin
-            gPlayer2.SetColor(gPlayer2Settings.Color);
+            gPlayer2.SetColor(gPlayer2Settings.Color, True);
             if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer2.UID);
           end;
         end;

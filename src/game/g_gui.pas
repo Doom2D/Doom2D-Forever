@@ -331,15 +331,17 @@ type
     FModel: TPlayerModel;
     a: Boolean;
   public
-    constructor Create;
-    destructor Destroy; override;
+    constructor Create();
+    destructor Destroy(); override;
     procedure SetModel(ModelName: string);
     procedure SetColor(Red, Green, Blue: Byte);
     procedure NextAnim();
     procedure NextWeapon();
-    procedure Update; override;
-    procedure Draw; override;
-    property  Model: TPlayerModel read FModel;
+    procedure Update(); override;
+    procedure Draw(); override;
+    function GetWidth(): Integer; override;
+    function GetHeight(): Integer; override;
+    property Model: TPlayerModel read FModel;
   end;
 
   TPreviewPanel = record
@@ -400,9 +402,9 @@ type
     function ItemExists (item: String): Boolean;
     procedure SelectItem(Item: String);
     procedure Clear();
-    function  GetWidth(): Integer; override;
-    function  GetHeight(): Integer; override;
-    function  SelectedItem(): String;
+    function GetWidth(): Integer; override;
+    function GetHeight(): Integer; override;
+    function SelectedItem(): String;
 
     property OnChange: TOnChangeEvent read FOnChangeEvent write FOnChangeEvent;
     property Sort: Boolean read FSort write FSort;
@@ -1619,7 +1621,7 @@ begin
 
         IK_LEFT, IK_RIGHT, IK_KPLEFT, IK_KPRIGHT, VK_LEFT, VK_RIGHT,
         JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT,
-	JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
+        JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
         begin
           if FIndex <> -1 then
             if FItems[FIndex].Control <> nil then
@@ -2684,6 +2686,18 @@ begin
   DrawBox(FX, FY, 4, 4);
 
   if FModel <> nil then FModel.Draw(FX+4, FY+4);
+end;
+
+function TGUIModelView.GetWidth(): Integer;
+begin
+  // see TGUIListBox.GetWidth() for reference
+  Result := 8+(4+1)*16;
+end;
+
+function TGUIModelView.GetHeight(): Integer;
+begin
+  // see TGUIListBox.GetHeight() for reference
+  Result := 8+4*16;
 end;
 
 procedure TGUIModelView.NextAnim();

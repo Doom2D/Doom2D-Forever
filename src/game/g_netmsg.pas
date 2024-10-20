@@ -701,7 +701,7 @@ var
   TmpSkipF: Byte;
   I: Integer;
   Pl: TPlayer;
-  Err: Boolean;
+  Err, IsModelChanged: Boolean;
 begin
   Err := False;
   try
@@ -726,9 +726,7 @@ begin
   if Pl = nil then Exit;
 
   if (gGameSettings.GameMode in [GM_TDM, GM_CTF]) and (Pl.Team <> TmpTeam) then
-    Pl.SwitchTeam
-  else
-    Pl.SetColor(TmpColor);
+    Pl.SwitchTeam();
 
   if Pl.Name <> TmpName then
   begin
@@ -736,19 +734,20 @@ begin
     Pl.Name := TmpName;
   end;
 
-  if (g_Force_Model_Get() <> 0) then
+  if g_Force_Model_Get() <> 0 then
     TmpModel := g_Forced_Model_GetName();
-  if TmpModel <> Pl.Model.Name then
-    Pl.SetModel(TmpModel);
+  IsModelChanged := TmpModel <> Pl.Model.Name;
+  Pl.SetColor(TmpColor, not IsModelChanged);
+  if IsModelChanged then Pl.SetModel(TmpModel);
 
-  if (TmpWeapSwitch <> Pl.WeapSwitchMode) then
+  if TmpWeapSwitch <> Pl.WeapSwitchMode then
     Pl.WeapSwitchMode := TmpWeapSwitch;
 
   Pl.SetWeaponPrefs(TmpPrefArray);
-  if (TmpSwEmpty <> Pl.SwitchToEmpty) then
+  if TmpSwEmpty <> Pl.SwitchToEmpty then
     Pl.SwitchToEmpty := TmpSwEmpty;
 
-  if (TmpSkipF <> Pl.SkipIronFist) then
+  if TmpSkipF <> Pl.SkipIronFist then
     Pl.SkipIronFist := TmpSkipF;
 
   MH_SEND_PlayerSettings(Pl.UID, TmpModel);
@@ -2711,6 +2710,7 @@ var
   TmpTeam: Byte;
   Pl: TPlayer;
   PID: Word;
+  IsModelChanged: Boolean;
 begin
   PID := M.ReadWord();
   Pl := g_Player_Get(PID);
@@ -2730,20 +2730,20 @@ begin
       gPlayer1Settings.Team := TmpTeam;
     if gPlayer2 = Pl then
       gPlayer2Settings.Team := TmpTeam;
-  end else
-    Pl.SetColor(TmpColor);
+  end;
 
   if Pl.Name <> TmpName then
   begin
-    if NetDeafLevel < 3 then 
+    if NetDeafLevel < 3 then
       g_Console_Add(Format(_lc[I_PLAYER_NAME], [Pl.Name, TmpName]), True);
     Pl.Name := TmpName;
   end;
 
-  if (g_Force_Model_Get() <> 0) then
+  if g_Force_Model_Get() <> 0 then
     TmpModel := g_Forced_Model_GetName();
-  if TmpModel <> Pl.Model.Name then
-    Pl.SetModel(TmpModel);
+  IsModelChanged := TmpModel <> Pl.Model.Name;
+  Pl.SetColor(TmpColor, not IsModelChanged);
+  if IsModelChanged then Pl.SetModel(TmpModel);
 end;
 
 // ITEM

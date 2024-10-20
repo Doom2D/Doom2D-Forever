@@ -128,6 +128,7 @@ type
     procedure   SetWeapon(Weapon: Byte);
     procedure   SetFlag(Flag: Byte);
     procedure   SetFire(Fire: Boolean);
+    procedure   InvertDirection();
 {$IFDEF ENABLE_SOUND}
     function    PlaySound(SoundType, Level: Byte; X, Y: Integer): Boolean;
 {$ENDIF}
@@ -155,6 +156,7 @@ function  g_PlayerModel_GetBlood(ModelName: String): TModelBlood;
 function  g_PlayerModel_Get(ModelName: String): TPlayerModel;
 function  g_PlayerModel_GetAnim(ModelName: String; Anim: Byte; var _Anim, _Mask: TAnimation): Boolean;
 function  g_PlayerModel_GetGibs(ModelName: String; var Gibs: TGibsArray): Boolean;
+function g_PlayerModel_MakeColor(const aColor: TRGB; aTeam: Byte): TRGB;
 
 
 implementation
@@ -892,6 +894,30 @@ begin
   PlayerModelsArray := nil;
 end;
 
+function g_PlayerModel_MakeColor(const aColor: TRGB; aTeam: Byte): TRGB;
+var
+  TeamTone, EnemyTone, TintTone: Byte;
+begin
+  case aTeam of
+    TEAM_RED: begin
+      TeamTone := Max(191, aColor.R);  // 191..255
+      TintTone := aColor.G div 3;  // 0..85
+      EnemyTone := nclamp(aColor.B - 160, 0, TintTone);  // 0..tint..95
+      Result := _RGB(TeamTone, TintTone, EnemyTone);
+    end;
+
+    TEAM_BLUE: begin
+      TeamTone := Max(127, aColor.B);  // 127..255
+      TintTone := aColor.G div 3;  // 0..85
+      EnemyTone := nclamp(aColor.R - 192, 0, TintTone);  // 0..tint..63
+      Result := _RGB(EnemyTone, TintTone, TeamTone);
+    end;
+
+    else
+      Result := aColor;
+  end;
+end;
+
 { TPlayerModel }
 
 procedure TPlayerModel.ChangeAnimation(Animation: Byte; Force: Boolean = False);
@@ -1123,6 +1149,13 @@ end;
 procedure TPlayerModel.SetWeapon(Weapon: Byte);
 begin
   FCurrentWeapon := Weapon;
+end;
+
+procedure TPlayerModel.InvertDirection();
+begin
+  if Direction = TDirection.D_LEFT
+    then Direction := TDirection.D_RIGHT
+    else Direction := TDirection.D_LEFT;
 end;
 
 procedure TPlayerModel.Update();

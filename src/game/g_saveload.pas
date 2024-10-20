@@ -412,8 +412,8 @@ begin
           gPlayer1.Name := gPlayer1Settings.Name;
           gPlayer1.FPreferredTeam := gPlayer1Settings.Team;
           gPlayer1.FActualModelName := gPlayer1Settings.Model;
+          gPlayer1.SetColor(gPlayer1Settings.Color, False);
           gPlayer1.SetModel(gPlayer1.FActualModelName);
-          gPlayer1.SetColor(gPlayer1Settings.Color);
         end;
 
         if gPlayer2 <> nil then
@@ -421,8 +421,8 @@ begin
           gPlayer2.Name := gPlayer2Settings.Name;
           gPlayer2.FPreferredTeam := gPlayer2Settings.Team;
           gPlayer2.FActualModelName := gPlayer2Settings.Model;
+          gPlayer2.SetColor(gPlayer2Settings.Color, False);
           gPlayer2.SetModel(gPlayer2.FActualModelName);
-          gPlayer2.SetColor(gPlayer2Settings.Color);
         end;
         ///// /////
 

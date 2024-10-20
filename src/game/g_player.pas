@@ -302,7 +302,7 @@ type
     procedure   PressKey(Key: Byte; Time: Word = 1);
     procedure   ReleaseKeys();
     procedure   SetModel(ModelName: String);
-    procedure   SetColor(Color: TRGB);
+    procedure   SetColor(Color: TRGB; UpdateModel: Boolean);
     function    GetColor(): TRGB;
     procedure   SetWeapon(W: Byte);
     function    IsKeyPressed(K: Byte): Boolean;
@@ -322,7 +322,7 @@ type
     procedure   Touch();
     procedure   Push(vx, vy: Integer);
     procedure   ChangeModel(ModelName: String);
-    procedure   SwitchTeam;
+    procedure   SwitchTeam();
     procedure   ChangeTeam(Team: Byte);
     procedure   BFGHit();
     function    GetFlag(Flag: Byte): Boolean;
@@ -882,11 +882,10 @@ begin
     GM_SINGLE, GM_COOP: gPlayers[a].FTeam := TEAM_COOP;
   end;
 
-  // Если командная игра - красим модель в цвет команды:
+  // Если командная игра - красим модель в цвет команды
+  // TODO: ensure the actual gamemode here instead?
   gPlayers[a].FColor := Color;
-  if gPlayers[a].FTeam in [TEAM_RED, TEAM_BLUE]
-    then gPlayers[a].FModel.Color := TEAMCOLOR[gPlayers[a].FTeam]
-    else gPlayers[a].FModel.Color := Color;
+  gPlayers[a].FModel.Color := g_PlayerModel_MakeColor(Color, gPlayers[a].FTeam);
 
   gPlayers[a].FUID := g_CreateUID(UID_PLAYER);
   gPlayers[a].FAlive := False;
@@ -1332,10 +1331,9 @@ begin
     for i := 0 to High(gPlayers) do
       if gPlayers[i] <> nil then
       begin
-        if gPlayers[i] is TPlayer then
-          TPlayer(gPlayers[i]).Free()
-        else
-          TBot(gPlayers[i]).Free();
+        if gPlayers[i] is TPlayer
+          then TPlayer(gPlayers[i]).Free()
+          else TBot(gPlayers[i]).Free();
         gPlayers[i] := nil;
       end;
 
@@ -1351,7 +1349,6 @@ procedure g_Player_PreUpdate();
 var
   i: Integer;
 begin
-  if gPlayers = nil then Exit;
   for i := 0 to High(gPlayers) do
     if gPlayers[i] <> nil then
       gPlayers[i].PreUpdate();
@@ -1361,8 +1358,7 @@ procedure g_Player_UpdateAll();
 var
   i: Integer;
 begin
-  if gPlayers = nil then Exit;
-
+  //if gPlayers = nil then Exit;
   //e_WriteLog('***g_Player_UpdateAll: ENTER', MSG_WARNING);
   for i := 0 to High(gPlayers) do
   begin
@@ -1387,12 +1383,11 @@ procedure g_Player_DrawAll();
 var
   i: Integer;
 begin
-  if gPlayers = nil then Exit;
-
   for i := 0 to High(gPlayers) do
     if gPlayers[i] <> nil then
-      if gPlayers[i] is TPlayer then gPlayers[i].Draw()
-      else TBot(gPlayers[i]).Draw();
+      if gPlayers[i] is TPlayer
+        then gPlayers[i].Draw()
+        else TBot(gPlayers[i]).Draw();
 end;
 
 procedure g_Player_DrawDebug(p: TPlayer);
@@ -1426,11 +1421,11 @@ begin
     if gPlayers[i] <> nil then
     begin
       e_TextureFontPrint(gPlayers[i].FObj.X + gPlayers[i].FObj.Rect.X,
-      gPlayers[i].FObj.Y + gPlayers[i].FObj.Rect.Y + gPlayers[i].FObj.Rect.Height - fH * 2,
-      IntToStr(gPlayers[i].FHealth), gStdFont);
+        gPlayers[i].FObj.Y + gPlayers[i].FObj.Rect.Y + gPlayers[i].FObj.Rect.Height - fH * 2,
+        IntToStr(gPlayers[i].FHealth), gStdFont);
       e_TextureFontPrint(gPlayers[i].FObj.X + gPlayers[i].FObj.Rect.X,
-      gPlayers[i].FObj.Y + gPlayers[i].FObj.Rect.Y + gPlayers[i].FObj.Rect.Height - fH,
-      IntToStr(gPlayers[i].FArmor), gStdFont);
+        gPlayers[i].FObj.Y + gPlayers[i].FObj.Rect.Y + gPlayers[i].FObj.Rect.Height - fH,
+        IntToStr(gPlayers[i].FArmor), gStdFont);
     end;
 end;
 
@@ -1439,9 +1434,6 @@ var
   a: Integer;
 begin
   Result := nil;
-
-  if gPlayers = nil then
-    Exit;
 
   for a := 0 to High(gPlayers) do
     if gPlayers[a] <> nil then
@@ -1458,12 +1450,9 @@ var
 begin
   Result := 0;
 
-  if gPlayers = nil then
-    Exit;
-
   for a := 0 to High(gPlayers) do
     if gPlayers[a] <> nil then
-      Result := Result + 1;
+      Result += 1;
 end;
 
 function g_Bot_GetCount(): Integer;
@@ -1472,12 +1461,9 @@ var
 begin
   Result := 0;
 
-  if gPlayers = nil then
-    Exit;
-
   for a := 0 to High(gPlayers) do
     if (gPlayers[a] <> nil) and (gPlayers[a] is TBot) then
-      Result := Result + 1;
+      Result += 1;
 end;
 
 function g_Player_GetStats(): TPlayerStatArray;
@@ -1485,8 +1471,6 @@ var
   a: Integer;
 begin
   Result := nil;
-
-  if gPlayers = nil then Exit;
 
   for a := 0 to High(gPlayers) do
     if gPlayers[a] <> nil then
@@ -1515,7 +1499,6 @@ var
   a: Integer;
 begin
   if not g_Game_IsServer then Exit;
-  if gPlayers = nil then Exit;
 
   for a := 0 to High(gPlayers) do
     if gPlayers[a] <> nil then
@@ -1542,22 +1525,21 @@ begin
   gTeamStat[TEAM_RED].Score := 0;
   gTeamStat[TEAM_BLUE].Score := 0;
 
-  if gPlayers <> nil then
-    for i := 0 to High(gPlayers) do
-      if gPlayers[i] <> nil then
-      begin
-        gPlayers[i].Reset(Force);
+  for i := 0 to High(gPlayers) do
+    if gPlayers[i] <> nil then
+    begin
+      gPlayers[i].Reset(Force);
 
-        if gPlayers[i] is TPlayer then
-        begin
-          if (not gPlayers[i].FSpectator) or gPlayers[i].FWantsInGame then
-            gPlayers[i].Respawn(Silent)
-          else
-            gPlayers[i].Spectate();
-        end
+      if gPlayers[i] is TPlayer then
+      begin
+        if (not gPlayers[i].FSpectator) or gPlayers[i].FWantsInGame then
+          gPlayers[i].Respawn(Silent)
         else
-          TBot(gPlayers[i]).Respawn(Silent);
-      end;
+          gPlayers[i].Spectate();
+      end
+      else
+        TBot(gPlayers[i]).Respawn(Silent);
+    end;
 end;
 
 function  g_Player_CreateCorpse(Player: TPlayer): Integer;
@@ -2037,32 +2019,33 @@ begin
     end;
   end;
 
-  if FModel <> nil then
-    FModel.Free();
-
+  FModel.Free();
   FModel := m;
 
-  if not (gGameSettings.GameMode in [GM_TDM, GM_CTF])
-    then FModel.Color := FColor
-    else FModel.Color := TEAMCOLOR[FTeam];
+  if gGameSettings.GameMode in [GM_TDM, GM_CTF]
+    then FModel.Color := g_PlayerModel_MakeColor(FColor, FTeam)
+    else FModel.Color := FColor;
 
   FModel.SetWeapon(FCurrWeap);
   FModel.SetFlag(FFlag);
   SetDirection(FDirection);
 end;
 
-procedure TPlayer.SetColor(Color: TRGB);
+procedure TPlayer.SetColor(Color: TRGB; UpdateModel: Boolean);
 begin
   FColor := Color;
-  if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
-    if FModel <> nil then FModel.Color := Color;
+
+  if UpdateModel and (FModel <> nil) then
+    if gGameSettings.GameMode in [GM_TDM, GM_CTF]
+      then FModel.Color := g_PlayerModel_MakeColor(Color, FTeam)
+      else FModel.Color := Color;
 end;
 
 
 
 function TPlayer.GetColor(): TRGB;
 begin
-  result := FModel.Color;
+  Result := FModel.Color;
 end;
 
 procedure TPlayer.SetWeaponPrefs(Prefs: Array of Byte);
@@ -2070,12 +2053,11 @@ var
   i: Integer;
 begin
   for i := WP_FIRST to WP_LAST + 1 do
-    begin
-      if (Prefs[i] > WP_LAST + 1) then
-        FWeapPreferences[i] := 0
-      else
-        FWeapPreferences[i] := Prefs[i];
-    end;
+  begin
+    if Prefs[i] > WP_LAST + 1
+      then FWeapPreferences[i] := 0
+      else FWeapPreferences[i] := Prefs[i];
+  end;
 end;
 
 procedure TPlayer.SetWeaponPref(Weapon, Pref: Byte);
@@ -2123,7 +2105,7 @@ begin
     result := false;
 end;
 
-procedure TPlayer.SwitchTeam;
+procedure TPlayer.SwitchTeam();
 begin
   if g_Game_IsClient then
     Exit;
@@ -2155,12 +2137,11 @@ var
 begin
   OldTeam := FTeam;
   FTeam := Team;
-  case Team of
-    TEAM_RED, TEAM_BLUE:
-      FModel.Color := TEAMCOLOR[Team];
-    else
-      FModel.Color := FColor;
-  end;
+
+  if Team in [TEAM_RED, TEAM_BLUE]
+    then FModel.Color := g_PlayerModel_MakeColor(FColor, Team)
+    else FModel.Color := FColor;
+
   if (FTeam <> OldTeam) and g_Game_IsNet and g_Game_IsServer then
     MH_SEND_PlayerStats(FUID);
 end;
@@ -6386,7 +6367,7 @@ begin
 
   SetModel(str);
   if gGameSettings.GameMode in [GM_TDM, GM_CTF]
-    then FModel.Color := TEAMCOLOR[FTeam]
+    then FModel.Color := g_PlayerModel_MakeColor(FColor, FTeam)
     else FModel.Color := FColor;
 end;
 
