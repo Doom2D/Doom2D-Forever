@@ -533,50 +533,53 @@ type
   PShell = ^TShell;
   TShell = record
     SpriteID: DWORD;
-    alive:     Boolean;
-    SType:    Byte;
-    RAngle:   Integer;
-    Timeout:  Cardinal;
-    CX, CY:   Integer;
-    Obj:      TObj;
+    alive: Boolean;
+    SType: Byte;
+    RAngle: Integer;
+    Timeout: Cardinal;
+    CX, CY: Integer;
+    Obj: TObj;
 
-    procedure getMapBox (out x, y, w, h: Integer); inline;
-    procedure moveBy (dx, dy: Integer); inline;
+    procedure getMapBox(out x, y, w, h: Integer); inline;
+    procedure moveBy(dx, dy: Integer); inline;
 
-    procedure positionChanged ();  inline; //WARNING! call this after entity position was changed, or coldet will not work right!
+    // WARNING! call this after entity position was changed, or coldet will not work right!
+    procedure positionChanged(); inline;
   end;
 
   TCorpse = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
-    FModelName:     String;
-    FMess:          Boolean;
-    FState:         Byte;
-    FDamage:        Byte;
-    FColor:         TRGB;
-    FObj:           TObj;
-    FPlayerUID:     Word;
-    FAnimation:     TAnimation;
+    FModelName: String;
+    FMess: Boolean;
+    FState: Byte;
+    FDamage: Byte;
+    FColor: TRGB;
+    FObj: TObj;
+    FPlayerUID: Word;
+    FAnimation: TAnimation;
     FAnimationMask: TAnimation;
+    FDirection: TDirection;
 
   public
     constructor Create(X, Y: Integer; ModelName: String; aMess: Boolean);
-    destructor  Destroy(); override;
-    procedure   Damage(Value: Word; SpawnerUID: Word; vx, vy: Integer);
-    procedure   Update();
-    procedure   Draw();
-    procedure   SaveState (st: TStream);
-    procedure   LoadState (st: TStream);
+    destructor Destroy(); override;
+    procedure Damage(Value: Word; SpawnerUID: Word; vx, vy: Integer);
+    procedure Update();
+    procedure Draw();
+    procedure SaveState(st: TStream);
+    procedure LoadState(st: TStream);
 
-    procedure getMapBox (out x, y, w, h: Integer); inline;
-    procedure moveBy (dx, dy: Integer); inline;
+    procedure getMapBox(out x, y, w, h: Integer); inline;
+    procedure moveBy(dx, dy: Integer); inline;
 
-    procedure positionChanged ();  inline; //WARNING! call this after entity position was changed, or coldet will not work right!
+    // WARNING! call this after entity position was changed, or coldet will not work right!
+    procedure positionChanged(); inline;
 
-    function ObjPtr (): PObj; inline;
+    function ObjPtr(): PObj; inline;
 
-    property    Obj: TObj read FObj; // copies object
-    property    State: Byte read FState;
-    property    Mess: Boolean read FMess;
+    property Obj: TObj read FObj;  // copies object
+    property State: Byte read FState;
+    property Mess: Boolean read FMess;
   end;
 
   TTeamStat = Array [TEAM_RED..TEAM_BLUE] of
@@ -661,7 +664,9 @@ uses
   g_net, g_netmsg, g_window,
   utils, xstreams;
 
-const PLR_SAVE_VERSION = 0;
+const
+  PLR_SAVE_VERSION = 0;
+  CORPSE_SAVE_VERSION = 1;
 
 type
   TBotProfile = record
@@ -1590,6 +1595,7 @@ begin
         gCorpses[find_id].FObj.Vel := FObj.Vel;
         gCorpses[find_id].FObj.Accel := FObj.Accel;
         gCorpses[find_id].FPlayerUID := FUID;
+        gCorpses[find_id].FDirection := Direction;
 
         Result := find_id;
       end
@@ -2571,10 +2577,9 @@ begin
 
   if FAlive then
   begin
-    if Direction = TDirection.D_RIGHT then
-      Mirror := TMirrorType.None
-    else
-      Mirror := TMirrorType.Horizontal;
+    if Direction = TDirection.D_RIGHT
+      then Mirror := TMirrorType.None
+      else Mirror := TMirrorType.Horizontal;
 
     if FPunchAnim <> nil then
     begin
@@ -3540,7 +3545,7 @@ begin
   end;
 
 // Реакция монстров на смерть игрока:
-  if (KillType <> K_FALLKILL) and (Srv) then
+  if (KillType <> K_FALLKILL) and Srv then
     g_Monsters_killedp();
 
   if SpawnerUID = FUID then
@@ -3563,7 +3568,7 @@ begin
         KP := g_Player_Get(SpawnerUID);
         if (KP <> nil) and Srv then
         begin
-          if (DoFrags or (gGameSettings.GameMode = GM_TDM)) then
+          if DoFrags or (gGameSettings.GameMode = GM_TDM) then
             if SameTeam(FUID, SpawnerUID) then
             begin
               Dec(KP.FFrags);
@@ -3582,10 +3587,9 @@ begin
         end;
 
         plr := g_Player_Get(SpawnerUID);
-        if plr = nil then
-          s := '?'
-        else
-          s := plr.FName;
+        if plr = nil
+          then s := '?'
+          else s := plr.FName;
 
         case KillType of
           K_HARDKILL:
@@ -3605,10 +3609,9 @@ begin
     else if g_GetUIDType(SpawnerUID) = UID_MONSTER then
       begin // Убит монстром
         mon := g_Monsters_ByUID(SpawnerUID);
-        if mon = nil then
-          s := '?'
-        else
-          s := g_Mons_GetKilledByTypeId(mon.MonsterType);
+        if mon = nil
+          then s := '?'
+          else s := g_Mons_GetKilledByTypeId(mon.MonsterType);
 
         case KillType of
           K_HARDKILL:
@@ -6714,19 +6717,24 @@ end;
 procedure TCorpse.Draw();
 var
   fX, fY: Integer;
+  Mirror: TMirrorType;
 begin
   if FState = CORPSE_STATE_REMOVEME then
     Exit;
 
   FObj.lerp(gLerpFactor, fX, fY);
 
+  if FDirection = TDirection.D_RIGHT
+    then Mirror := TMirrorType.None
+    else Mirror := TMirrorType.Horizontal;
+
   if FAnimation <> nil then
-    FAnimation.Draw(fX, fY, TMirrorType.None);
+    FAnimation.Draw(fX, fY, Mirror);
 
   if FAnimationMask <> nil then
   begin
     e_Colors := FColor;
-    FAnimationMask.Draw(fX, fY, TMirrorType.None);
+    FAnimationMask.Draw(fX, fY, Mirror);
     e_Colors.R := 255;
     e_Colors.G := 255;
     e_Colors.B := 255;
@@ -6777,7 +6785,7 @@ begin
 
   // Сигнатура трупа
   utils.writeSign(st, 'CORP');
-  st.WriteByte(0);
+  st.WriteByte(CORPSE_SAVE_VERSION);
 
   st.WriteByte(FState);  // Состояние
   st.WriteByte(FDamage);  // Накопленный урон
@@ -6802,11 +6810,14 @@ begin
   st.WriteBool(anim);
   // Если есть - сохраняем
   if anim then FAnimationMask.SaveState(st);
+
+  st.WriteByte(Ord(FDirection));
 end;
 
 
 procedure TCorpse.LoadState (st: TStream);
 var
+  Version: Byte;
   anim: Boolean;
 begin
   Assert(st <> nil);
@@ -6814,7 +6825,9 @@ begin
   // Сигнатура трупа
   if not utils.checkSign(st, 'CORP') then
     Raise XStreamError.Create('invalid corpse signature');
-  if st.ReadByte() <> 0 then
+
+  Version := st.ReadByte();
+  if Version > CORPSE_SAVE_VERSION then
     Raise XStreamError.Create('invalid corpse version');
 
   FState := st.ReadByte();  // Состояние
@@ -6846,6 +6859,9 @@ begin
     Assert(FAnimationMask <> nil, 'TCorpse.LoadState: no FAnimationMask');
     FAnimationMask.LoadState(st);
   end;
+
+  if Version >= 1 then
+    FDirection := TDirection(st.ReadByte());
 end;
 
 { T B o t : }
