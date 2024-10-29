@@ -110,8 +110,8 @@ type
     constructor Create (aopts: TOptions=[TOption.SignedNumbers]);
     destructor Destroy (); override;
 
-    procedure error (const amsg: AnsiString); noreturn;
-    procedure errorfmt (const afmt: AnsiString; const args: array of const); noreturn;
+    procedure error (const amsg: AnsiString);
+    procedure errorfmt (const afmt: AnsiString; const args: array of const);
 
     function skipChar (): Boolean; // returns `false` on eof
 
@@ -322,13 +322,13 @@ begin
 end;
 
 
-procedure TTextParser.error (const amsg: AnsiString); noreturn;
+procedure TTextParser.error (const amsg: AnsiString);
 begin
   raise TParserException.Create(self, amsg);
 end;
 
 
-procedure TTextParser.errorfmt (const afmt: AnsiString; const args: array of const); noreturn;
+procedure TTextParser.errorfmt (const afmt: AnsiString; const args: array of const);
 begin
   raise TParserException.CreateFmt(self, afmt, args);
 end;
