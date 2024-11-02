@@ -38,7 +38,7 @@ type
   end;
 
 const
-  MAX_YV = 30;
+  MAX_YV = 30;  // taken from Doom2D
   LIMIT_VEL   = 16384;
   LIMIT_ACCEL = 1024;
 
@@ -53,8 +53,8 @@ const
   MOVE_BLOCK      = 128;
 
 procedure g_Obj_Init(Obj: PObj); inline;
-function  g_Obj_Move(Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean=False; asProjectile: Boolean=false): Word;
-function  g_Obj_Move_Projectile (Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean=False): Word;
+function  g_Obj_Move(Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean = False; asProjectile: Boolean = False): Word;
+function  g_Obj_Move_Projectile (Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean = False): Word;
 function  g_Obj_Collide(Obj1, Obj2: PObj): Boolean; inline; overload;
 function  g_Obj_Collide(X, Y: Integer; Width, Height: Word; Obj: PObj): Boolean; inline; overload;
 function  g_Obj_CollidePoint(X, Y: Integer; Obj: PObj): Boolean; inline;
@@ -74,7 +74,7 @@ function  z_dec(a, b: Integer): Integer; inline;
 function  z_fdec(a, b: Double): Double; inline;
 
 var
-  gMon: Boolean = False;
+  gMon: Boolean;
 
 implementation
 
@@ -189,6 +189,13 @@ begin
                                PANEL_WALL, False);
 end;
 
+function g_Obj_CollideLevelAt(Obj: PObj; XPos, YPos, XInc, YInc: Integer): Boolean; inline;
+begin
+  Result := g_Map_CollidePanel(XPos+Obj^.Rect.X+XInc, YPos+Obj.Rect.Y+YInc,
+                               Obj^.Rect.Width, Obj^.Rect.Height,
+                               PANEL_WALL, False);
+end;
+
 function g_Obj_CollideStep(Obj: PObj; XInc, YInc: Integer): Boolean; inline;
 begin
   Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc,
@@ -219,23 +226,23 @@ end;
 
 procedure g_Obj_Splash(Obj: PObj; Color: Byte);
 {$IFDEF ENABLE_SOUND}
-  var MaxVel: Integer;
+var
+  MaxVel: Integer;
 {$ENDIF}
 begin
 {$IFDEF ENABLE_SOUND}
-  MaxVel := nmax(abs(Obj^.Vel.X), abs(Obj^.Vel.Y));
+  MaxVel := nmax(Abs(Obj^.Vel.X), Abs(Obj^.Vel.Y));
   if MaxVel > 4 then
   begin
-    if MaxVel < 10 then
-      g_Sound_PlayExAt('SOUND_GAME_BULK1', Obj^.X, Obj^.Y)
-    else
-      g_Sound_PlayExAt('SOUND_GAME_BULK2', Obj^.X, Obj^.Y);
+    if MaxVel < 10
+      then g_Sound_PlayExAt('SOUND_GAME_BULK1', Obj^.X, Obj^.Y)
+      else g_Sound_PlayExAt('SOUND_GAME_BULK2', Obj^.X, Obj^.Y);
   end;
 {$ENDIF}
 
   g_GFX_Water(Obj^.X+Obj^.Rect.X+(Obj^.Rect.Width div 2),
               Obj^.Y+Obj^.Rect.Y+(Obj^.Rect.Height div 2),
-              Min(5*(abs(Obj^.Vel.X)+abs(Obj^.Vel.Y)), 50),
+              Min(5*(Abs(Obj^.Vel.X)+Abs(Obj^.Vel.Y)), 50),
               -Obj^.Vel.X, -Obj^.Vel.Y,
               Obj^.Rect.Width, 16, Color);
 end;
@@ -243,136 +250,156 @@ end;
 
 function move (Obj: PObj; dx, dy: Integer; ClimbSlopes: Boolean): Word;
 var
-  i: Integer;
-  sx, sy: ShortInt;
-  st: Word;
+  xtemp, ytemp: Integer;
+  xstep, ystep: ShortInt;
+  state: Word;
 
   procedure slope (s: Integer);
   var
     i: Integer;
   begin
     i := 0;
-    while g_Obj_CollideLevel(Obj, sx, 0) and (i < 4) do
+    while g_Obj_CollideLevelAt(Obj, xtemp, ytemp, xstep, 0) and (i < 4) do
     begin
-      Obj^.Y += s;
-      Inc(i);
+      ytemp += s;
+      i += 1;
     end;
-    Obj^.X += sx;
-    if (s < 0) then
+    xtemp += xstep;
+    if s < 0 then
     begin
-      Obj.slopeUpLeft += i*(-s);
+      Obj.slopeUpLeft -= s * i;  // NOTE: actually this is an addition
       Obj.slopeFramesLeft := SmoothSlopeFrames;
     end;
   end;
 
   function movex (): Boolean;
   begin
-    result := false;
+    Result := False;
 
     // Если монстру шагнуть в сторону, а там блокмон
-    if gMon and ((st and MOVE_BLOCK) = 0) then
+    if gMon and ((state and MOVE_BLOCK) = 0) then
     begin
-      if Blocked(Obj, sx, 0) then st := st or MOVE_BLOCK;
+      if Blocked(Obj, xstep, 0) then state := state or MOVE_BLOCK;
     end;
 
     // Если шагнуть в сторону, а там стена => шагать нельзя
-    if g_Obj_CollideLevel(Obj, sx, 0) then
+    if g_Obj_CollideLevel(Obj, xstep, 0) then
     begin
-      if ClimbSlopes and (abs(dy) < 2) then
+      if ClimbSlopes and (Abs(dy) < 2) then
       begin
-        result := true;
-        if (not g_Obj_CollideLevel(Obj, sx, -12)) and // забираемся на 12 пикселей влево/вправо
-           (sy >= 0) and (not g_Obj_CanMoveY(Obj, sy)) then // только если есть земля под ногами
+        Result := True;
+        // забираемся на 12 пикселей влево/вправо, только если есть земля под ногами
+        if not g_Obj_CollideLevel(Obj, xstep, -12) and
+           (ystep >= 0) and not g_Obj_CanMoveY(Obj, ystep) then
         begin
           slope(-1);
+
+          // FIXME: This updates the object in the midst of a test, which makes the movement
+          // differential across the axes and is actually wrong.
+          Obj^.X := xtemp;
+          Obj^.Y := ytemp;
         end
         else
         begin
-          result := false;
-          st := st or MOVE_HITWALL;
+          Result := False;
+          state := state or MOVE_HITWALL;
         end;
       end
       else
       begin
-        st := st or MOVE_HITWALL;
+        state := state or MOVE_HITWALL;
       end;
     end
-    else // Там стены нет
+    else  // Там стены нет
     begin
-      if CollideLiquid(Obj, sx, 0) then
-      begin // Если шагнуть в сторону, а там теперь жидкость
-        if ((st and MOVE_INWATER) = 0) then st := st or MOVE_HITWATER;
+      if CollideLiquid(Obj, xstep, 0) then
+      begin  // Если шагнуть в сторону, а там теперь жидкость
+        if ((state and MOVE_INWATER) = 0) then state := state or MOVE_HITWATER;
       end
-      else // Если шагнуть в сторону, а там уже нет жидкости
-      begin
-        if ((st and MOVE_INWATER) <> 0) then st := st or MOVE_HITAIR;
+      else
+      begin  // Если шагнуть в сторону, а там уже нет жидкости
+        if ((state and MOVE_INWATER) <> 0) then state := state or MOVE_HITAIR;
       end;
 
       // Шаг
-      Obj^.X += sx;
-      result := true;
+      xtemp += xstep;
+      Result := True;
     end;
   end;
 
   function movey (): Boolean;
   begin
-    result := false;
+    Result := False;
 
     // Если монстру шагнуть по вертикали, а там блокмон
-    if gMon and ((st and MOVE_BLOCK) = 0) then
+    if gMon and ((state and MOVE_BLOCK) = 0) then
     begin
-      if Blocked(Obj, 0, sy) then st := st or MOVE_BLOCK;
+      if Blocked(Obj, 0, ystep) then state := state or MOVE_BLOCK;
     end;
 
     // Если шагать нельзя
-    if not g_Obj_CanMoveY(Obj, sy) then
+    if not g_Obj_CanMoveY(Obj, ystep) then
     begin
-      if sy > 0 then
-        st := st or MOVE_HITLAND
-      else
-        st := st or MOVE_HITCEIL;
+      if ystep > 0
+        then state := state or MOVE_HITLAND
+        else state := state or MOVE_HITCEIL;
     end
-    else // Там стены нет. И ступени снизу тоже нет
+    else  // Там стены нет. И ступени снизу тоже нет
     begin
-      if CollideLiquid(Obj, 0, sy) then
-      begin // Если шагнуть в по вертикали, а там теперь жидкость
-        if ((st and MOVE_INWATER) = 0) then st := st or MOVE_HITWATER;
+      if CollideLiquid(Obj, 0, ystep) then
+      begin  // Если шагнуть по вертикали, а там теперь жидкость
+        if ((state and MOVE_INWATER) = 0) then state := state or MOVE_HITWATER;
       end
-      else // Если шагнуть в по вертикали, а там уже нет жидкости
-      begin
-        if ((st and MOVE_INWATER) <> 0) then st := st or MOVE_HITAIR;
+      else
+      begin  // Если шагнуть по вертикали, а там уже нет жидкости
+        if ((state and MOVE_INWATER) <> 0) then state := state or MOVE_HITAIR;
       end;
 
       // Шаг
-      Obj^.Y += sy;
-      result := true;
+      ytemp += ystep;
+      Result := True;
     end;
   end;
 
+var
+  i: Integer;
+  xfree, yfree: Boolean;
 begin
-  st := MOVE_NONE;
+  state := MOVE_NONE;  // FIXME: replace 'state' with top-level (!!) local 'Result'
 
   // Объект в жидкости?
-  if CollideLiquid(Obj, 0, 0) then st := st or MOVE_INWATER;
+  if CollideLiquid(Obj, 0, 0) then state := state or MOVE_INWATER;
 
   // Монстр в блокмоне?
   if gMon then
   begin
-    if Blocked(Obj, 0, 0) then st := st or MOVE_BLOCK;
+    if Blocked(Obj, 0, 0) then state := state or MOVE_BLOCK;
   end;
 
   // Двигаться не надо?
-  if (dx = 0) and (dy = 0) then begin result := st; exit; end;
+  if (dx = 0) and (dy = 0) then
+    Exit(state);
 
-  sx := g_basic.Sign(dx);
-  sy := g_basic.Sign(dy);
-  dx := abs(dx);
-  dy := abs(dy);
+  xtemp := Obj^.X;
+  ytemp := Obj^.Y;
+  xstep := g_basic.Sign(dx);
+  ystep := g_basic.Sign(dy);  // TODO: why it's always 1 for an idle player?
 
-  for i := 1 to dx do if not movex() then break;
-  for i := 1 to dy do if not movey() then break;
+  // FIXME: this is an axially-differentiated motion
+  for i := 1 to Abs(dx) do
+  begin
+    xfree := movex();
+    Obj^.X := xtemp;  // ^ FIXME
+    if not xfree then Break;
+  end;
+  for i := 1 to Abs(dy) do
+  begin
+    yfree := movey();
+    Obj^.Y := ytemp;  // ^ FIXME
+    if not yfree then Break;
+  end;
 
-  result := st;
+  Result := state;
 end;
 
 
@@ -382,12 +409,12 @@ begin
 end;
 
 
-function g_Obj_Move_Projectile (Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean=False): Word;
+function g_Obj_Move_Projectile (Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean): Word;
 begin
-  result := g_Obj_Move(Obj, Fallable, Splash, ClimbSlopes, true);
+  Result := g_Obj_Move(Obj, Fallable, Splash, ClimbSlopes, True);
 end;
 
-function g_Obj_Move (Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean=False; asProjectile: Boolean=false): Word;
+function g_Obj_Move (Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean; asProjectile: Boolean): Word;
 var
   xv, yv, dx, dy: Integer;
   inwater: Boolean;
@@ -415,10 +442,16 @@ begin
   }
 
   // Вылетел за нижнюю границу карты?
-  if (Obj^.Y > Integer(gMapInfo.Height)+128) then begin result := MOVE_FALLOUT; Obj.slopeUpLeft := 0; Obj.slopeFramesLeft := 0; exit; end;
+  if Obj^.Y > Integer(gMapInfo.Height)+128 then
+  begin
+    Result := MOVE_FALLOUT;
+    Obj.slopeUpLeft := 0;
+    Obj.slopeFramesLeft := 0;
+    Exit;
+  end;
 
   // Меняем скорость и ускорение только по четным кадрам
-  c := (gTime mod (GAME_TICK*2) <> 0);
+  c := gTime mod (GAME_TICK*2) <> 0;
 
   // smoothed slopes
   if {not c and} (Obj.slopeUpLeft > 0) then
