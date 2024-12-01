@@ -1133,9 +1133,7 @@ var
   id: DWORD;
 begin
   FFlag := Flag;
-
-  FFlagAnim.Free();
-  FFlagAnim := nil;
+  FreeAndNil(FFlagAnim);
 
   case Flag of
     FLAG_RED: g_Frames_Get(id, 'FRAMES_FLAG_RED');

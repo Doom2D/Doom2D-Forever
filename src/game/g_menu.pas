@@ -1033,6 +1033,7 @@ procedure ProcChangeColor(Sender: TGUIControl);
 var
   window: TGUIWindow;
   color: TRGB;
+  team: Byte;
 begin
   window := g_GUI_GetWindow('OptionsPlayersP1Menu');
   with TGUIMenu(window.GetControl('mOptionsPlayersP1Menu')) do
@@ -1042,8 +1043,8 @@ begin
     color.b := Min(255, TGUIScroll(GetControl('scP1Blue')).Value*16);
     TGUIModelView(window.GetControl('mvP1Model')).SetColor(color.r, color.g, color.b);
 
-    color := g_PlayerModel_MakeColor(color, IfThen(
-      TGUISwitch(GetControl('swP1Team')).ItemIndex = 0, TEAM_RED, TEAM_BLUE));
+    team := IfThen(TGUISwitch(GetControl('swP1Team')).ItemIndex = 0, TEAM_RED, TEAM_BLUE);
+    color := g_PlayerModel_MakeColor(color, team);
     TGUIModelView(window.GetControl('mvP1ModelTeam')).SetColor(color.r, color.g, color.b);
   end;
 
@@ -1055,15 +1056,37 @@ begin
     color.b := Min(255, TGUIScroll(GetControl('scP2Blue')).Value*16);
     TGUIModelView(window.GetControl('mvP2Model')).SetColor(color.r, color.g, color.b);
 
-    color := g_PlayerModel_MakeColor(color, IfThen(
-      TGUISwitch(GetControl('swP2Team')).ItemIndex = 0, TEAM_RED, TEAM_BLUE));
+    team := IfThen(TGUISwitch(GetControl('swP2Team')).ItemIndex = 0, TEAM_RED, TEAM_BLUE);
+    color := g_PlayerModel_MakeColor(color, team);
     TGUIModelView(window.GetControl('mvP2ModelTeam')).SetColor(color.r, color.g, color.b);
   end;
 end;
 
+procedure ProcSwitchTeam(Sender: TGUIControl);
+var
+  window: TGUIWindow;
+  flag: Byte;
+begin
+  window := g_GUI_GetWindow('OptionsPlayersP1Menu');
+  with TGUIMenu(window.GetControl('mOptionsPlayersP1Menu')) do
+  begin
+    flag := IfThen(TGUISwitch(GetControl('swP1Team')).ItemIndex = 0, FLAG_BLUE, FLAG_RED);
+    TGUIModelView(window.GetControl('mvP1ModelTeam')).Model.SetFlag(flag);
+  end;
+
+  window := g_GUI_GetWindow('OptionsPlayersP2Menu');
+  with TGUIMenu(window.GetControl('mOptionsPlayersP2Menu')) do
+  begin
+    flag := IfThen(TGUISwitch(GetControl('swP2Team')).ItemIndex = 0, FLAG_BLUE, FLAG_RED);
+    TGUIModelView(window.GetControl('mvP2ModelTeam')).Model.SetFlag(flag);
+  end;
+
+  ProcChangeColor(nil);
+end;
+
 procedure ProcSelectModel(Sender: TGUIControl);
 var
-  a: string;
+  a: String;
   window: TGUIWindow;
 begin
   window := g_GUI_GetWindow('OptionsPlayersP1Menu');
@@ -1082,7 +1105,7 @@ begin
     TGUIModelView(window.GetControl('mvP2ModelTeam')).SetModel(a);
   end;
 
-  ProcChangeColor(nil);
+  ProcSwitchTeam(nil);  // update flag points and skin color
 end;
 
 procedure LoadStdFont(cfgres, texture: string; var FontID: DWORD);
@@ -2197,7 +2220,7 @@ begin
       Name := 'sw'+s+'Team';
       AddItem(_lc[I_MENU_PLAYER_TEAM_RED]);
       AddItem(_lc[I_MENU_PLAYER_TEAM_BLUE]);
-      OnChange := ProcChangeColor;
+      OnChange := ProcSwitchTeam;
     end ;
     with AddList(_lc[I_MENU_PLAYER_MODEL], 12, 6) do
     begin
@@ -2236,14 +2259,14 @@ begin
     with TGUIModelView(Menu.AddChild(TGUIModelView.Create)) do
     begin
       Name := 'mv'+s+'Model';
-      X := GetControl('ls'+s+'Model').X+TGUIListBox(GetControl('ls'+s+'Model')).GetWidth+16;
+      X := GetControl('ls'+s+'Model').X+TGUIListBox(GetControl('ls'+s+'Model')).GetWidth+20;
       Y := GetControl('ls'+s+'Model').Y;
     end;
     with TGUIModelView(Menu.AddChild(TGUIModelView.Create)) do
     begin
       Name := 'mv'+s+'ModelTeam';
       X := Menu.GetControl('mv'+s+'Model').X;
-      Y := GetControl('ls'+s+'Model').Y+TGUIModelView(Menu.GetControl('mv'+s+'Model')).GetHeight+8;
+      Y := GetControl('ls'+s+'Model').Y+TGUIModelView(Menu.GetControl('mv'+s+'Model')).GetHeight+24;
     end;
   end;
 
