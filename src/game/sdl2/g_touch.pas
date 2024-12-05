@@ -13,7 +13,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *)
 
-{$INCLUDE ../shared/a_modes.inc}
+{$INCLUDE ../../shared/a_modes.inc}
 unit g_touch;
 
 interface
@@ -22,15 +22,15 @@ interface
     SDL2;
 
   var
-    g_touch_enabled: Boolean = False;
+    g_touch_enabled: Boolean;
     g_touch_size: Single = 1.0;
     g_touch_offset: Single = 50.0;
     g_touch_fire: Boolean = True;
-    g_touch_alt: Boolean = False;
+    g_touch_alt: Boolean;
 
   procedure g_Touch_Init;
-  procedure g_Touch_ShowKeyboard(yes: Boolean);
-  procedure g_Touch_HandleEvent(const ev: TSDL_TouchFingerEvent);
+  procedure g_Touch_ShowKeyboard (yes: Boolean);
+  procedure g_Touch_HandleEvent (const ev: TSDL_TouchFingerEvent);
   procedure g_Touch_Draw;
 
 implementation
@@ -43,7 +43,7 @@ implementation
     angleFire: Boolean;
     keyFinger: array [VK_FIRSTKEY..VK_LASTKEY] of Integer;
 
-  procedure GetKeyRect(key: Integer; out x, y, w, h: Integer; out founded: Boolean);
+  procedure GetKeyRect (key: Integer; out x, y, w, h: Integer; out founded: Boolean);
     var
       sw, sh, sz: Integer;
       dpi: Single;
@@ -131,7 +131,7 @@ implementation
       end
   end;
 
-  function GetKeyName(key: Integer): String;
+  function GetKeyName (key: Integer): String;
   begin
     case key of
       VK_SHOWKBD: result := 'KBD';
@@ -176,7 +176,7 @@ implementation
     end
   end;
 
-  function IntersectControl(ctl, xx, yy: Integer): Boolean;
+  function IntersectControl (ctl, xx, yy: Integer): Boolean;
     var
       x, y, w, h: Integer;
       founded: Boolean;
@@ -193,7 +193,7 @@ implementation
 {$ENDIF}
   end;
 
-  procedure g_Touch_ShowKeyboard(yes: Boolean);
+  procedure g_Touch_ShowKeyboard (yes: Boolean);
   begin
 {$IFNDEF HEADLESS}
     if g_dbg_input then
@@ -206,7 +206,7 @@ implementation
 {$ENDIF}
   end;
 
-  procedure g_Touch_HandleEvent(const ev: TSDL_TouchFingerEvent);
+  procedure g_Touch_HandleEvent (const ev: TSDL_TouchFingerEvent);
     var
       x, y, i, finger: Integer;
 

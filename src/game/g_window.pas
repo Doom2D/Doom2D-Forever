@@ -49,17 +49,19 @@ uses
 
 const
   ProgressUpdateMSecs = 35; //1;//100;
+  TickUpdateDelay = Round(1000 / 36);
 
 var
   Time, Time_Delta, Time_Old: Int64;
   Frame: Int64;
   flag: Boolean;
-  wNeedTimeReset: Boolean = false;
-  wMinimized: Boolean = false;
+  wNeedTimeReset: Boolean;
+  wMinimized: Boolean;
   prevSoundTimeMs: UInt64;
 
-procedure UpdateSound;
-  var ms: UInt64;
+procedure UpdateSound ();
+var
+  ms: UInt64;
 begin
   ms := GetTickCount64();
 {$IFDEF ENABLE_SOUND}
@@ -73,7 +75,7 @@ end;
 
 procedure ResetTimer ();
 begin
-  wNeedTimeReset := true;
+  wNeedTimeReset := True;
 end;
 
 {$IFNDEF HEADLESS}
@@ -141,28 +143,28 @@ begin
   begin
     g_Game_Free();
     g_Game_Quit();
-    exit;
+    Exit;
   end;
 
   Time := sys_GetTicks();
   Time_Delta := Time-Time_Old;
 
-  flag := false;
+  flag := False;
 
   if wNeedTimeReset then
   begin
     Frame := 0;
-    Time_Delta := 28;
-    wNeedTimeReset := false;
+    Time_Delta := TickUpdateDelay;
+    wNeedTimeReset := False;
   end;
 
   g_Map_ProfilersBegin();
   g_Mons_ProfilersBegin();
 
-  t := Time_Delta div 28;
-  if (t > 0) then
+  t := Time_Delta div TickUpdateDelay;
+  if t > 0 then
   begin
-    flag := true;
+    flag := True;
     for i := 1 to t do
       Update();
   end;
@@ -172,7 +174,7 @@ begin
 
   // Время предыдущего обновления
   if flag then
-    Time_Old := Time - (Time_Delta mod 28);
+    Time_Old := Time - (Time_Delta mod TickUpdateDelay);
 
   // don't wait if VSync is on, GL already probably waits enough
   if gLerpActors then
@@ -180,18 +182,18 @@ begin
 
   if flag then
   begin
-    if (not wMinimized) then
+    if not wMinimized then
     begin
-      if gPause or (not gLerpActors) or (gState = STATE_FOLD)
+      if gPause or not gLerpActors or (gState = STATE_FOLD)
         then gLerpFactor := 1.0
-        else gLerpFactor := nmin(1.0, (Time - Time_Old) / 28.0);
+        else gLerpFactor := nmin(1.0, (Time - Time_Old) / TickUpdateDelay);
       Draw();
       sys_Repaint();
     end;
     Frame := Time;
   end
   else
-    sys_Delay(1);  // force OS context switch to prevent false-positive 100% CPU load
+    sys_YieldTimeSlice();  // force thread scheduler switch to avoid false-positive 100% CPU load
 
   UpdateSound();
 end;
@@ -201,7 +203,7 @@ var
   s: PChar;
   i, j, num: GLint;
 begin
-  result := nil;
+  Result := nil;
   s := glGetString(GL_EXTENSIONS);
   if s <> nil then
   begin
@@ -231,7 +233,7 @@ begin
   for e in exts do
   begin
     //writeln('<', e, '> : [', ext, '] = ', strEquCI1251(e, ext));
-    if (strEquCI1251(e, ext)) then begin result := true; exit; end;
+    if strEquCI1251(e, ext) then Exit(True);
   end;
 end;
 
@@ -246,64 +248,69 @@ end;
 
 function PerformExecution (): Integer;
 var
-  idx: Integer;
+  idx: Integer = 1;
   arg: AnsiString;
   mdfo: TStream;
-  {$IFDEF ENABLE_HOLMES}
+{$IFDEF ENABLE_HOLMES}
   itmp: Integer;
   valres: Word;
-  {$ENDIF}
+{$ENDIF}
 begin
 {$IFDEF HEADLESS}
-  e_NoGraphics := true;
+  e_NoGraphics := True;
 {$ENDIF}
 
-  idx := 1;
-  while (idx <= ParamCount) do
+  while idx <= ParamCount() do
   begin
     arg := ParamStr(idx);
-    Inc(idx);
+
     if arg = '--jah' then g_profile_history_size := 100;
-    if arg = '--no-particles' then gpart_dbg_enabled := false;
-    if arg = '--no-los' then gmon_dbg_los_enabled := false;
+    if arg = '--no-particles' then gpart_dbg_enabled := False;
+    if arg = '--no-los' then gmon_dbg_los_enabled := False;
 
-    if arg = '--profile-render' then g_profile_frame_draw := true;
-    if arg = '--profile-coldet' then g_profile_collision := true;
-    if arg = '--profile-los' then g_profile_los := true;
+    if arg = '--profile-render' then g_profile_frame_draw := True;
+    if arg = '--profile-coldet' then g_profile_collision := True;
+    if arg = '--profile-los' then g_profile_los := True;
 
-    if arg = '--no-part-phys' then gpart_dbg_phys_enabled := false;
-    if arg = '--no-part-physics' then gpart_dbg_phys_enabled := false;
-    if arg = '--no-particles-phys' then gpart_dbg_phys_enabled := false;
-    if arg = '--no-particles-physics' then gpart_dbg_phys_enabled := false;
-    if arg = '--no-particle-phys' then gpart_dbg_phys_enabled := false;
-    if arg = '--no-particle-physics' then gpart_dbg_phys_enabled := false;
+    if arg = '--no-part-phys' then gpart_dbg_phys_enabled := False;
+    if arg = '--no-part-physics' then gpart_dbg_phys_enabled := False;
+    if arg = '--no-particles-phys' then gpart_dbg_phys_enabled := False;
+    if arg = '--no-particles-physics' then gpart_dbg_phys_enabled := False;
+    if arg = '--no-particle-phys' then gpart_dbg_phys_enabled := False;
+    if arg = '--no-particle-physics' then gpart_dbg_phys_enabled := False;
 
     if arg = '--debug-input' then g_dbg_input := True;
 
-    {.$IF DEFINED(D2F_DEBUG)}
-    if arg = '--aimline' then g_dbg_aimline_on := true;
-    {.$ENDIF}
+  {.$IF DEFINED(D2F_DEBUG)}
+    if arg = '--aimline' then g_dbg_aimline_on := True;
+  {.$ENDIF}
 
-{$IFDEF ENABLE_HOLMES}
-    if arg = '--holmes' then begin g_holmes_enabled := true; g_Game_SetDebugMode(); end;
+  {$IFDEF ENABLE_HOLMES}
+    if arg = '--holmes' then
+    begin
+      g_holmes_enabled := True;
+      g_Game_SetDebugMode();
+    end;
 
     if (arg = '--holmes-ui-scale') or (arg = '-holmes-ui-scale') then
     begin
-      if (idx <= ParamCount) then
+      if idx < ParamCount() then
       begin
-        if not conParseFloat(fuiRenderScale, ParamStr(idx)) then fuiRenderScale := 1.0;
-        Inc(idx);
+        idx += 1;
+        if not conParseFloat(fuiRenderScale, ParamStr(idx)) then
+          fuiRenderScale := 1.0;
       end;
     end;
 
     if (arg = '--holmes-font') or (arg = '-holmes-font') then
     begin
-      if (idx <= ParamCount) then
+      if idx < ParamCount() then
       begin
+        idx += 1;
         itmp := 0;
-        val(ParamStr(idx), itmp, valres);
-        {$IFNDEF HEADLESS}
-        if (valres = 0) and (not g_holmes_nonfunctional) then
+        Val(ParamStr(idx), itmp, valres);
+      {$IFNDEF HEADLESS}
+        if (valres = 0) and not g_holmes_nonfunctional then
         begin
           case itmp of
             8: uiContext.font := 'win8';
@@ -311,22 +318,22 @@ begin
             16: uiContext.font := 'win16';
           end;
         end;
-        {$ELSE}
+      {$ELSE}
         // fuck off, fpc!
         itmp := itmp;
         valres := valres;
-        {$ENDIF}
-        Inc(idx);
+      {$ENDIF}
       end;
     end;
-{$ENDIF}
+  {$ENDIF}
 
     if (arg = '--game-scale') or (arg = '-game-scale') then
     begin
-      if (idx <= ParamCount) then
+      if idx < ParamCount() then
       begin
-        if not conParseFloat(g_dbg_scale, ParamStr(idx)) then g_dbg_scale := 1.0;
-        Inc(idx);
+        idx += 1;
+        if not conParseFloat(g_dbg_scale, ParamStr(idx)) then
+          g_dbg_scale := 1.0;
       end;
     end;
 
@@ -334,36 +341,41 @@ begin
     begin
       mdfo := createDiskFile('mapdef.txt');
       mdfo.WriteBuffer(defaultMapDef[1], Length(defaultMapDef));
-      mdfo.Free();
+      mdfo.Destroy();
       Halt(0);
     end;
 
     if (arg = '--pixel-scale') or (arg = '-pixel-scale') then
     begin
-      if (idx <= ParamCount) then
+      if idx < ParamCount() then
       begin
-        if not conParseFloat(r_pixel_scale, ParamStr(idx)) then r_pixel_scale := 1.0;
-        Inc(idx);
+        idx += 1;
+        if not conParseFloat(r_pixel_scale, ParamStr(idx)) then
+          r_pixel_scale := 1.0;
       end;
     end;
+
+    idx += 1;
   end;
 
 {$IFNDEF USE_SYSSTUB}
   PrintGLSupportedExtensions();
-  glLegacyNPOT := not (GLExtensionSupported('GL_ARB_texture_non_power_of_two') or GLExtensionSupported('GL_OES_texture_npot'));
+  glLegacyNPOT := not (GLExtensionSupported('GL_ARB_texture_non_power_of_two') or
+    GLExtensionSupported('GL_OES_texture_npot'));
 {$ELSE}
   glLegacyNPOT := False;
   glRenderToFBO := False;
 {$ENDIF}
   if glNPOTOverride and glLegacyNPOT then
   begin
-    glLegacyNPOT := true;
+    glLegacyNPOT := True;
     e_logWriteln('NPOT texture emulation: FORCED');
   end
   else
   begin
-    if (glLegacyNPOT) then e_logWriteln('NPOT texture emulation: enabled')
-    else e_logWriteln('NPOT texture emulation: disabled');
+    if glLegacyNPOT
+      then e_logWriteln('NPOT texture emulation: enabled')
+      else e_logWriteln('NPOT texture emulation: disabled');
   end;
 
   Init();
@@ -372,11 +384,11 @@ begin
   g_Net_InitLowLevel();
 
   // Командная строка
-  if (ParamCount > 0) then g_Game_Process_Params();
+  if ParamCount > 0 then g_Game_Process_Params();
 
 {$IFNDEF HEADLESS}
   // Запрос языка
-  if (not gGameOn) and gAskLanguage then g_Menu_AskLanguage();
+  if not gGameOn and gAskLanguage then g_Menu_AskLanguage();
 {$ENDIF}
 
   e_WriteLog('Entering the main loop', TMsgType.Notify);
@@ -389,7 +401,7 @@ begin
   Release();
 
   g_Net_DeinitLowLevel();
-  result := 0;
+  Result := 0;
 end;
 
 

@@ -13,20 +13,20 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *)
 
-{$INCLUDE ../shared/a_modes.inc}
+{$INCLUDE ../../shared/a_modes.inc}
 unit g_touch;
 
 interface
 
   var
-    g_touch_enabled: Boolean = False;
+    g_touch_enabled: Boolean;
     g_touch_size: Single = 1.0;
     g_touch_offset: Single = 50.0;
     g_touch_fire: Boolean = True;
-    g_touch_alt: Boolean = False;
+    g_touch_alt: Boolean;
 
   procedure g_Touch_Init;
-  procedure g_Touch_ShowKeyboard(yes: Boolean);
+  procedure g_Touch_ShowKeyboard (yes: Boolean);
   procedure g_Touch_Draw;
 
 implementation
@@ -37,7 +37,7 @@ implementation
   begin
   end;
 
-  procedure g_Touch_ShowKeyboard(yes: Boolean);
+  procedure g_Touch_ShowKeyboard (yes: Boolean);
   begin
   end;
 

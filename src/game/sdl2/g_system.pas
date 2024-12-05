@@ -13,16 +13,17 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *)
 
-{$INCLUDE ../shared/a_modes.inc}
+{$INCLUDE ../../shared/a_modes.inc}
 unit g_system;
 
 interface
 
-  uses Utils;
+  uses utils;
 
   (* --- Utils --- *)
-  function sys_GetTicks (): Int64;
-  procedure sys_Delay (ms: Integer);
+  function sys_GetTicks (): Int64; inline;
+  procedure sys_Delay (ms: Integer); inline;
+  procedure sys_YieldTimeSlice (); inline;
 
   (* --- Graphics --- *)
   function sys_GetDisplayModes (bpp: Integer): SSArray;
@@ -43,7 +44,7 @@ implementation
   uses
     SysUtils, SDL2, Math, ctypes,
     e_log, e_graphics, e_input,
-    {$INCLUDE ../nogl/noGLuses.inc}
+    {$INCLUDE ../../nogl/noGLuses.inc}
     {$IFDEF ENABLE_HOLMES}
       g_holmes, sdlcarcass, fui_ctls,
     {$ENDIF}
@@ -73,7 +74,14 @@ implementation
 
   procedure sys_Delay (ms: Integer);
   begin
-    SDL_Delay(ms)
+    SDL_Delay(ms);
+  end;
+
+  procedure sys_YieldTimeSlice ();
+  begin
+    // NB: At the moment, this is just a hint.
+    // https://www.freepascal.org/docs-html/3.2.2/rtl/system/threadswitch.html
+    ThreadSwitch();
   end;
 
   (* --------- Graphics --------- *)
@@ -543,11 +551,14 @@ implementation
   end;
 
   function sys_HandleEvents (): Boolean;
-    var ev: TSDL_Event;
+  var
+    ev: TSDL_Event;
   begin
     result := false;
     ZeroMemory(@ev, sizeof(ev));
-    while SDL_PollEvent(@ev) <> 0 do
+
+    // NB: Non-zero timeout is required here by the engine because this prevents abnormal CPU load.
+    while SDL_WaitEventTimeout(@ev, 1) <> 0 do
     begin
       case ev.type_ of
         SDL_QUITEV: result := true;

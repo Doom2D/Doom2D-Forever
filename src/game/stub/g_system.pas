@@ -13,16 +13,17 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *)
 
-{$INCLUDE ../shared/a_modes.inc}
+{$INCLUDE ../../shared/a_modes.inc}
 unit g_system;
 
 interface
 
-  uses Utils;
+  uses utils;
 
   (* --- Utils --- *)
-  function sys_GetTicks (): Int64;
-  procedure sys_Delay (ms: Integer);
+  function sys_GetTicks (): Int64; inline;
+  procedure sys_Delay (ms: Integer); inline;
+  procedure sys_YieldTimeSlice (); inline;
 
   (* --- Graphics --- *)
   function sys_GetDisplayModes (bpp: Integer): SSArray;
@@ -51,7 +52,17 @@ implementation
 
   procedure sys_Delay (ms: Integer);
   begin
-    Sleep(ms)
+    Sleep(ms);
+  end;
+
+  procedure sys_YieldTimeSlice ();
+  begin
+  {$IFNDEF WINDOWS}
+    // TODO: Is this enough for other platforms? Needs testing.
+    ThreadSwitch();
+  {$ELSE}
+    Sleep(1);
+  {$ENDIF}
   end;
 
   (* --------- Graphics --------- *)

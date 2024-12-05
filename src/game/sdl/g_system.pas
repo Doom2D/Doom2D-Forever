@@ -13,16 +13,17 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *)
 
-{$INCLUDE ../shared/a_modes.inc}
+{$INCLUDE ../../shared/a_modes.inc}
 unit g_system;
 
 interface
 
-  uses Utils;
+  uses utils;
 
   (* --- Utils --- *)
-  function sys_GetTicks (): Int64;
-  procedure sys_Delay (ms: Integer);
+  function sys_GetTicks (): Int64; inline;
+  procedure sys_Delay (ms: Integer); inline;
+  procedure sys_YieldTimeSlice (); inline;
 
   (* --- Graphics --- *)
   function sys_GetDisplayModes (bpp: Integer): SSArray;
@@ -48,7 +49,7 @@ implementation
       {$ENDIF}
     {$ENDIF}
     SysUtils, SDL, Math,
-    {$INCLUDE ../nogl/noGLuses.inc}
+    {$INCLUDE ../../nogl/noGLuses.inc}
     {$IFDEF ENABLE_SOUND}
       e_sound,
     {$ENDIF}
@@ -76,7 +77,17 @@ implementation
 
   procedure sys_Delay (ms: Integer);
   begin
-    SDL_Delay(ms)
+    SDL_Delay(ms);
+  end;
+
+  procedure sys_YieldTimeSlice ();
+  begin
+    // Unfortunately, SDL_WaitEventTimeout() was introduced only in SDL2, so we must enforce this.
+    // ThreadSwitch() is not suitable here because on Windows it is implemented as Sleep(0) (see
+    // systhrd.inc:SysThreadSwitch in RTL), which for some reason does not give the desired effect
+    // of preventing 100% CPU load, according to my experiments.
+    // The system Sleep() is used here instead of SDL_Delay() to ensure proper behavior.
+    Sleep(1);
   end;
 
   (* --------- Graphics --------- *)
