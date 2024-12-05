@@ -20,8 +20,10 @@ interface
 
   uses utils;
 
-  (* --- Utils --- *)
+  // use signed type as a result because timer can be not monotonic
   function sys_GetTicks (): Int64; inline;
+
+  (* --- Utils --- *)
   procedure sys_Delay (ms: Integer); inline;
   procedure sys_YieldTimeSlice (); inline;
 
@@ -69,7 +71,7 @@ implementation
 
   function sys_GetTicks (): Int64;
   begin
-    result := SDL_GetTicks()
+    Result := SDL_GetTicks64();
   end;
 
   procedure sys_Delay (ms: Integer);

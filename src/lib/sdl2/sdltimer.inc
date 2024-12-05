@@ -7,6 +7,9 @@
    *}
 function SDL_GetTicks: UInt32 cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_GetTicks' {$ENDIF} {$ENDIF};
 
+// 2024-12-06: manually added by BD
+function SDL_GetTicks64: UInt64 cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_GetTicks64' {$ENDIF} {$ENDIF};
+
   {**
    *  Get the current value of the high resolution counter
    *}
