@@ -18,28 +18,23 @@ unit g_system;
 
 interface
 
-  uses utils;
+uses utils;
 
-  // use signed type as a result because timer can be not monotonic
-  function sys_GetTicks (): Int64; inline;
+function sys_HandleEvents (): Boolean;
+procedure sys_RequestQuit ();
+procedure sys_YieldTimeSlice (); inline;
+procedure sys_Delay (ms: Integer); inline;
 
-  (* --- Utils --- *)
-  procedure sys_Delay (ms: Integer); inline;
-  procedure sys_YieldTimeSlice (); inline;
+// use signed type as a result because timer can be not monotonic
+function sys_GetTicks (): Int64; inline;
 
-  (* --- Graphics --- *)
-  function sys_GetDisplayModes (bpp: Integer): SSArray;
-  function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
-  procedure sys_EnableVSync (yes: Boolean);
-  procedure sys_Repaint;
+procedure sys_EnableVSync (yes: Boolean);
+function sys_GetDisplayModes (bpp: Integer): SSArray;
+function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
+procedure sys_Repaint ();
 
-  (* --- Input --- *)
-  function sys_HandleEvents (): Boolean;
-  procedure sys_RequestQuit;
-
-  (* --- Init --- *)
-  procedure sys_Init;
-  procedure sys_Final;
+procedure sys_Init ();
+procedure sys_Final ();
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 

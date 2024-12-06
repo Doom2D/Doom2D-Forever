@@ -15,67 +15,67 @@
 
 implementation
 
-  uses SysUtils;
+uses SysUtils;
 
-  (* --------- Utils --------- *)
+{$WARN 5024 OFF}  // suppress "Parameter not used"
 
-  function sys_GetTicks (): Int64;
-  begin
-    Result := Int64(GetTickCount64());
-  end;
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  procedure sys_Delay (ms: Integer);
-  begin
-    Sleep(ms);
-  end;
+function sys_HandleEvents (): Boolean;
+begin
+  Result := False;
+end;
 
-  procedure sys_YieldTimeSlice ();
-  begin
-  {$IFNDEF WINDOWS}
-    // TODO: Is this enough for other platforms? Needs testing.
-    ThreadSwitch();
-  {$ELSE}
-    Sleep(1);
-  {$ENDIF}
-  end;
+procedure sys_RequestQuit ();
+begin
+end;
 
-  (* --------- Graphics --------- *)
+procedure sys_YieldTimeSlice ();
+begin
+{$IFNDEF WINDOWS}
+  // TODO: Is this enough for other platforms? Needs testing.
+  ThreadSwitch();
+{$ELSE}
+  Sleep(1);
+{$ENDIF}
+end;
 
-  procedure sys_Repaint;
-  begin
-  end;
+procedure sys_Delay (ms: Integer);
+begin
+  Sleep(ms);
+end;
 
-  procedure sys_EnableVSync (yes: Boolean);
-  begin
-  end;
+function sys_GetTicks (): Int64;
+begin
+  Result := Int64(GetTickCount64());
+end;
 
-  function sys_GetDisplayModes (bpp: Integer): SSArray;
-  begin
-    Result := nil
-  end;
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
-  begin
-    Result := True
-  end;
+procedure sys_EnableVSync (yes: Boolean);
+begin
+end;
 
-  (* --------- Input --------- *)
+function sys_GetDisplayModes (bpp: Integer): SSArray;
+begin
+  Result := nil;
+end;
 
-  function sys_HandleEvents (): Boolean;
-  begin
-    Result := False
-  end;
+function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
+begin
+  Result := True;
+end;
 
-  procedure sys_RequestQuit;
-  begin
-  end;
+procedure sys_Repaint ();
+begin
+end;
 
-  (* --------- Init --------- *)
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  procedure sys_Init;
-  begin
-  end;
+procedure sys_Init ();
+begin
+end;
 
-  procedure sys_Final;
-  begin
-  end;
+procedure sys_Final ();
+begin
+end;

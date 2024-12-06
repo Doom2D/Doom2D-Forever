@@ -19,22 +19,22 @@ unit g_touch;
 interface
 
 {$IFDEF USE_SDL2}
-  uses
-    SDL2;
+uses
+  SDL2;
 
-  procedure g_Touch_HandleEvent (const ev: TSDL_TouchFingerEvent);
+procedure g_Touch_HandleEvent (const ev: TSDL_TouchFingerEvent);
 {$ENDIF}
 
-  var
-    g_touch_enabled: Boolean;
-    g_touch_size: Single = 1.0;
-    g_touch_offset: Single = 50.0;
-    g_touch_fire: Boolean = True;
-    g_touch_alt: Boolean;
+var
+  g_touch_enabled: Boolean;
+  g_touch_size: Single = 1.0;
+  g_touch_offset: Single = 50.0;
+  g_touch_fire: Boolean = True;
+  g_touch_alt: Boolean;
 
-  procedure g_Touch_Init;
-  procedure g_Touch_ShowKeyboard (yes: Boolean);
-  procedure g_Touch_Draw;
+procedure g_Touch_Init ();
+procedure g_Touch_ShowKeyboard (yes: Boolean);
+procedure g_Touch_Draw ();
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 

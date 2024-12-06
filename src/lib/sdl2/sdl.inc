@@ -16,6 +16,11 @@ const
   {$EXTERNALSYM SDL_INIT_GAMECONTROLLER}
   SDL_INIT_NOPARACHUTE    = $00100000;  //Don't catch fatal signals
   {$EXTERNALSYM SDL_INIT_NOPARACHUTE}
+
+  // 2024-12-06: added manually - BD
+  SDL_INIT_EVENTS = $00004000;
+
+(* 2024-12-06: see https://discourse.libsdl.org/t/sdl-removed-sdl-init-everything/48466 - BD
   SDL_INIT_EVERYTHING     = SDL_INIT_TIMER    or
               SDL_INIT_AUDIO    or
               SDL_INIT_VIDEO    or
@@ -23,6 +28,7 @@ const
               SDL_INIT_HAPTIC   or
               SDL_INIT_GAMECONTROLLER;
   {$EXTERNALSYM SDL_INIT_EVERYTHING}
+*)
 
 {**
  *  This function initializes  the subsystems specified by flags

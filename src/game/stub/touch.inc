@@ -15,16 +15,16 @@
 
 implementation
 
-  uses g_console;
+uses g_console;  // for the common unit initialization block
 
-  procedure g_Touch_Init;
-  begin
-  end;
+procedure g_Touch_Init ();
+begin
+end;
 
-  procedure g_Touch_ShowKeyboard (yes: Boolean);
-  begin
-  end;
+procedure g_Touch_ShowKeyboard (yes: Boolean);
+begin
+end;
 
-  procedure g_Touch_Draw;
-  begin
-  end;
+procedure g_Touch_Draw ();
+begin
+end;
