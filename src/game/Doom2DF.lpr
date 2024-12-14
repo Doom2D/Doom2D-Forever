@@ -145,18 +145,8 @@ uses
   g_triggers in 'g_triggers.pas',
   g_weapons in 'g_weapons.pas',
   g_window in 'g_window.pas',
-{$IFDEF USE_SYSSTUB}
-  g_system in 'stub/g_system.pas',
-  g_touch in 'stub/g_touch.pas',
-{$ENDIF}
-{$IFDEF USE_SDL}
-  g_system in 'sdl/g_system.pas',
-  g_touch in 'sdl/g_touch.pas',
-{$ENDIF}
-{$IFDEF USE_SDL2}
-  g_system in 'sdl2/g_system.pas',
-  g_touch in 'sdl2/g_touch.pas',
-{$ENDIF}
+  g_system in 'g_system.pas',
+  g_touch in 'g_touch.pas',
 
 {$IFDEF USE_FMOD}
   fmod in '../lib/FMOD/fmod.pas',

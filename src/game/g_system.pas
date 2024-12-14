@@ -13,7 +13,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *)
 
-{$INCLUDE ../../shared/a_modes.inc}
+{$INCLUDE ../shared/a_modes.inc}
 unit g_system;
 
 interface
@@ -41,71 +41,16 @@ interface
   procedure sys_Init;
   procedure sys_Final;
 
-implementation
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  uses SysUtils;
-
-  (* --------- Utils --------- *)
-
-  function sys_GetTicks (): Int64;
-  begin
-    Result := Int64(GetTickCount64());
-  end;
-
-  procedure sys_Delay (ms: Integer);
-  begin
-    Sleep(ms);
-  end;
-
-  procedure sys_YieldTimeSlice ();
-  begin
-  {$IFNDEF WINDOWS}
-    // TODO: Is this enough for other platforms? Needs testing.
-    ThreadSwitch();
-  {$ELSE}
-    Sleep(1);
-  {$ENDIF}
-  end;
-
-  (* --------- Graphics --------- *)
-
-  procedure sys_Repaint;
-  begin
-  end;
-
-  procedure sys_EnableVSync (yes: Boolean);
-  begin
-  end;
-
-  function sys_GetDisplayModes (bpp: Integer): SSArray;
-  begin
-    Result := nil
-  end;
-
-  function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
-  begin
-    Result := True
-  end;
-
-  (* --------- Input --------- *)
-
-  function sys_HandleEvents (): Boolean;
-  begin
-    Result := False
-  end;
-
-  procedure sys_RequestQuit;
-  begin
-  end;
-
-  (* --------- Init --------- *)
-
-  procedure sys_Init;
-  begin
-  end;
-
-  procedure sys_Final;
-  begin
-  end;
+{$IFDEF USE_SYSSTUB}
+  {$INCLUDE ./stub/system.inc}
+{$ENDIF}
+{$IFDEF USE_SDL}
+  {$INCLUDE ./sdl/system.inc}
+{$ENDIF}
+{$IFDEF USE_SDL2}
+  {$INCLUDE ./sdl2/system.inc}
+{$ENDIF}
 
 end.

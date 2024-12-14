@@ -13,22 +13,6 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *)
 
-{$INCLUDE ../../shared/a_modes.inc}
-unit g_touch;
-
-interface
-
-  var
-    g_touch_enabled: Boolean;
-    g_touch_size: Single = 1.0;
-    g_touch_offset: Single = 50.0;
-    g_touch_fire: Boolean = True;
-    g_touch_alt: Boolean;
-
-  procedure g_Touch_Init;
-  procedure g_Touch_ShowKeyboard (yes: Boolean);
-  procedure g_Touch_Draw;
-
 implementation
 
   uses g_console;
@@ -44,11 +28,3 @@ implementation
   procedure g_Touch_Draw;
   begin
   end;
-
-initialization
-  conRegVar('touch_enable', @g_touch_enabled, 'enable/disable virtual buttons', 'draw buttons');
-  conRegVar('touch_fire', @g_touch_fire, 'enable/disable fire when press virtual up/down', 'fire when press up/down');
-  conRegVar('touch_size', @g_touch_size, 0.1, 10, 'size of virtual buttons', 'button size');
-  conRegVar('touch_offset', @g_touch_offset, 0, 100, '', '');
-  conRegVar('touch_alt', @g_touch_alt, 'althernative virtual buttons layout', 'althernative layout');
-end.

@@ -13,34 +13,6 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *)
 
-{$INCLUDE ../../shared/a_modes.inc}
-unit g_system;
-
-interface
-
-  uses utils;
-
-  // use signed type as a result because timer can be not monotonic
-  function sys_GetTicks (): Int64; inline;
-
-  (* --- Utils --- *)
-  procedure sys_Delay (ms: Integer); inline;
-  procedure sys_YieldTimeSlice (); inline;
-
-  (* --- Graphics --- *)
-  function sys_GetDisplayModes (bpp: Integer): SSArray;
-  function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
-  procedure sys_EnableVSync (yes: Boolean);
-  procedure sys_Repaint;
-
-  (* --- Input --- *)
-  function sys_HandleEvents (): Boolean;
-  procedure sys_RequestQuit;
-
-  (* --- Init --- *)
-  procedure sys_Init;
-  procedure sys_Final;
-
 implementation
 
   uses
@@ -752,4 +724,3 @@ initialization
   userResize := false;
   modeResize := 0;
   useScancodes := true;
-end.
