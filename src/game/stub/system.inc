@@ -32,12 +32,9 @@ end;
 
 procedure sys_YieldTimeSlice ();
 begin
-{$IFNDEF WINDOWS}
-  // TODO: Is this enough for other platforms? Needs testing.
-  ThreadSwitch();
-{$ELSE}
+  // TODO: Is there a better way? Experience has shown that System.ThreadSwitch() has no observable
+  // effect for this very purpose neither on Windows nor on Linux.
   Sleep(1);
-{$ENDIF}
 end;
 
 procedure sys_Delay (ms: Integer);
