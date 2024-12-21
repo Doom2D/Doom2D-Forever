@@ -639,24 +639,20 @@ begin
   // write local header
   sign := 'PK'#3#4;
   ds.writeBuffer(sign, 4);
-  writeInt(ds, Word($0A10)); // version to extract
-  writeInt(ds, Word(UtfFlags)); // flags
-  writeInt(ds, Word(result.method)); // compression method
-  writeInt(ds, Word(0)); // file time
-  writeInt(ds, Word(0)); // file date
+  ds.WriteWordLE($0A10);  // version to extract
+  ds.WriteWordLE(UtfFlags);  // flags
+  ds.WriteWordLE(result.method);  // compression method
+  ds.WriteWordLE(0);  // file time
+  ds.WriteWordLE(0);  // file date
   nfoofs := ds.position;
-  writeInt(ds, LongWord(result.crc)); // crc32
-  writeInt(ds, LongWord(result.pksize)); // packed size
-  writeInt(ds, LongWord(result.size)); // unpacked size
-  writeInt(ds, Word(length(fname))); // name length
+  ds.WriteDWordLE(result.crc);  // crc32
+  ds.WriteDWordLE(result.pksize);  // packed size
+  ds.WriteDWordLE(result.size);  // unpacked size
+  ds.WriteWordLE(Length(fname));  // name length
+  ds.WriteWordLE({$IFDEF UTFEXTRA} Length(ef) {$ELSE} 0 {$ENDIF});  // extra field length
+  ds.writeBuffer(fname[1], Length(fname));
 {$IFDEF UTFEXTRA}
-  writeInt(ds, Word(length(ef))); // extra field length
-{$ELSE}
-  writeInt(ds, Word(0)); // extra field length
-{$ENDIF}
-  ds.writeBuffer(fname[1], length(fname));
-{$IFDEF UTFEXTRA}
-  if length(ef) > 0 then ds.writeBuffer(ef[0], length(ef));
+  if Length(ef) > 0 then ds.writeBuffer(ef[0], Length(ef));
 {$ENDIF}
   if dopack then
   begin
@@ -682,8 +678,8 @@ begin
         // fix header
         oldofs := ds.position;
         ds.position := nfoofs;
-        writeInt(ds, LongWord(result.crc)); // crc32
-        writeInt(ds, LongWord(result.pksize)); // crc32
+        ds.WriteDWordLE(result.crc);  // crc32
+        ds.WriteDWordLE(result.pksize);  // crc32
         ds.position := oldofs;
       end;
     end;
@@ -711,7 +707,7 @@ begin
     // fix header
     oldofs := ds.position;
     ds.position := nfoofs;
-    writeInt(ds, LongWord(result.crc)); // crc32
+    ds.WriteDWordLE(result.crc);  // crc32
     ds.position := oldofs;
     write('(S) ');
   end;
@@ -735,42 +731,38 @@ begin
 {$ENDIF}
     sign := 'PK'#1#2;
     ds.writeBuffer(sign, 4);
-    writeInt(ds, Word($0A10)); // version made by
-    writeInt(ds, Word($0010)); // version to extract
-    writeInt(ds, Word(UtfFlags)); // flags
-    writeInt(ds, Word(files[f].method)); // compression method
-    writeInt(ds, Word(0)); // file time
-    writeInt(ds, Word(0)); // file date
-    writeInt(ds, LongWord(files[f].crc));
-    writeInt(ds, LongWord(files[f].pksize));
-    writeInt(ds, LongWord(files[f].size));
-    writeInt(ds, Word(length(files[f].name))); // name length
+    ds.WriteWordLE($0A10);  // version made by
+    ds.WriteWordLE($0010);  // version to extract
+    ds.WriteWordLE(UtfFlags);  // flags
+    ds.WriteWordLE(files[f].method);  // compression method
+    ds.WriteWordLE(0);  // file time
+    ds.WriteWordLE(0);  // file date
+    ds.WriteDWordLE(files[f].crc);
+    ds.WriteDWordLE(files[f].pksize);
+    ds.WriteDWordLE(files[f].size);
+    ds.WriteWordLE(length(files[f].name));  // name length
+    ds.WriteWordLE({$IFDEF UTFEXTRA} Length(ef) {$ELSE} 0 {$ENDIF});  // extra field length
+    ds.WriteWordLE(0);  // comment length
+    ds.WriteWordLE(0);  // disk start
+    ds.WriteWordLE(0);  // internal attributes
+    ds.WriteDWordLE(0);  // external attributes
+    ds.WriteDWordLE(files[f].pkofs);  // header offset
+    ds.writeBuffer(files[f].name[1], Length(files[f].name));
 {$IFDEF UTFEXTRA}
-    writeInt(ds, Word(length(ef))); // extra field length
-{$ELSE}
-    writeInt(ds, Word(0)); // extra field length
-{$ENDIF}
-    writeInt(ds, Word(0)); // comment length
-    writeInt(ds, Word(0)); // disk start
-    writeInt(ds, Word(0)); // internal attributes
-    writeInt(ds, LongWord(0)); // external attributes
-    writeInt(ds, LongWord(files[f].pkofs)); // header offset
-    ds.writeBuffer(files[f].name[1], length(files[f].name));
-{$IFDEF UTFEXTRA}
-    if length(ef) > 0 then ds.writeBuffer(ef[0], length(ef));
+    if Length(ef) > 0 then ds.writeBuffer(ef[0], Length(ef));
 {$ENDIF}
   end;
   cdend := ds.position;
   // write end of central dir
   sign := 'PK'#5#6;
   ds.writeBuffer(sign, 4);
-  writeInt(ds, Word(0)); // disk number
-  writeInt(ds, Word(0)); // disk with central dir
-  writeInt(ds, Word(length(files))); // number of files on this dist
-  writeInt(ds, Word(length(files))); // number of files total
-  writeInt(ds, LongWord(cdend-cdofs)); // size of central directory
-  writeInt(ds, LongWord(cdofs)); // central directory offset
-  writeInt(ds, Word(0)); // archive comment length
+  ds.WriteWordLE(0);  // disk number
+  ds.WriteWordLE(0);  // disk with central dir
+  ds.WriteWordLE(Length(files));  // number of files on this dist
+  ds.WriteWordLE(Length(files));  // number of files total
+  ds.WriteDWordLE(cdend-cdofs);  // size of central directory
+  ds.WriteDWordLE(cdofs);  // central directory offset
+  ds.WriteWordLE(0);  // archive comment length
 end;
 
 
