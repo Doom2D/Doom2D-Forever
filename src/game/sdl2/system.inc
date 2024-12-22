@@ -180,7 +180,7 @@ begin
     window := SDL_CreateWindow(PChar(GetTitle()), x, y, w, h, flags);
     if window = nil then
     begin
-      e_LogWritefln('SDL: unable to create window: %s', [SDL_GetError()]);
+      e_LogWritefln('SDL2: unable to create window: %s', [SDL_GetError()]);
       Exit;
     end;
 
@@ -188,7 +188,7 @@ begin
     if context = nil then
     begin
       // SDL_DestroyWindow(window);
-      e_LogWritefln('SDL: unable to create OpenGL context: %s', [SDL_GetError()]);
+      e_LogWritefln('SDL2: unable to create OpenGL context: %s', [SDL_GetError()]);
       Exit;
     end;
 
@@ -573,7 +573,7 @@ begin
   num := SDL_GetNumDisplayModes(display);
   if num < 0 then
   begin
-    e_LogWritefln('SDL: unable to get number of available display modes: %s', [SDL_GetError()]);
+    e_LogWritefln('SDL2: unable to get number of available display modes: %s', [SDL_GetError()]);
     Exit;
   end;
 
@@ -625,17 +625,22 @@ var
 begin
   e_WriteLog('Init SDL2', TMsgType.Notify);
 
-  flags := SDL_INIT_TIMER or SDL_INIT_EVENTS
-    {$IFNDEF HEADLESS} or SDL_INIT_VIDEO {$ENDIF}
-    {$IFDEF USE_SDLMIXER} or SDL_INIT_AUDIO {$ENDIF};
+  // NOTE: No explicit SDL_INIT_EVENTS here as it will be involved by other subsystems if needed.
+  flags := SDL_INIT_TIMER
+    {$IFNDEF HEADLESS} or SDL_INIT_VIDEO {$ENDIF};
 
-  SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, '0');
   if SDL_Init(flags) <> 0 then
-    raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
+    raise Exception.Create('SDL2: Initialization failed: ' + SDL_GetError());
+
+{$IFDEF USE_SDLMIXER}
+  if SDL_InitSubSystem(SDL_INIT_AUDIO) <> 0 then
+    e_LogWritefln('SDL2: Failed to initialize audio subsystem: %s', [SDL_GetError()]);
+{$ENDIF}
 
 {$IFNDEF HEADLESS}
+  SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, '0');
   if SDL_InitSubSystem(SDL_INIT_JOYSTICK) <> 0 then
-    e_LogWritefln('SDL: Init subsystem failed: %s', [SDL_GetError()]);
+    e_LogWritefln('SDL2: Failed to initialize joystick subsystem: %s', [SDL_GetError()]);
 {$ENDIF}
 
   SDL_ShowCursor(SDL_DISABLE);

@@ -752,11 +752,11 @@ var
 begin
   e_WriteLog('Init SDL', TMsgType.Notify);
 
-  flags := SDL_INIT_VIDEO or SDL_INIT_TIMER or SDL_INIT_JOYSTICK {or SDL_INIT_NOPARACHUTE}
-    {$IFDEF USE_SDLMIXER} or SDL_INIT_AUDIO {$ENDIF};
+  flags := SDL_INIT_TIMER {or SDL_INIT_NOPARACHUTE}
+    {$IFNDEF HEADLESS} or SDL_INIT_VIDEO {$ENDIF};
 
   if SDL_Init(flags) <> 0 then
-    raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
+    raise Exception.Create('SDL: Initialization failed: ' + SDL_GetError());
 
   name := GetDriver();
   e_LogWritefln('SDL: Video Driver "%s"', [name]);
@@ -768,8 +768,20 @@ begin
   SDL_EnableUNICODE(1);
   SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 
-  for i := 0 to e_MaxJoys - 1 do
-    AddJoystick(i);
+{$IFDEF USE_SDLMIXER}
+  if SDL_InitSubSystem(SDL_INIT_AUDIO) <> 0 then
+    e_LogWritefln('SDL: Failed to initialize audio subsystem: %s', [SDL_GetError()]);
+{$ENDIF}
+
+{$IFNDEF HEADLESS}
+  if SDL_InitSubSystem(SDL_INIT_JOYSTICK) <> 0 then
+    e_LogWritefln('SDL2: Failed to initialize joystick subsystem: %s', [SDL_GetError()])
+  else
+  begin
+    for i := 0 to e_MaxJoys - 1 do
+      AddJoystick(i);
+  end;
+{$ENDIF}
 end;
 
 procedure sys_Final ();
@@ -778,8 +790,9 @@ var
 begin
   e_WriteLog('Releasing SDL', TMsgType.Notify);
 
-  for i := 0 to e_MaxJoys - 1 do
-    RemoveJoystick(i);
+  if SDL_WasInit(SDL_INIT_JOYSTICK) <> 0 then
+    for i := 0 to e_MaxJoys - 1 do
+      RemoveJoystick(i);
 
   if screen <> nil then
   begin
