@@ -3014,7 +3014,7 @@ begin
   Menu.OnClose := ProcApplyOptions;
   Menu.DefControl := 'mmOptionsMenu';
 
-  Menu := CreateYNMenu('SavedOptionsMenu', _lc[I_MENU_LOAD_SAVED_PROMT], Round(gScreenWidth*0.6),
+  Menu := CreateYNMenu('SavedOptionsMenu', _lc[I_MENU_LOAD_SAVED_PROMPT], Round(gScreenWidth*0.6),
                        gMenuSmallFont, @ProcSavedMenuKeyDown);
   g_GUI_AddWindow(Menu);
 
@@ -3558,7 +3558,7 @@ begin
   end;
   Menu.DefControl := 'mOptionsLanguageMenu';
 
-  Menu := CreateYNMenu('DefaultOptionsMenu', _lc[I_MENU_SET_DEFAULT_PROMT], Round(gScreenWidth*0.6),
+  Menu := CreateYNMenu('DefaultOptionsMenu', _lc[I_MENU_SET_DEFAULT_PROMPT], Round(gScreenWidth*0.6),
                        gMenuSmallFont, @ProcDefaultMenuKeyDown);
   g_GUI_AddWindow(Menu);
 
@@ -3683,7 +3683,7 @@ begin
     Y := _y;
   end;
 
-  Menu := CreateYNMenu('ExitMenu', _lc[I_MENU_EXIT_PROMT], Round(gScreenWidth*0.6),
+  Menu := CreateYNMenu('ExitMenu', _lc[I_MENU_EXIT_PROMPT], Round(gScreenWidth*0.6),
                        gMenuSmallFont, @ProcExitMenuKeyDown);
   g_GUI_AddWindow(Menu);
 
@@ -3703,11 +3703,11 @@ begin
   Menu.OnClose := ProcGMClose;
   Menu.OnShow := ProcGMShow;
 
-  Menu := CreateYNMenu('EndGameMenu', _lc[I_MENU_END_GAME_PROMT], Round(gScreenWidth*0.6),
+  Menu := CreateYNMenu('EndGameMenu', _lc[I_MENU_END_GAME_PROMPT], Round(gScreenWidth*0.6),
                        gMenuSmallFont, @ProcEndMenuKeyDown);
   g_GUI_AddWindow(Menu);
 
-  Menu := CreateYNMenu('RestartGameMenu', _lc[I_MENU_RESTART_GAME_PROMT], Round(gScreenWidth*0.6),
+  Menu := CreateYNMenu('RestartGameMenu', _lc[I_MENU_RESTART_GAME_PROMPT], Round(gScreenWidth*0.6),
                        gMenuSmallFont, @ProcRestartMenuKeyDown);
   g_GUI_AddWindow(Menu);
 
