@@ -752,7 +752,9 @@ var
 begin
   e_WriteLog('Init SDL', TMsgType.Notify);
 
-  flags := SDL_INIT_VIDEO or SDL_INIT_AUDIO or SDL_INIT_TIMER or SDL_INIT_JOYSTICK {or SDL_INIT_NOPARACHUTE};
+  flags := SDL_INIT_VIDEO or SDL_INIT_TIMER or SDL_INIT_JOYSTICK {or SDL_INIT_NOPARACHUTE}
+    {$IFDEF USE_SDLMIXER} or SDL_INIT_AUDIO {$ENDIF};
+
   if SDL_Init(flags) <> 0 then
     raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
 

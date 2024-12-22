@@ -656,25 +656,13 @@ begin
 end;
 
 procedure Init();
-var
 {$IFDEF USE_SDLMIXER}
+var
   timiditycfg: AnsiString;
   oldcwd, newcwd: RawByteString;
 {$ENDIF}
-  NoSound: Boolean;
 begin
   Randomize();
-
-{$IFDEF HEADLESS}
-  {$IFDEF USE_SDLMIXER}
-  NoSound := False; // hope env has set SDL_AUDIODRIVER to dummy
-  {$ELSE}
-  NoSound := True; // FMOD backend will sort it out
-  {$ENDIF}
-{$ELSE}
-  NoSound := False;
-{$ENDIF}
-
   g_Touch_Init();
 
 (*
@@ -708,7 +696,7 @@ begin
       e_LogWritefln('TIMIDITY_CFG = "%s"', [timiditycfg]);
       e_LogWritefln('SDL_NATIVE_MUSIC = "%s"', [GetEnvironmentVariable('SDL_NATIVE_MUSIC')]);
     {$ENDIF}
-    e_InitSoundSystem(NoSound);
+    e_InitSoundSystem({$IFDEF HEADLESS} True {$ELSE} False {$ENDIF});
     {$IFDEF USE_SDLMIXER}
       if e_TimidityDecoder and (newcwd <> '') then
       begin
@@ -1062,7 +1050,7 @@ begin
       end;
 
     IK_F2, IK_F3, IK_F4, IK_F5, IK_F6, IK_F7, IK_F10:
-      begin // <F2> .. <F6> � <F12>
+      begin
         if gGameOn and (not gConsoleShow) and (not gChatShow) then
         begin
           while (g_ActiveWindow <> nil) do g_GUI_HideWindow(False);

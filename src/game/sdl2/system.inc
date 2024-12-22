@@ -626,13 +626,8 @@ begin
   e_WriteLog('Init SDL2', TMsgType.Notify);
 
   flags := SDL_INIT_TIMER or SDL_INIT_EVENTS
-{$IFNDEF HEADLESS}
-    or SDL_INIT_VIDEO
-{$ELSE}
-  {$IFDEF USE_SDLMIXER}
-    or SDL_INIT_AUDIO
-  {$ENDIF}
-{$ENDIF};
+    {$IFNDEF HEADLESS} or SDL_INIT_VIDEO {$ENDIF}
+    {$IFDEF USE_SDLMIXER} or SDL_INIT_AUDIO {$ENDIF};
 
   SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, '0');
   if SDL_Init(flags) <> 0 then

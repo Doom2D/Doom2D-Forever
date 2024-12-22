@@ -227,5 +227,8 @@ begin
 end;
 
 initialization
+  // NB: It seems that SDL_INIT_AUDIO or SDL_AudioInit() are not necessary for resampling and audio
+  // streams, which is good to know since SDL3 no longer initializes the audio subsystem on-demand.
+  // https://discourse.libsdl.org/t/sdl-3-0-migration-guide/41431
   e_AddSoundLoader(TWAVLoaderFactory.Create());
 end.
