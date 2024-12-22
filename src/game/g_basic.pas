@@ -22,7 +22,7 @@ uses
   utils, g_phys;
 
 const
-  GAME_VERSION  = '0.667';
+  GAME_VERSION = '0.667';
   GAME_BUILDDATE = {$I %DATE%};
   GAME_BUILDTIME = {$I %TIME%};
   UID_GAME = 1;
@@ -38,9 +38,9 @@ type
   WArray = array of Word;  // TODO: eliminate
   DWArray = array of DWORD;  // TODO: eliminate
 
-function g_GetBuilderName (): AnsiString;
-function g_GetBuildHash (full: Boolean = True): AnsiString;
-function g_GetBuildArch (): AnsiString;
+function g_GetBuilderName (): AnsiString; inline;
+function g_GetBuildHash (full: Boolean = True): AnsiString; inline;
+function g_GetBuildArch (): AnsiString; inline;
 
 function g_CreateUID(UIDType: Byte): Word;
 function g_GetUIDType(UID: Word): Byte;
@@ -100,30 +100,31 @@ uses
   Math, geom, e_log, g_map, g_gfx, g_player, SysUtils, MAPDEF,
   StrUtils, e_graphics, g_monsters, g_items, g_game;
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 {$PUSH}
-{$WARN 2054 OFF} // unknown env var
-{$WARN 6018 OFF} // unreachable code
+{$WARN 2054 OFF}  // unknown env var
+{$WARN 6018 OFF}  // unreachable code
 function g_GetBuilderName (): AnsiString;
 begin
   if {$I %D2DF_BUILD_USER%} <> '' then
-    result := {$I %D2DF_BUILD_USER%} // custom
+    Result := {$I %D2DF_BUILD_USER%}  // custom
   else if {$I %USER%} <> '' then
-    result := {$I %USER%} // unix username
+    Result := {$I %USER%}  // unix username
   else if {$I %USERNAME%} <> '' then
-    result := {$I %USERNAME%} // windows username
+    Result := {$I %USERNAME%}  // windows username
   else
-    result := 'unknown'
+    Result := 'unknown';
 end;
 
 function g_GetBuildHash (full: Boolean): AnsiString;
 begin
-  if {$I %D2DF_BUILD_HASH%} <> '' then
-    if full then
-      result := {$I %D2DF_BUILD_HASH%}
-    else
-      result := Copy({$I %D2DF_BUILD_HASH%}, 1, 7)
+  if {$I %D2DF_BUILD_HASH%} = '' then
+    Result := 'custom build'
+  else if full then
+    Result := {$I %D2DF_BUILD_HASH%}
   else
-    result := 'custom build'
+    Result := Copy({$I %D2DF_BUILD_HASH%}, 1, 7);
 end;
 {$POP}
 
@@ -175,6 +176,8 @@ begin
 
   Result := cpu + ' ' + mode + ' ' + fpu;
 end;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
 begin

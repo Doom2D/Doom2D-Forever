@@ -692,6 +692,8 @@ type
     I_LAST );
 
 const
+  GAME_NAME = 'Doom2D Forever';
+  GAME_TITLE = 'DOOM 2D FOREVER';
   LANGUAGE_RUSSIAN = 'Russian';
   LANGUAGE_ENGLISH = 'English';
   LANGUAGE_RUSSIAN_N = 3;
@@ -728,8 +730,8 @@ const
                                        'Скриншот сохранён в "%s"'),
     ('CONSOLE UNKNOWN',                'Unknown command "%s"',
                                        'Неизвестная команда "%s"'),
-    ('CONSOLE WELCOME',                'Welcome to Doom2D Forever %s',
-                                       'Добро пожаловать в Doom2D Forever %s'),
+    ('CONSOLE WELCOME',                'Welcome to '+GAME_NAME+' %s',
+                                       'Добро пожаловать в '+GAME_NAME+' %s'),
 
     ('GAME ERROR GET SPAWN',           'Can''t find a spawn point!',
                                        'Не удалось получить точку возрождения!'),
@@ -1382,7 +1384,7 @@ const
     ('MENU RESTART GAME PROMPT',       'Do you want to restart level?',
                                        'Вы действительно хотите начать уровень заново?'),
     ('MENU EXIT PROMPT',               'Chickening out already?',
-                                       'Вы действительно хотите выйти из DOOM 2D FOREVER?'),
+                                       'Вы действительно хотите выйти из '+GAME_TITLE+'?'),
     ('MENU SET DEFAULT PROMPT',        'Load default settings?',
                                        'Изменить все настройки на стандартные?'),
     ('MENU LOAD SAVED PROMPT',         'Load saved settings?',
@@ -1792,8 +1794,8 @@ const
     ('LOAD PORTS',                     'Forwarding ports via UPnP...',
                                        'Проброс портов через UPnP...'),
 
-    ('CREDITS CAP 1',                  'DOOM 2D FOREVER',
-                                       'DOOM 2D FOREVER'),
+    ('CREDITS CAP 1',                  GAME_TITLE,
+                                       GAME_TITLE),
     ('CREDITS CAP 2',                  'version %s, protocol %d',
                                        'версия %s, протокол %d'),
     ('CREDITS A 1',                    'Project Creators:',
@@ -1980,8 +1982,8 @@ const
     ('TEXTURE ENDPIC',                 'ENDGAME_EN',
                                        'ENDGAME_RU'),
 
-    ('VERSION',                        'DOOM 2D FOREVER %s',
-                                       'DOOM 2D FOREVER %s'),
+    ('VERSION',                        GAME_TITLE+' %s',
+                                       GAME_TITLE+' %s'),
 
     ('FATAL ERROR',                    'Fatal error: %s',
                                        'Критическая ошибка: %s'),

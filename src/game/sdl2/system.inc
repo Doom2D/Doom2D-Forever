@@ -22,10 +22,8 @@ uses
 {$IFDEF ENABLE_HOLMES}
   g_holmes, sdlcarcass, fui_ctls,
 {$ENDIF}
-  g_main, g_basic, g_options, g_window, g_console, g_game, g_menu, g_gui, g_touch;
-
-const
-  GameTitle = 'Doom2D Forever (SDL2, %s)';
+  g_main, g_basic, g_options, g_language,
+  g_window, g_console, g_game, g_menu, g_gui, g_touch;
 
 var
   window: PSDL_Window;
@@ -86,7 +84,7 @@ begin
   if info = 'custom build' then
     info += ' by ' + g_GetBuilderName() + ' ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME;
 
-  Result := Format(GameTitle, [info]);
+  Result := Format(GAME_NAME+' (SDL2, %s)', [info]);
 end;
 
 procedure UpdateSize (w, h: Integer);

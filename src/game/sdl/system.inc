@@ -25,10 +25,8 @@ uses
 {$ENDIF}
   SDL, {$INCLUDE ../../nogl/noGLuses.inc}
   e_log, e_graphics, e_input, {$IFDEF ENABLE_SOUND}e_sound,{$ENDIF}
-  g_main, g_basic, g_options, g_window, g_console, g_game, g_menu, g_gui;
-
-const
-  GameTitle = 'Doom2D Forever (SDL 1.2, %s, %s)';
+  g_main, g_basic, g_options, g_language,
+  g_window, g_console, g_game, g_menu, g_gui;
 
 var
   // window resize is broken both on linux and osx, so disabled by default
@@ -348,7 +346,7 @@ begin
   if info = 'custom build' then
     info += ' by ' + g_GetBuilderName() + ' ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME;
 
-  Result := Format(GameTitle, [GetDriver(), info]);
+  Result := Format(GAME_NAME+' (SDL 1.2, %s, %s)', [GetDriver(), info]);
 end;
 
 procedure UpdateSize (w, h: Integer);
