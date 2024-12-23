@@ -1429,7 +1429,7 @@ var
   a: Integer;
 begin
   // Целеуказатель
-  if gTime mod (GAME_TICK*2) = 0 then
+  if gTime mod (UPS_INTERVAL*2) = 0 then
   begin
     pt_x := pt_x+pt_xs;
     pt_y := pt_y+pt_ys;
@@ -2503,7 +2503,7 @@ begin
     fall := False;
 
 // Меняем скорость только по четным кадрам:
-  if gTime mod (GAME_TICK*2) <> 0 then
+  if gTime mod (UPS_INTERVAL*2) <> 0 then
   begin
     g_Obj_Move(@FObj, fall, True, True);
     positionChanged(); // this updates spatial accelerators
@@ -3331,7 +3331,7 @@ _end:
                     g_Weapon_dshotgun(wx, wy, tx, ty, FUID);
                     FShellTimer := 13;
                     FShellType := SHELL_DBLSHELL;
-                    FAmmo := -36;
+                    FAmmo := -GAME_TICKS;
                   end;
                 MONSTER_CYBER:
                 begin
@@ -3496,7 +3496,7 @@ begin
     fall := False;
 
 // Меняем скорость только по четным кадрам:
-  if gTime mod (GAME_TICK*2) <> 0 then
+  if gTime mod (UPS_INTERVAL*2) <> 0 then
   begin
     g_Obj_Move(@FObj, fall, True, True);
     positionChanged(); // this updates spatial accelerators

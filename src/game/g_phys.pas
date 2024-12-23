@@ -451,7 +451,7 @@ begin
   end;
 
   // Меняем скорость и ускорение только по четным кадрам
-  c := gTime mod (GAME_TICK*2) <> 0;
+  c := gTime mod (UPS_INTERVAL*2) <> 0;
 
   // smoothed slopes
   if {not c and} (Obj.slopeUpLeft > 0) then

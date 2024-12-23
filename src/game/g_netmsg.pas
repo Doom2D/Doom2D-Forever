@@ -134,8 +134,6 @@ const
   NET_CHEAT_READY    = 3;
   NET_CHEAT_DROPFLAG = 4;
 
-  NET_MAX_DIFFTIME = 5000 div 36;
-
 // HOST MESSAGES
 
 procedure MH_MalformedPacket(C: pTNetClient);
@@ -297,6 +295,8 @@ const
   NET_KEY_OPEN     = 1 shl 6;
   NET_KEY_CHAT     = 1 shl 7;
   NET_KEY_FORCEDIR = 1 shl 8;
+
+  NET_MAX_DIFFTIME = 5000 div GAME_TICKS;
 
 //var
   //kBytePrev: Word = 0;

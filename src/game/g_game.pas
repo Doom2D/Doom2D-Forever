@@ -190,7 +190,8 @@ procedure DrawMenuBackground(tex: AnsiString);
 { procedure SetWinPause(Enable: Boolean); }
 
 const
-  GAME_TICK = 28;
+  GAME_TICKS = 36;
+  UPS_INTERVAL = Round(1000 / GAME_TICKS);
 
   LOADING_SHOW_STEP = 100;
   LOADING_INTERLINE = 20;
@@ -1856,7 +1857,7 @@ begin
       begin
         if g_Game_IsNet and g_Game_IsServer then
         begin
-          gInterTime := gInterTime + GAME_TICK;
+          gInterTime += UPS_INTERVAL;
           a := Min((gInterEndTime - gInterTime) div 1000 + 1, 255);
           if a <> gServInterTime then
           begin
@@ -2004,8 +2005,7 @@ begin
 // Игра идет:
   if gGameOn and not gPause and (gState <> STATE_FOLD) then
   begin
-  // Время += 28 миллисекунд:
-    gTime := gTime + GAME_TICK;
+    gTime += UPS_INTERVAL;  // Время += 28 миллисекунд
 
   // Сообщение посередине экрана:
     if MessageTime = 0 then
@@ -2039,9 +2039,9 @@ begin
 
     // Замеряем время захвата флагов
       if gFlags[FLAG_RED].State = FLAG_STATE_CAPTURED then
-        gFlags[FLAG_RED].CaptureTime := gFlags[FLAG_RED].CaptureTime + GAME_TICK;
+        gFlags[FLAG_RED].CaptureTime += UPS_INTERVAL;
       if gFlags[FLAG_BLUE].State = FLAG_STATE_CAPTURED then
-        gFlags[FLAG_BLUE].CaptureTime := gFlags[FLAG_BLUE].CaptureTime + GAME_TICK;
+        gFlags[FLAG_BLUE].CaptureTime += UPS_INTERVAL;
 
     // Был задан лимит побед:
       if (gGameSettings.ScoreLimit > 0) then

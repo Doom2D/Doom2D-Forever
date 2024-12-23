@@ -1288,9 +1288,9 @@ begin
           frdelay := f;
           if f < 0 then f := 0;
           // rounding ;-)
-          c := f mod 28;
+          c := f mod UPS_INTERVAL;
           if c < 13 then c := 0 else c := 1;
-          f := (f div 28)+c;
+          f := (f div UPS_INTERVAL)+c;
           if f < 1 then f := 1 else if f > 255 then f := 255;
           _speed := f;
         except
@@ -2601,7 +2601,7 @@ begin
 
           NeedSend := NeedSend or (Obj.X <> Obj.oldX) or (Obj.Y <> Obj.oldY);
 
-          if gTime mod (GAME_TICK*2) <> 0 then Continue;
+          if gTime mod (UPS_INTERVAL*2) <> 0 then Continue;
 
           // Сопротивление воздуха
           Obj.Vel.X := z_dec(Obj.Vel.X, 1);

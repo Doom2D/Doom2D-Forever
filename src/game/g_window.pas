@@ -49,7 +49,6 @@ uses
 
 const
   ProgressUpdateMSecs = 35; //1;//100;
-  TickUpdateDelay = Round(1000 / 36);
 
 var
   Time, Time_Delta, Time_Old: Int64;
@@ -154,14 +153,14 @@ begin
   if wNeedTimeReset then
   begin
     Frame := 0;
-    Time_Delta := TickUpdateDelay;
+    Time_Delta := UPS_INTERVAL;
     wNeedTimeReset := False;
   end;
 
   g_Map_ProfilersBegin();
   g_Mons_ProfilersBegin();
 
-  t := Time_Delta div TickUpdateDelay;
+  t := Time_Delta div UPS_INTERVAL;
   if t > 0 then
   begin
     flag := True;
@@ -174,7 +173,7 @@ begin
 
   // Время предыдущего обновления
   if flag then
-    Time_Old := Time - (Time_Delta mod TickUpdateDelay);
+    Time_Old := Time - (Time_Delta mod UPS_INTERVAL);
 
   // don't wait if VSync is on, GL already probably waits enough
   if gLerpActors then
@@ -186,7 +185,7 @@ begin
     begin
       if gPause or not gLerpActors or (gState = STATE_FOLD)
         then gLerpFactor := 1.0
-        else gLerpFactor := nmin(1.0, (Time - Time_Old) / TickUpdateDelay);
+        else gLerpFactor := nmin(1.0, (Time - Time_Old) / UPS_INTERVAL);
       Draw();
       sys_Repaint();
     end;

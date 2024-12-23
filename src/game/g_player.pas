@@ -1748,7 +1748,7 @@ begin
         end;
 
         // Сопротивление воздуха для куска трупа:
-        if gTime mod (GAME_TICK*3) = 0 then
+        if gTime mod (UPS_INTERVAL*3) = 0 then
           Obj.Vel.X := z_dec(Obj.Vel.X, 1);
       end;
 
@@ -5184,7 +5184,7 @@ begin
     FIncCam := FIncCam*i;
   end;
 
-  if gTime mod (GAME_TICK*2) <> 0 then
+  if gTime mod (UPS_INTERVAL*2) <> 0 then
   begin
     if (FObj.Vel.X = 0) and FAlive then
     begin
@@ -5438,7 +5438,7 @@ begin
     begin
       b := g_GetAcidHit(FObj.X+PLAYER_RECT.X, FObj.Y+PLAYER_RECT.Y, PLAYER_RECT.Width, PLAYER_RECT.Height);
 
-      if (b > 0) and (gTime mod (15*GAME_TICK) = 0) then Damage(b, 0, 0, 0, HIT_ACID);
+      if (b > 0) and (gTime mod (15*UPS_INTERVAL) = 0) then Damage(b, 0, 0, 0, HIT_ACID);
     end;
 
     if (headwater or blockmon) then
@@ -6751,7 +6751,7 @@ begin
   FObj.oldX := FObj.X;
   FObj.oldY := FObj.Y;
 
-  if gTime mod (GAME_TICK*2) <> 0 then
+  if gTime mod (UPS_INTERVAL*2) <> 0 then
   begin
     g_Obj_Move(@FObj, True, True, True);
     positionChanged(); // this updates spatial accelerators
@@ -7896,7 +7896,7 @@ begin
     end;
 
 // Осталось мало воздуха:
-  if FAir < 36 * 2 then
+  if FAir < GAME_TICKS * 2 then
     Jump(20);
 
 // Выбираемся из кислоты, если нет костюма, обожглись, или мало здоровья:

@@ -581,7 +581,7 @@ begin
           positionChanged(); // this updates spatial accelerators
 
           // Сопротивление воздуха
-          if gTime mod (GAME_TICK*2) = 0 then Obj.Vel.X := z_dec(Obj.Vel.X, 1);
+          if gTime mod (UPS_INTERVAL*2) = 0 then Obj.Vel.X := z_dec(Obj.Vel.X, 1);
 
           // Если выпал за карту
           if WordBool(m and MOVE_FALLOUT) then
@@ -755,13 +755,13 @@ begin
   ggItems[ID].alive := false;
 
   // Items respawn timer
-  ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.ItemRespawnTime, 15) * 36;
+  ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.ItemRespawnTime, 15) * GAME_TICKS;
 
   // Powerup respawn timer
   if ggItems[ID].ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL, ITEM_INVIS,
     ITEM_MEDKIT_BLACK, ITEM_JETPACK, ITEM_SUIT] then
   begin
-    ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.PowerupRespawnTime, 15) * 36;
+    ggItems[ID].RespawnTime := IfThen(gLMSRespawn = LMS_RESPAWN_NONE, gGameSettings.PowerupRespawnTime, 15) * GAME_TICKS;
   end;
 
   // #### Random powerup respawn ####
@@ -771,7 +771,7 @@ begin
   ]) then
   begin
     ggItems[ID].RespawnTime := Max(1, (gGameSettings.PowerupRespawnTime +
-      RandomRange(-gGameSettings.PowerupRespawnRandom, gGameSettings.PowerupRespawnRandom + 1)) * 36);
+      RandomRange(-gGameSettings.PowerupRespawnRandom, gGameSettings.PowerupRespawnRandom + 1)) * GAME_TICKS);
     //e_logwritefln ('Randomized powerup %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
   end;
 
@@ -787,7 +787,7 @@ begin
   ]) then
   begin
     ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime +
-      RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
+      RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * GAME_TICKS);
     //e_logwritefln ('Randomized item %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
   end;
 
@@ -798,7 +798,7 @@ begin
   ]) then
   begin
     ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime +
-      RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
+      RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * GAME_TICKS);
     //e_logwritefln ('Randomized help item %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
   end;
 
@@ -809,7 +809,7 @@ begin
   ]) then
   begin
     ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime +
-      RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
+      RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * GAME_TICKS);
     //e_logwritefln ('Randomized ammo %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
   end;
 
@@ -821,7 +821,7 @@ begin
   ]) then
   begin
     ggItems[ID].RespawnTime := Max(1, (gGameSettings.ItemRespawnTime +
-      RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * 36);
+      RandomRange(-gGameSettings.ItemRespawnRandom, gGameSettings.ItemRespawnRandom + 1)) * GAME_TICKS);
     //e_logwritefln ('Randomized weapon %s time: %s', [ggItems[ID].ItemType, ggItems[ID].RespawnTime]);
   end;
 end;

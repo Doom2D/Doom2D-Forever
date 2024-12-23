@@ -1760,10 +1760,9 @@ begin
 {$ENDIF}
           end;
 
-          if coolDown then
-            TimeOut := 36
-          else
-            TimeOut := 0;
+          if coolDown
+            then TimeOut := GAME_TICKS
+            else TimeOut := 0;
           Result := True;
 
 {$IFDEF ENABLE_SOUND}
