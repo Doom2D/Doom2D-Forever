@@ -11,12 +11,12 @@ Requirements:
 * FPC >= 3.1.1;
 * libenet >= 1.3.13;
 
-Create the "tmp" and "bin" directories and then run:
+Create the `tmp` and `bin` directories and then run:
 
   cd src/game
   fpc -g -gl -O3 -FE../../bin -FU../../tmp Doom2DF.lpr
 
-Additionally you can add following options:
+Additionally you can add the following options:
   System driver:
     * -dUSE_SDL2        Build with SDL 2.0.x
     * -dUSE_SDL         Build with SDL 1.2.x
@@ -26,7 +26,7 @@ Additionally you can add following options:
     * -dUSE_GLES1       Build with mobile OpenGLES 1.1
     * -dUSE_GLSTUB      Disable rendering
   Sound driver:
-    * -dUSE_FMOD        Build with FMODEx 4.26.x
+    * -dUSE_FMOD        Build with FMOD Ex (4.30.22, other versions may fail)
     * -dUSE_SDLMIXER    Build with SDL_mixer
     * -dUSE_OPENAL      Build with OpenAL 1.1
     * -dUSE_SOUNDSTUB   Disable sound management
@@ -43,15 +43,15 @@ Additionally you can add following options:
   Other:
     * -dSDL2_NODPI      Build for old libSDL2
     * -dUSE_MINIUPNPC   Build with libminiupnpc for automatic server port
-                        forwarding via UPNP
-    * -dENABLE_HOLMES   Build with ingame map debugger
+                        forwarding via UPnP
+    * -dENABLE_HOLMES   Build with in-game map debugger
     * -dHEADLESS        Build a headless executable for dedicated servers
 
 Run the game with --gdb when using a debugger to prevent it from eating
 exceptions.
 
 Windows binaries will require the appropriate DLLs (SDL2.dll, SDL2_mixer.dll or
-FMODEx.dll, ENet.dll, miniupnpc.dll), unless you choose to static link them.
+FMODex.dll, ENet.dll, miniupnpc.dll) unless you choose to link them statically.
 
 
 Static Linking
@@ -60,7 +60,7 @@ Static Linking
 It's now possible to link Windows' LibJIT and ENet as static libs. You can use:
   -dLIBJIT_WINDOZE_STATIC       -- static LibJIT
   -dLIBENET_WINDOZE_STATIC      -- static ENet
-  -dLIBMINIUPNPC_WINDOZE_STATIC -- static MiniUPNPC
+  -dLIBMINIUPNPC_WINDOZE_STATIC -- static MiniUPnPC
   -dVORBIS_WINDOZE_STATIC       -- static libogg/libvorbis (only in AL builds)
   -dOPUS_WINDOZE_STATIC         -- static libogg/libopus (only in AL builds)
 
