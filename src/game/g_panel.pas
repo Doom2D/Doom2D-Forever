@@ -458,9 +458,10 @@ var
   NoTextureID: DWORD;
   NW, NH: Word;
 begin
-  if {Enabled and} (FCurTexture >= 0) and
-     (Width > 0) and (Height > 0) and (FAlpha < 255) {and
-     g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
+  // TODO: Eliminate the remaining checks here? Like, they have to be done beforehand by the entity
+  // gathering code during preparation for rendering. See g_Map_CollectDrawPanels() for example.
+  if {Enabled and} (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (FAlpha < 255) {and
+    g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
   begin
     lerp(gLerpFactor, tx, ty, tw, th);
     if FTextureIDs[FCurTexture].Anim then

@@ -3591,7 +3591,7 @@ type
 var
   hasAmbient: Boolean;
   ambColor: TDFColor;
-  doAmbient: Boolean = false;
+  doAmbient: Boolean = False;
 
   procedure drawPanelType (profname: AnsiString; panType: DWord; doDraw: Boolean);
   var

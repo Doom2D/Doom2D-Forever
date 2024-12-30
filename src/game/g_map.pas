@@ -2662,30 +2662,26 @@ end;
 // old algo
 procedure g_Map_DrawPanels (PanelType: Word; hasAmbient: Boolean; constref ambColor: TDFColor);
 
-  procedure DrawPanels (constref panels: TPanelArray; drawDoors: Boolean=False);
+  procedure DrawGeneral (constref panels: TPanelArray; drawDoors: Boolean = False); inline;
   var
-    idx: Integer;
+    i: Integer;
   begin
-    if (panels <> nil) then
-    begin
-      // alas, no visible set
-      for idx := 0 to High(panels) do
-      begin
-        if not (drawDoors xor panels[idx].Door) then panels[idx].Draw(hasAmbient, ambColor);
-      end;
-    end;
+    // alas, no visible set
+    for i := 0 to High(panels) do
+      if panels[i].Enabled and (drawDoors = panels[i].Door) then
+        panels[i].Draw(hasAmbient, ambColor);
   end;
 
 begin
   case PanelType of
-    PANEL_WALL:       DrawPanels(gWalls);
-    PANEL_CLOSEDOOR:  DrawPanels(gWalls, True);
-    PANEL_BACK:       DrawPanels(gRenderBackgrounds);
-    PANEL_FORE:       DrawPanels(gRenderForegrounds);
-    PANEL_WATER:      DrawPanels(gWater);
-    PANEL_ACID1:      DrawPanels(gAcid1);
-    PANEL_ACID2:      DrawPanels(gAcid2);
-    PANEL_STEP:       DrawPanels(gSteps);
+    PANEL_WALL:       DrawGeneral(gWalls);
+    PANEL_CLOSEDOOR:  DrawGeneral(gWalls, True);
+    PANEL_BACK:       DrawGeneral(gRenderBackgrounds);
+    PANEL_FORE:       DrawGeneral(gRenderForegrounds);
+    PANEL_WATER:      DrawGeneral(gWater);
+    PANEL_ACID1:      DrawGeneral(gAcid1);
+    PANEL_ACID2:      DrawGeneral(gAcid2);
+    PANEL_STEP:       DrawGeneral(gSteps);
   end;
 end;
 
