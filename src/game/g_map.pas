@@ -2660,6 +2660,7 @@ end;
 
 
 // old algo
+// TODO: Either remove it or turn into a reference implementation.
 procedure g_Map_DrawPanels (PanelType: Word; hasAmbient: Boolean; constref ambColor: TDFColor);
 
   procedure DrawGeneral (constref panels: TPanelArray; drawDoors: Boolean = False); inline;
@@ -2674,14 +2675,22 @@ procedure g_Map_DrawPanels (PanelType: Word; hasAmbient: Boolean; constref ambCo
 
 begin
   case PanelType of
-    PANEL_WALL:       DrawGeneral(gWalls);
-    PANEL_CLOSEDOOR:  DrawGeneral(gWalls, True);
-    PANEL_BACK:       DrawGeneral(gRenderBackgrounds);
-    PANEL_FORE:       DrawGeneral(gRenderForegrounds);
-    PANEL_WATER:      DrawGeneral(gWater);
-    PANEL_ACID1:      DrawGeneral(gAcid1);
-    PANEL_ACID2:      DrawGeneral(gAcid2);
-    PANEL_STEP:       DrawGeneral(gSteps);
+    PANEL_WALL:
+      if g_rlayer_wall then DrawGeneral(gWalls);
+    PANEL_CLOSEDOOR:
+      if g_rlayer_door then DrawGeneral(gWalls, True);
+    PANEL_BACK:
+      if g_rlayer_back then DrawGeneral(gRenderBackgrounds);
+    PANEL_FORE:
+      if g_rlayer_fore then DrawGeneral(gRenderForegrounds);
+    PANEL_WATER:
+      if g_rlayer_water then DrawGeneral(gWater);
+    PANEL_ACID1:
+      if g_rlayer_acid1 then DrawGeneral(gAcid1);
+    PANEL_ACID2:
+      if g_rlayer_acid2 then DrawGeneral(gAcid2);
+    PANEL_STEP:
+      if g_rlayer_step then DrawGeneral(gSteps);
   end;
 end;
 
