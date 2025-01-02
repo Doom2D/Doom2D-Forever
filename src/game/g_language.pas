@@ -1824,8 +1824,8 @@ const
                                        '- id Software, которые заварили эту кашу'),
     ('CREDITS CLO 3',                  '- everyone who helped and supported us',
                                        '- всех, кто поддерживал нас и помогал'),
-    ('CREDITS CLO 4',                  'www.doom2d.org, 2003-2024',
-                                       'www.doom2d.org, 2003-2024'),
+    ('CREDITS CLO 4',                  'www.doom2d.org, 2003-%u',
+                                       'www.doom2d.org, 2003-%u'),
 
     ('MSG SHOW FPS ON',                'FPS counter enabled',
                                        '—чЄтчик FPS показываетс€'),

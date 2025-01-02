@@ -2279,6 +2279,7 @@ var
   //SR: TSearchRec;
   a, cx, _y, i: Integer;
   //list: SSArray;
+  CopyrightLine: String;
 begin
   Menu := g_GUI_AddWindow(TGUIWindow.Create('MainMenu'));
   with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, 'MAINMENU_LOGO', _lc[I_MENU_MAIN_MENU]))) do
@@ -3676,7 +3677,13 @@ begin
     Y := _y;
     _y := gScreenHeight - 32;
   end;
-  with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_4], gMenuSmallFont))) do
+
+  // We have to do this at run-time because {$INCLUDE %DATEYEAR%} inserts a numeric literal, not a
+  // string one. And FPC doesn't provide a way to access individual chars of {$INCLUDE %DATE%} in
+  // constant definitions, which would allow us to construct it artifically.
+  // Original patch for date numerals: https://gitlab.com/freepascal.org/fpc/source/-/issues/26472
+  CopyrightLine := Format(_lc[I_CREDITS_CLO_4], [{$INCLUDE %DATEYEAR%}]);
+  with TGUILabel(Menu.AddChild(TGUILabel.Create(CopyrightLine, gMenuSmallFont))) do
   begin
     Color := _RGB(255, 0, 0);
     X := gScreenWidth div 2 - GetWidth() div 2;
