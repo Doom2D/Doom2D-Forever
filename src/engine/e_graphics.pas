@@ -229,40 +229,18 @@ begin
 end;
 
 procedure e_SetViewPort(X, Y, Width, Height: Word);
-var
-  mat: Array [0..15] of GLDouble;
-
 begin
   if e_NoGraphics then Exit;
-  glLoadIdentity();
-  glScissor(X, Y, Width, Height);
+
+  // https://gamedev.stackexchange.com/questions/40704/what-is-the-purpose-of-glscissor
   glViewport(X, Y, Width, Height);
-  //gluOrtho2D(0, Width, Height, 0);
+  glScissor(X, Y, Width, Height);
 
   glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glOrtho(0, Width, Height, 0, -1.0, 1.0);  // see the reference page for gluOrtho2D()
 
-  mat[ 0] := 2.0 / Width;
-  mat[ 1] := 0.0;
-  mat[ 2] := 0.0;
-  mat[ 3] := 0.0;
-
-  mat[ 4] := 0.0;
-  mat[ 5] := -2.0 / Height;
-  mat[ 6] := 0.0;
-  mat[ 7] := 0.0;
-
-  mat[ 8] := 0.0;
-  mat[ 9] := 0.0;
-  mat[10] := 1.0;
-  mat[11] := 0.0;
-
-  mat[12] := -1.0;
-  mat[13] := 1.0;
-  mat[14] := 0.0;
-  mat[15] := 1.0;
-
-  glLoadMatrixd(@mat[0]);
-
+  // reset global state to default (just in case, I guess)
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 end;
