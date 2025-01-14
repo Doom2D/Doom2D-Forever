@@ -638,10 +638,12 @@ begin
   Pause(Enable);
 end;
 
-{$IFDEF USE_OPENAL}
+{$IF DEFINED(USE_OPENAL) OR (DEFINED(USE_SDLMIXER) AND DEFINED(USE_SDL2))}
 initialization
   conRegVar('s_midi_soundfont', @e_SoundFont, 'soundfont to use for midi playback', 'midi soundfont');
+{$IFDEF USE_OPENAL}
   conRegVar('s_mod_lerp', @e_MusicLerp, 'interpolate module playback', 'module interpolation');
+{$ENDIF}
 {$ENDIF}
 
 end.

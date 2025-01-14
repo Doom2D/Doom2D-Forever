@@ -67,7 +67,7 @@ uses
   MacOSAll, CocoaAll,
 {$ENDIF}
 {$IFDEF USE_SDL2}
-  SDL2,
+  SDL2, {$IFDEF USE_SDLMIXER} SDL2_mixer, {$ENDIF}
 {$ENDIF}
 {$IFDEF ENABLE_SOUND}
   g_sound, e_sound,
@@ -455,7 +455,7 @@ begin
       LogFileName := ConcatPaths([rwdir, LogPrefix + date + '.log']);
     end
   end;
-  
+
   // HACK: ensure the screenshots folder also has a stats subfolder in it
   rwdir := e_GetWriteableDir(ScreenshotDirs, false);
   if rwdir <> '' then CreateDir(rwdir + '/stats');
@@ -556,7 +556,7 @@ begin
     {$IF DEFINED(USE_SDL2) AND NOT DEFINED(HEADLESS)}
       if not forceBinDir then
         SDL_ShowSimpleMessageBox(
-          SDL_MESSAGEBOX_ERROR, 
+          SDL_MESSAGEBOX_ERROR,
           'Doom2D Forever',
           PChar('WAD ' + GameWADName + ' not found in data directories.'),
           nil
@@ -680,6 +680,11 @@ begin
       newcwd := '';
       if UseNativeMusic then
         SetEnvVar('SDL_NATIVE_MUSIC', '1');
+      // SDL2 Mixer allows to use fluidsynth for MIDI playback.
+      // This is very useful, as GUS patch files can be unwieldy compared to a single .SF2 file.
+      {$IFDEF USE_SDL2}
+      Mix_SetSoundFonts(PChar(e_SoundFont));
+      {$ENDIF}
       timiditycfg := GetEnvironmentVariable('TIMIDITY_CFG');
       if timiditycfg = '' then
       begin

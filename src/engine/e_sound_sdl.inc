@@ -104,6 +104,7 @@ var
   e_SoundsArray: array of TSoundRec;
 
   e_TimidityDecoder: Boolean; (* sdl_mixer special *)
+  e_SoundFont: String = 'data/banks/default.sf2';
 
 implementation
 
