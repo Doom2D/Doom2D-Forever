@@ -97,7 +97,7 @@ var
   e_SoundsArray: array of TSoundRec;
   e_ZeroPosition: array [0..2] of ALfloat;
   e_ALError: ALenum;
-  e_SoundFont: String;
+  e_SoundFont: String = 'data/banks/default.sf2';
   e_MusicLerp: Boolean = True;
 
 implementation
@@ -551,7 +551,7 @@ function e_PlaySound(ID: TSoundID): Integer;
 begin
   Result := FindSourceForSound(ID);
   if Result >= 0 then
-  begin 
+  begin
     AssignSound(ID, alSources[Result]);
     alSourcef(alSources[Result], AL_GAIN, 1);
     alSourcefv(alSources[Result], AL_POSITION, e_ZeroPosition);
