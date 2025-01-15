@@ -702,7 +702,7 @@ begin
       e_LogWritefln('SDL_NATIVE_MUSIC = "%s"', [GetEnvironmentVariable('SDL_NATIVE_MUSIC')]);
     {$ENDIF}
     e_InitSoundSystem({$IFDEF HEADLESS} True {$ELSE} False {$ENDIF});
-    {$IFDEF USE_SDLMIXER}
+    {$IF DEFINED(USE_SDLMIXER) AND NOT DEFINED(ANDROID)}
       if e_TimidityDecoder and (newcwd <> '') then
       begin
         (* HACK: Set CWD to load GUS patches relatively to cfg file. *)
@@ -714,6 +714,12 @@ begin
         ChDir(newcwd);
         e_logwritefln('WARNING: USED TIMIDITY CONFIG HACK, CWD SWITCHED "%s" -> "%s"', [oldcwd, newcwd]);
       end;
+    {$ELSEIF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
+    // Switch CWD, if possible, to external storage to simplify creating Android bundles with MIDI support
+    // that leverage fluidsynth or timidity.
+    if SDL_AndroidGetExternalStorageState() <> 0 then
+      // External storage is the path where bundled files get copied to.
+      ChDir(SDL_AndroidGetExternalStoragePath());
     {$ENDIF}
   end;
 {$ENDIF}
