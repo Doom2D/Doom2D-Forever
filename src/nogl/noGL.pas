@@ -197,6 +197,7 @@ interface
   procedure glRotatef(angle, x, y, z: GLfloat);
   procedure glScalef(x, y, z: GLfloat);
   procedure glPopMatrix;
+  procedure glOrtho(left, right, bottom, top, zNear, zFar: GLdouble);
 
   procedure glStencilMask(mask: GLuint);
   procedure glStencilFunc(func: GLenum; ref: GLint; mask: GLuint);

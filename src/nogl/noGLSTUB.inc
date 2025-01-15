@@ -134,6 +134,10 @@ implementation
   begin
   end;
 
+  procedure glOrtho(left, right, bottom, top, zNear, zFar: GLdouble);
+  begin
+  end;
+
   procedure glTranslatef(x, y, z: GLfloat);
   begin
   end;

@@ -80,6 +80,7 @@ implementation
     es_glTranslatef: procedure (x, y, z: GLfloat); cdecl;
     es_glRotatef: procedure (angle, x, y, z: GLfloat); cdecl;
     es_glScalef: procedure (x, y, z: GLfloat); cdecl;
+    es_glOrthof: procedure (left, right, bottom, top, zNear, zFar: GLfloat); cdecl;
 
     es_glReadPixels: procedure (x, y: GLint; width, height: GLsizei; format,_type: GLenum; pixels: PGLvoid); cdecl;
 
@@ -357,6 +358,11 @@ implementation
     es_glScalef(x, y, z);
   end;
 
+  procedure glOrtho(left, right, bottom, top, zNear, zFar: GLdouble);
+  begin
+    es_glOrthof(left, right, bottom, top, zNear, zFar);
+  end;
+
 
 
 
@@ -532,6 +538,7 @@ implementation
     es_glTranslatef := SDL_GL_GetProcAddress('glTranslatef');
     es_glRotatef := SDL_GL_GetProcAddress('glRotatef');
     es_glScalef := SDL_GL_GetProcAddress('glScalef');
+    es_glOrthof := SDL_GL_GetProcAddress('glOrthof');
 
     es_glReadPixels := SDL_GL_GetProcAddress('glReadPixels');
 
@@ -600,6 +607,7 @@ implementation
     es_glTranslatef := nil;
     es_glRotatef := nil;
     es_glScalef := nil;
+    es_glOrthof := nil;
 
     es_glReadPixels := nil;
 
