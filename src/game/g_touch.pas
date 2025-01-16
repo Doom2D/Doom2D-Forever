@@ -27,10 +27,10 @@ procedure g_Touch_HandleEvent (const ev: TSDL_TouchFingerEvent);
 
 var
   g_touch_enabled: Boolean;
-  g_touch_size: Single = 1.0;
+  g_touch_size: Single = 0.5;
   g_touch_offset: Single = 50.0;
   g_touch_fire: Boolean = True;
-  g_touch_alt: Boolean;
+  g_touch_alt: Boolean = True;
 
 procedure g_Touch_Init ();
 procedure g_Touch_ShowKeyboard (yes: Boolean);
