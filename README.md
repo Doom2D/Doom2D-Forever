@@ -3,7 +3,7 @@
 
 This open-source, multiplatform project has been developed from the ground up to recreate the original game while significantly enhancing gameplay, graphics, and introducing several new gamemodes. It features support for high-resolution graphics, improved AI, numerous fixes, and most importantly **online multiplayer**, revitalizing one of the biggest cult classics of ex-USSR.
 <p align="center">
-    <img src="https://doom2d.org/doom2d_forever/about/DFsml.jpg" width="820" alt="Doom2D Forever, SuperDM, 640x480.">
+    <img src="https://doom2d.org/doom2d_forever/about/DFsml.jpg" alt="Doom2D Forever, SuperDM, 640x480.">
 </p>
 
 # Download and install
