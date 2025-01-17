@@ -9,9 +9,11 @@ Precompiled binaries of the latest commit (snapshot) are currently available for
   * [**macOS ZIP archive**](#macos-zip-archive)
 * [**Android**](#android)
 
+<a name="windows"></a>
+
 ## Windows
 
-<a name="windows-installer"></a>
+<a name="windows-zip-archive"></a>
 
 ### Windows ZIP archive
 * Download one of the following Windows ZIP archives:
@@ -20,9 +22,11 @@ Precompiled binaries of the latest commit (snapshot) are currently available for
 
 * After downloading the ZIP archive, extract it to a suitable directory of your choice.
 
+<a name="macos"></a>
+
 ## macOS
 
-<a name="homebrew-on-macos"></a>
+<a name="macos-zip-archive"></a>
 
 ### macOS ZIP archive
 * Download the [**macOS ZIP archive**](https://github.com/Doom2D/nixandroid/releases/latest/download/doom2df-x86_64-apple-darwin.zip).
