@@ -106,7 +106,7 @@ var
 
 
 function Channel_Callback(channel: FMOD_CHANNEL; callbacktype: FMOD_CHANNEL_CALLBACKTYPE;
-  commanddata1: Pointer; commanddata2: Pointer): FMOD_RESULT; winapi;
+  commanddata1: Pointer; commanddata2: Pointer): FMOD_RESULT; {$IFDEF WIN32} stdcall {$ELSE} cdecl {$ENDIF};
 var
   sound: FMOD_SOUND;
   id: TSoundID;
