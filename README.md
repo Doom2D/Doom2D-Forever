@@ -27,7 +27,11 @@ This project is licensed under the [**GNU General Public License v3.0**](https:/
 Initially, the project was developed on [**repo.or.cz**](https://repo.or.cz/d2df-sdl.git/).
 
 # Contribution and Development
+This repository is a place for everyone. If you want to contribute, please join our [Telegram and Discord servers](#contacts).
 
+To build the project from source, please follow [**this guide**](docs/DEVELOPMENT.md).
+
+<a name="contacts"></a>
 # Contacts
 Join our [**Telegram**](https://t.me/doom2d) and [**Discord**](https://discord.gg/sGpJwMy) servers to discuss the development of the project.
 
