@@ -294,7 +294,7 @@ var
       begin
         s := NSStringToAnsiString(dirArr.objectAtIndex(i));
         if s = '' then s := '.';  // FIXME: hack for improper ConcatPaths(); see commit.
-        AddDir(result, ConcatPaths([s, 'Doom2D Forever']));
+        AddDir(result, ConcatPaths([s, GAME_NAME]));
       end;
     {$ENDIF}
     {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
@@ -348,7 +348,7 @@ var
       begin
         s := NSStringToAnsiString(dirArr.objectAtIndex(i));
         if s = '' then s := '.';  // FIXME: hack for improper ConcatPaths(); see commit.
-        AddDir(result, ConcatPaths([s, 'Doom2D Forever']));
+        AddDir(result, ConcatPaths([s, GAME_NAME]));
       end;
     {$ENDIF}
     {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
@@ -517,7 +517,7 @@ begin
     e_InitLog(LogFileName, TWriteMode.WM_NEWFILE);
   e_InitWritelnDriver();
 
-  e_WriteLog('Doom2D Forever version ' + GAME_VERSION + ' proto ' + IntToStr(NET_PROTOCOL_VER), TMsgType.Notify);
+  e_WriteLog(GAME_NAME + ' version ' + GAME_VERSION + ' proto ' + IntToStr(NET_PROTOCOL_VER), TMsgType.Notify);
   e_WriteLog('Build arch: ' + g_GetBuildArch(), TMsgType.Notify);
   e_WriteLog('Build date: ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME, TMsgType.Notify);
   e_WriteLog('Build hash: ' + g_GetBuildHash(), TMsgType.Notify);
@@ -557,7 +557,7 @@ begin
       if not forceBinDir then
         SDL_ShowSimpleMessageBox(
           SDL_MESSAGEBOX_ERROR,
-          'Doom2D Forever',
+          GAME_NAME,
           PChar('WAD ' + GameWADName + ' not found in data directories.'),
           nil
         );
