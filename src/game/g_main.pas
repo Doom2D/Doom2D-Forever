@@ -362,13 +362,13 @@ begin
   binPath := GetBinaryPath();
 
   i := 1;
-  while i < ParamCount do
+  while i <= ParamCount() do
   begin
     case ParamStr(i) of
     '--like-windoze': forceBinDir := true;
     '--rw-dir':
       begin
-        Inc(i);
+        i += 1;
         rwdir := ParamStr(i);
         if rwdir = '' then rwdir := '.';  // FIXME: hack for improper ConcatPaths(); see commit.
         (* RW *)
@@ -389,7 +389,7 @@ begin
       end;
     '--ro-dir':
       begin
-        Inc(i);
+        i += 1;
         rodir := ParamStr(i);
         if rodir = '' then rodir := '.';  // FIXME: hack for improper ConcatPaths(); see commit.
         (* RO *)
@@ -401,24 +401,24 @@ begin
       end;
     '--game-wad':
       begin
-        Inc(i);
+        i += 1;
         GameWADName := ParamStr(i);
       end;
     '--config':
       begin
-        Inc(i);
+        i += 1;
         gConfigScript := ParamStr(i);
       end;
     end;
-    Inc(i)
+    i += 1;
   end;
 
   // prefer bin dir if it writable and contains game.wad
-  if forceBinDir = false then
+  if not forceBinDir then
   begin
     if findDiskWad(binPath + 'data' + '/' + GameWADName) <> '' then
       if e_CanCreateFilesAt(binPath) then
-        forceBinDir := true
+        forceBinDir := True;
   end;
 
   (* RO *)
@@ -499,18 +499,18 @@ begin
   logLimit := 10;
 
   i := 1;
-  while i < ParamCount do
+  while i <= ParamCount() do
   begin
     case ParamStr(i) of
       '--con-stdout': conbufDumpToStdOut := True;
       '--no-fbo': glRenderToFBO := False;
       '--keep-logs':
         begin
-          Inc(i);
+          i += 1;
           logLimit := StrToIntDef(ParamStr(i), -1);
         end;
     end;
-    Inc(i);
+    i += 1;
   end;
 
   if LogFileName <> '' then
