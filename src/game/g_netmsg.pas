@@ -152,7 +152,7 @@ procedure MH_RECV_RCONCommand(C: pTNetClient; var M: TMsg);
 procedure MH_RECV_Vote(C: pTNetClient; var M: TMsg);
 
 // GAME
-procedure MH_SEND_Everything(CreatePlayers: Boolean {= False}; ID: Integer {= NET_EVERYONE});
+procedure MH_SEND_Everything(CreatePlayers: Boolean {= False}; aID: Integer {= NET_EVERYONE});
 procedure MH_SEND_Info(ID: Byte);
 procedure MH_SEND_Chat(Txt: String; Mode: Byte; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer = NET_EVERYONE);
@@ -852,49 +852,49 @@ end;
 
 // GAME (SEND)
 
-procedure MH_SEND_Everything(CreatePlayers: Boolean; ID: Integer);
+procedure MH_SEND_Everything(CreatePlayers: Boolean; aID: Integer);
 
   function sendItemRespawn (it: PItem): Boolean;
   begin
     result := false; // don't stop
-    MH_SEND_ItemSpawn(True, it.myid, ID);
+    MH_SEND_ItemSpawn(True, it.myid, aID);
   end;
 
   function sendMonSpawn (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    MH_SEND_MonsterSpawn(mon.UID, ID);
+    MH_SEND_MonsterSpawn(mon.UID, aID);
   end;
 
   function sendPanelState (pan: TPanel): Boolean;
   begin
     result := false; // don't stop
-    MH_SEND_PanelState(pan.guid, ID); // anyway, to sync mplats
-    if (pan.CanChangeTexture) then MH_SEND_PanelTexture(pan.guid, pan.LastAnimLoop, ID);
+    MH_SEND_PanelState(pan.guid, aID); // anyway, to sync mplats
+    if (pan.CanChangeTexture) then MH_SEND_PanelTexture(pan.guid, pan.LastAnimLoop, aID);
   end;
 
 var
   I: Integer;
 begin
-  if (Low(NetClients) > ID) or (High(NetClients) < ID) then
+  if (Low(NetClients) > aID) or (High(NetClients) < aID) then
     Exit;  // bogus client, this shouldn't happen
 
-  NetClients[ID].FullUpdateSent := True;
+  NetClients[aID].FullUpdateSent := True;
 
-  e_LogWritefln('*** client #%u (cid #%u) will get everything', [ID, NetClients[ID].Player]);
+  e_LogWritefln('*** client #%u (cid #%u) will get everything', [aID, NetClients[aID].Player]);
 
-  MH_ProcessFirstSpawn(@NetClients[ID]);
+  MH_ProcessFirstSpawn(@NetClients[aID]);
 
   for I := Low(gPlayers) to High(gPlayers) do
   begin
     if gPlayers[I] <> nil then
     begin
-      if CreatePlayers then MH_SEND_PlayerCreate(gPlayers[I].UID, ID);
-      MH_SEND_PlayerPos(True, gPlayers[I].UID, ID);
-      MH_SEND_PlayerStats(gPlayers[I].UID, ID);
+      if CreatePlayers then MH_SEND_PlayerCreate(gPlayers[I].UID, aID);
+      MH_SEND_PlayerPos(True, gPlayers[I].UID, aID);
+      MH_SEND_PlayerStats(gPlayers[I].UID, aID);
 
       if (gPlayers[I].Flag <> FLAG_NONE) and (gGameSettings.GameMode = GM_CTF) then
-        MH_SEND_FlagEvent(FLAG_STATE_CAPTURED, gPlayers[I].Flag, gPlayers[I].UID, True, ID);
+        MH_SEND_FlagEvent(FLAG_STATE_CAPTURED, gPlayers[I].Flag, gPlayers[I].UID, True, aID);
     end;
   end;
 
@@ -909,10 +909,10 @@ begin
 {$IFDEF ENABLE_SOUND}
       if gTriggers[I].Sound <> nil then
         with gTriggers[I] do
-          MH_SEND_TriggerSound(ClientID, Sound.IsPlaying(), Sound.GetPosition(), SoundPlayCount, ID);
+          MH_SEND_TriggerSound(ClientID, Sound.IsPlaying(), Sound.GetPosition(), SoundPlayCount, aID);
 {$ELSE}
       with gTriggers[I] do
-        MH_SEND_TriggerSound(ClientID, SoundPlay, SoundPos, SoundPlayCount, ID);
+        MH_SEND_TriggerSound(ClientID, SoundPlay, SoundPos, SoundPlayCount, aID);
 {$ENDIF}
     end;
   end;
@@ -920,25 +920,25 @@ begin
   for I := Low(Projectiles) to High(Projectiles) do
   begin
     if Projectiles[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_PLASMA, WEAPON_BFG] then
-      MH_SEND_CreateProj(i, ID);
+      MH_SEND_CreateProj(i, aID);
   end;
 
 {$IFDEF ENABLE_SOUND}
-  MH_SEND_TriggerMusic(gMusic.Name, gMusic.IsPlaying, gMusic.GetPosition, gMusic.SpecPause or gMusic.IsPaused, ID);
+  MH_SEND_TriggerMusic(gMusic.Name, gMusic.IsPlaying, gMusic.GetPosition, gMusic.SpecPause or gMusic.IsPaused, aID);
 {$ELSE}
-  MH_SEND_TriggerMusic(gMusicName, gMusicPlay, gMusicPos, gMusicPause or not gMusicPlay, ID);
+  MH_SEND_TriggerMusic(gMusicName, gMusicPlay, gMusicPos, gMusicPause or not gMusicPlay, aID);
 {$ENDIF}
 
-  MH_SEND_GameStats(ID);
-  MH_SEND_CoopStats(ID);
+  MH_SEND_GameStats(aID);
+  MH_SEND_CoopStats(aID);
 
   if gGameSettings.GameMode = GM_CTF then
   begin
-    if gFlags[FLAG_RED].State <> FLAG_STATE_CAPTURED then MH_SEND_FlagEvent(gFlags[FLAG_RED].State, FLAG_RED, 0, True, ID);
-    if gFlags[FLAG_BLUE].State <> FLAG_STATE_CAPTURED then MH_SEND_FlagEvent(gFlags[FLAG_BLUE].State, FLAG_BLUE, 0, True, ID);
+    if gFlags[FLAG_RED].State <> FLAG_STATE_CAPTURED then MH_SEND_FlagEvent(gFlags[FLAG_RED].State, FLAG_RED, 0, True, aID);
+    if gFlags[FLAG_BLUE].State <> FLAG_STATE_CAPTURED then MH_SEND_FlagEvent(gFlags[FLAG_BLUE].State, FLAG_BLUE, 0, True, aID);
   end;
 
-  if CreatePlayers and (ID >= 0) then NetClients[ID].State := NET_STATE_GAME;
+  if CreatePlayers and (aID >= 0) then NetClients[aID].State := NET_STATE_GAME;
 
   g_Net_Flush();
 end;
