@@ -1465,7 +1465,7 @@ const
     ('NET ERR NAME404',                'Player or client %s not found!',
                                        'Игрок или клиент %s не найден!'),
 
-    ('NET DISC NONE',                  'Server is down.',
+    ('NET DISC NONE',                  'Connection lost.',
                                        'Сервер не отвечает.'),
     ('NET DISC PROTOCOL',              'Net protocol version mismatch.',
                                        'Версии сетевых протоколов не совпадают.'),
