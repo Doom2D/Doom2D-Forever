@@ -1,5 +1,5 @@
-# Doom2D Forever
-**Doom2D Forever** is a recreation of the classic Doom 2D (1993) game.
+# About
+A recreation of the classic [Doom2D](https://doomwiki.org/wiki/Doom_2D) game from the late DOS era, a simulacrum of a parody - just as it should be.
 
 This open-source, multiplatform project has been developed from the ground up to recreate the original game while significantly enhancing gameplay, graphics, and introducing several new gamemodes. It features support for high-resolution graphics, improved AI, numerous fixes, and most importantly **online multiplayer**, revitalizing one of the biggest cult classics of ex-USSR.
 <p align="center">
