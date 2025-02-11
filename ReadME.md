@@ -9,13 +9,8 @@ This open-source, multiplatform project has been developed from the ground up to
 # Download and install
 Please follow the [**installation guide**](docs/INSTALL.md) to download and install Doom2D Forever.
 
-# Copyright
-All rights for the resources belong to ID Software. We do not encourage and do not support any form of illegal usage of them.
-
-# License
-This project is licensed under the [**GNU General Public License v3.0**](https://github.com/Doom2D/Doom2D-Forever/blob/master/COPYING).
-
-Initially, the project was developed on [**repo.or.cz**](https://repo.or.cz/d2df-sdl.git/).
+# Disclaimer
+This game is a fair-use parody, licensed _strictly_ under terms of the [**GNU General Public License v3.0**](https://github.com/Doom2D/Doom2D-Forever/blob/master/COPYING).
 
 # Contribution and Development
 This repository is a place for everyone. If you want to contribute, please join our [Telegram and Discord servers](#contacts).
