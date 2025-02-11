@@ -26,6 +26,4 @@ Join our [**Telegram**](https://t.me/doom2d) and [**Discord**](https://discord.g
 
 [![VK](https://img.shields.io/badge/Telegram-2CA5E0?style=flat-squeare&logo=telegram&logoColor=white)](https://t.me/doom2d)
 [![Discord](https://img.shields.io/badge/chat-Discord-8c9eff?logo=discord&logoColor=ffffff)](https://discord.gg/sGpJwMy)
-# FAQ
-You can find answers to the most commonly asked questions on the [**F.A.Q. page**](docs/FAQ.md).
 
