@@ -7,7 +7,10 @@ This open-source, multiplatform project has been developed from the ground up to
 </p>
 
 # Download and install
-Please follow the [**installation guide**](docs/INSTALL.md) to download and install Doom2D Forever.
+Pre-built binaries of the latest commit (snapshot) are currently available for the following operating systems:
+- **Windows** Download a ZIP-archive, either [Windows x64 (64-bit)](https://github.com/Doom2D/nixandroid/releases/latest/download/doom2df-mingw64.zip) or [**Windows x86 (32-bit)**](https://github.com/Doom2D/nixandroid/releases/latest/download/doom2df-mingw32.zip). Windows XP and newer is supported.
+- **Android** Download the [**Android APK**](https://github.com/Doom2D/nixandroid/releases/latest/download/doom2df-android.apk). Android 4.0 and higher is supported.
+- **macOS** Download the [**macOS ZIP archive**](https://github.com/Doom2D/nixandroid/releases/latest/download/doom2df-x86_64-apple-darwin.zip). Currently only x86-64 (Intel) binaries are provided. MacOS >= 11.0 is supported. 
 
 # Disclaimer
 This game is a fair-use parody, licensed _strictly_ under terms of the [**GNU General Public License v3.0**](https://github.com/Doom2D/Doom2D-Forever/blob/master/COPYING).
