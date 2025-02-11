@@ -9,15 +9,6 @@ This open-source, multiplatform project has been developed from the ground up to
 # Download and install
 Please follow the [**installation guide**](docs/INSTALL.md) to download and install Doom2D Forever.
 
-# Features
-- **Online multiplayer** with DM, CTF and COOP gamemodes!
-- Compared to Doom2D 1.30, the resolution of textures and sprites has been doubled
-- Bots (very aggressive ones!) are available both in singleplayer and multiplayer.
-- Russian and English localization. Да, в игре конечно же есть русский язык.
-- Multiplatform: runs on Windows, Android, macOS, Linux.
-- Cross-platform play: if your platform supports multiplayer, rest assured you can play with everybody.
-- A map editor!
-
 # Copyright
 All rights for the resources belong to ID Software. We do not encourage and do not support any form of illegal usage of them.
 
@@ -39,3 +30,4 @@ Join our [**Telegram**](https://t.me/doom2d) and [**Discord**](https://discord.g
 [![Discord](https://img.shields.io/badge/chat-Discord-8c9eff?logo=discord&logoColor=ffffff)](https://discord.gg/sGpJwMy)
 # FAQ
 You can find answers to the most commonly asked questions on the [**F.A.Q. page**](docs/FAQ.md).
+
