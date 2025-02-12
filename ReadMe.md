@@ -95,4 +95,18 @@ If that command succeeds, you have a working FPC and libenet installation.
 Currently, OpenGLES depends uncoditionally on SDL2.
 ### Android
 Currently, Android support depends unconditionally on SDL2.
+### Windows
+Windows binaries will require the appropriate DLLs (SDL2.dll, SDL2_mixer.dll or
+FMODex.dll, ENet.dll, miniupnpc.dll) unless you choose to link them statically.
+
+#### Static Linking
+It's now possible to link Windows' LibJIT and ENet as static libs.
+
+|Switch                        |What it does                               |
+|------------------------------|-------------------------------------------|
+|`-dLIBJIT_WINDOZE_STATIC`       |Static LibJIT                              |
+|`-dLIBENET_WINDOZE_STATIC`      |Static ENet                                |
+|`-dLIBMINIUPNPC_WINDOZE_STATIC` |Static MiniUPnPC                           |
+|`-dVORBIS_WINDOZE_STATIC`       |Static libogg/libvorbis (only in AL builds)|
+|`-dOPUS_WINDOZE_STATIC`         |Static libogg/libopus (only in AL builds)  |
 
