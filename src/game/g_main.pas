@@ -720,6 +720,9 @@ begin
     if SDL_AndroidGetExternalStorageState() <> 0 then
       // External storage is the path where bundled files get copied to.
       ChDir(SDL_AndroidGetExternalStoragePath());
+    {$ELSEIF DEFINED(DARWIN)}
+    if GetBundlePath() <> '' then
+      Chdir(ConcatPaths([GetBundlePath(), 'Contents/Resources']));
     {$ENDIF}
   end;
 {$ENDIF}
