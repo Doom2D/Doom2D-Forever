@@ -952,6 +952,7 @@ begin
     FMaskAnim[TDirection.D_RIGHT][a].Free();
   end;
 
+  FFlagAnim.Free();
   inherited;
 end;
 
