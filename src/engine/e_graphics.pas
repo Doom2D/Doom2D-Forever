@@ -26,6 +26,14 @@ uses
   SysUtils, Classes, Math, e_log, e_texture,
   MAPDEF, ImagingTypes, Imaging, ImagingUtility;
 
+const
+  // NOTE: OpenGL 1.1 and OpenGL ES 1.1 are barely similar, so "1.1" here is just a coincidence.
+  // See e.g. this: http://www.jwz.org/blog/2012/06/i-have-ported-xscreensaver-to-the-iphone/
+  OGL_VERSION_MAJOR = 1;
+  OGL_VERSION_MINOR = 1;
+  GLES_VERSION_MAJOR = 1;
+  GLES_VERSION_MINOR = 1;
+
 type
   TMirrorType=(None, Horizontal, Vertical);
   TBlending=(None, Blend, Filter, Invert);

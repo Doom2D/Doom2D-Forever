@@ -302,9 +302,14 @@ begin
   Result := True;
 
 {$IFNDEF NOGL_INIT}
+  // https://registry.khronos.org/OpenGL/extensions/ARB/ARB_framebuffer_object.txt
   fbo := Load_GL_ARB_framebuffer_object();
+  // TODO: Support also the GL_EXT_framebuffer_object? https://gamedev.ru/code/forum/?id=199279
+  // https://registry.khronos.org/OpenGL/extensions/EXT/EXT_framebuffer_object.txt
 {$ELSE}
   nogl_Init();
+
+  // https://registry.khronos.org/OpenGL/extensions/OES/OES_framebuffer_object.txt
   fbo := nogl_ExtensionSupported('GL_OES_framebuffer_object');
 {$ENDIF}
 
@@ -314,11 +319,17 @@ begin
     glRenderToFBO := False;
   end;
 
+  // TODO: SDL is prone to false-negative conclusions here (e.g. on Intel HD Graphics 3000).
+  // https://github.com/libsdl-org/SDL/issues/12070
   if SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, ltmp) = 0 then
   begin
     e_LogWritefln('stencil buffer size: %s', [ltmp]);
     gwin_has_stencil := ltmp > 0;
+  end else begin
+    e_LogWriteln('failed to retrieve stencil buffer size: ' + SDL_GetError());
   end;
+
+  // TODO: Validate more requested attributes here?..
 end;
 
 procedure FreeGL ();
@@ -392,14 +403,15 @@ begin
   Result := False;
   e_LogWritefln('InitWindow %s %s %s %s', [w, h, bpp, fullScreen]);
 
+  // NB: Request only those requirements that are vital for the code to work correctly.
+  // It's better to rely on chance and reasonable defaults for things like SDL_GL_DOUBLEBUFFER.
+
   SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
   SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
   SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-  // lights; it is enough to have 1-bit stencil buffer for lighting, but...
-  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+  // TODO: Use 8-bit stencils (see g_game.renderDynLightsInternal() for the optimization comment).
+  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 1);  // for experimental stencil-shadowed lights
 
   flags := SDL_OPENGL;
   if fullScreen then flags := flags or SDL_FULLSCREEN;

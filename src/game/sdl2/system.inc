@@ -40,6 +40,15 @@ var
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// TODO: Support OpenGL 3.0+ with compatibility (aka "legacy") profile? Would require to take that
+// into account when loading Gl extensions (see `LoadAsCore` parameters in GLext functions), because
+// newer contexts are not obliged to advertise the extensions that were promoted to base features.
+// - https://stackoverflow.com/questions/23819439/to-be-backwards-compatible-are-you-supposed-to-use-arb-extensions-instead-of-co
+// - https://stackoverflow.com/questions/50673534/opengl-extension-availability-on-newer-contexts
+// - https://stackoverflow.com/questions/73745603/detect-the-opengl-context-profile-before-version-3-2
+// - https://stackoverflow.com/questions/15998505/how-to-know-whether-particular-extension-was-promoted-to-a-core-profile-was-mad
+// - https://stackoverflow.com/questions/26323410/using-opengl-core-functions-along-with-extension
+// - https://stackoverflow.com/questions/42518428/opengl-command-implemented-but-not-advertised-with-extension-version
 function LoadGL (): Boolean;
 var
   fbo: Boolean;
@@ -48,9 +57,14 @@ begin
   Result := True;
 
 {$IFNDEF NOGL_INIT}
+  // https://registry.khronos.org/OpenGL/extensions/ARB/ARB_framebuffer_object.txt
   fbo := Load_GL_ARB_framebuffer_object();
+  // TODO: Support also the GL_EXT_framebuffer_object? https://gamedev.ru/code/forum/?id=199279
+  // https://registry.khronos.org/OpenGL/extensions/EXT/EXT_framebuffer_object.txt
 {$ELSE}
   nogl_Init();
+
+  // https://registry.khronos.org/OpenGL/extensions/OES/OES_framebuffer_object.txt
   fbo := nogl_ExtensionSupported('GL_OES_framebuffer_object');
 {$ENDIF}
 
@@ -60,11 +74,17 @@ begin
     glRenderToFBO := False;
   end;
 
+  // TODO: SDL is prone to false-negative conclusions here (e.g. on Intel HD Graphics 3000).
+  // https://github.com/libsdl-org/SDL/issues/12070
   if SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, @ltmp) = 0 then
   begin
     e_LogWritefln('stencil buffer size: %s', [ltmp]);
     gwin_has_stencil := ltmp > 0;
+  end else begin
+    e_LogWriteln('failed to retrieve stencil buffer size: ' + SDL_GetError());
   end;
+
+  // TODO: Validate more requested attributes here?..
 end;
 
 procedure FreeGL ();
@@ -141,24 +161,36 @@ begin
   Result := False;
   e_LogWritefln('InitWindow %s %s %s %s', [w, h, bpp, fullScreen]);
 
+  // NB: Request only those requirements that are vital for the code to work correctly.
+  // It's better to rely on chance and reasonable defaults for things like SDL_GL_DOUBLEBUFFER.
   if window = nil then
   begin
   {$IFNDEF USE_GLES1}
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, OGL_VERSION_MAJOR);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, OGL_VERSION_MINOR);
+    (** TODO: Explicitly disallow core profile if only OpenGL 3.0+ context is available? We're tied
+      strictly to the fixed pipeline at the moment, thus not supporting "core-only" rendering. But
+      it's not clear if SDL will give us then a pre-3.0 context if there is no backward-compatible
+      profiles (e.g. as on Mac OS X). See also SDL docs for SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG.
+      - https://stackoverflow.com/questions/29421798/set-opengl-context-3-3-with-sdl2-on-mac-not-working
+      - https://stackoverflow.com/questions/19658745/why-is-my-opengl-version-always-2-1-on-mac-os-x
+      - https://stackoverflow.com/questions/32958071/why-does-my-mac-only-support-opengl-2-1/
+      - https://github.com/glfw/glfw/issues/904 - OpenGL 3.2+ context creation poorly documented
+      - https://github.com/glfw/glfw/issues/107 - OpenGL 3.2 only supported with forward-compatible core profile
+    **)
+    //SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+  {$ELSE}
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, GLES_VERSION_MAJOR);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, GLES_VERSION_MINOR);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+  {$ENDIF}
+
     SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-    // lights; it is enough to have 1-bit stencil buffer for lighting, but...
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-  {$ELSE}
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-  {$ENDIF}
+    // TODO: Use 8-bit stencils (see g_game.renderDynLightsInternal() for the optimization comment).
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 1);  // for experimental stencil-shadowed lights
 
     flags := SDL_WINDOW_OPENGL or SDL_WINDOW_RESIZABLE;
     if fullScreen then flags := flags or SDL_WINDOW_FULLSCREEN;
