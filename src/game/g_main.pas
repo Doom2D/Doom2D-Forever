@@ -701,28 +701,30 @@ begin
       e_LogWritefln('TIMIDITY_CFG = "%s"', [timiditycfg]);
       e_LogWritefln('SDL_NATIVE_MUSIC = "%s"', [GetEnvironmentVariable('SDL_NATIVE_MUSIC')]);
     {$ENDIF}
+
     e_InitSoundSystem({$IFDEF HEADLESS} True {$ELSE} False {$ENDIF});
-    {$IF DEFINED(USE_SDLMIXER) AND NOT DEFINED(ANDROID)}
-      if e_TimidityDecoder and (newcwd <> '') then
-      begin
-        (* HACK: Set CWD to load GUS patches relatively to cfg file. *)
-        (*       CWD not restored after sound init because timidity  *)
-        (*       store relative pathes internally and load patches   *)
-        (*       later. I hope game never relies on CWD.             *)
-        oldcwd := '';
-        GetDir(0, oldcwd);
-        ChDir(newcwd);
-        e_logwritefln('WARNING: USED TIMIDITY CONFIG HACK, CWD SWITCHED "%s" -> "%s"', [oldcwd, newcwd]);
-      end;
-    {$ELSEIF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
-    // Switch CWD, if possible, to external storage to simplify creating Android bundles with MIDI support
+
+    // Switch CWD, if possible, to simplify creating MacOS and Android bundles with MIDI support
     // that leverage fluidsynth or timidity.
+    {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
     if SDL_AndroidGetExternalStorageState() <> 0 then
       // External storage is the path where bundled files get copied to.
       ChDir(SDL_AndroidGetExternalStoragePath());
     {$ELSEIF DEFINED(DARWIN)}
     if GetBundlePath() <> '' then
       Chdir(ConcatPaths([GetBundlePath(), 'Contents/Resources']));
+    {$ELSEIF DEFINED(USE_SDLMIXER) AND NOT DEFINED(ANDROID)}
+    if e_TimidityDecoder and (newcwd <> '') then
+    begin
+      (* HACK: Set CWD to load GUS patches relatively to cfg file. *)
+      (*       This CWD remains after sound init because timidity  *)
+      (*       stores relative pathes internally and loads patches *)
+      (*       later. I hope game never relies on CWD.             *)
+      oldcwd := '';
+      GetDir(0, oldcwd);
+      ChDir(newcwd);
+      e_logwritefln('WARNING: USED TIMIDITY CONFIG HACK, CWD SWITCHED "%s" -> "%s"', [oldcwd, newcwd]);
+    end;
     {$ENDIF}
   end;
 {$ENDIF}
