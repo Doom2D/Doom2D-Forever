@@ -666,54 +666,56 @@ begin
   g_Touch_Init();
 
 (*
-  if (e_JoysticksAvailable > 0) then
-    e_WriteLog('Input: Joysticks available.', TMsgType.Notify)
-  else
-    e_WriteLog('Input: No Joysticks.', TMsgType.Notify);
+  if e_JoysticksAvailable > 0
+    then e_WriteLog('Input: Joysticks available.', TMsgType.Notify)
+    else e_WriteLog('Input: No Joysticks.', TMsgType.Notify);
 *)
 
 {$IFDEF ENABLE_SOUND}
   if not gNoSound then
   begin
     e_WriteLog('Initializing sound system', TMsgType.Notify);
-    {$IFDEF USE_SDLMIXER}
-      newcwd := '';
-      if UseNativeMusic then
-        SetEnvVar('SDL_NATIVE_MUSIC', '1');
-      // SDL2 Mixer allows to use fluidsynth for MIDI playback.
-      // This is very useful, as GUS patch files can be unwieldy compared to a single .SF2 file.
-      {$IFDEF USE_SDL2}
-      Mix_SetSoundFonts(PChar(e_SoundFont));
-      {$ENDIF}
-      timiditycfg := GetEnvironmentVariable('TIMIDITY_CFG');
-      if timiditycfg = '' then
+
+  {$IFDEF USE_SDLMIXER}
+    newcwd := '';
+    if UseNativeMusic then
+      SetEnvVar('SDL_NATIVE_MUSIC', '1');
+
+  {$IFDEF USE_SDL2}
+    // SDL2 Mixer allows to use fluidsynth for MIDI playback.
+    // This is very useful, as GUS patch files can be unwieldy compared to a single .SF2 file.
+    Mix_SetSoundFonts(PChar(e_SoundFont));
+  {$ENDIF}
+
+    timiditycfg := GetEnvironmentVariable('TIMIDITY_CFG');
+    if timiditycfg = '' then
+    begin
+      timiditycfg := 'timidity.cfg';
+      if e_FindResource(ConfigDirs, timiditycfg) OR e_FindResource(DataDirs, timiditycfg) then
       begin
-        timiditycfg := 'timidity.cfg';
-        if e_FindResource(ConfigDirs, timiditycfg) OR e_FindResource(DataDirs, timiditycfg) then
-        begin
-          timiditycfg := ExpandFileName(timiditycfg);
-          newcwd := ExtractFileDir(timiditycfg);
-          SetEnvVar('TIMIDITY_CFG', timiditycfg);
-        end
-        else
-          timiditycfg := '';
-      end;
-      e_LogWritefln('TIMIDITY_CFG = "%s"', [timiditycfg]);
-      e_LogWritefln('SDL_NATIVE_MUSIC = "%s"', [GetEnvironmentVariable('SDL_NATIVE_MUSIC')]);
-    {$ENDIF}
+        timiditycfg := ExpandFileName(timiditycfg);
+        newcwd := ExtractFileDir(timiditycfg);
+        SetEnvVar('TIMIDITY_CFG', timiditycfg);
+      end
+      else
+        timiditycfg := '';
+    end;
+    e_LogWritefln('TIMIDITY_CFG = "%s"', [timiditycfg]);
+    e_LogWritefln('SDL_NATIVE_MUSIC = "%s"', [GetEnvironmentVariable('SDL_NATIVE_MUSIC')]);
+  {$ENDIF}
 
     e_InitSoundSystem({$IFDEF HEADLESS} True {$ELSE} False {$ENDIF});
 
     // Switch CWD, if possible, to simplify creating MacOS and Android bundles with MIDI support
     // that leverage fluidsynth or timidity.
-    {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
+  {$IF DEFINED(ANDROID) AND DEFINED(USE_SDL2)}
     if SDL_AndroidGetExternalStorageState() <> 0 then
       // External storage is the path where bundled files get copied to.
       ChDir(SDL_AndroidGetExternalStoragePath());
-    {$ELSEIF DEFINED(DARWIN)}
+  {$ELSEIF DEFINED(DARWIN)}
     if GetBundlePath() <> '' then
       Chdir(ConcatPaths([GetBundlePath(), 'Contents/Resources']));
-    {$ELSEIF DEFINED(USE_SDLMIXER) AND NOT DEFINED(ANDROID)}
+  {$ELSEIF DEFINED(USE_SDLMIXER) AND NOT DEFINED(ANDROID)}
     if e_TimidityDecoder and (newcwd <> '') then
     begin
       (* HACK: Set CWD to load GUS patches relatively to cfg file. *)
@@ -725,7 +727,7 @@ begin
       ChDir(newcwd);
       e_logwritefln('WARNING: USED TIMIDITY CONFIG HACK, CWD SWITCHED "%s" -> "%s"', [oldcwd, newcwd]);
     end;
-    {$ENDIF}
+  {$ENDIF}
   end;
 {$ENDIF}
 
