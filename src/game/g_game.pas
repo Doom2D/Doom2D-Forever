@@ -2101,8 +2101,7 @@ begin
           end;
           gSpectKeyPress := True;
         end;
-        if (gSpectMode = SPECT_MAPVIEW)
-           and (not gSpectAuto) then
+        if (gSpectMode = SPECT_MAPVIEW) and not gSpectAuto then
         begin
           if gPlayerAction[0, ACTION_MOVELEFT] then
             gSpectX := Max(gSpectX - gSpectStep, 0);
@@ -3460,13 +3459,14 @@ var
   lln: Integer;
   lx, ly, lrad: Integer;
   scxywh: array[0..3] of GLint;
-  wassc: Boolean;
+  RestoreScissor: Boolean;
 begin
-  if e_NoGraphics then exit;
+  if e_NoGraphics then Exit;
 
-  //TODO: lights should be in separate grid, i think
-  //      but on the other side: grid may be slower for dynlights, as their lifetime is short
-  if (not gwin_k8_enable_light_experiments) or (not gwin_has_stencil) or (g_dynLightCount < 1) then exit;
+  // TODO: lights should be in separate grid, I think
+  //       but on the other side: grid may be slower for dynlights, as their lifetime is short
+  if not gwin_k8_enable_light_experiments or not gwin_has_stencil or (g_dynLightCount < 1) then
+    Exit;
 
   // rendering mode
   //ambColor := gCurrentMap['light_ambient'].rgba;
@@ -3492,28 +3492,30 @@ begin
    *     glBlendFunc(GL_DST_ALPHA, GL_ONE);
    *     draw all geometry up to and including walls (with alpha-testing, probably) -- this does lighting
    *)
-  wassc := (glIsEnabled(GL_SCISSOR_TEST) <> 0);
-  if wassc then glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0]) else glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
+  RestoreScissor := glIsEnabled(GL_SCISSOR_TEST) <> 0;
+  if RestoreScissor
+    then glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0])
+    else glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
 
   // setup OpenGL parameters
-  glStencilMask($FFFFFFFF);
-  glStencilFunc(GL_ALWAYS, 0, $FFFFFFFF);
+  glStencilMask(GLuint(not 0));  // enable all the stencil buffer planes for writing
+  glStencilFunc(GL_ALWAYS, 0, GLuint(not 0));  // set stencil test to always pass (why is it here?)
   glEnable(GL_STENCIL_TEST);
   glEnable(GL_SCISSOR_TEST);
   glClear(GL_STENCIL_BUFFER_BIT);
-  glStencilFunc(GL_EQUAL, 0, $ff);
+  glStencilFunc(GL_EQUAL, 0, %11111111);  // draw only where stencil value equals 0 (in 8 planes)
 
   for lln := 0 to g_dynLightCount-1 do
   begin
     lx := g_dynLights[lln].x;
     ly := g_dynLights[lln].y;
     lrad := g_dynLights[lln].radius;
-    if (lrad < 3) then continue;
+    if lrad < 3 then Continue;
 
-    if (lx-sX+lrad < 0) then continue;
-    if (ly-sY+lrad < 0) then continue;
-    if (lx-sX-lrad >= gPlayerScreenSize.X) then continue;
-    if (ly-sY-lrad >= gPlayerScreenSize.Y) then continue;
+    if lx-sX+lrad < 0 then Continue;
+    if ly-sY+lrad < 0 then Continue;
+    if lx-sX-lrad >= gPlayerScreenSize.X then Continue;
+    if ly-sY-lrad >= gPlayerScreenSize.Y then Continue;
 
     // set scissor to optimize drawing
     if (g_dbg_scale = 1.0) then
@@ -3524,17 +3526,28 @@ begin
     begin
       glScissor(0, 0, gScreenWidth, gScreenHeight);
     end;
-    // no need to clear stencil buffer, light blitting will do it for us... but only for normal scale
+
+    // TODO: There's an optimization opportunity here which Ketmar kindly explained to me (BD).
+    // Rather than clearing the stencil buffer together with light output or even manually, we can
+    // employ an 8-bit stencil buffer instead of 1-bit (when available), and then clear the buffer
+    // only once per 255 lights. The idea here is that for extruded shadow volumes we need only two
+    // marks, "not in shadow" and "shadowed" (that's why 1 bit is enough), and one of them could be
+    // made unique and per-light specific - just by incrementing some counter in a static variable.
+
+    // no need to clear stencil buffer, light blitting will do it for us - but only for normal scale
     if (g_dbg_scale <> 1.0) then glClear(GL_STENCIL_BUFFER_BIT);
     glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
     // draw extruded panels
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_BLEND);
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // no need to modify color buffer
-    if (lrad > 4) then g_Map_DrawPanelShadowVolumes(lx, ly, lrad);
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);  // no need to modify color buffer
+
+    if lrad >= 5 then  // no need to cut very small lights
+      g_Map_DrawPanelShadowVolumes(lx, ly, lrad);
+
     // render light texture
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // modify color buffer
-    glStencilOp(GL_ZERO, GL_ZERO, GL_ZERO); // draw light, and clear stencil buffer
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);  // going to modify the color buffer
+    glStencilOp(GL_ZERO, GL_ZERO, GL_ZERO);  // and to clear the stencil buffer with the light drawn
     // blend it
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -3542,12 +3555,14 @@ begin
     glColor4f(g_dynLights[lln].r, g_dynLights[lln].g, g_dynLights[lln].b, g_dynLights[lln].a);
     glBindTexture(GL_TEXTURE_2D, g_Texture_Light());
     glEnable(GL_TEXTURE_2D);
+
     glBegin(GL_QUADS);
-      glTexCoord2f(0.0, 0.0); glVertex2i(lx-lrad, ly-lrad); // top-left
-      glTexCoord2f(1.0, 0.0); glVertex2i(lx+lrad, ly-lrad); // top-right
-      glTexCoord2f(1.0, 1.0); glVertex2i(lx+lrad, ly+lrad); // bottom-right
-      glTexCoord2f(0.0, 1.0); glVertex2i(lx-lrad, ly+lrad); // bottom-left
+    glTexCoord2f(0.0, 0.0); glVertex2i(lx-lrad, ly-lrad);  // top-left
+    glTexCoord2f(1.0, 0.0); glVertex2i(lx+lrad, ly-lrad);  // top-right
+    glTexCoord2f(1.0, 1.0); glVertex2i(lx+lrad, ly+lrad);  // bottom-right
+    glTexCoord2f(0.0, 1.0); glVertex2i(lx-lrad, ly+lrad);  // bottom-left
     glEnd();
+
     glDisable(GL_TEXTURE_2D);
   end;
 
@@ -3558,7 +3573,9 @@ begin
   //glScissor(0, 0, sWidth, sHeight);
 
   glScissor(scxywh[0], scxywh[1], scxywh[2], scxywh[3]);
-  if wassc then glEnable(GL_SCISSOR_TEST) else glDisable(GL_SCISSOR_TEST);
+  if RestoreScissor
+    then glEnable(GL_SCISSOR_TEST)
+    else glDisable(GL_SCISSOR_TEST);
 end;
 
 

@@ -112,6 +112,10 @@ begin
       end;
     end;
 
+    // FIXME: It's not guaranteed by the OpenGL specification that glGenTextures() results in 0 if
+    // there's an error. Also, OpenGL from AcXtrnal.dll generates it as a legitimate texture name.
+    // https://stackoverflow.com/questions/1108589/is-0-a-valid-opengl-texture-id/
+    // https://community.khronos.org/t/glgentextures-gives-back-a-zero/23766
     glGenTextures(1, @curtexid);
     if (curtexid = 0) then raise Exception.Create('can''t create cursor texture');
 

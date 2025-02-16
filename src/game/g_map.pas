@@ -175,34 +175,25 @@ const
 const
   GridTagInvalid = 0;
 
-  (* draw order:
-      PANEL_BACK
-      PANEL_STEP
-      PANEL_WALL
-      PANEL_CLOSEDOOR
-      PANEL_ACID1
-      PANEL_ACID2
-      PANEL_WATER
-      PANEL_FORE
-   *)
-  // sorted by draw priority
-  GridTagBack = 1 shl 0; // gRenderBackgrounds
-  GridTagStep = 1 shl 1; // gSteps
-  GridTagWall = 1 shl 2; // gWalls
-  GridTagDoor = 1 shl 3; // gWalls
-  GridTagAcid1 = 1 shl 4; // gAcid1
-  GridTagAcid2 = 1 shl 5; // gAcid2
-  GridTagWater = 1 shl 6; // gWater
-  GridTagFore = 1 shl 7; // gRenderForegrounds
+  // sorted by draw priority, must correspond to the order of calls in g_game.renderMapInternal():
+  GridTagBack = 1 shl 0;  // gRenderBackgrounds, PANEL_BACK
+  GridTagStep = 1 shl 1;  // gSteps, PANEL_STEP
+  GridTagWall = 1 shl 2;  // gWalls, PANEL_WALL
+  GridTagDoor = 1 shl 3;  // gWalls, PANEL_CLOSEDOOR
+  GridTagAcid1 = 1 shl 4;  // gAcid1, PANEL_ACID1
+  GridTagAcid2 = 1 shl 5;  // gAcid2, PANEL_ACID2
+  GridTagWater = 1 shl 6;  // gWater, PANEL_WATER
+  GridTagFore = 1 shl 7;  // gRenderForegrounds, PANEL_FORE
   // the following are invisible
   GridTagLift = 1 shl 8; // gLifts
   GridTagBlockMon = 1 shl 9; // gBlockMon
 
-  GridTagSolid = (GridTagWall or GridTagDoor);
-  GridTagObstacle = (GridTagStep or GridTagWall or GridTagDoor);
-  GridTagLiquid = (GridTagAcid1 or GridTagAcid2 or GridTagWater);
+  GridTagSolid = GridTagWall or GridTagDoor;
+  GridTagObstacle = GridTagStep or GridTagWall or GridTagDoor;
+  GridTagLiquid = GridTagAcid1 or GridTagAcid2 or GridTagWater;
 
-  GridDrawableMask = (GridTagBack or GridTagStep or GridTagWall or GridTagDoor or GridTagAcid1 or GridTagAcid2 or GridTagWater or GridTagFore);
+  GridDrawableMask = GridTagBack or GridTagStep or GridTagWall or GridTagDoor or GridTagAcid1
+    or GridTagAcid2 or GridTagWater or GridTagFore;
 
 
 type
@@ -2696,6 +2687,25 @@ end;
 
 
 // new algo
+
+// TODO: Currently we have to sort textures every frame to maintain layer stacking order, which is
+// what the binary heap does here. But there's an optimization opportunity: for opaque textures, we
+// can avoid sorting by using Z-index as texture priority. Also, front-to-back rendering is faster.
+// - https://old.reddit.com/r/gamedev/comments/7un29e/zbuffer_vs_sorting_for_an_opengl_es_based_2d_game/dtm78je/
+// - https://old.reddit.com/r/opengl/comments/1b1zwzi/what_is_the_point_of_depth_testing/ksi7ftu/
+// - https://old.reddit.com/r/gamedev/comments/9durja/rendering_a_2d_scene_with_translucent_objects_in/
+// - https://old.reddit.com/r/GraphicsProgramming/comments/twc9km/sorting_opaque_objects_fronttoback_vs_minimizing/
+// - https://stackoverflow.com/questions/15673187/is-drawing-front-to-back-necessary-for-optimizing-renders
+// - https://computergraphics.stackexchange.com/questions/121/what-are-some-methods-to-render-transparency-in-opengl
+// - https://www.khronos.org/opengl/wiki/transparency_Sorting
+// - https://www.opengl.org/archives/resources/faq/technical/transparency.htm
+// - https://gamedev.ru/code/forum/?id=69869
+// - https://community.khronos.org/t/front-to-back-blending/65155
+// This would also require the following changes in code:
+// - SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16) in SDL2 and SDL backends;
+// - glEnable(GL_DEPTH_TEST) in e_graphics.e_InitGL();
+// - check all textures at loading stage for the presence of alpha channel and translucent pixels.
+
 procedure g_Map_CollectDrawPanels (x0, y0, wdt, hgt: Integer);
 var
   mwit: PPanel;
@@ -2707,7 +2717,7 @@ begin
     if ((mwit^.tag and GridTagDoor) <> 0) = mwit^.Door then
       gDrawPanelList.insert(mwit^);
   it.release();
-  // list will be rendered in `g_game.DrawPlayer()`
+  // list will be rendered in g_game.renderMapInternal()
 end;
 
 

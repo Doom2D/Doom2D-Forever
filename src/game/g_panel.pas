@@ -513,18 +513,21 @@ procedure TPanel.DrawShadowVolume(lightX: Integer; lightY: Integer; radius: Inte
 var
   tx, ty, tw, th: Integer;
 
-  procedure extrude (x: Integer; y: Integer);
+  procedure extrude (x, y: Integer);
   begin
+    // TODO: 500 here is "infinity" (actually a "large enough" value). The general case would be to
+    // calculate a value from the light's size, truly sufficient to clip it regardless of radius.
     glVertex2i(x+(x-lightX)*500, y+(y-lightY)*500);
     //e_WriteLog(Format('  : (%d,%d)', [x+(x-lightX)*300, y+(y-lightY)*300]), MSG_WARNING);
   end;
 
-  procedure drawLine (x0: Integer; y0: Integer; x1: Integer; y1: Integer);
+  procedure drawLine (x0, y0, x1, y1: Integer);
   begin
-    // does this side facing the light?
-    if ((x1-x0)*(lightY-y0)-(lightX-x0)*(y1-y0) >= 0) then exit;
+    // Optimization: check if this side of the panel is facing the light. It is enough to extrude
+    // only such edges, and not the whole panel, in the direction of the light to be trimmed by it.
+    if (x1-x0)*(lightY-y0)-(lightX-x0)*(y1-y0) >= 0 then Exit;
     //e_WriteLog(Format('lightpan: (%d,%d)-(%d,%d)', [x0, y0, x1, y1]), MSG_WARNING);
-    // this edge is facing the light, extrude and draw it
+
     glVertex2i(x0, y0);
     glVertex2i(x1, y1);
     extrude(x1, y1);
@@ -532,7 +535,7 @@ var
   end;
 
 begin
-  if radius < 4 then exit;
+  if radius < 4 then Exit;
   if Enabled and (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (FAlpha < 255) {and
      g_Collide(X, Y, tw, th, sX, sY, sWidth, sHeight)} then
   begin
@@ -553,10 +556,10 @@ begin
     //e_DrawFill(FTextureIDs[FCurTexture].Tex, X, Y, tw div FTextureWidth, th div FTextureHeight, FAlpha, True, FBlending);
 
     glBegin(GL_QUADS);
-      drawLine(tx,    ty,    tx+tw, ty); // top
-      drawLine(tx+tw, ty,    tx+tw, ty+th); // right
-      drawLine(tx+tw, ty+th, tx,    ty+th); // bottom
-      drawLine(tx,    ty+th, tx,    ty); // left
+    drawLine(tx,    ty,    tx+tw, ty);  // top
+    drawLine(tx+tw, ty,    tx+tw, ty+th);  // right
+    drawLine(tx+tw, ty+th, tx,    ty+th);  // bottom
+    drawLine(tx,    ty+th, tx,    ty);  // left
     glEnd();
   end;
 end;

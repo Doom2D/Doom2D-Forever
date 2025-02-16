@@ -133,6 +133,7 @@ begin
 
   // create empty texture
   if aFormat = GL_RGBA then fmt := GL_RGBA else fmt := GL_RGB; // silly, yeah?
+  // TODO: OpenGL from AcXtrnal.dll segfaults if last argument is NULL because of its MEMCPY() bug.
   glTexImage2D(GL_TEXTURE_2D, 0, fmt, tex.glwidth, tex.glheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nil);
 
   (*
