@@ -101,7 +101,7 @@ procedure g_Map_DrawFlags();
 procedure g_Map_SaveState (st: TStream);
 procedure g_Map_LoadState (st: TStream);
 
-procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
+procedure g_Map_DrawPanelShadowVolumes(lightX, lightY, radius: Integer);
 
 // returns panel or nil
 // sets `ex` and `ey` to `x1` and `y1` when no hit was detected
@@ -2721,7 +2721,7 @@ begin
 end;
 
 
-procedure g_Map_DrawPanelShadowVolumes (lightX: Integer; lightY: Integer; radius: Integer);
+procedure g_Map_DrawPanelShadowVolumes (lightX, lightY, radius: Integer);
 var
   mwit: PPanel;
   it: TPanelGrid.Iter;

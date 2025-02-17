@@ -898,7 +898,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  ltexid: GLuint = 0;
+  ltexid: GLuint;
 
 function g_Texture_Light (): Integer;
 const
@@ -908,7 +908,7 @@ var
   x, y, a: Integer;
   dist: Double;
 begin
-  if ltexid = 0 then
+  if glIsTexture(ltexid) = GL_FALSE then
   begin
     GetMem(tex, (Radius*2)*(Radius*2)*4);
     tpp := tex;
@@ -916,7 +916,7 @@ begin
     begin
       for x := 0 to Radius*2-1 do
       begin
-        dist := 1.0-sqrt((x-Radius)*(x-Radius)+(y-Radius)*(y-Radius))/Radius;
+        dist := 1.0 - sqrt( (x-Radius)*(x-Radius) + (y-Radius)*(y-Radius) ) / Radius;
         if (dist < 0) then
         begin
           tpp^ := 0; Inc(tpp);
@@ -928,8 +928,8 @@ begin
         begin
           //tc.setPixel(x, y, Color(cast(int)(dist*255), cast(int)(dist*255), cast(int)(dist*255)));
           if (dist > 0.5) then dist := 0.5;
-          a := round(dist*255);
-          if (a < 0) then a := 0 else if (a > 255) then a := 255;
+          a := Round(dist * 255);
+          if a < 0 then a := 0 else if a > 255 then a := 255;
           tpp^ := 255; Inc(tpp);
           tpp^ := 255; Inc(tpp);
           tpp^ := 255; Inc(tpp);
@@ -951,9 +951,10 @@ begin
     //glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, bclr.ptr);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Radius*2, Radius*2, 0, GL_RGBA{gltt}, GL_UNSIGNED_BYTE, tex);
+    FreeMem(tex);
   end;
 
-  result := ltexid;
+  Result := ltexid;
 end;
 
 

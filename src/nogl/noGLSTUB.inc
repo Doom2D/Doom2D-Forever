@@ -25,17 +25,22 @@ implementation
 
   function glIsEnabled(cap: GLenum): GLboolean;
   begin
-    result := 0
+    result := GL_FALSE;
+  end;
+
+  function glIsTexture(texture: GLuint): GLboolean;
+  begin
+    Result := GL_FALSE;
   end;
 
   function glGetString(name: GLenum): PChar;
   begin
-    result := ''
+    result := '';
   end;
 
   function glGetError: GLenum;
   begin
-    result := GL_NO_ERROR
+    result := GL_NO_ERROR;
   end;
 
   procedure glClearColor(red, green, blue, alpha: GLclampf);

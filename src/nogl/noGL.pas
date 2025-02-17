@@ -163,6 +163,7 @@ interface
   procedure glEnable(cap: GLenum); inline;
   procedure glDisable(cap: GLenum); inline;
   function  glIsEnabled(cap: GLenum): GLboolean; inline;
+  function glIsTexture(texture: GLuint): GLboolean; inline;
   function  glGetString(name: GLenum): PChar; inline;
   function  glGetError: GLenum; inline;
   procedure glClearColor(red, green, blue, alpha: GLclampf); inline;

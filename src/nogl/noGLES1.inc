@@ -60,6 +60,7 @@ implementation
     es_glEnable: procedure (cap: GLenum); cdecl;
     es_glDisable: procedure (cap: GLenum); cdecl;
     es_glIsEnabled: function (cap: GLenum): GLBoolean; cdecl;
+    es_glIsTexture: function (texture: GLuint): GLboolean; cdecl;
     es_glGetString: function (name: GLenum): PChar; cdecl;
     es_glGetError: function (): GLenum; cdecl;
     es_glClearColor: procedure (red, green, blue, alpha: GLclampf); cdecl;
@@ -125,6 +126,11 @@ implementation
   function glIsEnabled(cap: GLenum): GLboolean;
   begin
     result := es_glIsEnabled(cap);
+  end;
+
+  function glIsTexture(texture: GLuint): GLboolean;
+  begin
+    Result := es_glIsTexture(texture);
   end;
 
   function glGetString(name: GLenum): PChar;
@@ -518,6 +524,7 @@ implementation
     es_glEnable := SDL_GL_GetProcAddress('glEnable');
     es_glDisable := SDL_GL_GetProcAddress('glDisable');
     es_glIsEnabled := SDL_GL_GetProcAddress('glIsEnabled');
+    es_glIsTexture := SDL_GL_GetProcAddress('glIsTexture');
     es_glGetString := SDL_GL_GetProcAddress('glGetString');
     es_glGetError := SDL_GL_GetProcAddress('glGetError');
     es_glClearColor := SDL_GL_GetProcAddress('glClearColor');
@@ -588,6 +595,7 @@ implementation
     es_glEnable := nil;
     es_glDisable := nil;
     es_glIsEnabled := nil;
+    es_glIsTexture := nil;
     es_glGetString := nil;
     es_glClearColor := nil;
     es_glClear := nil;

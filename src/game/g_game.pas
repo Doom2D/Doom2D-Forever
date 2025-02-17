@@ -3492,40 +3492,44 @@ begin
    *     glBlendFunc(GL_DST_ALPHA, GL_ONE);
    *     draw all geometry up to and including walls (with alpha-testing, probably) -- this does lighting
    *)
-  RestoreScissor := glIsEnabled(GL_SCISSOR_TEST) <> 0;
-  if RestoreScissor
-    then glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0])
-    else glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
 
   // setup OpenGL parameters
+  RestoreScissor := glIsEnabled(GL_SCISSOR_TEST) <> GL_FALSE;
+  if RestoreScissor then
+    glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0])
+  else
+  begin
+    glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
+    glEnable(GL_SCISSOR_TEST);
+  end;
+
+  // NOTE: Some drivers don't respect values set by glStencilMask() in calls to glClear().
+  // https://stackoverflow.com/questions/11653652/glclear-and-glstencilmask-not-functioning-as-expected
+  // https://github.com/cocos2d/cocos2d-x/issues/16859 - why not use glClear(GL_STENCIL_BUFFER_BIT)
   glStencilMask(GLuint(not 0));  // enable all the stencil buffer planes for writing
-  glStencilFunc(GL_ALWAYS, 0, GLuint(not 0));  // set stencil test to always pass (why is it here?)
-  glEnable(GL_STENCIL_TEST);
-  glEnable(GL_SCISSOR_TEST);
-  glClear(GL_STENCIL_BUFFER_BIT);
   glStencilFunc(GL_EQUAL, 0, %11111111);  // draw only where stencil value equals 0 (in 8 planes)
+  glEnable(GL_STENCIL_TEST);
+  glClear(GL_STENCIL_BUFFER_BIT);
 
   for lln := 0 to g_dynLightCount-1 do
   begin
     lx := g_dynLights[lln].x;
     ly := g_dynLights[lln].y;
     lrad := g_dynLights[lln].radius;
-    if lrad < 3 then Continue;
 
     if lx-sX+lrad < 0 then Continue;
     if ly-sY+lrad < 0 then Continue;
     if lx-sX-lrad >= gPlayerScreenSize.X then Continue;
     if ly-sY-lrad >= gPlayerScreenSize.Y then Continue;
 
+    // placed in advance to reset also after the previous iteration
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_BLEND);
+
     // set scissor to optimize drawing
-    if (g_dbg_scale = 1.0) then
-    begin
-      glScissor((lx-sX)-lrad+2, gPlayerScreenSize.Y-(ly-sY)-lrad-1+2, lrad*2-4, lrad*2-4);
-    end
-    else
-    begin
-      glScissor(0, 0, gScreenWidth, gScreenHeight);
-    end;
+    if g_dbg_scale = 1.0
+      then glScissor((lx-sX)-lrad+2, gPlayerScreenSize.Y-(ly-sY)-lrad-1+2, lrad*2-4, lrad*2-4)
+      else glScissor(0, 0, gScreenWidth, gScreenHeight);
 
     // TODO: There's an optimization opportunity here which Ketmar kindly explained to me (BD).
     // Rather than clearing the stencil buffer together with light output or even manually, we can
@@ -3533,17 +3537,15 @@ begin
     // only once per 255 lights. The idea here is that for extruded shadow volumes we need only two
     // marks, "not in shadow" and "shadowed" (that's why 1 bit is enough), and one of them could be
     // made unique and per-light specific - just by incrementing some counter in a static variable.
+    // https://stackoverflow.com/questions/9314543/how-to-get-rid-of-glcleargl-stencil-buffer-bit
 
     // no need to clear stencil buffer, light blitting will do it for us - but only for normal scale
-    if (g_dbg_scale <> 1.0) then glClear(GL_STENCIL_BUFFER_BIT);
+    if g_dbg_scale <> 1.0 then glClear(GL_STENCIL_BUFFER_BIT);
     glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
     // draw extruded panels
-    glDisable(GL_TEXTURE_2D);
-    glDisable(GL_BLEND);
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);  // no need to modify color buffer
-
-    if lrad >= 5 then  // no need to cut very small lights
-      g_Map_DrawPanelShadowVolumes(lx, ly, lrad);
+    // no need to cut very small lights
+    if lrad >= 5 then g_Map_DrawPanelShadowVolumes(lx, ly, lrad);
 
     // render light texture
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);  // going to modify the color buffer
@@ -3562,20 +3564,14 @@ begin
     glTexCoord2f(1.0, 1.0); glVertex2i(lx+lrad, ly+lrad);  // bottom-right
     glTexCoord2f(0.0, 1.0); glVertex2i(lx-lrad, ly+lrad);  // bottom-left
     glEnd();
-
-    glDisable(GL_TEXTURE_2D);
   end;
 
   // done
-  glDisable(GL_STENCIL_TEST);
+  glDisable(GL_TEXTURE_2D);
   glDisable(GL_BLEND);
-  glDisable(GL_SCISSOR_TEST);
-  //glScissor(0, 0, sWidth, sHeight);
-
+  glDisable(GL_STENCIL_TEST);
+  if not RestoreScissor then glDisable(GL_SCISSOR_TEST);
   glScissor(scxywh[0], scxywh[1], scxywh[2], scxywh[3]);
-  if RestoreScissor
-    then glEnable(GL_SCISSOR_TEST)
-    else glDisable(GL_SCISSOR_TEST);
 end;
 
 

@@ -121,7 +121,7 @@ type
     destructor  Destroy(); override;
 
     procedure   Draw (hasAmbient: Boolean; constref ambColor: TDFColor);
-    procedure   DrawShadowVolume(lightX: Integer; lightY: Integer; radius: Integer);
+    procedure   DrawShadowVolume(lightX, lightY, radius: Integer);
     procedure   Update();
     procedure   SetFrame(Frame: Integer; Count: Byte);
     procedure   NextTexture(AnimLoop: Byte = 0);
@@ -509,11 +509,11 @@ begin
   end;
 end;
 
-procedure TPanel.DrawShadowVolume(lightX: Integer; lightY: Integer; radius: Integer);
+procedure TPanel.DrawShadowVolume(lightX, lightY, radius: Integer);
 var
   tx, ty, tw, th: Integer;
 
-  procedure extrude (x, y: Integer);
+  procedure extrude (x, y: Integer); inline;
   begin
     // TODO: 500 here is "infinity" (actually a "large enough" value). The general case would be to
     // calculate a value from the light's size, truly sufficient to clip it regardless of radius.
@@ -521,7 +521,7 @@ var
     //e_WriteLog(Format('  : (%d,%d)', [x+(x-lightX)*300, y+(y-lightY)*300]), MSG_WARNING);
   end;
 
-  procedure drawLine (x0, y0, x1, y1: Integer);
+  procedure drawLine (x0, y0, x1, y1: Integer); inline;
   begin
     // Optimization: check if this side of the panel is facing the light. It is enough to extrude
     // only such edges, and not the whole panel, in the direction of the light to be trimmed by it.
@@ -535,7 +535,6 @@ var
   end;
 
 begin
-  if radius < 4 then Exit;
   if Enabled and (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (FAlpha < 255) {and
      g_Collide(X, Y, tw, th, sX, sY, sWidth, sHeight)} then
   begin
@@ -543,16 +542,16 @@ begin
     if not FTextureIDs[FCurTexture].Anim then
     begin
       case FTextureIDs[FCurTexture].Tex of
-        LongWord(TEXTURE_SPECIAL_WATER): exit;
-        LongWord(TEXTURE_SPECIAL_ACID1): exit;
-        LongWord(TEXTURE_SPECIAL_ACID2): exit;
-        LongWord(TEXTURE_NONE): exit;
+        LongWord(TEXTURE_SPECIAL_WATER): Exit;
+        LongWord(TEXTURE_SPECIAL_ACID1): Exit;
+        LongWord(TEXTURE_SPECIAL_ACID2): Exit;
+        LongWord(TEXTURE_NONE): Exit;
       end;
     end;
-    if (tx+tw < lightX-radius) then exit;
-    if (ty+th < lightY-radius) then exit;
-    if (tx > lightX+radius) then exit;
-    if (ty > lightY+radius) then exit;
+    if tx+tw < lightX-radius then Exit;
+    if ty+th < lightY-radius then Exit;
+    if tx > lightX+radius then Exit;
+    if ty > lightY+radius then Exit;
     //e_DrawFill(FTextureIDs[FCurTexture].Tex, X, Y, tw div FTextureWidth, th div FTextureHeight, FAlpha, True, FBlending);
 
     glBegin(GL_QUADS);
