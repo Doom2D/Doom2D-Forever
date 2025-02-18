@@ -30,8 +30,8 @@ uses
     {$LINKLIB libopus.a}
   {$ELSE}
     {$DEFINE OPUS_DYNAMIC}
-    const opuslib = 'libopus-0.dll';
-    const opusfilelib = 'libopusfile-0.dll';
+    const opuslib = 'libopus.dll';
+    const opusfilelib = 'libopusfile.dll';
   {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
   {$DEFINE OPUS_DYNAMIC}

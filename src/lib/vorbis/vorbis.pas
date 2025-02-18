@@ -32,8 +32,8 @@ uses
     {$LINKLIB libvorbis.a}
   {$ELSE}
     {$DEFINE OGG_DYNAMIC}
-    const vorbislib = 'libvorbis-0.dll';
-    const vorbisfilelib = 'libvorbisfile-3.dll';
+    const vorbislib = 'libvorbis.dll';
+    const vorbisfilelib = 'libvorbisfile.dll';
   {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
   {$DEFINE OGG_DYNAMIC}
