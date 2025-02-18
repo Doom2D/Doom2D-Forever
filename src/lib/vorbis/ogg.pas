@@ -31,7 +31,7 @@ uses
     {$LINKLIB libogg.a}
   {$ELSE}
     {$DEFINE OGG_DYNAMIC}
-    const ogglib = 'libogg-0.dll';
+    const ogglib = 'ogg.dll';
   {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
   {$DEFINE OGG_DYNAMIC}

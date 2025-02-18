@@ -25,7 +25,7 @@ uses
     {$LINKLIB libmodplug.a}
   {$ELSE}
     {$DEFINE MP_DYNAMIC}
-    const modpluglib = 'libmodplug-1.dll';
+    const modpluglib = 'libmodplug.dll';
   {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
   {$DEFINE MP_DYNAMIC}

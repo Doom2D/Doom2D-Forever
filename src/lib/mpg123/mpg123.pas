@@ -33,7 +33,7 @@ uses
     {$LINKLIB libmpg123.a}
   {$ELSE}
     {$DEFINE MPG123_DYNAMIC}
-    const LIB_MPG123 = 'libmpg123-0.dll';
+    const LIB_MPG123 = 'libmpg123.dll';
   {$ENDIF}
 {$ELSEIF DEFINED(UNIX)}
   {$DEFINE MPG123_DYNAMIC}
