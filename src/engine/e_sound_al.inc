@@ -253,26 +253,16 @@ end;
 function FindESound(): TSoundID;
 var
   i: TSoundID;
-
 begin
-  if e_SoundsArray <> nil then
-    for i := 0 to High(e_SoundsArray) do
-      if (e_SoundsArray[i].alBuffer = 0) and (e_SoundsArray[i].Loader = nil) then
-      begin
-        Result := i;
-        Exit;
-      end;
+  for i := 0 to High(e_SoundsArray) do
+    if (e_SoundsArray[i].alBuffer = 0) and (e_SoundsArray[i].Loader = nil) then
+    begin
+      Result := i;
+      Exit;
+    end;
 
-  if e_SoundsArray = nil then
-  begin
-    SetLength(e_SoundsArray, 16);
-    Result := 0;
-  end
-  else
-  begin
-    Result := High(e_SoundsArray) + 1;
-    SetLength(e_SoundsArray, Length(e_SoundsArray) + 16);
-  end;
+  Result := High(e_SoundsArray) + 1;
+  SetLength(e_SoundsArray, Length(e_SoundsArray) + 16);
 end;
 
 function GetALSoundFormat(Fmt: TSoundFormat): ALenum; inline;
@@ -300,7 +290,7 @@ end;
 
 function LoadEntireSound(var Snd: TSoundRec; Loader: TSoundLoader): Boolean;
 var
-  Frame, Data: Pointer;
+  Frame, Data, NewData: Pointer;
   Rx, DataLen, OldLen: LongWord;
 const
   CHUNK_SIZE = 65536 * 2 * 2;
@@ -319,13 +309,15 @@ begin
 
     OldLen := DataLen;
     DataLen := DataLen + Rx;
-    Data := ReAllocMem(Data, DataLen);
-    if Data = nil then
+    NewData := ReAllocMem(Data, DataLen);
+    if NewData = nil then
     begin
+      FreeMem(Data);
       FreeMem(Frame);
       Exit;
     end;
 
+    Data := NewData;
     Move(Frame^, (Data + OldLen)^, Rx);
   until Loader.Finished();
 
@@ -463,8 +455,8 @@ var
   S: Integer;
 begin
   Result := -1;
-  if ID > High(e_SoundsArray) then
-    exit;
+  if (ID = NO_SOUND_ID) or (High(e_SoundsArray) < ID) then
+    Exit;
 
   if e_SoundsArray[ID].Loader <> nil then
   begin
@@ -538,10 +530,9 @@ begin
     // this is a full chunk, assign local buffer
     alSourcei(Src, AL_BUFFER, e_SoundsArray[ID].alBuffer);
     // these can loop
-    if (e_SoundsArray[ID].Loops) then
-      alSourcei(Src, AL_LOOPING, AL_TRUE)
-    else
-      alSourcei(Src, AL_LOOPING, AL_FALSE);
+    if e_SoundsArray[ID].Loops
+      then alSourcei(Src, AL_LOOPING, AL_TRUE)
+      else alSourcei(Src, AL_LOOPING, AL_FALSE);
   end;
 
   alSourcei(Src, AL_SOURCE_RELATIVE, AL_TRUE);
@@ -607,16 +598,16 @@ end;
 
 procedure e_DeleteSound(ID: TSoundID);
 begin
-  if ID > High(e_SoundsArray) then
+  if (ID = NO_SOUND_ID) or (High(e_SoundsArray) < ID) then
     Exit;
 
-  if (e_SoundsArray[ID].alBuffer <> 0) then
+  if e_SoundsArray[ID].alBuffer <> 0 then
   begin
     alDeleteBuffers(1, Addr(e_SoundsArray[ID].alBuffer));
     e_SoundsArray[ID].alBuffer := 0;
   end;
 
-  if (e_SoundsArray[ID].Loader <> nil) then
+  if e_SoundsArray[ID].Loader <> nil then
   begin
     e_SoundsArray[ID].Loader.Destroy();
     e_SoundsArray[ID].Loader := nil;
@@ -825,8 +816,8 @@ procedure TBasicSound.SetID(ID: TSoundID);
 begin
   FreeSound();
 
-  if ID > High(e_SoundsArray) then
-    exit;
+  if (ID = NO_SOUND_ID) or (High(e_SoundsArray) < ID) then
+    Exit;
 
   FID := ID;
   FMusic := e_SoundsArray[ID].isMusic;
