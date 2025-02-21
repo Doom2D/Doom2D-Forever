@@ -2273,8 +2273,8 @@ begin
                 Anim := TAnimation.Create(TextureID, False, 8);
                 Anim.Blending := False;
                 g_GFX_OnceAnim((Obj.X+32)-58, (Obj.Y+8)-36, Anim);
-                g_DynLightExplosion((Obj.X+32), (Obj.Y+8), 64, 1, 0, 0);
                 Anim.Destroy();
+                g_DynLightExplosion((Obj.X+32), (Obj.Y+8), 64, 1, 0, 0);
               end;
             end
             else
@@ -2284,8 +2284,8 @@ begin
                 Anim := TAnimation.Create(TextureID, False, 6);
                 Anim.Blending := False;
                 g_GFX_OnceAnim(cx-64, cy-64, Anim);
-                g_DynLightExplosion(cx, cy, 64, 1, 0, 0);
                 Anim.Destroy();
+                g_DynLightExplosion(cx, cy, 64, 1, 0, 0);
               end;
             end;
 
@@ -2785,8 +2785,9 @@ begin
             begin
               Anim := TAnimation.Create(TextureID, False, 8);
               Anim.Blending := False;
-              g_GFX_OnceAnim((Obj.X+32)-32, (Obj.Y+8)-32, Anim);
+              g_GFX_OnceAnim((Obj.X+32)-58, (Obj.Y+8)-36, Anim);
               Anim.Destroy();
+              g_DynLightExplosion((Obj.X+32), (Obj.Y+8), 64, 1, 0, 0);
             end;
           end
           else
@@ -2797,6 +2798,7 @@ begin
               Anim.Blending := False;
               g_GFX_OnceAnim(cx-64, cy-64, Anim);
               Anim.Destroy();
+              g_DynLightExplosion(cx, cy, 64, 1, 0, 0);
             end;
           end;
 {$IFDEF ENABLE_SOUND}
@@ -2817,6 +2819,7 @@ begin
           Anim.Blending := False;
           g_GFX_OnceAnim(cx-16, cy-16, Anim);
           Anim.Destroy();
+          g_DynLightExplosion(cx, cy, 32, 0, 0.5, 0.5);
 
 {$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEPLASMA', Obj.X, Obj.Y);
@@ -2832,6 +2835,7 @@ begin
           Anim.Blending := False;
           g_GFX_OnceAnim(cx-64, cy-64, Anim);
           Anim.Destroy();
+          g_DynLightExplosion(cx, cy, 96, 0, 1, 0);
 
 {$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', Obj.X, Obj.Y);
