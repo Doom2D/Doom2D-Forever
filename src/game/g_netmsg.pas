@@ -18,7 +18,11 @@ unit g_netmsg;
 
 interface
 
-uses e_msg, g_net, g_triggers, Classes, SysUtils, md5;
+uses
+  SysUtils, Classes,
+  md5,
+  e_msg,
+  g_net, g_weapons, g_triggers;
 
 const
   NET_MSG_INFO   = 100;
@@ -159,7 +163,7 @@ procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer =
 procedure MH_SEND_Sound(X, Y: Integer; Name: String; Pos: Boolean = True; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_CreateProj(Proj: LongInt; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_UpdateProj(Proj: LongInt; ID: Integer = NET_EVERYONE);
-procedure MH_SEND_DeleteProj(Proj: LongInt; X, Y: LongInt; Loud: Boolean = True; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_DeleteProj(Proj: LongInt; X, Y: LongInt; Loudness: TShotLoudness; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_GameStats(ID: Integer = NET_EVERYONE);
 procedure MH_SEND_CoopStats(ID: Integer = NET_EVERYONE);
 procedure MH_SEND_GameEvent(EvType: Byte; EvNum: Integer = 0; EvStr: String = 'N'; ID: Integer = NET_EVERYONE);
@@ -282,7 +286,7 @@ uses
 {$ENDIF}
   Math, ENet, e_input, e_graphics, e_log,
   g_textures, g_gfx, g_console, g_basic, g_options, g_main,
-  g_game, g_player, g_map, g_panel, g_items, g_weapons, g_phys, g_gui,
+  g_game, g_player, g_map, g_panel, g_items, g_phys, g_gui,
   g_language, g_monsters, g_netmaster, utils, wadreader, MAPDEF;
 
 const
@@ -1102,11 +1106,11 @@ begin
   g_Net_Host_Send(ID, False);
 end;
 
-procedure MH_SEND_DeleteProj(Proj: LongInt; X, Y: LongInt; Loud: Boolean; ID: Integer);
+procedure MH_SEND_DeleteProj(Proj: LongInt; X, Y: LongInt; Loudness: TShotLoudness; ID: Integer);
 begin
   NetOut.Write(Byte(NET_MSG_PJDEL));
   NetOut.Write(Proj);
-  NetOut.Write(Byte(Loud));
+  NetOut.Write(Byte(Loudness));
   NetOut.Write(X);
   NetOut.Write(Y);
 
@@ -1883,11 +1887,11 @@ end;
 procedure MC_RECV_DeleteProj(var M: TMsg);
 var
   I, X, Y: Integer;
-  L: Boolean;
+  L: TShotLoudness;
 begin
   if not gGameOn then Exit;
   I := M.ReadLongInt();
-  L := (M.ReadByte() <> 0);
+  L := TShotLoudness(M.ReadByte());
   X := M.ReadLongInt();
   Y := M.ReadLongInt();
 

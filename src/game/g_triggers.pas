@@ -710,13 +710,14 @@ begin
     TRIGGER_SHOT_BULLET:
     begin
       g_Weapon_mgun(wx, wy, dx, dy, 0, True);
-{$IFDEF ENABLE_SOUND}
-      // XXX: this sound must be choosen by client
+    {$IFDEF ENABLE_SOUND}
+      // FIXME: this sound must be chosen by client
+      // https://www.doom2d.org/forum/viewtopic.php?f=36&t=3334
       if gSoundEffectsDF then snd := 'SOUND_WEAPON_FIRECGUN'
       else snd := 'SOUND_WEAPON_FIREPISTOL';
-{$ELSE}
+    {$ELSE}
       snd := 'SOUND_WEAPON_FIRECGUN';
-{$ENDIF}
+    {$ENDIF}
       if ShotSound then
       begin
         g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);

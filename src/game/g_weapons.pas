@@ -38,6 +38,14 @@ type
     procedure positionChanged ();  // WARNING! call this after monster position was changed, or coldet will not work right!
   end;
 
+  TShotLoudness = (
+    Common,
+    Vanish,
+
+    // NB: This is needed for proper in-water "electro" sound of plasma and BFG, as any panel can
+    // now be moved or turned off. Therefore, an immediate client check in net game could be wrong.
+    Effect
+  );
 
 var
   Projectiles: array of TProjectile;
@@ -75,7 +83,7 @@ procedure g_Weapon_PreUpdate();
 procedure g_Weapon_Update();
 procedure g_Weapon_Draw();
 function g_Weapon_Danger(UID: Word; X, Y: Integer; Width, Height: Word; Time: Byte): Boolean;
-procedure g_Weapon_DestroyProj(I: Integer; X, Y: Integer; Loud: Boolean = True);
+procedure g_Weapon_DestroyProj(I: Integer; X, Y: Integer; Loudness: TShotLoudness);
 
 procedure g_Weapon_SaveState (st: TStream);
 procedure g_Weapon_LoadState (st: TStream);
@@ -2169,7 +2177,7 @@ var
   s: String;
   o: TObj;
   spl: Boolean;
-  Loud: Boolean;
+  Loudness: TShotLoudness;
   tcx, tcy: Integer;
 label
   finish_update;  // uhh, FreePascal doesn't have a 'break' for 'case of'
@@ -2179,7 +2187,8 @@ begin
     if Projectiles[i].ShotType = 0 then
       Continue;
 
-    Loud := True;
+    // reset to per-iteration defaults
+    Loudness := TShotLoudness.Common;
 
     with Projectiles[i] do
     begin
@@ -2227,6 +2236,7 @@ begin
         (Obj.X > gMapInfo.Width+1000) or (Obj.Y < -1000) then
       begin
         ShotType := 0;
+        //Loudness := TShotLoudness.Vanish;
         //Goto finish_update;
         FreeAndNil(Animation);
         Continue;  // На клиенте скорее всего и так уже выпал.
@@ -2289,9 +2299,9 @@ begin
               end;
             end;
 
-{$IFDEF ENABLE_SOUND}
+          {$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', Obj.X, Obj.Y);
-{$ENDIF}
+          {$ENDIF}
 
             ShotType := 0;
           end;
@@ -2311,10 +2321,11 @@ begin
           // Попала в воду - электрошок по воде:
           if WordBool(st and (MOVE_INWATER or MOVE_HITWATER)) then
           begin
-{$IFDEF ENABLE_SOUND}
+          {$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_WEAPON_PLASMAWATER', Obj.X, Obj.Y);
-{$ENDIF}
+          {$ENDIF}
             if g_Game_IsServer then CheckTrap(i, 10, HIT_ELECTRO);
+            Loudness := TShotLoudness.Effect;
             ShotType := 0;
             Goto finish_update;
           end;
@@ -2346,9 +2357,9 @@ begin
               g_DynLightExplosion(cx, cy, 32, 0, 0.5, 0.5);
             end;
 
-{$IFDEF ENABLE_SOUND}
+          {$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEPLASMA', Obj.X, Obj.Y);
-{$ENDIF}
+          {$ENDIF}
 
             ShotType := 0;
           end;
@@ -2442,10 +2453,11 @@ begin
           // Попала в воду - электрошок по воде:
           if WordBool(st and (MOVE_INWATER or MOVE_HITWATER)) then
           begin
-{$IFDEF ENABLE_SOUND}
+          {$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_WEAPON_BFGWATER', Obj.X, Obj.Y);
-{$ENDIF}
+          {$ENDIF}
             if g_Game_IsServer then CheckTrap(i, 1000, HIT_ELECTRO);
+            Loudness := TShotLoudness.Effect;
             ShotType := 0;
             Goto finish_update;
           end;
@@ -2468,9 +2480,9 @@ begin
               g_DynLightExplosion(cx, cy, 96, 0, 1, 0);
             end;
 
-{$IFDEF ENABLE_SOUND}
+          {$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', Obj.X, Obj.Y);
-{$ENDIF}
+          {$ENDIF}
 
             ShotType := 0;
           end;
@@ -2511,9 +2523,9 @@ begin
               Anim.Destroy();
             end;
 
-{$IFDEF ENABLE_SOUND}
+          {$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
-{$ENDIF}
+          {$ENDIF}
 
             ShotType := 0;
           end;
@@ -2539,9 +2551,9 @@ begin
               Anim.Destroy();
             end;
 
-{$IFDEF ENABLE_SOUND}
+          {$IFDEF ENABLE_SOUND}
             g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
-{$ENDIF}
+          {$ENDIF}
 
             ShotType := 0;
           end;
@@ -2553,7 +2565,7 @@ finish_update:
       if ShotType = 0 then
       begin
         if gGameSettings.GameType = GT_SERVER then
-          MH_SEND_DeleteProj(i, Obj.X, Obj.Y, Loud);
+          MH_SEND_DeleteProj(i, Obj.X, Obj.Y, Loudness);
         FreeAndNil(Animation);
       end
       else if (ShotType <> WEAPON_FLAMETHROWER) and ((oldvx <> Obj.Vel.X) or (oldvy <> Obj.Vel.Y)) then
@@ -2757,7 +2769,7 @@ begin
   end;
 end;
 
-procedure g_Weapon_DestroyProj(I: Integer; X, Y: Integer; Loud: Boolean);
+procedure g_Weapon_DestroyProj(I: Integer; X, Y: Integer; Loudness: TShotLoudness);
 var
   cx, cy: Integer;
   Anim: TAnimation;
@@ -2777,7 +2789,7 @@ begin
     case ShotType of
       WEAPON_ROCKETLAUNCHER, WEAPON_SKEL_FIRE:
       begin
-        if Loud then
+        if Loudness = TShotLoudness.Common then
         begin
           if ShotType = WEAPON_SKEL_FIRE then
           begin
@@ -2801,9 +2813,9 @@ begin
               g_DynLightExplosion(cx, cy, 64, 1, 0, 0);
             end;
           end;
-{$IFDEF ENABLE_SOUND}
+        {$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', Obj.X, Obj.Y);
-{$ENDIF}
+        {$ENDIF}
         end;
       end;
 
@@ -2813,7 +2825,7 @@ begin
           then s := 'FRAMES_EXPLODE_PLASMA'
           else s := 'FRAMES_EXPLODE_BSPFIRE';
 
-        if g_Frames_Get(TextureID, s) and loud then
+        if (Loudness = TShotLoudness.Common) and g_Frames_Get(TextureID, s) then
         begin
           Anim := TAnimation.Create(TextureID, False, 3);
           Anim.Blending := False;
@@ -2821,15 +2833,22 @@ begin
           Anim.Destroy();
           g_DynLightExplosion(cx, cy, 32, 0, 0.5, 0.5);
 
-{$IFDEF ENABLE_SOUND}
+        {$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEPLASMA', Obj.X, Obj.Y);
-{$ENDIF}
+        {$ENDIF}
+        end
+        else
+        begin
+        {$IFDEF ENABLE_SOUND}
+          if Loudness = TShotLoudness.Effect then
+            g_Sound_PlayExAt('SOUND_WEAPON_PLASMAWATER', Obj.X, Obj.Y);
+        {$ENDIF}
         end;
       end;
 
       WEAPON_BFG:
       begin
-        if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_BFG') and Loud then
+        if (Loudness = TShotLoudness.Common) and g_Frames_Get(TextureID, 'FRAMES_EXPLODE_BFG') then
         begin
           Anim := TAnimation.Create(TextureID, False, 6);
           Anim.Blending := False;
@@ -2837,9 +2856,16 @@ begin
           Anim.Destroy();
           g_DynLightExplosion(cx, cy, 96, 0, 1, 0);
 
-{$IFDEF ENABLE_SOUND}
+        {$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', Obj.X, Obj.Y);
-{$ENDIF}
+        {$ENDIF}
+        end
+        else
+        begin
+        {$IFDEF ENABLE_SOUND}
+          if Loudness = TShotLoudness.Effect then
+            g_Sound_PlayExAt('SOUND_WEAPON_BFGWATER', Obj.X, Obj.Y);
+        {$ENDIF}
         end;
       end;
 
@@ -2852,31 +2878,31 @@ begin
             then s := 'FRAMES_EXPLODE_CACOFIRE'
             else s := 'FRAMES_EXPLODE_BARONFIRE';
 
-        if g_Frames_Get(TextureID, s) and Loud then
+        if (Loudness = TShotLoudness.Common) and g_Frames_Get(TextureID, s) then
         begin
           Anim := TAnimation.Create(TextureID, False, 6);
           Anim.Blending := False;
           g_GFX_OnceAnim(cx-32, cy-32, Anim);
           Anim.Destroy();
 
-{$IFDEF ENABLE_SOUND}
+        {$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
-{$ENDIF}
+        {$ENDIF}
         end;
       end;
 
       WEAPON_MANCUB_FIRE:
       begin
-        if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') and Loud then
+        if (Loudness = TShotLoudness.Common) and g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
         begin
           Anim := TAnimation.Create(TextureID, False, 6);
           Anim.Blending := False;
           g_GFX_OnceAnim(cx-64, cy-64, Anim);
           Anim.Destroy();
 
-{$IFDEF ENABLE_SOUND}
+        {$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
-{$ENDIF}
+        {$ENDIF}
         end;
       end;
     end;
