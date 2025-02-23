@@ -1866,36 +1866,42 @@ end;
 
 procedure MC_RECV_UpdateProj(var M: TMsg);
 var
-  I, TX, TY, TXV, TYV: Integer;
+  I: Integer;
 begin
   I := M.ReadLongInt();
-  TX := M.ReadLongInt();
-  TY := M.ReadLongInt();
-  TXV := M.ReadLongInt();
-  TYV := M.ReadLongInt();
+  if (Low(Projectiles) > I) or (High(Projectiles) < I) then
+    Exit;
 
-  if (Low(Projectiles) <= I) and (High(Projectiles) >= I) then
-    with (Projectiles[i]) do
-    begin
-      Obj.X := TX;
-      Obj.Y := TY;
-      Obj.Vel.X := TXV;
-      Obj.Vel.Y := TYV;
-    end;
+  with (Projectiles[i]) do
+  begin
+    Obj.X := M.ReadLongInt();
+    Obj.Y := M.ReadLongInt();
+    Obj.Vel.X := M.ReadLongInt();
+    Obj.Vel.Y := M.ReadLongInt();
+  end;
 end;
 
 procedure MC_RECV_DeleteProj(var M: TMsg);
 var
-  I, X, Y: Integer;
-  L: TShotLoudness;
+  Loudness: TShotLoudness;
+  I: Integer;
 begin
   if not gGameOn then Exit;
-  I := M.ReadLongInt();
-  L := TShotLoudness(M.ReadByte());
-  X := M.ReadLongInt();
-  Y := M.ReadLongInt();
 
-  g_Weapon_DestroyProj(I, X, Y, L);
+  I := M.ReadLongInt();
+  if (Low(Projectiles) > I) or (High(Projectiles) < I) then
+    Exit;
+
+  Loudness := TShotLoudness(M.ReadByte());
+
+  with Projectiles[I] do
+  begin
+    if ShotType = 0 then Exit;
+    Obj.X := M.ReadLongInt();
+    Obj.Y := M.ReadLongInt();
+  end;
+
+  g_Weapon_DestroyProj(I, Loudness);
 end;
 
 procedure MC_RECV_GameStats(var M: TMsg);

@@ -40,6 +40,8 @@ type
 
   TPoint2i = record
     X, Y: Integer;
+    class operator = (const a, b: TPoint2i): Boolean; inline;
+    class operator <> (const a, b: TPoint2i): Boolean; inline;
   end;
 
   TPoint2f = record
@@ -1932,6 +1934,16 @@ begin
   end;
 
  e_TextureFonts := nil;
+end;
+
+class operator TPoint2i.= (const a, b: TPoint2i): Boolean;
+begin
+  Result := (a.x = b.x) and (a.y = b.y);
+end;
+
+class operator TPoint2i.<> (const a, b: TPoint2i): Boolean;
+begin
+  Result := (a.x <> b.x) or (a.y <> b.y);
 end;
 
 function _RGB(Red, Green, Blue: Byte): TRGB;
