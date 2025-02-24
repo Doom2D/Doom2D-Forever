@@ -713,8 +713,8 @@ begin
       // External storage is the path where bundled files get copied to.
       ChDir(SDL_AndroidGetExternalStoragePath());
   {$ELSEIF DEFINED(DARWIN)}
-    if GetBundlePath() <> '' then
-      Chdir(ConcatPaths([GetBundlePath(), 'Contents/Resources']));
+    if ExtractFileExt(GetBundlePath()) = '.app' then
+      ChDir(ConcatPaths([GetBundlePath(), 'Contents/Resources']));
   {$ELSEIF DEFINED(USE_SDLMIXER) AND NOT DEFINED(ANDROID)}
     if e_TimidityDecoder and (newcwd <> '') then
     begin
