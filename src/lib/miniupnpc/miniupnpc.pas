@@ -8,12 +8,12 @@
 unit MiniUPnPc;
 
 {
-  MiniUPnP - UPnP IGD client lightweight library
+  MiniUPnPc - an UPnP IGD client lightweight library, aka UPnP Control Point
   Copyright (c) 2005-2024 Thomas Bernard
   All rights reserved.
 
   Shared (dynamic) library binding unit for Free Pascal
-  Version 1 for 2.3.5: 2024-03-04
+  Version 1 for 2.2.6: 2024-03-04
   Copyright (c) 2024 Dmitry D. Chernov aka BlackDoomer
   Based on Version 0 (2018-02-06) by Dmitry V. Merkulov aka fgsfds aka PrimuS.
 
