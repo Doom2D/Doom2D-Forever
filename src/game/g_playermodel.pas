@@ -121,7 +121,7 @@ type
 
   public
     destructor  Destroy(); override;
-    procedure   ChangeAnimation(Animation: Byte; Force: Boolean = False);
+    procedure   ChangeAnimation(Animation: Byte; AllowReset: Boolean = False);
     function    GetCurrentAnimation: TAnimation;
     function    GetCurrentAnimationMask: TAnimation;
     procedure   SetColor(Red, Green, Blue: Byte);
@@ -920,23 +920,24 @@ end;
 
 { TPlayerModel }
 
-procedure TPlayerModel.ChangeAnimation(Animation: Byte; Force: Boolean = False);
+procedure TPlayerModel.ChangeAnimation(Animation: Byte; AllowReset: Boolean);
 begin
-  if not Force then if FCurrentAnimation = Animation then Exit;
+  if (FCurrentAnimation = Animation) and not AllowReset then
+    Exit;
 
   FCurrentAnimation := Animation;
 
-  if (FDirection = TDirection.D_LEFT) and
-     (FAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil) and
-     (FMaskAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil) then
+  if (FDirection = TDirection.D_LEFT)
+      and (FAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil)
+      and (FMaskAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil) then
   begin
-    FAnim[TDirection.D_LEFT][FCurrentAnimation].Reset;
-    FMaskAnim[TDirection.D_LEFT][FCurrentAnimation].Reset;
+    FAnim[TDirection.D_LEFT][FCurrentAnimation].Reset();
+    FMaskAnim[TDirection.D_LEFT][FCurrentAnimation].Reset();
   end
   else
   begin
-    FAnim[TDirection.D_RIGHT][FCurrentAnimation].Reset;
-    FMaskAnim[TDirection.D_RIGHT][FCurrentAnimation].Reset;
+    FAnim[TDirection.D_RIGHT][FCurrentAnimation].Reset();
+    FMaskAnim[TDirection.D_RIGHT][FCurrentAnimation].Reset();
   end;
 end;
 
@@ -992,10 +993,10 @@ begin
   begin
     if FCurrentAnimation in [A_SEEUP, A_ATTACKUP] then
       pos := W_POS_UP
+    else if FCurrentAnimation in [A_SEEDOWN, A_ATTACKDOWN] then
+      pos := W_POS_DOWN
     else
-      if FCurrentAnimation in [A_SEEDOWN, A_ATTACKDOWN]
-        then pos := W_POS_DOWN
-        else pos := W_POS_NORMAL;
+      pos := W_POS_NORMAL;
 
     if (FCurrentAnimation in [A_ATTACK, A_ATTACKUP, A_ATTACKDOWN]) or FFire
       then act := W_ACT_FIRE
@@ -1122,11 +1123,17 @@ begin
 end;
 
 procedure TPlayerModel.SetFire(Fire: Boolean);
+var
+  AttackAnim: TAnimation;
 begin
   FFire := Fire;
-
-  if FFire then FFireCounter := FAnim[TDirection.D_RIGHT, A_ATTACK].Speed*FAnim[TDirection.D_RIGHT, A_ATTACK].TotalFrames
-  else FFireCounter := 0;
+  if Fire then
+  begin
+    AttackAnim := FAnim[TDirection.D_RIGHT, A_ATTACK];  // FIXME: No support for left direction.
+    FFireCounter := AttackAnim.Speed * AttackAnim.TotalFrames;
+  end
+  else
+    FFireCounter := 0;
 end;
 
 procedure TPlayerModel.SetFlag(Flag: Byte);
@@ -1159,15 +1166,19 @@ end;
 
 procedure TPlayerModel.Update();
 begin
-  if (FDirection = TDirection.D_LEFT) and (FAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil) then
-    FAnim[TDirection.D_LEFT][FCurrentAnimation].Update else FAnim[TDirection.D_RIGHT][FCurrentAnimation].Update;
+  if (FDirection = TDirection.D_LEFT) and (FAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil)
+    then FAnim[TDirection.D_LEFT][FCurrentAnimation].Update()
+    else FAnim[TDirection.D_RIGHT][FCurrentAnimation].Update();
 
-  if (FDirection = TDirection.D_LEFT) and (FMaskAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil) then
-    FMaskAnim[TDirection.D_LEFT][FCurrentAnimation].Update else FMaskAnim[TDirection.D_RIGHT][FCurrentAnimation].Update;
+  if (FDirection = TDirection.D_LEFT) and (FMaskAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil)
+    then FMaskAnim[TDirection.D_LEFT][FCurrentAnimation].Update()
+    else FMaskAnim[TDirection.D_RIGHT][FCurrentAnimation].Update();
 
-  if FFlagAnim <> nil then FFlagAnim.Update;
+  if FFlagAnim <> nil then FFlagAnim.Update();
 
-  if FFireCounter > 0 then Dec(FFireCounter) else FFire := False;
+  if FFireCounter > 0
+    then FFireCounter -= 1
+    else FFire := False;
 end;
 
 end.

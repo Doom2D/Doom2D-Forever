@@ -4945,33 +4945,39 @@ begin
   if FIncCam < 120 then IncMax(FIncCam, 5, 120);
 end;
 
-procedure TPlayer.SetAction(Action: Byte; Force: Boolean = False);
+procedure TPlayer.SetAction(Action: Byte; Force: Boolean);
 var
-  Prior: Byte;
+  Priority: Byte;
+  Attack: Boolean;
 begin
+  Attack := Action in [A_ATTACK, A_ATTACKUP, A_ATTACKDOWN];
+
   case Action of
-    A_WALK: Prior := 3;
-    A_DIE1: Prior := 5;
-    A_DIE2: Prior := 5;
-    A_ATTACK: Prior := 2;
-    A_SEEUP: Prior := 1;
-    A_SEEDOWN: Prior := 1;
-    A_ATTACKUP: Prior := 2;
-    A_ATTACKDOWN: Prior := 2;
-    A_PAIN: Prior := 4;
-    else Prior := 0;
+    A_WALK: Priority := 3;
+    A_DIE1: Priority := 5;
+    A_DIE2: Priority := 5;
+    A_ATTACK: Priority := 2;
+    A_SEEUP: Priority := 1;
+    A_SEEDOWN: Priority := 1;
+    A_ATTACKUP: Priority := 2;
+    A_ATTACKDOWN: Priority := 2;
+    A_PAIN: Priority := 4;
+    else Priority := 0;
   end;
 
-  if (Prior > FActionPrior) or Force then
-    if not ((Prior = 2) and (FCurrWeap = WEAPON_SAW)) then
+  if (Priority > FActionPrior) or Force then
+  begin
+    // Do not change the animation to a shooting one if the current weapon is a chainsaw.
+    if not (Attack and (FCurrWeap = WEAPON_SAW)) then
     begin
-      FActionPrior := Prior;
+      FActionPrior := Priority;
       FActionAnim := Action;
       FActionForce := Force;
       FActionChanged := True;
     end;
+  end;
 
-  if Action in [A_ATTACK, A_ATTACKUP, A_ATTACKDOWN] then FModel.SetFire(True);
+  if Attack then FModel.SetFire(True);
 end;
 
 function TPlayer.StayOnStep(XInc, YInc: Integer): Boolean;
@@ -5203,7 +5209,8 @@ begin
     Exit;
   end;
 
-  FActionChanged := False;
+  // Preparing to collect the current player state to be shown by its model.
+  FActionChanged := False;  // assume that the player's action will now change somehow anyway
 
   if FAlive then
   begin
@@ -5531,20 +5538,34 @@ begin
     {CollideItem();}
   end; // if FAlive then ...
 
+  // We're almost done. Now let's just fine-tune the collected model state...
+
   if (FActionAnim = A_PAIN) and (FModel.Animation <> A_PAIN) then
   begin
     FModel.ChangeAnimation(FActionAnim, FActionForce);
     FModel.GetCurrentAnimation.MinLength := i;
     FModel.GetCurrentAnimationMask.MinLength := i;
-  end else FModel.ChangeAnimation(FActionAnim, FActionForce and (FModel.Animation <> A_STAND));
+  end else  // apply the chosen animation
+    FModel.ChangeAnimation(FActionAnim, (FModel.Animation <> A_STAND) and FActionForce);
 
-  if (FModel.GetCurrentAnimation.Played or ((not FActionChanged) and (FModel.Animation = A_WALK)))
-  then SetAction(A_STAND, True);
+  // Prepare animation reset to default (idle) on the next tick if nothing will change then.
+  // This is also responsible for weapon fire flickering during cooldowns when shooting.
+  if FModel.GetCurrentAnimation().Played
+      or ((FModel.Animation = A_WALK) and not FActionChanged)
+    then SetAction(A_STAND, True);
 
-  if not ((FModel.Animation = A_WALK) and (Abs(FObj.Vel.X) < 4) and not FModel.Fire) then FModel.Update;
+  // Update model and weapon animation. This test condition prevents player to jerk its feet when it
+  // runs into a wall and cannot go further anymore. An exception for shooting is made so that the
+  // player would move to show activity at least somehow if in such a case it is also firing.
+  // The speed cutoff check is not `> 0` so that the player does not start moving by abruptly taking
+  // off from its place.
+  if not (FModel.Animation = A_WALK) or (Abs(FObj.Vel.X) >= 4) or FModel.Fire then
+    FModel.Update();
 
   for b := Low(FKeys) to High(FKeys) do
-    if FKeys[b].Time = 0 then FKeys[b].Pressed := False else Dec(FKeys[b].Time);
+    if FKeys[b].Time = 0
+      then FKeys[b].Pressed := False
+      else FKeys[b].Time -= 1;
 end;
 
 
