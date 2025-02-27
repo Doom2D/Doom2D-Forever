@@ -8,19 +8,19 @@ This open-source, multiplatform project has been developed from the ground up to
 
 # Download and install
 Pre-built binaries of the latest commit (snapshot) are currently available for the following operating systems:
-- **Windows**: Download a ZIP-archive, either [Windows x64 (64-bit)](https://github.com/Doom2D/nixandroid/releases/latest/download/doom2df-mingw64.zip) or [**Windows x86 (32-bit)**](https://github.com/Doom2D/nixandroid/releases/latest/download/doom2df-mingw32.zip). Windows XP and newer is supported.
-- **Android**: Download the [**Android APK**](https://github.com/Doom2D/nixandroid/releases/latest/download/doom2df-android.apk). Android 4.0 and higher is supported.
-- **macOS**: Download the [**macOS ZIP archive**](https://github.com/Doom2D/nixandroid/releases/latest/download/doom2df-x86_64-apple-darwin.zip). Currently only x86-64 (Intel) binaries are provided. MacOS >= 11.0 is supported.
+- **Windows**: Download a ZIP-archive, either [Windows x64 (64-bit)](https://github.com/Doom2D/nix_actions/releases/latest/download/doom2df_win64.x86-64.zip) or [**Windows x86 (32-bit)**](https://github.com/Doom2D/nix_actions/releases/latest/download/doom2df_windows.x86.zip). Windows XP and newer is supported.
+- **Android**: Download the [**Android APK**](https://github.com/Doom2D/nix_actions/releases/latest/download/Doom2D-Forever.apk). Android 4.0.1 and higher is supported.
+- **macOS**: Download the [**macOS App**](https://github.com/Doom2D/nix_actions/releases/latest/download/Doom2D-Forever.dmg). Intel and Apple silicon Mac computers running macOS >= 11.0 are supported.
 
 # Disclaimer
 This game is a fair-use parody, licensed _strictly_ under terms of the [**GNU General Public License v3.0**](https://github.com/Doom2D/Doom2D-Forever/blob/master/COPYING).
 
 <a name="contacts"></a>
 # Contacts
-Join our [**Telegram**](https://t.me/doom2d) and [**Discord**](https://discord.gg/sGpJwMy) servers to discuss the development of the project.
+Join our [**Telegram chatroom**](https://t.me/doom2d) and [**Discord server**](https://discord.gg/sGpJwMy) to discuss the development of the project.
 
-[![VK](https://img.shields.io/badge/Telegram-2CA5E0?style=flat-squeare&logo=telegram&logoColor=white)](https://t.me/doom2d)
-[![Discord](https://img.shields.io/badge/chat-Discord-8c9eff?logo=discord&logoColor=ffffff)](https://discord.gg/sGpJwMy)
+[![Telegram chatroom](https://img.shields.io/badge/Telegram-2CA5E0?style=flat-squeare&logo=telegram&logoColor=white)](https://t.me/doom2d)
+[![Discord server](https://img.shields.io/badge/chat-Discord-8c9eff?logo=discord&logoColor=ffffff)](https://discord.gg/sGpJwMy)
 
 # Contribution and Development
 This repository is a place for everyone. If you want to contribute or need help, please join our [Telegram and Discord servers](#contacts).
@@ -85,7 +85,7 @@ If that command succeeds, you have a working FPC and libenet installation.
 |`-dSDL2_NODPI`    |Build for old libSDL2                                                |
 |`-dUSE_MINIUPNPC` |Build with libminiupnpc for automatic server port forwarding via UPnP|
 |`-dENABLE_HOLMES` |Build with in-game map debugger                                      |
-|`-dHEADLESS`      |Build as headless executable for dedicated servers                    |
+|`-dHEADLESS`      |Build as headless executable for dedicated servers                   |
 
 ## Runtime development flags
 - `--gdb`: prevents the game from handling exceptions.
@@ -102,8 +102,8 @@ FMODex.dll, ENet.dll, miniupnpc.dll) unless you choose to link them statically.
 #### Static Linking
 It's now possible to link Windows' LibJIT and ENet as static libs.
 
-|Switch                        |What it does                               |
-|------------------------------|-------------------------------------------|
+|Switch                          |What it does                               |
+|--------------------------------|-------------------------------------------|
 |`-dLIBJIT_WINDOZE_STATIC`       |Static LibJIT                              |
 |`-dLIBENET_WINDOZE_STATIC`      |Static ENet                                |
 |`-dLIBMINIUPNPC_WINDOZE_STATIC` |Static MiniUPnPC                           |
