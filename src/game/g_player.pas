@@ -4947,23 +4947,40 @@ end;
 
 procedure TPlayer.SetAction(Action: Byte; Force: Boolean);
 var
-  Priority: Byte;
+  Priority, WalkValue, LookValue, AttackValue: Byte;
   Attack: Boolean;
 begin
-  Attack := Action in [A_ATTACK, A_ATTACKUP, A_ATTACKDOWN];
+  if FModel.VisibleWeapons then
+  begin
+    WalkValue := 3;
+    LookValue := 1;
+    AttackValue := 2;
+  end
+  else
+  begin
+    // HACK: Don't let A_WALK override A_STAND (other states have higher priority anyway), because
+    // A_STAND is special: it's used both when the player is idle and when a weapon cooldowns. The
+    // first case is much more common and has lower priority than A_WALK, but the second one should
+    // take precedence over A_WALK for skins without a drawn weapon to avoid the animation glitch.
+    if FModel.Fire and (Action = A_WALK) then Exit;
+    WalkValue := 1;
+    LookValue := 2;
+    AttackValue := 3;
+  end;
 
   case Action of
-    A_WALK: Priority := 3;
-    A_DIE1: Priority := 5;
-    A_DIE2: Priority := 5;
-    A_ATTACK: Priority := 2;
-    A_SEEUP: Priority := 1;
-    A_SEEDOWN: Priority := 1;
-    A_ATTACKUP: Priority := 2;
-    A_ATTACKDOWN: Priority := 2;
+    A_WALK: Priority := WalkValue;
+    A_SEEUP: Priority := LookValue;
+    A_SEEDOWN: Priority := LookValue;
+    A_ATTACK: Priority := AttackValue;
+    A_ATTACKUP: Priority := AttackValue;
+    A_ATTACKDOWN: Priority := AttackValue;
     A_PAIN: Priority := 4;
+    A_DIE1, A_DIE2: Priority := 5;
     else Priority := 0;
   end;
+
+  Attack := Priority = AttackValue;
 
   if (Priority > FActionPrior) or Force then
   begin

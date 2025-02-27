@@ -145,6 +145,7 @@ type
   public
     property    Color: TRGB read FColor write FColor;
     property    Blood: TModelBlood read FBlood;
+    property VisibleWeapons: Boolean read FDrawWeapon;
   end;
 
 procedure g_PlayerModel_LoadData();
