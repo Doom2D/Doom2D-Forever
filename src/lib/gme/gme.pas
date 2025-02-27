@@ -25,9 +25,8 @@ interface
 uses ctypes;
 
 {$IF DEFINED(WINDOWS)}
-  {$IFDEF LIBGME_WINDOZE_STATIC}
-    {$ERROR libgme won't static-link on Windows until we switch to FPC 3.2.0}
-    // {$LINKLIB libgme.a}
+  {$IFDEF LIBGME_WINDOWS_STATIC}
+    {$LINKLIB libgme.a}
   {$ELSE}
     {$DEFINE GME_DYNAMIC}
     const gmelib = 'libgme.dll';
@@ -37,7 +36,7 @@ uses ctypes;
   {$LINKLIB libgme}
   const gmelib = 'libgme.so';
 {$ELSE}
-  {$ERROR libgme not supported on this platform. Fix it!}
+  {$ERROR libgme is not supported on this platform. Fix it!}
 {$ENDIF}
 
 type

@@ -29,7 +29,7 @@ uses
 {$ENDIF}
 
 {$IF DEFINED(WINDOWS)}
-  {$IFDEF MPG123_WINDOZE_STATIC}
+  {$IFDEF MPG123_WINDOWS_STATIC}
     {$LINKLIB libmpg123.a}
   {$ELSE}
     {$DEFINE MPG123_DYNAMIC}
@@ -40,7 +40,7 @@ uses
   {$LINKLIB libmpg123}
   const LIB_MPG123 = 'libmpg123';
 {$ELSE}
-  {$ERROR libmpg123 not supported on this platform. Fix it!}
+  {$ERROR libmpg123 is not supported on this platform. Fix it!}
 {$ENDIF}
 
 type

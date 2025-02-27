@@ -25,8 +25,8 @@ const
 
   IMAGE_FILE_MACHINE_I386 = $14C;
 
-  IMAGE_SUBSYSTEM_WINDOWS_GUI = 2;  // windoze GUI subsystem
-  IMAGE_SUBSYSTEM_WINDOWS_CUI = 3;  // windoze character subsystem (console mode)
+  IMAGE_SUBSYSTEM_WINDOWS_GUI = 2;  // Windows GUI subsystem
+  IMAGE_SUBSYSTEM_WINDOWS_CUI = 3;  // Windows character subsystem (console mode)
 
   IMAGE_DIRECTORY_ENTRY_EXPORT       = 0;   // export Directory
   IMAGE_DIRECTORY_ENTRY_IMPORT       = 1;   // import Directory
@@ -132,7 +132,7 @@ type
       //  4: =1 - aggresively trim working set (does nothing, afaik)
       //  5: =1 - application can handle >2Gb addresses (newer saw one)
       //  6: =0 - reserved, should be zero (the best flag of all! %-)
-      //  7: =1 - bytes swaped (x86-like) (windoze ignores this. at least XP)
+      //  7: =1 - bytes swaped (x86-like) (Windows ignores this. at least XP)
       //  8: =1 - 32-bit machine
       //  9: =1 - debug info stripped (COFF again?)
       // 10: =1 - copy to swap if executed from removable media (shit)

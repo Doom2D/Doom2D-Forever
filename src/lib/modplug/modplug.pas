@@ -20,7 +20,7 @@ uses
   ctypes;
 
 {$IF DEFINED(WINDOWS)}
-  {$IFDEF MODPLUG_WINDOZE_STATIC}
+  {$IFDEF MODPLUG_WINDOWS_STATIC}
     {$LINKLIB libstdc++.a} // is this necessary?
     {$LINKLIB libmodplug.a}
   {$ELSE}
@@ -32,7 +32,7 @@ uses
   {$LINKLIB libmodplug}
   const modpluglib = 'libmodplug';
 {$ELSE}
-  {$ERROR libmodplug not supported on this platform. Fix it!}
+  {$ERROR libmodplug is not supported on this platform. Fix it!}
 {$ENDIF}
 
 type

@@ -23,7 +23,7 @@ interface
 {$ENDIF}
 
 {$IF DEFINED(WINDOWS)}
-  {$IFDEF LIBXMP_WINDOZE_STATIC}
+  {$IFDEF LIBXMP_WINDOWS_STATIC}
     {$IFDEF USE_XMP_LITE}
       {$LINKLIB libxmp-lite.a}
     {$ELSE}
@@ -46,7 +46,7 @@ interface
     const xmplib = 'libxmp.so';
   {$ENDIF}
 {$ELSE}
-  {$ERROR libxmp not supported on this platform. Fix it!}
+  {$ERROR libxmp is not supported on this platform. Fix it!}
 {$ENDIF}
 
 const

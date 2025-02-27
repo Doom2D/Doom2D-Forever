@@ -27,7 +27,7 @@ uses
   ctypes;
 
 {$IF DEFINED(WINDOWS)}
-  {$IF DEFINED(VORBIS_WINDOZE_STATIC) OR DEFINED(OPUS_WINDOZE_STATIC)}
+  {$IF DEFINED(VORBIS_WINDOWS_STATIC) OR DEFINED(OPUS_WINDOWS_STATIC)}
     {$LINKLIB libogg.a}
   {$ELSE}
     {$DEFINE OGG_DYNAMIC}
@@ -38,7 +38,7 @@ uses
   {$LINKLIB libogg}
   const ogglib = 'libogg';
 {$ELSE}
-  {$ERROR libogg not supported on this platform. Fix it!}
+  {$ERROR libogg is not supported on this platform. Fix it!}
 {$ENDIF}
 
 (***********************************************************************)

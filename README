@@ -4,7 +4,7 @@ D2DF-SDL
 Doom2D Forever ( http://repo.or.cz/d2df-sdl.git ) adapted for use with the
 FreePascal Compiler and ported to SDL (SDL2).
 
-Building
+Build
 ---------
 
 Requirements:
@@ -23,7 +23,7 @@ Additionally you can add the following options:
     * -dUSE_SYSSTUB     Disable I/O management
   Render driver:
     * -dUSE_OPENGL      Build with desktop OpenGL 2.x
-    * -dUSE_GLES1       Build with mobile OpenGLES 1.1
+    * -dUSE_GLES1       Build with mobile OpenGL ES 1.1
     * -dUSE_GLSTUB      Disable rendering
   Sound driver:
     * -dUSE_FMOD        Build with FMOD Ex (4.30.22, other versions may fail)
@@ -42,7 +42,7 @@ Additionally you can add the following options:
     * -dUSE_GME         Build with libgme
   Other:
     * -dSDL2_NODPI      Build for old libSDL2
-    * -dUSE_MINIUPNPC   Build with libminiupnpc for automatic server port
+    * -dUSE_MINIUPNPC   Build with MiniUPnPc for automatic server port
                         forwarding via UPnP
     * -dENABLE_HOLMES   Build with in-game map debugger
     * -dHEADLESS        Build a headless executable for dedicated servers
@@ -57,11 +57,20 @@ FMODex.dll, ENet.dll, miniupnpc.dll) unless you choose to link them statically.
 Static Linking
 --------------
 
-It's now possible to link Windows' LibJIT and ENet as static libs. You can use:
-  -dLIBJIT_WINDOZE_STATIC       -- static LibJIT
-  -dLIBENET_WINDOZE_STATIC      -- static ENet
-  -dLIBMINIUPNPC_WINDOZE_STATIC -- static MiniUPnPC
-  -dVORBIS_WINDOZE_STATIC       -- static libogg/libvorbis (only in AL builds)
-  -dOPUS_WINDOZE_STATIC         -- static libogg/libopus (only in AL builds)
+It is possible to link libraries statically for Windows builds. You can use:
+  -dENET_WINDOWS_STATIC        -- static ENet
+  -dMINIUPNPC_WINDOWS_STATIC   -- static MiniUPnPc
+  -dLIBJIT_WINDOWS_STATIC      -- static LibJIT
+  -dOPENAL_WINDOWS_STATIC      -- static OpenAL
+
+Next ones make sense only for OpenAL-based builds:
+  -dMODPLUG_WINDOWS_STATIC     -- static libmodplug
+  -dMPG123_WINDOWS_STATIC      -- static libmpg123
+  -dVORBIS_WINDOWS_STATIC      -- static libogg + libvorbis
+  -dOPUS_WINDOWS_STATIC        -- static libogg + libopus
+  -dFLUIDSYNTH_WINDOWS_STATIC  -- static FluidSynth
+  -dLIBGME_WINDOWS_STATIC      -- static libgme (game-music-emu)
+  -dLIBXMP_WINDOWS_STATIC      -- static libxmp
+
 
 Don't forget to specify lib*.a location with -Fi<...>

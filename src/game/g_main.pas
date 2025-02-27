@@ -365,7 +365,7 @@ begin
   while i <= ParamCount() do
   begin
     case ParamStr(i) of
-    '--like-windoze': forceBinDir := true;
+    '--like-win': forceBinDir := True;
     '--rw-dir':
       begin
         i += 1;

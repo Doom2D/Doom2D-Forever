@@ -13,8 +13,6 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *)
 
-{.$DEFINE LIBJIT_WINDOZE_STATIC}
-
 {$IFDEF WIN32}
   {$DEFINE MSWINDOWS}
 {$ENDIF}
@@ -27,7 +25,7 @@
 
 
 {$IFDEF MSWINDOWS}
-  {$IFDEF LIBJIT_WINDOZE_STATIC}
+  {$IFDEF LIBJIT_WINDOWS_STATIC}
     {$LINKLIB libjit.a}
     {$LINKLIB libkernel32.a}
     {$LINKLIB libm.a}

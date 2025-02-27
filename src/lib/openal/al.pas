@@ -14,7 +14,7 @@ uses
   ctypes;
 
 {$IF DEFINED(WINDOWS)}
-  {$IFDEF OPENAL_WINDOZE_STATIC}
+  {$IFDEF OPENAL_WINDOWS_STATIC}
     {$LINKLIB libopenal.a}
   {$ELSE}
     const openallib = 'openal32.dll';
@@ -26,7 +26,7 @@ uses
   const openallib = 'libopenal.so';
   {$DEFINE AL_DYNAMIC}
 {$ELSE}
-  {$ERROR OpenAL not supported on this platform. Fix it!}
+  {$ERROR OpenAL is not supported on this platform. Fix it!}
 {$ENDIF}
 
 {$include al.inc}

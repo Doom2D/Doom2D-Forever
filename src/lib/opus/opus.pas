@@ -25,7 +25,7 @@ uses
   CTypes, SysUtils, ogg;
 
 {$IF DEFINED(WINDOWS)}
-  {$IFDEF OPUS_WINDOZE_STATIC}
+  {$IFDEF OPUS_WINDOWS_STATIC}
     {$LINKLIB libopusfile.a}
     {$LINKLIB libopus.a}
   {$ELSE}
@@ -40,7 +40,7 @@ uses
   const opuslib = 'libopus.so';
   const opusfilelib = 'libopusfile.so';
 {$ELSE}
-  {$ERROR libopus not supported on this platform. Fix it!}
+  {$ERROR libopus is not supported on this platform. Fix it!}
 {$ENDIF}
 
 const

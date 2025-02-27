@@ -13,7 +13,6 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *)
 
-{$DEFINE D2DF_FORCE_OBJFPC}
 {$INCLUDE a_modes.inc}
 unit utils;
 

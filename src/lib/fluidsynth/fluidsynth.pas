@@ -27,7 +27,7 @@ uses
 {$ENDIF}
 
 {$IF DEFINED(WINDOWS)}
-  {$IFDEF FLUIDSYNTH_WINDOZE_STATIC}
+  {$IFDEF FLUIDSYNTH_WINDOWS_STATIC}
     {$LINKLIB libfluidsynth.a}
   {$ELSE}
     {$DEFINE FS_DYNAMIC}
@@ -38,7 +38,7 @@ uses
   {$LINKLIB libfluidsynth}
   const fluidlib = 'libfluidsynth.so';
 {$ELSE}
-  {$ERROR fluidsynth not supported on this platform. Fix it!}
+  {$ERROR fluidsynth is not supported on this platform. Fix it!}
 {$ENDIF}
 
 const

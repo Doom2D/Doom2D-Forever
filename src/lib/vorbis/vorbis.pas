@@ -27,7 +27,7 @@ uses
   ctypes, ogg;
 
 {$IF DEFINED(WINDOWS)}
-  {$IFDEF VORBIS_WINDOZE_STATIC}
+  {$IFDEF VORBIS_WINDOWS_STATIC}
     {$LINKLIB libvorbisfile.a}
     {$LINKLIB libvorbis.a}
   {$ELSE}
@@ -42,7 +42,7 @@ uses
   const vorbislib = 'libvorbis';
   const vorbisfilelib = 'libvorbisfile';
 {$ELSE}
-  {$ERROR libvorbis not supported on this platform. Fix it!}
+  {$ERROR libvorbis is not supported on this platform. Fix it!}
 {$ENDIF}
 
 (***********************************************************************)
