@@ -348,59 +348,63 @@ begin
 end;
 
 function g_PlayerModel_CalcGibSize (pData: Pointer; dataSize, x, y, w, h: Integer): TRectWH;
-  var i, j: Integer; done: Boolean; img: TImageData;
+var
+  img: TImageData;
 
-  function IsVoid (i, j: Integer): Boolean;
+  function IsVoid (h, v: Integer): Boolean; inline;
   begin
-    result := Byte((PByte(img.bits) + (y+j)*img.width*4 + (x+i)*4 + 3)^) = 0
+    Result := GetPixel32(img, x + h, y + v).A = 0;
   end;
 
+var
+  done: Boolean;
+  i, j: Integer;
 begin
   InitImage(img);
-  assert(LoadImageFromMemory(pData, dataSize, img));
+  Assert(LoadImageFromMemory(pData, dataSize, img));
 
-  (* trace x from right to left *)
-  done := false; i := 0;
+  // trace x from left to right
+  done := False; i := 0;
   while not done and (i < w) do
   begin
     j := 0;
-    while (j < h) and IsVoid(i, j) do inc(j);
-    done := (j < h) and (IsVoid(i, j) = false);
-    result.x := i;
-    inc(i);
+    while (j < h) and IsVoid(i, j) do j += 1;
+    done := (j < h) and not IsVoid(i, j);
+    Result.x := i;
+    i += 1;
   end;
 
-  (* trace y from up to down *)
-  done := false; j := 0;
+  // trace y from up to down
+  done := False; j := 0;
   while not done and (j < h) do
   begin
     i := 0;
-    while (i < w) and IsVoid(i, j) do inc(i);
-    done := (i < w) and (IsVoid(i, j) = false);
-    result.y := j;
-    inc(j);
+    while (i < w) and IsVoid(i, j) do i += 1;
+    done := (i < w) and not IsVoid(i, j);
+    Result.y := j;
+    j += 1;
   end;
   
-  (* trace x from right to left *)
-  done := false; i := w - 1;
+  // trace x from right to left
+  done := False; i := w - 1;
   while not done and (i >= 0) do
   begin
     j := 0;
-    while (j < h) and IsVoid(i, j) do inc(j);
-    done := (j < h) and (IsVoid(i, j) = false);
-    result.width := i - result.x + 1;
-    dec(i);
+    while (j < h) and IsVoid(i, j) do j += 1;
+    done := (j < h) and not IsVoid(i, j);
+    Result.width := i - Result.x + 1;
+    i -= 1;
   end;
 
-  (* trace y from down to up *)
-  done := false; j := h - 1;
+  // trace y from down to up
+  done := False; j := h - 1;
   while not done and (j >= 0) do
   begin
     i := 0;
-    while (i < w) and IsVoid(i, j) do inc(i);
-    done := (i < w) and (IsVoid(i, j) = false);
-    result.height := j - result.y + 1;
-    dec(j);
+    while (i < w) and IsVoid(i, j) do i += 1;
+    done := (i < w) and not IsVoid(i, j);
+    Result.height := j - Result.y + 1;
+    j -= 1;
   end;
 
   FreeImage(img);
@@ -573,7 +577,7 @@ begin
           //Gibs[a].Rect := e_GetTextureSize2(Gibs[a].ID);
           Gibs[a].Rect := g_PlayerModel_CalcGibSize(pData, lenpd, a*32, 0, 32, 32);
           with Gibs[a].Rect do
-            if Height > 3 then Height := Height-1-Random(2);
+            if Height > 3 then Height -= 1 + Random(2);
           Gibs[a].OnlyOne := config.ReadInt('Gibs', 'once', -1) = a+1;
         end;
 
