@@ -165,7 +165,7 @@ object MapOptimizationForm: TMapOptimizationForm
         Height = 17
         Top = 128
         Width = 130
-        Caption = 'Блокиратор монстров'
+        Caption = 'Блокировщик монстров'
         TabOrder = 9
       end
     end
