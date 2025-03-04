@@ -654,6 +654,9 @@ var
   flags: UInt32;
 begin
   e_WriteLog('Init SDL2', TMsgType.Notify);
+{$IFDEF ANDROID}
+  SDL_SetHint(SDL_HINT_ORIENTATIONS, 'LandscapeLeft LandscapeRight');
+{$ENDIF}
 
   // NOTE: No explicit SDL_INIT_EVENTS here as it will be involved by other subsystems if needed.
   flags := SDL_INIT_TIMER
