@@ -221,12 +221,12 @@ begin
 
   if Mix_QuerySpec(@rfreq, @rformat, @rchans) > 0 then
   begin
-    e_WriteLog(Format('SDL: frequency=%d; format=%u; channels=%d', [rfreq, rformat, rchans]), TMsgType.Notify);
+    e_WriteLog(Format('SDL: rate=%d; format=%u; channels=%d', [rfreq, rformat, rchans]), TMsgType.Notify);
   end;
 
   for i := 0 to Mix_GetNumChunkDecoders()-1 do
   begin
-    e_WriteLog(Format('SDL: chunk decoder %s is avalable', [Mix_GetChunkDecoder(i)]), TMsgType.Notify);
+    e_WriteLog(Format('SDL: chunk decoder %s available', [Mix_GetChunkDecoder(i)]), TMsgType.Notify);
   end;
 
   e_TimidityDecoder := false;
@@ -235,7 +235,7 @@ begin
     case AnsiString(Mix_GetMusicDecoder(i)) of
       'TIMIDITY': e_TimidityDecoder := true;
     end;
-    e_WriteLog(Format('SDL: music decoder %s is avalable', [Mix_GetMusicDecoder(i)]), TMsgType.Notify);
+    e_WriteLog(Format('SDL: music decoder %s available', [Mix_GetMusicDecoder(i)]), TMsgType.Notify);
   end;
 
   Mix_AllocateChannels(N_CHANNELS);
