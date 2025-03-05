@@ -1127,6 +1127,7 @@ begin
   FColor.B := Blue;
 end;
 
+// TODO: Make attack animation speed here relative to fire repetition (cooldown)?
 procedure TPlayerModel.SetFire(Fire: Boolean);
 var
   AttackAnim: TAnimation;

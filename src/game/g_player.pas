@@ -4947,13 +4947,12 @@ end;
 
 procedure TPlayer.SetAction(Action: Byte; Force: Boolean);
 var
-  Priority, WalkValue, LookValue, AttackValue: Byte;
+  Priority, WalkValue, AttackValue: Byte;
   Attack: Boolean;
 begin
   if FModel.VisibleWeapons then
   begin
     WalkValue := 3;
-    LookValue := 1;
     AttackValue := 2;
   end
   else
@@ -4963,25 +4962,29 @@ begin
     // first case is much more common and has lower priority than A_WALK, but the second one should
     // take precedence over A_WALK for skins without a drawn weapon to avoid the animation glitch.
     if FModel.Fire and (Action = A_WALK) then Exit;
-    WalkValue := 1;
-    LookValue := 2;
+    WalkValue := 2;
     AttackValue := 3;
   end;
 
   case Action of
-    A_WALK: Priority := WalkValue;
-    A_SEEUP: Priority := LookValue;
-    A_SEEDOWN: Priority := LookValue;
-    A_ATTACK: Priority := AttackValue;
-    A_ATTACKUP: Priority := AttackValue;
-    A_ATTACKDOWN: Priority := AttackValue;
-    A_PAIN: Priority := 4;
-    A_DIE1, A_DIE2: Priority := 5;
-    else Priority := 0;
+    A_SEEUP, A_SEEDOWN:
+      Priority := 1;
+    A_WALK:
+      Priority := WalkValue;
+    A_ATTACK, A_ATTACKUP, A_ATTACKDOWN:
+      Priority := AttackValue;
+    A_PAIN:
+      Priority := 4;
+    A_DIE1, A_DIE2:
+      Priority := 5;
+    else  // A_STAND
+      Priority := 0;
   end;
 
   Attack := Priority = AttackValue;
 
+  // TODO: Prefer the latter state (change > to >=) if priorities are the same, because it is newer.
+  // Would require additional tweaks to ensure that animation does not change during attack, though.
   if (Priority > FActionPrior) or Force then
   begin
     // Do not change the animation to a shooting one if the current weapon is a chainsaw.
@@ -5562,7 +5565,7 @@ begin
     FModel.ChangeAnimation(FActionAnim, FActionForce);
     FModel.GetCurrentAnimation.MinLength := i;
     FModel.GetCurrentAnimationMask.MinLength := i;
-  end else  // apply the chosen animation
+  end else  // apply the chosen animation; don't reset A_STAND animation on every tick
     FModel.ChangeAnimation(FActionAnim, (FModel.Animation <> A_STAND) and FActionForce);
 
   // Prepare animation reset to default (idle) on the next tick if nothing will change then.
