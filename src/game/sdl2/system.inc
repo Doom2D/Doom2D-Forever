@@ -139,12 +139,7 @@ begin
   e_ResizeWindow(w, h);
   e_InitGL();
   g_Game_SetupScreenSize();
-
-{$IFNDEF ANDROID}
-  // This will fix menu reset on keyboard showing
   g_Menu_Reset();
-{$ENDIF}
-
   g_Game_ClearLoading();
 
 {$IFDEF ENABLE_HOLMES}
