@@ -899,23 +899,33 @@ begin
   PlayerModelsArray := nil;
 end;
 
+// TODO: Retain the original color if it is appropriate? Would need HSV or HSL to check it, though.
+// The current formulas were derived as follows, assuming these rules:
+// - There's a minimal threshold for team tone (MIN_TONE), otherwise it will be too dark to notice.
+// - The extra tone can't be greater than value of a team one. Then they produce the "team color'.
+// - The hostile tone should not exceed the "amount" (which is an ad-hoc quantity) of team color.
+// So there's a canonical form:
+//   TeamTone := MIN_TONE + Round(aColor.X / 255 * (255-MIN_TONE));
+//   ExtraTone := Round(aColor.Y / 255 * TeamTone);
+//   LightTone := Round(aColor.Z / 255 * ((TeamTone/2 + ExtraTone/2) / 2);
+// Any fine-tune deviations from it (including custom factors) were made manually after experiments.
 function g_PlayerModel_MakeColor(const aColor: TRGB; aTeam: Byte): TRGB;
 var
-  TeamTone, EnemyTone, TintTone: Byte;
+  TeamTone, ExtraTone, LightTone: Byte;
 begin
   case aTeam of
     TEAM_RED: begin
-      TeamTone := Max(191, aColor.R);  // 191..255
-      TintTone := aColor.G div 3;  // 0..85
-      EnemyTone := nclamp(aColor.B - 160, 0, TintTone);  // 0..tint..95
-      Result := _RGB(TeamTone, TintTone, EnemyTone);
+      TeamTone := (160-1) + Round( aColor.R / 255 * 96 );
+      ExtraTone := Round( aColor.B / 255 * TeamTone / 2.25 );
+      LightTone := Round( aColor.G / 255 * ((TeamTone+ExtraTone) / 4.5) );
+      Result := _RGB(TeamTone, LightTone, ExtraTone);
     end;
 
     TEAM_BLUE: begin
-      TeamTone := Max(127, aColor.B);  // 127..255
-      TintTone := aColor.G div 3;  // 0..85
-      EnemyTone := nclamp(aColor.R - 192, 0, TintTone);  // 0..tint..63
-      Result := _RGB(EnemyTone, TintTone, TeamTone);
+      TeamTone := 127 + Round( aColor.B / 2 );
+      ExtraTone := Round( aColor.G / 255 * TeamTone );
+      LightTone := Round( aColor.R / 255 * ((TeamTone+ExtraTone) / 4) );
+      Result := _RGB(LightTone, ExtraTone, TeamTone);
     end;
 
     else
