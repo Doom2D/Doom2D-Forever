@@ -70,7 +70,7 @@ sv_master_interval <number>
 
 @h2 Technical options
 net_master_list <host>
-	To which master server address the data will be sent. You can specify more than one, for example mpms.doom2d.org:25665,deadsoftware.ru:25665
+	To which master server address the data will be sent. You can specify more than one, for example dfms.doom2d.org:25665,dfms2.doom2d.org:1005
 rdl_ignore_enabled 1/0
 	Enable or disable hash checking.
 rdl_ignore_names <resource wad names>

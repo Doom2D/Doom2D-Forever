@@ -293,7 +293,7 @@ begin
     g_Options_ApplyGameSettings;
 
   (* section MasterServer *)
-  NetMasterList := 'mpms.doom2d.org:25665, deadsoftware.ru:25665, terminalcorner.ru:25665';
+  NetMasterList := 'dfms.doom2d.org:25665, dfms2.doom2d.org:1005, terminalcorner.ru:25665';
   g_Net_Slist_Set(NetMasterList);
 
   (* section Server *)
