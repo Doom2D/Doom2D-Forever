@@ -141,7 +141,7 @@ var
   NetPongSock: ENetSocket = ENET_SOCKET_NULL;
 
   NetUseMaster: Boolean = True;
-  NetMasterList: string = 'mpms.doom2d.org:25665, deadsoftware.ru:25665, terminalcorner.ru:25665';
+  NetMasterList: string = 'dfms.doom2d.org:25665, dfms2.doom2d.org:1005, terminalcorner.ru:25665';
 
   NetClientIP: string = '127.0.0.1';
   NetClientPort: Word = 25666;

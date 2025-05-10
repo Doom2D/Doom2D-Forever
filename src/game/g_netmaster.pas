@@ -35,9 +35,8 @@ const
   // all timeouts in seconds
   NMASTER_TIMEOUT_CONNECT = 3; // 3 seconds
   NMASTER_TIMEOUT_RECONNECT = 5*60; // 5 minutes
-  //NMASTER_TIMEOUT_RECONNECT = 30; // 5 minutes
-  //NMASTER_FORCE_UPDATE_TIMEOUT = 20;
-  //NMASTER_FORCE_UPDATE_TIMEOUT = 0;
+  // Timeout for client waiting for masters' answers in server browser.
+  MASTER_TIMEOUT_CLIENT_MS = 2250; // 2.25 seconds
 
 type
   TNetServer = record
@@ -1431,7 +1430,7 @@ begin
       if (not hasUnanswered) then break;
       // check for timeout
       ct := GetTimerMS();
-      if (ct < stt) or (ct-stt > 4000) then break;
+      if (ct < stt) or (ct-stt > MASTER_TIMEOUT_CLIENT_MS) then break;
       g_Net_Slist_Pulse(300);
     end;
 
