@@ -60,6 +60,10 @@ const
   MODELSOUND_PAIN = 0;
   MODELSOUND_DIE  = 1;
 
+  // Index for WeaponID array
+  WEAPONS_OLD = 0;
+  WEAPONS_2 = 1;
+
 type
   TModelInfo = record
     Name:        String;
@@ -101,6 +105,7 @@ type
     FDirection:        TDirection;
     FColor:            TRGB;
     FBlood:            TModelBlood;
+    FHasW2:            Boolean;
     FCurrentAnimation: Byte;
     FAnim:             Array [TDirection.D_LEFT..TDirection.D_RIGHT] of Array [A_STAND..A_LAST] of TAnimation;
     FMaskAnim:         Array [TDirection.D_LEFT..TDirection.D_RIGHT] of Array [A_STAND..A_LAST] of TAnimation;
@@ -145,15 +150,17 @@ type
   public
     property    Color: TRGB read FColor write FColor;
     property    Blood: TModelBlood read FBlood;
+    property    HasW2: Boolean read FHasW2;
     property VisibleWeapons: Boolean read FDrawWeapon;
   end;
 
-procedure g_PlayerModel_LoadData();
+procedure g_PlayerModel_LoadData(loadWeaponsOld, loadWeapons2: Boolean);
 procedure g_PlayerModel_FreeData();
 function  g_PlayerModel_Load(FileName: String): Boolean;
 function  g_PlayerModel_GetNames(): SSArray;
 function  g_PlayerModel_GetInfo(ModelName: String): TModelInfo;
 function  g_PlayerModel_GetBlood(ModelName: String): TModelBlood;
+function  g_PlayerModel_HasW2(ModelName: String): Boolean;
 function  g_PlayerModel_Get(ModelName: String): TPlayerModel;
 function  g_PlayerModel_GetAnim(ModelName: String; Anim: Byte; var _Anim, _Mask: TAnimation): Boolean;
 function  g_PlayerModel_GetGibs(ModelName: String; var Gibs: TGibsArray): Boolean;
@@ -184,6 +191,7 @@ type
     SlopSound:    Byte;
 {$ENDIF}
     Blood:        TModelBlood;
+    HasW2:        Boolean;
   end;
 
 const
@@ -214,24 +222,30 @@ const
              ('csaw', 'hgun', 'sg', 'ssg', 'mgun', 'rkt', 'plz', 'bfg', 'spl', 'flm');
 
 var
-  WeaponID: Array [WP_FIRST + 1..WP_LAST] of
+  WeaponID: Array [WEAPONS_OLD..WEAPONS_2] of
+            Array [WP_FIRST + 1..WP_LAST] of
             Array [W_POS_NORMAL..W_POS_DOWN] of
             Array [W_ACT_NORMAL..W_ACT_FIRE] of DWORD;
   PlayerModelsArray: Array of TPlayerModelInfo;
 
-procedure g_PlayerModel_LoadData();
-var
-  a: Integer;
-begin
-  for a := WP_FIRST + 1 to WP_LAST do
+procedure g_PlayerModel_LoadData(loadWeaponsOld, loadWeapons2: Boolean);
+  procedure LoadWeaponTextures(selector: Integer; weaponsTexturePrefix: String);
+  var
+    a: Integer;
   begin
-    g_Texture_CreateWAD(WeaponID[a][W_POS_NORMAL][W_ACT_NORMAL], GameWAD+':WEAPONS\'+UpperCase(WeapNames[a]));
-    g_Texture_CreateWAD(WeaponID[a][W_POS_NORMAL][W_ACT_FIRE], GameWAD+':WEAPONS\'+UpperCase(WeapNames[a])+'_FIRE');
-    g_Texture_CreateWAD(WeaponID[a][W_POS_UP][W_ACT_NORMAL], GameWAD+':WEAPONS\'+UpperCase(WeapNames[a])+'_UP');
-    g_Texture_CreateWAD(WeaponID[a][W_POS_UP][W_ACT_FIRE], GameWAD+':WEAPONS\'+UpperCase(WeapNames[a])+'_UP_FIRE');
-    g_Texture_CreateWAD(WeaponID[a][W_POS_DOWN][W_ACT_NORMAL], GameWAD+':WEAPONS\'+UpperCase(WeapNames[a])+'_DN');
-    g_Texture_CreateWAD(WeaponID[a][W_POS_DOWN][W_ACT_FIRE], GameWAD+':WEAPONS\'+UpperCase(WeapNames[a])+'_DN_FIRE');
+    for a := WP_FIRST + 1 to WP_LAST do
+      begin
+        g_Texture_CreateWAD(WeaponID[selector][a][W_POS_NORMAL][W_ACT_NORMAL], GameWAD+weaponsTexturePrefix+UpperCase(WeapNames[a]));
+        g_Texture_CreateWAD(WeaponID[selector][a][W_POS_NORMAL][W_ACT_FIRE], GameWAD+weaponsTexturePrefix+UpperCase(WeapNames[a])+'_FIRE');
+        g_Texture_CreateWAD(WeaponID[selector][a][W_POS_UP][W_ACT_NORMAL], GameWAD+weaponsTexturePrefix+UpperCase(WeapNames[a])+'_UP');
+        g_Texture_CreateWAD(WeaponID[selector][a][W_POS_UP][W_ACT_FIRE], GameWAD+weaponsTexturePrefix+UpperCase(WeapNames[a])+'_UP_FIRE');
+        g_Texture_CreateWAD(WeaponID[selector][a][W_POS_DOWN][W_ACT_NORMAL], GameWAD+weaponsTexturePrefix+UpperCase(WeapNames[a])+'_DN');
+        g_Texture_CreateWAD(WeaponID[selector][a][W_POS_DOWN][W_ACT_FIRE], GameWAD+weaponsTexturePrefix+UpperCase(WeapNames[a])+'_DN_FIRE');
+      end;
   end;
+begin
+  if loadWeaponsOld then LoadWeaponTextures(WEAPONS_OLD, ':WEAPONS_OLD\');
+  if loadWeapons2 then LoadWeaponTextures(WEAPONS_2, ':WEAPONS\');
 end;
 
 function GetPoint(var str: String; var point: TDFPoint): Boolean;
@@ -384,7 +398,7 @@ begin
     Result.y := j;
     j += 1;
   end;
-  
+
   // trace x from right to left
   done := False; i := w - 1;
   while not done and (i >= 0) do
@@ -665,6 +679,11 @@ begin
     if not GetPoint(s, FlagPoint) then FlagPoint := FLAG_DEFPOINT;
 
     FlagAngle := config.ReadInt('Model', 'flag_angle', FLAG_DEFANGLE);
+
+    // TODO this is supposed to be a list, so in future one would also need
+    // to add logic to handle multiple values separated by a comma, eg.
+    // guns2,coolanims,emotes
+    HasW2 := config.ReadStr('Model', 'features', '') = 'guns2';
   end;
 
   config.Free();
@@ -692,6 +711,7 @@ begin
       begin
         Result.FName := Info.Name;
         Result.FBlood := Blood;
+        Result.FHasW2 := HasW2;
 
         for b := A_STAND to A_LAST do
         begin
@@ -853,6 +873,18 @@ begin
     end;
 end;
 
+function g_PlayerModel_HasW2(ModelName: string): Boolean;
+var
+  a: Integer;
+begin
+  for a := 0 to High(PlayerModelsArray) do
+    if PlayerModelsArray[a].Info.Name = ModelName then
+    begin
+      Result := PlayerModelsArray[a].HasW2;
+      Break;
+    end;
+end;
+
 procedure g_PlayerModel_FreeData();
 var
   i: DWORD;
@@ -861,7 +893,10 @@ begin
   for a := WP_FIRST + 1 to WP_LAST do
     for b := W_POS_NORMAL to W_POS_DOWN do
       for c := W_ACT_NORMAL to W_ACT_FIRE do
-        e_DeleteTexture(WeaponID[a][b][c]);
+        begin
+          e_DeleteTexture(WeaponID[WEAPONS_OLD][a][b][c]);
+          e_DeleteTexture(WeaponID[WEAPONS_2][a][b][c]);
+        end;
 
   e_WriteLog('Releasing models...', TMsgType.Notify);
 
@@ -977,7 +1012,19 @@ var
   Mirror: TMirrorType;
   pos, act: Byte;
   p: TDFPoint;
+  weaponsTexturePrefix: String;
+  selector: Integer; // Weapon version index in WeaponID array
 begin
+  if HasW2 then
+  begin
+    weaponsTexturePrefix := ':WEAPONS\';
+    selector := WEAPONS_2;
+  end
+  else
+  begin
+    weaponsTexturePrefix := ':WEAPONS_OLD\';
+    selector := WEAPONS_OLD;
+  end;
 // дыруш:
   if Direction = TDirection.D_LEFT then
     Mirror := TMirrorType.None
@@ -1018,7 +1065,7 @@ begin
       else act := W_ACT_NORMAL;
 
     if Alpha < 201 then
-      e_Draw(WeaponID[FCurrentWeapon][pos][act],
+      e_Draw(WeaponID[selector][FCurrentWeapon][pos][act],
              X+FWeaponPoints[FCurrentWeapon, FCurrentAnimation, FDirection,
                              FAnim[TDirection.D_RIGHT][FCurrentAnimation].CurrentFrame].X,
              Y+FWeaponPoints[FCurrentWeapon, FCurrentAnimation, FDirection,

@@ -1393,6 +1393,10 @@ var
   found: Boolean;
   wext, s: AnsiString;
   f: Integer;
+  modelNames: SSArray;
+  name: String;
+  loadW2: Boolean = False;
+  loadWOld: Boolean = False;
 begin
   gExit := 0;
   gMapToDelete := '';
@@ -1420,7 +1424,6 @@ begin
     g_Console_Init();
 
     g_Game_SetLoadingText(_lc[I_LOAD_MODELS], 0, False);
-    g_PlayerModel_LoadData();
 
     // load models from all possible wad types, in all known directories
     // this does a loosy job (linear search, ooph!), but meh
@@ -1458,6 +1461,12 @@ begin
     begin
       if not g_PlayerModel_Load(s) then e_LogWritefln('Error loading model "%s"', [s], TMsgType.Warning);
     end;
+
+   modelNames := g_PlayerModel_GetNames();
+   for name in modelNames do
+      if g_PlayerModel_HasW2(name) then loadW2 := True else loadWOld := True;
+
+    g_PlayerModel_LoadData(loadWOld, loadW2);
 
     gGameOn := false;
     gPauseMain := false;
