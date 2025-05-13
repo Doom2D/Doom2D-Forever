@@ -284,7 +284,7 @@ begin
   gsItemRespawnRandom := 0;
   gsPowerupRespawnTime := 60;
   gsPowerupRespawnRandom := 0;
-  gsGameFlags := [TGameOption.ALLOW_EXIT, TGameOption.DM_KEYS, TGameOption.BOTS_VS_PLAYERS,
+  gsGameFlags := [TGameOption.ALLOW_EXIT, TGameOption.MONSTERS, TGameOption.DM_KEYS, TGameOption.BOTS_VS_PLAYERS,
     TGameOption.BOTS_VS_MONSTERS, TGameOption.TEAM_HIT_TRACE, TGameOption.TEAM_HIT_PROJECTILE,
     TGameOption.ALLOW_DROP_FLAG];
   gsPlayers := 1;
