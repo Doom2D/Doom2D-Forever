@@ -445,7 +445,8 @@ begin
   begin
     //if not gCheats then exit;
     if not (gGameSettings.GameType in [GT_SINGLE, GT_CUSTOM]) then exit;
-    if not (gGameSettings.GameMode in [GM_COOP, GM_SINGLE]) then exit;
+    // Disallow cheats in "Custom Game" for DM, TDM, CTF, etc. modes
+    //if not (gGameSettings.GameMode in [GM_COOP, GM_SINGLE]) then exit;
   end;
   result := true;
 end;
