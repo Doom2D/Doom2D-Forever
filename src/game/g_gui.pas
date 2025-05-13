@@ -2356,6 +2356,18 @@ begin
             if FCaretPos > 0 then Dec(FCaretPos);
           end;
           IK_DELETE: Delete(FText, FCaretPos + 1, 1);
+          IK_ESCAPE:
+          begin
+            with FWindow do
+            begin
+              if FActiveControl = Self then
+              begin
+                if FDefControl <> ''
+                  then SetActive(GetControl(FDefControl))
+                  else SetActive(nil);
+              end;
+            end;
+          end;
           IK_END, IK_KPEND: FCaretPos := Length(FText);
           IK_HOME, IK_KPHOME: FCaretPos := 0;
           IK_LEFT, IK_KPLEFT, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT: if FCaretPos > 0 then Dec(FCaretPos);
