@@ -41,7 +41,7 @@ var
   gTextureFilter: Boolean;
   gLerpActors: Boolean = True;
   gFrameTime: Integer = 5;
-  gMaxFPS: Integer = 200;
+  gMaxFPS: Integer = 60;
 {$IFDEF ENABLE_SOUND}
   gNoSound: Boolean;
   gSoundLevel: Integer;
