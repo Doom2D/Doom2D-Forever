@@ -59,7 +59,10 @@ end;
   begin
     {$IF DEFINED(WINDOWS)}
       Result := utf2win(UTF8String(SysUtils.GetEnvironmentVariable(WideString('USERNAME'))));
-    {$ELSEIF DEFINED(UNIX)}
+    {$ELSEIF DEFINED(UNIX) AND NOT DEFINED(ANDROID)}
+      // Android is not really Unix. Don't try environment variables there, because
+      // it may lead to unexpected behaviour and crashes.
+      // On newer Androids, getenv causes game to crash for some reason.
       Result := utf2win(SysUtils.GetEnvironmentVariable('USER'));
     {$ELSE}
       Result := '';
