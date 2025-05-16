@@ -659,6 +659,7 @@ procedure Init();
 {$IFDEF USE_SDLMIXER}
 var
   timiditycfg: AnsiString;
+  sdlNativeMusic: AnsiString;
   oldcwd, newcwd: RawByteString;
 {$ENDIF}
 begin
@@ -687,6 +688,10 @@ begin
     Mix_SetSoundFonts(PChar(e_SoundFont));
   {$ENDIF}
 
+    // Android is not really Unix. Don't try environment variables there, because
+    // it may lead to unexpected behaviour and crashes.
+    // On newer Androids, getenv causes game to crash for some reason.
+    {$IF NOT DEFINED(ANDROID)}
     timiditycfg := GetEnvironmentVariable('TIMIDITY_CFG');
     if timiditycfg = '' then
     begin
@@ -700,8 +705,11 @@ begin
       else
         timiditycfg := '';
     end;
+
+    sdlNativeMusic := GetEnvironmentVariable('SDL_NATIVE_MUSIC');
+    {$ENDIF}
     e_LogWritefln('TIMIDITY_CFG = "%s"', [timiditycfg]);
-    e_LogWritefln('SDL_NATIVE_MUSIC = "%s"', [GetEnvironmentVariable('SDL_NATIVE_MUSIC')]);
+    e_LogWritefln('SDL_NATIVE_MUSIC = "%s"', [sdlNativeMusic]);
   {$ENDIF}
 
     e_InitSoundSystem({$IFDEF HEADLESS} True {$ELSE} False {$ENDIF});
