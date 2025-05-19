@@ -1524,6 +1524,7 @@ begin
     TGUILabel(GetControl('lbName')).Text := b.Name;
     TGUILabel(GetControl('lbAuthor')).Text := b.Author;
     TGUIMemo(GetControl('meComment')).SetText(b.Description);
+    TGUILabel(GetControl('lbVersion')).Text := b.VersionLabel;
 
     if b.HaveWeapon then
       TGUILabel(GetControl('lbWeapon')).Text := _lc[I_MENU_YES]
@@ -3405,9 +3406,14 @@ begin
       Name := 'lbAuthor';
       FixedLength := 16;
     end;
-    with AddMemo(_lc[I_MENU_MODEL_COMMENT], 14, 6) do
+    with AddMemo(_lc[I_MENU_MODEL_COMMENT], 14, 4) do
     begin
       Name := 'meComment';
+    end;
+    with AddLabel(_lc[I_MENU_MODEL_VERSION]) do
+    begin
+      Name := 'lbVersion';
+      FixedLength := 16;
     end;
     AddSpace();
     AddLine(_lc[I_MENU_MODEL_OPTIONS]);

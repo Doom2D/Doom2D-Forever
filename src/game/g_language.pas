@@ -355,6 +355,7 @@ type
     I_MENU_MODEL_NAME,
     I_MENU_MODEL_AUTHOR,
     I_MENU_MODEL_COMMENT,
+    I_MENU_MODEL_VERSION,
     I_MENU_MODEL_OPTIONS,
     I_MENU_MODEL_WEAPON,
 
@@ -1358,6 +1359,8 @@ const
                                        'Автор:'),
     ('MENU MODEL COMMENT',             'Description:',
                                        'Описание:'),
+    ('MENU MODEL VERSION',             'Revision ID:',
+                                       'Номер сборки:'),
     ('MENU MODEL OPTIONS',             'Properties',
                                        'Свойства'),
     ('MENU MODEL WEAPON',              'Visible weapon:',

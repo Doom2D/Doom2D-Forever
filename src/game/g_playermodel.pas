@@ -66,10 +66,11 @@ const
 
 type
   TModelInfo = record
-    Name:        String;
-    Author:      String;
+    Name: String;
+    Author: String;
     Description: String;
-    HaveWeapon:  Boolean;
+    VersionLabel: String;
+    HaveWeapon: Boolean;
   end;
 
   TModelBlood = record
@@ -476,6 +477,10 @@ begin
     Name := s;
     Author := config.ReadStr('Model', 'author', '');
     Description := config.ReadStr('Model', 'description', '');
+
+    // This field was initially supposed to represent the version of the MODEL.TXT, but it was never
+    // checked for validity and thus became somewhat misused over time, so we recycled it this way.
+    VersionLabel := config.ReadStr('Model', 'version', '');
   end;
 
   with PlayerModelsArray[ID] do
