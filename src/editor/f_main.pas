@@ -3335,7 +3335,7 @@ begin
               else
                 begin
                   item.ItemType := lbItemList.ItemIndex + ITEM_MEDKIT_SMALL;
-                  if item.ItemType >= ITEM_WEAPON_IRONFIST then
+                  if item.ItemType >= ITEM_WEAPON_KNUCKLES then
                     item.ItemType := item.ItemType + 2;
                   item.X := MousePos.X-MapOffset.X;
                   item.Y := MousePos.Y-MapOffset.Y;
@@ -6140,7 +6140,7 @@ begin
       if ShowModal() = mrOK then
       begin
         b := lbTypeSelect.ItemIndex + ITEM_MEDKIT_SMALL;
-        if b >= ITEM_WEAPON_IRONFIST then
+        if b >= ITEM_WEAPON_KNUCKLES then
           b := b + 2;
         Values[Key] := ItemToStr(b);
         vleObjectPropertyApply(Sender);

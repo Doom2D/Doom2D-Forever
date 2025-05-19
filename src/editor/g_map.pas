@@ -126,7 +126,7 @@ const
      ((16), (16)), // KEY_RED
      ((16), (16)), // KEY_GREEN
      ((16), (16)), // KEY_BLUE
-     (( 1), ( 1)), // WEAPON_IRONFIST
+     (( 1), ( 1)), // WEAPON_KNUCKLES
      ((43), (16)), // WEAPON_PISTOL
      ((14), (18)), // BOTTLE
      ((16), (15)), // HELMET
@@ -2898,7 +2898,7 @@ begin
  g_CreateTextureWAD('ITEM_MEDKIT_LARGE', GameWad + ':TEXTURES\MED2');
  g_CreateTextureWAD('ITEM_WEAPON_SAW', GameWad + ':TEXTURES\SAW');
  g_CreateTextureWAD('ITEM_WEAPON_PISTOL', GameWad + ':TEXTURES\PISTOL');
- g_CreateTextureWAD('ITEM_WEAPON_IRONFIST', GameWad + ':TEXTURES\IRONFIST');
+ g_CreateTextureWAD('ITEM_WEAPON_KNUCKLES', GameWad + ':TEXTURES\KNUCKLES');
  g_CreateTextureWAD('ITEM_WEAPON_SHOTGUN1', GameWad + ':TEXTURES\SHOTGUN1');
  g_CreateTextureWAD('ITEM_WEAPON_SHOTGUN2', GameWad + ':TEXTURES\SHOTGUN2');
  g_CreateTextureWAD('ITEM_WEAPON_CHAINGUN', GameWad + ':TEXTURES\MGUN');
@@ -2977,7 +2977,7 @@ begin
  g_DeleteTexture('ITEM_MEDKIT_LARGE');
  g_DeleteTexture('ITEM_WEAPON_SAW');
  g_DeleteTexture('ITEM_WEAPON_PISTOL');
- g_DeleteTexture('ITEM_WEAPON_IRONFIST');
+ g_DeleteTexture('ITEM_WEAPON_KNUCKLES');
  g_DeleteTexture('ITEM_WEAPON_SHOTGUN1');
  g_DeleteTexture('ITEM_WEAPON_SHOTGUN2');
  g_DeleteTexture('ITEM_WEAPON_CHAINGUN');

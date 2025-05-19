@@ -72,7 +72,7 @@ const
   ITEM_KEY_RED               = 28;
   ITEM_KEY_GREEN             = 29;
   ITEM_KEY_BLUE              = 30;
-  ITEM_WEAPON_IRONFIST       = 31;
+  ITEM_WEAPON_KNUCKLES       = 31;
   ITEM_WEAPON_PISTOL         = 32;
   ITEM_BOTTLE                = 33;
   ITEM_HELMET                = 34;

@@ -749,7 +749,7 @@ begin
   ItemNames[ITEM_KEY_RED] := MsgArrayItemKeyRed;
   ItemNames[ITEM_KEY_GREEN] := MsgArrayItemKeyGreen;
   ItemNames[ITEM_KEY_BLUE] := MsgArrayItemKeyBlue;
-  ItemNames[ITEM_WEAPON_IRONFIST] := '?';
+  ItemNames[ITEM_WEAPON_KNUCKLES] := '?';
   ItemNames[ITEM_WEAPON_PISTOL] := '??';
   ItemNames[ITEM_BOTTLE] := MsgArrayItemBottle;
   ItemNames[ITEM_HELMET] := MsgArrayItemHelmet;
