@@ -268,7 +268,7 @@ type
     FWeapSwitchMode: Byte;
     FWeapPreferences: Array [WP_FIRST .. WP_LAST+1] of Byte;
     FSwitchToEmpty: Byte;
-    FSkipIronFist: Byte;
+    FSkipKnuckles: Byte;
     FColor:     TRGB;
     FPreferredTeam: Byte;
     FSpectator: Boolean;
@@ -396,7 +396,7 @@ type
     property    CurrWeap: Byte read FCurrWeap write FCurrWeap;
     property    WeapSwitchMode: Byte read FWeapSwitchMode write FWeapSwitchMode;
     property    SwitchToEmpty: Byte read FSwitchToEmpty write FSwitchToEmpty;
-    property    SkipIronFist: Byte read FSkipIronFist write FSkipIronFist;
+    property    SkipKnuckles: Byte read FSkipKnuckles write FSkipKnuckles;
     property    MonsterKills: Integer read FMonsterKills write FMonsterKills;
     property    Secrets: Integer read FSecrets;
     property    GodMode: Boolean read FGodMode write FGodMode;
@@ -722,17 +722,17 @@ const
                                 (WEAPON_FLAMETHROWER, WEAPON_SUPERCHAINGUN,
                                  WEAPON_SHOTGUN2, WEAPON_SHOTGUN1,
                                  WEAPON_CHAINGUN, WEAPON_PLASMA, WEAPON_ROCKETLAUNCHER,
-                                 WEAPON_BFG, WEAPON_PISTOL, WEAPON_SAW, WEAPON_IRONFIST);
+                                 WEAPON_BFG, WEAPON_PISTOL, WEAPON_SAW, WEAPON_KNUCKLES);
   WEAPON_PRIOR2: Array [WP_FIRST..WP_LAST] of Byte =
                                 (WEAPON_FLAMETHROWER, WEAPON_SUPERCHAINGUN,
                                  WEAPON_BFG, WEAPON_ROCKETLAUNCHER,
                                  WEAPON_SHOTGUN2, WEAPON_PLASMA, WEAPON_SHOTGUN1,
-                                 WEAPON_CHAINGUN, WEAPON_PISTOL, WEAPON_SAW, WEAPON_IRONFIST);
+                                 WEAPON_CHAINGUN, WEAPON_PISTOL, WEAPON_SAW, WEAPON_KNUCKLES);
   //WEAPON_PRIOR3: Array [WP_FIRST..WP_LAST] of Byte =
   //                              (WEAPON_FLAMETHROWER, WEAPON_SUPERCHAINGUN,
   //                               WEAPON_BFG, WEAPON_PLASMA, WEAPON_SHOTGUN2,
   //                               WEAPON_CHAINGUN, WEAPON_SHOTGUN1, WEAPON_SAW,
-  //                               WEAPON_ROCKETLAUNCHER, WEAPON_PISTOL, WEAPON_IRONFIST);
+  //                               WEAPON_ROCKETLAUNCHER, WEAPON_PISTOL, WEAPON_KNUCKLES);
   WEAPON_RELOAD: Array [WP_FIRST..WP_LAST] of Byte =
                                 (5, 2, 6, 18, 36, 2, 12, 2, 14, 2, 2);
 
@@ -2095,16 +2095,16 @@ begin
     if FWeapon[i] and maySwitch(i) and (FWeapPreferences[i] > FWeapPreferences[testedWeap]) then
       testedWeap := i;
   if (R_BERSERK in FInventory) and (FWeapPreferences[WP_LAST + 1] > FWeapPreferences[testedWeap]) then
-    testedWeap := WEAPON_IRONFIST;
+    testedWeap := WEAPON_KNUCKLES;
   result := testedWeap;
 end;
 
 function TPlayer.maySwitch(Weapon: Byte) : Boolean;
 begin
   result := true;
-  if (Weapon = WEAPON_IRONFIST) and (FSkipIronFist <> 0) then
+  if (Weapon = WEAPON_KNUCKLES) and (FSkipKnuckles <> 0) then
   begin
-    if (FSkipIronFist = 1) and (not (R_BERSERK in FInventory)) then
+    if (FSkipKnuckles = 1) and (not (R_BERSERK in FInventory)) then
       result := false;
   end
   else if (FSwitchToEmpty = 0) and (not hasAmmoForShooting(Weapon)) then
@@ -2882,10 +2882,10 @@ begin
   s := IntToStr(GetAmmoByWeapon(FCurrWeap));
 
   case FCurrWeap of
-    WEAPON_IRONFIST:
+    WEAPON_KNUCKLES:
     begin
       s := '--';
-      ID := gItemsTexturesID[ITEM_WEAPON_IRONFIST];
+      ID := gItemsTexturesID[ITEM_WEAPON_KNUCKLES];
     end;
     WEAPON_SAW:
     begin
@@ -3081,7 +3081,7 @@ begin
   yd := wy+firediry();
 
   case FCurrWeap of
-    WEAPON_IRONFIST:
+    WEAPON_KNUCKLES:
     begin
       DoPunch();
       if R_BERSERK in FInventory then
@@ -3867,7 +3867,7 @@ function TPlayer.hasAmmoForWeapon (weapon: Byte): Boolean;
 begin
   result := false;
   case weapon of
-    WEAPON_IRONFIST, WEAPON_SAW: result := true;
+    WEAPON_KNUCKLES, WEAPON_SAW: result := true;
     WEAPON_SHOTGUN1, WEAPON_SHOTGUN2, WEAPON_SUPERCHAINGUN: result := (FAmmo[A_SHELLS] > 0);
     WEAPON_PISTOL, WEAPON_CHAINGUN: result := (FAmmo[A_BULLETS] > 0);
     WEAPON_ROCKETLAUNCHER: result := (FAmmo[A_ROCKETS] > 0);
@@ -3881,7 +3881,7 @@ function TPlayer.hasAmmoForShooting (weapon: Byte): Boolean;
 begin
   result := false;
   case weapon of
-    WEAPON_IRONFIST, WEAPON_SAW: result := true;
+    WEAPON_KNUCKLES, WEAPON_SAW: result := true;
     WEAPON_SHOTGUN1, WEAPON_SUPERCHAINGUN: result := (FAmmo[A_SHELLS] > 0);
     WEAPON_SHOTGUN2: result := (FAmmo[A_SHELLS] > 1);
     WEAPON_PISTOL, WEAPON_CHAINGUN: result := (FAmmo[A_BULLETS] > 0);
@@ -4432,9 +4432,9 @@ begin
           FInventory += [R_BERSERK];
           if (FBFGFireCounter = -1) then
           begin
-            FCurrWeap := WEAPON_IRONFIST;
+            FCurrWeap := WEAPON_KNUCKLES;
             resetWeaponQueue();
-            FModel.SetWeapon(WEAPON_IRONFIST);
+            FModel.SetWeapon(WEAPON_KNUCKLES);
           end;
           if gFlash <> 0 then
           begin
@@ -4725,7 +4725,7 @@ begin
     end;
 
     FWeapon[WEAPON_PISTOL] := True;
-    FWeapon[WEAPON_IRONFIST] := True;
+    FWeapon[WEAPON_KNUCKLES] := True;
     FCurrWeap := WEAPON_PISTOL;
     resetWeaponQueue();
 
@@ -5713,7 +5713,7 @@ begin
   YD := AY;
 
   case FCurrWeap of
-    WEAPON_IRONFIST:
+    WEAPON_KNUCKLES:
     begin
       visible := False;
       DoPunch();
@@ -6484,9 +6484,9 @@ begin
         FInventory += [R_BERSERK];
         if FBFGFireCounter < 1 then
         begin
-          FCurrWeap := WEAPON_IRONFIST;
+          FCurrWeap := WEAPON_KNUCKLES;
           resetWeaponQueue();
-          FModel.SetWeapon(WEAPON_IRONFIST);
+          FModel.SetWeapon(WEAPON_KNUCKLES);
         end;
         if gFlash <> 0 then FPain += 100;
         FBerserk := gTime+30000;
@@ -7047,7 +7047,7 @@ begin
 
       case FCurrWeap of
         WEAPON_PLASMA, WEAPON_SUPERCHAINGUN, WEAPON_CHAINGUN: PressKey(KEY_FIRE, 20);
-        WEAPON_SAW, WEAPON_IRONFIST, WEAPON_FLAMETHROWER: PressKey(KEY_FIRE, 40);
+        WEAPON_SAW, WEAPON_KNUCKLES, WEAPON_FLAMETHROWER: PressKey(KEY_FIRE, 40);
         else PressKey(KEY_FIRE);
       end;
     end;

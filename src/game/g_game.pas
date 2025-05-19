@@ -97,7 +97,7 @@ type
     WeaponSwitch: Byte;
     WeaponPreferences: Array[WP_FIRST..WP_LAST+1] of Byte;
     SwitchToEmpty: Byte;
-    SkipIronFist: Byte;
+    SkipKnuckles: Byte;
   end;
 
   TMegaWADInfo = record
@@ -4443,7 +4443,7 @@ begin
       gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
       gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
       gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
-      gPlayer1.SkipIronFist := gPlayer1Settings.SkipIronFist;
+      gPlayer1.SkipKnuckles := gPlayer1Settings.SkipKnuckles;
       g_Console_Add(Format(_lc[I_PLAYER_JOIN], [gPlayer1.Name]), True);
       if g_Game_IsServer and g_Game_IsNet then
         MH_SEND_PlayerCreate(gPlayer1.UID);
@@ -4477,7 +4477,7 @@ begin
       gPlayer2.WeapSwitchMode := gPlayer2Settings.WeaponSwitch;
       gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
       gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
-      gPlayer2.SkipIronFist := gPlayer2Settings.SkipIronFist;
+      gPlayer2.SkipKnuckles := gPlayer2Settings.SkipKnuckles;
       g_Console_Add(Format(_lc[I_PLAYER_JOIN], [gPlayer2.Name]), True);
       if g_Game_IsServer and g_Game_IsNet then
         MH_SEND_PlayerCreate(gPlayer2.UID);
@@ -4595,7 +4595,7 @@ begin
   gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
   gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
   gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
-  gPlayer1.SkipIronFist := gPlayer1Settings.SkipIronFist;
+  gPlayer1.SkipKnuckles := gPlayer1Settings.SkipKnuckles;
   nPl := 1;
 
 // Создание второго игрока, если есть:
@@ -4614,7 +4614,7 @@ begin
     gPlayer2.WeapSwitchMode := gPlayer2Settings.WeaponSwitch;
     gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
     gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
-    gPlayer2.SkipIronFist := gPlayer2Settings.SkipIronFist;
+    gPlayer2.SkipKnuckles := gPlayer2Settings.SkipKnuckles;
     Inc(nPl);
   end;
 
@@ -4697,7 +4697,7 @@ begin
     gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
     gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
     gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
-    gPlayer1.SkipIronFist := gPlayer1Settings.SkipIronFist;
+    gPlayer1.SkipKnuckles := gPlayer1Settings.SkipKnuckles;
     Inc(nPl);
   end;
 
@@ -4717,7 +4717,7 @@ begin
     gPlayer2.WeapSwitchMode := gPlayer2Settings.WeaponSwitch;
     gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
     gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
-    gPlayer2.SkipIronFist := gPlayer2Settings.SkipIronFist;
+    gPlayer2.SkipKnuckles := gPlayer2Settings.SkipKnuckles;
     Inc(nPl);
   end;
 
@@ -4810,7 +4810,7 @@ begin
     gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
     gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
     gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
-    gPlayer1.SkipIronFist := gPlayer1Settings.SkipIronFist;
+    gPlayer1.SkipKnuckles := gPlayer1Settings.SkipKnuckles;
   end;
 
   if nPlayers >= 2 then
@@ -4829,7 +4829,7 @@ begin
     gPlayer2.WeapSwitchMode := gPlayer2Settings.WeaponSwitch;
     gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
     gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
-    gPlayer2.SkipIronFist := gPlayer2Settings.SkipIronFist;
+    gPlayer2.SkipKnuckles := gPlayer2Settings.SkipKnuckles;
   end;
 
   g_Game_SetLoadingText(_lc[I_LOAD_HOST], 0, False);
@@ -5007,7 +5007,7 @@ begin
           gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
           gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
           gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
-          gPlayer1.SkipIronFist := gPlayer1Settings.SkipIronFist;
+          gPlayer1.SkipKnuckles := gPlayer1Settings.SkipKnuckles;
           gPlayer1.UID := NetPlrUID1;
           gPlayer1.Reset(True);
 
@@ -6154,25 +6154,25 @@ begin
         if (Length(P) = 2) then
           gPlayer2Settings.SwitchToEmpty := EnsureRange(StrTointDef(P[1], 0), 0, 1);
         end;
-    'p1_skip_ironfist':
+    'p1_skip_knuckles':
       begin
         if (Length(P) = 2) then
-          gPlayer1Settings.SkipIronFist := EnsureRange(StrTointDef(P[1], 0), 0, 1);
+          gPlayer1Settings.SkipKnuckles := EnsureRange(StrTointDef(P[1], 0), 0, 1);
         end;
-    'p2_skip_ironfist':
+    'p2_skip_knuckles':
       begin
         if (Length(P) = 2) then
-          gPlayer2Settings.SkipIronFist := EnsureRange(StrTointDef(P[1], 0), 0, 1);
+          gPlayer2Settings.SkipKnuckles := EnsureRange(StrTointDef(P[1], 0), 0, 1);
         end;
-    'p1_priority_ironfist':
+    'p1_priority_knuckles':
       begin
         if (Length(P) = 2) then
-          gPlayer1Settings.WeaponPreferences[WEAPON_IRONFIST] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+          gPlayer1Settings.WeaponPreferences[WEAPON_KNUCKLES] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
         end;
-    'p2_priority_ironfist':
+    'p2_priority_knuckles':
       begin
         if (Length(P) = 2) then
-          gPlayer2Settings.WeaponPreferences[WEAPON_IRONFIST] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
+          gPlayer2Settings.WeaponPreferences[WEAPON_KNUCKLES] := EnsureRange(StrToIntDef(P[1], WP_FIRST), WP_FIRST, WP_LAST+1);
       end;
     'p1_priority_saw':
       begin

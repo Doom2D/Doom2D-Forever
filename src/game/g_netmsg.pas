@@ -359,7 +359,7 @@ var
   WeapSwitch: Byte;
   TmpPrefArray: Array [WP_FIRST .. WP_LAST + 1] of Byte;
   SwitchEmpty: Byte;
-  SkipF: Byte;
+  SkipK: Byte;
   PID: Word;
   Color: TRGB;
   I: Integer;
@@ -379,7 +379,7 @@ begin
     for I := WP_FIRST to WP_LAST + 1 do
       TmpPrefArray[I] := M.ReadByte();
     SwitchEmpty := M.ReadByte();
-    SkipF := M.ReadByte();
+    SkipK := M.ReadByte();
   except
     Err := True;
   end;
@@ -438,7 +438,7 @@ begin
     WeapSwitchMode := WeapSwitch;
     SetWeaponPrefs(TmpPrefArray);
     SwitchToEmpty := SwitchEmpty;
-    SkipIronFist := SkipF;
+    SkipKnuckles := SkipK;
     if (g_Force_Model_Get() <> 0) then
       SetModel(g_Forced_Model_GetName());
     Reset(True);
@@ -702,7 +702,7 @@ var
   TmpWeapSwitch: Byte;
   TmpPrefArray: Array [WP_FIRST .. WP_LAST + 1] of Byte;
   TmpSwEmpty: Byte;
-  TmpSkipF: Byte;
+  TmpSkipK: Byte;
   I: Integer;
   Pl: TPlayer;
   Err, IsModelChanged: Boolean;
@@ -719,7 +719,7 @@ begin
     for I := WP_FIRST to WP_LAST + 1 do
       TmpPrefArray[I] := M.ReadByte();
     TmpSwEmpty := M.ReadByte();
-    TmpSkipF := M.ReadByte();
+    TmpSkipK := M.ReadByte();
   except
     Err := True;
   end;
@@ -751,8 +751,8 @@ begin
   if TmpSwEmpty <> Pl.SwitchToEmpty then
     Pl.SwitchToEmpty := TmpSwEmpty;
 
-  if TmpSkipF <> Pl.SkipIronFist then
-    Pl.SkipIronFist := TmpSkipF;
+  if TmpSkipK <> Pl.SkipKnuckles then
+    Pl.SkipKnuckles := TmpSkipK;
 
   MH_SEND_PlayerSettings(Pl.UID, TmpModel);
 end;
@@ -3242,7 +3242,7 @@ begin
   for i := WP_FIRST to WP_LAST + 1 do
     NetOut.Write(gPlayer1Settings.WeaponPreferences[i]);
   NetOut.Write(gPlayer1Settings.SwitchToEmpty);
-  NetOut.Write(gPlayer1Settings.SkipIronFist);
+  NetOut.Write(gPlayer1Settings.SkipKnuckles);
 
   g_Net_Client_Send(True);
 end;
@@ -3395,7 +3395,7 @@ begin
   for i := WP_FIRST to WP_LAST + 1 do
     NetOut.Write(gPlayer1Settings.WeaponPreferences[i]);
   NetOut.Write(gPlayer1Settings.SwitchToEmpty);
-  NetOut.Write(gPlayer1Settings.SkipIronFist);
+  NetOut.Write(gPlayer1Settings.SkipKnuckles);
 
   g_Net_Client_Send(True);
 end;

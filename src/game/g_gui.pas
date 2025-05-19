@@ -2730,7 +2730,7 @@ begin
 
   if FModel.Weapon < WP_LAST
     then FModel.SetWeapon(FModel.Weapon+1)
-    else FModel.SetWeapon(WEAPON_IRONFIST);
+    else FModel.SetWeapon(WEAPON_KNUCKLES);
 end;
 
 procedure TGUIModelView.SetColor(Red, Green, Blue: Byte);

@@ -1070,10 +1070,10 @@ begin
   AddCommand('p2_autoswitch', PlayerSettingsCVars);
   AddCommand('p1_switch_empty', PlayerSettingsCVars);
   AddCommand('p2_switch_empty', PlayerSettingsCVars);
-  AddCommand('p1_skip_ironfist', PlayerSettingsCVars);
-  AddCommand('p2_skip_ironfist', PlayerSettingsCVars);
-  AddCommand('p1_priority_ironfist', PlayerSettingsCVars);
-  AddCommand('p2_priority_ironfist', PlayerSettingsCVars);
+  AddCommand('p1_skip_knuckles', PlayerSettingsCVars);
+  AddCommand('p2_skip_knuckles', PlayerSettingsCVars);
+  AddCommand('p1_priority_knuckles', PlayerSettingsCVars);
+  AddCommand('p2_priority_knuckles', PlayerSettingsCVars);
   AddCommand('p1_priority_saw', PlayerSettingsCVars);
   AddCommand('p2_priority_saw', PlayerSettingsCVars);
   AddCommand('p1_priority_pistol', PlayerSettingsCVars);
@@ -2291,7 +2291,7 @@ begin
     WriteLn(f, 'p1_team ', FormatTeam(Team));
     WriteLn(f, 'p1_autoswitch ', WeaponSwitch);
     WriteLn(f, 'p1_switch_empty ', SwitchToEmpty);
-    WriteLn(f, 'p1_priority_ironfist ', Max(0, WeaponPreferences[WEAPON_IRONFIST]));
+    WriteLn(f, 'p1_priority_knuckles ', Max(0, WeaponPreferences[WEAPON_KNUCKLES]));
     WriteLn(f, 'p1_priority_saw ', Max(0, WeaponPreferences[WEAPON_SAW]));
     WriteLn(f, 'p1_priority_pistol ', Max(0, WeaponPreferences[WEAPON_PISTOL]));
     WriteLn(f, 'p1_priority_shotgun1 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN1]));    
@@ -2312,7 +2312,7 @@ begin
     WriteLn(f, 'p2_team ', FormatTeam(Team));
     WriteLn(f, 'p2_autoswitch ', WeaponSwitch);
     WriteLn(f, 'p2_switch_empty ', SwitchToEmpty);
-    WriteLn(f, 'p2_priority_ironfist ', Max(0, WeaponPreferences[WEAPON_IRONFIST]));
+    WriteLn(f, 'p2_priority_knuckles ', Max(0, WeaponPreferences[WEAPON_KNUCKLES]));
     WriteLn(f, 'p2_priority_saw ', Max(0, WeaponPreferences[WEAPON_SAW]));
     WriteLn(f, 'p2_priority_pistol ', Max(0, WeaponPreferences[WEAPON_PISTOL]));
     WriteLn(f, 'p2_priority_shotgun1 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN1]));

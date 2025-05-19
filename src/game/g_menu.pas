@@ -344,7 +344,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1WeaponMenu').GetControl('mOptionsPlayersP1WeaponMenu'));
   gPlayer1Settings.WeaponSwitch := TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex;
   gPlayer1Settings.SwitchToEmpty := TGUISwitch(menu.GetControl('swWeaponAllowEmpty')).ItemIndex;
-  gPlayer1Settings.SkipIronFist := TGUISwitch(menu.GetControl('swWeaponAllowIronFist')).ItemIndex;
+  gPlayer1Settings.SkipKnuckles := TGUISwitch(menu.GetControl('swWeaponAllowKnuckles')).ItemIndex;
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP1WeaponMenu').GetControl('mOptionsPreferencesP1WeaponMenu'));
   with menu do
   begin
@@ -357,7 +357,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2WeaponMenu').GetControl('mOptionsPlayersP2WeaponMenu'));
   gPlayer2Settings.WeaponSwitch := TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex;
   gPlayer2Settings.SwitchToEmpty := TGUISwitch(menu.GetControl('swWeaponAllowEmpty')).ItemIndex;
-  gPlayer2Settings.SkipIronFist := TGUISwitch(menu.GetControl('swWeaponAllowIronFist')).ItemIndex;
+  gPlayer2Settings.SkipKnuckles := TGUISwitch(menu.GetControl('swWeaponAllowKnuckles')).ItemIndex;
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP2WeaponMenu').GetControl('mOptionsPreferencesP2WeaponMenu'));
   with menu do
   begin
@@ -383,7 +383,7 @@ begin
       gPlayer1.WeapSwitchMode := gPlayer1Settings.WeaponSwitch;
       gPlayer1.setWeaponPrefs(gPlayer1Settings.WeaponPreferences);
       gPlayer1.SwitchToEmpty := gPlayer1Settings.SwitchToEmpty;
-      gPlayer1.SkipIronFist := gPlayer1Settings.SkipIronFist;
+      gPlayer1.SkipKnuckles := gPlayer1Settings.SkipKnuckles;
       if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
     end;
 
@@ -398,7 +398,7 @@ begin
       gPlayer2.WeapSwitchMode := gPlayer2Settings.WeaponSwitch;
       gPlayer2.setWeaponPrefs(gPlayer2Settings.WeaponPreferences);
       gPlayer2.SwitchToEmpty := gPlayer2Settings.SwitchToEmpty;
-      gPlayer2.SkipIronFist := gPlayer2Settings.SkipIronFist;
+      gPlayer2.SkipKnuckles := gPlayer2Settings.SkipKnuckles;
       //if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer2.UID);
     end;
   end;
@@ -637,7 +637,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1WeaponMenu').GetControl('mOptionsPlayersP1WeaponMenu'));
   TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex := gPlayer1Settings.WeaponSwitch;
   TGUISwitch(menu.GetControl('swWeaponAllowEmpty')).ItemIndex := gPlayer1Settings.SwitchToEmpty;
-  TGUISwitch(menu.GetControl('swWeaponAllowIronFist')).ItemIndex := gPlayer1Settings.SkipIronFist;
+  TGUISwitch(menu.GetControl('swWeaponAllowKnuckles')).ItemIndex := gPlayer1Settings.SkipKnuckles;
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP1WeaponMenu').GetControl('mOptionsPreferencesP1WeaponMenu'));
   for i := WP_FIRST to WP_LAST+1 do
   begin
@@ -648,7 +648,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2WeaponMenu').GetControl('mOptionsPlayersP2WeaponMenu'));
   TGUISwitch(menu.GetControl('swWeaponAutoswitch')).ItemIndex := gPlayer2Settings.WeaponSwitch;
   TGUISwitch(menu.GetControl('swWeaponAllowEmpty')).ItemIndex := gPlayer2Settings.SwitchToEmpty;
-  TGUISwitch(menu.GetControl('swWeaponAllowIronFist')).ItemIndex := gPlayer2Settings.SkipIronFist;
+  TGUISwitch(menu.GetControl('swWeaponAllowKnuckles')).ItemIndex := gPlayer2Settings.SkipKnuckles;
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPreferencesP2WeaponMenu').GetControl('mOptionsPreferencesP2WeaponMenu'));
   for i := WP_FIRST to WP_LAST+1 do
   begin
@@ -3445,11 +3445,11 @@ begin
       AddItem(_lc[I_MENU_NO]);
       AddItem(_lc[I_MENU_YES]);
     end;
-    with AddSwitch(_lc[I_MENU_IRONFIST_ALLOW]) do
+    with AddSwitch(_lc[I_MENU_KNUCKLES_ALLOW]) do
     begin
-      Name := 'swWeaponAllowIronFist';
-      AddItem(_lc[I_MENU_IRONFIST_ALLOW_ALWAYS]);
-      AddItem(_lc[I_MENU_IRONFIST_ALLOW_BERSERK]);
+      Name := 'swWeaponAllowKnuckles';
+      AddItem(_lc[I_MENU_KNUCKLES_ALLOW_ALWAYS]);
+      AddItem(_lc[I_MENU_KNUCKLES_ALLOW_BERSERK]);
     end;
     ReAlign();
   end;
@@ -3502,11 +3502,11 @@ begin
       AddItem(_lc[I_MENU_NO]);
       AddItem(_lc[I_MENU_YES]);
     end;
-    with AddSwitch(_lc[I_MENU_IRONFIST_ALLOW]) do
+    with AddSwitch(_lc[I_MENU_KNUCKLES_ALLOW]) do
     begin
-      Name := 'swWeaponAllowIronFist';
-      AddItem(_lc[I_MENU_IRONFIST_ALLOW_ALWAYS]);
-      AddItem(_lc[I_MENU_IRONFIST_ALLOW_BERSERK]);
+      Name := 'swWeaponAllowKnuckles';
+      AddItem(_lc[I_MENU_KNUCKLES_ALLOW_ALWAYS]);
+      AddItem(_lc[I_MENU_KNUCKLES_ALLOW_BERSERK]);
     end;
     ReAlign();
   end;
