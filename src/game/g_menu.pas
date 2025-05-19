@@ -2230,12 +2230,14 @@ begin
     end;
 
     AddSpace();
+    if s = 'P1'
+      then AddButton(@ProcOptionsPlayerP1WeaponMenu, _lc[I_MENU_WEAPON])
+      else AddButton(@ProcOptionsPlayerP2WeaponMenu, _lc[I_MENU_WEAPON]);
+
     AddButton(@ProcOptionsPlayersMIMenu, _lc[I_MENU_MODEL_INFO]);
     AddButton(@ProcOptionsPlayersAnim, _lc[I_MENU_MODEL_ANIMATION]);
     AddButton(@ProcOptionsPlayersWeap, _lc[I_MENU_MODEL_CHANGE_WEAPON]);
     AddButton(@ProcOptionsPlayersRot, _lc[I_MENU_MODEL_ROTATE]);
-    if s = 'P1' then AddButton(@ProcOptionsPlayerP1WeaponMenu, _lc[I_MENU_WEAPON])
-    else AddButton(@ProcOptionsPlayerP2WeaponMenu, _lc[I_MENU_WEAPON]);
 
     with TGUIModelView(Menu.AddChild(TGUIModelView.Create)) do
     begin
@@ -3422,6 +3424,7 @@ begin
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_WEAPON]))) do
   begin
     Name := 'mOptionsPlayersP1WeaponMenu';
+    AddButton(@ProcOptionsPlayerP1WeaponPreferencesMenu, _lc[I_MENU_WEAPON_SWITCH_PRIORITY]);
     with AddSwitch(_lc[I_MENU_WEAPON_SWITCH]) do
     begin
       Name := 'swWeaponAutoswitch';
@@ -3429,11 +3432,12 @@ begin
       AddItem(_lc[I_MENU_WEAPON_SWITCH_LINEAR]);
       AddItem(_lc[I_MENU_WEAPON_SWITCH_PREFERENCE]);
     end;
+    AddSpace();
     with AddSwitch(_lc[I_MENU_WEAPON_ALLOW_EMPTY]) do
     begin
       Name := 'swWeaponAllowEmpty';
-      AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
+      AddItem(_lc[I_MENU_YES]);
     end;
     with AddSwitch(_lc[I_MENU_IRONFIST_ALLOW]) do
     begin
@@ -3441,7 +3445,6 @@ begin
       AddItem(_lc[I_MENU_IRONFIST_ALLOW_ALWAYS]);
       AddItem(_lc[I_MENU_IRONFIST_ALLOW_BERSERK]);
     end;
-    AddButton(@ProcOptionsPlayerP1WeaponPreferencesMenu, _lc[I_MENU_WEAPON_SWITCH_PRIORITY]);
     ReAlign();
   end;
   Menu.DefControl := 'mOptionsPlayersP1WeaponMenu';
@@ -3478,6 +3481,7 @@ begin
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_WEAPON]))) do
   begin
     Name := 'mOptionsPlayersP2WeaponMenu';
+    AddButton(@ProcOptionsPlayerP2WeaponPreferencesMenu, _lc[I_MENU_WEAPON_SWITCH_PRIORITY]);
     with AddSwitch(_lc[I_MENU_WEAPON_SWITCH]) do
     begin
       Name := 'swWeaponAutoswitch';
@@ -3485,11 +3489,12 @@ begin
       AddItem(_lc[I_MENU_WEAPON_SWITCH_LINEAR]);
       AddItem(_lc[I_MENU_WEAPON_SWITCH_PREFERENCE]);
     end;
+    AddSpace();
     with AddSwitch(_lc[I_MENU_WEAPON_ALLOW_EMPTY]) do
     begin
       Name := 'swWeaponAllowEmpty';
-      AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
+      AddItem(_lc[I_MENU_YES]);
     end;
     with AddSwitch(_lc[I_MENU_IRONFIST_ALLOW]) do
     begin
@@ -3497,7 +3502,6 @@ begin
       AddItem(_lc[I_MENU_IRONFIST_ALLOW_ALWAYS]);
       AddItem(_lc[I_MENU_IRONFIST_ALLOW_BERSERK]);
     end;
-    AddButton(@ProcOptionsPlayerP2WeaponPreferencesMenu, _lc[I_MENU_WEAPON_SWITCH_PRIORITY]);
     ReAlign();
   end;
   Menu.DefControl := 'mOptionsPlayersP2WeaponMenu';
