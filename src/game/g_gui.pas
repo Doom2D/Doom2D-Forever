@@ -1573,7 +1573,7 @@ begin
     WM_KEYDOWN:
     begin
       case Msg.wParam of
-        IK_UP, IK_KPUP, VK_UP,JOY0_UP, JOY1_UP, JOY2_UP, JOY3_UP:
+        IK_UP, IK_KPUP, VK_UP, JOY0_UP, JOY1_UP, JOY2_UP, JOY3_UP:
         begin
           c := 0;
           repeat

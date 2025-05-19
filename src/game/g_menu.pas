@@ -57,30 +57,14 @@ uses
   utils, wadreader, g_system;
 
 
-type TYNCallback = procedure (yes:Boolean);
-
-procedure YNKeyDownProc (win: TGUIWindow; Key: Byte);
+procedure YesNoButtonCB (ctl: TGUITextButton);
 begin
-  if win.UserData = nil then exit;
-  case Key of
-    IK_Y, IK_SPACE: TYNCallback(win.UserData)(true);
-    IK_N: TYNCallback(win.UserData)(false);
-  end;
+  if ctl.UserData <> nil
+    then TProcedure(ctl.UserData)()
+    else g_GUI_HideWindow();
 end;
 
-procedure YesButtonCB (ctl: TGUITextButton);
-begin
-  if ctl.UserData = nil then exit;
-  TYNCallback(ctl.UserData)(true);
-end;
-
-procedure NoButtonCB (ctl: TGUITextButton);
-begin
-  if ctl.UserData = nil then exit;
-  TYNCallback(ctl.UserData)(false);
-end;
-
-function CreateYNMenu (WinName, Text: String; MaxLen: Word; FontID: DWORD; ActionProc: TYNCallback): TGUIWindow;
+function CreateYNMenu (WinName, Text: String; MaxLen: Word; FontID: DWORD; ActionProc: TProcedure): TGUIWindow;
 var
   menu: TGUIMenu;
 begin
@@ -88,18 +72,21 @@ begin
   Result := TGUIWindow.Create(WinName);
   with Result do
   begin
-    //OnKeyDownEx := @YNKeyDownProc;
-    //UserData := @ActionProc;
     menu := TGUIMenu(Result.AddChild(TGUIMenu.Create(gMenuSmallFont, gMenuSmallFont, '')));
     with menu do
     begin
       Name := '__temp_yes_no_menu:'+WinName;
-      YesNo := true;
+      YesNo := True;
       AddText(Text, MaxLen);
-      with AddButton(nil, _lc[I_MENU_YES]) do begin ProcEx := @YesButtonCB; UserData := @ActionProc; end;
-      with AddButton(nil, _lc[I_MENU_NO]) do begin ProcEx := @NoButtonCB; UserData := @ActionProc; end;
+      with AddButton(nil, _lc[I_MENU_YES]) do
+      begin
+        ProcEx := @YesNoButtonCB;
+        UserData := @ActionProc;
+      end;
+      with AddButton(nil, _lc[I_MENU_NO]) do
+        ProcEx := @YesNoButtonCB;
     end;
-    DefControl := '__temp_yes_no_menu:'+WinName;
+    DefControl := menu.Name;
     SetActive(nil);
   end;
 end;
@@ -1282,7 +1269,7 @@ begin
 {$ENDIF}
 end;
 
-procedure ProcExitMenuKeyDown (yes: Boolean);
+procedure ProcExitMenuKeyDown ();
 var
   s: ShortString;
 {$IFDEF ENABLE_SOUND}
@@ -1290,12 +1277,6 @@ var
 {$ENDIF}
   res: Boolean;
 begin
-  if not yes then
-  begin
-    g_GUI_HideWindow();
-    exit;
-  end;
-
 {$IFDEF ENABLE_SOUND}
   g_Game_StopAllSounds(True);
   case (Random(18)) of
