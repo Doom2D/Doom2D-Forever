@@ -2693,11 +2693,12 @@ end;
 
 procedure TGUIModelView.Draw;
 begin
+  if not FEnabled then Exit;
   inherited;
 
   DrawBox(FX, FY, 4, 4);
-
-  if FModel <> nil then FModel.Draw(FX+4, FY+4);
+  if FModel <> nil then
+    FModel.Draw(FX+4, FY+4);
 end;
 
 function TGUIModelView.GetWidth(): Integer;

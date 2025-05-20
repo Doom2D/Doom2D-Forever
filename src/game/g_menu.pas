@@ -1563,6 +1563,29 @@ begin
   g_GUI_ShowWindow('OptionsPreferencesP2WeaponMenu');
 end;
 
+procedure ProcOptionsPlayersTeamLook();
+var
+  s: String;
+  menu: TGUIMenu;
+  bt: TGUITextButton;
+begin
+  if g_ActiveWindow.Name = 'OptionsPlayersP1Menu'
+    then s := 'P1'
+    else s := 'P2';
+
+  with g_ActiveWindow do
+    menu := TGUIMenu(GetControl(DefControl));
+
+  bt := TGUITextButton(menu.GetControl('bt'+s+'TeamLook'));
+  with TGUIModelView(g_ActiveWindow.GetControl('mv'+s+'ModelTeam')) do
+  begin
+    Enabled := not Enabled;
+    if Enabled
+      then bt.Caption := _lc[I_MENU_MODEL_HIDE_TEAM_LOOK]
+      else bt.Caption := _lc[I_MENU_MODEL_SHOW_TEAM_LOOK];
+  end;
+end;
+
 procedure ProcOptionsPlayersAnim();
 var
   s: String;
@@ -2236,6 +2259,12 @@ begin
       else AddButton(@ProcOptionsPlayerP2WeaponMenu, _lc[I_MENU_WEAPON]);
 
     AddButton(@ProcOptionsPlayersMIMenu, _lc[I_MENU_MODEL_INFO]);
+
+    with AddButton(@ProcOptionsPlayersTeamLook, _lc[I_MENU_MODEL_SHOW_TEAM_LOOK]) do
+    begin
+      Name := 'bt'+s+'TeamLook';
+    end;
+
     AddButton(@ProcOptionsPlayersAnim, _lc[I_MENU_MODEL_ANIMATION]);
     AddButton(@ProcOptionsPlayersWeap, _lc[I_MENU_MODEL_CHANGE_WEAPON]);
     AddButton(@ProcOptionsPlayersRot, _lc[I_MENU_MODEL_ROTATE]);
@@ -2251,6 +2280,7 @@ begin
       Name := 'mv'+s+'ModelTeam';
       X := Menu.GetControl('mv'+s+'Model').X;
       Y := GetControl('ls'+s+'Model').Y+TGUIModelView(Menu.GetControl('mv'+s+'Model')).GetHeight+24;
+      Enabled := False;
     end;
   end;
 
