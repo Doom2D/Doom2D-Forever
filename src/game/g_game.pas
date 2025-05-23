@@ -1418,7 +1418,7 @@ begin
     LoadFont('SMALLTXT', 'SMALLFONT', gMenuSmallFont);
 
     g_Game_ClearLoading();
-    g_Game_SetLoadingText(Format('DOOM 2D FOREVER %s', [GAME_VERSION]), 0, False);
+    g_Game_SetLoadingText(Format(GAME_TITLE+' %s', [GAME_VERSION]), 0, False);
     g_Game_SetLoadingText('', 0, False);
 
     g_Game_SetLoadingText(_lc[I_LOAD_CONSOLE], 0, False);
