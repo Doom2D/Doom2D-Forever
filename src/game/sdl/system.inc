@@ -29,9 +29,9 @@ uses
   g_window, g_console, g_game, g_menu, g_gui;
 
 var
-  // window resize is broken both on linux and osx, so disabled by default
-  userResize: Boolean;
-  modeResize: Integer;
+  // window resize is broken both on Linux and OSX, so disabled there by default
+  userResize: Boolean = {$IFDEF WINDOWS} True {$ELSE} False {$ENDIF};
+  modeResize: Integer = 1;
   useScancodes: Boolean = True;
 
   screen: PSDL_Surface;
@@ -415,7 +415,7 @@ begin
 
   flags := SDL_OPENGL;
   if fullScreen then flags := flags or SDL_FULLSCREEN;
-  if userResize then flags := flags or SDL_VIDEORESIZE;
+  if userResize then flags := flags or SDL_RESIZABLE;
 
   if (screen = nil) or (SDL_VideoModeOk(w, h, bpp, flags) <> 0) then
   begin
