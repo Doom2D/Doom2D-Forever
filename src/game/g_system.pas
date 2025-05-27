@@ -30,7 +30,8 @@ function sys_GetTicks (): Int64; inline;
 
 procedure sys_EnableVSync (yes: Boolean);
 function sys_GetDisplayModes (bpp: Integer): SSArray;
-function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
+function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean;
+  reset: Boolean = True): Boolean;
 procedure sys_Repaint ();
 
 procedure sys_Init ();

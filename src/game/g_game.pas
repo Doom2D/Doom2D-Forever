@@ -124,7 +124,6 @@ procedure g_Game_PreUpdate();
 procedure g_Game_Draw();
 procedure g_Game_Quit();
 procedure g_Game_SetupScreenSize();
-procedure g_Game_ChangeResolution(newWidth, newHeight: Word; nowFull, nowMax: Boolean);
 function g_Game_ModeToText(Mode: Byte): string;
 function g_Game_TextToMode(Mode: string): Byte;
 procedure g_Game_ExecuteEvent(Name: String);
@@ -332,8 +331,8 @@ var
   gScreenWidth: Word;
   gScreenHeight: Word;
   gResolutionChange: Boolean;
-  gRC_Width, gRC_Height: Integer;
-  gRC_FullScreen, gRC_Maximized: Boolean;
+  gRC_Width, gRC_Height: Integer;  // FIXME: Why no gRC_BPP here? (see commit 91448a18)
+  gRC_FullScreen, gRC_Maximized: Boolean;  // FIXME: Why no gRC_VSync here? (see commit 91448a18)
   gLanguageChange: Boolean;
   gDebugMode: Boolean;
   g_debug_Sounds: Boolean;
@@ -2369,7 +2368,7 @@ begin
     if gResolutionChange then
     begin
       e_WriteLog('Changing resolution', TMsgType.Notify);
-      g_Game_ChangeResolution(gRC_Width, gRC_Height, gRC_FullScreen, gRC_Maximized);
+      sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized);
       gResolutionChange := False;
       g_ActiveWindow := nil;
     end;
@@ -4403,11 +4402,6 @@ begin
       gBackSize.Y := Round(bh*s);
     end;
   end;
-end;
-
-procedure g_Game_ChangeResolution(newWidth, newHeight: Word; nowFull, nowMax: Boolean);
-begin
-  sys_SetDisplayMode(newWidth, newHeight, gBPP, nowFull, nowMax);
 end;
 
 procedure g_Game_AddPlayer(Team: Byte = TEAM_NONE);
@@ -7880,13 +7874,9 @@ begin
       end;
     'r_reset':
       begin
-        gRC_Width := Max(1, gRC_Width);
-        gRC_Height := Max(1, gRC_Height);
-        gBPP := Max(1, gBPP);
-        if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized) = True then
-          e_LogWriteln('resolution changed')
-        else
-          e_LogWriteln('resolution not changed');
+        if sys_SetDisplayMode(gRC_Width, gRC_Height, gBPP, gRC_FullScreen, gRC_Maximized)
+          then e_LogWriteln('resolution changed')
+          else e_LogWriteln('resolution not changed');
         sys_EnableVSync(gVSync);
       end;
     'r_maxfps':

@@ -742,9 +742,11 @@ begin
   end;
 end;
 
-function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
+function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized, reset: Boolean): Boolean;
 begin
-  Result := InitWindow(w, h, bpp, fullscreen);
+  if (screen = nil) or reset
+    then Result := InitWindow(Max(1, w), Max(1, h), Max(1, bpp), fullscreen)
+    else Result := True;
 end;
 
 procedure sys_Repaint ();

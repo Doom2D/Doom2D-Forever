@@ -58,7 +58,7 @@ begin
   Result := nil;
 end;
 
-function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized: Boolean): Boolean;
+function sys_SetDisplayMode (w, h, bpp: Integer; fullscreen, maximized, reset: Boolean): Boolean;
 begin
   Result := True;
 end;

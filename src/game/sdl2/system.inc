@@ -173,6 +173,8 @@ begin
       - https://github.com/glfw/glfw/issues/904 - OpenGL 3.2+ context creation poorly documented
       - https://github.com/glfw/glfw/issues/107 - OpenGL 3.2 only supported with forward-compatible core profile
     **)
+    // NB: On Windows, this forces usage of wglCreateContextAttribsARB() even for pre-3.0 contexts.
+    // Same for any of SDL_GL_CONTEXT_FLAGS. See WIN_GL_CreateContext() in SDL sources for details.
     //SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
   {$ELSE}
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, GLES_VERSION_MAJOR);
@@ -212,7 +214,7 @@ begin
     context := SDL_GL_CreateContext(window);
     if context = nil then
     begin
-      // SDL_DestroyWindow(window);
+      //SDL_DestroyWindow(window);
       e_LogWritefln('SDL2: unable to create OpenGL context: %s', [SDL_GetError()]);
       Exit;
     end;
@@ -258,8 +260,8 @@ begin
   end;
 
   gFullScreen := fullscreen;
-  gWinMaximized := maximized;
   gRC_FullScreen := fullscreen;
+  gWinMaximized := maximized;
   gRC_Maximized := maximized;
 
   UpdateSize(w, h);
@@ -632,9 +634,11 @@ begin
   SetLength(Result, count);
 end;
 
-function sys_SetDisplayMode (w, h, bpp: Integer; fullScreen, maximized: Boolean): Boolean;
+function sys_SetDisplayMode (w, h, bpp: Integer; fullScreen, maximized, reset: Boolean): Boolean;
 begin
-  Result := InitWindow(w, h, bpp, fullScreen, maximized);
+  if (window = nil) or reset
+    then Result := InitWindow(Max(1, w), Max(1, h), Max(1, bpp), fullScreen, maximized)
+    else Result := True;
 end;
 
 procedure sys_Repaint ();
