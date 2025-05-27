@@ -554,6 +554,10 @@ begin
     {$IFDEF ENABLE_HOLMES}
       SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEWHEEL, SDL_MOUSEMOTION: fuiOnSDLEvent(ev);
     {$ENDIF}
+
+      //else
+      //  if g_dbg_input then
+      //    e_LogWritefln('Input Debug: unhandled event %s', [ev.type_]);
     end;
   end;
 end;

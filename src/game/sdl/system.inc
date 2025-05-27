@@ -668,10 +668,26 @@ begin
       SDL_KEYUP, SDL_KEYDOWN: HandleKeyboard(ev.key);
 
       SDL_VIDEORESIZE: HandleResize(ev.resize);
-      SDL_VIDEOEXPOSE: sys_Repaint();
+      SDL_VIDEOEXPOSE:
+      begin
+        if g_dbg_input then
+          e_LogWriteln('Input Debug: SDL_VIDEOEXPOSE');
+        sys_Repaint();
+      end;
+
     {$IFDEF ENABLE_SOUND}
-      SDL_ACTIVEEVENT: e_MuteChannels((ev.active.gain = 0) and gMuteWhenInactive);
+      SDL_ACTIVEEVENT:
+      begin
+        if g_dbg_input then
+          e_LogWritefln('Input Debug: SDL_ACTIVEEVENT %s %s %s',
+            [ev.active.type_, ev.active.gain, ev.active.state]);
+        e_MuteChannels((ev.active.gain = 0) and gMuteWhenInactive);
+      end;
     {$ENDIF}
+
+      //else
+      //  if g_dbg_input then
+      //    e_LogWritefln('Input Debug: unhandled event %s', [ev.type_]);
     end;
   end;
 end;
