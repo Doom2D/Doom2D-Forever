@@ -614,7 +614,7 @@ begin
   pw := 0;
   ph := 0;
 
-  for i := 0 to num do
+  for i := 0 to num-1 do
   begin
     SDL_GetDisplayMode(display, i, @m);
     if (pw <> m.w) or (ph <> m.h) then

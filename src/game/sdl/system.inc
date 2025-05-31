@@ -737,7 +737,7 @@ begin
     count := 0;
     while m[count] <> nil do count += 1;
     SetLength(Result, count);
-    for i := 0 to count - 1 do
+    for i := 0 to count-1 do
       Result[i] := IntToStr(m[i].w) + 'x' + IntToStr(m[i].h);
   end;
 end;
@@ -790,7 +790,7 @@ begin
     e_LogWritefln('SDL2: Failed to initialize joystick subsystem: %s', [SDL_GetError()])
   else
   begin
-    for i := 0 to e_MaxJoys - 1 do
+    for i := 0 to e_MaxJoys-1 do
       AddJoystick(i);
   end;
 {$ENDIF}
@@ -803,7 +803,7 @@ begin
   e_WriteLog('Releasing SDL', TMsgType.Notify);
 
   if SDL_WasInit(SDL_INIT_JOYSTICK) <> 0 then
-    for i := 0 to e_MaxJoys - 1 do
+    for i := 0 to e_MaxJoys-1 do
       RemoveJoystick(i);
 
   if screen <> nil then
