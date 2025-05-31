@@ -2143,7 +2143,7 @@ begin
     g_Console_BindKey(e_JoyButtonToKey(i, 7), '+p' + IntToStr(i mod 2 + 1) + '_strafe', '-p' + IntToStr(i mod 2 + 1) + '_strafe');
     g_Console_BindKey(e_JoyButtonToKey(i, 1), 'p' + IntToStr(i mod 2 + 1) + '_weapnext', '', True);
     g_Console_BindKey(e_JoyButtonToKey(i, 4), 'p' + IntToStr(i mod 2 + 1) + '_weapprev', '', True);
-    g_Console_BindKey(e_JoyButtonToKey(i, 10), 'togglemenu');
+    g_Console_BindKey(e_JoyButtonToKey(i, 6), 'togglemenu');
   end;
 
   g_Console_BindKey(VK_ESCAPE, 'togglemenu');
