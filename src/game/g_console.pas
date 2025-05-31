@@ -1614,10 +1614,16 @@ begin
     IK_DELETE:
       if (Length(Line) > 0) and (CPos <= Length(Line)) then
         Delete(Line, CPos, 1);
-    IK_LEFT, IK_KPLEFT, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
+    IK_LEFT, IK_KPLEFT, VK_LEFT,
+    JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT,
+    JOY0_DPAD_LEFT, JOY1_DPAD_LEFT, JOY2_DPAD_LEFT, JOY3_DPAD_LEFT,
+    JOY0_AXIS_LEFT, JOY1_AXIS_LEFT, JOY2_AXIS_LEFT, JOY3_AXIS_LEFT:
       if CPos > 1 then
         CPos := CPos - 1;
-    IK_RIGHT, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
+    IK_RIGHT, IK_KPRIGHT, VK_RIGHT,
+    JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT,
+    JOY0_DPAD_RIGHT, JOY1_DPAD_RIGHT, JOY2_DPAD_RIGHT, JOY3_DPAD_RIGHT,
+    JOY0_AXIS_RIGHT, JOY1_AXIS_RIGHT, JOY2_AXIS_RIGHT, JOY3_AXIS_RIGHT:
       if CPos <= Length(Line) then
         CPos := CPos + 1;
     IK_RETURN, IK_KPRETURN, IK_SELECT,
@@ -1659,7 +1665,10 @@ begin
     IK_TAB:
       if not gChatShow then
         Complete();
-    IK_DOWN, IK_KPDOWN, VK_DOWN, JOY0_DOWN, JOY1_DOWN, JOY2_DOWN, JOY3_DOWN:
+    IK_DOWN, IK_KPDOWN, VK_DOWN,
+    JOY0_DOWN, JOY1_DOWN, JOY2_DOWN, JOY3_DOWN,
+    JOY0_DPAD_DOWN, JOY1_DPAD_DOWN, JOY2_DPAD_DOWN, JOY3_DPAD_DOWN,
+    JOY0_AXIS_DOWN, JOY1_AXIS_DOWN, JOY2_AXIS_DOWN, JOY3_AXIS_DOWN:
       if not gChatShow then
         if (CommandHistory <> nil) and
            (CmdIndex < Length(CommandHistory)) then
@@ -1669,7 +1678,10 @@ begin
           Line := CommandHistory[CmdIndex];
           CPos := Length(Line) + 1;
         end;
-    IK_UP, IK_KPUP, VK_UP, JOY0_UP, JOY1_UP, JOY2_UP, JOY3_UP:
+    IK_UP, IK_KPUP, VK_UP,
+    JOY0_UP, JOY1_UP, JOY2_UP, JOY3_UP,
+    JOY0_DPAD_UP, JOY1_DPAD_UP, JOY2_DPAD_UP, JOY3_DPAD_UP,
+    JOY0_AXIS_UP, JOY1_AXIS_UP, JOY2_AXIS_UP, JOY3_AXIS_UP:
       if not gChatShow then
         if (CommandHistory <> nil) and
            (CmdIndex <= Length(CommandHistory)) then
