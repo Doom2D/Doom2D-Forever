@@ -241,7 +241,8 @@ var
   end;
 
 begin
-  if not g_touch_enabled then
+  // Always enable touchscreen in menu, so that player doesn't get locked out
+  if (not g_touch_enabled) and (g_ActiveWindow = nil) then
     Exit;
 
   finger := ev.fingerId + 2;
@@ -275,7 +276,10 @@ procedure g_Touch_Init ();
 begin
 {$IFNDEF HEADLESS}
   g_Touch_ShowKeyboard(False);
-  g_touch_enabled := SDL_GetNumTouchDevices() > 0;
+  g_touch_devices_detected := SDL_GetNumTouchDevices() > 0;
+  // Set this now, because it may not be set anywhere else.
+  // If it's set in user config, it will be overwritten. If it's not, that's a reasonable default.
+  g_touch_enabled := g_touch_devices_detected;
 {$ENDIF}
 end;
 
@@ -298,7 +302,8 @@ var
   found: Boolean;
 begin
 {$IFNDEF HEADLESS}
-  if not g_touch_enabled then
+  // Always enable touchscreen in menu, so that player doesn't get locked out
+  if (not g_touch_enabled) and (g_ActiveWindow = nil) then
     Exit;
 
   for i := VK_FIRSTKEY to VK_LASTKEY do

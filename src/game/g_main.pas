@@ -579,6 +579,7 @@ begin
   if not InitPrep() then Halt(1);
   e_InitInput();
   sys_Init();
+  g_Touch_Init();
 
   g_Options_SetDefault();
   g_Options_SetDefaultVideo();
@@ -664,7 +665,6 @@ var
 {$ENDIF}
 begin
   Randomize();
-  g_Touch_Init();
 
 (*
   if e_JoysticksAvailable > 0

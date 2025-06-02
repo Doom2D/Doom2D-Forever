@@ -234,6 +234,7 @@ type
     I_MENU_CONTROL_DEADZONE,
 
     I_MENU_CONTROL_TOUCH,
+    I_MENU_CONTROL_TOUCH_ENABLE,
     I_MENU_CONTROL_TOUCH_ALT,
     I_MENU_CONTROL_TOUCH_FIRE,
     I_MENU_CONTROL_TOUCH_SIZE,
@@ -1128,6 +1129,8 @@ const
 
     ('MENU CONTROL TOUCH',             'Touchscreen Settings',
                                        'Настройки сенсорного экрана'),
+    ('MENU CONTROL TOUCH ENABLE',      'Enable touchscreen in game:',
+                                       'Управление с экрана в игре:'),
     ('MENU CONTROL TOUCH ALT',         'Alternative layout:',
                                        'Альтернативная раскладка:'),
     ('MENU CONTROL TOUCH FIRE',        'Shoot Up/Down:',
