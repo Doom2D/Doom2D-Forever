@@ -1077,7 +1077,7 @@ begin
   AddCommand('p1_priority_saw', PlayerSettingsCVars);
   AddCommand('p2_priority_saw', PlayerSettingsCVars);
   AddCommand('p1_priority_pistol', PlayerSettingsCVars);
-  AddCommand('p2_priority_pistol', PlayerSettingsCVars);  
+  AddCommand('p2_priority_pistol', PlayerSettingsCVars);
   AddCommand('p1_priority_shotgun1', PlayerSettingsCVars);
   AddCommand('p2_priority_shotgun1', PlayerSettingsCVars);
   AddCommand('p1_priority_shotgun2', PlayerSettingsCVars);
@@ -1095,7 +1095,7 @@ begin
   AddCommand('p1_priority_flamethrower', PlayerSettingsCVars);
   AddCommand('p2_priority_flamethrower', PlayerSettingsCVars);
   AddCommand('p1_priority_berserk', PlayerSettingsCVars);
-  AddCommand('p2_priority_berserk', PlayerSettingsCVars);  
+  AddCommand('p2_priority_berserk', PlayerSettingsCVars);
 
   AddCommand('g_max_particles', GameCVars);
   AddCommand('g_max_shells', GameCVars);
@@ -1614,10 +1614,16 @@ begin
     IK_DELETE:
       if (Length(Line) > 0) and (CPos <= Length(Line)) then
         Delete(Line, CPos, 1);
-    IK_LEFT, IK_KPLEFT, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
+    IK_LEFT, IK_KPLEFT, VK_LEFT,
+    JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT,
+    JOY0_DPAD_LEFT, JOY1_DPAD_LEFT, JOY2_DPAD_LEFT, JOY3_DPAD_LEFT,
+    JOY0_AXIS_LEFT, JOY1_AXIS_LEFT, JOY2_AXIS_LEFT, JOY3_AXIS_LEFT:
       if CPos > 1 then
         CPos := CPos - 1;
-    IK_RIGHT, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
+    IK_RIGHT, IK_KPRIGHT, VK_RIGHT,
+    JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT,
+    JOY0_DPAD_RIGHT, JOY1_DPAD_RIGHT, JOY2_DPAD_RIGHT, JOY3_DPAD_RIGHT,
+    JOY0_AXIS_RIGHT, JOY1_AXIS_RIGHT, JOY2_AXIS_RIGHT, JOY3_AXIS_RIGHT:
       if CPos <= Length(Line) then
         CPos := CPos + 1;
     IK_RETURN, IK_KPRETURN, IK_SELECT,
@@ -1659,7 +1665,10 @@ begin
     IK_TAB:
       if not gChatShow then
         Complete();
-    IK_DOWN, IK_KPDOWN, VK_DOWN, JOY0_DOWN, JOY1_DOWN, JOY2_DOWN, JOY3_DOWN:
+    IK_DOWN, IK_KPDOWN, VK_DOWN,
+    JOY0_DOWN, JOY1_DOWN, JOY2_DOWN, JOY3_DOWN,
+    JOY0_DPAD_DOWN, JOY1_DPAD_DOWN, JOY2_DPAD_DOWN, JOY3_DPAD_DOWN,
+    JOY0_AXIS_DOWN, JOY1_AXIS_DOWN, JOY2_AXIS_DOWN, JOY3_AXIS_DOWN:
       if not gChatShow then
         if (CommandHistory <> nil) and
            (CmdIndex < Length(CommandHistory)) then
@@ -1669,7 +1678,10 @@ begin
           Line := CommandHistory[CmdIndex];
           CPos := Length(Line) + 1;
         end;
-    IK_UP, IK_KPUP, VK_UP, JOY0_UP, JOY1_UP, JOY2_UP, JOY3_UP:
+    IK_UP, IK_KPUP, VK_UP,
+    JOY0_UP, JOY1_UP, JOY2_UP, JOY3_UP,
+    JOY0_DPAD_UP, JOY1_DPAD_UP, JOY2_DPAD_UP, JOY3_DPAD_UP,
+    JOY0_AXIS_UP, JOY1_AXIS_UP, JOY2_AXIS_UP, JOY3_AXIS_UP:
       if not gChatShow then
         if (CommandHistory <> nil) and
            (CmdIndex <= Length(CommandHistory)) then
@@ -2131,7 +2143,7 @@ begin
     g_Console_BindKey(e_JoyButtonToKey(i, 7), '+p' + IntToStr(i mod 2 + 1) + '_strafe', '-p' + IntToStr(i mod 2 + 1) + '_strafe');
     g_Console_BindKey(e_JoyButtonToKey(i, 1), 'p' + IntToStr(i mod 2 + 1) + '_weapnext', '', True);
     g_Console_BindKey(e_JoyButtonToKey(i, 4), 'p' + IntToStr(i mod 2 + 1) + '_weapprev', '', True);
-    g_Console_BindKey(e_JoyButtonToKey(i, 10), 'togglemenu');
+    g_Console_BindKey(e_JoyButtonToKey(i, 6), 'togglemenu');
   end;
 
   g_Console_BindKey(VK_ESCAPE, 'togglemenu');
@@ -2294,15 +2306,15 @@ begin
     WriteLn(f, 'p1_priority_knuckles ', Max(0, WeaponPreferences[WEAPON_KNUCKLES]));
     WriteLn(f, 'p1_priority_saw ', Max(0, WeaponPreferences[WEAPON_SAW]));
     WriteLn(f, 'p1_priority_pistol ', Max(0, WeaponPreferences[WEAPON_PISTOL]));
-    WriteLn(f, 'p1_priority_shotgun1 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN1]));    
+    WriteLn(f, 'p1_priority_shotgun1 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN1]));
     WriteLn(f, 'p1_priority_shotgun2 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN2]));
-    WriteLn(f, 'p1_priority_chaingun ', Max(0, WeaponPreferences[WEAPON_CHAINGUN]));    
-    WriteLn(f, 'p1_priority_rocketlauncher ', Max(0, WeaponPreferences[WEAPON_ROCKETLAUNCHER]));    
-    WriteLn(f, 'p1_priority_plasma ', Max(0, WeaponPreferences[WEAPON_PLASMA]));    
+    WriteLn(f, 'p1_priority_chaingun ', Max(0, WeaponPreferences[WEAPON_CHAINGUN]));
+    WriteLn(f, 'p1_priority_rocketlauncher ', Max(0, WeaponPreferences[WEAPON_ROCKETLAUNCHER]));
+    WriteLn(f, 'p1_priority_plasma ', Max(0, WeaponPreferences[WEAPON_PLASMA]));
     WriteLn(f, 'p1_priority_bfg ', Max(0, WeaponPreferences[WEAPON_BFG]));
-    WriteLn(f, 'p1_priority_superchaingun ', Max(0, WeaponPreferences[WEAPON_SUPERCHAINGUN]));                         
+    WriteLn(f, 'p1_priority_superchaingun ', Max(0, WeaponPreferences[WEAPON_SUPERCHAINGUN]));
     WriteLn(f, 'p1_priority_flamethrower ', Max(0, WeaponPreferences[WEAPON_FLAMETHROWER]));
-    WriteLn(f, 'p1_priority_berserk ', Max(0, WeaponPreferences[WP_LAST+1]));    
+    WriteLn(f, 'p1_priority_berserk ', Max(0, WeaponPreferences[WP_LAST+1]));
   end;
   with gPlayer2Settings do
   begin
@@ -2323,7 +2335,7 @@ begin
     WriteLn(f, 'p2_priority_bfg ', Max(0, WeaponPreferences[WEAPON_BFG]));
     WriteLn(f, 'p2_priority_superchaingun ', Max(0, WeaponPreferences[WEAPON_SUPERCHAINGUN]));
     WriteLn(f, 'p2_priority_flamethrower ', Max(0, WeaponPreferences[WEAPON_FLAMETHROWER]));
-    WriteLn(f, 'p2_priority_berserk ', Max(0, WeaponPreferences[WP_LAST+1]));       
+    WriteLn(f, 'p2_priority_berserk ', Max(0, WeaponPreferences[WP_LAST+1]));
   end;
 
   // all cvars

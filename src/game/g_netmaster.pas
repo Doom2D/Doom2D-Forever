@@ -1941,8 +1941,14 @@ begin
   else
     slReturnPressed := False;
 
-  if e_KeyPressed(IK_DOWN) or e_KeyPressed(IK_KPDOWN) or e_KeyPressed(VK_DOWN) or
-     e_KeyPressed(JOY0_DOWN) or e_KeyPressed(JOY1_DOWN) or e_KeyPressed(JOY2_DOWN) or e_KeyPressed(JOY3_DOWN) then
+  if e_KeyPressed(IK_DOWN) or e_KeyPressed(IK_KPDOWN) or e_KeyPressed(VK_DOWN)
+     or
+     e_KeyPressed(JOY0_DOWN) or e_KeyPressed(JOY1_DOWN) or
+       e_KeyPressed(JOY2_DOWN) or e_KeyPressed(JOY3_DOWN) or
+     e_KeyPressed(JOY0_DPAD_DOWN) or e_KeyPressed(JOY1_DPAD_DOWN) or
+       e_KeyPressed(JOY2_DPAD_DOWN) or e_KeyPressed(JOY3_DPAD_DOWN) or
+     e_KeyPressed(JOY0_AXIS_DOWN) or e_KeyPressed(JOY1_AXIS_DOWN) or
+       e_KeyPressed(JOY2_AXIS_DOWN) or e_KeyPressed(JOY3_AXIS_DOWN) then
   begin
     if not slDirPressed then
     begin
@@ -1952,8 +1958,14 @@ begin
     end;
   end;
 
-  if e_KeyPressed(IK_UP) or e_KeyPressed(IK_KPUP) or e_KeyPressed(VK_UP) or
-     e_KeyPressed(JOY0_UP) or e_KeyPressed(JOY1_UP) or e_KeyPressed(JOY2_UP) or e_KeyPressed(JOY3_UP) then
+  if e_KeyPressed(IK_UP) or e_KeyPressed(IK_KPUP) or e_KeyPressed(VK_UP)
+     or
+     e_KeyPressed(JOY0_UP) or e_KeyPressed(JOY1_UP) or
+       e_KeyPressed(JOY2_UP) or e_KeyPressed(JOY3_UP) or
+     e_KeyPressed(JOY0_DPAD_UP) or e_KeyPressed(JOY1_DPAD_UP) or
+       e_KeyPressed(JOY2_DPAD_UP) or e_KeyPressed(JOY3_DPAD_UP) or
+     e_KeyPressed(JOY0_AXIS_UP) or e_KeyPressed(JOY1_AXIS_UP) or
+       e_KeyPressed(JOY2_AXIS_UP) or e_KeyPressed(JOY3_AXIS_UP) then
   begin
     if not slDirPressed then
     begin
@@ -1964,8 +1976,14 @@ begin
     end;
   end;
 
-  if e_KeyPressed(IK_RIGHT) or e_KeyPressed(IK_KPRIGHT) or e_KeyPressed(VK_RIGHT) or
-     e_KeyPressed(JOY0_RIGHT) or e_KeyPressed(JOY1_RIGHT) or e_KeyPressed(JOY2_RIGHT) or e_KeyPressed(JOY3_RIGHT) then
+  if e_KeyPressed(IK_RIGHT) or e_KeyPressed(IK_KPRIGHT) or e_KeyPressed(VK_RIGHT)
+     or
+     e_KeyPressed(JOY0_RIGHT) or e_KeyPressed(JOY1_RIGHT) or
+       e_KeyPressed(JOY2_RIGHT) or e_KeyPressed(JOY3_RIGHT) or
+     e_KeyPressed(JOY0_DPAD_RIGHT) or e_KeyPressed(JOY1_DPAD_RIGHT) or
+       e_KeyPressed(JOY2_DPAD_RIGHT) or e_KeyPressed(JOY3_DPAD_RIGHT) or
+     e_KeyPressed(JOY0_AXIS_RIGHT) or e_KeyPressed(JOY1_AXIS_RIGHT) or
+       e_KeyPressed(JOY2_AXIS_RIGHT) or e_KeyPressed(JOY3_AXIS_RIGHT) then
   begin
     if not slDirPressed then
     begin
@@ -1975,8 +1993,14 @@ begin
     end;
   end;
 
-  if e_KeyPressed(IK_LEFT) or e_KeyPressed(IK_KPLEFT) or e_KeyPressed(VK_LEFT) or
-     e_KeyPressed(JOY0_LEFT) or e_KeyPressed(JOY1_LEFT) or e_KeyPressed(JOY2_LEFT) or e_KeyPressed(JOY3_LEFT) then
+  if e_KeyPressed(IK_LEFT) or e_KeyPressed(IK_KPLEFT) or e_KeyPressed(VK_LEFT)
+     or
+     e_KeyPressed(JOY0_LEFT) or e_KeyPressed(JOY1_LEFT) or
+       e_KeyPressed(JOY2_LEFT) or e_KeyPressed(JOY3_LEFT) or
+     e_KeyPressed(JOY0_DPAD_LEFT) or e_KeyPressed(JOY1_DPAD_LEFT) or
+       e_KeyPressed(JOY2_DPAD_LEFT) or e_KeyPressed(JOY3_DPAD_LEFT) or
+     e_KeyPressed(JOY0_AXIS_LEFT) or e_KeyPressed(JOY1_AXIS_LEFT) or
+       e_KeyPressed(JOY2_AXIS_LEFT) or e_KeyPressed(JOY3_AXIS_LEFT) then
   begin
     if not slDirPressed then
     begin
@@ -1987,22 +2011,42 @@ begin
     end;
   end;
 
-  if (not e_KeyPressed(IK_DOWN)) and
-     (not e_KeyPressed(IK_UP)) and
-     (not e_KeyPressed(IK_RIGHT)) and
-     (not e_KeyPressed(IK_LEFT)) and
-     (not e_KeyPressed(IK_KPDOWN)) and
-     (not e_KeyPressed(IK_KPUP)) and
-     (not e_KeyPressed(IK_KPRIGHT)) and
-     (not e_KeyPressed(IK_KPLEFT)) and
-     (not e_KeyPressed(VK_DOWN)) and
-     (not e_KeyPressed(VK_UP)) and
-     (not e_KeyPressed(VK_RIGHT)) and
-     (not e_KeyPressed(VK_LEFT)) and
-     (not e_KeyPressed(JOY0_UP)) and (not e_KeyPressed(JOY1_UP)) and (not e_KeyPressed(JOY2_UP)) and (not e_KeyPressed(JOY3_UP)) and
-     (not e_KeyPressed(JOY0_DOWN)) and (not e_KeyPressed(JOY1_DOWN)) and (not e_KeyPressed(JOY2_DOWN)) and (not e_KeyPressed(JOY3_DOWN)) and
-     (not e_KeyPressed(JOY0_LEFT)) and (not e_KeyPressed(JOY1_LEFT)) and (not e_KeyPressed(JOY2_LEFT)) and (not e_KeyPressed(JOY3_LEFT)) and
-     (not e_KeyPressed(JOY0_RIGHT)) and (not e_KeyPressed(JOY1_RIGHT)) and (not e_KeyPressed(JOY2_RIGHT)) and (not e_KeyPressed(JOY3_RIGHT))
+  if (not e_KeyPressed(IK_DOWN)) and (not e_KeyPressed(IK_UP)) and
+       (not e_KeyPressed(IK_RIGHT)) and (not e_KeyPressed(IK_LEFT))
+     and
+     (not e_KeyPressed(IK_KPDOWN)) and (not e_KeyPressed(IK_KPUP)) and
+       (not e_KeyPressed(IK_KPRIGHT)) and (not e_KeyPressed(IK_KPLEFT))
+     and
+     (not e_KeyPressed(VK_DOWN)) and (not e_KeyPressed(VK_UP)) and
+       (not e_KeyPressed(VK_RIGHT)) and (not e_KeyPressed(VK_LEFT))
+     and
+     (not e_KeyPressed(JOY0_UP)) and (not e_KeyPressed(JOY1_UP)) and
+       (not e_KeyPressed(JOY2_UP)) and (not e_KeyPressed(JOY3_UP)) and
+     (not e_KeyPressed(JOY0_DPAD_UP)) and (not e_KeyPressed(JOY1_DPAD_UP)) and
+       (not e_KeyPressed(JOY2_DPAD_UP)) and (not e_KeyPressed(JOY3_DPAD_UP)) and
+     (not e_KeyPressed(JOY0_AXIS_UP)) and (not e_KeyPressed(JOY1_AXIS_UP)) and
+       (not e_KeyPressed(JOY2_AXIS_UP)) and (not e_KeyPressed(JOY3_AXIS_UP))
+     and
+     (not e_KeyPressed(JOY0_DOWN)) and (not e_KeyPressed(JOY1_DOWN)) and
+       (not e_KeyPressed(JOY2_DOWN)) and (not e_KeyPressed(JOY3_DOWN)) and
+     (not e_KeyPressed(JOY0_DPAD_DOWN)) and (not e_KeyPressed(JOY1_DPAD_DOWN)) and
+       (not e_KeyPressed(JOY2_DPAD_DOWN)) and (not e_KeyPressed(JOY3_DPAD_DOWN)) and
+     (not e_KeyPressed(JOY0_AXIS_DOWN)) and (not e_KeyPressed(JOY1_AXIS_DOWN)) and
+       (not e_KeyPressed(JOY2_AXIS_DOWN)) and (not e_KeyPressed(JOY3_AXIS_DOWN))
+     and
+     (not e_KeyPressed(JOY0_LEFT)) and (not e_KeyPressed(JOY1_LEFT)) and
+       (not e_KeyPressed(JOY2_LEFT)) and (not e_KeyPressed(JOY3_LEFT)) and
+     (not e_KeyPressed(JOY0_DPAD_LEFT)) and (not e_KeyPressed(JOY1_DPAD_LEFT)) and
+       (not e_KeyPressed(JOY2_DPAD_LEFT)) and (not e_KeyPressed(JOY3_DPAD_LEFT)) and
+     (not e_KeyPressed(JOY0_AXIS_LEFT)) and (not e_KeyPressed(JOY1_AXIS_LEFT)) and
+       (not e_KeyPressed(JOY2_AXIS_LEFT)) and (not e_KeyPressed(JOY3_AXIS_LEFT))
+     and
+     (not e_KeyPressed(JOY0_RIGHT)) and (not e_KeyPressed(JOY1_RIGHT)) and
+       (not e_KeyPressed(JOY2_RIGHT)) and (not e_KeyPressed(JOY3_RIGHT)) and
+     (not e_KeyPressed(JOY0_DPAD_RIGHT)) and (not e_KeyPressed(JOY1_DPAD_RIGHT)) and
+       (not e_KeyPressed(JOY2_DPAD_RIGHT)) and (not e_KeyPressed(JOY3_DPAD_RIGHT)) and
+     (not e_KeyPressed(JOY0_AXIS_RIGHT)) and (not e_KeyPressed(JOY1_AXIS_RIGHT)) and
+       (not e_KeyPressed(JOY2_AXIS_RIGHT)) and (not e_KeyPressed(JOY3_AXIS_RIGHT))
  then
     slDirPressed := False;
 end;

@@ -1206,7 +1206,10 @@ begin
   case Msg.Msg of
     WM_KEYDOWN:
       case Msg.wParam of
-        IK_UP, IK_KPUP, VK_UP, JOY0_UP, JOY1_UP, JOY2_UP, JOY3_UP:
+        IK_UP, IK_KPUP, VK_UP,
+        JOY0_UP, JOY1_UP, JOY2_UP, JOY3_UP,
+        JOY0_DPAD_UP, JOY1_DPAD_UP, JOY2_DPAD_UP, JOY3_DPAD_UP,
+        JOY0_AXIS_UP, JOY1_AXIS_UP, JOY2_AXIS_UP, JOY3_AXIS_UP:
         begin
           repeat
             Dec(FIndex);
@@ -1217,7 +1220,10 @@ begin
           g_Sound_PlayEx(MENU_CHANGESOUND);
 {$ENDIF}
         end;
-        IK_DOWN, IK_KPDOWN, VK_DOWN, JOY0_DOWN, JOY1_DOWN, JOY2_DOWN, JOY3_DOWN:
+        IK_DOWN, IK_KPDOWN, VK_DOWN,
+        JOY0_DOWN, JOY1_DOWN, JOY2_DOWN, JOY3_DOWN,
+        JOY0_DPAD_DOWN, JOY1_DPAD_DOWN, JOY2_DPAD_DOWN, JOY3_DPAD_DOWN,
+        JOY0_AXIS_DOWN, JOY1_AXIS_DOWN, JOY2_AXIS_DOWN, JOY3_AXIS_DOWN:
         begin
           repeat
             Inc(FIndex);
@@ -1573,7 +1579,10 @@ begin
     WM_KEYDOWN:
     begin
       case Msg.wParam of
-        IK_UP, IK_KPUP, VK_UP, JOY0_UP, JOY1_UP, JOY2_UP, JOY3_UP:
+        IK_UP, IK_KPUP, VK_UP,
+        JOY0_UP, JOY1_UP, JOY2_UP, JOY3_UP,
+        JOY0_DPAD_UP, JOY1_DPAD_UP, JOY2_DPAD_UP, JOY3_DPAD_UP,
+        JOY0_AXIS_UP, JOY1_AXIS_UP, JOY2_AXIS_UP, JOY3_AXIS_UP:
         begin
           c := 0;
           repeat
@@ -1596,7 +1605,10 @@ begin
 {$ENDIF}
         end;
 
-        IK_DOWN, IK_KPDOWN, VK_DOWN, JOY0_DOWN, JOY1_DOWN, JOY2_DOWN, JOY3_DOWN:
+        IK_DOWN, IK_KPDOWN, VK_DOWN,
+        JOY0_DOWN, JOY1_DOWN, JOY2_DOWN, JOY3_DOWN,
+        JOY0_DPAD_DOWN, JOY1_DPAD_DOWN, JOY2_DPAD_DOWN, JOY3_DPAD_DOWN,
+        JOY0_AXIS_DOWN, JOY1_AXIS_DOWN, JOY2_AXIS_DOWN, JOY3_AXIS_DOWN:
         begin
           c := 0;
           repeat
@@ -1621,7 +1633,11 @@ begin
 
         IK_LEFT, IK_RIGHT, IK_KPLEFT, IK_KPRIGHT, VK_LEFT, VK_RIGHT,
         JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT,
-        JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
+        JOY0_DPAD_LEFT, JOY1_DPAD_LEFT, JOY2_DPAD_LEFT, JOY3_DPAD_LEFT,
+        JOY0_AXIS_LEFT, JOY1_AXIS_LEFT, JOY2_AXIS_LEFT, JOY3_AXIS_LEFT,
+        JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT,
+        JOY0_DPAD_RIGHT, JOY1_DPAD_RIGHT, JOY2_DPAD_RIGHT, JOY3_DPAD_RIGHT,
+        JOY0_AXIS_RIGHT, JOY1_AXIS_RIGHT, JOY2_AXIS_RIGHT, JOY3_AXIS_RIGHT:
         begin
           if FIndex <> -1 then
             if FItems[FIndex].Control <> nil then
@@ -2140,7 +2156,10 @@ begin
     WM_KEYDOWN:
     begin
       case Msg.wParam of
-        IK_LEFT, IK_KPLEFT, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
+        IK_LEFT, IK_KPLEFT, VK_LEFT,
+        JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT,
+        JOY0_DPAD_LEFT, JOY1_DPAD_LEFT, JOY2_DPAD_LEFT, JOY3_DPAD_LEFT,
+        JOY0_AXIS_LEFT, JOY1_AXIS_LEFT, JOY2_AXIS_LEFT, JOY3_AXIS_LEFT:
           if FValue > 0 then
           begin
             Dec(FValue);
@@ -2149,7 +2168,10 @@ begin
 {$ENDIF}
             if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
           end;
-        IK_RIGHT, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
+        IK_RIGHT, IK_KPRIGHT, VK_RIGHT,
+        JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT,
+        JOY0_DPAD_RIGHT, JOY1_DPAD_RIGHT, JOY2_DPAD_RIGHT, JOY3_DPAD_RIGHT,
+        JOY0_AXIS_RIGHT, JOY1_AXIS_RIGHT, JOY2_AXIS_RIGHT, JOY3_AXIS_RIGHT:
           if FValue < FMax then
           begin
             Inc(FValue);
@@ -2231,6 +2253,8 @@ begin
         IK_RETURN, IK_KPRETURN, IK_RIGHT, IK_KPRIGHT, IK_SELECT,
         VK_FIRE, VK_OPEN, VK_RIGHT,
         JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT,
+        JOY0_DPAD_RIGHT, JOY1_DPAD_RIGHT, JOY2_DPAD_RIGHT, JOY3_DPAD_RIGHT,
+        JOY0_AXIS_RIGHT, JOY1_AXIS_RIGHT, JOY2_AXIS_RIGHT, JOY3_AXIS_RIGHT,
         JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
         begin
           if FIndex < High(FItems) then
@@ -2247,7 +2271,9 @@ begin
         end;
 
       IK_LEFT, IK_KPLEFT, VK_LEFT,
-      JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
+      JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT,
+      JOY0_DPAD_LEFT, JOY1_DPAD_LEFT, JOY2_DPAD_LEFT, JOY3_DPAD_LEFT,
+      JOY0_AXIS_LEFT, JOY1_AXIS_LEFT, JOY2_AXIS_LEFT, JOY3_AXIS_LEFT:
         begin
           if FIndex > 0 then
             Dec(FIndex)
@@ -2370,8 +2396,14 @@ begin
           end;
           IK_END, IK_KPEND: FCaretPos := Length(FText);
           IK_HOME, IK_KPHOME: FCaretPos := 0;
-          IK_LEFT, IK_KPLEFT, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT: if FCaretPos > 0 then Dec(FCaretPos);
-          IK_RIGHT, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT: if FCaretPos < Length(FText) then Inc(FCaretPos);
+          IK_LEFT, IK_KPLEFT, VK_LEFT,
+          JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT,
+          JOY0_DPAD_LEFT, JOY1_DPAD_LEFT, JOY2_DPAD_LEFT, JOY3_DPAD_LEFT,
+          JOY0_AXIS_LEFT, JOY1_AXIS_LEFT, JOY2_AXIS_LEFT, JOY3_AXIS_LEFT: if FCaretPos > 0 then Dec(FCaretPos);
+          IK_RIGHT, IK_KPRIGHT, VK_RIGHT,
+          JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT,
+          JOY0_DPAD_RIGHT, JOY1_DPAD_RIGHT, JOY2_DPAD_RIGHT, JOY3_DPAD_RIGHT,
+          JOY0_AXIS_RIGHT, JOY1_AXIS_RIGHT, JOY2_AXIS_RIGHT, JOY3_AXIS_RIGHT: if FCaretPos < Length(FText) then Inc(FCaretPos);
           IK_RETURN, IK_KPRETURN, IK_SELECT,
           VK_FIRE, VK_OPEN,
           JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
@@ -2594,7 +2626,11 @@ begin
   case key of
     IK_BACKSPACE, IK_LEFT, IK_RIGHT, IK_KPLEFT, IK_KPRIGHT, VK_LEFT, VK_RIGHT,
     JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT,
-    JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
+    JOY0_DPAD_LEFT, JOY1_DPAD_LEFT, JOY2_DPAD_LEFT, JOY3_DPAD_LEFT,
+    JOY0_AXIS_LEFT, JOY1_AXIS_LEFT, JOY2_AXIS_LEFT, JOY3_AXIS_LEFT,
+    JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT,
+    JOY0_DPAD_RIGHT, JOY1_DPAD_RIGHT, JOY2_DPAD_RIGHT, JOY3_DPAD_RIGHT,
+    JOY0_AXIS_RIGHT, JOY1_AXIS_RIGHT, JOY2_AXIS_RIGHT, JOY3_AXIS_RIGHT:
       result := True
   else
       result := False
@@ -2637,12 +2673,18 @@ begin
                 if (FKeyIdx = 0) then FKey0 := 0 else FKey1 := 0;
                 actDefCtl();
               end;
-            IK_LEFT, IK_KPLEFT, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
+            IK_LEFT, IK_KPLEFT, VK_LEFT,
+            JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT,
+            JOY0_DPAD_LEFT, JOY1_DPAD_LEFT, JOY2_DPAD_LEFT, JOY3_DPAD_LEFT,
+            JOY0_AXIS_LEFT, JOY1_AXIS_LEFT, JOY2_AXIS_LEFT, JOY3_AXIS_LEFT:
               begin
                 FKeyIdx := 0;
                 actDefCtl();
               end;
-            IK_RIGHT, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
+            IK_RIGHT, IK_KPRIGHT, VK_RIGHT,
+            JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT,
+            JOY0_DPAD_RIGHT, JOY1_DPAD_RIGHT, JOY2_DPAD_RIGHT, JOY3_DPAD_RIGHT,
+            JOY0_AXIS_RIGHT, JOY1_AXIS_RIGHT, JOY2_AXIS_RIGHT, JOY3_AXIS_RIGHT:
               begin
                 FKeyIdx := 1;
                 actDefCtl();
@@ -3088,14 +3130,20 @@ begin
             FIndex := High(FItems);
             FStartLine := Max(High(FItems)-FHeight+1, 0);
           end;
-          IK_UP, IK_LEFT, IK_KPUP, IK_KPLEFT, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
+          IK_UP, IK_LEFT, IK_KPUP, IK_KPLEFT, VK_LEFT,
+          JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT,
+          JOY0_DPAD_LEFT, JOY1_DPAD_LEFT, JOY2_DPAD_LEFT, JOY3_DPAD_LEFT,
+          JOY0_AXIS_LEFT, JOY1_AXIS_LEFT, JOY2_AXIS_LEFT, JOY3_AXIS_LEFT:
             if FIndex > 0 then
             begin
               Dec(FIndex);
               if FIndex < FStartLine then Dec(FStartLine);
               if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
             end;
-          IK_DOWN, IK_RIGHT, IK_KPDOWN, IK_KPRIGHT, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
+          IK_DOWN, IK_RIGHT, IK_KPDOWN, IK_KPRIGHT, VK_RIGHT,
+          JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT,
+          JOY0_DPAD_RIGHT, JOY1_DPAD_RIGHT, JOY2_DPAD_RIGHT, JOY3_DPAD_RIGHT,
+          JOY0_AXIS_RIGHT, JOY1_AXIS_RIGHT, JOY2_AXIS_RIGHT, JOY3_AXIS_RIGHT:
             if FIndex < High(FItems) then
             begin
               Inc(FIndex);
@@ -3244,7 +3292,10 @@ begin
                 else FStartLine := High(FItems)-FHeight+1;
             end;
 
-          IK_UP, IK_LEFT, IK_KPUP, IK_KPLEFT, VK_UP, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
+          IK_UP, IK_LEFT, IK_KPUP, IK_KPLEFT, VK_UP, VK_LEFT,
+          JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT,
+          JOY0_DPAD_LEFT, JOY1_DPAD_LEFT, JOY2_DPAD_LEFT, JOY3_DPAD_LEFT,
+          JOY0_AXIS_LEFT, JOY1_AXIS_LEFT, JOY2_AXIS_LEFT, JOY3_AXIS_LEFT:
             if FIndex > 0 then
             begin
               FIndex -= 1;
@@ -3254,7 +3305,10 @@ begin
                 FOnChangeEvent(Self);
             end;
 
-          IK_DOWN, IK_RIGHT, IK_KPDOWN, IK_KPRIGHT, VK_DOWN, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
+          IK_DOWN, IK_RIGHT, IK_KPDOWN, IK_KPRIGHT, VK_DOWN, VK_RIGHT,
+          JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT,
+          JOY0_DPAD_RIGHT, JOY1_DPAD_RIGHT, JOY2_DPAD_RIGHT, JOY3_DPAD_RIGHT,
+          JOY0_AXIS_RIGHT, JOY1_AXIS_RIGHT, JOY2_AXIS_RIGHT, JOY3_AXIS_RIGHT:
             if FIndex < High(FItems) then
             begin
               FIndex += 1;
@@ -3494,10 +3548,16 @@ begin
     case Msg of
       WM_KEYDOWN:
         case wParam of
-          IK_UP, IK_LEFT, IK_KPUP, IK_KPLEFT, VK_UP, VK_LEFT, JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT:
+          IK_UP, IK_LEFT, IK_KPUP, IK_KPLEFT, VK_UP, VK_LEFT,
+          JOY0_LEFT, JOY1_LEFT, JOY2_LEFT, JOY3_LEFT,
+          JOY0_DPAD_LEFT, JOY1_DPAD_LEFT, JOY2_DPAD_LEFT, JOY3_DPAD_LEFT,
+          JOY0_AXIS_LEFT, JOY1_AXIS_LEFT, JOY2_AXIS_LEFT, JOY3_AXIS_LEFT:
             if FStartLine > 0 then
               Dec(FStartLine);
-          IK_DOWN, IK_RIGHT, IK_KPDOWN, IK_KPRIGHT, VK_DOWN, VK_RIGHT, JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT:
+          IK_DOWN, IK_RIGHT, IK_KPDOWN, IK_KPRIGHT, VK_DOWN, VK_RIGHT,
+          JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT,
+          JOY0_DPAD_RIGHT, JOY1_DPAD_RIGHT, JOY2_DPAD_RIGHT, JOY3_DPAD_RIGHT,
+          JOY0_AXIS_RIGHT, JOY1_AXIS_RIGHT, JOY2_AXIS_RIGHT, JOY3_AXIS_RIGHT:
             if FStartLine < Length(FLines)-FHeight then
               Inc(FStartLine);
           IK_RETURN, IK_KPRETURN, IK_SELECT,
