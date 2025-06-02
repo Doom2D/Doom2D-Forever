@@ -315,6 +315,7 @@ begin
   if g_touch_devices_detected then
   begin
     menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsTouchMenu').GetControl('mOptionsControlsTouchMenu'));
+    g_touch_enabled := TGUISwitch(menu.GetControl('swTouchEnable')).ItemIndex = 1;
     g_touch_alt := TGUISwitch(menu.GetControl('swTouchAlt')).ItemIndex = 1;
     g_touch_size := TGUIScroll(menu.GetControl('scTouchSize')).Value / 10 + 0.5;
     g_touch_fire := TGUISwitch(menu.GetControl('swTouchFire')).ItemIndex = 1;
@@ -555,6 +556,8 @@ begin
   if g_touch_devices_detected then
   begin
     menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsTouchMenu').GetControl('mOptionsControlsTouchMenu'));
+    with TGUISwitch(menu.GetControl('swTouchEnable')) do
+      if g_touch_enabled then ItemIndex := 1 else ItemIndex := 0;
     with TGUISwitch(menu.GetControl('swTouchAlt')) do
       if g_touch_alt then ItemIndex := 1 else ItemIndex := 0;
     TGUIScroll(menu.GetControl('scTouchSize')).Value := Round((g_touch_size - 0.5) * 10);
@@ -1501,6 +1504,7 @@ var
   menu: TGUIMenu;
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsTouchMenu').GetControl('mOptionsControlsTouchMenu'));
+  g_touch_enabled := TGUISwitch(menu.GetControl('swTouchEnable')).ItemIndex = 1;
   g_touch_alt := TGUISwitch(menu.GetControl('swTouchAlt')).ItemIndex = 1;
   g_touch_size := TGUIScroll(menu.GetControl('scTouchSize')).Value / 10 + 0.5;
   g_touch_offset := TGUIScroll(menu.GetControl('scTouchOffset')).Value * 5;
@@ -3382,6 +3386,13 @@ begin
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_CONTROL_TOUCH]))) do
   begin
     Name := 'mOptionsControlsTouchMenu';
+    with AddSwitch(_lc[I_MENU_CONTROL_TOUCH_ENABLE]) do
+    begin
+      Name := 'swTouchEnable';
+      AddItem(_lc[I_MENU_NO]);
+      AddItem(_lc[I_MENU_YES]);
+      OnChange := ProcChangeTouchSettings;
+    end;
     with AddSwitch(_lc[I_MENU_CONTROL_TOUCH_ALT]) do
     begin
       Name := 'swTouchAlt';
