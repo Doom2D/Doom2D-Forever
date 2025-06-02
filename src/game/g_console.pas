@@ -1077,7 +1077,7 @@ begin
   AddCommand('p1_priority_saw', PlayerSettingsCVars);
   AddCommand('p2_priority_saw', PlayerSettingsCVars);
   AddCommand('p1_priority_pistol', PlayerSettingsCVars);
-  AddCommand('p2_priority_pistol', PlayerSettingsCVars);  
+  AddCommand('p2_priority_pistol', PlayerSettingsCVars);
   AddCommand('p1_priority_shotgun1', PlayerSettingsCVars);
   AddCommand('p2_priority_shotgun1', PlayerSettingsCVars);
   AddCommand('p1_priority_shotgun2', PlayerSettingsCVars);
@@ -1095,7 +1095,7 @@ begin
   AddCommand('p1_priority_flamethrower', PlayerSettingsCVars);
   AddCommand('p2_priority_flamethrower', PlayerSettingsCVars);
   AddCommand('p1_priority_berserk', PlayerSettingsCVars);
-  AddCommand('p2_priority_berserk', PlayerSettingsCVars);  
+  AddCommand('p2_priority_berserk', PlayerSettingsCVars);
 
   AddCommand('g_max_particles', GameCVars);
   AddCommand('g_max_shells', GameCVars);
@@ -2294,15 +2294,15 @@ begin
     WriteLn(f, 'p1_priority_knuckles ', Max(0, WeaponPreferences[WEAPON_KNUCKLES]));
     WriteLn(f, 'p1_priority_saw ', Max(0, WeaponPreferences[WEAPON_SAW]));
     WriteLn(f, 'p1_priority_pistol ', Max(0, WeaponPreferences[WEAPON_PISTOL]));
-    WriteLn(f, 'p1_priority_shotgun1 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN1]));    
+    WriteLn(f, 'p1_priority_shotgun1 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN1]));
     WriteLn(f, 'p1_priority_shotgun2 ', Max(0, WeaponPreferences[WEAPON_SHOTGUN2]));
-    WriteLn(f, 'p1_priority_chaingun ', Max(0, WeaponPreferences[WEAPON_CHAINGUN]));    
-    WriteLn(f, 'p1_priority_rocketlauncher ', Max(0, WeaponPreferences[WEAPON_ROCKETLAUNCHER]));    
-    WriteLn(f, 'p1_priority_plasma ', Max(0, WeaponPreferences[WEAPON_PLASMA]));    
+    WriteLn(f, 'p1_priority_chaingun ', Max(0, WeaponPreferences[WEAPON_CHAINGUN]));
+    WriteLn(f, 'p1_priority_rocketlauncher ', Max(0, WeaponPreferences[WEAPON_ROCKETLAUNCHER]));
+    WriteLn(f, 'p1_priority_plasma ', Max(0, WeaponPreferences[WEAPON_PLASMA]));
     WriteLn(f, 'p1_priority_bfg ', Max(0, WeaponPreferences[WEAPON_BFG]));
-    WriteLn(f, 'p1_priority_superchaingun ', Max(0, WeaponPreferences[WEAPON_SUPERCHAINGUN]));                         
+    WriteLn(f, 'p1_priority_superchaingun ', Max(0, WeaponPreferences[WEAPON_SUPERCHAINGUN]));
     WriteLn(f, 'p1_priority_flamethrower ', Max(0, WeaponPreferences[WEAPON_FLAMETHROWER]));
-    WriteLn(f, 'p1_priority_berserk ', Max(0, WeaponPreferences[WP_LAST+1]));    
+    WriteLn(f, 'p1_priority_berserk ', Max(0, WeaponPreferences[WP_LAST+1]));
   end;
   with gPlayer2Settings do
   begin
@@ -2323,7 +2323,7 @@ begin
     WriteLn(f, 'p2_priority_bfg ', Max(0, WeaponPreferences[WEAPON_BFG]));
     WriteLn(f, 'p2_priority_superchaingun ', Max(0, WeaponPreferences[WEAPON_SUPERCHAINGUN]));
     WriteLn(f, 'p2_priority_flamethrower ', Max(0, WeaponPreferences[WEAPON_FLAMETHROWER]));
-    WriteLn(f, 'p2_priority_berserk ', Max(0, WeaponPreferences[WP_LAST+1]));       
+    WriteLn(f, 'p2_priority_berserk ', Max(0, WeaponPreferences[WP_LAST+1]));
   end;
 
   // all cvars
