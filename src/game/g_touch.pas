@@ -27,6 +27,7 @@ procedure g_Touch_HandleEvent (const ev: TSDL_TouchFingerEvent);
 
 var
   g_touch_enabled: Boolean;
+  g_touch_devices_detected: Boolean;
   g_touch_size: Single = 0.5;
   g_touch_offset: Single = 50.0;
   g_touch_fire: Boolean = True;

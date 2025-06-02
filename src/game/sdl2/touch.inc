@@ -275,7 +275,10 @@ procedure g_Touch_Init ();
 begin
 {$IFNDEF HEADLESS}
   g_Touch_ShowKeyboard(False);
-  g_touch_enabled := SDL_GetNumTouchDevices() > 0;
+  g_touch_devices_detected := SDL_GetNumTouchDevices() > 0;
+  // Set this now, because it may not be set anywhere else.
+  // If it's set in user config, it will be overwritten. If it's not, that's a reasonable default.
+  g_touch_enabled := g_touch_devices_detected;
 {$ENDIF}
 end;
 

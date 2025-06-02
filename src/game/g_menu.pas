@@ -312,7 +312,7 @@ begin
     end
   end;
 
-  if g_touch_enabled then
+  if g_touch_devices_detected then
   begin
     menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsTouchMenu').GetControl('mOptionsControlsTouchMenu'));
     g_touch_alt := TGUISwitch(menu.GetControl('swTouchAlt')).ItemIndex = 1;
@@ -552,7 +552,7 @@ begin
     end
   end;
 
-  if g_touch_enabled then
+  if g_touch_devices_detected then
   begin
     menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsTouchMenu').GetControl('mOptionsControlsTouchMenu'));
     with TGUISwitch(menu.GetControl('swTouchAlt')) do
@@ -3301,7 +3301,7 @@ begin
       AddSpace();
       AddButton(nil, _lc[I_MENU_CONTROL_JOYSTICKS], 'OptionsControlsJoystickMenu');
     end;
-    if g_touch_enabled then
+    if g_touch_devices_detected then
     begin
       AddSpace();
       AddButton(nil, _lc[I_MENU_CONTROL_TOUCH], 'OptionsControlsTouchMenu');
