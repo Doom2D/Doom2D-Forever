@@ -241,7 +241,8 @@ var
   end;
 
 begin
-  if not g_touch_enabled then
+  // Always enable touchscreen in menu, so that player doesn't get locked out
+  if (not g_touch_enabled) and (g_ActiveWindow = nil) then
     Exit;
 
   finger := ev.fingerId + 2;
@@ -301,7 +302,8 @@ var
   found: Boolean;
 begin
 {$IFNDEF HEADLESS}
-  if not g_touch_enabled then
+  // Always enable touchscreen in menu, so that player doesn't get locked out
+  if (not g_touch_enabled) and (g_ActiveWindow = nil) then
     Exit;
 
   for i := VK_FIRSTKEY to VK_LASTKEY do
