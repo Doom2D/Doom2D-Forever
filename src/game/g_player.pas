@@ -3488,23 +3488,25 @@ var
   end;
 
 begin
-  DoFrags := (gGameSettings.MaxLives = 0) or (gGameSettings.GameMode = GM_COOP);
-  Srv := g_Game_IsServer;
-  Netsrv := g_Game_IsServer and g_Game_IsNet;
-  if Srv then FDeath := FDeath + 1;
   if FAlive then
   begin
-    if FGhost then
-      FGhost := False;
-    if not FPhysics then
-      FPhysics := True;
     FAlive := False;
-  end;
+    if FGhost then FGhost := False;
+    if not FPhysics then FPhysics := True;
+  end
+  else if t = HIT_DISCON then
+    Exit;  // prevent dropping loot twice
+
+  DoFrags := (gGameSettings.MaxLives = 0) or (gGameSettings.GameMode = GM_COOP);
+  Netsrv := g_Game_IsServer and g_Game_IsNet;
+  Srv := g_Game_IsServer;
+
+  if Srv then FDeath += 1;
   FShellTimer := -1;
 
   if (gGameSettings.MaxLives > 0) and Srv and (gLMSRespawn = LMS_RESPAWN_NONE) then
   begin
-    if FLives > 0 then FLives := FLives - 1;
+    if FLives > 0 then FLives += 1;
     if FLives = 0 then FNoRespawn := True;
   end;
 
