@@ -241,6 +241,11 @@ var
   end;
 
 begin
+  // If we don't have any touch devices, we have no business here
+  // Early exit to prevent condition logic bloat below
+  if (not g_touch_devices_detected) then
+    Exit;
+
   // Always enable touchscreen in menu, so that player doesn't get locked out
   if (not g_touch_enabled) and (g_ActiveWindow = nil) then
     Exit;
@@ -302,6 +307,11 @@ var
   found: Boolean;
 begin
 {$IFNDEF HEADLESS}
+  // If we don't have any touch devices, we have no business here
+  // Early exit to prevent condition logic bloat below
+  if (not g_touch_devices_detected) then
+    Exit;
+
   // Always enable touchscreen in menu, so that player doesn't get locked out
   if (not g_touch_enabled) and (g_ActiveWindow = nil) then
     Exit;
