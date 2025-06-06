@@ -3294,11 +3294,9 @@ begin
     AddKeyRead(_lc[I_MENU_CONTROL_CHAT]).Name := _lc[I_MENU_CONTROL_CHAT];
     AddKeyRead(_lc[I_MENU_CONTROL_TEAMCHAT]).Name := _lc[I_MENU_CONTROL_TEAMCHAT];
     AddSpace();
-    AddButton(nil, _lc[I_MENU_PLAYER_1_KBD], 'OptionsControlsP1Menu');
-    {AddButton(nil, _lc[I_MENU_PLAYER_1_ALT], 'OptionsControlsP1MenuAlt');}
+    AddButton(nil, _lc[I_MENU_PLAYER_1_CONTROLS], 'OptionsControlsP1Menu');
     AddButton(nil, _lc[I_MENU_PLAYER_1_WEAPONS], 'OptionsControlsP1MenuWeapons');
-    AddButton(nil, _lc[I_MENU_PLAYER_2_KBD], 'OptionsControlsP2Menu');
-    {AddButton(nil, _lc[I_MENU_PLAYER_2_ALT], 'OptionsControlsP2MenuAlt');}
+    AddButton(nil, _lc[I_MENU_PLAYER_2_CONTROLS], 'OptionsControlsP2Menu');
     AddButton(nil, _lc[I_MENU_PLAYER_2_WEAPONS], 'OptionsControlsP2MenuWeapons');
     if e_HasJoysticks then
     begin
@@ -3314,7 +3312,7 @@ begin
   Menu.DefControl := 'mOptionsControlsMenu';
 
   Menu := g_GUI_AddWindow(TGUIWindow.Create('OptionsControlsP1Menu'));
-  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_1_KBD]))) do
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_1_CONTROLS]))) do
   begin
     Name := 'mOptionsControlsP1Menu';
     AddKeyRead2(_lc[I_MENU_CONTROL_LEFT]).Name := _lc[I_MENU_CONTROL_LEFT];
@@ -3342,7 +3340,7 @@ begin
   Menu.DefControl := 'mOptionsControlsP1MenuWeapons';
 
   Menu := g_GUI_AddWindow(TGUIWindow.Create('OptionsControlsP2Menu'));
-  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_2_KBD]))) do
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_2_CONTROLS]))) do
   begin
     Name := 'mOptionsControlsP2Menu';
     AddKeyRead2(_lc[I_MENU_CONTROL_LEFT]).Name := _lc[I_MENU_CONTROL_LEFT];
