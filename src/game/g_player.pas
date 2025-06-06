@@ -304,6 +304,7 @@ type
     procedure   SetModel(ModelName: String);
     procedure   SetColor(Color: TRGB; UpdateModel: Boolean);
     function    GetColor(): TRGB;
+    procedure   UpdateTeamColors();
     procedure   SetWeapon(W: Byte);
     function    IsKeyPressed(K: Byte): Boolean;
     function    GetKeys(): Byte;
@@ -2052,6 +2053,12 @@ end;
 function TPlayer.GetColor(): TRGB;
 begin
   Result := FModel.Color;
+end;
+
+procedure TPlayer.UpdateTeamColors();
+begin
+  if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
+    FModel.Color := g_PlayerModel_MakeColor(FColor, FTeam);
 end;
 
 procedure TPlayer.SetWeaponPrefs(Prefs: Array of Byte);

@@ -1103,6 +1103,7 @@ begin
   AddCommand('g_max_corpses', GameCVars);
   AddCommand('g_force_model', GameCVars);
   AddCommand('g_force_model_name', GameCVars);
+  AddCommand('r_common_team_color', GameCVars);
   AddCommand('g_gamemode', GameCVars);
   AddCommand('g_friendlyfire', GameCVars);
   AddCommand('g_team_hit_trace', GameCVars);

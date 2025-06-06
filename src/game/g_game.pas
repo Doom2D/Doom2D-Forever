@@ -296,6 +296,7 @@ var
   gTotalMonsters: Integer;
   gPauseMain: Boolean;
   gPauseHolmes: Boolean;
+  gCommonTeamColor: Boolean;
   gShowTime: Boolean;
   gShowFPS: Boolean;
   gShowScore: Boolean = True;
@@ -5923,6 +5924,18 @@ begin
           end
         end
       end
+    end;
+
+    'r_common_team_color': begin
+      if Length(P) > 1 then
+      begin
+        gCommonTeamColor := StrToIntDef(P[1], 0) <> 0;
+        for a := Low(gPlayers) to High(gPlayers) do
+        begin
+          if (gPlayers[a] <> nil) then
+            gPlayers[a].UpdateTeamColors();
+        end
+      end;
     end;
 
     'g_scorelimit': begin

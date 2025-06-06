@@ -175,7 +175,7 @@ uses
 {$IFDEF ENABLE_SOUND}
   g_sound,
 {$ENDIF}
-  g_main, g_console, SysUtils, g_player, CONFIG,
+  g_main, g_game, g_console, SysUtils, g_player, CONFIG,
   g_options, g_map, Math, e_log, wadreader;
 
 type
@@ -953,6 +953,14 @@ function g_PlayerModel_MakeColor(const aColor: TRGB; aTeam: Byte): TRGB;
 var
   TeamTone, ExtraTone, LightTone: Byte;
 begin
+  if gCommonTeamColor then
+  begin
+    if aTeam = TEAM_RED
+      then Result := _RGB(255, 0, 0)
+      else Result := _RGB(0, 0, 255);
+    Exit;
+  end;
+
   case aTeam of
     TEAM_RED: begin
       TeamTone := (160-1) + Round( aColor.R / 255 * 96 );
