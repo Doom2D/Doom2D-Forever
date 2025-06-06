@@ -1169,7 +1169,7 @@ const
     ('MENU CONTROL PREV WEAPON',       'Previous weapon:',
                                        'Предыдущее оружие:'),
     ('MENU CONTROL STRAFE',            'Strafe:',
-                                       'Лунная походка:'),
+                                       'Разворот на ходу:'),
     ('MENU CONTROL DROPFLAG',          'Drop flag:',
                                        'Выбросить флаг:'),
 
