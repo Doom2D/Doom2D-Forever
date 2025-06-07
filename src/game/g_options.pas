@@ -46,6 +46,7 @@ var
   gNoSound: Boolean;
   gSoundLevel: Integer;
   gMusicLevel: Integer;
+  gTauntLevel: Integer;
   gMaxSimSounds: Integer;
   gMuteWhenInactive: Boolean;
 {$IFDEF USE_SDLMIXER}
@@ -210,11 +211,11 @@ begin
   gNoSound := False;
   gSoundLevel := 75;
   gMusicLevel := 65;
+  gTauntLevel := 50;
   gMaxSimSounds := 8;
   gMuteWhenInactive := False;
   gAnnouncer := ANNOUNCE_MEPLUS;
   gSoundEffectsDF := True;
-  gUseChatSounds := True;
 {$IFDEF USE_SDLMIXER}
   gsSDLSampleRate := 44100;
   gsSDLBufferSize := 2048;
@@ -359,11 +360,11 @@ initialization
   conRegVar('s_nosound', @gNoSound, '', '');
   conRegVar('s_soundvolume', @gSoundLevel, '', '');
   conRegVar('s_musicvolume', @gMusicLevel, '', '');
+  conRegVar('s_tauntvolume', @gTauntLevel, '', '');
   conRegVar('s_maxsim', @gMaxSimSounds, '', ''); // e_sound_fmod/sdl?
   conRegVar('s_muteinactive', @gMuteWhenInactive, '', '');
   conRegVar('s_announcer', @gAnnouncer, '', '');
   conRegVar('s_sfx', @gSoundEffectsDF, '', '');
-  conRegVar('s_chatsounds', @gUseChatSounds, '', '');
   {$IFDEF USE_SDLMIXER}
     conRegVar('sdl_mixer_samplerate', @gsSDLSampleRate, '', '');
     conRegVar('sdl_mixer_buffersize', @gsSDLBufferSize, '', '');
