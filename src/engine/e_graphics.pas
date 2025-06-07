@@ -1719,7 +1719,7 @@ begin
 
   if Shadow then
   begin
-   glColor4ub(0, 0, 0, 128);
+   glColor4ub(0, 0, 0, 255);
    glTranslatef(X+1, Y+1, 0);
 {$IFDEF NOGL_LISTS}
    glCallLists(1, GL_UNSIGNED_BYTE, @Ch);
