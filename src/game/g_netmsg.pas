@@ -3210,7 +3210,12 @@ begin
   if NetDeafLevel < 2 then 
     case EvID of
       NET_VE_STARTED:
+      begin
         g_Console_Add(Format(_lc[I_MESSAGE_VOTE_STARTED], [Str1, Str2, Int1]), True);
+      {$IFDEF ENABLE_SOUND}
+        g_Sound_PlayEx('SOUND_VOTE_START');
+      {$ENDIF}
+      end;
       NET_VE_PASSED:
         g_Console_Add(Format(_lc[I_MESSAGE_VOTE_PASSED], [Str1]), True);
       NET_VE_FAILED:
