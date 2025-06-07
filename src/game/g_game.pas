@@ -974,31 +974,33 @@ begin
     end;
 end;
 
-function g_Game_DelayEvent(DEType: Byte; Time: LongWord; Num: Integer = 0; Str: String = ''): Integer;
+function g_Game_DelayEvent(DEType: Byte; Time: LongWord; Num: Integer; Str: String): Integer;
 var
-  a, n: Integer;
+  a: Integer;
+  n: Integer = -1;
 begin
-  n := -1;
-  if gDelayedEvents <> nil then
-    for a := 0 to High(gDelayedEvents) do
-      if not gDelayedEvents[a].Pending then
-      begin
-        n := a;
-        break;
-      end;
+  for a := 0 to High(gDelayedEvents) do
+    if not gDelayedEvents[a].Pending then
+    begin
+      n := a;
+      Break;
+    end;
+
   if n = -1 then
   begin
-    SetLength(gDelayedEvents, Length(gDelayedEvents) + 1);
-    n := High(gDelayedEvents);
+    n := Length(gDelayedEvents);
+    SetLength(gDelayedEvents, n + 1);
   end;
+
   gDelayedEvents[n].Pending := True;
   gDelayedEvents[n].DEType := DEType;
   gDelayedEvents[n].DENum := Num;
   gDelayedEvents[n].DEStr := Str;
-  if DEType = DE_GLOBEVENT then
-    gDelayedEvents[n].Time := (sys_GetTicks() {div 1000}) + Time
-  else
-    gDelayedEvents[n].Time := gTime + Time;
+
+  if DEType = DE_GLOBEVENT
+    then gDelayedEvents[n].Time := (sys_GetTicks() {div 1000}) + Time
+    else gDelayedEvents[n].Time := gTime + Time;
+
   Result := n;
 end;
 

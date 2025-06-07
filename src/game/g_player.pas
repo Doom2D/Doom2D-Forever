@@ -564,7 +564,7 @@ type
   public
     constructor Create(X, Y: Integer; ModelName: String; aMess: Boolean);
     destructor Destroy(); override;
-    procedure Damage(Value: Word; SpawnerUID: Word; vx, vy: Integer);
+    procedure Damage(Value: Word; SpawnerUID: Word; vx, vy: Integer; aLaugh: Boolean = True);
     procedure Update();
     procedure Draw();
     procedure SaveState(st: TStream);
@@ -6715,7 +6715,7 @@ begin
 end;
 
 
-procedure TCorpse.Damage(Value: Word; SpawnerUID: Word; vx, vy: Integer);
+procedure TCorpse.Damage(Value: Word; SpawnerUID: Word; vx, vy: Integer; aLaugh: Boolean);
 var
   pm: TPlayerModel;
   Blood: TModelBlood;
@@ -6723,13 +6723,13 @@ begin
   if FState = CORPSE_STATE_REMOVEME then
     Exit;
 
-  FDamage := FDamage + Value;
+  FDamage += Value;
 
   if FDamage > 150 then
     begin
       if FAnimation <> nil then
       begin
-        FAnimation.Free();
+        FAnimation.Destroy();
         FAnimation := nil;
 
         FState := CORPSE_STATE_REMOVEME;
@@ -6742,21 +6742,24 @@ begin
         // «вук м€са от трупа:
         pm := g_PlayerModel_Get(FModelName);
         pm.PlaySound(MODELSOUND_DIE, 5, FObj.X, FObj.Y);
-        pm.Free;
+        pm.Destroy();
 {$ENDIF}
 
         // «ловещий смех:
-        if (gBodyKillEvent <> -1)
-        and gDelayedEvents[gBodyKillEvent].Pending then
-          gDelayedEvents[gBodyKillEvent].Pending := False;
-        gBodyKillEvent := g_Game_DelayEvent(DE_BODYKILL, 1050, SpawnerUID);
+        if aLaugh then
+        begin
+          // cancel any previous laugh at the moment - we only want to laugh once, after body attack
+          if (gBodyKillEvent <> -1) and gDelayedEvents[gBodyKillEvent].Pending then
+            gDelayedEvents[gBodyKillEvent].Pending := False;
+          gBodyKillEvent := g_Game_DelayEvent(DE_BODYKILL, 1050, SpawnerUID);
+        end;
       end;
     end
   else
     begin
       Blood := g_PlayerModel_GetBlood(FModelName);
-      FObj.Vel.X := FObj.Vel.X + vx;
-      FObj.Vel.Y := FObj.Vel.Y + vy;
+      FObj.Vel.X += vx;
+      FObj.Vel.Y += vy;
       g_GFX_Blood(FObj.X+PLAYER_CORPSERECT.X+(PLAYER_CORPSERECT.Width div 2),
                   FObj.Y+PLAYER_CORPSERECT.Y+(PLAYER_CORPSERECT.Height div 2),
                   Value, vx, vy, 16, (PLAYER_CORPSERECT.Height*2) div 3,

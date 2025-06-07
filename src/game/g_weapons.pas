@@ -526,7 +526,7 @@ begin
               g_TraceVector(X, Y, Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
                             Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)) then
           begin
-            Damage(50, SpawnerUID, 0, 0);
+            Damage(50, SpawnerUID, 0, 0, False);  // BFG splash is unintentional - no fun allowed.
             g_Weapon_BFGHit(Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
                             Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2));
           end;
