@@ -2944,10 +2944,9 @@ begin
                   if g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
                                    FObj.Rect.Width, 8, @co) and (Random(3) = 0) then
                     // Пинаем трупы
-                    if FObj.Vel.X < 0 then
-                      gCorpses[a].Damage(b*2, FUID, -b, Random(7)) // налево
-                    else
-                      gCorpses[a].Damage(b*2, FUID, b, Random(7)); // направо
+                    if FObj.Vel.X < 0
+                      then gCorpses[a].Damage(b*2, FUID, -b, Random(7), False) // налево
+                      else gCorpses[a].Damage(b*2, FUID, b, Random(7), False); // направо
                 end;
             end;
           // Если цель высоко, то, возможно, прыгаем:
@@ -3794,10 +3793,9 @@ begin
                   if g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
                                    FObj.Rect.Width, 8, @co) and (Random(3) = 0) then
                     // Пинаем трупы
-                    if FObj.Vel.X < 0 then
-                      gCorpses[a].Damage(b*2, FUID, -b, Random(7)) // налево
-                    else
-                      gCorpses[a].Damage(b*2, FUID, b, Random(7)); // направо
+                    if FObj.Vel.X < 0
+                      then gCorpses[a].Damage(b*2, FUID, -b, Random(7), False) // налево
+                      else gCorpses[a].Damage(b*2, FUID, b, Random(7), False); // направо
                 end;
             end;
           end;
