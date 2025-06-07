@@ -657,7 +657,7 @@ begin
   begin
         if (gPlayer2Settings.WeaponPreferences[i] > 0) and (gPlayer2Settings.WeaponPreferences[i] <= WP_LAST+1) then TGUISwitch(menu.GetControl(IntToStr(i))).ItemIndex := gPlayer2Settings.WeaponPreferences[i]
         else TGUISwitch(menu.GetControl(IntToStr(i))).ItemIndex := 0;
-  end;  
+  end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mOptionsPlayersP2Menu'));
 
@@ -3505,7 +3505,7 @@ begin
           Name := IntToStr(i);
           for a := WP_FIRST to WP_LAST+1 do
             begin
-              AddItem(IntToStr(a));            
+              AddItem(IntToStr(a));
             end;
           ItemIndex := i
         end;
@@ -3515,11 +3515,11 @@ begin
       Name := IntToStr(WP_LAST+1);
       for a := WP_FIRST to WP_LAST+1 do
       begin
-         AddItem(IntToStr(a));            
+         AddItem(IntToStr(a));
       end;
       ItemIndex := WP_LAST + 1;
     end;
-  end;    
+  end;
   Menu.DefControl := 'mOptionsPreferencesP1WeaponMenu';
 
   Menu := g_GUI_AddWindow(TGUIWindow.Create('OptionsPlayersP2WeaponMenu'));
@@ -3562,7 +3562,7 @@ begin
           Name := IntToStr(i);
           for a := WP_FIRST to WP_LAST+1 do
             begin
-              AddItem(IntToStr(a));            
+              AddItem(IntToStr(a));
             end;
           ItemIndex := i
         end;
@@ -3572,7 +3572,7 @@ begin
       Name := IntToStr(WP_LAST+1);
       for a := WP_FIRST to WP_LAST+1 do
       begin
-         AddItem(IntToStr(a));            
+         AddItem(IntToStr(a));
       end;
       ItemIndex := WP_LAST + 1;
     end;
