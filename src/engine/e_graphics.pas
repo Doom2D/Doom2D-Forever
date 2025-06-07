@@ -1402,7 +1402,7 @@ begin
         end;
         #18: // red
         begin
-          c.R := 255; c.G := 0; c.B := 0;
+          c.R := 238; c.G := 75; c.B := 43;
           continue;
         end;
         #19: // green
