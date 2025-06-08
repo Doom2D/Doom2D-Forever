@@ -277,7 +277,6 @@ var
   sound_lost_flag: array[0..1] of TPlayableSound;
   sound_ret_flag: array[0..1] of TPlayableSound;
   sound_cap_flag: array[0..1] of TPlayableSound;
-  gUseChatSounds: Boolean = True;
   gChatSounds: array of TChatSound;
   gMusic: TMusic;
 {$ELSE}
@@ -8198,7 +8197,7 @@ var
 begin
   ok := False;
 
-  if gUseChatSounds and Taunt and (gChatSounds <> nil) and (Pos(': ', Text) > 0) then
+  if (gTauntLevel > 0) and Taunt and (gChatSounds <> nil) and (Pos(': ', Text) > 0) then
   begin
     // remove player name
     Delete(Text, 1, Pos(': ', Text) + 2 - 1);
@@ -8220,7 +8219,10 @@ begin
       end;
       if ok then
       begin
-        gChatSounds[i].Sound.Play();
+        // HACK: for playing taunts at volume independent from game sounds,
+        // TPlayableSound.PlayPanVolume handles a special case:
+        // Negative volume means "play this at this absolute volume" instead of relative volume.
+        gChatSounds[i].Sound.PlayPanVolume(0, -(gTauntLevel / 255));
         break;
       end;
     end;

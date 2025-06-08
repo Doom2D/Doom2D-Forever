@@ -498,11 +498,18 @@ begin
 end;
 
 function TPlayableSound.PlayPanVolume(Pan, Volume: Single; Force: Boolean = False): Boolean;
+var
+  Vol: Single;
 begin
   if Force or not IsPlaying() then
     begin
       Stop();
-      Result := RawPlay(Pan, Volume * (gSoundLevel/255.0), FPosition);
+      // HACK: for playing taunts at volume independent from game sounds, handle a special case:
+      // Negative volume means "play this at this absolute volume" instead of relative volume.
+      if Volume < 0
+        then Vol := Abs(Volume)
+        else Vol := Volume * (gSoundLevel / 255);
+      Result := RawPlay(Pan, Vol, FPosition);
     end
   else
     Result := False;

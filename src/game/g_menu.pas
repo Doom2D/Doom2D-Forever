@@ -127,7 +127,6 @@ begin
   gMuteWhenInactive := TGUISwitch(menu.GetControl('swInactiveSounds')).ItemIndex = 1;
   gAnnouncer := TGUISwitch(menu.GetControl('swAnnouncer')).ItemIndex;
   gSoundEffectsDF := TGUISwitch(menu.GetControl('swSoundEffects')).ItemIndex = 1;
-  gUseChatSounds := TGUISwitch(menu.GetControl('swChatSpeech')).ItemIndex = 0;
 {$ENDIF}
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
@@ -442,6 +441,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
 
   TGUIScroll(menu.GetControl('scSoundLevel')).Value := Round(gSoundLevel/16);
+  TGUIScroll(menu.GetControl('scTauntLevel')).Value := Round(gTauntlevel/16);
   TGUIScroll(menu.GetControl('scMusicLevel')).Value := Round(gMusicLevel/16);
   TGUIScroll(menu.GetControl('scMaxSimSounds')).Value := Round((gMaxSimSounds-2)/4);
 
@@ -458,12 +458,6 @@ begin
       ItemIndex := 1
     else
       ItemIndex := 0;
-
-  with TGUISwitch(menu.GetControl('swChatSpeech')) do
-    if gUseChatSounds then
-      ItemIndex := 0
-    else
-      ItemIndex := 1;
 {$ENDIF}
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1Menu').GetControl('mOptionsControlsP1Menu'));
@@ -657,7 +651,7 @@ begin
   begin
         if (gPlayer2Settings.WeaponPreferences[i] > 0) and (gPlayer2Settings.WeaponPreferences[i] <= WP_LAST+1) then TGUISwitch(menu.GetControl(IntToStr(i))).ItemIndex := gPlayer2Settings.WeaponPreferences[i]
         else TGUISwitch(menu.GetControl(IntToStr(i))).ItemIndex := 0;
-  end;  
+  end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mOptionsPlayersP2Menu'));
 
@@ -1480,6 +1474,7 @@ var
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
 
+  gTauntLevel := Min(TGUIScroll(menu.GetControl('scTauntLevel')).Value*16, 255);
   g_Sound_SetupAllVolumes(
     Min(TGUIScroll(menu.GetControl('scSoundLevel')).Value*16, 255),
     Min(TGUIScroll(menu.GetControl('scMusicLevel')).Value*16, 255)
@@ -3129,6 +3124,12 @@ begin
       Max := 16;
       OnChange := ProcChangeSoundSettings;
     end;
+    with AddScroll(_lc[I_MENU_SOUND_TAUNT_LEVEL]) do
+    begin
+      Name := 'scTauntLevel';
+      Max := 16;
+      OnChange := ProcChangeSoundSettings;
+    end;
     with AddScroll(_lc[I_MENU_SOUND_MAX_SIM_SOUNDS]) do
     begin
       Name := 'scMaxSimSounds';
@@ -3148,13 +3149,6 @@ begin
       Name := 'swSoundEffects';
       AddItem(_lc[I_MENU_COMPAT_DOOM2]);
       AddItem(_lc[I_MENU_COMPAT_DF]);
-    end;
-    // Переключатель звуков чата
-    with AddSwitch (_lc[I_MENU_SOUND_CHAT]) do
-    begin;
-      Name := 'swChatSpeech';
-      AddItem(_lc[I_MENU_YES]);
-      AddItem(_lc[I_MENU_NO]);
     end;
     with AddSwitch(_lc[I_MENU_SOUND_INACTIVE_SOUNDS]) do
     begin
@@ -3505,7 +3499,7 @@ begin
           Name := IntToStr(i);
           for a := WP_FIRST to WP_LAST+1 do
             begin
-              AddItem(IntToStr(a));            
+              AddItem(IntToStr(a));
             end;
           ItemIndex := i
         end;
@@ -3515,11 +3509,11 @@ begin
       Name := IntToStr(WP_LAST+1);
       for a := WP_FIRST to WP_LAST+1 do
       begin
-         AddItem(IntToStr(a));            
+         AddItem(IntToStr(a));
       end;
       ItemIndex := WP_LAST + 1;
     end;
-  end;    
+  end;
   Menu.DefControl := 'mOptionsPreferencesP1WeaponMenu';
 
   Menu := g_GUI_AddWindow(TGUIWindow.Create('OptionsPlayersP2WeaponMenu'));
@@ -3562,7 +3556,7 @@ begin
           Name := IntToStr(i);
           for a := WP_FIRST to WP_LAST+1 do
             begin
-              AddItem(IntToStr(a));            
+              AddItem(IntToStr(a));
             end;
           ItemIndex := i
         end;
@@ -3572,7 +3566,7 @@ begin
       Name := IntToStr(WP_LAST+1);
       for a := WP_FIRST to WP_LAST+1 do
       begin
-         AddItem(IntToStr(a));            
+         AddItem(IntToStr(a));
       end;
       ItemIndex := WP_LAST + 1;
     end;
