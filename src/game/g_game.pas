@@ -8379,6 +8379,9 @@ begin
     if gVoteCount >= Need then
     begin
       g_Console_Add(Format(_lc[I_MESSAGE_VOTE_PASSED], [gVoteCommand]), True);
+    {$IFDEF ENABLE_SOUND}
+      g_Sound_PlayEx('SOUND_GAME_RADIO');
+    {$ENDIF}
       MH_SEND_VoteEvent(NET_VE_PASSED, gVoteCommand);
       gVotePassed := True;
       gVoteCmdTimer := gTime + 5000;
@@ -8386,6 +8389,9 @@ begin
     else
     begin
       g_Console_Add(_lc[I_MESSAGE_VOTE_FAILED], True);
+    {$IFDEF ENABLE_SOUND}
+      g_Sound_PlayEx('SOUND_GAME_RADIO');
+    {$ENDIF}
       MH_SEND_VoteEvent(NET_VE_FAILED);
     end;
     if NetClients <> nil then
@@ -8405,6 +8411,9 @@ begin
     if gVoteCount >= Need then
     begin
       g_Console_Add(Format(_lc[I_MESSAGE_VOTE_PASSED], [gVoteCommand]), True);
+    {$IFDEF ENABLE_SOUND}
+      g_Sound_PlayEx('SOUND_GAME_RADIO');
+    {$ENDIF}
       MH_SEND_VoteEvent(NET_VE_PASSED, gVoteCommand);
       gVoteInProgress := False;
       gVotePassed := True;

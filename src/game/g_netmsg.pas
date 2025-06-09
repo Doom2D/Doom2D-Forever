@@ -3217,9 +3217,19 @@ begin
       {$ENDIF}
       end;
       NET_VE_PASSED:
+      begin
         g_Console_Add(Format(_lc[I_MESSAGE_VOTE_PASSED], [Str1]), True);
+      {$IFDEF ENABLE_SOUND}
+        g_Sound_PlayEx('SOUND_GAME_RADIO');
+      {$ENDIF}
+      end;
       NET_VE_FAILED:
+      begin
         g_Console_Add(_lc[I_MESSAGE_VOTE_FAILED], True);
+      {$IFDEF ENABLE_SOUND}
+        g_Sound_PlayEx('SOUND_GAME_RADIO');
+      {$ENDIF}
+      end;
       NET_VE_VOTE:
         g_Console_Add(Format(_lc[I_MESSAGE_VOTE_VOTE], [Str1, Int1, Int2]), True);
       NET_VE_INPROGRESS:
