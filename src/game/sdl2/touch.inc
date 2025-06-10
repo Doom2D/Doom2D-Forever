@@ -282,9 +282,14 @@ begin
 {$IFNDEF HEADLESS}
   g_Touch_ShowKeyboard(False);
   g_touch_devices_detected := SDL_GetNumTouchDevices() > 0;
-  // Set this now, because it may not be set anywhere else.
-  // If it's set in user config, it will be overwritten. If it's not, that's a reasonable default.
+
+  // On Android, enable touchscreen by default only if any touch devices are detected.
+  // Such case with no touch devices may be Android x86.
+  // On other platforms, touch settings would be available if touch devices are present, but not
+  // enabled by default.
+{$IFDEF ANDROID}
   g_touch_enabled := g_touch_devices_detected;
+{$ENDIF}
 {$ENDIF}
 end;
 
