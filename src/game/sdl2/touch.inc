@@ -180,6 +180,25 @@ begin
   Result := found and (xx >= x) and (yy >= y) and (xx <= x + w) and (yy <= y + h);
 end;
 
+function TouchIsWanted (): Boolean; inline;
+begin
+{$IFDEF ANDROID}
+  // If we are on Android, player may only have phone's touchscreen to control the game with.
+  // Always enable touchscreen in menu if touch devices are present, so that
+  // player doesn't get locked out.
+  // FIXME: some players want to never see touchscreen controls. How can we achieve that?
+  if g_touch_devices_detected and ((g_ActiveWindow <> nil) or (gState = STATE_MENU)) then
+    Result := True
+  else
+    // Otherwise, draw touchscreen if touch is enabled explicitly.
+    // (on Android, it WILL be enabled by default if touch devices are present.)
+    Result := g_touch_enabled;
+{$ELSE}
+  // On other platforms, draw touchscreen only if touch is explicitly enabled by the user.
+  Result := g_touch_enabled;
+{$ENDIF}
+end;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -241,15 +260,8 @@ var
   end;
 
 begin
-  // If we don't have any touch devices, we have no business here
-  // Early exit to prevent condition logic bloat below
-  if (not g_touch_devices_detected) then
+  if not TouchIsWanted() then
     Exit;
-
-  // Always enable touchscreen in menu, so that player doesn't get locked out
-  if (not g_touch_enabled) and (g_ActiveWindow = nil) then
-    Exit;
-
   finger := ev.fingerId + 2;
   x := Trunc(ev.x * gWinSizeX);
   y := Trunc(ev.y * gWinSizeY);
@@ -312,15 +324,8 @@ var
   found: Boolean;
 begin
 {$IFNDEF HEADLESS}
-  // If we don't have any touch devices, we have no business here
-  // Early exit to prevent condition logic bloat below
-  if (not g_touch_devices_detected) then
+  if not TouchIsWanted() then
     Exit;
-
-  // Always enable touchscreen in menu, so that player doesn't get locked out
-  if (not g_touch_enabled) and (g_ActiveWindow = nil) then
-    Exit;
-
   for i := VK_FIRSTKEY to VK_LASTKEY do
   begin
     found := GetKeyRect(i, x, y, w, h);
