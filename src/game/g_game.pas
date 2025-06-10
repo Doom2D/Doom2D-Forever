@@ -2585,6 +2585,7 @@ begin
   g_Sound_CreateWADEx('SOUND_GAME_SWITCH1', GameWAD+':SOUNDS\SWITCH1');
   g_Sound_CreateWADEx('SOUND_GAME_SWITCH0', GameWAD+':SOUNDS\SWITCH0');
   g_Sound_CreateWADEx('SOUND_GAME_RADIO', GameWAD+':SOUNDS\RADIO');
+  g_Sound_CreateWADEx('SOUND_VOTE_START', GameWAD+':SOUNDS\VOTESTART');
   g_Sound_CreateWADEx('SOUND_ANNOUNCER_GOOD1', GameWAD+':SOUNDS\GOOD1');
   g_Sound_CreateWADEx('SOUND_ANNOUNCER_GOOD2', GameWAD+':SOUNDS\GOOD2');
   g_Sound_CreateWADEx('SOUND_ANNOUNCER_GOOD3', GameWAD+':SOUNDS\GOOD3');
@@ -8356,6 +8357,9 @@ begin
   else
     Need := Floor(NetClientCount/2.0)+1;
   g_Console_Add(Format(_lc[I_MESSAGE_VOTE_STARTED], [Initiator, Command, Need]), True);
+{$IFDEF ENABLE_SOUND}
+  g_Sound_PlayEx('SOUND_VOTE_START');
+{$ENDIF}
   MH_SEND_VoteEvent(NET_VE_STARTED, Initiator, Command, Need);
 end;
 
@@ -8375,6 +8379,9 @@ begin
     if gVoteCount >= Need then
     begin
       g_Console_Add(Format(_lc[I_MESSAGE_VOTE_PASSED], [gVoteCommand]), True);
+    {$IFDEF ENABLE_SOUND}
+      g_Sound_PlayEx('SOUND_GAME_RADIO');
+    {$ENDIF}
       MH_SEND_VoteEvent(NET_VE_PASSED, gVoteCommand);
       gVotePassed := True;
       gVoteCmdTimer := gTime + 5000;
@@ -8382,6 +8389,9 @@ begin
     else
     begin
       g_Console_Add(_lc[I_MESSAGE_VOTE_FAILED], True);
+    {$IFDEF ENABLE_SOUND}
+      g_Sound_PlayEx('SOUND_GAME_RADIO');
+    {$ENDIF}
       MH_SEND_VoteEvent(NET_VE_FAILED);
     end;
     if NetClients <> nil then
@@ -8401,6 +8411,9 @@ begin
     if gVoteCount >= Need then
     begin
       g_Console_Add(Format(_lc[I_MESSAGE_VOTE_PASSED], [gVoteCommand]), True);
+    {$IFDEF ENABLE_SOUND}
+      g_Sound_PlayEx('SOUND_GAME_RADIO');
+    {$ENDIF}
       MH_SEND_VoteEvent(NET_VE_PASSED, gVoteCommand);
       gVoteInProgress := False;
       gVotePassed := True;
