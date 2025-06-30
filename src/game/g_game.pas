@@ -2989,10 +2989,18 @@ begin
       end;
   end;
 
-  // HACK: take stats screenshot immediately after the first frame of the stats showing
+  // HACK: Take stats screenshot immediately after rendering the first frame of the stats.
+  // This way we avoid things like the open console getting onto it.
+  // FIXME: Unify this somehow with the overall rendering phase to not intrude its current state.
   if gScreenshotStats and (not StatShotDone) and (Length(CustomStat.PlayerStat) > 1) then
   begin
+    e_SetRenderTarget(False);
+    e_SetViewPort(0, 0, gWinSizeX, gWinSizeY);
+    e_BlitFramebuffer(gWinSizeX, gWinSizeY);
     g_TakeScreenShot('stats/' + StatFilename);
+
+    e_SetRenderTarget(True);
+    e_SetViewPort(0, 0, gScreenWidth, gScreenHeight);
     StatShotDone := True;
   end;
 end;
