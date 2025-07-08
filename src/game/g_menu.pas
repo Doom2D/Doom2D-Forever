@@ -1631,19 +1631,16 @@ begin
   TGUIModelView(g_ActiveWindow.GetControl('mv'+s+'ModelTeam')).Model.InvertDirection();
 end;
 
-procedure ProcDefaultMenuKeyDown (yes: Boolean);
+procedure ProcDefaultMenuKeyDown ();
 begin
-  if yes then
-  begin
-    g_Options_SetDefault();
-    ReadOptions();
-  end;
+  g_Options_SetDefault();
+  ReadOptions();
   g_GUI_HideWindow();
 end;
 
-procedure ProcSavedMenuKeyDown (yes: Boolean);
+procedure ProcSavedMenuKeyDown ();
 begin
-  if yes then ReadOptions();
+  ReadOptions();
   g_GUI_HideWindow();
 end;
 
@@ -1809,14 +1806,9 @@ begin
   g_Game_Pause(False);
 end;
 
-procedure ProcRestartMenuKeyDown (yes: Boolean);
+procedure ProcEndMenuKeyDown ();
 begin
-  if yes then g_Game_Restart() else g_GUI_HideWindow;
-end;
-
-procedure ProcEndMenuKeyDown (yes: Boolean);
-begin
-  if yes then gExit := EXIT_SIMPLE else g_GUI_HideWindow;
+  gExit := EXIT_SIMPLE;
 end;
 
 procedure ProcSetRussianLanguage;
@@ -3739,7 +3731,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := CreateYNMenu('RestartGameMenu', _lc[I_MENU_RESTART_GAME_PROMPT], Round(gScreenWidth*0.6),
-                       gMenuSmallFont, @ProcRestartMenuKeyDown);
+                       gMenuSmallFont, @g_Game_Restart);
   g_GUI_AddWindow(Menu);
 
   Menu := g_GUI_AddWindow(TGUIWindow.Create('GameCustomMenu'));
