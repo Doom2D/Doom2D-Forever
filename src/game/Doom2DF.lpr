@@ -14,14 +14,20 @@
  *)
 
 {$INCLUDE ../shared/a_modes.inc}
-{$IFNDEF ANDROID}program{$ELSE}library{$ENDIF} Doom2DF;
+{$IFNDEF ANDROID} program {$ELSE} library {$ENDIF} Doom2DF;
 
+{$MODESWITCH CLASSICPROCVARS-}  // TODO: Make this default.
+
+// hope this has no negative impact in case of 'library' above
+// https://stackoverflow.com/questions/11716350/effects-of-switching-between-subsystemconsole-to-subsystemwindows-in-a-dll
+// https://docwiki.embarcadero.com/RADStudio/en/Application_type_(Delphi) - against, but anyway
 {$IFNDEF HEADLESS}
-  {$IFDEF WINDOWS}
-    {$APPTYPE GUI}
-  {$ENDIF}
+  {$APPTYPE GUI}
+{$ELSE}
+  {$APPTYPE CONSOLE}
 {$ENDIF}
-{$HINTS OFF}
+
+// TODO: Use {$UNITPATH ../*;../lib/*} instead of a lot of explicit relative paths in 'uses' block?
 
 uses
 {$IFDEF ANDROID}
@@ -95,7 +101,7 @@ uses
     e_soundfile_opus in '../engine/e_soundfile_opus.pas',
   {$ENDIF}
   {$IF DEFINED(USE_VORBIS) OR DEFINED(USE_OPUS)}
-    ogg in '../lib/vorbis/ogg.pas', // this has to come last because link order
+    ogg in '../lib/vorbis/ogg.pas', // this should come last for proper linking order
   {$ENDIF}
 {$ENDIF}
 
@@ -187,20 +193,49 @@ uses
   {$R *.res}
 {$ENDIF}
 
+// FIXME: As of 3.2.2, FormatBuf() allocates on heap, unfortunately, which could be corrupt.
+// https://gitlab.com/freepascal.org/fpc/source/-/issues/41475
+procedure FormatStaticString(out aString: ShortString; constref aFormat: String {type of constants};
+  const aList: array of const); inline;
+begin
+  SetLength(aString,
+    FormatBuf(aString[1], High(aString), PChar(aFormat)^, Length(aFormat), aList)
+  );
+end;
+
+// NB: Variables here are treated by FPC just like the unit ones, so it initializes them. See this:
+// - https://www.freepascal.org/docs-html/3.2.2/ref/refse21.html - 4.1: Variables / Definition
+// - https://wiki.freepascal.org/Global_variables
+// - https://forum.lazarus.freepascal.org/index.php?topic=60809.0 - Global Variable in program
+
+var
+  k: Integer = 1;
+  StopOnException: Boolean;
+  ErrorText: ShortString;
+  ErrorType: TClass;
+  ErrorCode: LongInt;  // NB: this shadows ErrorCode typed constant in the System unit
+
+// RTL sources in FPC 3.2.2 related to the exception handling, in decreasing order of importance:
+// > units:       System, SysUtils, ObjPas
+// - system.pp:   source/rtl/inc/system.inc
+// - system.pp:   source/rtl/inc/systemh.inc
+// - objpas.inc:  source/rtl/inc/except.inc
+// - systemh.inc: source/rtl/inc/objpash.inc
+// - systemh.inc: source/rtl/inc/excepth.inc
+// - sysutils.pp: source/rtl/objpas/sysutils/sysutils.inc
+// - sysutils.pp: source/rtl/objpas/sysutils/sysutilh.inc
+// - system.inc:  source/rtl/inc/objpas.inc
+
 {$IFDEF ANDROID}
 function SDL_main(argc: CInt; argv: PPChar): CInt; cdecl;
 {$ENDIF}
-
-var
-  f: Integer = 1;
-  gdb_mode: Boolean;
-{$IFDEF ANDROID}
-  storage: String;
-{$ENDIF}
-
+const
+  FormatException = '%s (%s:%d #%x, at $%p)';
+  FormatFatalError = 'FATAL ERROR (%s.%s $%p, at $%p)';
+  FormatMalfunction = 'invalid fault $%p at $%p - PROBABLY YOUR SOFTWARE OR HARDWARE IS BROKEN';
 begin
 {$IF DECLARED(UseHeapTrace)}
-  heaptrc.HaltOnError := False;  // continue execution even in case of a heap error
+  heaptrc.HaltOnError := False;  // continue execution even if there is a heap error
 {$ENDIF}
 
 {$IFDEF ANDROID}
@@ -208,25 +243,28 @@ begin
   System.argv := argv;
 {$ENDIF}
 
-  // BD: TFPUException instead of TFPUExceptionMask here seems to include exactly the same values.
-  SetExceptionMask([Low(TFPUExceptionMask)..High(TFPUExceptionMask)]);  // k8: fuck off, that's why
+  // Disable x87 and SSE floating point exceptions (https://wiki.freepascal.org/SetExceptionMask).
+  // NB: TFPUException instead of TFPUExceptionMask here seems to include exactly the same values.
+  SetExceptionMask([Low(TFPUExceptionMask)..High(TFPUExceptionMask)]);
 
-  while f <= ParamCount do
+  while k <= ParamCount() do
   begin
-    case ParamStr(f) of
-    '--gdb': gdb_mode := True;
+    case ParamStr(k) of
+    '--gdb': StopOnException := True;
     '--log': conbufDumpToStdOut := True;
     '--safe-log': e_SetSafeSlowLog(True);
     '--log-file':
-      if f + 1 <= ParamCount then
+      if k < ParamCount() then
       begin
-        f += 1;
-        LogFileName := ParamStr(f)
+        k += 1;
+        LogFileName := ParamStr(k);
       end;
     end;
-    f += 1;
+    k += 1;
   end;
 
+  try
+  ////////////////////////////////////////////////////////////////////////////////////////////////
   try
     Main();
     e_WriteLog('Shutdown with no errors.', TMsgType.Notify);
@@ -234,39 +272,67 @@ begin
   begin
     if E is Exception then
     begin
-      e_WriteStackTrace(Format('%s (%s)', [Exception(E).Message, E.ClassName()]));
+      // gather some additional info from all standard descendants known
+      if E is EVariantError then ErrorCode := EVariantError(E).ErrCode
+      else if E is EInOutError then ErrorCode := EInOutError(E).ErrorCode
+      else if E is EOSError then ErrorCode := EOSError(E).ErrorCode;
+
+      ErrorType := Exception;
+      with Exception(E) do FormatStaticString(ErrorText, FormatException,
+        [Message, ClassName(), HelpContext, ErrorCode, ExceptAddr()]);
     end
     else
     begin
-      // TODO: Switch to using TObject.QualifiedClassName() here (available since FPC 3.1.1).
-      e_WriteStackTrace(Format('FATAL ERROR ($%p:%s.%s) at $%p',
-        [Addr(E), E.UnitName(), E.ClassName(), ExceptAddr()]));
+      ErrorType := TObject;
+      // TODO: Switch to using TObject.QualifiedClassName() here? (available since FPC 3.1.1)
+      FormatStaticString(ErrorText, FormatFatalError,
+        [E.UnitName(), E.ClassName(), Addr(E), ExceptAddr()]);
     end;
 
-    if gdb_mode then Raise;
+    e_WriteStackTrace(ErrorText);
+
+    // Also write string representation if available (check if method is overridden).
+    // NOTE: This expression compares only the code pointers here actually, which is what we need.
+    // See https://www.freepascal.org/docs-html/ref/refse17.html - 3.6: Types / Procedural types.
+    if @E.ToString <> @ErrorType.ToString then
+      e_WriteLog(E.ToString(), TMsgType.Fatal);  // AnsiString requires heap, so this must go last.
+
+    if StopOnException then
+    begin
+    {$IF DECLARED(UseHeapTrace)}
+      heaptrc.UseHeapTrace := False;  // prevent clogging of debug session with Heaptrc windows
+    {$ENDIF}
+      Raise;
+    end;
+
+    // Unhandled exceptions cause their own exit codes, so we set our own only at the very end.
+    ExitCode := 1;  // EXIT_FAILURE
   end
   else
-    // This is theoretically impossible, as there can be no descendants not from TObject. So, this
-    // branch was left here only to satisfy FPC's AWFUL exception handling syntax that ignores the
-    // code after 'except-on-E:T-do-else' block, but compiles the program with such a construct
-    // quietly. And yes, I know about SysUtils.ExceptObject, but this makes an extra unit required.
-    // Also note that without the 'else Raise' the 'except-on' block would behave exactly the same.
-    begin Raise end;
-    { Any code here (i.e. after the previous statement block) would be effectively dead (no-op). }
+    // I doubt this being theoretically possible, as there can be no descendants not from TObject,
+    // but RTL also checks for that case explicitly - see sysutils.inc:CatchUnhandledException().
+    // Wondering what the result of SysUtils.ExceptObject() would be like in such a situation.
+    FormatStaticString(ErrorText, FormatMalfunction, [Pointer(ExceptObject()), ExceptAddr()]);
+    e_WriteStackTrace(ErrorText);
+    Raise;
+  end;
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  finally
+    // NB: This shall be an exception-free place to ensure proper flushing of the log file buffers.
+    e_DeinitLog();
   end;
 
-  e_DeinitLog();  // I hope at least this lonely thing can get by without fatal errors.
-
 {$IF DECLARED(UseHeapTrace)}
-  // Heaptrc will append its report to the completed log after the program finish. Note that
-  // Heaptrc allows to set the output file by specifying the "LOG=" environment variable, but we
-  // don't support this because the Heaptrc API doesn't provide a way to check this directly.
+  // Append Heaptrc report to the completed log after the program finish. Note that Heaptrc allows
+  // to set the output file by specifying the "LOG=" environment variable, but we don't support
+  // this because the Heaptrc API doesn't provide a way to check this directly.
   heaptrc.SetHeapTraceOutput(LogFileName);
 {$ENDIF}
 
 {$IFDEF ANDROID}
-  Result := 0;
+  Result := ExitCode;
 end; // SDL_main
+
 exports SDL_main;
 {$ENDIF}
 

@@ -297,11 +297,13 @@ begin
 end;
 
 
+{$PUSH}{$I-}
 procedure e_DeinitLog ();
 begin
   if xlogFileOpened then CloseFile(xlogFile);
-  xlogFileOpened := false;
+  xlogFileOpened := False;
 end;
+{$POP}
 
 
 // ////////////////////////////////////////////////////////////////////////// //
