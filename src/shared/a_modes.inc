@@ -21,7 +21,7 @@
 {$MODESWITCH ANSISTRINGS+}  // Allow use of ansistrings.
 {$MODESWITCH AUTODEREF+}  // Automatic (silent) dereferencing of typed pointers.
 {$MODESWITCH CLASS+}
-{$MODESWITCH CLASSICPROCVARS+}  // Use classical procedural variables.
+{$MODESWITCH CLASSICPROCVARS-}
 {$MODESWITCH DEFAULTPARAMETERS+}  // Allow use of default parameter values.
 {$MODESWITCH DUPLICATELOCALS-}  // Allow local variables in class methods to have the same names as properties of the class.
 {$MODESWITCH EXCEPTIONS+}
@@ -54,7 +54,10 @@
   {$FPUTYPE SSE}
 {$ENDIF}
 {$GOTO ON}
+
+// properly described here: https://gitlab.com/freepascal.org/fpc/source/-/issues/14757
 {$IEEEERRORS OFF}
+
 {$INLINE ON}
 {$LONGSTRINGS ON}
 {$MACRO OFF}  // useless unusable piece of junk that doesn't even support parameter passing
@@ -65,7 +68,7 @@
 {$SAFEFPUEXCEPTIONS OFF}
 {$SCOPEDENUMS ON}  // this may be changed later
 {$SMARTLINK ON}
-{$TYPEDADDRESS ON}
+{$TYPEDADDRESS ON}  // make @ operator return typed pointers. use Addr() to obtain an untyped one.
 {$TYPEINFO ON}
 {$VARSTRINGCHECKS OFF}
 

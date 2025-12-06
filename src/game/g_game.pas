@@ -2299,7 +2299,7 @@ begin
           if (gPlayers[I] <> nil) then MH_SEND_PlayerPos(reliableUpdate, gPlayers[I].UID);
         end;
 
-        g_Mons_ForEach(sendMonsPos);
+        g_Mons_ForEach(@sendMonsPos);
 
         // update flags that aren't stationary
         if gGameSettings.GameMode = GM_CTF then
@@ -2311,7 +2311,7 @@ begin
             end;
 
         // update items that aren't stationary
-        g_Items_ForEachAlive(sendItemPos);
+        g_Items_ForEachAlive(@sendItemPos);
 
         if reliableUpdate then
         begin
@@ -2326,7 +2326,7 @@ begin
       else
       begin
         // send only mosters with some unexpected changes
-        g_Mons_ForEach(sendMonsPosUnexpected);
+        g_Mons_ForEach(@sendMonsPosUnexpected);
       end;
 
       // send unexpected platform changes
@@ -3458,7 +3458,7 @@ begin
           end;
     end;
     // Рисуем монстров
-    g_Mons_ForEach(monDraw);
+    g_Mons_ForEach(@monDraw);
   end;
 end;
 
@@ -5472,8 +5472,9 @@ begin
     Exit;
 
   // TODO: Replace with simple minimum lookup.
+  // See https://gitlab.com/freepascal.org/fpc/source/-/issues/40665 for the proposal.
   specialize TArrayHelper<ShortString>.Sort(MapList,
-    specialize TComparer<ShortString>.Construct(@ShortCompareText));
+    specialize TComparer<ShortString>.Construct(@SSArraySortFunc));
   Result := MapList[Low(MapList)];
 
   // BD: why should we check for a map we just found?
@@ -5496,7 +5497,7 @@ begin
 
   Map := g_ExtractFileName(gMapInfo.Map);
   specialize TArrayHelper<ShortString>.Sort(MapList,
-    specialize TComparer<ShortString>.Construct(@ShortCompareText));
+    specialize TComparer<ShortString>.Construct(@SSArraySortFunc));
 
   MapIndex := -255;
   for I := Low(MapList) to High(MapList) do

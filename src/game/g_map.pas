@@ -1512,7 +1512,7 @@ procedure g_Map_ReAdd_DieTriggers();
 begin
   if g_Game_IsClient then Exit;
 
-  g_Mons_ForEach(monsDieTrig);
+  g_Mons_ForEach(@monsDieTrig);
 end;
 
 procedure mapCreateGrid ();
@@ -3433,7 +3433,7 @@ begin
 end;
 
 initialization
-  DynWarningCB := mapWarningCB;
+  DynWarningCB := @mapWarningCB;
 
 finalization
   profMapCollision.Free();

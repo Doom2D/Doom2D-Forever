@@ -16,8 +16,6 @@
 {$INCLUDE ../shared/a_modes.inc}
 {$IFNDEF ANDROID} program {$ELSE} library {$ENDIF} Doom2DF;
 
-{$MODESWITCH CLASSICPROCVARS-}  // TODO: Make this default.
-
 // hope this has no negative impact in case of 'library' above
 // https://stackoverflow.com/questions/11716350/effects-of-switching-between-subsystemconsole-to-subsystemwindows-in-a-dll
 // https://docwiki.embarcadero.com/RADStudio/en/Application_type_(Delphi) - against, but anyway

@@ -631,7 +631,7 @@ begin
   g_holmes_nonfunctional := not flexloaded;
   if not g_holmes_nonfunctional then
   begin
-    if @oglInitCB <> nil then oglInitCB();
+    if oglInitCB <> nil then oglInitCB();
     uiInitialize();
     uiContext.font := 'win14';
   end;
@@ -648,7 +648,7 @@ begin
   if not g_holmes_nonfunctional then
   begin
     uiDeinitialize();
-    if @oglDeinitCB <> nil then oglDeinitCB();
+    if oglDeinitCB <> nil then oglDeinitCB();
   end;
 {$ENDIF}
 

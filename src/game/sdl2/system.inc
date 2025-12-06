@@ -152,7 +152,7 @@ var
   flags: UInt32;
   x, y: cint;
 begin
-  // NB: On window close, do this for FlexUI: if @oglDeinitCB <> nil then oglDeinitCB();
+  // NB: On window close, do this for FlexUI: if oglDeinitCB <> nil then oglDeinitCB();
   Result := False;
   e_LogWritefln('InitWindow %s %s %s %s', [w, h, bpp, fullScreen]);
 

@@ -158,7 +158,7 @@ var
 begin
   if (Length(aname) = 0) or not assigned(cb) then exit;
   cmd := cmdNewInternal(aname, ahelp, asection);
-  cmd.cb := Pointer(@cb);
+  cmd.cb := cb;
   cmd.ctype := cmd.TType.TArgLess;
 end;
 
@@ -169,7 +169,7 @@ var
 begin
   if (Length(aname) = 0) or not assigned(cb) then exit;
   cmd := cmdNewInternal(aname, ahelp, asection);
-  cmd.cb := Pointer(@cb);
+  cmd.cb := cb;
   cmd.ctype := cmd.TType.TToggle;
 end;
 
@@ -180,7 +180,7 @@ var
 begin
   if (Length(aname) = 0) or not assigned(cb) then exit;
   cmd := cmdNewInternal(aname, ahelp, asection);
-  cmd.cb := Pointer(@cb);
+  cmd.cb := cb;
   cmd.ctype := cmd.TType.TString;
 end;
 

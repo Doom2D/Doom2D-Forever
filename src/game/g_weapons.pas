@@ -392,8 +392,8 @@ begin
           end;
         end;
 
-        //g_Mons_ForEach(monsWaterCheck);
-        g_Mons_ForEachAliveAt(pan.X, pan.Y, pan.Width, pan.Height, monsWaterCheck);
+        //g_Mons_ForEach(@monsWaterCheck);
+        g_Mons_ForEachAliveAt(pan.X, pan.Y, pan.Width, pan.Height, @monsWaterCheck);
       end;
 
       for f := 0 to plaCount-1 do
@@ -555,8 +555,7 @@ begin
               gPlayers[i].BFGHit();
           end;
 
-  //FIXME
-  g_Mons_ForEachAlive(monsCheck);
+  g_Mons_ForEachAlive(@monsCheck);  // FIXME
 end;
 
 function g_Weapon_CreateProj(I: SizeInt; ShotType: Byte; Spawner, TargetUID: Word; X, Y, XV, YV: Integer): SizeInt;
@@ -853,9 +852,9 @@ function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte; HitCorps
 
   function MonsterHit(): Boolean;
   begin
-    //Result := g_Mons_ForEach(monsCheckHit);
-    //FIXME: accelerate this!
-    Result := g_Mons_ForEachAliveAt(obj.X+obj.Rect.X, obj.Y+obj.Rect.Y, obj.Rect.Width, obj.Rect.Height, monsCheckHit);
+    //Result := g_Mons_ForEach(@monsCheckHit);
+    // FIXME: accelerate this!
+    Result := g_Mons_ForEachAliveAt(obj.X+obj.Rect.X, obj.Y+obj.Rect.Y, obj.Rect.Width, obj.Rect.Height, @monsCheckHit);
   end;
 
 var
@@ -994,8 +993,8 @@ begin
           end;
         end;
 
-  //g_Mons_ForEach(monsExCheck);
-  g_Mons_ForEachAt(X-(rad+32), Y-(rad+32), (rad+32)*2, (rad+32)*2, monsExCheck);
+  //g_Mons_ForEach(@monsExCheck);
+  g_Mons_ForEachAt(X-(rad+32), Y-(rad+32), (rad+32)*2, (rad+32)*2, @monsExCheck);
 
   h := High(gCorpses);
 
@@ -1237,7 +1236,7 @@ function GunHit (X, Y: Integer; vx, vy: Integer; dmg: Integer; SpawnerUID: Word;
 begin
   result := 0;
        if GunHitPlayer(X, Y, vx, vy, dmg, SpawnerUID, AllowPush) then result := 1
-  else if g_Mons_ForEachAliveAt(X, Y, 1, 1, monsCheck) then result := 2;
+  else if g_Mons_ForEachAliveAt(X, Y, 1, 1, @monsCheck) then result := 2;
 end;
 
 

@@ -892,7 +892,7 @@ begin
 
         // collect monsters
         monCheckListUsed := 0;
-        g_Mons_ForEachAt(cx0, cy0, cw, ch, monCollect);
+        g_Mons_ForEachAt(cx0, cy0, cw, ch, @monCollect);
 
         // process collected monsters
         if (monCheckListUsed > 0) then

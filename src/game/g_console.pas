@@ -370,7 +370,7 @@ begin
   cp := @commands[f];
   cp.cmd := LowerCase(conname);
   cp.proc := nil;
-  cp.procEx := boolVarHandler;
+  cp.procEx := @boolVarHandler;
   cp.help := ahelp;
   cp.hidden := ahidden;
   cp.ptr := pvar;
@@ -391,7 +391,7 @@ begin
   cp := @commands[f];
   cp.cmd := LowerCase(conname);
   cp.proc := nil;
-  cp.procEx := intVarHandler;
+  cp.procEx := @intVarHandler;
   cp.help := ahelp;
   cp.hidden := ahidden;
   cp.ptr := pvar;
@@ -412,7 +412,7 @@ begin
   cp := @commands[f];
   cp.cmd := LowerCase(conname);
   cp.proc := nil;
-  cp.procEx := wordVarHandler;
+  cp.procEx := @wordVarHandler;
   cp.help := ahelp;
   cp.hidden := ahidden;
   cp.ptr := pvar;
@@ -433,7 +433,7 @@ begin
   cp := @commands[f];
   cp.cmd := LowerCase(conname);
   cp.proc := nil;
-  cp.procEx := dwordVarHandler;
+  cp.procEx := @dwordVarHandler;
   cp.help := ahelp;
   cp.hidden := ahidden;
   cp.ptr := pvar;
@@ -454,7 +454,7 @@ begin
   cp := @commands[f];
   cp.cmd := LowerCase(conname);
   cp.proc := nil;
-  cp.procEx := strVarHandler;
+  cp.procEx := @strVarHandler;
   cp.help := ahelp;
   cp.hidden := ahidden;
   cp.ptr := pvar;
@@ -530,7 +530,7 @@ begin
   cp := @commands[f];
   cp.cmd := LowerCase(conname);
   cp.proc := nil;
-  cp.procEx := singleVarHandler;
+  cp.procEx := @singleVarHandler;
   cp.help := ahelp;
   cp.hidden := ahidden;
   cp.ptr := pv;
@@ -1010,209 +1010,209 @@ begin
       Time := 0;
     end;
 
-  AddCommand('segfault', segfault, 'make segfault');
+  AddCommand('segfault', @segfault, 'make segfault');
 
-  AddCommand('quit', SystemCommands);
-  AddCommand('exit', SystemCommands);
-  AddCommand('r_reset', SystemCommands);
-  AddCommand('r_maxfps', SystemCommands);
-  AddCommand('g_language', SystemCommands);
+  AddCommand('quit', @SystemCommands);
+  AddCommand('exit', @SystemCommands);
+  AddCommand('r_reset', @SystemCommands);
+  AddCommand('r_maxfps', @SystemCommands);
+  AddCommand('g_language', @SystemCommands);
 
-  AddCommand('bind', BindCommands);
-  AddCommand('bindrep', BindCommands);
-  AddCommand('bindunrep', BindCommands);
-  AddCommand('bindlist', BindCommands);
-  AddCommand('unbind', BindCommands);
-  AddCommand('unbindall', BindCommands);
-  AddCommand('showkeyboard', BindCommands);
-  AddCommand('hidekeyboard', BindCommands);
-  AddCommand('togglemenu', BindCommands);
-  AddCommand('toggleconsole', BindCommands);
-  AddCommand('togglechat', BindCommands);
-  AddCommand('toggleteamchat', BindCommands);
+  AddCommand('bind', @BindCommands);
+  AddCommand('bindrep', @BindCommands);
+  AddCommand('bindunrep', @BindCommands);
+  AddCommand('bindlist', @BindCommands);
+  AddCommand('unbind', @BindCommands);
+  AddCommand('unbindall', @BindCommands);
+  AddCommand('showkeyboard', @BindCommands);
+  AddCommand('hidekeyboard', @BindCommands);
+  AddCommand('togglemenu', @BindCommands);
+  AddCommand('toggleconsole', @BindCommands);
+  AddCommand('togglechat', @BindCommands);
+  AddCommand('toggleteamchat', @BindCommands);
 
-  AddCommand('clear', ConsoleCommands, 'clear console');
-  AddCommand('clearhistory', ConsoleCommands);
-  AddCommand('showhistory', ConsoleCommands);
-  AddCommand('commands', ConsoleCommands);
-  AddCommand('time', ConsoleCommands);
-  AddCommand('date', ConsoleCommands);
-  AddCommand('echo', ConsoleCommands);
-  AddCommand('dump', ConsoleCommands);
-  AddCommand('exec', ConsoleCommands);
-  AddCommand('writeconfig', ConsoleCommands);
-  AddCommand('alias', ConsoleCommands);
-  AddCommand('call', ConsoleCommands);
-  AddCommand('ver', ConsoleCommands);
-  AddCommand('version', ConsoleCommands);
+  AddCommand('clear', @ConsoleCommands, 'clear console');
+  AddCommand('clearhistory', @ConsoleCommands);
+  AddCommand('showhistory', @ConsoleCommands);
+  AddCommand('commands', @ConsoleCommands);
+  AddCommand('time', @ConsoleCommands);
+  AddCommand('date', @ConsoleCommands);
+  AddCommand('echo', @ConsoleCommands);
+  AddCommand('dump', @ConsoleCommands);
+  AddCommand('exec', @ConsoleCommands);
+  AddCommand('writeconfig', @ConsoleCommands);
+  AddCommand('alias', @ConsoleCommands);
+  AddCommand('call', @ConsoleCommands);
+  AddCommand('ver', @ConsoleCommands);
+  AddCommand('version', @ConsoleCommands);
 
-  AddCommand('d_window', DebugCommands);
-  AddCommand('d_sounds', DebugCommands);
-  AddCommand('d_frames', DebugCommands);
-  AddCommand('d_winmsg', DebugCommands);
-  AddCommand('d_monoff', DebugCommands);
-  AddCommand('d_botoff', DebugCommands);
-  AddCommand('d_monster', DebugCommands);
-  AddCommand('d_health', DebugCommands);
-  AddCommand('d_player', DebugCommands);
-  AddCommand('d_joy', DebugCommands);
-  AddCommand('d_mem', DebugCommands);
+  AddCommand('d_window', @DebugCommands);
+  AddCommand('d_sounds', @DebugCommands);
+  AddCommand('d_frames', @DebugCommands);
+  AddCommand('d_winmsg', @DebugCommands);
+  AddCommand('d_monoff', @DebugCommands);
+  AddCommand('d_botoff', @DebugCommands);
+  AddCommand('d_monster', @DebugCommands);
+  AddCommand('d_health', @DebugCommands);
+  AddCommand('d_player', @DebugCommands);
+  AddCommand('d_joy', @DebugCommands);
+  AddCommand('d_mem', @DebugCommands);
 
-  AddCommand('p1_name', PlayerSettingsCVars);
-  AddCommand('p2_name', PlayerSettingsCVars);
-  AddCommand('p1_color', PlayerSettingsCVars);
-  AddCommand('p2_color', PlayerSettingsCVars);
-  AddCommand('p1_model', PlayerSettingsCVars);
-  AddCommand('p2_model', PlayerSettingsCVars);
-  AddCommand('p1_team', PlayerSettingsCVars);
-  AddCommand('p2_team', PlayerSettingsCVars);
-  AddCommand('p1_autoswitch', PlayerSettingsCVars);
-  AddCommand('p2_autoswitch', PlayerSettingsCVars);
-  AddCommand('p1_switch_empty', PlayerSettingsCVars);
-  AddCommand('p2_switch_empty', PlayerSettingsCVars);
-  AddCommand('p1_skip_knuckles', PlayerSettingsCVars);
-  AddCommand('p2_skip_knuckles', PlayerSettingsCVars);
-  AddCommand('p1_priority_knuckles', PlayerSettingsCVars);
-  AddCommand('p2_priority_knuckles', PlayerSettingsCVars);
-  AddCommand('p1_priority_saw', PlayerSettingsCVars);
-  AddCommand('p2_priority_saw', PlayerSettingsCVars);
-  AddCommand('p1_priority_pistol', PlayerSettingsCVars);
-  AddCommand('p2_priority_pistol', PlayerSettingsCVars);
-  AddCommand('p1_priority_shotgun1', PlayerSettingsCVars);
-  AddCommand('p2_priority_shotgun1', PlayerSettingsCVars);
-  AddCommand('p1_priority_shotgun2', PlayerSettingsCVars);
-  AddCommand('p2_priority_shotgun2', PlayerSettingsCVars);
-  AddCommand('p1_priority_chaingun', PlayerSettingsCVars);
-  AddCommand('p2_priority_chaingun', PlayerSettingsCVars);
-  AddCommand('p1_priority_rocketlauncher', PlayerSettingsCVars);
-  AddCommand('p2_priority_rocketlauncher', PlayerSettingsCVars);
-  AddCommand('p1_priority_plasma', PlayerSettingsCVars);
-  AddCommand('p2_priority_plasma', PlayerSettingsCVars);
-  AddCommand('p1_priority_bfg', PlayerSettingsCVars);
-  AddCommand('p2_priority_bfg', PlayerSettingsCVars);
-  AddCommand('p1_priority_superchaingun', PlayerSettingsCVars);
-  AddCommand('p2_priority_superchaingun', PlayerSettingsCVars);
-  AddCommand('p1_priority_flamethrower', PlayerSettingsCVars);
-  AddCommand('p2_priority_flamethrower', PlayerSettingsCVars);
-  AddCommand('p1_priority_berserk', PlayerSettingsCVars);
-  AddCommand('p2_priority_berserk', PlayerSettingsCVars);
+  AddCommand('p1_name', @PlayerSettingsCVars);
+  AddCommand('p2_name', @PlayerSettingsCVars);
+  AddCommand('p1_color', @PlayerSettingsCVars);
+  AddCommand('p2_color', @PlayerSettingsCVars);
+  AddCommand('p1_model', @PlayerSettingsCVars);
+  AddCommand('p2_model', @PlayerSettingsCVars);
+  AddCommand('p1_team', @PlayerSettingsCVars);
+  AddCommand('p2_team', @PlayerSettingsCVars);
+  AddCommand('p1_autoswitch', @PlayerSettingsCVars);
+  AddCommand('p2_autoswitch', @PlayerSettingsCVars);
+  AddCommand('p1_switch_empty', @PlayerSettingsCVars);
+  AddCommand('p2_switch_empty', @PlayerSettingsCVars);
+  AddCommand('p1_skip_knuckles', @PlayerSettingsCVars);
+  AddCommand('p2_skip_knuckles', @PlayerSettingsCVars);
+  AddCommand('p1_priority_knuckles', @PlayerSettingsCVars);
+  AddCommand('p2_priority_knuckles', @PlayerSettingsCVars);
+  AddCommand('p1_priority_saw', @PlayerSettingsCVars);
+  AddCommand('p2_priority_saw', @PlayerSettingsCVars);
+  AddCommand('p1_priority_pistol', @PlayerSettingsCVars);
+  AddCommand('p2_priority_pistol', @PlayerSettingsCVars);
+  AddCommand('p1_priority_shotgun1', @PlayerSettingsCVars);
+  AddCommand('p2_priority_shotgun1', @PlayerSettingsCVars);
+  AddCommand('p1_priority_shotgun2', @PlayerSettingsCVars);
+  AddCommand('p2_priority_shotgun2', @PlayerSettingsCVars);
+  AddCommand('p1_priority_chaingun', @PlayerSettingsCVars);
+  AddCommand('p2_priority_chaingun', @PlayerSettingsCVars);
+  AddCommand('p1_priority_rocketlauncher', @PlayerSettingsCVars);
+  AddCommand('p2_priority_rocketlauncher', @PlayerSettingsCVars);
+  AddCommand('p1_priority_plasma', @PlayerSettingsCVars);
+  AddCommand('p2_priority_plasma', @PlayerSettingsCVars);
+  AddCommand('p1_priority_bfg', @PlayerSettingsCVars);
+  AddCommand('p2_priority_bfg', @PlayerSettingsCVars);
+  AddCommand('p1_priority_superchaingun', @PlayerSettingsCVars);
+  AddCommand('p2_priority_superchaingun', @PlayerSettingsCVars);
+  AddCommand('p1_priority_flamethrower', @PlayerSettingsCVars);
+  AddCommand('p2_priority_flamethrower', @PlayerSettingsCVars);
+  AddCommand('p1_priority_berserk', @PlayerSettingsCVars);
+  AddCommand('p2_priority_berserk', @PlayerSettingsCVars);
 
-  AddCommand('g_max_particles', GameCVars);
-  AddCommand('g_max_shells', GameCVars);
-  AddCommand('g_max_gibs', GameCVars);
-  AddCommand('g_max_corpses', GameCVars);
-  AddCommand('g_force_model', GameCVars);
-  AddCommand('g_force_model_name', GameCVars);
-  AddCommand('r_common_team_color', GameCVars);
-  AddCommand('g_gamemode', GameCVars);
-  AddCommand('g_friendlyfire', GameCVars);
-  AddCommand('g_team_hit_trace', GameCVars);
-  AddCommand('g_team_hit_projectile', GameCVars);
-  AddCommand('g_team_absorb_attacks', GameCVars);
-  AddCommand('g_weaponstay', GameCVars);
-  AddCommand('g_allow_exit', GameCVars);
-  AddCommand('g_dm_keys', GameCVars);
-  AddCommand('g_allow_monsters', GameCVars);
-  AddCommand('g_allow_dropflag', GameCVars);
-  AddCommand('g_throw_flag', GameCVars);
-  AddCommand('g_bot_vsmonsters', GameCVars);
-  AddCommand('g_bot_vsplayers', GameCVars);
-  AddCommand('g_max_bots', GameCVars); // intentionally not whitelisted
-  AddCommand('g_scorelimit', GameCVars);
-  AddCommand('g_timelimit', GameCVars);
-  AddCommand('g_maxlives', GameCVars);
-  AddCommand('g_warmup_time', GameCVars);
-  AddCommand('g_spawn_invul', GameCVars);
-  AddCommand('g_item_respawn_time', GameCVars);
-  AddCommand('g_item_time_random', GameCVars);
-  AddCommand('g_items_all_respawn_random', GameCVars);
-  AddCommand('g_items_help_respawn_random', GameCVars);
-  AddCommand('g_items_ammo_respawn_random', GameCVars);
-  AddCommand('g_items_weapon_respawn_random', GameCVars);
-  AddCommand('g_powerup_randomize_respawn', GameCVars);
-  AddCommand('g_powerup_respawn_time', GameCVars);
-  AddCommand('g_powerup_time_random', GameCVars);
-  AddCommand('sv_intertime', GameCVars);
+  AddCommand('g_max_particles', @GameCVars);
+  AddCommand('g_max_shells', @GameCVars);
+  AddCommand('g_max_gibs', @GameCVars);
+  AddCommand('g_max_corpses', @GameCVars);
+  AddCommand('g_force_model', @GameCVars);
+  AddCommand('g_force_model_name', @GameCVars);
+  AddCommand('r_common_team_color', @GameCVars);
+  AddCommand('g_gamemode', @GameCVars);
+  AddCommand('g_friendlyfire', @GameCVars);
+  AddCommand('g_team_hit_trace', @GameCVars);
+  AddCommand('g_team_hit_projectile', @GameCVars);
+  AddCommand('g_team_absorb_attacks', @GameCVars);
+  AddCommand('g_weaponstay', @GameCVars);
+  AddCommand('g_allow_exit', @GameCVars);
+  AddCommand('g_dm_keys', @GameCVars);
+  AddCommand('g_allow_monsters', @GameCVars);
+  AddCommand('g_allow_dropflag', @GameCVars);
+  AddCommand('g_throw_flag', @GameCVars);
+  AddCommand('g_bot_vsmonsters', @GameCVars);
+  AddCommand('g_bot_vsplayers', @GameCVars);
+  AddCommand('g_max_bots', @GameCVars);  // intentionally not whitelisted
+  AddCommand('g_scorelimit', @GameCVars);
+  AddCommand('g_timelimit', @GameCVars);
+  AddCommand('g_maxlives', @GameCVars);
+  AddCommand('g_warmup_time', @GameCVars);
+  AddCommand('g_spawn_invul', @GameCVars);
+  AddCommand('g_item_respawn_time', @GameCVars);
+  AddCommand('g_item_time_random', @GameCVars);
+  AddCommand('g_items_all_respawn_random', @GameCVars);
+  AddCommand('g_items_help_respawn_random', @GameCVars);
+  AddCommand('g_items_ammo_respawn_random', @GameCVars);
+  AddCommand('g_items_weapon_respawn_random', @GameCVars);
+  AddCommand('g_powerup_randomize_respawn', @GameCVars);
+  AddCommand('g_powerup_respawn_time', @GameCVars);
+  AddCommand('g_powerup_time_random', @GameCVars);
+  AddCommand('sv_intertime', @GameCVars);
 
-  AddCommand('sv_name', NetServerCVars);
-  AddCommand('sv_passwd', NetServerCVars);
-  AddCommand('sv_maxplrs', NetServerCVars);
-  AddCommand('sv_public', NetServerCVars);
-  AddCommand('sv_port', NetServerCVars);
+  AddCommand('sv_name', @NetServerCVars);
+  AddCommand('sv_passwd', @NetServerCVars);
+  AddCommand('sv_maxplrs', @NetServerCVars);
+  AddCommand('sv_public', @NetServerCVars);
+  AddCommand('sv_port', @NetServerCVars);
 
-  AddCommand('pause', GameCommands);
-  AddCommand('endgame', GameCommands);
-  AddCommand('restart', GameCommands);
-  AddCommand('addbot', GameCommands);
-  AddCommand('bot_add', GameCommands);
-  AddCommand('bot_addlist', GameCommands);
-  AddCommand('bot_addred', GameCommands);
-  AddCommand('bot_addblue', GameCommands);
-  AddCommand('bot_removeall', GameCommands);
-  AddCommand('chat', GameCommands);
-  AddCommand('teamchat', GameCommands);
-  AddCommand('announce', GameCommands);
-  AddCommand('an', GameCommands);
-  AddCommand('game', GameCommands);
-  AddCommand('host', GameCommands);
-  AddCommand('map', GameCommands);
-  AddCommand('nextmap', GameCommands);
-  AddCommand('endmap', GameCommands);
-  AddCommand('goodbye', GameCommands);
-  AddCommand('suicide', GameCommands);
-  AddCommand('spectate', GameCommands);
-  AddCommand('ready', GameCommands);
-  AddCommand('kick', GameCommands);
-  AddCommand('kick_id', GameCommands);
-  AddCommand('kick_pid', GameCommands);
-  AddCommand('ban', GameCommands);
-  AddCommand('ban_id', GameCommands);
-  AddCommand('ban_pid', GameCommands);
-  AddCommand('permban', GameCommands);
-  AddCommand('permban_id', GameCommands);
-  AddCommand('permban_pid', GameCommands);
-  AddCommand('permban_ip', GameCommands);
-  AddCommand('unban', GameCommands);
-  AddCommand('connect', GameCommands);
-  AddCommand('disconnect', GameCommands);
-  AddCommand('reconnect', GameCommands);
-  AddCommand('say', GameCommands);
-  AddCommand('tell', GameCommands);
-  AddCommand('centerprint', GameCommands);
-  AddCommand('overtime', GameCommands);
-  AddCommand('rcon_password', GameCommands);
-  AddCommand('rcon', GameCommands);
-  AddCommand('callvote', GameCommands);
-  AddCommand('vote', GameCommands);
-  AddCommand('clientlist', GameCommands);
-  AddCommand('event', GameCommands);
-  AddCommand('screenshot', GameCommands);
-  AddCommand('weapnext', GameCommands);
-  AddCommand('weapprev', GameCommands);
-  AddCommand('weapon', GameCommands);
-  AddCommand('dropflag', GameCommands);
-  AddCommand('p1_weapnext', GameCommands);
-  AddCommand('p1_weapprev', GameCommands);
-  AddCommand('p1_weapon', GameCommands);
-  AddCommand('p1_weapbest', GameCommands);
-  AddCommand('p1_dropflag', GameCommands);
-  AddCommand('p2_weapnext', GameCommands);
-  AddCommand('p2_weapprev', GameCommands);
-  AddCommand('p2_weapon', GameCommands);
-  AddCommand('p2_weapbest', GameCommands);
-  AddCommand('p2_dropflag', GameCommands);
+  AddCommand('pause', @GameCommands);
+  AddCommand('endgame', @GameCommands);
+  AddCommand('restart', @GameCommands);
+  AddCommand('addbot', @GameCommands);
+  AddCommand('bot_add', @GameCommands);
+  AddCommand('bot_addlist', @GameCommands);
+  AddCommand('bot_addred', @GameCommands);
+  AddCommand('bot_addblue', @GameCommands);
+  AddCommand('bot_removeall', @GameCommands);
+  AddCommand('chat', @GameCommands);
+  AddCommand('teamchat', @GameCommands);
+  AddCommand('announce', @GameCommands);
+  AddCommand('an', @GameCommands);
+  AddCommand('game', @GameCommands);
+  AddCommand('host', @GameCommands);
+  AddCommand('map', @GameCommands);
+  AddCommand('nextmap', @GameCommands);
+  AddCommand('endmap', @GameCommands);
+  AddCommand('goodbye', @GameCommands);
+  AddCommand('suicide', @GameCommands);
+  AddCommand('spectate', @GameCommands);
+  AddCommand('ready', @GameCommands);
+  AddCommand('kick', @GameCommands);
+  AddCommand('kick_id', @GameCommands);
+  AddCommand('kick_pid', @GameCommands);
+  AddCommand('ban', @GameCommands);
+  AddCommand('ban_id', @GameCommands);
+  AddCommand('ban_pid', @GameCommands);
+  AddCommand('permban', @GameCommands);
+  AddCommand('permban_id', @GameCommands);
+  AddCommand('permban_pid', @GameCommands);
+  AddCommand('permban_ip', @GameCommands);
+  AddCommand('unban', @GameCommands);
+  AddCommand('connect', @GameCommands);
+  AddCommand('disconnect', @GameCommands);
+  AddCommand('reconnect', @GameCommands);
+  AddCommand('say', @GameCommands);
+  AddCommand('tell', @GameCommands);
+  AddCommand('centerprint', @GameCommands);
+  AddCommand('overtime', @GameCommands);
+  AddCommand('rcon_password', @GameCommands);
+  AddCommand('rcon', @GameCommands);
+  AddCommand('callvote', @GameCommands);
+  AddCommand('vote', @GameCommands);
+  AddCommand('clientlist', @GameCommands);
+  AddCommand('event', @GameCommands);
+  AddCommand('screenshot', @GameCommands);
+  AddCommand('weapnext', @GameCommands);
+  AddCommand('weapprev', @GameCommands);
+  AddCommand('weapon', @GameCommands);
+  AddCommand('dropflag', @GameCommands);
+  AddCommand('p1_weapnext', @GameCommands);
+  AddCommand('p1_weapprev', @GameCommands);
+  AddCommand('p1_weapon', @GameCommands);
+  AddCommand('p1_weapbest', @GameCommands);
+  AddCommand('p1_dropflag', @GameCommands);
+  AddCommand('p2_weapnext', @GameCommands);
+  AddCommand('p2_weapprev', @GameCommands);
+  AddCommand('p2_weapon', @GameCommands);
+  AddCommand('p2_weapbest', @GameCommands);
+  AddCommand('p2_dropflag', @GameCommands);
 
-  AddCommand('god', GameCheats);
-  AddCommand('notarget', GameCheats);
-  AddCommand('give', GameCheats); // "exit" too ;-)
-  AddCommand('open', GameCheats);
-  AddCommand('fly', GameCheats);
-  AddCommand('noclip', GameCheats);
-  AddCommand('speedy', GameCheats);
-  AddCommand('jumpy', GameCheats);
-  AddCommand('noreload', GameCheats);
-  AddCommand('aimline', GameCheats);
-  AddCommand('automap', GameCheats);
+  AddCommand('god', @GameCheats);
+  AddCommand('notarget', @GameCheats);
+  AddCommand('give', @GameCheats);  // "exit" too ;-)
+  AddCommand('open', @GameCheats);
+  AddCommand('fly', @GameCheats);
+  AddCommand('noclip', @GameCheats);
+  AddCommand('speedy', @GameCheats);
+  AddCommand('jumpy', @GameCheats);
+  AddCommand('noreload', @GameCheats);
+  AddCommand('aimline', @GameCheats);
+  AddCommand('automap', @GameCheats);
 
   AddAction('jump', ACTION_JUMP);
   AddAction('moveleft', ACTION_MOVELEFT);
@@ -1854,7 +1854,7 @@ begin
   else
   begin
     consolewriterLastWasEOL := false;
-    formatstrf(s, args, consolewriter);
+    formatstrf(s, args, @consolewriter);
     if not consolewriterLastWasEOL then cbufPut(#10);
   end;
 end;
@@ -2344,40 +2344,39 @@ begin
   begin
     if not commands[i].cheat then
     begin
-      if @commands[i].procEx = @boolVarHandler then
+      if commands[i].procEx = @boolVarHandler then
       begin
         if PBoolean(commands[i].ptr)^ then j := 1 else j := 0;
         WriteLn(f, commands[i].cmd, ' ', j)
       end
-      else if @commands[i].procEx = @intVarHandler then
+      else if commands[i].procEx = @intVarHandler then
       begin
         WriteLn(f, commands[i].cmd, ' ', PInteger(commands[i].ptr)^)
       end
-      else if @commands[i].procEx = @wordVarHandler then
+      else if commands[i].procEx = @wordVarHandler then
       begin
         WriteLn(f, commands[i].cmd, ' ', PWord(commands[i].ptr)^)
       end
-      else if @commands[i].procEx = @dwordVarHandler then
+      else if commands[i].procEx = @dwordVarHandler then
       begin
         WriteLn(f, commands[i].cmd, ' ', PCardinal(commands[i].ptr)^)
       end
-      else if @commands[i].procEx = @singleVarHandler then
+      else if commands[i].procEx = @singleVarHandler then
       begin
         WriteLn(f, commands[i].cmd, ' ', PVarSingle(commands[i].ptr).val^:0:6)
       end
-      else if @commands[i].procEx = @strVarHandler then
+      else if commands[i].procEx = @strVarHandler then
       begin
-        if Length(PAnsiString(commands[i].ptr)^) = 0 then
-          WriteLn(f, commands[i].cmd, ' ""')
-        else
-          WriteLn(f, commands[i].cmd, ' ', QuoteStr(PAnsiString(commands[i].ptr)^))
+        if Length(PAnsiString(commands[i].ptr)^) = 0
+          then WriteLn(f, commands[i].cmd, ' ""')
+          else WriteLn(f, commands[i].cmd, ' ', QuoteStr(PAnsiString(commands[i].ptr)^))
       end
     end
   end;
 
   WriteLn(f, 'r_maxfps ', gMaxFPS);
   WriteLn(f, 'r_reset');
-  CloseFile(f)
+  CloseFile(f);
 end;
 
 procedure g_Console_WriteGameConfig();
@@ -2430,7 +2429,7 @@ var
   C: TCommand;
 begin
   for C in commands do
-    if @C.procEx = @singleVarHandler then
+    if C.procEx = @singleVarHandler then
       FreeMem(C.ptr);
 end;
 

@@ -379,7 +379,7 @@ begin
   winLayers.y0 := 10;
   winLayers.flHoriz := false;
   winLayers.escClose := true;
-  winLayers.closeCB := winLayersClosed;
+  winLayers.closeCB := @winLayersClosed;
 
   box := TUIVBox.Create();
     addCheckBox(box, '~background', @g_rlayer_back);
@@ -406,7 +406,7 @@ begin
   winOutlines.y0 := 30;
   winOutlines.flHoriz := false;
   winOutlines.escClose := true;
-  winOutlines.closeCB := winOutlinesClosed;
+  winOutlines.closeCB := @winOutlinesClosed;
 
   box := TUIVBox.Create();
   box.hasFrame := true;
@@ -428,7 +428,7 @@ begin
     addCheckBox(box, 'con~tours', @g_ol_nice, 'cbcontour');
   winOutlines.appendChild(box);
 
-  winOutlines.setActionCBFor('cbfill', actionFillWalls);
+  winOutlines.setActionCBFor('cbfill', @actionFillWalls);
 
   uiLayoutCtl(winOutlines);
 end;
@@ -460,12 +460,12 @@ begin
   box.caption := 'windows';
   box.captionAlign := 0;
   box.flAlign := 0;
-    addButton(box, '~layers', toggleLayersWindowCB);
+    addButton(box, '~layers', @toggleLayersWindowCB);
     span := TUISpan.Create();
       span.flExpand := true;
       span.flDefaultSize := TLaySize.Create(4, 1);
       box.appendChild(span);
-    addButton(box, '~outline', toggleOutlineWindowCB);
+    addButton(box, '~outline', @toggleOutlineWindowCB);
   winOptions.appendChild(box);
 
   uiLayoutCtl(winOptions);
@@ -1294,7 +1294,7 @@ begin
       end;
     end;
 
-    if showAllMonsCells and showGrid then g_Mons_ForEach(highlightAllMonsterCells);
+    if showAllMonsCells and showGrid then g_Mons_ForEach(@highlightAllMonsterCells);
     if showTriggers then drawTriggers();
     if showGrid then drawSelectedPlatformCells();
 
@@ -1663,36 +1663,36 @@ end;
 procedure holmesInitCommands ();
 begin
   if (cmdlist <> nil) then exit;
-  cmdAdd('win_layers', toggleLayersWindow, 'toggle layers window', 'window control');
-  cmdAdd('win_outline', toggleOutlineWindow, 'toggle outline window', 'window control');
-  cmdAdd('win_help', toggleHelpWindow, 'toggle help window', 'window control');
-  cmdAdd('win_options', toggleOptionsWindow, 'toggle options window', 'window control');
+  cmdAdd('win_layers', @toggleLayersWindow, 'toggle layers window', 'window control');
+  cmdAdd('win_outline', @toggleOutlineWindow, 'toggle outline window', 'window control');
+  cmdAdd('win_help', @toggleHelpWindow, 'toggle help window', 'window control');
+  cmdAdd('win_options', @toggleOptionsWindow, 'toggle options window', 'window control');
 
-  cmdAdd('mon_think_step', bcOneMonsterThinkStep, 'one monster think step', 'monster control');
-  cmdAdd('mon_info', bcToggleMonsterInfo, 'toggle monster info', 'monster control');
-  cmdAdd('mon_los_plr', bcToggleMonsterLOSPlr, 'toggle monster LOS to player', 'monster control');
-  cmdAdd('mon_cells', bcToggleMonsterCells, 'toggle "show all cells occupied by monsters" (SLOW!)', 'monster control');
-  cmdAdd('mon_wakeup', bcMonsterWakeup, 'wake up selected monster', 'monster control');
+  cmdAdd('mon_think_step', @bcOneMonsterThinkStep, 'one monster think step', 'monster control');
+  cmdAdd('mon_info', @bcToggleMonsterInfo, 'toggle monster info', 'monster control');
+  cmdAdd('mon_los_plr', @bcToggleMonsterLOSPlr, 'toggle monster LOS to player', 'monster control');
+  cmdAdd('mon_cells', @bcToggleMonsterCells, 'toggle "show all cells occupied by monsters" (SLOW!)', 'monster control');
+  cmdAdd('mon_wakeup', @bcMonsterWakeup, 'wake up selected monster', 'monster control');
 
-  cmdAdd('mon_spawn', bcMonsterSpawn, 'spawn monster', 'monster control');
+  cmdAdd('mon_spawn', @bcMonsterSpawn, 'spawn monster', 'monster control');
 
-  cmdAdd('mplat_step', bcOneMPlatThinkStep, 'one mplat think step', 'mplat control');
-  cmdAdd('mplat_toggle', bcMPlatToggle, 'activate/deactivate moving platforms', 'mplat control');
+  cmdAdd('mplat_step', @bcOneMPlatThinkStep, 'one mplat think step', 'mplat control');
+  cmdAdd('mplat_toggle', @bcMPlatToggle, 'activate/deactivate moving platforms', 'mplat control');
 
-  cmdAdd('plr_teleport', bcPlayerTeleport, 'teleport player', 'player control');
+  cmdAdd('plr_teleport', @bcPlayerTeleport, 'teleport player', 'player control');
 
-  cmdAdd('dbg_curpos', bcToggleCurPos, 'toggle "show cursor position on the map"', 'various');
-  cmdAdd('dbg_grid', bcToggleGrid, 'toggle grid', 'various');
-  cmdAdd('dbg_triggers', bcToggleDrawTriggers, 'show/hide triggers (SLOW!)', 'various');
+  cmdAdd('dbg_curpos', @bcToggleCurPos, 'toggle "show cursor position on the map"', 'various');
+  cmdAdd('dbg_grid', @bcToggleGrid, 'toggle grid', 'various');
+  cmdAdd('dbg_triggers', @bcToggleDrawTriggers, 'show/hide triggers (SLOW!)', 'various');
 
-  cmdAdd('atcur_select_monster', cbAtcurSelectMonster, 'select monster to operate', 'monster control');
-  cmdAdd('atcur_dump_monsters', cbAtcurDumpMonsters, 'dump monsters in cell', 'monster control');
-  cmdAdd('atcur_dump_walls', cbAtcurDumpWalls, 'dump walls in cell', 'wall control');
-  cmdAdd('atcur_disable_walls', cbAtcurToggleWalls, 'disable walls', 'wall control');
+  cmdAdd('atcur_select_monster', @cbAtcurSelectMonster, 'select monster to operate', 'monster control');
+  cmdAdd('atcur_dump_monsters', @cbAtcurDumpMonsters, 'dump monsters in cell', 'monster control');
+  cmdAdd('atcur_dump_walls', @cbAtcurDumpWalls, 'dump walls in cell', 'wall control');
+  cmdAdd('atcur_disable_walls', @cbAtcurToggleWalls, 'disable walls', 'wall control');
 
-  cmdAdd('dbg_tracebox', dbgToggleTraceBox, 'test traceBox()', 'player control');
+  cmdAdd('dbg_tracebox', @dbgToggleTraceBox, 'test traceBox()', 'player control');
 
-  cmdAdd('hlm_pause', dbgToggleHolmesPause, '"Holmes" pause mode', 'game control');
+  cmdAdd('hlm_pause', @dbgToggleHolmesPause, '"Holmes" pause mode', 'game control');
 end;
 
 
@@ -1778,7 +1778,7 @@ begin
   msB := msB;
   vpSet := vpSet;
 
-  fuiEventCB := g_Holmes_OnEvent;
+  fuiEventCB := @g_Holmes_OnEvent;
   //uiContext.font := 'win14';
 
   conRegVar('hlm_ui_scale', @fuiRenderScale, 0.01, 5.0, 'Holmes UI scale', '', false);

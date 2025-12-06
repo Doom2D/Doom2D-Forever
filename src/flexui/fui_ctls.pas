@@ -1850,7 +1850,7 @@ begin
     end
     else
     begin
-      result := forEachControl(checkFocus);
+      result := forEachControl(@checkFocus);
       if (result = nil) and (wrap) then result := findFirstFocus();
     end;
   end;
@@ -1884,7 +1884,7 @@ begin
     end
     else
     begin
-      forEachControl(checkFocus);
+      forEachControl(@checkFocus);
       if (lastCtl = nil) and (wrap) then lastCtl := findLastFocus();
       result := lastCtl;
       //if (lastCtl <> nil) then writeln('ctl<', lastCtl.className, '>: {', lastCtl.id, '}');
@@ -3618,7 +3618,7 @@ procedure TUIRadioBox.setChecked (v: Boolean);
 
 begin
   mBoolVar^ := v;
-  if v then topLevel.forEachControl(resetGroup);
+  if v then topLevel.forEachControl(@resetGroup);
 end;
 
 
@@ -3657,6 +3657,6 @@ initialization
 
   oldFocus := winFocusCB;
   oldBlur := winBlurCB;
-  winFocusCB := onWinFocus;
-  winBlurCB := onWinBlur;
+  winFocusCB := @onWinFocus;
+  winBlurCB := @onWinBlur;
 end.

@@ -156,6 +156,9 @@ function utf8Valid (const s: AnsiString): Boolean;
 
 function utf8to1251 (s: AnsiString): AnsiString;
 
+// complies to TComparisonFunc<ShortString> from Generics.Default
+function SSArraySortFunc(constref Left, Right: ShortString): Integer;
+
 // findFileCI takes case-insensitive path, traverses it, and rewrites it to
 // a case-sensetive one (using real on-disk names). return value means 'success'.
 // if some dir or file wasn't found, pathname is undefined (destroyed, but not
@@ -1270,6 +1273,22 @@ begin
   while pos <= length(s) do result := result+decodeUtf8Char(s, pos);
 end;
 
+
+// NB: Default overload of TArrayHelper<ShortString>.Sort(x) dispatches the specific comparator
+// interface through the following unwieldy chain, to invoke it according to a generic type T:
+//  1: TComparer<T>.Default()
+//  2,3: Generics.Default._LookupVtableInfo*()
+//  4: TComparerService.LookupComparer()
+//  5: TComparerService.SelectShortStringComparer()
+function SSArraySortFunc(constref Left, Right: ShortString): Integer;
+begin
+  // We can't use ShortCompareText() directly as its parameters are 'const', not 'constref', and it
+  // returns SizeInt instead of Integer. The standard TCompare.ShortString() from Generics.Defaults
+  // isn't suitable as well since it's case-sensitive just like the default fpc_shortstr_compare().
+  // https://gitlab.com/freepascal.org/fpc/source/-/issues/41535 - on constref in Generics package
+  // https://gitlab.com/freepascal.org/fpc/source/-/issues/10318 - about adding ShortCompareText()
+  Result := Integer(ShortCompareText(Left, Right));
+end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 // findFileCI eats case-insensitive path, traverses it and rewrites it to a

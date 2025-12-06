@@ -814,7 +814,7 @@ begin
               begin
                 //e_LogWritefln('g_Net_Wait_MapInfo: skip message from non-transfer channel', []);
                 freePacket := false;
-                g_Net_Client_HandlePacket(ev.packet, g_Net_ClientLightMsgHandler);
+                g_Net_Client_HandlePacket(ev.packet, @g_Net_ClientLightMsgHandler);
                 if (g_Res_received_map_start < 0) then begin result := -666; exit; end;
               end
               else
@@ -996,7 +996,7 @@ begin
               begin
                 //e_LogWriteln('g_Net_RequestResFileInfo: skip message from non-transfer channel');
                 freePacket := false;
-                g_Net_Client_HandlePacket(ev.packet, g_Net_ClientLightMsgHandler);
+                g_Net_Client_HandlePacket(ev.packet, @g_Net_ClientLightMsgHandler);
                 if (g_Res_received_map_start < 0) then begin result := -666; exit; end;
               end
               else
@@ -1181,7 +1181,7 @@ begin
               begin
                 //e_LogWritefln('g_Net_ReceiveResourceFile: skip message from non-transfer channel', []);
                 freePacket := false;
-                g_Net_Client_HandlePacket(ev.packet, g_Net_ClientLightMsgHandler);
+                g_Net_Client_HandlePacket(ev.packet, @g_Net_ClientLightMsgHandler);
                 if (g_Res_received_map_start < 0) then begin result := -666; exit; end;
               end
               else
@@ -1521,7 +1521,7 @@ begin
   end;
 
   if NetForwardPorts then
-    NetPortThread := BeginThread(ForwardThread);
+    NetPortThread := BeginThread(@ForwardThread);
 
   NetPongSock := enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
   if NetPongSock <> ENET_SOCKET_NULL then
@@ -1864,7 +1864,7 @@ begin
             TC^.MsgTime := gTime + NetPacketTimeout;
 
           if NetDump then g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
-          g_Net_Host_HandlePacket(TC, NetEvent.packet, g_Net_HostMsgHandler);
+          g_Net_Host_HandlePacket(TC, NetEvent.packet, @g_Net_HostMsgHandler);
         end;
       end;
 
@@ -1959,7 +1959,7 @@ begin
       ENET_EVENT_TYPE_RECEIVE:
       begin
         if NetDump then g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
-        g_Net_Client_HandlePacket(NetEvent.packet, g_Net_ClientMsgHandler);
+        g_Net_Client_HandlePacket(NetEvent.packet, @g_Net_ClientMsgHandler);
       end;
 
       ENET_EVENT_TYPE_DISCONNECT:

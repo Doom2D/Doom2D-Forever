@@ -239,7 +239,7 @@ begin
   end;
 
   Mix_AllocateChannels(N_CHANNELS);
-  Mix_ChannelFinished(chanFinished);
+  Mix_ChannelFinished(@chanFinished);
 
   for i := 0 to N_CHANNELS-1 do
   begin

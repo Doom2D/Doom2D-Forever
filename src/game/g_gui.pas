@@ -635,7 +635,7 @@ begin
       else
         g_ActiveWindow.SetActive(nil);
 
-      if @g_ActiveWindow.FOnShowEvent <> nil then
+      if g_ActiveWindow.FOnShowEvent <> nil then
         g_ActiveWindow.FOnShowEvent();
 
       Break;
@@ -646,7 +646,7 @@ procedure g_GUI_HideWindow(PlaySound: Boolean = True);
 begin
   if g_ActiveWindow <> nil then
   begin
-    if @g_ActiveWindow.OnClose <> nil then
+    if g_ActiveWindow.OnClose <> nil then
       g_ActiveWindow.OnClose();
     g_ActiveWindow := g_ActiveWindow.FPrevWindow;
 {$IFDEF ENABLE_SOUND}
@@ -845,8 +845,8 @@ end;
 procedure TGUIWindow.OnMessage(var Msg: TMessage);
 begin
   if FActiveControl <> nil then FActiveControl.OnMessage(Msg);
-  if @FOnKeyDown <> nil then FOnKeyDown(Msg.wParam);
-  if @FOnKeyDownEx <> nil then FOnKeyDownEx(self, Msg.wParam);
+  if FOnKeyDown <> nil then FOnKeyDown(Msg.wParam);
+  if FOnKeyDownEx <> nil then FOnKeyDownEx(self, Msg.wParam);
 
   if Msg.Msg = WM_KEYDOWN then
   begin
@@ -932,8 +932,8 @@ begin
   if (FSound <> '') and (not Silent) then g_Sound_PlayEx(FSound);
 {$ENDIF}
 
-  if @Proc <> nil then Proc();
-  if @ProcEx <> nil then ProcEx(self);
+  if Proc <> nil then Proc();
+  if ProcEx <> nil then ProcEx(self);
 
   if FShowWindow <> '' then g_GUI_ShowWindow(FShowWindow);
 end;
@@ -1324,7 +1324,7 @@ begin
         IK_RETURN, IK_KPRETURN, IK_SELECT,
         VK_FIRE, VK_OPEN,
         JOY0_ATTACK, JOY1_ATTACK, JOY2_ATTACK, JOY3_ATTACK:
-          if @FOnClickEvent <> nil then
+          if FOnClickEvent <> nil then
             FOnClickEvent();
       end;
   end;
@@ -2166,7 +2166,7 @@ begin
 {$IFDEF ENABLE_SOUND}
             g_Sound_PlayEx(SCROLL_SUBSOUND);
 {$ENDIF}
-            if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
+            if FOnChangeEvent <> nil then FOnChangeEvent(Self);
           end;
         IK_RIGHT, IK_KPRIGHT, VK_RIGHT,
         JOY0_RIGHT, JOY1_RIGHT, JOY2_RIGHT, JOY3_RIGHT,
@@ -2178,7 +2178,7 @@ begin
 {$IFDEF ENABLE_SOUND}
             g_Sound_PlayEx(SCROLL_ADDSOUND);
 {$ENDIF}
-            if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
+            if FOnChangeEvent <> nil then FOnChangeEvent(Self);
           end;
       end;
     end;
@@ -2266,7 +2266,7 @@ begin
           g_Sound_PlayEx(SCROLL_ADDSOUND);
 {$ENDIF}
 
-          if @FOnChangeEvent <> nil then
+          if FOnChangeEvent <> nil then
             FOnChangeEvent(Self);
         end;
 
@@ -2284,7 +2284,7 @@ begin
           g_Sound_PlayEx(SCROLL_SUBSOUND);
 {$ENDIF}
 
-          if @FOnChangeEvent <> nil then
+          if FOnChangeEvent <> nil then
             FOnChangeEvent(Self);
         end;
     end;
@@ -2412,19 +2412,19 @@ begin
               if FActiveControl <> Self then
               begin
                 SetActive(Self);
-                if @FOnEnterEvent <> nil then FOnEnterEvent(Self);
+                if FOnEnterEvent <> nil then FOnEnterEvent(Self);
               end
               else
               begin
                 if FDefControl <> '' then SetActive(GetControl(FDefControl))
                 else SetActive(nil);
-                if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
+                if FOnChangeEvent <> nil then FOnChangeEvent(Self);
               end;
             end;
         end;
     end;
 
-  g_GUIGrabInput := (@FOnEnterEvent = nil) and (FWindow.FActiveControl = Self);
+  g_GUIGrabInput := (FOnEnterEvent = nil) and (FWindow.FActiveControl = Self);
   g_Touch_ShowKeyboard(g_GUIGrabInput)
 end;
 
@@ -3025,7 +3025,7 @@ begin
 
   if FSort then
     specialize TArrayHelper<ShortString>.Sort(FItems,
-      specialize TComparer<ShortString>.Construct(@ShortCompareText));
+      specialize TComparer<ShortString>.Construct(@SSArraySortFunc));
 end;
 
 function TGUIListBox.ItemExists (item: String): Boolean;
@@ -3142,7 +3142,7 @@ begin
             begin
               Dec(FIndex);
               if FIndex < FStartLine then Dec(FStartLine);
-              if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
+              if FOnChangeEvent <> nil then FOnChangeEvent(Self);
             end;
           IK_DOWN, IK_KPDOWN, VK_DOWN,
           IK_RIGHT, IK_KPRIGHT, VK_RIGHT,
@@ -3156,7 +3156,7 @@ begin
             begin
               Inc(FIndex);
               if FIndex > FStartLine+FHeight-1 then Inc(FStartLine);
-              if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
+              if FOnChangeEvent <> nil then FOnChangeEvent(Self);
             end;
           IK_RETURN, IK_KPRETURN, IK_SELECT,
           VK_FIRE, VK_OPEN,
@@ -3175,7 +3175,7 @@ begin
           begin
             FIndex := a;
             FStartLine := Min(Max(FIndex-1, 0), Length(FItems)-FHeight);
-            if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
+            if FOnChangeEvent <> nil then FOnChangeEvent(Self);
             Break;
           end;
     end;
@@ -3204,7 +3204,7 @@ begin
 
   if FSort then
     specialize TArrayHelper<ShortString>.Sort(FItems,
-      specialize TComparer<ShortString>.Construct(@ShortCompareText));
+      specialize TComparer<ShortString>.Construct(@SSArraySortFunc));
 end;
 
 procedure TGUIListBox.SelectItem(Item: String);
@@ -3266,7 +3266,7 @@ begin
             begin
               FIndex := 0;
               FStartLine := 0;
-              if @FOnChangeEvent <> nil then
+              if FOnChangeEvent <> nil then
                 FOnChangeEvent(Self);
             end;
 
@@ -3274,7 +3274,7 @@ begin
             begin
               FIndex := High(FItems);
               FStartLine := Max(High(FItems)-FHeight+1, 0);
-              if @FOnChangeEvent <> nil then
+              if FOnChangeEvent <> nil then
                 FOnChangeEvent(Self);
             end;
 
@@ -3313,7 +3313,7 @@ begin
               FIndex -= 1;
               if FIndex < FStartLine then
                 FStartLine -= 1;
-              if @FOnChangeEvent <> nil then
+              if FOnChangeEvent <> nil then
                 FOnChangeEvent(Self);
             end;
 
@@ -3330,7 +3330,7 @@ begin
               FIndex += 1;
               if FIndex > FStartLine+FHeight-1 then
                 FStartLine += 1;
-              if @FOnChangeEvent <> nil then
+              if FOnChangeEvent <> nil then
                 FOnChangeEvent(Self);
             end;
 
@@ -3384,7 +3384,7 @@ begin
           begin
             FIndex := a;
             FStartLine := Min(Max(FIndex-1, 0), Length(FItems)-FHeight);
-            if @FOnChangeEvent <> nil then
+            if FOnChangeEvent <> nil then
               FOnChangeEvent(Self);
             Break;
           end;

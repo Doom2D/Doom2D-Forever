@@ -403,7 +403,7 @@ begin
   if res <> FMOD_OK then
     Exit;
 
-  res := FMOD_Channel_SetCallback(Chan, Channel_Callback);
+  res := FMOD_Channel_SetCallback(Chan, @Channel_Callback);
   if res <> FMOD_OK then
   begin
   end;
@@ -443,7 +443,7 @@ begin
   begin
   end;
 
-  res := FMOD_Channel_SetCallback(Chan, Channel_Callback);
+  res := FMOD_Channel_SetCallback(Chan, @Channel_Callback);
   if res <> FMOD_OK then
   begin
   end;
@@ -483,7 +483,7 @@ begin
   begin
   end;
 
-  res := FMOD_Channel_SetCallback(Chan, Channel_Callback);
+  res := FMOD_Channel_SetCallback(Chan, @Channel_Callback);
   if res <> FMOD_OK then
   begin
   end;
@@ -528,7 +528,7 @@ begin
   begin
   end;
 
-  res := FMOD_Channel_SetCallback(Chan, Channel_Callback);
+  res := FMOD_Channel_SetCallback(Chan, @Channel_Callback);
   if res <> FMOD_OK then
   begin
   end;
@@ -755,7 +755,7 @@ begin
   begin
   end;
 
-  res := FMOD_Channel_SetCallback(FChannel, Channel_Callback);
+  res := FMOD_Channel_SetCallback(FChannel, @Channel_Callback);
   if res <> FMOD_OK then
   begin
   end;

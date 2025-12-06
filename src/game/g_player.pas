@@ -7080,11 +7080,8 @@ begin
           if tpla <> nil then
             with tpla do
               begin
-                if (@FObj) <> nil then
-                begin
-                  Target.X := FObj.X;
-                  Target.Y := FObj.Y;
-                end;
+                Target.X := FObj.X;
+                Target.Y := FObj.Y;
               end;
 
           Target.cX := Target.X + PLAYER_RECT_CX;
@@ -7173,7 +7170,7 @@ begin
           end;
 
   // Монстры:
-    if vsMonster then g_Mons_ForEach(monsUpdate);
+    if vsMonster then g_Mons_ForEach(@monsUpdate);
   end;
 
 // Если есть возможные цели:

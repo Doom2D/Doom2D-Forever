@@ -205,7 +205,7 @@ begin
       TMsgType.Fatal: write('FATAL: ');
       TMsgType.Warning: write('WARNING: ');
     end;
-    formatstrf(fmt, args, conwriter);
+    formatstrf(fmt, args, @conwriter);
     writeln;
   end;
 
@@ -243,7 +243,7 @@ begin
 
   xlogLastWasEOL := true; // to output prefix
   xlogWantSpace := true; // after prefix
-  formatstrf(fmt, args, logwriter);
+  formatstrf(fmt, args, @logwriter);
   if not xlogLastWasEOL
     then writeln(xlogFile, '')
     else writeln(xlogFile, xlogPrefix);

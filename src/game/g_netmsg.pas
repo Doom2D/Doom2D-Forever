@@ -902,9 +902,9 @@ begin
     end;
   end;
 
-  g_Items_ForEachAlive(sendItemRespawn, true); // backwards
-  g_Mons_ForEach(sendMonSpawn);
-  g_Map_ForEachPanel(sendPanelState);
+  g_Items_ForEachAlive(@sendItemRespawn, True);  // backwards
+  g_Mons_ForEach(@sendMonSpawn);
+  g_Map_ForEachPanel(@sendPanelState);
 
   for I := Low(gTriggers) to High(gTriggers) do
   begin

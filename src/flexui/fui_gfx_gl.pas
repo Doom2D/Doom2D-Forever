@@ -1452,12 +1452,12 @@ end;
 initialization
   savedGLState := TSavedGLState.Create(False);
   //createFonts();
-  //winFocusCB := onWinFocus;
-  //winBlurCB := onWinBlur;
-  //prerenderFrameCB := onPreRender;
-  postrenderFrameCB := onPostRender;
-  oglInitCB := onInit;
-  oglDeinitCB := onDeinit;
+  //winFocusCB := @onWinFocus;
+  //winBlurCB := @onWinBlur;
+  //prerenderFrameCB := @onPreRender;
+  postrenderFrameCB := @onPostRender;
+  oglInitCB := @onInit;
+  oglDeinitCB := @onDeinit;
 
 finalization
   deleteFonts();

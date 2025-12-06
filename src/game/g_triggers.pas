@@ -443,8 +443,8 @@ begin
         end;
       end;
 
-      //g_Mons_ForEach(monsDamage);
-      g_Mons_ForEachAliveAt(wx, wy, ww, wh, monsDamage);
+      //g_Mons_ForEach(@monsDamage);
+      g_Mons_ForEachAliveAt(wx, wy, ww, wh, @monsDamage);
 
       if not Enabled then g_Map_EnableWallGUID(PanelGUID);
     end;
@@ -506,8 +506,8 @@ begin
           end;
         end;
 
-        //g_Mons_ForEach(monsDamage);
-        g_Mons_ForEachAliveAt(wx, wy, ww, wh, monsDamage);
+        //g_Mons_ForEach(@monsDamage);
+        g_Mons_ForEachAliveAt(wx, wy, ww, wh, @monsDamage);
         (*
         if gMonsters <> nil then
           for a := 0 to High(gMonsters) do
@@ -2270,8 +2270,8 @@ begin
 
           case tgcShotTarget of
             TRIGGER_SHOT_TARGET_MON: // monsters
-              //TODO: accelerate this!
-              g_Mons_ForEachAlive(monsShotTarget);
+              // TODO: accelerate this!
+              g_Mons_ForEachAlive(@monsShotTarget);
 
             TRIGGER_SHOT_TARGET_PLR: // players
               if gPlayers <> nil then
@@ -2313,8 +2313,8 @@ begin
 
             TRIGGER_SHOT_TARGET_MONPLR: // monsters then players
             begin
-              //TODO: accelerate this!
-              g_Mons_ForEachAlive(monsShotTargetMonPlr);
+              // TODO: accelerate this!
+              g_Mons_ForEachAlive(@monsShotTargetMonPlr);
 
               if (TargetUID = 0) and (gPlayers <> nil) then
                 for idx := Low(gPlayers) to High(gPlayers) do
@@ -2343,7 +2343,7 @@ begin
               if TargetUID = 0 then
               begin
                 //TODO: accelerate this!
-                g_Mons_ForEachAlive(monShotTargetPlrMon);
+                g_Mons_ForEachAlive(@monShotTargetPlrMon);
               end;
             end;
 
@@ -2970,9 +2970,9 @@ begin
              (TimeOut = 0) and (Keys = 0) then // Если не нужны ключи
           begin
             //g_Mons_ForEach(monsNear);
-            //Alive?!
+            // Alive?!
             tgMonsList.reset();
-            g_Mons_ForEachAt(gTriggers[a].X, gTriggers[a].Y, gTriggers[a].Width, gTriggers[a].Height, monsNear);
+            g_Mons_ForEachAt(gTriggers[a].X, gTriggers[a].Y, gTriggers[a].Width, gTriggers[a].Height, @monsNear);
             for mon in tgMonsList do
             begin
               gTriggers[a].ActivateUID := mon.UID;

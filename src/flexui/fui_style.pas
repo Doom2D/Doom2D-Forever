@@ -357,9 +357,9 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TStyleSection.Create ();
 begin
-  mVals := THashStrStyleVal.Create(freeValueCB);
-  mHashes := THashStrSection.Create(freeSectionCB);
-  mCtls := THashStrSection.Create(freeSectionCB);
+  mVals := THashStrStyleVal.Create(@freeValueCB);
+  mHashes := THashStrSection.Create(@freeSectionCB);
+  mCtls := THashStrSection.Create(@freeSectionCB);
 end;
 
 

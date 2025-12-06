@@ -81,7 +81,7 @@ begin
       with AddButton(nil, _lc[I_MENU_YES]) do
       begin
         ProcEx := @YesNoButtonCB;
-        UserData := @ActionProc;
+        UserData := ActionProc;
       end;
       with AddButton(nil, _lc[I_MENU_NO]) do
         ProcEx := @YesNoButtonCB;
@@ -2216,32 +2216,32 @@ begin
       Name := 'sw'+s+'Team';
       AddItem(_lc[I_MENU_PLAYER_TEAM_RED]);
       AddItem(_lc[I_MENU_PLAYER_TEAM_BLUE]);
-      OnChange := ProcSwitchTeam;
+      OnChange := @ProcSwitchTeam;
     end ;
     with AddList(_lc[I_MENU_PLAYER_MODEL], 12, 6) do
     begin
       Name := 'ls'+s+'Model';
       Sort := True;
       Items := g_PlayerModel_GetNames();
-      OnChange := ProcSelectModel;
+      OnChange := @ProcSelectModel;
     end;
     with AddScroll(_lc[I_MENU_PLAYER_RED]) do
     begin
       Name := 'sc'+s+'Red';
       Max := 16;
-      OnChange := ProcChangeColor;
+      OnChange := @ProcChangeColor;
     end;
     with AddScroll(_lc[I_MENU_PLAYER_GREEN]) do
     begin
       Name := 'sc'+s+'Green';
       Max := 16;
-      OnChange := ProcChangeColor;
+      OnChange := @ProcChangeColor;
     end;
     with AddScroll(_lc[I_MENU_PLAYER_BLUE]) do
     begin
       Name := 'sc'+s+'Blue';
       Max := 16;
-      OnChange := ProcChangeColor;
+      OnChange := @ProcChangeColor;
     end;
 
     AddSpace();
@@ -2395,7 +2395,7 @@ begin
         GM_SINGLE,
         GM_COOP: ItemIndex := 3;
       end;
-      OnChange := ProcSwitchMonstersCustom;
+      OnChange := @ProcSwitchMonstersCustom;
     end;
     with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
     begin
@@ -2582,7 +2582,7 @@ begin
   Menu.DefControl := 'mNetClientMenu';
 
   Menu := g_GUI_AddWindow(TGUIWindow.Create('LoadMenu'));
-  Menu.OnShow := ProcLoadMenu;
+  Menu.OnShow := @ProcLoadMenu;
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_LOAD_GAME]))) do
   begin
     Name := 'mmLoadMenu';
@@ -2593,13 +2593,13 @@ begin
         Name := 'edSlot'+IntToStr(a);
         Width := 16;
         MaxLength := 16;
-        OnEnter := ProcLoadGame;
+        OnEnter := @ProcLoadGame;
       end;
   end;
   Menu.DefControl := 'mmLoadMenu';
 
   Menu := g_GUI_AddWindow(TGUIWindow.Create('SaveMenu'));
-  Menu.OnShow := ProcSaveMenu;
+  Menu.OnShow := @ProcSaveMenu;
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_SAVE_GAME]))) do
   begin
     Name := 'mmSaveMenu';
@@ -2610,7 +2610,7 @@ begin
         Name := 'edSlot'+IntToStr(a);
         Width := 16;
         MaxLength := 16;
-        OnChange := ProcSaveGame;
+        OnChange := @ProcSaveGame;
       end;
   end;
   Menu.DefControl := 'mmSaveMenu';
@@ -2641,7 +2641,7 @@ begin
         GM_SINGLE,
         GM_COOP: ItemIndex := 3;
       end;
-      OnChange := ProcSwitchMonstersCustom;
+      OnChange := @ProcSwitchMonstersCustom;
     end;
     with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
     begin
@@ -2802,7 +2802,7 @@ begin
     with AddFileList('', 15, 4) do
     begin
       Name := 'lsWAD';
-      OnChange := ProcSelectCampaignWAD;
+      OnChange := @ProcSelectCampaignWAD;
 
       Sort := True;
       Dirs := True;
@@ -2856,7 +2856,7 @@ begin
     with AddFileList(_lc[I_MENU_MAP_WAD], 12, 4) do
     begin
       Name := 'lsMapWAD';
-      OnChange := ProcSelectWAD;
+      OnChange := @ProcSelectWAD;
 
       Sort := True;
       Dirs := True;
@@ -2867,7 +2867,7 @@ begin
     begin
       Name := 'lsMapRes';
       Sort := True;
-      OnChange := ProcSelectMap;
+      OnChange := @ProcSelectMap;
     end;
     AddSpace();
     with AddLabel(_lc[I_MENU_MAP_NAME]) do
@@ -2913,7 +2913,7 @@ begin
       Y := GetControl('lsMapWAD').Y + MAPPREVIEW_HEIGHT*16 + 16;
     end;
   end;
-  Menu.OnClose := ProcSetMap;
+  Menu.OnClose := @ProcSetMap;
   Menu.DefControl := 'mSelectMapMenu';
 
   Menu := g_GUI_AddWindow(TGUIWindow.Create('ItemsRespawnMenu'));
@@ -3017,7 +3017,7 @@ begin
     AddButton(nil, _lc[I_MENU_SAVED_OPTIONS], 'SavedOptionsMenu').Color := _RGB(255, 0, 0);
     AddButton(nil, _lc[I_MENU_DEFAULT_OPTIONS], 'DefaultOptionsMenu').Color := _RGB(255, 0, 0);
   end;
-  Menu.OnClose := ProcApplyOptions;
+  Menu.OnClose := @ProcApplyOptions;
   Menu.DefControl := 'mmOptionsMenu';
 
   Menu := CreateYNMenu('SavedOptionsMenu', _lc[I_MENU_LOAD_SAVED_PROMPT], Round(gScreenWidth*0.6),
@@ -3108,19 +3108,19 @@ begin
     begin
       Name := 'scMusicLevel';
       Max := 16;
-      OnChange := ProcChangeSoundSettings;
+      OnChange := @ProcChangeSoundSettings;
     end;
     with AddScroll(_lc[I_MENU_SOUND_SOUND_LEVEL]) do
     begin
       Name := 'scSoundLevel';
       Max := 16;
-      OnChange := ProcChangeSoundSettings;
+      OnChange := @ProcChangeSoundSettings;
     end;
     with AddScroll(_lc[I_MENU_SOUND_TAUNT_LEVEL]) do
     begin
       Name := 'scTauntLevel';
       Max := 16;
-      OnChange := ProcChangeSoundSettings;
+      OnChange := @ProcChangeSoundSettings;
     end;
     with AddScroll(_lc[I_MENU_SOUND_MAX_SIM_SOUNDS]) do
     begin
@@ -3264,7 +3264,7 @@ begin
     begin
       Name := 'scScaleFactor';
       Max := 10;
-      OnChange := ProcChangeGameSettings;
+      OnChange := @ProcChangeGameSettings;
     end;
     ReAlign();
   end;
@@ -3375,20 +3375,20 @@ begin
       Name := 'swTouchEnable';
       AddItem(_lc[I_MENU_NO]);
       AddItem(_lc[I_MENU_YES]);
-      OnChange := ProcChangeTouchSettings;
+      OnChange := @ProcChangeTouchSettings;
     end;
     with AddSwitch(_lc[I_MENU_CONTROL_TOUCH_ALT]) do
     begin
       Name := 'swTouchAlt';
       AddItem(_lc[I_MENU_NO]);
       AddItem(_lc[I_MENU_YES]);
-      OnChange := ProcChangeTouchSettings;
+      OnChange := @ProcChangeTouchSettings;
     end;
     with AddScroll(_lc[I_MENU_CONTROL_TOUCH_SIZE]) do
     begin
       Name := 'scTouchSize';
       Max := 20;
-      OnChange := ProcChangeTouchSettings;
+      OnChange := @ProcChangeTouchSettings;
     end;
     with AddSwitch(_lc[I_MENU_CONTROL_TOUCH_FIRE]) do
     begin
@@ -3400,7 +3400,7 @@ begin
     begin
       Name := 'scTouchOffset';
       Max := 20;
-      OnChange := ProcChangeTouchSettings;
+      OnChange := @ProcChangeTouchSettings;
     end;
   end;
   Menu.DefControl := 'mOptionsControlsTouchMenu';
@@ -3581,7 +3581,7 @@ begin
 
   Menu := g_GUI_AddWindow(TGUIWindow.Create('AuthorsMenu'));
   Menu.BackTexture := 'INTER';
-  Menu.OnClose := ProcAuthorsClose;
+  Menu.OnClose := @ProcAuthorsClose;
 
 // Заголовок:
   _y := 16;
@@ -3723,8 +3723,8 @@ begin
   end;
   Menu.DefControl := 'mmGameSingleMenu';
   Menu.MainWindow := True;
-  Menu.OnClose := ProcGMClose;
-  Menu.OnShow := ProcGMShow;
+  Menu.OnClose := @ProcGMClose;
+  Menu.OnShow := @ProcGMShow;
 
   Menu := CreateYNMenu('EndGameMenu', _lc[I_MENU_END_GAME_PROMPT], Round(gScreenWidth*0.6),
                        gMenuSmallFont, @ProcEndMenuKeyDown);
@@ -3748,8 +3748,8 @@ begin
   end;
   Menu.DefControl := 'mmGameCustomMenu';
   Menu.MainWindow := True;
-  Menu.OnClose := ProcGMClose;
-  Menu.OnShow := ProcGMShow;
+  Menu.OnClose := @ProcGMClose;
+  Menu.OnShow := @ProcGMShow;
 
   Menu := g_GUI_AddWindow(TGUIWindow.Create('GameServerMenu'));
   with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_MAIN_MENU]))) do
@@ -3763,8 +3763,8 @@ begin
   end;
   Menu.DefControl := 'mmGameServerMenu';
   Menu.MainWindow := True;
-  Menu.OnClose := ProcGMClose;
-  Menu.OnShow := ProcGMShow;
+  Menu.OnClose := @ProcGMClose;
+  Menu.OnShow := @ProcGMShow;
 
   Menu := g_GUI_AddWindow(TGUIWindow.Create('GameClientMenu'));
   with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_MAIN_MENU]))) do
@@ -3776,8 +3776,8 @@ begin
   end;
   Menu.DefControl := 'mmGameClientMenu';
   Menu.MainWindow := True;
-  Menu.OnClose := ProcGMClose;
-  Menu.OnShow := ProcGMShow;
+  Menu.OnClose := @ProcGMClose;
+  Menu.OnShow := @ProcGMShow;
 
   Menu := g_GUI_AddWindow(TGUIWindow.Create('ClientPasswordMenu'));
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuSmallFont, gMenuSmallFont, _lc[I_MENU_ENTERPASSWORD]))) do
@@ -3864,7 +3864,7 @@ begin
     ReAlign();
   end;
   Menu.DefControl := 'mGameSetGameMenu';
-  Menu.OnClose := ProcApplyGameSet;
+  Menu.OnClose := @ProcApplyGameSet;
 
   Menu := g_GUI_AddWindow(TGUIWindow.Create('TeamMenu'));
   with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, '', _lc[I_MENU_CHANGE_PLAYERS]))) do
@@ -3877,7 +3877,7 @@ begin
     AddButton(@ProcSpectate, _lc[I_MENU_SPECTATE], '').Name := 'tmSpectate';
   end;
   Menu.DefControl := 'mmTeamMenu';
-  Menu.OnShow := ProcChangePlayers;
+  Menu.OnShow := @ProcChangePlayers;
 end;
 
 procedure g_Menu_Show_SaveMenu();

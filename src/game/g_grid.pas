@@ -1084,7 +1084,7 @@ begin
   aTag := aTag and TagFullMask;
   result := allocProxy(aX, aY, aWidth, aHeight, aObj, aTag);
   //insertInternal(result);
-  forGridRect(aX, aY, aWidth, aHeight, inserter, result);
+  forGridRect(aX, aY, aWidth, aHeight, @inserter, result);
 end;
 
 
@@ -1095,7 +1095,7 @@ begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
   px := @mProxies[body];
   //removeInternal(body);
-  forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, remover, body);
+  forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, @remover, body);
   freeProxy(body);
 end;
 
@@ -1129,13 +1129,13 @@ begin
   begin
     //writeln('moveResizeBody: cell occupation changed! old=(', x0, ',', y0, ')-(', x0+w-1, ',', y0+h-1, '); new=(', nx, ',', ny, ')-(', nx+nw-1, ',', ny+nh-1, ')');
     //removeInternal(body);
-    forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, remover, body);
+    forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, @remover, body);
     px.mX := nx+mMinX;
     px.mY := ny+mMinY;
     px.mWidth := nw;
     px.mHeight := nh;
     //insertInternal(body);
-    forGridRect(px.mX, px.mY, nw, nh, inserter, body);
+    forGridRect(px.mX, px.mY, nw, nh, @inserter, body);
   end
   else
   begin
@@ -1307,11 +1307,11 @@ begin
   begin
     // crossed tile boundary, do heavy work
     //removeInternal(body);
-    forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, remover, body);
+    forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, @remover, body);
     px.mWidth := nw;
     px.mHeight := nh;
     //insertInternal(body);
-    forGridRect(px.mX, px.mY, nw, nh, inserter, body);
+    forGridRect(px.mX, px.mY, nw, nh, @inserter, body);
   end
   else
   begin
@@ -1330,7 +1330,7 @@ begin
   Dec(x, mMinX);
   Dec(y, mMinY);
   if (x >= 0) and (y >= 0) and (x < mWidth*mTileSize) and (y < mHeight*mTileSize) then ccidx := mGrid[(y div mTileSize)*mWidth+(x div mTileSize)];
-  result := TAtPointEnumerator.Create(mCells, ccidx, getProxyById);
+  result := TAtPointEnumerator.Create(mCells, ccidx, @getProxyById);
 end;
 
 
