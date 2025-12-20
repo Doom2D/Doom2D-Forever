@@ -467,7 +467,7 @@ const
   UPNPDISCOVER_MEMORY_ERROR = -102;
 
   { versions : }
-  MINIUPNPC_VERSION = '2.3.5'; //'2.2.6';
+  MINIUPNPC_VERSION = '2.2.6';
   MINIUPNPC_API_VERSION = 17;
 
   { Source port:
