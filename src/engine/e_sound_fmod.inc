@@ -306,23 +306,22 @@ begin
   if isMusic and not ForceNoLoop
     then bt := FMOD_LOOP_NORMAL
     else bt := FMOD_LOOP_OFF;
+  bt := bt or FMOD_2D or FMOD_HARDWARE or FMOD_LOWMEM;
 
-  if not isMusic then
-    res := FMOD_System_CreateSound(F_System, PAnsiChar(FileName), bt or FMOD_2D or FMOD_HARDWARE,
-      nil, e_SoundsArray[find_id].Sound)
-  else
-    res := FMOD_System_CreateStream(F_System, PAnsiChar(FileName), bt or FMOD_2D or FMOD_HARDWARE,
-      nil, e_SoundsArray[find_id].Sound);
+  if not isMusic then  // FMOD_CREATESAMPLE - decode on load and store as PCM
+    res := FMOD_System_CreateSound(F_System, PAnsiChar(FileName), bt, nil,
+      e_SoundsArray[find_id].Sound)
+  else  // FMOD_CREATESTREAM - decode on-the-fly during playback
+    res := FMOD_System_CreateStream(F_System, PAnsiChar(FileName), bt, nil,
+      e_SoundsArray[find_id].Sound);
 
   if res <> FMOD_OK then
-  begin
-    e_SoundsArray[find_id].Sound := nil;
     Exit;
-  end;
 
   res := FMOD_Sound_SetUserData(e_SoundsArray[find_id].Sound, Pointer(find_id));
   if res <> FMOD_OK then
   begin
+    FMOD_Sound_Release(e_SoundsArray[find_id].Sound);
     e_SoundsArray[find_id].Sound := nil;
     Exit;
   end;
@@ -357,24 +356,29 @@ begin
     then bt := FMOD_LOOP_NORMAL
     else bt := FMOD_LOOP_OFF;
 
-  if not isMusic then
-    res := FMOD_System_CreateSound(F_System, pData, bt or FMOD_2D or FMOD_HARDWARE
-      or FMOD_OPENMEMORY, @soundExInfo, e_SoundsArray[find_id].Sound)
-  else
-    res := FMOD_System_CreateStream(F_System, pData, bt or FMOD_2D or FMOD_HARDWARE
-      or FMOD_OPENMEMORY, @soundExInfo, e_SoundsArray[find_id].Sound);
+  // NB: Can't use FMOD_OPENMEMORY_POINT here as it requires FMOD_SOFTWARE, not FMOD_HARDWARE.
+  bt := bt or FMOD_2D or FMOD_HARDWARE or FMOD_LOWMEM or FMOD_OPENMEMORY;
+
+  if not isMusic then  // FMOD_CREATESAMPLE - decode on load and store as PCM
+    res := FMOD_System_CreateSound(F_System, pData, bt, @soundExInfo, e_SoundsArray[find_id].Sound)
+  else  // FMOD_CREATESTREAM - decode on-the-fly during playback
+    res := FMOD_System_CreateStream(F_System, pData, bt, @soundExInfo, e_SoundsArray[find_id].Sound);
 
   if res <> FMOD_OK then
-  begin
-    e_SoundsArray[find_id].Sound := nil;
     Exit;
-  end;
 
   res := FMOD_Sound_SetUserData(e_SoundsArray[find_id].Sound, Pointer(find_id));
   if res <> FMOD_OK then
   begin
+    FMOD_Sound_Release(e_SoundsArray[find_id].Sound);
     e_SoundsArray[find_id].Sound := nil;
     Exit;
+  end;
+
+  if not isMusic then
+  begin
+    FreeMem(pData);
+    pData := nil;
   end;
 
   e_SoundsArray[find_id].Data := pData;
@@ -553,14 +557,14 @@ begin
   if e_SoundsArray[ID].Sound = nil then
     Exit;
 
-  FreeMem(e_SoundsArray[ID].Data);
-
   res := FMOD_Sound_Release(e_SoundsArray[ID].Sound);
   if res <> FMOD_OK then
   begin
     e_WriteLog('Error releasing sound:', TMsgType.Warning);
     e_WriteLog(FMOD_ErrorString(res), TMsgType.Warning);
   end;
+
+  FreeMem(e_SoundsArray[ID].Data);  // should go after FMOD_Sound_Release() for FMOD_CREATESTREAM
 
   e_SoundsArray[ID].Sound := nil;
   e_SoundsArray[ID].Data := nil;
@@ -669,15 +673,7 @@ var
 begin
   e_RemoveAllSounds();
 
-  res := FMOD_System_Close(F_System);
-  if res <> FMOD_OK then
-  begin
-    e_WriteLog('Error closing FMOD system!', TMsgType.Fatal);
-    e_WriteLog(FMOD_ErrorString(res), TMsgType.Fatal);
-    Exit;
-  end;
-
-  res := FMOD_System_Release(F_System);
+  res := FMOD_System_Release(F_System);  // also calls FMOD_System_Close() by itself
   if res <> FMOD_OK then
   begin
     e_WriteLog('Error releasing FMOD system!', TMsgType.Fatal);

@@ -16,6 +16,10 @@
 {$INCLUDE ../shared/a_modes.inc}
 unit g_sound;
 
+{$IFNDEF ENABLE_SOUND}
+{$STOP This unit should not be available anywhere when ENABLE_SOUND is not defined}
+{$ENDIF}
+
 interface
 
 uses
@@ -281,13 +285,9 @@ function g_Sound_CreateWAD(var ID: TSoundID; Resource: String; isMusic: Boolean)
 var
   WAD: TWADFile;
   FileName: string;
-  SoundData: Pointer;
+  SoundData: Pointer = nil;
   ResLength: Integer;
-  ok: Boolean;
 begin
-  Result := False;
-  ok := False;
-
   // e_WriteLog('Loading sound: ' + Resource, MSG_NOTIFY);
   FileName := g_ExtractWadName(Resource);
 
@@ -295,29 +295,22 @@ begin
   WAD.ReadFile(FileName);
 
   if WAD.GetResource(g_ExtractFilePathName(Resource), SoundData, ResLength) then
-    begin
-      if e_LoadSoundMem(SoundData, ResLength, ID, isMusic) then
-        ok := True
-      else
-        FreeMem(SoundData);
-    end
+    Result := e_LoadSoundMem(SoundData, ResLength, ID, isMusic)
   else
   begin
     //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+    Result := False;
   end;
 
   WAD.Free();
-  if (not ok) then
+
+  if not Result then
   begin
-{$IFNDEF HEADLESS}
-    if isMusic then
-      e_WriteLog(Format('Error loading music %s', [Resource]), TMsgType.Warning)
-    else
-      e_WriteLog(Format('Error loading sound %s', [Resource]), TMsgType.Warning);
-    Exit;
-{$ENDIF}
+    FreeMem(SoundData);
+    if isMusic
+      then e_WriteLog(Format('Error loading music %s', [Resource]), TMsgType.Warning)
+      else e_WriteLog(Format('Error loading sound %s', [Resource]), TMsgType.Warning);
   end;
-  Result := True;
 end;
 
 function g_Sound_CreateWADEx(SoundName: ShortString; Resource: String; isMusic: Boolean;
@@ -325,50 +318,39 @@ function g_Sound_CreateWADEx(SoundName: ShortString; Resource: String; isMusic: 
 var
   WAD: TWADFile;
   FileName: string;
-  SoundData: Pointer;
+  SoundData: Pointer = nil;
   ResLength: Integer;
   find_id: TSoundID;
-  ok: Boolean;
 begin
-  Result := False;
-  ok := False;
-
   // e_WriteLog('Loading sound: ' + Resource, MSG_NOTIFY);
   FileName := g_ExtractWadName(Resource);
-
   find_id := FindSound();
 
   WAD := TWADFile.Create();
   WAD.ReadFile(FileName);
 
   if WAD.GetResource(g_ExtractFilePathName(Resource), SoundData, ResLength) then
-    begin
-      if e_LoadSoundMem(SoundData, ResLength, SoundArray[find_id].ID, isMusic, ForceNoLoop) then
-        begin
-          SoundArray[find_id].Name := SoundName;
-          SoundArray[find_id].IsMusic := isMusic;
-          ok := True;
-        end
-      else
-        FreeMem(SoundData);
-    end
+    Result := e_LoadSoundMem(SoundData, ResLength, SoundArray[find_id].ID, isMusic, ForceNoLoop)
   else
   begin
+    Result := False;
     //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
   end;
 
   WAD.Free();
-  if (not ok) then
+
+  if Result then
   begin
-{$IFNDEF HEADLESS}
-    if isMusic then
-      e_WriteLog(Format('Error loading music %s', [Resource]), TMsgType.Warning)
-    else
-      e_WriteLog(Format('Error loading sound %s', [Resource]), TMsgType.Warning);
-    Exit;
-{$ENDIF}
+    SoundArray[find_id].Name := SoundName;
+    SoundArray[find_id].IsMusic := isMusic;
+  end
+  else
+  begin
+    FreeMem(SoundData);
+    if isMusic
+      then e_WriteLog(Format('Error loading music %s', [Resource]), TMsgType.Warning)
+      else e_WriteLog(Format('Error loading sound %s', [Resource]), TMsgType.Warning);
   end;
-  Result := True;
 end;
 
 procedure g_Sound_Delete(SoundName: ShortString);
