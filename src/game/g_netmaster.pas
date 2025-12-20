@@ -251,7 +251,7 @@ begin
       enet_peer_disconnect_later(mlist[f].peer, 0);
     end;
   end;
-  if (activeCount = 0) then goto discard;
+
   stt := GetTimerMS();
   while (activeCount > 0) do
   begin
@@ -289,6 +289,7 @@ begin
       enet_packet_destroy(NetMEvent.packet);
     end;
   end;
+
   enet_host_destroy(NetMHost);
   NetMHost := nil;
 
