@@ -158,7 +158,7 @@ begin
   end;
 
   try
-    if mpg123_replace_reader_handle(FMPG, streamRead, streamLSeek, nil) <> MPG123_OK then
+    if mpg123_replace_reader_handle(FMPG, @streamRead, @streamLSeek, nil) <> MPG123_OK then
       raise Exception.Create('mpg123_replace_header_handle failed');
     if mpg123_open_handle(FMPG, Stream) <> MPG123_OK then
       raise Exception.Create('mpg123_open_handle failed');

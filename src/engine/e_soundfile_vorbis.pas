@@ -95,10 +95,10 @@ end;
 
 var
   oggIO: ov_callbacks = (
-    read:        streamRead;
-    seek:        streamSeek;
-    close:       nil; // the loader's gonna handle that
-    tell:        streamTell;
+    read:        @streamRead;
+    seek:        @streamSeek;
+    close:       nil;  // the loader's gonna handle that
+    tell:        @streamTell;
   );
 
 (* TVorbisLoaderFactory *)
