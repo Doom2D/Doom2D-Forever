@@ -20,10 +20,8 @@ uses
 {$IFDEF USE_SDL}
   SDL, SDL_mixer,
   {$DEFINE SDL1MIXER}
-  {$UNDEF SDL2MIXER}
 {$ELSE}
   SDL2, SDL2_mixer,
-  {$DEFINE SDL2MIXER}
   {$UNDEF SDL1MIXER}
 {$ENDIF}
   envvars, e_log, SysUtils;
@@ -32,9 +30,8 @@ type
   TSoundID = PtrInt;
 
   TSoundRec = record
+    Audio: Pointer;  // PMix_Music if isMusic, PMix_Chunk otherwise
     Data: Pointer;
-    Sound: PMix_Chunk;
-    Music: PMix_Music;
     isMusic: Boolean;
     Loops: Boolean;
     nRefs: Integer;
@@ -196,16 +193,16 @@ begin
   // wow, this is actually MIDI player!
   // we need module player
   flags := MIX_INIT_FLAC or MIX_INIT_MOD or MIX_INIT_MP3 or MIX_INIT_OGG or MIX_INIT_FLUIDSYNTH;
-  {$IFDEF SDL2MIXER}
-    flags := flags or MIX_INIT_MODPLUG;
-  {$ENDIF}
+{$IFNDEF SDL1MIXER}
+  flags := flags or MIX_INIT_MODPLUG;
+{$ENDIF}
   res := Mix_Init(flags);
   e_WriteLog(Format('SDL: res=0x%x', [res]), TMsgType.Notify);
   if (res and MIX_INIT_FLAC) <> 0 then e_WriteLog('SDL: FLAC playback is active', TMsgType.Notify);
   if (res and MIX_INIT_MOD) <> 0 then e_WriteLog('SDL: MOD playback is active', TMsgType.Notify);
-  {$IFDEF SDL2MIXER}
-    if (res and MIX_INIT_MODPLUG) <> 0 then e_WriteLog('SDL: MODPLUG playback is active', TMsgType.Notify);
-  {$ENDIF}
+{$IFNDEF SDL1MIXER}
+  if (res and MIX_INIT_MODPLUG) <> 0 then e_WriteLog('SDL: MODPLUG playback is active', TMsgType.Notify);
+{$ENDIF}
   if (res and MIX_INIT_MP3) <> 0 then e_WriteLog('SDL: MP3 playback is active', TMsgType.Notify);
   if (res and MIX_INIT_OGG) <> 0 then e_WriteLog('SDL: OGG playback is active', TMsgType.Notify);
   if (res and MIX_INIT_FLUIDSYNTH) <> 0 then e_WriteLog('SDL: FLUIDSYNTH playback is active', TMsgType.Notify);
@@ -254,21 +251,13 @@ begin
   Result := True;
 end;
 
+// TODO: Eliminate this function and compare manually instead.
 function e_isMusic (id: TSoundID): Boolean;
 begin
   Result := False;
   if (e_SoundsArray <> nil) and (id <= High(e_SoundsArray)) then
   begin
-    Result := (e_SoundsArray[id].Music <> nil);
-  end;
-end;
-
-function e_isSound (id: TSoundID): Boolean;
-begin
-  Result := False;
-  if (e_SoundsArray <> nil) and (id <= High(e_SoundsArray)) then
-  begin
-    Result := (e_SoundsArray[id].Sound <> nil);
+    Result := e_SoundsArray[id].isMusic;
   end;
 end;
 
@@ -279,22 +268,15 @@ begin
   if e_SoundsArray <> nil then
   begin
     for i := 0 to High(e_SoundsArray) do
-      if (e_SoundsArray[i].Sound = nil) and (e_SoundsArray[i].Music = nil) then
+      if e_SoundsArray[i].Audio = nil then
       begin
         Result := i;
         Exit;
       end;
   end;
-  if e_SoundsArray = nil then
-  begin
-    SetLength(e_SoundsArray, 16);
-    Result := 0;
-  end
-  else
-  begin
-    Result := High(e_SoundsArray) + 1;
-    SetLength(e_SoundsArray, Length(e_SoundsArray) + 16);
-  end;
+
+  Result := High(e_SoundsArray) + 1;
+  SetLength(e_SoundsArray, Length(e_SoundsArray) + 16);
 end;
 
 function e_LoadSound(FileName: String; var ID: TSoundID; isMusic: Boolean;
@@ -327,19 +309,19 @@ begin
   if isMusic then
   begin
     e_WriteLog(Format('  MUSIC SLOT: %d', [find_id]), TMsgType.Notify);
-    e_SoundsArray[find_id].Music := Mix_LoadMUS(PAnsiChar(FileName));
-    if e_SoundsArray[find_id].Music = nil then
+    e_SoundsArray[find_id].Audio := Mix_LoadMUS(PAnsiChar(FileName));
+    if e_SoundsArray[find_id].Audio = nil then
     begin
       e_WriteLog(Format('ERROR LOADING MUSIC: %d', [find_id]), TMsgType.Warning);
       e_WriteLog(Mix_GetError(), TMsgType.Warning);
       Exit;
     end;
-    dumpMusicType(e_SoundsArray[find_id].Music);
+    dumpMusicType(e_SoundsArray[find_id].Audio);
   end
   else
   begin
-    e_SoundsArray[find_id].Sound := Mix_LoadWAV(PAnsiChar(FileName));
-    if e_SoundsArray[find_id].Sound = nil then Exit;
+    e_SoundsArray[find_id].Audio := Mix_LoadWAV(PAnsiChar(FileName));
+    if e_SoundsArray[find_id].Audio = nil then Exit;
   end;
 
   ID := find_id;
@@ -366,7 +348,7 @@ begin
   end;
   }
 
-  //FIXME: correctly skip ID3
+  // FIXME: correctly skip ID3
   isid3 := False;
   {
   pc := PChar(pData);
@@ -385,7 +367,6 @@ begin
 
   find_id := FindESound();
 
-  e_SoundsArray[find_id].Data := pData;
   if isid3 then e_SoundsArray[find_id].Data := nil;
   e_SoundsArray[find_id].isMusic := isMusic;
   e_SoundsArray[find_id].Loops := isMusic and not ForceNoLoop;
@@ -394,35 +375,29 @@ begin
   if isMusic then
   begin
     e_WriteLog(Format('  MUSIC SLOT: %d', [find_id]), TMsgType.Notify);
-    e_SoundsArray[find_id].Music := Mix_LoadMUS_RW(rw {$IFNDEF SDL1MIXER}, Ord(SDL_TRUE){$ENDIF} );
-    {
-    if e_SoundsArray[find_id].Music <> nil then
-    begin
-      Mix_FreeMusic(e_SoundsArray[find_id].Music);
-    end;
-    e_SoundsArray[find_id].Music := nil;
-    Exit;
-    }
-    if e_SoundsArray[find_id].Music = nil then
+    e_SoundsArray[find_id].Audio := {$IFNDEF SDL1MIXER}
+      Mix_LoadMUS_RW(rw, Ord(SDL_TRUE))
+    {$ELSE}
+      Mix_LoadMUSType_RW(rw, MUS_NONE, Ord(SDL_TRUE))  // available since 1.2.12
+    {$ENDIF};
+
+    if e_SoundsArray[find_id].Audio = nil then
     begin
       e_WriteLog(Format('ERROR LOADING MUSIC: %d', [find_id]), TMsgType.Warning);
       e_WriteLog(Mix_GetError(), TMsgType.Warning);
-    end
-    else
-    begin
-      dumpMusicType(e_SoundsArray[find_id].Music);
+      Exit;
     end;
-    //SDL_FreeRW(rw);  // FIXME: Causes segfault with digitized audio formats, like OGG/MP3.
+
+    e_SoundsArray[find_id].Data := pData;
+    dumpMusicType(e_SoundsArray[find_id].Audio);
   end
   else
   begin
-    e_SoundsArray[find_id].Sound := Mix_LoadWAV_RW(rw, Ord(SDL_TRUE));
-  end;
-
-  if (e_SoundsArray[find_id].Sound = nil) and (e_SoundsArray[find_id].Music = nil) then
-  begin
+    e_SoundsArray[find_id].Audio := Mix_LoadWAV_RW(rw, Ord(SDL_TRUE));
+    if e_SoundsArray[find_id].Audio = nil then
+      Exit;
     e_SoundsArray[find_id].Data := nil;
-    Exit;
+    FreeMem(pData);
   end;
 
   ID := find_id;
@@ -437,12 +412,12 @@ begin
   Result := -1;
   if not SoundInitialized then Exit;
 
-  if e_isSound(ID) then
+  if not e_isMusic(ID) then
   begin
     if e_SoundsArray[ID].nRefs >= gMaxSimSounds then Exit;
     Inc(e_SoundsArray[ID].nRefs);
     if e_SoundsArray[ID].Loops then loops := -1;
-    res := Mix_PlayChannel(-1, e_SoundsArray[ID].Sound, loops);
+    res := Mix_PlayChannel(-1, e_SoundsArray[ID].Audio, loops);
     if res >= 0 then
     begin
       ChanSIds[res].id := ID;
@@ -458,10 +433,9 @@ begin
   end
   else
   begin
-    if not e_isMusic(ID) then Exit;
     Mix_HaltMusic();
     if e_SoundsArray[ID].Loops then loops := -1;
-    res := Mix_PlayMusic(e_SoundsArray[ID].Music, loops);
+    res := Mix_PlayMusic(e_SoundsArray[ID].Audio, loops);
     if res >= 0 then res := N_MUSCHAN;
     if SoundMuted then Mix_VolumeMusic(0) else Mix_VolumeMusic(MusVolume);
     Result := res;
@@ -553,7 +527,7 @@ var
   i: Integer;
 begin
   if ID > High(e_SoundsArray) then Exit;
-  if (e_SoundsArray[ID].Sound = nil) and (e_SoundsArray[ID].Music = nil) then Exit;
+  if e_SoundsArray[ID].Audio = nil then Exit;
 
   for i := 0 to N_CHANNELS-1 do
   begin
@@ -564,12 +538,13 @@ begin
     end;
   end;
 
-  if e_SoundsArray[ID].Sound <> nil then Mix_FreeChunk(e_SoundsArray[ID].Sound);
-  if e_SoundsArray[ID].Music <> nil then Mix_FreeMusic(e_SoundsArray[ID].Music);
+  if not e_isMusic(ID)
+    then Mix_FreeChunk(e_SoundsArray[ID].Audio)
+    else Mix_FreeMusic(e_SoundsArray[ID].Audio);
+
   FreeMem(e_SoundsArray[ID].Data);
 
-  e_SoundsArray[ID].Sound := nil;
-  e_SoundsArray[ID].Music := nil;
+  e_SoundsArray[ID].Audio := nil;
   e_SoundsArray[ID].Data := nil;
   e_SoundsArray[ID].nRefs := 0;
 end;
@@ -737,7 +712,7 @@ var
   chan: Integer;
 begin
   Result := False;
-  if e_isSound(FID) then
+  if not e_isMusic(FID) then
   begin
     //e_WriteLog(Format('IsPlaying: FID=%u; FChanNum=%d', [FID, FChanNum]), TMsgType.Warning);
     chan := Channel;
@@ -750,7 +725,7 @@ begin
     //e_WriteLog(Format('IsPlaying: FID=%u; TRUE', [FID]), TMsgType.Warning);
     Result := True;
   end
-  else if e_isMusic(FID) then
+  else
   begin
     Result := (Mix_PlayingMusic() > 0);
   end;
@@ -760,7 +735,7 @@ procedure TBasicSound.Stop();
 var
   chan: Integer;
 begin
-  if e_isSound(FID) then
+  if not e_isMusic(FID) then
   begin
     chan := Channel;
     if chan >= 0 then
@@ -769,7 +744,7 @@ begin
       Mix_HaltChannel(chan);
     end;
   end
-  else if e_isMusic(FID) then
+  else
   begin
     Mix_HaltMusic();
   end;
@@ -781,13 +756,13 @@ var
   chan: Integer;
 begin
   Result := False;
-  if e_isSound(FID) then
+  if not e_isMusic(FID) then
   begin
     chan := Channel;
     if chan < 0 then Exit;
     Result := (Mix_Paused(chan) > 0);
   end
-  else if e_isMusic(FID) then
+  else
   begin
     Result := (Mix_PausedMusic() > 0);
   end;
@@ -799,7 +774,7 @@ var
   pl: Boolean;
 begin
   Enable := not Enable; // fuckin' double negation
-  if e_isSound(FID) then
+  if not e_isMusic(FID) then
   begin
     chan := Channel;
     if chan < 0 then Exit;
@@ -809,7 +784,7 @@ begin
       if Enable then Mix_Resume(chan) else Mix_Pause(chan);
     end;
   end
-  else if e_isMusic(FID) then
+  else
   begin
     pl := not (Mix_PausedMusic() > 0);
     if pl <> Enable then
@@ -833,13 +808,13 @@ var
   chan: Integer;
 begin
   Result := 0.0;
-  if e_isSound(FID) then
+  if not e_isMusic(FID) then
   begin
     chan := Channel;
     if chan < 0 then Exit;
     Result := (ChanSIds[chan].oldvol+0.0)/(MIX_MAX_VOLUME+0.0);
   end
-  else if e_isMusic(FID) then
+  else
   begin
     Result := (MusVolume+0.0)/(MIX_MAX_VOLUME+0.0);
   end;
@@ -849,14 +824,14 @@ procedure TBasicSound.SetVolume(Volume: Single);
 var
   chan: Integer;
 begin
-  if e_isSound(FID) then
+  if not e_isMusic(FID) then
   begin
     chan := Channel;
     if chan < 0 then Exit;
     //e_WriteLog(Format('SetVolume: chan=%d; Volume=%f', [chan, Volume]), TMsgType.Warning);
     e_chanSetVol(chan, Volume);
   end
-  else if e_isMusic(FID) then
+  else
   begin
     //e_WriteLog(Format('SetVolume: chan=MUSIC; Volume=%f', [Volume]), TMsgType.Warning);
     e_chanSetVol(N_MUSCHAN, Volume);
@@ -868,7 +843,7 @@ var
   chan: Integer;
 begin
   Result := 1.0;
-  if e_isSound(FID) then
+  if not e_isMusic(FID) then
   begin
     chan := Channel;
     if chan < 0 then Exit;
@@ -880,7 +855,7 @@ procedure TBasicSound.SetPan(Pan: Single);
 var
   chan: Integer;
 begin
-  if e_isSound(FID) then
+  if not e_isMusic(FID) then
   begin
     chan := Channel;
     if chan < 0 then Exit;
@@ -893,13 +868,13 @@ var
   chan: Integer;
 begin
   Result := False;
-  if e_isSound(FID) then
+  if not e_isMusic(FID) then
   begin
     chan := Channel;
     if chan < 0 then Exit;
     Result := ChanSIds[chan].muted;
   end
-  else if e_isMusic(FID) then
+  else
   begin
     Result := SoundMuted;
   end;
@@ -909,7 +884,7 @@ procedure TBasicSound.Mute(Enable: Boolean);
 var
   chan: Integer;
 begin
-  if e_isSound(FID) then
+  if not e_isMusic(FID) then
   begin
     chan := Channel;
     if chan < 0 then Exit;
@@ -920,7 +895,7 @@ begin
       if ChanSIds[chan].muted then Mix_Volume(chan, 0) else Mix_Volume(chan, ChanSIds[chan].oldvol);
     end;
   end
-  else if e_isMusic(FID) then
+  else
   begin
     if Enable then Mix_VolumeMusic(0) else Mix_VolumeMusic(MusVolume);
   end;

@@ -557,6 +557,12 @@ function Mix_LoadMUS_RW( rw: PSDL_RWops ) : PMix_Music;
 cdecl; external {$IFDEF __GPC__}name 'Mix_LoadMUS_RW'{$ELSE} SDL_MixerLibName{$ENDIF __GPC__};
 {$EXTERNALSYM Mix_LoadMUS_RW}
 
+// 2025-12-31: added manually - BD.
+// https://github.com/libsdl-org/SDL_mixer/commit/89c8c0a849b7e561fddf6686bd1c1912f9ba52f9
+function Mix_LoadMUSType_RW(rw: PSDL_RWops; &type: Mix_MusicType; freesrc: Integer): PMix_Music;
+cdecl; external {$IFDEF __GPC__}name 'Mix_LoadMUSType_RW'{$ELSE} SDL_MixerLibName{$ENDIF __GPC__};
+{$EXTERNALSYM Mix_LoadMUSType_RW}
+
 { Load a wave file of the mixer format from a memory buffer }
 function Mix_QuickLoad_WAV( mem : PUint8 ) : PMix_Chunk;
 cdecl; external {$IFDEF __GPC__}name 'Mix_QuickLoad_WAV'{$ELSE} SDL_MixerLibName{$ENDIF __GPC__};
