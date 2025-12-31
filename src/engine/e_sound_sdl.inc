@@ -302,8 +302,8 @@ function e_LoadSound(FileName: String; var ID: TSoundID; isMusic: Boolean;
 var
   find_id: TSoundID;
 begin
-  ID := NO_SOUND_ID;
   Result := False;
+  ID := NO_SOUND_ID;
   if not SoundInitialized then Exit;
 
   if isMusic then e_WriteLog('Loading music '+FileName+'...', TMsgType.Notify)
@@ -354,10 +354,9 @@ var
   //pc: PChar;
   isid3: Boolean;
 begin
-  ID := NO_SOUND_ID;
   Result := False;
+  ID := NO_SOUND_ID;
   if not SoundInitialized then Exit;
-  isid3 := False;
 
   {
   if isMusic then
@@ -368,6 +367,7 @@ begin
   }
 
   //FIXME: correctly skip ID3
+  isid3 := False;
   {
   pc := PChar(pData);
   if (Length > $400) and (pc[0] = 'I') and (pc[1] = 'D') and (pc[2] = '3') then
@@ -394,7 +394,15 @@ begin
   if isMusic then
   begin
     e_WriteLog(Format('  MUSIC SLOT: %d', [find_id]), TMsgType.Notify);
-    e_SoundsArray[find_id].Music := Mix_LoadMUS_RW(rw {$IFNDEF SDL1MIXER}, 0{$ENDIF} );
+    e_SoundsArray[find_id].Music := Mix_LoadMUS_RW(rw {$IFNDEF SDL1MIXER}, Ord(SDL_TRUE){$ENDIF} );
+    {
+    if e_SoundsArray[find_id].Music <> nil then
+    begin
+      Mix_FreeMusic(e_SoundsArray[find_id].Music);
+    end;
+    e_SoundsArray[find_id].Music := nil;
+    Exit;
+    }
     if e_SoundsArray[find_id].Music = nil then
     begin
       e_WriteLog(Format('ERROR LOADING MUSIC: %d', [find_id]), TMsgType.Warning);
@@ -404,21 +412,13 @@ begin
     begin
       dumpMusicType(e_SoundsArray[find_id].Music);
     end;
-    //SDL_FreeRW(rw);
-    {
-    if e_SoundsArray[find_id].Music <> nil then
-    begin
-      Mix_FreeMusic(e_SoundsArray[find_id].Music);
-    end;
-    e_SoundsArray[find_id].Music := nil;
-    Exit;
-    }
+    //SDL_FreeRW(rw);  // FIXME: Causes segfault with digitized audio formats, like OGG/MP3.
   end
   else
   begin
-    e_SoundsArray[find_id].Sound := Mix_LoadWAV_RW(rw, 0);
+    e_SoundsArray[find_id].Sound := Mix_LoadWAV_RW(rw, Ord(SDL_TRUE));
   end;
-  //SDL_FreeRW(rw); // somehow it segfaults...
+
   if (e_SoundsArray[find_id].Sound = nil) and (e_SoundsArray[find_id].Music = nil) then
   begin
     e_SoundsArray[find_id].Data := nil;
