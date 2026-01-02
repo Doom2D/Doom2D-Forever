@@ -191,16 +191,6 @@ uses
   {$R *.res}
 {$ENDIF}
 
-// FIXME: As of 3.2.2, FormatBuf() allocates on heap, unfortunately, which could be corrupt.
-// https://gitlab.com/freepascal.org/fpc/source/-/issues/41475
-procedure FormatStaticString(out aString: ShortString; constref aFormat: String {type of constants};
-  const aList: array of const); inline;
-begin
-  SetLength(aString,
-    FormatBuf(aString[1], High(aString), PChar(aFormat)^, Length(aFormat), aList)
-  );
-end;
-
 // NB: Variables here are treated by FPC just like the unit ones, so it initializes them. See this:
 // - https://www.freepascal.org/docs-html/3.2.2/ref/refse21.html - 4.1: Variables / Definition
 // - https://wiki.freepascal.org/Global_variables
@@ -209,7 +199,7 @@ end;
 var
   k: Integer = 1;
   StopOnException: Boolean;
-  ErrorText: ShortString;
+  ErrorText: ShortString;  // can't use a long string here because heap may be corrupt on exception
   ErrorType: TClass;
   ErrorCode: LongInt;  // NB: this shadows ErrorCode typed constant in the System unit
 
@@ -227,10 +217,6 @@ var
 {$IFDEF ANDROID}
 function SDL_main(argc: CInt; argv: PPChar): CInt; cdecl;
 {$ENDIF}
-const
-  FormatException = '%s (%s:%d #%x, at $%p)';
-  FormatFatalError = 'FATAL ERROR (%s.%s $%p, at $%p)';
-  FormatMalfunction = 'invalid fault $%p at $%p - PROBABLY YOUR SOFTWARE OR HARDWARE IS BROKEN';
 begin
 {$IF DECLARED(UseHeapTrace)}
   heaptrc.HaltOnError := False;  // continue execution even if there is a heap error
@@ -276,15 +262,15 @@ begin
       else if E is EOSError then ErrorCode := EOSError(E).ErrorCode;
 
       ErrorType := Exception;
-      with Exception(E) do FormatStaticString(ErrorText, FormatException,
-        [Message, ClassName(), HelpContext, ErrorCode, ExceptAddr()]);
+      with Exception(E) do WriteStr(ErrorText, Message, ' (', ClassName(), ':', HelpContext, ' #',
+        IntToHex(ErrorCode), ', at $', HexStr(ExceptAddr()), ')');  // '%s (%s:%d #%x, at $%p)'
     end
     else
     begin
       ErrorType := TObject;
       // TODO: Switch to using TObject.QualifiedClassName() here? (available since FPC 3.1.1)
-      FormatStaticString(ErrorText, FormatFatalError,
-        [E.UnitName(), E.ClassName(), Addr(E), ExceptAddr()]);
+      WriteStr(ErrorText, 'FATAL ERROR (', E.UnitName(), '.', E.ClassName(), ' $', HexStr(Addr(E)),
+        ', at $', HexStr(ExceptAddr()), ')');  // 'FATAL ERROR (%s.%s $%p, at $%p)'
     end;
 
     e_WriteStackTrace(ErrorText);
@@ -310,7 +296,8 @@ begin
     // I doubt this being theoretically possible, as there can be no descendants not from TObject,
     // but RTL also checks for that case explicitly - see sysutils.inc:CatchUnhandledException().
     // Wondering what the result of SysUtils.ExceptObject() would be like in such a situation.
-    FormatStaticString(ErrorText, FormatMalfunction, [Pointer(ExceptObject()), ExceptAddr()]);
+    WriteStr(ErrorText, 'invalid fault $', HexStr(ExceptObject()), ' at $', HexStr(ExceptAddr()),
+      ' - THIS SHOULD NEVER HAPPEN, PLEASE MAKE SURE YOUR SOFTWARE OR HARDWARE IS NOT BROKEN!');
     e_WriteStackTrace(ErrorText);
     Raise;
   end;
