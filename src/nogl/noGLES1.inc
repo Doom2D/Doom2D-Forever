@@ -140,7 +140,7 @@ implementation
 
   function glGetError: GLenum;
   begin
-    result := es_glGetError
+    result := es_glGetError();
   end;
 
   procedure glClearColor(red, green, blue, alpha: GLclampf);
