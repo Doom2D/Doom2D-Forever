@@ -526,7 +526,7 @@ procedure e_DeleteSound(ID: TSoundID);
 var
   i: Integer;
 begin
-  if ID > High(e_SoundsArray) then Exit;
+  if (ID = NO_SOUND_ID) or (High(e_SoundsArray) < ID) then Exit;
   if e_SoundsArray[ID].Audio = nil then Exit;
 
   for i := 0 to N_CHANNELS-1 do
@@ -626,7 +626,6 @@ begin
   if SoundInitialized then e_StopChannels();
   for i := 0 to High(e_SoundsArray) do e_DeleteSound(i);
   SetLength(e_SoundsArray, 0);
-  e_SoundsArray := nil;
 end;
 
 procedure e_ReleaseSoundSystem();
