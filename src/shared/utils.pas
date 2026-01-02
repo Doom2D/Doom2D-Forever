@@ -184,8 +184,8 @@ function openDiskFileRW (pathname: AnsiString): TStream;
 
 function checkSign (st: TStream; const sign: AnsiString): Boolean;
 procedure writeSign (st: TStream; const sign: AnsiString);
-function readStr (st: TStream; maxlen: LongWord=65535): AnsiString;
-procedure writeStr (st: TStream; const str: AnsiString; maxlen: LongWord=65535);
+function streamReadStr (st: TStream; maxlen: LongWord=65535): AnsiString;
+procedure streamWriteStr (st: TStream; const str: AnsiString; maxlen: LongWord=65535);
 
 function nlerp (a, b: Integer; t: Single): Integer; inline;
 
@@ -1487,7 +1487,7 @@ begin
     st.WriteBuffer(sign[1], Length(sign));
 end;
 
-function readStr (st: TStream; maxlen: LongWord): AnsiString;
+function streamReadStr (st: TStream; maxlen: LongWord): AnsiString;
 var
   len: SizeUInt;
 begin
@@ -1503,7 +1503,7 @@ begin
   st.ReadBuffer(PAnsiChar(Result)^, len);
 end;
 
-procedure writeStr (st: TStream; const str: AnsiString; maxlen: LongWord);
+procedure streamWriteStr (st: TStream; const str: AnsiString; maxlen: LongWord);
 begin
   if Length(str) > maxlen then
     Raise EStreamError.Create('string too long');

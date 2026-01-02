@@ -1946,7 +1946,7 @@ begin
   begin
     if gCorpses[i] <> nil then
     begin
-      utils.writeStr(st, gCorpses[i].FModelName);  // Название модели
+      streamWriteStr(st, gCorpses[i].FModelName);  // Название модели
       st.WriteBool(gCorpses[i].Mess);  // Тип смерти
       gCorpses[i].SaveState(st);  // Сохраняем данные трупа:
     end;
@@ -1972,7 +1972,7 @@ begin
   // Загружаем трупы
   for i := 0 to count-1 do
   begin
-    str := utils.readStr(st);  // Название модели:
+    str := streamReadStr(st);  // Название модели:
     b := st.ReadBool();  // Тип смерти
 
     // Создаем труп
@@ -6242,7 +6242,7 @@ begin
 
   st.WriteBool(FIamBot);  // Бот или человек
   st.WriteWordLE(FUID);  // UID игрока
-  utils.writeStr(st, FName);  // Имя игрока
+  streamWriteStr(st, FName);  // Имя игрока
   st.WriteByte(FTeam);  // Команда
   st.WriteBool(FAlive);  // Жив ли
   st.WriteBool(FNoRespawn);  // Израсходовал ли все жизни
@@ -6307,7 +6307,7 @@ begin
     st.WriteDWordLE(FTime[i]);
 
   // Название модели
-  utils.writeStr(st, FModel.Name);
+  streamWriteStr(st, FModel.Name);
   // Цвет модели
   st.WriteByte(FColor.R);
   st.WriteByte(FColor.G);
@@ -6332,7 +6332,7 @@ begin
   FUID := st.ReadWordLE();  // UID игрока
 
   // Имя игрока
-  str := utils.readStr(st);
+  str := streamReadStr(st);
   if (self <> gPlayer1) and (self <> gPlayer2) then
     FName := str;
 
@@ -6400,7 +6400,7 @@ begin
     FTime[i] := st.ReadDWordLE();
 
   // Название модели
-  str := utils.readStr(st);
+  str := streamReadStr(st);
   // Цвет модели
   FColor.R := st.ReadByte();
   FColor.G := st.ReadByte();
@@ -8146,8 +8146,8 @@ begin
   // Флаги ИИ
   for i := 0 to dw-1 do
   begin
-    utils.writeStr(st, FAIFlags[i].Name, 20);
-    utils.writeStr(st, FAIFlags[i].Value, 20);
+    streamWriteStr(st, FAIFlags[i].Name, 20);
+    streamWriteStr(st, FAIFlags[i].Value, 20);
   end;
 
   // Настройки сложности
@@ -8177,8 +8177,8 @@ begin
   // Флаги ИИ
   for i := 0 to dw-1 do
   begin
-    FAIFlags[i].Name := utils.readStr(st, 20);
-    FAIFlags[i].Value := utils.readStr(st, 20);
+    FAIFlags[i].Name := streamReadStr(st, 20);
+    FAIFlags[i].Value := streamReadStr(st, 20);
   end;
 
   // Настройки сложности

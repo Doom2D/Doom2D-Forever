@@ -714,7 +714,7 @@ begin
       for flag in gGameSettings.Options do
       begin
         flags += strf;
-        System.WriteStr(strf, flag);  // FIXME: rename our utils.WriteStr()
+        WriteStr(strf, flag);
         flags += strf;
         strf := ', ';
       end;

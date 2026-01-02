@@ -3288,13 +3288,13 @@ begin
 {$IFDEF ENABLE_SOUND}
   Assert(gMusic <> nil, 'g_Map_SaveState: gMusic = nil');
   if gMusic.NoMusic
-    then utils.writeStr(st, '')
-    else utils.writeStr(st, gMusic.Name);
+    then streamWriteStr(st, '')
+    else streamWriteStr(st, gMusic.Name);
 
   st.WriteDWordLE(gMusic.GetPosition());  // Позиция проигрывания музыки
   st.WriteBool(gMusic.SpecPause);  // Стоит ли музыка на спец-паузе
 {$ELSE}
-  utils.writeStr(st, gMusicName);
+  streamWriteStr(st, gMusicName);
 
   st.WriteDWordLE(gMusicPos);
   st.WriteBool(gMusicPause);
@@ -3371,7 +3371,7 @@ begin
 {$IFDEF ENABLE_SOUND}
   Assert(gMusic <> nil, 'g_Map_LoadState: gMusic = nil');
 {$ENDIF}
-  str := utils.readStr(st);  // Название музыки
+  str := streamReadStr(st);  // Название музыки
   dw := st.ReadDWordLE();  // Позиция проигрывания музыки
   boo := st.ReadBool();  // Стоит ли музыка на спец-паузе
 

@@ -156,7 +156,7 @@ begin
       begin
         // 7+
         // Имя сэйва
-        result := utils.readStr(st, 64);
+        result := streamReadStr(st, 64);
       end;
       valid := (ver = SAVE_VERSION);
       //if (utils.readByte(st) <> SAVE_VERSION) then raise XStreamError.Create('invalid save game version');
@@ -185,14 +185,14 @@ begin
     try
       utils.writeSign(st, 'DFSV');
       st.WriteByte(SAVE_VERSION);
-      utils.writeStr(st, aname, 64);  // Имя сэйва
+      streamWriteStr(st, aname, 64);  // Имя сэйва
 
       // Полный путь к ваду и карта
       //if (Length(gCurrentMapFileName) <> 0) then e_LogWritefln('SAVE: current map is ''%s''...', [gCurrentMapFileName]);
-      utils.writeStr(st, gCurrentMapFileName);
+      streamWriteStr(st, gCurrentMapFileName);
 
-      utils.writeStr(st, ExtractFileName(gGameSettings.WAD));  // Путь к карте
-      utils.writeStr(st, g_ExtractFileName(gMapInfo.Map));  // Имя карты
+      streamWriteStr(st, ExtractFileName(gGameSettings.WAD));  // Путь к карте
+      streamWriteStr(st, g_ExtractFileName(gMapInfo.Map));  // Имя карты
       st.WriteWordLE(g_Player_GetCount);  // Количество игроков
       st.WriteDWordLE(gTime);  // Игровое время
       st.WriteByte(gGameSettings.GameType);  // Тип игры
@@ -315,10 +315,10 @@ begin
 
         ///// Загружаем состояние игры /////
         // Имя сэйва
-        {str :=} utils.readStr(st, 64);
+        {str :=} streamReadStr(st, 64);
 
         // Полный путь к ваду и карта
-        curmapfile := utils.readStr(st);
+        curmapfile := streamReadStr(st);
 
         if Length(gCurrentMapFileName) <> 0 then
           e_LogWritefln('LOAD: previous map was ''%s''...', [gCurrentMapFileName]);
@@ -329,8 +329,8 @@ begin
         g_Game_Free(curmapfile <> gCurrentMapFileName);  // don't free textures for the same map
         gameCleared := True;
 
-        WAD_Path := utils.readStr(st);  // Путь к карте
-        Map_Name := utils.readStr(st);  // Имя карты
+        WAD_Path := streamReadStr(st);  // Путь к карте
+        Map_Name := streamReadStr(st);  // Имя карты
         nPlayers := st.ReadWordLE();  // Количество игроков
         Game_Time := st.ReadDWordLE();  // Игровое время
         Game_Type := st.ReadByte();  // Тип игры

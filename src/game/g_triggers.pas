@@ -3311,11 +3311,11 @@ begin
       for kv in gTriggers[i].userVars.byKeyValue do
       begin
         //writeln('<', kv.key, '>:<', VarToStr(kv.value), '>');
-        utils.writeStr(st, kv.key);
+        streamWriteStr(st, kv.key);
         t := LongInt(varType(kv.value));
         st.WriteInt32LE(t);
         case t of
-          varString: utils.writeStr(st, AnsiString(kv.value));
+          varString: streamWriteStr(st, AnsiString(kv.value));
           varBoolean: st.WriteByte(Byte(kv.value));
           varShortInt: st.WriteInt32LE(kv.value);  // FIXME: must be WriteInt8().
           varSmallint: st.WriteInt32LE(kv.value);  // FIXME: must be WriteInt16LE().
@@ -3444,10 +3444,10 @@ begin
       //vv := Unassigned;
       repeat
         uvcount -= 1;
-        uvname := utils.readStr(st);
+        uvname := streamReadStr(st);
         vt := st.ReadInt32LE();
         case vt of
-          varString: vv := utils.readStr(st);
+          varString: vv := streamReadStr(st);
           varBoolean: vv := st.ReadBool();
           varShortInt: vv := ShortInt(st.ReadInt32LE());  // FIXME: must be ReadInt8().
           varSmallint: vv := SmallInt(st.ReadInt32LE());  // FIXME: must be ReadInt16LE().
