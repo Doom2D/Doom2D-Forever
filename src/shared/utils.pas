@@ -157,10 +157,11 @@ function utf8Valid (const s: AnsiString): Boolean;
 function utf8to1251 (s: AnsiString): AnsiString;
 
 // complies to TComparisonFunc<ShortString> from Generics.Default
-function SSArraySortFunc(constref Left, Right: ShortString): Integer;
+function SSArraySortFunc(
+  {$IF FPC_FULLVERSION > 30202} const {$ELSE} constref {$ENDIF} Left, Right: ShortString): Integer;
 
 // findFileCI takes case-insensitive path, traverses it, and rewrites it to
-// a case-sensetive one (using real on-disk names). return value means 'success'.
+// a case-sensitive one (using real on-disk names). return value means 'success'.
 // if some dir or file wasn't found, pathname is undefined (destroyed, but not
 // necessarily cleared).
 // last name assumed to be a file, not directory (unless `lastIsDir` flag is set).
@@ -1280,7 +1281,8 @@ end;
 //  2,3: Generics.Default._LookupVtableInfo*()
 //  4: TComparerService.LookupComparer()
 //  5: TComparerService.SelectShortStringComparer()
-function SSArraySortFunc(constref Left, Right: ShortString): Integer;
+function SSArraySortFunc(
+  {$IF FPC_FULLVERSION > 30202} const {$ELSE} constref {$ENDIF} Left, Right: ShortString): Integer;
 begin
   // We can't use ShortCompareText() directly as its parameters are 'const', not 'constref', and it
   // returns SizeInt instead of Integer. The standard TCompare.ShortString() from Generics.Defaults
