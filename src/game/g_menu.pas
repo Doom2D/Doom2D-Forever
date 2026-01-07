@@ -1213,6 +1213,7 @@ begin
   g_Sound_CreateWADEx('SCROLL_ADD', GameWAD+':SOUNDS\SCROLLADD');
   g_Sound_CreateWADEx('SCROLL_SUB', GameWAD+':SOUNDS\SCROLLSUB');
   g_Sound_CreateWADEx('SOUND_PLAYER_FALL', GameWAD+':SOUNDS\FALL');
+  g_Sound_CreateWADEx('MUSIC_CREDITS', GameWAD+':MUSIC\MENU', True);
 {$ENDIF}
 end;
 
@@ -1261,7 +1262,7 @@ end;
 procedure ProcAuthorsMenu();
 begin
 {$IFDEF ENABLE_SOUND}
-  gMusic.SetByName('MUSIC_INTERMUS');
+  gMusic.SetByName('MUSIC_CREDITS');
   gMusic.Play();
 {$ENDIF}
 end;
