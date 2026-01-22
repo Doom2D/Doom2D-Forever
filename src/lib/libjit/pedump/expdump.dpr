@@ -32,21 +32,21 @@ type
 
 
 var
-  inFile: AnsiString = '';
+  inFile: AnsiString;
 
-  showSexInfo: Boolean = true;
-  showExports: Boolean = true;
+  showSexInfo: Boolean = True;
+  showExports: Boolean = True;
 
-  pe: Pointer = nil;
-  peSize: Integer = 0;
-  isDll: Boolean = false;
+  pe: Pointer;
+  peSize: Integer;
+  isDll: Boolean;
 
-  expDLLName: AnsiString = '';
-  expOrdBase: LongWord = 0;
-  expNames: array of TExportNameRecord = nil;
-  expOrds: array of LongWord = nil; // rva's
-  expFwds: array of AnsiString = nil;   // <> '': no fwd
-  //expHasFwd: Boolean = false;
+  expDLLName: AnsiString;
+  expOrdBase: LongWord;
+  expNames: array of TExportNameRecord;
+  expOrds: array of LongWord;  // rva's
+  expFwds: array of AnsiString;  // <> '': no fwd
+  //expHasFwd: Boolean;
 
 
 // ////////////////////////////////////////////////////////////////////////// //

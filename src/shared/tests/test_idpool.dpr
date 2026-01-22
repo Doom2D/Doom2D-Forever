@@ -44,7 +44,7 @@ end;
 procedure hardTest ();
 var
   ip: TIdPool;
-  map: array of Boolean = nil;
+  map: array of Boolean;
   f, n: Integer;
   usedIds: Integer = 0;
 begin

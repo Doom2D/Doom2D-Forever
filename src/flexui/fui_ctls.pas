@@ -607,7 +607,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  ctlsToKill: array of TUIControl = nil;
+  ctlsToKill: array of TUIControl;
 
 
 procedure scheduleKill (ctl: TUIControl);
@@ -648,7 +648,7 @@ var
   knownCtlClasses: array of record
     klass: TUIControlClass;
     name: AnsiString;
-  end = nil;
+  end;
 
 
 procedure registerCtlClass (aklass: TUIControlClass; const aname: AnsiString);

@@ -358,7 +358,7 @@ end;
 function g_Res_DownloadMapWAD (FileName: AnsiString; const mapHash: TMD5Digest): AnsiString;
 var
   tf: TNetFileTransfer;
-  resList: array of TNetMapResourceInfo = nil;
+  resList: array of TNetMapResourceInfo;
   f, res: Integer;
   strm: TStream;
   fname: AnsiString;
@@ -367,8 +367,8 @@ var
   mapdbUpdated: Boolean = false;
   resdbUpdated: Boolean = false;
   transStarted: Boolean;
-  destMapDir: AnsiString = '';
-  destResDir: AnsiString = '';
+  destMapDir: AnsiString;
+  destResDir: AnsiString;
 begin
   result := '';
   clearReplacementWads();

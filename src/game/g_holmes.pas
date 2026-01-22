@@ -220,7 +220,7 @@ procedure createHelpWindow ();
   procedure addHelpMouse (const key, txt: AnsiString); begin addHelpKeyMouse(key, txt, 'help-mouse'); end;
 
 var
-  slist: array of AnsiString = nil;
+  slist: array of AnsiString;
   cmd: PHolmesCommand;
   bind: THolmesBinding;
   f: Integer;
@@ -551,7 +551,7 @@ function pmsCurMapY (): Integer; inline; begin result := round(msY/g_dbg_scale)+
 
 {$IFDEF HOLMES_OLD_OUTLINES}
 var
-  edgeBmp: array of Byte = nil;
+  edgeBmp: array of Byte;
 
 
 procedure drawOutlines ();

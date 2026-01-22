@@ -602,8 +602,8 @@ end;
 
 
 var
-  monCheckList: array of TMonster = nil;
-  monCheckListUsed: Integer = 0;
+  monCheckList: array of TMonster;
+  monCheckListUsed: Integer;
 
 procedure TPanel.Update();
 var

@@ -126,7 +126,7 @@ end;
 procedure TSFSZipVolume.ZIPReadDirectory ();
 var
   fi: TSFSZipFileInfo;
-  fname: AnsiString = '';
+  fname: AnsiString;
   sign: packed array [0..3] of Char;
   lhdr: TZLocalFileHeader;
   ignoreFile: Boolean;
@@ -137,7 +137,7 @@ var
   bufsz, f: Integer;
   cdofs, hdrofs: Int64;
   cdsize: LongWord;
-  fileOffsets: array of Int64 = nil;
+  fileOffsets: array of Int64;
   nameLen, extraLen, commentLen: Word;
   fileIdx: Integer = -1;
 begin

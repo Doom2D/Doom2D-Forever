@@ -139,8 +139,8 @@ type
   end;
 
 var
-  texturesArray: array of _TTexture = nil;
-  framesArray: array of TFrames = nil;
+  texturesArray: array of _TTexture;
+  framesArray: array of TFrames;
 
 
 const

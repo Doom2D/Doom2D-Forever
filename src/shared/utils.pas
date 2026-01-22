@@ -33,7 +33,7 @@ const
   // Unicode REPLACEMENT CHARACTER used to replace an unknown, unrecognised, or unrepresentable character
   InvalidUnicodeCodepoint = $FFFD;
 
-  wadExtensions: array of AnsiString = (
+  wadExtensions: array[0..6] of AnsiString = (
     '.dfz',
     '.wad',
     '.dfwad',

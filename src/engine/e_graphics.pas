@@ -207,14 +207,14 @@ type
   end;
 
 var
-  e_Textures: array of TTexture = nil;
-  e_TextureFonts: array of TTextureFont = nil;
+  e_Textures: array of TTexture;
+  e_TextureFonts: array of TTextureFont;
   e_CharFonts: array of TCharFont;
   //e_SavedTextures: array of TSavedTexture;
-  e_FBO: GLuint = 0;
-  e_RBO: GLuint = 0;
+  e_FBO: GLuint;
+  e_RBO: GLuint;
   e_RBOSupported: Boolean = True;
-  e_Frame: GLuint = 0;
+  e_Frame: GLuint;
   e_FrameW: Integer = -1;
   e_FrameH: Integer = -1;
 

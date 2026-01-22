@@ -460,9 +460,9 @@ type
   end;
 
 var
-  g_dynLights: array of TDynLight = nil;
-  g_dynLightCount: Integer = 0;
-  g_playerLight: Boolean = false;
+  g_dynLights: array of TDynLight;
+  g_dynLightCount: Integer;
+  g_playerLight: Boolean;
 
 procedure g_ResetDynlights ();
 var
@@ -1391,7 +1391,7 @@ end;
 procedure g_Game_Init();
 var
   SR: TSearchRec;
-  knownFiles: array of AnsiString = nil;
+  knownFiles: array of AnsiString;
   found: Boolean;
   wext, s: AnsiString;
   f: Integer;

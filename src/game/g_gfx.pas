@@ -147,21 +147,21 @@ type
 
 
 var
-  Particles: array of TParticle = nil;
-  OnceAnims: array of TOnceAnim = nil;
-  MaxParticles: Integer = 0;
-  CurrentParticle: Integer = 0;
+  Particles: array of TParticle;
+  OnceAnims: array of TOnceAnim;
+  MaxParticles: Integer;
+  CurrentParticle: Integer;
   // awakeMap has one bit for each map grid cell; on g_Mark,
   // corresponding bits will be set, and in `think()` all particles
   // in marked cells will be awaken
-  awakeMap: packed array of LongWord = nil;
+  awakeMap: packed array of LongWord;
   awakeMapH: Integer = -1;
   awakeMapW: Integer = -1;
   awakeMinX, awakeMinY: Integer;
-  awakeDirty: Boolean = false;
-  {$IF DEFINED(D2F_DEBUG_PART_AWAKE)}
-  awakeMapHlm: packed array of LongWord = nil;
-  {$ENDIF}
+  awakeDirty: Boolean;
+{$IF DEFINED(D2F_DEBUG_PART_AWAKE)}
+  awakeMapHlm: packed array of LongWord;
+{$ENDIF}
 
 
 // ////////////////////////////////////////////////////////////////////////// //

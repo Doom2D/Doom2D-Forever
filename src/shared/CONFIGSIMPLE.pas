@@ -29,7 +29,7 @@ implementation
 uses windows;
 
 var
-  cfg_data: array of ShortString = nil;
+  cfg_data: array of ShortString;
 
 function tostr(i: Integer): string;
 begin
