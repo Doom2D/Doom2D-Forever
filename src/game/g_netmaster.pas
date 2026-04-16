@@ -676,7 +676,7 @@ begin
       srvAnswer[f].MaxPlayers := msg.ReadByte();
       srvAnswer[f].Protocol := msg.ReadByte();
       srvAnswer[f].Password := msg.ReadByte() = 1;
-      enet_address_set_host(Addr(srvAnswer[f].PingAddr), PChar(Addr(srvAnswer[f].IP[1])));
+      enet_address_set_host(Addr(srvAnswer[f].PingAddr), PChar(srvAnswer[f].IP));
       srvAnswer[f].Ping := -1;
       srvAnswer[f].PingAddr.port := NET_PING_PORT;
     end;
@@ -975,7 +975,7 @@ begin
   end
   else
   begin
-    if (enet_address_set_host(@ea, PChar(Addr(hostName[1]))) <> 0) then
+    if (enet_address_set_host(@ea, PChar(hostName)) <> 0) then
     begin
       knownHosts.put(hostName, 0);
       exit;
@@ -1246,7 +1246,7 @@ var
 begin
   S.IP := '255.255.255.255';
   S.Port := NET_PING_PORT;
-  enet_address_set_host(Addr(S.PingAddr), PChar(Addr(S.IP[1])));
+  enet_address_set_host(Addr(S.PingAddr), PChar(S.IP));
   S.Ping := -1;
   S.PingAddr.port := S.Port;
   PingServer(S, Sock);

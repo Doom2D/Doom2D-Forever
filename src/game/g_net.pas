@@ -2009,7 +2009,7 @@ begin
     Exit;
   end;
 
-  enet_address_set_host(@NetAddr, PChar(Addr(IP[1])));
+  enet_address_set_host(@NetAddr, PChar(IP));
   NetAddr.port := Port;
 
   NetPeer := enet_host_connect(NetHost, @NetAddr, NET_CHANNELS, NET_PROTOCOL_VER);
@@ -2085,7 +2085,7 @@ function StrToIp(IPstr: string; var IP: LongWord): Boolean;
 var
   EAddr: ENetAddress;
 begin
-  Result := enet_address_set_host(@EAddr, PChar(@IPstr[1])) = 0;
+  Result := enet_address_set_host(@EAddr, PChar(IPstr)) = 0;
   IP := EAddr.host;
 end;
 
