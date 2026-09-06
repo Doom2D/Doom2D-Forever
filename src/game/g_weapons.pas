@@ -581,10 +581,10 @@ begin
         Obj.Rect.Width := SHOT_ROCKETLAUNCHER_WIDTH;
         Obj.Rect.Height := SHOT_ROCKETLAUNCHER_HEIGHT;
 
-        Animation := nil;
         Triggers := nil;
         ShotType := WEAPON_ROCKETLAUNCHER;
-        g_Texture_Get('TEXTURE_WEAPON_ROCKET', TextureID);
+        g_Frames_Get(FramesID, 'FRAMES_WEAPON_ROCKET');
+        Animation := TAnimation.Create(FramesID, True, 8);
       end;
     end;
 
@@ -1106,7 +1106,7 @@ begin
   g_Sound_CreateWADEx('SOUND_PLAYER_SHELL2', GameWAD+':SOUNDS\SHELL2');
 {$ENDIF}
 
-  g_Texture_CreateWADEx('TEXTURE_WEAPON_ROCKET', GameWAD+':TEXTURES\BROCKET');
+  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_ROCKET', GameWAD+':TEXTURES\BROCKET', 64, 16, 4);
   g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_SKELFIRE', GameWAD+':TEXTURES\BSKELFIRE', 64, 16, 2);
   g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_BFG', GameWAD+':TEXTURES\BBFG', 64, 64, 2);
   g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_PLASMA', GameWAD+':TEXTURES\BPLASMA', 16, 16, 2);
@@ -1178,7 +1178,7 @@ begin
   g_Sound_Delete('SOUND_PLAYER_SHELL2');
 {$ENDIF}
 
-  g_Texture_Delete('TEXTURE_WEAPON_ROCKET');
+  g_Frames_DeleteByName('FRAMES_WEAPON_ROCKET');
   g_Frames_DeleteByName('FRAMES_WEAPON_BFG');
   g_Frames_DeleteByName('FRAMES_WEAPON_PLASMA');
   g_Frames_DeleteByName('FRAMES_WEAPON_IMPFIRE');
@@ -1631,6 +1631,7 @@ end;
 function g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: SizeInt; Silent: Boolean;
   compat: Boolean): SizeInt;
 var
+  FramesID: DWORD; 
   dx, dy: Integer;
 begin
   if WID < 0 then
@@ -1657,9 +1658,9 @@ begin
     ShotType := WEAPON_ROCKETLAUNCHER;
     throw(Result, x+dx, y+dy, xd+dx, yd+dy, 12);
 
-    Animation := nil;
     triggers := nil;
-    g_Texture_Get('TEXTURE_WEAPON_ROCKET', TextureID);
+    g_Frames_Get(FramesID, 'FRAMES_WEAPON_ROCKET');
+    Animation := TAnimation.Create(FramesID, True, 8);
   end;
 
   Projectiles[Result].SpawnerUID := SpawnerUID;
@@ -2464,7 +2465,7 @@ begin
 
         if Animation <> nil then
           begin
-            if Projectiles[i].ShotType in [WEAPON_BARON_FIRE, WEAPON_MANCUB_FIRE, WEAPON_SKEL_FIRE]
+            if Projectiles[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_BARON_FIRE, WEAPON_MANCUB_FIRE, WEAPON_SKEL_FIRE]
               then Animation.DrawEx(fX, fY, TMirrorType.None, p, a)
               else Animation.Draw(fX, fY, TMirrorType.None);
           end
@@ -2591,7 +2592,10 @@ begin
 
     case Projectiles[i].ShotType of
       WEAPON_ROCKETLAUNCHER, WEAPON_SKEL_FIRE:
-        g_Texture_Get('TEXTURE_WEAPON_ROCKET', Projectiles[i].TextureID);
+      begin
+        g_Frames_Get(dw, 'FRAMES_WEAPON_ROCKET');
+        Projectiles[i].Animation := TAnimation.Create(dw, True, 8);
+      end;
       WEAPON_PLASMA:
       begin
         g_Frames_Get(dw, 'FRAMES_WEAPON_PLASMA');
