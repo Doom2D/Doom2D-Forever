@@ -206,10 +206,6 @@ const
   FLAG_BASEPOINT: TDFPoint = (X:16; Y:43);
   FLAG_DEFPOINT:  TDFPoint = (X:32; Y:16);
   FLAG_DEFANGLE = -20;
-  WEAPONBASE: Array [WP_FIRST + 1..WP_LAST] of TDFPoint =
-              ((X:8; Y:4), (X:8; Y:8), (X:16; Y:16), (X:16; Y:24),
-               (X:16; Y:16), (X:24; Y:24), (X:16; Y:16), (X:24; Y:24),
-               (X:16; Y:16), (X:8; Y:8));
 
   AnimNames: Array [A_STAND..A_LASTEXT] of String =
              ('StandAnim','WalkAnim','Die1Anim','Die2Anim','AttackAnim',
@@ -284,8 +280,15 @@ begin
   Result := True;
 end;
 
-function GetWeapPoints(str: String; weapon: Byte; anim: Byte; dir: TDirection;
-                       frames: Word; backanim: Boolean; var wpoints: TWeaponPoints): Boolean;
+function GetWeapPoints(str: String; weapon: Byte; anim: Byte; dir: TDirection; frames: Word;
+  backanim, AdjustBase: Boolean; var wpoints: TWeaponPoints): Boolean;
+const
+  // > BlackDoomer: idk why Stas'M once picked (8;8) for the flamethrower instead of (16;16) from
+  // the plasmagun it's modeled after, but here we are.
+  WEAPONBASE: Array [WP_FIRST + 1..WP_LAST] of TDFPoint = (
+    (X: 8; Y: 4), (X: 8; Y: 8), (X:16; Y:16), (X:16; Y:24), (X:16; Y:16),
+    (X:24; Y:24), (X:16; Y:16), (X:24; Y:24), (X:16; Y:16), (X: 8; Y: 8)
+  );
 var
   a, b, h: Integer;
 begin
@@ -303,8 +306,11 @@ begin
 
     with wpoints[weapon, anim, dir, a-1] do
     begin
-      X := X - WEAPONBASE[weapon].X;
-      Y := Y - WEAPONBASE[weapon].Y;
+      if AdjustBase then
+      begin
+        X := X - WEAPONBASE[weapon].X;
+        Y := Y - WEAPONBASE[weapon].Y;
+      end;
       if dir = TDirection.D_LEFT then
         X := -X;
     end;
@@ -604,22 +610,28 @@ begin
       FreeMem(pData2);
     end;
 
+    // TODO: This is supposed to be a list, so in future one would also need to add logic to handle
+    // multiple values separated by a comma, e.g. `guns2,coolanims,emotes`.
+    HasW2 := config.ReadStr('Model', 'features', '') = 'guns2';
+
     ok := True;
     for aa := WP_FIRST + 1 to WP_LAST do
+    begin
       for bb := A_STAND to A_LAST do
+      begin
         if not (bb in [A_DIE1, A_DIE2, A_PAIN]) then
         begin
           chk := GetWeapPoints(config.ReadStr(AnimNames[bb], WeapNames[aa]+'_points', ''), aa, bb, TDirection.D_RIGHT,
                                config.ReadInt(AnimNames[bb], 'frames', 0),
                                config.ReadBool(AnimNames[bb], 'backanim', False),
-                               WeaponPoints);
+                               not HasW2, WeaponPoints);
           if ok and (not chk) and (aa = WEAPON_FLAMETHROWER) then
           begin
-            // workaround for flamethrower
+            // workaround for flamethrower, as it was introduced much later than many of the skins
             chk := GetWeapPoints(config.ReadStr(AnimNames[bb], WeapNames[WEAPON_PLASMA]+'_points', ''), aa, bb, TDirection.D_RIGHT,
                                  config.ReadInt(AnimNames[bb], 'frames', 0),
                                  config.ReadBool(AnimNames[bb], 'backanim', False),
-                                 WeaponPoints);
+                                 not HasW2, WeaponPoints);
             if chk then
             for f := 0 to High(WeaponPoints[aa, bb, TDirection.D_RIGHT]) do
             begin
@@ -667,7 +679,7 @@ begin
           if not GetWeapPoints(config.ReadStr(AnimNames[bb], WeapNames[aa]+'2_points', ''), aa, bb, TDirection.D_LEFT,
                                config.ReadInt(AnimNames[bb], 'frames', 0),
                                config.ReadBool(AnimNames[bb], 'backanim', False),
-                               WeaponPoints) then
+                               not HasW2, WeaponPoints) then
             for f := 0 to High(WeaponPoints[aa, bb, TDirection.D_RIGHT]) do
             begin
               WeaponPoints[aa, bb, TDirection.D_LEFT, f].X := -WeaponPoints[aa, bb, TDirection.D_RIGHT, f].X;
@@ -676,6 +688,8 @@ begin
 
           if not ok then Break;
         end;
+      end;
+    end;
     {if ok then g_Console_Add(Info.Name+' weapon points ok')
     else g_Console_Add(Info.Name+' weapon points fail');}
     Info.HaveWeapon := ok;
@@ -684,11 +698,6 @@ begin
     if not GetPoint(s, FlagPoint) then FlagPoint := FLAG_DEFPOINT;
 
     FlagAngle := config.ReadInt('Model', 'flag_angle', FLAG_DEFANGLE);
-
-    // TODO this is supposed to be a list, so in future one would also need
-    // to add logic to handle multiple values separated by a comma, eg.
-    // guns2,coolanims,emotes
-    HasW2 := config.ReadStr('Model', 'features', '') = 'guns2';
   end;
 
   config.Free();
