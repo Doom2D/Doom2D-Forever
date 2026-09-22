@@ -52,6 +52,7 @@ procedure g_GFX_Free ();
 procedure g_GFX_Blood (fX, fY: Integer; count: Word; vx, vy: Integer;
                        devX, devY: Word; cr, cg, cb: Byte; kind: Byte=BLOOD_NORMAL);
 procedure g_GFX_Spark (fX, fY: Integer; count: Word; angle: SmallInt; devX, devY: Byte);
+procedure g_GFX_SparkVel (fX, fY: Integer; count: Word; vx, vy: Integer; devX, devY: Byte);
 procedure g_GFX_Water (fX, fY: Integer; count: Word; fVelX, fVelY: Single; devX, devY, color: Byte;
                        simple: Boolean=false; cr: Byte=0; cg: Byte=0; cb: Byte=0);
 procedure g_GFX_SimpleWater (fX, fY: Integer; count: Word; fVelX, fVelY: Single; defColor, cr, cg, cb: Byte);
@@ -929,7 +930,8 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure g_GFX_SparkVel (fX, fY: Integer; count: Word; vx, vy: Integer; devX, devY: Byte); forward;
+//procedure g_GFX_SparkVel (fX, fY: Integer; count: Word; vx, vy: Integer; devX, devY: Byte); forward;
+//J: перенес вверх, к остальным g_GFX
 
 procedure g_GFX_Blood (fX, fY: Integer; count: Word; vx, vy: Integer;
                        devX, devY: Word; cr, cg, cb: Byte; kind: Byte = BLOOD_NORMAL);
