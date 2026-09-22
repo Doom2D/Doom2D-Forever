@@ -584,7 +584,7 @@ begin
         Triggers := nil;
         ShotType := WEAPON_ROCKETLAUNCHER;
         g_Frames_Get(FramesID, 'FRAMES_WEAPON_ROCKET');
-        Animation := TAnimation.Create(FramesID, True, 8);
+        Animation := TAnimation.Create(FramesID, True, 3);
       end;
     end;
 
@@ -1660,7 +1660,7 @@ begin
 
     triggers := nil;
     g_Frames_Get(FramesID, 'FRAMES_WEAPON_ROCKET');
-    Animation := TAnimation.Create(FramesID, True, 8);
+    Animation := TAnimation.Create(FramesID, True, 3);
   end;
 
   Projectiles[Result].SpawnerUID := SpawnerUID;
@@ -2594,7 +2594,7 @@ begin
       WEAPON_ROCKETLAUNCHER, WEAPON_SKEL_FIRE:
       begin
         g_Frames_Get(dw, 'FRAMES_WEAPON_ROCKET');
-        Projectiles[i].Animation := TAnimation.Create(dw, True, 8);
+        Projectiles[i].Animation := TAnimation.Create(dw, True, 3);
       end;
       WEAPON_PLASMA:
       begin
@@ -2640,6 +2640,7 @@ var
   cx, cy: Integer;
   Anim: TAnimation;
   s: String;
+  k: Integer;   // счётчик для цикла разлёта партиклов
 begin
   with Projectiles[I] do
   begin
@@ -2656,6 +2657,19 @@ begin
           g_GFX_OnceAnim(cx-64, cy-64, Anim);
           Anim.Destroy();
           g_DynLightExplosion(cx, cy, 64, 1, 0, 0);
+		  // ===================================================================
+		  // Радиальный разлёт: задаём скорость вручную через sin/cos.
+          // g_GFX_SparkVel уже даёт жёлто-оранжевый цвет внутри себя.
+         for k := 0 to 127 do
+            g_GFX_SparkVel(
+              cx, cy, 1,
+              Round(cos(DegToRad(Random(360))) * (15 + Random(4))),
+              Round(sin(DegToRad(Random(360))) * (15 + Random(4))) - 3,
+              6, 6
+            );
+		  		  
+          // -------------------------------------------------------------------
+		  
         {$IFDEF ENABLE_SOUND}
           g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', Obj.X, Obj.Y);
         {$ENDIF}
